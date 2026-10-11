@@ -17,20 +17,24 @@ RULES = {
     'rules': 'Sources, sinks, sanitizers and propagators are caller-supplied contracts.',
     'names': 'Local bindings and shadowing prevent guessed external calls or unbound value claims.',
     'locations': 'Witnesses retain source revisions, UTF-8 byte spans and one-based Unicode columns.',
-    'boundaries': 'Unsupported syntax and exhausted budgets remain incomplete; implicit exceptions are outside the model.',
+    'boundaries': 'Unsupported constructs and exhausted budgets remain incomplete; invalid entry syntax and inputs can refuse analysis.',
 }
 
 
 def example(key, rules, body, events=(), returned=None, raised=None, witness=False,
             prelude='', complete=True, cutoff=None, difference=None, steps=4096, source_index=0,
-            normal=True, may_raise=False, files=None, path='subject.py', phase='entry'):
+            normal=True, may_raise=False, files=None, path='subject.py', phase='entry', depth=8,
+            bytes_limit=262144, refusal=None, module_files=None, module_lookup=None):
     return {'id': key, 'rules_checked': rules.split(),
             'source': prelude + 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines()),
             'expected_runtime': {'events': list(events), 'returned': returned, 'raised': raised, 'phase': phase},
-            'expected_model': {'witness': witness, 'pairs': [[source_index, 0]] if witness else [],
+            'expected_model': ({'outcome': 'refused', 'exit_code': 1,
+                                'error': {'error': {'kind': 'error', 'message': refusal}}} if refusal else
+                              {'outcome': 'report', 'witness': witness, 'pairs': [[source_index, 0]] if witness else [],
                                'complete': complete, 'cutoff': cutoff,
-                               'completion': {'normal_return': normal, 'may_raise': may_raise} if complete else None},
-            'difference': difference, 'steps': steps, 'files': files or {}, 'path': path,
+                               'completion': {'normal_return': normal, 'may_raise': may_raise} if complete else None}),
+            'difference': difference, 'steps': steps, 'depth': depth, 'bytes': bytes_limit,
+            'module_files': module_files, 'module_lookup': module_lookup, 'files': files or {}, 'path': path,
             'imports': files is not None}
 
 
@@ -247,11 +251,127 @@ multiple_sinks = example('import-distinct-sink-files', 'imports rules locations'
         'beta.py': 'def relay(value):\n    sink(value)\n    return 0\n'})
 multiple_sinks['expected_model']['pairs'] = [[0, 0], [0, 1]]
 EXAMPLES.append(multiple_sinks)
+
+# Boundary expectations are authored before collection. A stopped search is never
+# an absence proof, and a CLI error has no analysis completeness or witness answer.
+for depth in (2, 3):
+    for direction, argument, events, returned in [('selected', 'source()', [S, T], 17),
+                                                 ('discarded', '0', [ZERO], 0)]:
+        EXAMPLES.append(example(f'discovery-depth-{depth}-{direction}', 'recursion returns boundaries',
+            f'return sink(relay({argument}))', events, returned, witness=depth == 3 and direction == 'selected',
+            prelude='def bounce(value):\n    return value\ndef relay(value):\n    return bounce(value)\n',
+            depth=depth, complete=depth == 3, cutoff='call-depth-budget' if depth == 2 else None,
+            difference='Discovery stops before the second helper; an incomplete report cannot rule out its return.'
+                       if depth == 2 else None))
+
+EXAMPLES.extend([
+    example('refuse-entry-syntax', 'boundaries', 'return source() +', raised='SyntaxError', phase='definition',
+            refusal='dataflow refuses syntax errors'),
+    example('refuse-local-rule', 'rules names boundaries', 'return sink(source())', [T], 17,
+            prelude='def source():\n    return 17\n', refusal='rule overlaps another rule or local definition.'),
+    example('refuse-import-rule', 'imports rules names boundaries', 'return sink(source())', [T], 17,
+            prelude='from helper import relay as source\n', files={'helper.py': 'def relay():\n    return 17\n'},
+            refusal='rule overlaps another rule or local definition.'),
+    example('refuse-import-entry', 'imports boundaries', 'return sink(source())', [S, T], 17,
+            files={'subject.pyi': ''}, refusal='imported flow requires an unambiguous root-local Python source entry.'),
+    example('refuse-step-budget', 'boundaries', 'return sink(source())', [S, T], 17, steps=0,
+            refusal='invalid analysis budget'),
+    example('refuse-depth-budget', 'boundaries', 'return sink(source())', [S, T], 17, depth=0,
+            refusal='invalid analysis budget'),
+    example('refuse-byte-budget', 'boundaries', 'return sink(source())', [S, T], 17, bytes_limit=1,
+            refusal='invalid response byte budget'),
+])
+
+for direction, argument, events, returned in [('selected', 'source()', [S, T], 17),
+                                             ('discarded', '0', [ZERO], 0)]:
+    tainted = direction == 'selected'
+    for kind, modules in [
+        ('package', {'helper.py': 'def relay(value):\n    return 0\n',
+                     'helper/__init__.py': 'def relay(value):\n    return value\n'}),
+        ('stub', {'helper.py': 'def relay(value):\n    return value\n', 'helper.pyi': ''}),
+    ]:
+        EXAMPLES.append(example('import-ambiguous-' + kind + '-' + direction, 'imports names boundaries',
+            f'return sink(helper.relay({argument}))', events, returned, witness=tainted,
+            prelude='import helper\n', files=modules, module_files=['subject.py'],
+            complete=False, cutoff='unresolved-local-import',
+            difference='Python selects a runtime module; the static contract refuses competing candidates and retains argument origins.'))
+
+    EXAMPLES.append(example('import-parameter-shadow-' + direction, 'imports names calls boundaries',
+        f'return sink(relay(0, {argument}))', [S] if tainted else [], raised='AttributeError', witness=tainted,
+        prelude='import helper\ndef relay(helper, value):\n    return helper.relay(value)\n',
+        files={'helper.py': 'def relay(value):\n    return value\n'},
+        complete=False, cutoff='ambiguous-call',
+        difference='The parameter hides the imported module; an unknown call can retain arguments without a runtime sink call.'))
+    EXAMPLES.append(example('import-assignment-shadow-' + direction, 'imports names assignments boundaries',
+        f'value = helper.relay({argument})\nhelper = 0\nreturn sink(value)', raised='UnboundLocalError',
+        witness=tainted, prelude='import helper\n', files={'helper.py': 'def relay(value):\n    return value\n'},
+        complete=False, cutoff='ambiguous-call',
+        difference='A later local assignment hides the module throughout the function; Python fails before evaluating arguments.'))
+    EXAMPLES.append(example('import-global-shadow-' + direction, 'imports names boundaries',
+        f'return sink(helper.relay({argument}))', raised='AttributeError', witness=tainted,
+        prelude='import helper\nhelper = 0\n', files={'helper.py': 'def relay(value):\n    return value\n'},
+        complete=False, cutoff='module-effects-unchecked',
+        difference='Module initialization overwrites the import; unchecked initialization cannot justify runtime execution.'))
+    EXAMPLES.append(example('import-binding-conflict-' + direction, 'imports names boundaries',
+        f'return sink(relay({argument}))', events, returned, witness=tainted,
+        prelude='import helper as relay\ndef relay(value):\n    return value\n',
+        files={'helper.py': 'def bounce(value):\n    return value\n'},
+        complete=False, cutoff='ambiguous-module-binding'))
+
+    # The first helper stays admitted when unrelated imports exhaust the closure.
+    # The control below fits the same boundary, without changing the analyzer.
+    for count in (15, 17):
+        modules = {f'unit{number}.py': 'def relay(value):\n    return value\n' for number in range(count)}
+        EXAMPLES.append(example(f'import-module-limit-{count}-{direction}', 'imports boundaries locations',
+            f'return sink(unit0.relay({argument}))', events, returned, witness=tainted,
+            prelude=''.join(f'import unit{number}\n' for number in range(count)), files=modules,
+            module_files=['subject.py', *(f'unit{number}.py' for number in range(min(count, 15)))],
+            complete=count == 15, cutoff='import-module-budget' if count == 17 else None))
+    EXAMPLES.append(example('import-byte-limit-' + direction, 'imports boundaries',
+        f'return sink(helper.relay({argument}))', events, returned, witness=tainted,
+        prelude='import helper\n', files={'helper.py': '# ' + 'x' * 262144 + '\ndef relay(value):\n    return value\n'},
+        module_files=['subject.py'], complete=False, cutoff='import-source-byte-budget',
+        difference='The helper exceeds the source budget; unknown call arguments survive only in an incomplete report.'))
+    EXAMPLES.append(example('import-lookup-limit-' + direction, 'imports boundaries',
+        f'return sink(alias0.relay({argument}))', events, returned, witness=tainted,
+        prelude=''.join(f'import helper as alias{number}\n' for number in range(129)),
+        files={'helper.py': 'def relay(value):\n    return value\n'},
+        complete=False, cutoff='import-lookup-budget'))
+
+    even, odd = [], []
+    for number in range(20):
+        (even if number % 2 == 0 else odd).append(
+            f'from {"beta" if number % 2 == 0 else "alpha"} import link{number + 1} as link{number}\n')
+    even.append('def link20(value):\n    return value\n')
+    EXAMPLES.append(example('import-binding-limit-' + direction, 'imports boundaries',
+        f'return sink(bridge({argument}))', raised='ImportError', phase='definition', witness=tainted,
+        prelude='from alpha import link0 as bridge\n', files={'alpha.py': ''.join(even), 'beta.py': ''.join(odd)},
+        module_lookup={'importer': 'subject.py', 'alias': 'bridge', 'resolution': 'budget', 'binding_chain_length': 16},
+        complete=False, cutoff='missing-or-ambiguous-import-member',
+        difference='Binding-chain search stops after sixteen hops; Python fails while loading the cyclic re-export chain.'))
+
+    parts = [f'level{number}' for number in range(17)]
+    modules = {'/'.join(parts[:count]) + '/__init__.py': '' for count in range(1, 17)}
+    modules['/'.join(parts) + '.py'] = 'def relay(value):\n    return value\n'
+    EXAMPLES.append(example('import-component-limit-' + direction, 'imports boundaries',
+        f'return sink(bridge.relay({argument}))', events, returned, witness=tainted,
+        prelude='import ' + '.'.join(parts) + ' as bridge\n', files=modules, module_files=['subject.py'],
+        complete=False, cutoff='unsupported-import-form',
+        difference='Module names beyond sixteen components are outside the static import contract.'))
+
+    EXAMPLES.append(example('summary-function-limit-' + direction, 'calls returns boundaries',
+        f'sink({argument})\n' + ''.join(f'if True:\n    hop{number}()\n' for number in range(65)) + 'return 0',
+        events, 0, witness=tainted,
+        prelude=''.join(f'def hop{number}():\n    return {number}\n' for number in range(65)),
+        complete=False, cutoff='summary-function-budget'))
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
            'bounce': 'recur', 'helper': 'engine', 'pack': 'parcel', 'inner': 'inside', 'bridge': 'gateway',
            'alpha': 'cedar', 'beta': 'maple', 'subject': 'renamed'}
+for prefix, count in [('unit', 17), ('alias', 129), ('link', 21), ('level', 17), ('hop', 65)]:
+    RENAMES.update({f'{prefix}{number}': f'renamed_{prefix}{number}' for number in range(count)})
 
 
 def cases():
@@ -270,13 +390,20 @@ def cases():
                     return path
                 if not example['imports']:
                     return 'nested/renamed/module.py'
-                return '/'.join(RENAMES.get(part, part) for part in path[:-3].split('/')) + '.py'
+                stem, suffix = path.rsplit('.', 1)
+                return '/'.join(RENAMES.get(part, part) for part in stem.split('/')) + '.' + suffix
             source = transform(example['source'])
             path = relocate(example['path'])
             files = {relocate(name): transform(text) for name, text in example['files'].items()}
             files[path] = source
             names = {name: RENAMES[name] if moved else name for name in ('entry', 'source', 'sink', 'clean', 'forward')}
+            module_files = [relocate(name) for name in example['module_files']] if example['module_files'] is not None else None
+            lookup = example['module_lookup']
+            if lookup is not None:
+                lookup = {**lookup, 'importer': relocate(lookup['importer']),
+                          'alias': RENAMES.get(lookup['alias'], lookup['alias']) if moved else lookup['alias']}
             result.append({**example, 'id': example['id'] + ('/moved' if moved else '/original'),
                 'source': source, 'path': path, 'files': files,
+                'module_files': module_files, 'module_lookup': lookup,
                 'names': names, 'variant': 'moved' if moved else 'original'})
     return result

@@ -29,7 +29,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
 | Locations | Source revisions and exact UTF-8 byte spans accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
-| Budgets | Unsupported constructs and exhausted budgets carry cutoffs and remain incomplete. | Absence of witnesses in an incomplete report establishes no absence of flow. |
+| Budgets and refusals | Unsupported constructs and exhausted searches carry cutoffs and remain incomplete. Invalid entry syntax, invalid budgets and conflicting caller rules refuse analysis. | A CLI error has no completeness or witness answer. Absence of witnesses in an incomplete report establishes no absence of flow. |
 
 The Python reference defines [expression evaluation order](https://docs.python.org/3.14/reference/expressions.html#evaluation-order),
 [assignment semantics](https://docs.python.org/3.14/reference/simple_stmts.html#assignment-statements) and
@@ -59,7 +59,7 @@ Static module resolution follows the [package-flow contract](agent-investigation
 This corpus does not establish arbitrary imports, heap aliases, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
-The corpus contains 126 authored programs and 252 original/renamed cases across fourteen rules.
+The expanded authored corpus contains 163 programs and 326 original/renamed cases across fourteen rules.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures
 from exceptions after calling the entry function. External source and sink hooks remain assumptions.
@@ -71,11 +71,13 @@ from exceptions after calling the entry function. External source and sink hooks
 | Recursion | Direct and mutual return, constant return, independent callers, keyword substitution, explicit raise, no normal return and step exhaustion. |
 | Imports | Absolute, relative, dotted, aliased and continued imports; regular, namespace and mixed trees; re-exports, child fallback and module alias chains. Each has positive and negative helper bodies. |
 | Cross-file evidence | Keyword binding, defaults, equal helper names in different files, explicit raise, initialization effects, cycles and missing modules. |
+| Refusals | Entry syntax errors, local and imported rule conflicts, competing entry stubs, and invalid step, depth and byte budgets. Runtime definition failures and entry exceptions stay separate. |
+| Discovery | Two-hop helper discovery with depths two and three; a stopped search has no absence authority. The summary-function count also has an explicit boundary example. |
+| Import boundaries | Competing modules/packages and stubs; parameter, assignment and global shadowing; conflicting bindings; module-count, source-byte, lookup-count, component and binding-chain limits. Positive and negative arguments remain independent expectations. |
 
-B.contract remains open. The next inventory pass must cover recursion discovery-depth limits,
-invalid syntax and CLI refusals, import ambiguity and shadowing, and module/binding-chain limits.
-Focused tests exercise these boundaries, but their results are not yet part of this independent
-runtime comparison. These are explicit remaining gaps, not implied coverage from a green report.
+B.contract remains open until a hosted collection and its corruption controls validate the
+expanded inventory. The retained 252-case report covers the preceding inventory; it does not
+establish the newly authored boundaries. No roadmap acceptance count changes on authored examples alone.
 
 ## Evidence and regression checks
 
@@ -83,6 +85,11 @@ runtime comparison. These are explicit remaining gaps, not implied coverage from
 Its offline audit checks the full case inventory, source bindings, caller rules, completeness,
 cutoffs, declared model differences and exact AST locations in every witness. It also checks
 module inventories, candidate file states, callee identities, parameter kinds and default locations.
+Budget-limited reports must retain the exact independently declared admitted file subset; candidate
+facts still correspond to the entire authored workspace. A declared binding-chain cutoff checks the
+entry lookup's resolution and sixteen-hop length. Renaming preserves both `.py` and `.pyi` suffixes.
+The version-three report retains exit codes, stderr and structured CLI errors separately from
+successful reports. The audit checks commands and runtime outcomes even when analysis is refused.
 The audit memoizes authored runtime executions; retained outcomes are compared on every audit.
 Source and binary
 identities are retained. Output digests detect changes; they do not attest that execution occurred.

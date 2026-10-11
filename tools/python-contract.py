@@ -25,7 +25,7 @@ from evidence_basis import file_digest
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-SCHEMA = 'fr-python-contract-2'
+SCHEMA = 'fr-python-contract-3'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
           'Implicit exceptions, aliases and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
@@ -85,6 +85,12 @@ def configuration(case):
             'sanitizers': {names['clean']: 'html'}, 'propagators': [names['forward']]}
 
 
+def flow_command(case, handle, root):
+    return ['project', 'dataflow', handle, '--summaries', *(['--imports'] if case['imports'] else []),
+            '--rules', root + '/rules.json', '--context', 'html', '--steps', str(case['steps']),
+            '--depth', str(case['depth']), '--bytes', str(case['bytes'])]
+
+
 def audit_signature(function, definition, path, source, revision):
     arguments = definition.args
     parameters = [(node, kind) for nodes, kind in (
@@ -127,6 +133,22 @@ def audit_case(row, case):
     require(case['source'].encode()[span['start']:span['end']].decode() == case['names']['entry']
             and definition['location']['name'] == profile.location(case['source'], span['start'], span['end']),
             'entry coordinates changed')
+    require(row['commands'] == [['project', 'find', case['names']['entry']],
+                                flow_command(case, definition['handle'], row['root'])], 'analysis inputs changed')
+    invocations = row['invocations']
+    require(len(invocations) == 2 and all(type(item['exit_code']) is int for item in invocations)
+            and invocations[0] == {'exit_code': 0, 'stderr': ''},
+            'entry lookup did not succeed cleanly')
+    if case['expected_model']['outcome'] == 'refused':
+        expected = case['expected_model']
+        require(flow is None and profile.compiler.digest(row['error']) == profile.compiler.digest(expected['error']),
+                'CLI refusal cannot be an analysis report')
+        require(type(invocations[1]['exit_code']) is int and invocations[1]['exit_code'] == expected['exit_code']
+                and invocations[1]['stderr'].startswith('Error: ' + expected['error']['error']['message']),
+                'CLI refusal status or diagnostic changed')
+        return
+    require(row['error'] is None and invocations[1] == {'exit_code': 0, 'stderr': ''},
+            'analysis report did not succeed cleanly')
     require(flow['schema'] == 'fr-dataflow-1' and flow['semantics'] == 'python-scalar-summaries-5'
             and flow['claim'] == 'possible-value-propagation' and flow['revision'] == found['revision'],
             'analysis identity or claim changed')
@@ -134,7 +156,8 @@ def audit_case(row, case):
             and flow['inputs']['context'] == 'html' and flow['inputs']['selection']['name'] == case['names']['entry']
             and flow['inputs']['source'] == {'path': case['path'], 'digest': profile.compiler.digest(case['source'])}
             and flow['inputs']['budget']['steps'] == case['steps']
-            and flow['inputs']['budget']['bytes'] == 262144, 'analysis input basis changed')
+            and flow['inputs']['budget']['depth'] == case['depth']
+            and flow['inputs']['budget']['bytes'] == case['bytes'], 'analysis input basis changed')
     ordered_rules = {key: configuration(case)[key] for key in ('version', 'sources', 'sinks', 'propagators', 'sanitizers')}
     rules_digest = hashlib.sha256(json.dumps(ordered_rules, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     require(flow['rules_digest'] == flow['inputs']['rules'] == rules_digest
@@ -169,7 +192,8 @@ def audit_case(row, case):
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
         modules = flow['inputs']['modules']
-        require(modules['files'] == {path: profile.compiler.digest(source) for path, source in case['files'].items()},
+        admitted = case['module_files'] if case['module_files'] is not None else case['files']
+        require(modules['files'] == {path: profile.compiler.digest(case['files'][path]) for path in admitted},
                 'module source inventory changed')
         require(dependencies.complete is modules['complete'], 'module completeness changed')
         directories = {str(parent) for path in case['files'] for parent in Path(path).parents if str(parent) != '.'}
@@ -179,6 +203,13 @@ def audit_case(row, case):
                             if path in case['files'] else
                             {'status': 'directory' if path in directories else 'missing'})
                 require(fact == expected, 'module candidate differs from declared files')
+        expected = case['module_lookup']
+        if expected is not None:
+            matches = [lookup for lookup in modules['lookups']
+                       if lookup['importer'] == expected['importer'] and lookup['alias'] == expected['alias']]
+            require(len(matches) == 1 and matches[0]['resolution'] == expected['resolution']
+                    and len(matches[0]['binding_chain']) == expected['binding_chain_length'],
+                    'module binding boundary changed')
     for identity, function in flow['function_summaries']['functions'].items():
         path, name = identity.split('::', 1) if case['imports'] else (case['path'], identity)
         require(path in case['files'], 'callee file changed')
@@ -214,17 +245,15 @@ def audit_case(row, case):
         pairs.append([sources.index((trace[0]['path'], first['start'], first['end'])),
                       sinks.index((witness['site']['path'], last['start'], last['end']))])
     require(sorted(pairs) == case['expected_model']['pairs'], 'source-to-sink pairing changed')
-    expected = ['project', 'dataflow', definition['handle'], '--summaries',
-                *(['--imports'] if case['imports'] else []), '--rules', row['root'] + '/rules.json',
-                '--context', 'html', '--steps', str(case['steps']), '--bytes', '262144']
-    require(row['commands'] == [['project', 'find', case['names']['entry']], expected], 'analysis inputs changed')
 
 
 def summary():
     return {'rules': len(RULES), 'examples': len(EXAMPLES), 'cases': len(cases()),
             'renamed_relocated_cases': len(EXAMPLES), 'contract_complete': True,
             'documented_difference_cases': sum(case['difference'] is not None for case in cases()),
-            'incomplete_cases': sum(not case['expected_model']['complete'] for case in cases())}
+            'incomplete_cases': sum(case['expected_model']['outcome'] == 'report'
+                                    and not case['expected_model']['complete'] for case in cases()),
+            'refused_cases': sum(case['expected_model']['outcome'] == 'refused' for case in cases())}
 
 
 def audit(value):
@@ -270,20 +299,22 @@ def measure(binary, output):
                 path.write_bytes(source.encode())
             rules = root / 'rules.json'
             rules.write_text(json.dumps(configuration(case)))
-            commands = []
+            commands, invocations = [], []
             def fr(args):
                 commands.append(args)
                 result = subprocess.run([str(binary), '--json', '-C', str(root), *args],
                                         capture_output=True, text=True, timeout=30)
-                require(result.returncode == 0, result.stderr)
+                invocations.append({'exit_code': result.returncode, 'stderr': result.stderr})
                 return json.loads(result.stdout)
             found = fr(['project', 'find', case['names']['entry']])
+            require(invocations[0]['exit_code'] == 0, invocations[0]['stderr'])
             handle = found['rows'][0][found['columns'].index('handle')]
-            flow = fr(['project', 'dataflow', handle, '--summaries', *(['--imports'] if case['imports'] else []),
-                       '--rules', str(rules), '--context', 'html',
-                       '--steps', str(case['steps']), '--bytes', '262144'])
-            row = {'case': case, 'runtime': oracle(case), 'find': found, 'flow': flow,
-                   'configuration': configuration(case), 'root': str(root), 'commands': commands}
+            result = fr(flow_command(case, handle, str(root)))
+            refused = invocations[1]['exit_code'] != 0
+            row = {'case': case, 'runtime': oracle(case), 'find': found,
+                   'configuration': configuration(case), 'root': str(root), 'commands': commands,
+                   'invocations': invocations, 'flow': None if refused else result,
+                   'error': result if refused else None}
             value['cases'].append(row)
             save(value, output)
             try:
@@ -306,7 +337,15 @@ def main():
     parser.add_argument('--fr', type=Path, default=ROOT / 'target/debug/fr')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--audit', type=Path)
+    parser.add_argument('--check-runtime', action='store_true', help='Check authored CPython expectations without fr')
     args = parser.parse_args()
+    if args.check_runtime:
+        require(not args.audit and not args.output, 'runtime-only checks do not collect analysis evidence')
+        for case in cases():
+            require(profile.compiler.digest(oracle(case)) == profile.compiler.digest(case['expected_runtime']),
+                    case['id'] + ': authored CPython outcome changed')
+        print(json.dumps({'runtime_cases': len(cases()), 'analysis_checked': False}, sort_keys=True))
+        return
     value = json.loads(args.audit.read_text()) if args.audit else measure(args.fr, args.output)
     result = audit(value)
     save(value, args.output)

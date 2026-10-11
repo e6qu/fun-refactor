@@ -29,6 +29,7 @@ KINDS = {
     'fr-compiler-profile-1': 'compiler',
     'fr-python-contract-1': 'semantic-contract',
     'fr-python-contract-2': 'semantic-contract',
+    'fr-python-contract-3': 'semantic-contract',
     'fr-index-resolution-result-1': 'measurement',
     'fr-host-recovery-acceptance-1': 'fault-injection',
     'fr-structural-change-artifacts-1': 'deterministic',
@@ -71,6 +72,7 @@ def binding_digest(path, schema):
     if schema == 'fr-python-repository-acceptance-2':
         return python_repository_digest(path)
     if schema not in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1', 'fr-python-contract-1', 'fr-python-contract-2',
+                      'fr-python-contract-3',
                       'fr-index-resolution-result-1') or path.name != 'Cargo.toml':
         return file_digest(path)
     manifest = tomllib.loads(path.read_text())
