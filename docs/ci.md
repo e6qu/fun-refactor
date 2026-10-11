@@ -37,6 +37,8 @@ type checking and prose checks run in the static job. Browser feature checks and
 the playground remain separate. `tools/check.sh default` still runs the whole
 native gate serially when appropriate; local resource policy takes precedence.
 The post-merge deep audit retains its existing separate workflow.
+New main revisions supersede older deep runs, including runs still waiting for a runner.
+Each replacement keeps the complete audit inventory and the same deadlines.
 
 The deep workflow also accepts `external_replays_only=true` for a focused,
 remote check of all pinned external patch replays, split into six jobs with
@@ -87,6 +89,16 @@ A change to `src/cli.rs` can affect all the groups below in the
 
 Freeze the bound source inputs before dispatch, then import results from the exact successful
 run after checking every source hash. Update active test references and preserve historical reports.
+If workstation resource admission stops local evidence handling, dispatch
+`refinement-evidence.yml` with `group=retain-python-contract` on the working branch. Supply the
+successful collection's `collection_run` ID and a new dated `prefix`. The hosted job verifies
+the archive digest, collection commit, producing job and attempt, current source bindings,
+CPython outcomes and corruption controls before committing the report, manifest,
+active test reference and generated roadmap files. It refuses failed collections and writes only
+to the selected working branch. It preserves old reports and leaves acceptance obligations unchanged.
+Its token-authenticated push does not start another workflow automatically; dispatch `ci.yml` on
+the resulting branch revision before merging. Full CI also accepts a manual dispatch to validate
+an already merged revision. Existing test and job deadlines remain unchanged.
 The recovery evaluator binds `tests/host_recovery.rs` itself, so update its report path before
 regeneration. This avoids generating a report that immediately becomes stale when its test changes.
 
