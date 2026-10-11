@@ -46,6 +46,8 @@ fn imports(node: Node<'_>, source: &str, file: &Path) -> Option<Vec<(String, Bin
     let from = if node.kind() == "import_from_statement" {
         let module = node.child_by_field_name("module_name")?;
         let text: String = source[module.byte_range()]
+            .replace("\\\r\n", "")
+            .replace("\\\n", "")
             .chars()
             .filter(|c| !c.is_whitespace())
             .collect();
@@ -88,6 +90,8 @@ fn imports(node: Node<'_>, source: &str, file: &Path) -> Option<Vec<(String, Bin
             (child, child)
         };
         let name: String = source[name.byte_range()]
+            .replace("\\\r\n", "")
+            .replace("\\\n", "")
             .chars()
             .filter(|c| !c.is_whitespace())
             .collect();
