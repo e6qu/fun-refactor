@@ -1,0 +1,23 @@
+{
+  "schema": "fr-dogfood-record-1",
+  "binary_version": "0.54.0",
+  "binary_sha256": "5f60df130770fdae3a8dd801b4080e529090e549914ccebb714c6aca15bad601",
+  "baseline_source_commit": "aa6a2fa6035c6d56cc5d846889a8dc88d68b5c45",
+  "history_command": [
+    "/Users/zardoz/projects/fun-refactor/target/agent-tools/fr-v0.54.0/fr",
+    "--json",
+    "-C",
+    "/Users/zardoz/projects/fun-refactor/src/project",
+    "history",
+    "show",
+    "45"
+  ],
+  "transaction": 45,
+  "files": {
+    "expression.rs": "2e7dd09be54fee8561c110e680303a27fbd83e50d689b2a86d1530c496e68607",
+    "history.json": "8fa53159ac44ca3cb1a10af236c885d67168e686623a0e320b1557cd98834e5c",
+    "preview.json": "3f4707b8c56aed0a895286619578b428769c7afb7bf1c4156a372d9f9906454f",
+    "request.json": "3c759f41a69fe99d0df8c720b252fc0d201da8d93448d1af7e60f72384a9fcb2"
+  },
+  "scope": "One real expression-body replacement through reviewed preview, saved plan and history apply. No general efficiency claim."
+}

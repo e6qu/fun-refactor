@@ -12,43 +12,43 @@
   ],
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-flow-facts/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-package-flow/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-python-repositories/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-flow-cache/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
@@ -92,14 +92,24 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-11-contract-compiler-profile/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
+    },
+    {
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "python-contract",
+      "integrity": "checked",
+      "kind": "semantic-contract",
+      "path": "tests/agent-eval/results/2026-10-11-python-contract/result.json",
+      "scope": "Twelve scalar rule families; 36 independent programs and 72 original/renamed cases. Partial B.contract coverage."
     }
   ],
   "milestones": {
@@ -299,7 +309,7 @@
       ],
       "id": "B.contract",
       "kind": "semantic-contract",
-      "next": "Define language rules first, with independent examples for each rule. Use real repositories to expose missing rules, not to define special cases.",
+      "next": "The 72-case scalar contract is a first coverage pass. Connect recursive summaries, static imports and every admitted call-binding form to the explicit rule inventory and independent executable examples.",
       "requires": [],
       "state": "open",
       "title": "Specify reusable Python behavior"
