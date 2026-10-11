@@ -220,6 +220,10 @@ EXAMPLES.extend([
             prelude='import helper\n', files={'helper.py': 'def relay(left=0, *, right):\n    return left\n'}),
     example('import-keyword-selected', 'imports calls locations', 'return sink(helper.relay(right=0, left=source()))', [S, T], 17,
             witness=True, prelude='import helper\n', files={'helper.py': 'def relay(*, left, right):\n    return left\n'}),
+    example('import-helper-source', 'imports rules locations', 'return sink(helper.relay())', [S, T], 17,
+            witness=True, prelude='import helper\n', files={'helper.py': 'def relay():\n    return source()\n'}),
+    example('import-helper-sink', 'imports rules locations', 'return helper.relay(source())', [S, T], 0,
+            witness=True, prelude='import helper\n', files={'helper.py': 'def relay(value):\n    sink(value)\n    return 0\n'}),
     example('import-same-named-helpers', 'imports names',
             'alpha.relay(source())\nreturn sink(beta.relay(source()))', [S, S, ZERO], 0,
             prelude='import alpha\nimport beta\n', files={'alpha.py': 'def relay(value):\n    return value\n',
@@ -235,6 +239,13 @@ EXAMPLES.extend([
     example('import-missing', 'imports boundaries', 'return sink(helper.relay(source()))', raised='ModuleNotFoundError',
             prelude='import helper\n', files={}, phase='definition', complete=False, cutoff='unresolved-local-import'),
 ])
+multiple_sinks = example('import-distinct-sink-files', 'imports rules locations',
+    'value = source()\nalpha.relay(value)\nreturn beta.relay(value)', [S, T, T], 0, witness=True,
+    prelude='import alpha\nimport beta\n', files={
+        'alpha.py': 'def relay(value):\n    sink(value)\n    return 0\n',
+        'beta.py': 'def relay(value):\n    sink(value)\n    return 0\n'})
+multiple_sinks['expected_model']['pairs'] = [[0, 0], [0, 1]]
+EXAMPLES.append(multiple_sinks)
 RENAMES = {'entry': 'compute', 'relay': 'transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',

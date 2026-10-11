@@ -54,7 +54,7 @@ Static module resolution follows the [package-flow contract](agent-investigation
 This corpus does not establish arbitrary imports, heap aliases, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
-The corpus contains 123 authored programs and 246 original/renamed cases across fourteen rules.
+The corpus contains 126 authored programs and 252 original/renamed cases across fourteen rules.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures
 from exceptions after calling the entry function. External source and sink hooks remain assumptions.

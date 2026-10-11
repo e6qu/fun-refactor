@@ -238,6 +238,12 @@ class PythonContract(unittest.TestCase):
         next(point for point in points if point['path'] == 'engine.py')['path'] = 'renamed.py'
         self.reject(value)
 
+    def test_equal_sink_offsets_do_not_merge_distinct_files(self):
+        value, row = self.changed('import-distinct-sink-files/moved')
+        self.assertEqual(len(row['flow']['witnesses']), 2)
+        row['flow']['witnesses'][1] = copy.deepcopy(row['flow']['witnesses'][0])
+        self.reject(value)
+
     def test_import_oracle_isolated_between_conflicting_modules(self):
         selected = next(case for case in contract.cases() if case['id'] == 'import-absolute-selected/original')
         discarded = next(case for case in contract.cases() if case['id'] == 'import-absolute-discarded/original')

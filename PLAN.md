@@ -38,17 +38,17 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [Python behavior contract](docs/python-contract.md) defines twelve rule families and compares
-36 independently written programs with CPython and `fr`. Renamed and relocated versions bring
-the total to 72 cases. The examples cover evaluation order, scalar assignments, calls, explicit
-exits and exact source locations. They also record conservative analysis differences and refusals.
+The [Python behavior contract](docs/python-contract.md) defines fourteen rule families and compares
+126 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
+252 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers and
+static imports. Runtime outcomes remain separate from conservative answers and unsupported cases.
 
-This work found that comments between arithmetic operands caused spurious unsupported-expression
-cutoffs. Operand traversal now skips parser extras. The fix applies to ordinary source syntax,
-without recognizing a benchmark, repository or expected answer.
+The latest review found that valid line continuations inside module names caused unsupported-import
+cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
+The fix follows source syntax; it does not recognize a benchmark or expected answer.
 
-The contract remains a finite first coverage pass. B.contract is still open: recursive summaries,
-static imports and the full admitted call-binding inventory need the same cross-cutting comparison.
+The contract remains finite. B.contract is still open: discovery-depth limits, invalid syntax,
+CLI refusals, import ambiguity and shadowing, and module/binding-chain limits need explicit examples.
 The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
 comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
 
@@ -58,11 +58,10 @@ Complete the reusable Python behavior inventory, acceptance item
 [B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior).
 An agent needs to know which language rules justify an answer and when to stop trusting it.
 
-1. Map every admitted call-binding form, recursive summary and static import rule to explicit
-   examples and limits. Connect existing focused suites to that inventory without claiming their
-   coverage from the current 72-case report.
-2. Add independently written positive, negative and unsupported examples, plus renamed or
-   relocated equivalents. Keep CPython outcomes separate from possible-flow expectations.
+1. Add a separate CLI-refusal outcome alongside emitted incomplete reports. Check invalid Python
+   syntax and definition failures without conflating them with entry-function exceptions.
+2. Connect discovery-depth limits, ambiguous and shadowed imports, and module/binding-chain
+   budgets to independent examples. Include renamed equivalents and exact file evidence.
 3. Close B.contract only when the inventory has no unexplained coverage holes. Fix exposed
    defects through general rules; repository identities and expected answers must never select semantics.
 
