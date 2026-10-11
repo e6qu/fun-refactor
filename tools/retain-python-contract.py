@@ -27,29 +27,33 @@ def api(path):
     return json.loads(command(['gh', 'api', path], capture_output=True, text=True).stdout)
 
 
-def checked_report(archive, digest):
+def checked_reports(archive, digest, names):
     contract.require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) is not None
                      and 'sha256:' + hashlib.sha256(archive).hexdigest() == digest,
                      'artifact archive digest changed')
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
-        contract.require(zipped.namelist() == ['result.json']
-                         and zipped.getinfo('result.json').file_size <= 64 * 1024 * 1024,
-                         'artifact must contain one bounded result.json')
-        return zipped.read('result.json')
+        contract.require(sorted(zipped.namelist()) == sorted(names)
+                         and sum(item.file_size for item in zipped.infolist()) <= 64 * 1024 * 1024,
+                         'artifact must contain exactly the bounded report files')
+        return {name: zipped.read(name) for name in names}
 
 
-def collection(run, artifact, report, repository, jobs):
+def checked_report(archive, digest):
+    return checked_reports(archive, digest, ['result.json'])['result.json']
+
+
+def collection(run, artifact, report, repository, jobs, group='python-contract'):
     contract.require(run['status'] == 'completed' and run['conclusion'] == 'success'
                      and run['path'] == '.github/workflows/refinement-evidence.yml'
                      and run['repository']['full_name'] == repository
                      and run['head_repository']['full_name'] == repository,
                      'collection must be a successful same-repository evidence run')
-    contract.require(artifact['name'] == 'python-contract' and artifact['expired'] is False
+    contract.require(artifact['name'] == group and artifact['expired'] is False
                      and artifact['workflow_run']['id'] == run['id']
                      and artifact['workflow_run']['head_sha'] == run['head_sha']
                      and report['source_commit'] == run['head_sha'], 'collection source identity changed')
     created = datetime.fromisoformat(artifact['created_at'])
-    producers = [job for job in jobs if job['name'] == 'python-contract'
+    producers = [job for job in jobs if job['name'] == group
                  and job['run_id'] == run['id'] and job['status'] == 'completed' and job['conclusion'] == 'success'
                  and datetime.fromisoformat(job['started_at']) <= created <= datetime.fromisoformat(job['completed_at'])]
     contract.require(len(producers) == 1, 'artifact must belong to one successful collection job')

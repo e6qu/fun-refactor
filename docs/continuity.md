@@ -6,29 +6,35 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [Python behavior contract](python-contract.md) compares 126 authored programs and their
-renamed/relocated equivalents: 252 cases across fourteen declared rule families. It retains CPython
+The [Python behavior contract](python-contract.md) compares 163 authored programs and their
+renamed/relocated equivalents: 326 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
+Hosted validation passes 309 focused regressions and 43 corruption controls. The inventory includes
+fourteen CLI refusals and 102 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
 aliased, from and relative imports. Full builds and evidence refreshes run
 on GitHub; scalar refreshes are split into four jobs with 15-minute limits.
 
-Roadmap status is 8/18 demonstrated acceptance items and 0/4 completed milestones. This does
+Roadmap status is 9/18 demonstrated acceptance items and 0/4 completed milestones. This does
 not establish a general agent-efficiency advantage or complete Rust/Python semantics.
 
 ## Next work
 
-Finish [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior). The remaining
-inventory gaps are discovery-depth limits, invalid syntax and CLI refusals, import ambiguity and
-shadowing, and module/binding-chain limits. Focused tests cover these separately; the contract
-report does not yet claim them. The boundary branch authors 37 new programs and renamed variants,
-and adds version-three CLI-error and budget evidence audits. Collect the 326-case report with the
-`python-contract` hosted refresh group, preserve diagnostic failures, and run the corruption controls.
-Only then replace evidence references, regenerate roadmap status and assess the gate.
+The final source-bound [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior)
+report is retained. Its acceptance entry checks all eight independently reviewed inventory counts.
+The earlier 252-case report and failed collections remain historical evidence.
+
+Workflow reports bind the canonical lockfile identity, preserving dependency versions, checksums
+and graph changes while ignoring workspace release numbers. The raw lockfile binding caused the
+route gate to fail after a release. Refresh both `workflow-routes` and `source-repair` from one
+revision and use `retain-workflows` to verify their artifacts and corruption controls on GitHub.
+Keep historical reports intact. Pass full CI before merging; deep validation supersedes obsolete
+revisions, and every timeout stays unchanged. Then choose the independent and held-out projects for
+[B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects).
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
 ## Client-study boundary

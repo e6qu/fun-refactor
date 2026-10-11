@@ -48,9 +48,15 @@ on:
           - compiler-profile
           - python-contract
           - retain-python-contract
+          - retain-workflows
           - flow-contract
       collection_run:
-        description: Successful collection run ID for retain-python-contract
+        description: Successful collection run ID for Python or workflow retention
+        required: false
+        default: ''
+        type: string
+      repair_run:
+        description: Successful source-repair run ID for retain-workflows
         required: false
         default: ''
         type: string
@@ -61,7 +67,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'flow-contract'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'flow-contract'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -187,6 +193,17 @@ jobs:
         run: python3 -B tools/workflow-route-context.py --output target/workflow-routes/result.json
       - name: Refresh the scalar guide comparison
         run: python3 -B tools/agent-guide-context.py --output target/workflow-routes/agent-guide-context.json
+      - name: Reject corrupted fresh workflow evidence
+        env:
+          FR_WORKFLOW_ROUTE_REPORT: target/workflow-routes/result.json
+          FR_GUIDE_BODY_REPORT: target/workflow-routes/guide-body-context.json
+          FR_RECOVERY_DELIVERY_REPORT: target/workflow-routes/recovery-delivery-context.json
+        run: |
+          python3 -B tools/test-workflow-evidence-basis.py
+          python3 -B tools/test-retain-python-contract.py
+          python3 -B tools/test-workflow-route-context.py
+          python3 -B tools/test-guide-body-context.py
+          python3 -B tools/test-recovery-delivery-context.py
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -309,6 +326,47 @@ jobs:
             tools/test-python-contract.py tests/agent-eval/roadmap.json \
             docs/roadmap-status.md docs/roadmap-status.json
           git commit -m 'test: retain validated Python boundary evidence'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  retain-workflows:
+    if: inputs.group == 'retain-workflows' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Reject swapped and corrupted hosted artifacts
+        run: |
+          python3 -B tools/test-retain-python-contract.py
+          python3 -B tools/test-workflow-evidence-basis.py
+      - name: Verify and retain the complete workflow family
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          REPAIR_RUN: ${{ inputs.repair_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/retain-workflow-evidence.py --routes-run "$COLLECTION_RUN" --repair-run "$REPAIR_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the validated evidence files to this branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-workflows" \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-source-repair" \
+            tools/test-workflow-route-context.py tools/test-guide-body-context.py \
+            tools/test-recovery-delivery-context.py tools/test-source-repair-context.py
+          git commit -m 'test: retain release-stable workflow evidence'
           git push origin "HEAD:refs/heads/$BRANCH"
 
   python-contract:

@@ -13,6 +13,8 @@ import subprocess
 import sys
 import tempfile
 
+from evidence_basis import file_digest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
 from fr_ir import guide as guide_module  # noqa: E402
@@ -48,7 +50,7 @@ SOURCES = (
           "old": "value + 1", "new": "value + 2"}]},
 )
 BOUND_FILES = (
-    "tools/workflow-route-context.py", "sdk/python/src/fr_ir/guide.py",
+    "tools/workflow-route-context.py", "tools/evidence_basis.py", "sdk/python/src/fr_ir/guide.py",
     "sdk/python/src/fr_ir/intent.py", "sdk/python/src/fr_ir/intent_actions.py",
     "sdk/python/src/fr_ir/runtime.py", "sdk/python/src/fr_ir/ir.py",
     "src/project/agent_guide.rs", "src/project/agent_intent.rs",
@@ -68,7 +70,7 @@ def digest(data):
 
 
 def bindings():
-    return {name: digest((ROOT / name).read_bytes()) for name in BOUND_FILES}
+    return {name: file_digest(ROOT / name) for name in BOUND_FILES}
 
 
 def baseline_function():

@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import unittest
 
@@ -11,12 +12,18 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('recovery', ROOT / 'tools/recovery-delivery-context.py')
 recovery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(recovery)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-10-selection-workflows/recovery-delivery-context.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-12-release-stable-workflows/recovery-delivery-context.json'
 
 
 class RecoveryEvidence(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        override = os.environ.get('FR_RECOVERY_DELIVERY_REPORT')
+        if override:
+            if os.environ.get('GITHUB_ACTIONS') != 'true':
+                raise ValueError('unretained reports may only be tested on GitHub')
+            cls.report = json.loads(Path(override).read_text())
+            return
         manifest = json.loads((REPORT.parent / 'manifest.json').read_text())
         for name, digest in manifest['files'].items():
             path = (REPORT.parent / name).resolve()
