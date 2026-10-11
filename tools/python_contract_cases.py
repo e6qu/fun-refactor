@@ -20,12 +20,14 @@ RULES = {
 
 
 def example(key, rules, body, events=(), returned=None, raised=None, witness=False,
-            prelude='', complete=True, cutoff=None, difference=None, steps=4096, source_index=0):
+            prelude='', complete=True, cutoff=None, difference=None, steps=4096, source_index=0,
+            normal=True, may_raise=False):
     return {'id': key, 'rules_checked': rules.split(),
             'source': prelude + 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines()),
             'expected_runtime': {'events': list(events), 'returned': returned, 'raised': raised},
             'expected_model': {'witness': witness, 'pairs': [[source_index, 0]] if witness else [],
-                               'complete': complete, 'cutoff': cutoff},
+                               'complete': complete, 'cutoff': cutoff,
+                               'completion': {'normal_return': normal, 'may_raise': may_raise} if complete else None},
             'difference': difference, 'steps': steps}
 
 
@@ -66,9 +68,10 @@ EXAMPLES = [
             prelude='def relay(value=0):\n    return value\n'),
     example('early-return', 'returns', 'return 0\nsink(source())', returned=0),
     example('raise-stops-arguments', 'returns calls', 'return sink(relay(source(), sink(0)))', [S, ZERO], raised='TypeError',
-            prelude='def relay(value, other):\n    raise value\n', difference='Explicit raise ends the helper path; argument effects occur before entry.'),
+            prelude='def relay(value, other):\n    raise value\n', normal=False, may_raise=True,
+            difference='Explicit raise ends the helper path; argument effects occur before entry.'),
     example('raise-before-next-argument', 'returns calls', 'return relay(stop(), sink(source()))', raised='TypeError',
-            prelude='def stop():\n    raise 0\ndef relay(value, other):\n    return other\n'),
+            prelude='def stop():\n    raise 0\ndef relay(value, other):\n    return other\n', normal=False, may_raise=True),
     example('sanitize', 'rules', 'return sink(clean(source()))', [S, ['clean', 17], ZERO], 0),
     example('propagate', 'rules', 'return sink(forward(source()))', [S, ['forward', 17], T], 17, witness=True),
     example('unicode-local', 'names locations', 'café = source(); return sink(café)', [S, T], 17, witness=True),

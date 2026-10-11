@@ -119,6 +119,11 @@ def audit_case(row, case):
     cutoff = case['expected_model']['cutoff']
     require((not flow['cutoffs']) if cutoff is None else cutoff in json.dumps(flow['cutoffs']), 'analysis boundary changed')
     summaries = FunctionSummaries.from_report(FrReport(flow, ()))
+    completion = case['expected_model']['completion']
+    if completion is not None:
+        entry = summaries.for_function(case['names']['entry'])
+        require(flow['completion'] == completion and entry.normal_return is completion['normal_return']
+                and entry.may_raise is completion['may_raise'], 'normal or exceptional return changed')
     require(summaries.expression_control.path_feasibility is False, 'path feasibility claim changed')
     require(flow['assignment_control']['implicit_exceptions'] is False
             and flow['call_binding']['implicit_exceptions'] is False, 'implicit exception boundary changed')

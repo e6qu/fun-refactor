@@ -123,6 +123,16 @@ class PythonContract(unittest.TestCase):
         row['flow']['assumptions'] = []
         self.reject(value)
 
+    def test_explicit_raise_cannot_invent_a_normal_return(self):
+        value, row = self.changed('raise-before-next-argument/moved')
+        row['flow']['completion']['normal_return'] = True
+        self.reject(value)
+
+    def test_implicit_exceptions_cannot_be_claimed_as_modeled(self):
+        value, row = self.changed('implicit-exception/moved')
+        row['flow']['completion']['may_raise'] = True
+        self.reject(value)
+
     def test_wrong_source_revision(self):
         value, row = self.changed()
         row['flow']['revision'] = 'stale'
