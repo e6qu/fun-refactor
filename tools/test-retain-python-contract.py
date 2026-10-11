@@ -55,6 +55,25 @@ class ArtifactIdentity(unittest.TestCase):
             with self.assertRaises(ValueError):
                 retain.checked_report(data, digest)
 
+    def test_workflow_archive_requires_every_report_exactly_once(self):
+        names = ['result.json', 'guide-body-context.json', 'recovery-delivery-context.json',
+                 'agent-guide-context.json']
+        data, digest = self.archive(tuple(reversed(names)))
+        self.assertEqual(set(retain.checked_reports(data, digest, names)), set(names))
+        for changed in (names[:-1], names + ['extra.json'], names + [names[0]]):
+            data, digest = self.archive(changed)
+            with self.assertRaises(ValueError):
+                retain.checked_reports(data, digest, names)
+
+    def test_workflow_producer_must_match_the_requested_group(self):
+        run, artifact, report, jobs = self.identity()
+        artifact['name'] = jobs[0]['name'] = 'workflow-routes'
+        identity = retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs, 'workflow-routes')
+        self.assertEqual(identity['producer_job_id'], 9)
+        jobs[0]['name'] = 'source-repair'
+        with self.assertRaises(ValueError):
+            retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs, 'workflow-routes')
+
     def test_failed_or_unfinished_collection_is_not_promoted(self):
         for field, value in [('conclusion', 'failure'), ('status', 'in_progress'), ('path', '.github/workflows/ci.yml')]:
             run, artifact, report, jobs = self.identity()

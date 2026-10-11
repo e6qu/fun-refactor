@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import unittest
 
@@ -17,6 +18,12 @@ REPORT = ROOT / "tests/agent-eval/results/2026-10-10-selection-workflows/result.
 class RouteEvidence(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        override = os.environ.get('FR_WORKFLOW_ROUTE_REPORT')
+        if override:
+            if os.environ.get('GITHUB_ACTIONS') != 'true':
+                raise ValueError('unretained reports may only be tested on GitHub')
+            cls.report = json.loads(Path(override).read_text())
+            return
         manifest = json.loads((REPORT.parent / "manifest.json").read_text())
         for name, digest in manifest["files"].items():
             path = (REPORT.parent / name).resolve()
