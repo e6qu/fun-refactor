@@ -74,6 +74,18 @@ class ArtifactIdentity(unittest.TestCase):
         with self.assertRaises(ValueError):
             retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs, 'workflow-routes')
 
+    def test_cohort_artifact_must_match_its_named_phase_producer(self):
+        run, artifact, report, jobs = self.identity()
+        artifact['name'] = 'repository-flow-coverage'
+        jobs[0]['name'] = 'coverage'
+        identity = retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs,
+                                     'repository-flow-coverage', 'coverage')
+        self.assertEqual(identity['producer_job_id'], 9)
+        jobs[0]['name'] = 'held-out'
+        with self.assertRaises(ValueError):
+            retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs,
+                              'repository-flow-coverage', 'coverage')
+
     def test_failed_or_unfinished_collection_is_not_promoted(self):
         for field, value in [('conclusion', 'failure'), ('status', 'in_progress'), ('path', '.github/workflows/ci.yml')]:
             run, artifact, report, jobs = self.identity()

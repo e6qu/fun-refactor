@@ -37,6 +37,7 @@ KINDS = {
     'fr-unknown-target-cohort-1': 'live-agent',
     'fr-python-repository-acceptance-1': 'deterministic',
     'fr-python-repository-acceptance-2': 'deterministic',
+    'fr-python-repository-flow-cohort-result-1': 'deterministic',
 }
 
 
