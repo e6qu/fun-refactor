@@ -47,7 +47,13 @@ on:
           - source-repair
           - compiler-profile
           - python-contract
+          - retain-python-contract
           - flow-contract
+      collection_run:
+        description: Successful collection run ID for retain-python-contract
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -55,7 +61,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'flow-contract'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'flow-contract'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -269,6 +275,42 @@ jobs:
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
 
+  retain-python-contract:
+    if: inputs.group == 'retain-python-contract' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Reject swapped and corrupted hosted artifacts
+        run: python3 -B tools/test-retain-python-contract.py
+      - name: Verify archive, source identity, outcomes and corruption controls
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/retain-python-contract.py --run "$COLLECTION_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the reviewed evidence files to this branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-python-contract" \
+            tools/test-python-contract.py tests/agent-eval/roadmap.json \
+            docs/roadmap-status.md docs/roadmap-status.json
+          git commit -m 'test: retain validated Python boundary evidence'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
   python-contract:
     if: inputs.group == 'python-contract'
     runs-on: ubuntu-latest
@@ -287,6 +329,8 @@ jobs:
           python-version: '3.14'
       - name: Check authored CPython expectations
         run: python3 -B tools/python-contract.py --check-runtime
+      - name: Reject swapped and corrupted hosted artifacts
+        run: python3 -B tools/test-retain-python-contract.py
       - uses: Swatinem/rust-cache@v2
         with:
           key: default

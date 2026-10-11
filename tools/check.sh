@@ -58,6 +58,7 @@ if [ "$slice" = study ]; then
     python3 tools/test_evidence_archive.py
     python3 tools/evidence-archive.py check
     python3 tools/test-deep-audit.py
+    python3 -B tools/test-retain-python-contract.py
     python3 tools/agent_eval/test_codex_runner.py
     python3 tests/agent-eval/test_python_repository_basis.py
     python3 tools/roadmap-status.py --check

@@ -1,8 +1,9 @@
 name: CI
 
-# Pull requests only. A push to `main` is a merge of a branch CI has already
-# checked, so running it again buys nothing and costs the minutes twice.
+# Pull requests and deliberate revalidation. Merges do not repeat the gate
+# automatically; workflow_dispatch can check a revision merged before CI finished.
 on:
+  workflow_dispatch:
   pull_request:
     # Title edits have their own workflow. A description update must not cancel
     # the full suite that is already checking this commit.
