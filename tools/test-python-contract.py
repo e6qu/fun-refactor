@@ -145,6 +145,19 @@ class PythonContract(unittest.TestCase):
         row['find']['rows'][0][row['find']['columns'].index('path')] = 'wrong.py'
         self.reject(value)
 
+    def test_duplicate_witnesses(self):
+        value, row = self.changed()
+        row['flow']['witnesses'].append(copy.deepcopy(row['flow']['witnesses'][0]))
+        self.reject(value)
+
+    def test_valid_but_wrong_source_call(self):
+        value, row = self.changed('comparison-order/moved')
+        calls = contract.ast_locations(row['case'])[1]
+        first = min(span for span, name in calls.items() if name == row['case']['names']['source'])
+        occurrence = row['flow']['witnesses'][0]['trace']['occurrences'][0]
+        occurrence['location'] = contract.profile.location(row['case']['source'], *first)
+        self.reject(value)
+
     def test_wrong_command_or_budget(self):
         for field in ('command', 'budget', 'source', 'context'):
             value, row = self.changed()

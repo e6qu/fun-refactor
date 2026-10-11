@@ -27,6 +27,7 @@ KINDS = {
     'fr-flow-cache-acceptance-1': 'measurement',
     'fr-compiler-evidence-acceptance-1': 'compiler',
     'fr-compiler-profile-1': 'compiler',
+    'fr-python-contract-1': 'semantic-contract',
     'fr-host-recovery-acceptance-1': 'fault-injection',
     'fr-structural-change-artifacts-1': 'deterministic',
     'fr-refinement-artifacts-1': 'model-proof',
@@ -67,7 +68,7 @@ def binding_digest(path, schema):
     # Its source bindings otherwise use the shared evidence_basis convention.
     if schema == 'fr-python-repository-acceptance-2':
         return python_repository_digest(path)
-    if schema not in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1') or path.name != 'Cargo.toml':
+    if schema not in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1', 'fr-python-contract-1') or path.name != 'Cargo.toml':
         return file_digest(path)
     manifest = tomllib.loads(path.read_text())
     version = manifest['package']['version']

@@ -20,11 +20,12 @@ RULES = {
 
 
 def example(key, rules, body, events=(), returned=None, raised=None, witness=False,
-            prelude='', complete=True, cutoff=None, difference=None, steps=4096):
+            prelude='', complete=True, cutoff=None, difference=None, steps=4096, source_index=0):
     return {'id': key, 'rules_checked': rules.split(),
             'source': prelude + 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines()),
             'expected_runtime': {'events': list(events), 'returned': returned, 'raised': raised},
-            'expected_model': {'witness': witness, 'complete': complete, 'cutoff': cutoff},
+            'expected_model': {'witness': witness, 'pairs': [[source_index, 0]] if witness else [],
+                               'complete': complete, 'cutoff': cutoff},
             'difference': difference, 'steps': steps}
 
 
@@ -46,7 +47,8 @@ EXAMPLES = [
     example('or-skip', 'selectors', 'return True or sink(source())', returned=True),
     example('none-select', 'selectors', 'return None or sink(source())', [S, T], 17, witness=True),
     example('conditional-order', 'selectors', 'return sink(source()) if not False else sink(0)', [S, T], 17, witness=True),
-    example('comparison-order', 'comparisons', 'return source() < sink(source()) < 30', [S, S, T], False, witness=True),
+    example('comparison-order', 'comparisons', 'return source() < sink(source()) < 30', [S, S, T], False,
+            witness=True, source_index=1),
     example('comparison-stop', 'comparisons', 'return 3 < 2 < sink(source())', returned=False, witness=True,
             difference='Comparison truth remains unknown, so later operands may be retained.'),
     example('if-join', 'statements', 'value = 0\nif False:\n    value = source()\nreturn sink(value)', [ZERO], 0, witness=True,

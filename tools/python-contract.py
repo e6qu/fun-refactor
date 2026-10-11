@@ -123,6 +123,9 @@ def audit_case(row, case):
     require(flow['assignment_control']['implicit_exceptions'] is False
             and flow['call_binding']['implicit_exceptions'] is False, 'implicit exception boundary changed')
     spans, calls = ast_locations(case)
+    sources = sorted(span for span, name in calls.items() if name == case['names']['source'])
+    sinks = sorted(span for span, name in calls.items() if name == case['names']['sink'])
+    pairs = []
     for witness in flow['witnesses']:
         trace = witness['trace']['occurrences']
         require(witness['claim'] == 'possible-value-propagation; path feasibility unchecked.'
@@ -137,6 +140,10 @@ def audit_case(row, case):
                     'witness source correspondence changed')
             if occurrence['role'] in ('source', 'sink'):
                 require(calls.get((start, end)) == case['names'][occurrence['role']], 'witness call identity changed')
+        first = trace[0]['location']['span']
+        last = trace[-1]['location']['span']
+        pairs.append([sources.index((first['start'], first['end'])), sinks.index((last['start'], last['end']))])
+    require(sorted(pairs) == case['expected_model']['pairs'], 'source-to-sink pairing changed')
     expected = ['project', 'dataflow', definition['handle'], '--summaries', '--rules', row['root'] + '/rules.json',
                 '--context', 'html', '--steps', str(case['steps']), '--bytes', '262144']
     require(row['commands'] == [['project', 'find', case['names']['entry']], expected], 'analysis inputs changed')
