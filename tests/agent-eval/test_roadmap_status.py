@@ -79,6 +79,18 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(self.compute()['evidence'][0]['freshness'], 'historical')
         self.assertEqual(self.compute()['milestones_complete'], 0)
 
+    def test_indexing_bindings_are_checked_before_native_tests(self):
+        self.value['schema'] = 'fr-index-resolution-result-1'
+        self.value['bindings'] = self.value.pop('source_bindings')
+        self.catalog['evidence'][0]['kind'] = 'measurement'
+        self.rewrite()
+        entry = self.catalog['evidence'][0]
+        self.assertEqual(status.evidence(self.root, entry)[0]['freshness'], 'current')
+        (self.root / 'input.py').write_text('def f(): return 2\n')
+        checked, _ = status.evidence(self.root, entry)
+        self.assertEqual(checked['freshness'], 'stale')
+        self.assertEqual(checked['changed_sources'], ['input.py'])
+
     def test_failure_cannot_be_relabelled_by_rehashing(self):
         self.value['complete'] = False
         self.rewrite()
@@ -141,7 +153,8 @@ class RoadmapStatusTests(unittest.TestCase):
         def contents(version, remote):
             return (f'[package]\nname="example"\nversion="{version}"\n[dependencies]\n'
                     f'child={{path="child",version="{version}"}}\nremote="{remote}"\n')
-        for schema in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1'):
+        for schema in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1',
+                       'fr-python-contract-1', 'fr-index-resolution-result-1'):
             path.write_text(contents('1.0.0', '2.0.0'))
             expected = status.binding_digest(path, schema)
             path.write_text(contents('1.1.0', '2.0.0'))

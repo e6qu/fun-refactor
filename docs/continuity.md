@@ -45,6 +45,8 @@ The [candidate review table](candidate-review-status.md) owns task admission and
   work; full builds, candidate execution and evidence regeneration on GitHub.
 - Use `fr` for supported inspection and reviewed edits. Treat incorrect or impractical behavior
   as product evidence; use direct edits where no suitable operation exists.
+- Check active evidence hashes under `source_bindings`, `bindings` and `measurement_files`.
+  Index-resolution and compiler-profile reports bind all native source files and need refreshes after native edits.
 - Use configured OpenCode access and the existing `gh` login. Do not inspect or copy credentials.
 - Keep every commit message to one line of at most 80 characters, without a body or trailers.
   When authorized, wait for passing CI and squash-merge with an explicit subject and empty body.

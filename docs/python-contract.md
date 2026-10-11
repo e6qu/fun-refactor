@@ -48,7 +48,7 @@ statement, while the current scalar model can retain that statement with `comple
 Do not use that result as an exception-safety claim. Explicit raise tests check path termination
 and argument ordering; they do not establish exception-type correspondence.
 
-Static module resolution has a separate [package-flow contract](package-flow.md). This corpus
+Static module resolution has a separate [package-flow contract](agent-investigations.md#static-local-imports). This corpus
 does not establish arbitrary imports, aliases, heap effects, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
