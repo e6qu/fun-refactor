@@ -15,6 +15,14 @@ spec.loader.exec_module(flow)
 
 
 class RepositoryAdmission(unittest.TestCase):
+    def test_declared_budgets_fit_the_public_cli(self):
+        flow.validate_cohort(flow.COHORT)
+        for name, value in [('depth', 64), ('steps', 0), ('report_bytes', 1), ('depth', True)]:
+            cohort = copy.deepcopy(flow.COHORT)
+            cohort['budgets'][name] = value
+            with self.subTest(name=name, value=value), self.assertRaises(ValueError):
+                flow.validate_cohort(cohort)
+
     def archive(self, members):
         output = io.BytesIO()
         with tarfile.open(fileobj=output, mode='w:gz') as archive:

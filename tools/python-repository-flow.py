@@ -49,7 +49,15 @@ def bindings():
 
 
 def command(arguments, **kwargs):
-    return subprocess.run(arguments, check=True, capture_output=True, text=True, timeout=30, **kwargs)
+    result = subprocess.run(arguments, capture_output=True, text=True, timeout=30, **kwargs)
+    require(result.returncode == 0, f'{arguments[0]} failed: {result.stderr[-4096:]}')
+    return result
+
+
+def validate_cohort(cohort):
+    limits = cohort['budgets']
+    for name, low, high in [('steps', 1, 4096), ('depth', 1, 32), ('report_bytes', 2048, 1048576)]:
+        require(type(limits[name]) is int and low <= limits[name] <= high, 'declared CLI budget is invalid: ' + name)
 
 
 def snapshot(data, project, destination):
@@ -151,7 +159,7 @@ def assessment(row):
     report = result['report']
     if result['exit_code']:
         require(row['case'] == 'bytes' and 'invalid response byte budget' in json.dumps(report),
-                'unexpected CLI refusal')
+                'unexpected CLI refusal: ' + json.dumps(report)[:4096])
         return {'status': 'refused', 'no_path': False}
     require(report['schema'] == 'fr-dataflow-1' and report['claim'] == 'possible-value-propagation'
             and type(report['complete']) is bool, 'flow report authority changed')
@@ -196,7 +204,11 @@ def check_flow_sources(row, scope):
     flow = result['report']
     require(flow['target'] == selected['handle'] and flow['revision'] == found['report']['revision']
             and flow['inputs']['source'] == {'path': row['path'], 'digest': profile.compiler.digest(row['source'])}
-            and flow['inputs']['summary_mode'] is True and flow['context'] == 'html', 'flow input identity changed')
+            and flow['inputs']['summary_mode'] is True and flow['context'] == 'html'
+            and flow['inputs']['selection']['name'] == row['entry']
+            and flow['inputs']['budget'] == {'steps': 1 if row['case'] == 'steps' else COHORT['budgets']['steps'],
+                                            'depth': COHORT['budgets']['depth'],
+                                            'bytes': COHORT['budgets']['report_bytes']}, 'flow input identity changed')
     rules = {name: COHORT['rules'][name] for name in ('version', 'sources', 'sinks', 'propagators', 'sanitizers')}
     require(flow['rules_digest'] == sha(json.dumps(rules, separators=(',', ':')).encode())
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'caller contracts or input digest changed')
@@ -275,6 +287,7 @@ def audit(value, directory):
 
 def measure(args):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'collect only on GitHub runners')
+    validate_cohort(COHORT)
     command(['git', 'diff', '--exit-code', COHORT['analyzer_revision'], '--',
              'src', 'grammars', 'sdk/python/src', 'Cargo.toml', 'Cargo.lock'], cwd=ROOT)
     source_commit = command(['git', 'rev-parse', 'HEAD'], cwd=ROOT).stdout.strip()
