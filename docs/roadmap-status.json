@@ -102,14 +102,24 @@
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-11-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
       "scope": "Twelve scalar rule families; 36 independent programs and 72 original/renamed cases. Partial B.contract coverage."
+    },
+    {
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "index-resolution",
+      "integrity": "checked",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
     }
   ],
   "milestones": {

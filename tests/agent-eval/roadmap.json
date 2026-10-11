@@ -95,11 +95,19 @@
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-11-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
       "kind": "semantic-contract",
       "scope": "Twelve scalar rule families; 36 independent programs and 72 original/renamed cases. Partial B.contract coverage.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract/result.json",
-      "sha256": "700a8b31a1c7b9d53fda351550453242c0f4366451c83b27ec3c354a95ee73db"
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
+      "sha256": "ca8f2099991b1c873e129dd3137ec1fd06637e7ce0e6390557ad56912fc3908a"
+    },
+    {
+      "id": "index-resolution",
+      "path": "tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "kind": "measurement",
+      "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "sha256": "040629df92d11eb69a41c50210d9ef31a10fb7b32cb022c693fae983ace2fdb1"
     }
   ],
   "obligations": [
