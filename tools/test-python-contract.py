@@ -84,6 +84,17 @@ class PythonContract(unittest.TestCase):
         row['runtime']['returned'] = 0
         self.reject(value)
 
+    def test_boolean_runtime_cannot_become_integer(self):
+        value, row = self.changed('and-skip/moved')
+        row['runtime']['returned'] = 0
+        self.reject(value)
+
+    def test_report_rule_or_input_digest_cannot_change(self):
+        for field in ('rules_digest', 'input_digest'):
+            value, row = self.changed()
+            row['flow'][field] = 'stale'
+            self.reject(value)
+
     def test_documented_model_difference_cannot_disappear(self):
         value, row = self.changed('implicit-exception/moved')
         row['case']['difference'] = None

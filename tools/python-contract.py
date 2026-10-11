@@ -2,6 +2,7 @@
 """Compare a declared scalar Python contract with CPython and retained fr reports."""
 import argparse
 import ast
+import hashlib
 import importlib.util
 import json
 import os
@@ -89,8 +90,9 @@ def configuration(case):
 
 
 def audit_case(row, case):
-    require(row['case'] == case, 'declared example changed')
-    require(row['runtime'] == oracle(case) == case['expected_runtime'], 'CPython outcome or evaluation order changed')
+    require(profile.compiler.digest(row['case']) == profile.compiler.digest(case), 'declared example changed')
+    require(profile.compiler.digest(row['runtime']) == profile.compiler.digest(oracle(case))
+            == profile.compiler.digest(case['expected_runtime']), 'CPython outcome or evaluation order changed')
     flow, found = row['flow'], row['find']
     require(row['configuration'] == configuration(case), 'caller contracts changed')
     require(found['page']['remaining'] == 0 and len(found['rows']) == 1, 'entry selection incomplete')
@@ -108,6 +110,12 @@ def audit_case(row, case):
             and flow['inputs']['source'] == {'path': case['path'], 'digest': profile.compiler.digest(case['source'])}
             and flow['inputs']['budget']['steps'] == case['steps']
             and flow['inputs']['budget']['bytes'] == 262144, 'analysis input basis changed')
+    ordered_rules = {key: configuration(case)[key] for key in ('version', 'sources', 'sinks', 'propagators', 'sanitizers')}
+    rules_digest = hashlib.sha256(json.dumps(ordered_rules, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    require(flow['rules_digest'] == flow['inputs']['rules'] == rules_digest
+            and flow['context'] == 'html' and flow['inputs']['configuration'] == profile.compiler.digest({})
+            and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
+            and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     require(flow['assumptions'] == [
         'scalar values; no aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
@@ -122,7 +130,8 @@ def audit_case(row, case):
     completion = case['expected_model']['completion']
     if completion is not None:
         entry = summaries.for_function(case['names']['entry'])
-        require(flow['completion'] == completion and entry.normal_return is completion['normal_return']
+        require(profile.compiler.digest(flow['completion']) == profile.compiler.digest(completion)
+                and entry.normal_return is completion['normal_return']
                 and entry.may_raise is completion['may_raise'], 'normal or exceptional return changed')
     require(summaries.expression_control.path_feasibility is False, 'path feasibility claim changed')
     require(flow['assignment_control']['implicit_exceptions'] is False
@@ -176,7 +185,7 @@ def audit(value):
             audit_case(actual[key], case)
         except Exception as error:
             raise ValueError(key + ': ' + str(error)) from error
-    require(value['summary'] == summary(), 'contract conclusion changed')
+    require(profile.compiler.digest(value['summary']) == profile.compiler.digest(summary()), 'contract conclusion changed')
     return summary()
 
 
@@ -194,6 +203,7 @@ def measure(binary, output):
              'binary_sha256': file_digest(binary), 'python': {'version': sys.version, 'path': sys.executable,
                                                           'sha256': file_digest(sys.executable)},
              'cases': [], 'summary': {'contract_complete': False}}
+    errors = []
     with tempfile.TemporaryDirectory(prefix='fr-python-contract-') as temporary:
         for index, case in enumerate(cases()):
             root = Path(temporary) / str(index)
@@ -217,8 +227,17 @@ def measure(binary, output):
                    'configuration': configuration(case), 'root': str(root), 'commands': commands}
             value['cases'].append(row)
             save(value, output)
-            audit_case(row, case)
-            print(case['id'] + ': checked', file=sys.stderr, flush=True)
+            try:
+                audit_case(row, case)
+            except Exception as error:
+                errors.append(case['id'] + ': ' + str(error))
+                print(errors[-1], file=sys.stderr, flush=True)
+            else:
+                print(case['id'] + ': checked', file=sys.stderr, flush=True)
+    if errors:
+        value['summary'] = {'contract_complete': False, 'errors': errors}
+        save(value, output)
+        raise ValueError('\n'.join(errors))
     value['summary'] = summary()
     return value
 
