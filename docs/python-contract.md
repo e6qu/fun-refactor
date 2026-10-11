@@ -75,9 +75,12 @@ from exceptions after calling the entry function. External source and sink hooks
 | Discovery | Two-hop helper discovery with depths two and three; a stopped search has no absence authority. The summary-function count also has an explicit boundary example. |
 | Import boundaries | Competing modules/packages and stubs; parameter, assignment and global shadowing; conflicting bindings; module-count, source-byte, lookup-count, component and binding-chain limits. Positive and negative arguments remain independent expectations. |
 
-B.contract remains open until a hosted collection and its corruption controls validate the
-expanded inventory. The retained 252-case report covers the preceding inventory; it does not
-establish the newly authored boundaries. No roadmap acceptance count changes on authored examples alone.
+Hosted collection and 43 corruption controls validate the 326-case inventory, including fourteen
+CLI refusals and 102 emitted incomplete reports. This satisfies B.contract for the finite rules
+declared above. The earlier 252-case report remains historical evidence for its preceding inventory.
+The active source-bound report and acceptance assertions are selected by the
+[generated roadmap status](roadmap-status.md#bcontract-specify-reusable-python-behavior).
+Repository-general flow and exception/alias semantics remain separate acceptance items.
 
 ## Evidence and regression checks
 

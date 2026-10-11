@@ -231,8 +231,22 @@
       "id": "B.contract",
       "kind": "semantic-contract",
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "next": "The 252-case report covers parameter kinds, defaults, recursion and static imports. Add discovery-depth limits, invalid syntax and CLI refusals, import ambiguity and shadowing, and module/binding-chain limits before closing the independent behavior inventory.",
-      "requires": [],
+      "next": "Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh source-bound evidence after changes; repository-general flow and effects remain separate obligations.",
+      "requires": [
+        {
+          "evidence": "python-contract",
+          "assertions": [
+            {"pointer": "/summary/contract_complete", "equals": true},
+            {"pointer": "/summary/rules", "equals": 14},
+            {"pointer": "/summary/examples", "equals": 163},
+            {"pointer": "/summary/cases", "equals": 326},
+            {"pointer": "/summary/renamed_relocated_cases", "equals": 163},
+            {"pointer": "/summary/incomplete_cases", "equals": 102},
+            {"pointer": "/summary/refused_cases", "equals": 14},
+            {"pointer": "/summary/documented_difference_cases", "equals": 54}
+          ]
+        }
+      ],
       "title": "Specify reusable Python behavior"
     },
     {

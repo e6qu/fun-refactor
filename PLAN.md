@@ -23,8 +23,8 @@ task records and Lean proof support for declared subsets. Analysis and editing s
 language; parsing a file does not mean `fr` understands every possible behavior in it.
 Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
 
-The [generated status](docs/roadmap-status.md) records **8 of 18 technical acceptance items
-demonstrated in their stated test cases**. Ten remain open, and none of the four milestones
+The [generated status](docs/roadmap-status.md) records **9 of 18 technical acceptance items
+demonstrated in their stated test cases**. Nine remain open, and none of the four milestones
 below is complete. These counts are not a percentage of product readiness or effort remaining.
 
 We have not established a general efficiency advantage. In the retained two-task Rust comparison,
@@ -39,35 +39,33 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 ## Latest measured result
 
 The [Python behavior contract](docs/python-contract.md) defines fourteen rule families and compares
-126 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
-252 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers and
-static imports. Runtime outcomes remain separate from conservative answers and unsupported cases.
+163 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
+326 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
+static imports, CLI refusals and search budgets. Runtime outcomes remain separate from conservative
+answers and unsupported cases. Hosted checks pass 309 focused regressions and 43 corruption controls.
 
 The latest review found that valid line continuations inside module names caused unsupported-import
 cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
 The fix follows source syntax; it does not recognize a benchmark or expected answer.
 
-The contract remains finite. B.contract is still open: discovery-depth limits, invalid syntax,
-CLI refusals, import ambiguity and shadowing, and module/binding-chain limits need explicit examples.
-The boundary branch now authors 37 additional programs and their renamed counterparts, for
-326 cases. Version-three collection separates CLI errors from emitted reports and checks exact
-budget-limited file inventories. Hosted collection and corruption controls must pass before these
-examples replace retained evidence or change acceptance counts.
+The contract remains finite. The boundary review adds discovery-depth limits, invalid syntax,
+CLI refusals, import ambiguity and shadowing, and module/binding-chain limits. Version-three collection
+separates CLI errors from emitted reports and checks exact budget-limited file inventories.
+B.contract acceptance requires the fresh source-bound report and all eight explicit summary
+assertions; authored examples alone cannot close it. Historical failed and preceding reports remain retained.
 The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
 comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
 
 ## Next large chunk
 
-Complete the reusable Python behavior inventory, acceptance item
-[B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior).
-An agent needs to know which language rules justify an answer and when to stop trusting it.
-
-1. Add a separate CLI-refusal outcome alongside emitted incomplete reports. Check invalid Python
-   syntax and definition failures without conflating them with entry-function exceptions.
-2. Connect discovery-depth limits, ambiguous and shadowed imports, and module/binding-chain
-   budgets to independent examples. Include renamed equivalents and exact file evidence.
-3. Close B.contract only when the inventory has no unexplained coverage holes. Fix exposed
-   defects through general rules; repository identities and expected answers must never select semantics.
+After retaining the final [B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior)
+report and passing CI, address [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects).
+Choose at least three Python projects independently, including one held out until implementation
+is frozen. Use the same analyzer, public commands and declared source/sink configuration everywhere.
+Check selected and blocked values with runtime execution and independent inspection, and retain
+renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.
+Fix exposed defects through general rules; repository identities and expected answers must never
+select semantics.
 
 Keep repository and recovery gates passing. The independent live study still needs representative
 resource admission, actual fr-use accounting and complete parent/child costs. The
@@ -104,7 +102,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 | [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |
 | [Native code-change report](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts; exact submissions graded on GitHub | No attempt used fr |
 | [Candidate review status](docs/candidate-review-status.md) | Scoped reviews, verified grader counterexamples and explicit packaging admission | Finite review, failed submissions and incomplete independent task selection |
-| [Technical acceptance](docs/roadmap-status.md) | Eight of 18 items demonstrated in their stated cases | Ten items and all four milestones remain open |
+| [Technical acceptance](docs/roadmap-status.md) | Nine of 18 items demonstrated in their stated cases | Nine items and all four milestones remain open |
 
 Detailed run history belongs in the linked reports, retained fixtures and Git history.
 Keep failures visible. Smaller source pages or scripted successes alone do not establish lower
