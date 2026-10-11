@@ -44,7 +44,7 @@ When selection refuses, inspect the file or request bounded source instead.
 
 ## Retained result
 
-The [retained report](../tests/agent-eval/results/2026-10-11-contract-compiler-profile/README.md) passes all
+The [retained report](../tests/agent-eval/results/2026-10-11-coverage-compiler-profile/README.md) passes all
 eleven declared features, eighteen cases and 26 corruption tests. Nine cases rename and relocate
 the original source. One Rust configuration deliberately compiles unsuccessfully despite parsing.
 These results close A.compiler-profile only for the declared features and outcomes.

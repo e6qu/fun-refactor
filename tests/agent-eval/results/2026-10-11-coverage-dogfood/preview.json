@@ -1,0 +1,60 @@
+{
+  "applied": false,
+  "atomic_snapshot": false,
+  "behavior_checked": false,
+  "changed": true,
+  "context_basis": "frcb1:39c2f0fb852e9764609fda36d5899f5d523ac3867f4723264ba00a78c6fc9c09",
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 65,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 37711,
+    "unsupported_files": 0
+  },
+  "diff": "--- a/flow_modules.rs\n+++ b/flow_modules.rs\n@@ -46,6 +46,8 @@\n     let from = if node.kind() == \"import_from_statement\" {\n         let module = node.child_by_field_name(\"module_name\")?;\n         let text: String = source[module.byte_range()]\n+            .replace(\"\\\\\\r\\n\", \"\")\n+            .replace(\"\\\\\\n\", \"\")\n             .chars()\n             .filter(|c| !c.is_whitespace())\n             .collect();\n@@ -88,6 +90,8 @@\n             (child, child)\n         };\n         let name: String = source[name.byte_range()]\n+            .replace(\"\\\\\\r\\n\", \"\")\n+            .replace(\"\\\\\\n\", \"\")\n             .chars()\n             .filter(|c| !c.is_whitespace())\n             .collect();\n",
+  "files_changed": 1,
+  "handle_prefix": "frp1:05ab091691c576a9bc782be6816045a0:",
+  "plan_context_basis": "frpb1:d337ffc40f478b5b952212c55ca27fb4f1e7e3aa0176413d46aff1fa6624d702",
+  "postconditions": [],
+  "postconditions_held": true,
+  "query": "batch",
+  "revision": "05ab091691c576a9bc782be6816045a0d0d685ea2b0579f18b2ff89f4119db3f",
+  "saved": false,
+  "schema": "fr-author-batch-1",
+  "span_basis": "original-source",
+  "steps": [
+    {
+      "after_bytes": 2582,
+      "after_sha256": "80c475425ad576cd0fe0d4ef7a64a8313f402c9e4cf66ee306e4ab049514a3d0",
+      "before_bytes": 2446,
+      "before_sha256": "9e42cf307e7bf56052d088370f47e9b77fa254d2917abf7cc726b05bb3b174eb",
+      "before_span": {
+        "end": 3689,
+        "start": 1243
+      },
+      "changed": true,
+      "handle": "frp1:05ab091691c576a9bc782be6816045a0:fbb",
+      "operation": "replace-body",
+      "path": "flow_modules.rs",
+      "preservation": "bytes outside the selected body",
+      "signature": {
+        "basis": "syntax-header",
+        "text": "fn imports(node: Node<'_>, source: &str, file: &Path) -> Option<Vec<(String, Binding)>>"
+      }
+    }
+  ],
+  "transaction": null,
+  "validation": "reparse-strict"
+}

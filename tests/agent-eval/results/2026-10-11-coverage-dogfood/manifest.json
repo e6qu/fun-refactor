@@ -1,0 +1,23 @@
+{
+  "schema": "fr-dogfood-record-1",
+  "binary_version": "0.54.0",
+  "binary_sha256": "5f60df130770fdae3a8dd801b4080e529090e549914ccebb714c6aca15bad601",
+  "baseline_source_commit": "bd755f188c328ae18bc32a631471fa659c11cb4e",
+  "history_command": [
+    "/Users/zardoz/projects/fun-refactor/target/agent-tools/fr-v0.54.0/fr",
+    "--json",
+    "-C",
+    "/Users/zardoz/projects/fun-refactor/src/project",
+    "history",
+    "show",
+    "46"
+  ],
+  "transaction": 46,
+  "files": {
+    "history.json": "52587bc671ec17f9616df5d6617cd5e456cb3b7a5ec14a14a741fb84990c8662",
+    "imports.rs": "80c475425ad576cd0fe0d4ef7a64a8313f402c9e4cf66ee306e4ab049514a3d0",
+    "preview.json": "5615cc7f882482bb866ccb22c936e3d49d0b20b90aebdf1d3ac0b3ff499fa858",
+    "request.json": "9c4427050330a5a49b2a5a4487d4698ef38dce7f10a40400022238a6510212a8"
+  },
+  "scope": "One real import-body replacement through reviewed preview, saved plan and history apply. No general efficiency claim."
+}

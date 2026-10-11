@@ -86,7 +86,7 @@ The default route cuts off recursive calls. It does not claim runtime terminatio
 
 ### Recursive function summaries
 
-Add `--summaries` to use `python-scalar-summaries-3`. The solver summarizes each reachable function
+Add `--summaries` to use `python-scalar-summaries-5`. The solver summarizes each reachable function
 with symbolic required parameters. Each call substitutes its own arguments into return, sink and
 exceptional effects. This keeps separate callers from sharing input values. Direct and mutual recursion
 start with empty summaries and grow monotonically until a global fixed point or a cutoff.

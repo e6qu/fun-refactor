@@ -385,3 +385,34 @@ def test_static_module_calls_accept_spacing_between_attribute_tokens(tmp_path):
     (tmp_path / "app.py").write_text("import leaf as local\ndef positive():\n    return sink(local . identity(source()))\n")
     result = analyze(client, rules)
     assert result.report.at("/complete") and result.witnesses
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+@pytest.mark.parametrize("statement,call", [
+    ("import pack\\\n    .leaf", "pack.leaf.identity"),
+    ("import pack\\\n    .leaf as local", "local.identity"),
+    ("from pack\\\n    .leaf import identity as local", "local"),
+    ("from .\\\n    leaf import identity as local", "local"),
+])
+def test_import_line_continuations_preserve_binding_and_source_locations(tmp_path, newline, statement, call):
+    client, rules = workspace(tmp_path)
+    package = tmp_path / "pack"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "leaf.py").write_text("def identity(value):\n    return value\n")
+    source = (statement + "\ndef continued():\n    return sink(" + call + "(source()))\n").replace("\n", newline)
+    path = package / "subject.py"
+    path.write_bytes(source.encode())
+    # Use a subprocess so repeated package names cannot reuse another case's imports.
+    script = ("import sys; sys.path.insert(0, sys.argv[1]); "
+              "scope = {'__package__': 'pack', 'source': lambda: 17, 'sink': lambda value: value}; "
+              "exec(compile(open(sys.argv[2], 'rb').read(), sys.argv[2], 'exec'), scope); "
+              "assert scope['continued']() == 17")
+    subprocess.run(["python3", "-I", "-c", script, str(tmp_path), str(path)], check=True, timeout=10)
+    result = analyze(client, rules, "continued")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses
+    assert result.summaries.for_function("pack/leaf.py::identity").return_parameters == (0,)
+    for point in result.witnesses[0].occurrences:
+        text = (tmp_path / point.path).read_bytes().decode()
+        point.text(text, revision=result.report.at("/revision"))

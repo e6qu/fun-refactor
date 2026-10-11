@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-11-coverage-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):
@@ -203,6 +203,83 @@ class PythonContract(unittest.TestCase):
             value, _ = self.changed()
             value[key] = 'unknown'
             self.reject(value)
+
+    def test_module_source_inventory_and_candidate_bytes(self):
+        for mutation in ('missing', 'extra', 'bytes', 'candidate'):
+            value, row = self.changed('import-absolute-selected/moved')
+            modules = row['flow']['inputs']['modules']
+            if mutation == 'missing':
+                modules['files'].pop('engine.py')
+            elif mutation == 'extra':
+                modules['files']['invented.py'] = '0' * 64
+            elif mutation == 'bytes':
+                modules['files']['engine.py'] = '0' * 64
+            else:
+                modules['lookups'][0]['candidates']['engine.pyi'] = {'status': 'directory'}
+            row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+
+    def test_callee_path_and_signature_cannot_change(self):
+        for mutation in ('path', 'name', 'kind', 'site', 'default'):
+            value, row = self.changed('import-keyword-default/moved')
+            functions = row['flow']['function_summaries']['functions']
+            helper = functions['engine.py::transfer']
+            if mutation == 'path':
+                functions['renamed.py::transfer'] = functions.pop('engine.py::transfer')
+            elif mutation in ('name', 'kind'):
+                helper['signature'][0][mutation] = 'wrong'
+            else:
+                helper['signature'][0][mutation]['path'] = 'renamed.py'
+            self.reject(value)
+
+    def test_import_witness_cannot_borrow_another_file_span(self):
+        value, row = self.changed('import-absolute-selected/moved')
+        points = row['flow']['witnesses'][0]['trace']['occurrences']
+        next(point for point in points if point['path'] == 'engine.py')['path'] = 'renamed.py'
+        self.reject(value)
+
+    def test_equal_sink_offsets_do_not_merge_distinct_files(self):
+        value, row = self.changed('import-distinct-sink-files/moved')
+        self.assertEqual(len(row['flow']['witnesses']), 2)
+        row['flow']['witnesses'][1] = copy.deepcopy(row['flow']['witnesses'][0])
+        self.reject(value)
+
+    def test_imported_sink_endpoint_and_caller_suffix_are_checked(self):
+        for mutation in ('endpoint', 'suffix-role', 'suffix-location'):
+            value, row = self.changed('import-helper-sink/moved')
+            witness = row['flow']['witnesses'][0]
+            points = witness['trace']['occurrences']
+            if mutation == 'endpoint':
+                witness['site'] = copy.deepcopy(points[-1])
+            elif mutation == 'suffix-role':
+                points[-1]['role'] = 'use'
+            else:
+                points[-1]['location'] = copy.deepcopy(points[1]['location'])
+                points[-1]['path'] = points[1]['path']
+            self.reject(value)
+
+    def test_import_oracle_isolated_between_conflicting_modules(self):
+        selected = next(case for case in contract.cases() if case['id'] == 'import-absolute-selected/original')
+        discarded = next(case for case in contract.cases() if case['id'] == 'import-absolute-discarded/original')
+        contract.oracle_json.cache_clear()
+        for case in (selected, discarded, selected):
+            self.assertEqual(contract.oracle(case), case['expected_runtime'])
+
+    def test_oracle_cache_does_not_expose_mutable_answers(self):
+        case = contract.cases()[0]
+        first = contract.oracle(case)
+        first['events'].clear()
+        self.assertEqual(contract.oracle(case), case['expected_runtime'])
+
+    def test_definition_failure_is_not_an_entry_failure(self):
+        value, row = self.changed('default-definition-failure/moved')
+        row['runtime']['phase'] = 'entry'
+        self.reject(value)
+
+    def test_recursive_completion_cannot_be_invented(self):
+        value, row = self.changed('mutual-no-return/moved')
+        row['flow']['completion']['normal_return'] = True
+        self.reject(value)
 
     def test_summary_cannot_overstate_coverage(self):
         value, _ = self.changed()

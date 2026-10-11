@@ -6,14 +6,15 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [Python behavior contract](python-contract.md) compares 36 independent programs and their
-renamed/relocated equivalents: 72 cases across twelve declared rule families. It retains CPython
+The [Python behavior contract](python-contract.md) compares 126 authored programs and their
+renamed/relocated equivalents: 252 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
+Multi-file checks also validate module inventories, candidate states and callee signatures.
 
-The review caught comments being traversed as operands and reported as unsupported expressions.
-The general traversal now skips parser extras. Focused regressions cover three comment placements
-and compare runtime effects and exact witness locations. Full builds and evidence refreshes run
+The review caught valid line continuations being retained inside import module names.
+Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
+aliased, from and relative imports. Full builds and evidence refreshes run
 on GitHub; scalar refreshes are split into four jobs with 15-minute limits.
 
 Roadmap status is 8/18 demonstrated acceptance items and 0/4 completed milestones. This does
@@ -21,10 +22,10 @@ not establish a general agent-efficiency advantage or complete Rust/Python seman
 
 ## Next work
 
-Finish [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior). Map recursive
-summaries, static imports and every admitted call-binding form to the explicit rule inventory.
-Existing focused tests cover these separately; the current contract report does not claim them.
-Add independent executable examples and renamed/relocated variants before closing the gate.
+Finish [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior). The remaining
+inventory gaps are discovery-depth limits, invalid syntax and CLI refusals, import ambiguity and
+shadowing, and module/binding-chain limits. Focused tests cover these separately; the contract
+report does not yet claim them. Add independent examples and renamed variants before closing the gate.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
 ## Client-study boundary

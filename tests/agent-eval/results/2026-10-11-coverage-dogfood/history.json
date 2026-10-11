@@ -1,0 +1,80 @@
+{
+  "applied": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "pending": null,
+  "records": [
+    {
+      "basis": "b073867247fe9331d378201620eb3527a0091b7da41e7a3d73777387147f7866",
+      "changes": [
+        {
+          "after_exists": true,
+          "after_kind": "regular",
+          "after_mode": 420,
+          "before_exists": true,
+          "before_kind": "regular",
+          "before_mode": 420,
+          "diff": "--- a/flow_modules.rs\n+++ b/flow_modules.rs\n@@ -46,6 +46,8 @@\n     let from = if node.kind() == \"import_from_statement\" {\n         let module = node.child_by_field_name(\"module_name\")?;\n         let text: String = source[module.byte_range()]\n+            .replace(\"\\\\\\r\\n\", \"\")\n+            .replace(\"\\\\\\n\", \"\")\n             .chars()\n             .filter(|c| !c.is_whitespace())\n             .collect();\n@@ -88,6 +90,8 @@\n             (child, child)\n         };\n         let name: String = source[name.byte_range()]\n+            .replace(\"\\\\\\r\\n\", \"\")\n+            .replace(\"\\\\\\n\", \"\")\n             .chars()\n             .filter(|c| !c.is_whitespace())\n             .collect();\n",
+          "path": "flow_modules.rs"
+        }
+      ],
+      "compacted": false,
+      "context_basis": "frtb2:330ddc7598149af2387a7d2f3dceb6836a6ca2b4bf96e71bc14c3189ff51f346",
+      "id": 46,
+      "path_count": 1,
+      "paths": [
+        "flow_modules.rs"
+      ],
+      "source_revision": "c17baa62ca1a233ff9641ee9bd2c206c01b65c7b25033a390488e72ef616621a",
+      "status": "applied",
+      "validation": "reparse-strict"
+    }
+  ],
+  "redo": [],
+  "schema": 1
+}
