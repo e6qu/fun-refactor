@@ -24,11 +24,16 @@ not establish a general agent-efficiency advantage or complete Rust/Python seman
 
 ## Next work
 
-Retain the final source-bound [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior)
-report with the `retain-python-contract` hosted group and pass full CI. Its acceptance entry checks
-all eight independently reviewed inventory counts. The earlier 252-case report and failed collections
-remain historical evidence. Deep validation supersedes obsolete revisions, and every timeout stays unchanged.
-Then choose the independent and held-out projects for
+The final source-bound [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior)
+report is retained. Its acceptance entry checks all eight independently reviewed inventory counts.
+The earlier 252-case report and failed collections remain historical evidence.
+
+Workflow reports bind the canonical lockfile identity, preserving dependency versions, checksums
+and graph changes while ignoring workspace release numbers. The raw lockfile binding caused the
+route gate to fail after a release. Refresh both `workflow-routes` and `source-repair` from one
+revision and use `retain-workflows` to verify their artifacts and corruption controls on GitHub.
+Keep historical reports intact. Pass full CI before merging; deep validation supersedes obsolete
+revisions, and every timeout stays unchanged. Then choose the independent and held-out projects for
 [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects).
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
