@@ -49,6 +49,8 @@ on:
           - python-contract
           - retain-python-contract
           - retain-workflows
+          - repository-flow-coverage
+          - repository-flow-held-out
           - flow-contract
       collection_run:
         description: Successful collection run ID for Python or workflow retention
@@ -67,7 +69,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'flow-contract'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'flow-contract' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -290,6 +292,50 @@ jobs:
           path: |
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
+          retention-days: 7
+
+  repository-flow:
+    if: startsWith(inputs.group, 'repository-flow-')
+    name: ${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Check collector provenance and negative controls
+        run: python3 -B tools/test-python-repository-flow.py
+      - name: Collect and independently replay bounded repository probes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+        run: |
+          arguments=(--phase "$PHASE" --output target/python-repository-flow)
+          if [ -n "$COVERAGE_RUN" ]; then arguments+=(--coverage-run "$COVERAGE_RUN"); fi
+          python3 -B tools/python-repository-flow.py "${arguments[@]}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: repository-flow-${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+          path: target/python-repository-flow
+          if-no-files-found: error
           retention-days: 7
 
   retain-python-contract:
