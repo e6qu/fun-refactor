@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.58.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.0...fun-refactor-v0.58.1) (2026-10-11)
+
+
+### Fixes
+
+* define Python behavior contracts and ignore expression comments ([bd755f1](https://github.com/e6qu/fun-refactor/commit/bd755f188c328ae18bc32a631471fa659c11cb4e))
+* reject ambiguous semantic bodies and verify language profiles ([aa6a2fa](https://github.com/e6qu/fun-refactor/commit/aa6a2fa6035c6d56cc5d846889a8dc88d68b5c45))
+
 ## [0.58.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.57.0...fun-refactor-v0.58.0) (2026-10-10)
 
 
