@@ -4,7 +4,7 @@
 
 `fr` is a CLI for AI agents to understand code, make changes and check or prove results. The goal is correct work with less total agent effort and context. Progressive disclosure means starting with a small overview and asking for details only when needed.
 
-**8/18 technical acceptance items are demonstrated in their recorded test cases; 10 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
+**9/18 technical acceptance items are demonstrated in their recorded test cases; 9 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
 
 The CLI already provides code navigation, bounded reads, reviewed edits, checks, undo/redo and patch delivery. Current tests cover useful cases of Python value tracing and restarting work after code changes. Support is limited to the language features stated in each test.
 
@@ -23,7 +23,7 @@ Implementation checkboxes say code was added. Demonstrated items say the specifi
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
-| B. Explain how values move through code | 4/5 | 1/4 | open |
+| B. Explain how values move through code | 4/5 | 2/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
 
@@ -73,11 +73,11 @@ Next: Keep the small examples as regression tests while testing more varied prog
 
 ### B.contract: Specify reusable Python behavior
 
-**State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
+**State: demonstrated.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
-Evidence or missing work: No qualifying retained evidence yet.
+Evidence or missing work: python-contract.
 
-Next: The 252-case report covers parameter kinds, defaults, recursion and static imports. Add discovery-depth limits, invalid syntax and CLI refusals, import ambiguity and shadowing, and module/binding-chain limits before closing the independent behavior inventory.
+Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh source-bound evidence after changes; repository-general flow and effects remain separate obligations.
 
 ### B.repository-flow: Trace values in unfamiliar projects
 
@@ -190,7 +190,7 @@ The entries below identify the stored test results. “Current” means their re
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / model-proof | checked | historical | Three Boolean model relations; no source implementation correspondence. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / live-agent | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json) / compiler | checked | current | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json` |
-| [python-contract](../tests/agent-eval/results/2026-10-11-coverage-python-contract/result.json) / semantic-contract | checked | current | Fourteen scalar, recursion and static-import rules; 126 authored programs and 252 original/renamed cases. Partial B.contract coverage. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-coverage-python-contract/result.json` |
+| [python-contract](../tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json) / semantic-contract | checked | current | 14 declared Python rules; 163 authored programs and 326 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json` |
 | [index-resolution](../tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json) / measurement | checked | current | Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
