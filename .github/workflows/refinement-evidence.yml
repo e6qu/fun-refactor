@@ -46,6 +46,7 @@ on:
           - workflow-routes
           - source-repair
           - compiler-profile
+          - python-contract
 permissions:
   contents: read
 concurrency:
@@ -53,7 +54,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -217,6 +218,40 @@ jobs:
         with:
           name: source-repair
           path: target/source-repair
+          if-no-files-found: error
+          retention-days: 7
+
+  python-contract:
+    if: inputs.group == 'python-contract'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo fmt --all --check
+      - run: cargo build --locked --bin fr
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - name: Check expression evaluation and source locations
+        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py
+      - name: Compare the declared Python contract with CPython
+        run: python3 -B tools/python-contract.py --output target/python-contract/result.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-contract
+          path: target/python-contract
           if-no-files-found: error
           retention-days: 7
 
