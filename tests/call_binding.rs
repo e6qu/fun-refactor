@@ -12,10 +12,14 @@ fn run(root: &Path, args: &[&str]) -> std::process::Output {
 }
 
 fn analyze(root: &Path, parameters: &str, call: &str) -> (String, Value) {
+    analyze_body(root, parameters, "return left", call)
+}
+
+fn analyze_body(root: &Path, parameters: &str, body: &str, call: &str) -> (String, Value) {
     fs::write(
         root.join("app.py"),
         format!(
-            "def choose({parameters}):\n    return left\ndef entry():\n    return sink({call})\n"
+            "def choose({parameters}):\n    {body}\ndef entry():\n    return sink({call})\n"
         ),
     )
     .unwrap();
@@ -48,6 +52,42 @@ fn analyze(root: &Path, parameters: &str, call: &str) -> (String, Value) {
         String::from_utf8_lossy(&output.stderr)
     );
     (target, serde_json::from_slice(&output.stdout).unwrap())
+}
+
+#[test]
+fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
+    let root = tempfile::tempdir().unwrap();
+    for (parameters, call, complete, witness) in [
+        ("left, *extra", "choose(source())", true, true),
+        ("left=0, *extra", "choose()", true, false),
+        ("left, /, *extra", "choose(source())", true, true),
+        ("left, *extra, right=0", "choose(0, right=source())", true, false),
+        ("left, *extra, right", "choose(source(), right=0)", true, true),
+        ("left, **extra", "choose(left=source())", true, true),
+        ("left, *extra, **others", "choose(left=source())", true, true),
+        ("left, *extra", "choose(0, source())", false, false),
+        ("left, **extra", "choose(0, extra=source())", false, false),
+        ("left, *extra", "choose(0, sink(source()))", false, true),
+        ("left, *extra, right", "choose(source())", false, false),
+    ] {
+        let (_, report) = analyze(root.path(), parameters, call);
+        assert_eq!(report["complete"], complete, "{parameters}: {call}: {}", report["cutoffs"]);
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
+        assert_eq!(report["call_binding"]["schema"], "fr-call-binding-3");
+    }
+    for (parameters, body) in [
+        ("left, *extra", "return extra"),
+        ("left, **extra", "return extra"),
+        ("left, *extra", "extra = 0; return left"),
+        ("left, *extra: int", "return left"),
+        ("left, **extra: int", "return left"),
+    ] {
+        let (_, report) = analyze_body(root.path(), parameters, body, "choose(source())");
+        assert_eq!(report["complete"], false, "{parameters}: {body}");
+        assert!(report["cutoffs"].as_array().unwrap().iter().any(|c| {
+            c.as_str().unwrap().starts_with("unsupported-parameter-contract:")
+        }));
+    }
 }
 
 #[test]
@@ -85,7 +125,7 @@ fn required_parameters_bind_by_kind_and_name() {
             report["cutoffs"]
         );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
-        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(report["semantics"], "python-scalar-summaries-6");
         assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
     }
 }

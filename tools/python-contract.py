@@ -149,7 +149,7 @@ def audit_case(row, case):
         return
     require(row['error'] is None and invocations[1] == {'exit_code': 0, 'stderr': ''},
             'analysis report did not succeed cleanly')
-    require(flow['schema'] == 'fr-dataflow-1' and flow['semantics'] == 'python-scalar-summaries-5'
+    require(flow['schema'] == 'fr-dataflow-1' and flow['semantics'] == 'python-scalar-summaries-6'
             and flow['claim'] == 'possible-value-propagation' and flow['revision'] == found['revision'],
             'analysis identity or claim changed')
     require(flow['target'] == definition['handle'] and flow['inputs']['summary_mode'] is True

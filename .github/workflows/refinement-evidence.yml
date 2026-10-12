@@ -53,6 +53,7 @@ on:
           - repository-flow-held-out
           - retain-repository-flow
           - flow-contract
+          - scalar-development
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -86,7 +87,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -174,6 +175,49 @@ jobs:
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
+
+  scalar-development:
+    if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Format Rust on the runner
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add '*.rs'
+            git commit -m 'style: format fixed-slot variadic summaries'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Check native binding and summary controls
+        run: cargo test --locked --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
+      - name: Check Python runtime and SDK controls
+        run: |
+          python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+          ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py
+          python3 -B tools/python-contract.py --check-runtime
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'

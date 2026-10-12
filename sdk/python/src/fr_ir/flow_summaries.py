@@ -119,6 +119,14 @@ _LITERAL_CALL_BINDING = {
 }
 
 
+_FIXED_VARIADIC_CALL_BINDING = {
+    **_LITERAL_CALL_BINDING,
+    "schema": "fr-call-binding-3",
+    "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+    "variadics": "unannotated ASCII variadic parameters absent from every identifier in the function body may be omitted from fixed-slot summaries; calls must bind only declared fixed slots.",
+}
+
+
 @dataclass(frozen=True)
 class CallBinding:
     parameters: str
@@ -128,10 +136,11 @@ class CallBinding:
     boundary: str
     implicit_exceptions: bool
     defaults: str | None = None
+    variadics: str | None = None
 
     @classmethod
     def from_data(cls, value: Any) -> CallBinding:
-        if (not isinstance(value, dict) or value not in (_CALL_BINDING, _LITERAL_CALL_BINDING)
+        if (not isinstance(value, dict) or value not in (_CALL_BINDING, _LITERAL_CALL_BINDING, _FIXED_VARIADIC_CALL_BINDING)
                 or type(value.get("implicit_exceptions")) is not bool):
             raise FrRuntimeError("unsupported call binding contract")
         return cls(**{key: item for key, item in value.items() if key != "schema"})
@@ -184,7 +193,7 @@ class FunctionSummaries:
         data = report.to_data()
         try:
             value = data["function_summaries"]
-            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}
+            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5", "python-scalar-summaries-6"}
                     or value["schema"] != "fr-function-summaries-1" or value["enabled"] is not True
                     or value["mutation_authority"] is not False):
                 raise FrRuntimeError("report does not disclose function summaries")
@@ -194,7 +203,7 @@ class FunctionSummaries:
                     or (data["complete"] and not value["converged"])):
                 raise FrRuntimeError("inconsistent summary convergence")
             control = None
-            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}:
+            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5", "python-scalar-summaries-6"}:
                 control = ExpressionControl.from_data(data["expression_control"])
                 ExpressionControl.from_data(data["inputs"]["expression_control"])
                 if data["inputs"]["expression_control"] != data["expression_control"]:
@@ -203,8 +212,8 @@ class FunctionSummaries:
                     or data["inputs"].get("expression_control") is not None):
                 raise FrRuntimeError("legacy summaries cannot declare new expression control")
             binding = None
-            if data["semantics"] in {"python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}:
-                expected_binding = _LITERAL_CALL_BINDING if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"} else _CALL_BINDING
+            if data["semantics"] in {"python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5", "python-scalar-summaries-6"}:
+                expected_binding = _FIXED_VARIADIC_CALL_BINDING if data["semantics"] == "python-scalar-summaries-6" else _LITERAL_CALL_BINDING if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5", "python-scalar-summaries-6"} else _CALL_BINDING
                 if data["call_binding"] != expected_binding:
                     raise FrRuntimeError("call binding disagrees with summary semantics")
                 binding = CallBinding.from_data(data["call_binding"])
@@ -215,7 +224,7 @@ class FunctionSummaries:
                     or data["inputs"].get("call_binding") is not None):
                 raise FrRuntimeError("legacy summaries cannot declare new call binding")
             assignment = None
-            if data["semantics"] == "python-scalar-summaries-5":
+            if data["semantics"] in {"python-scalar-summaries-5", "python-scalar-summaries-6"}:
                 assignment = AssignmentControl.from_data(data["assignment_control"])
                 AssignmentControl.from_data(data["inputs"]["assignment_control"])
                 if data["inputs"]["assignment_control"] != data["assignment_control"]:
@@ -263,7 +272,7 @@ class FunctionSummaries:
                 if data["complete"] and any(callee not in value["functions"] for callee in item["callees"]):
                     raise FrRuntimeError("complete summary has an undisclosed callee")
                 signature = None
-                if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"}:
+                if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5", "python-scalar-summaries-6"}:
                     raw_signature = item["signature"]
                     if not isinstance(raw_signature, list) or len(raw_signature) != len(parameters):
                         raise FrRuntimeError("signature disagrees with summary parameters")

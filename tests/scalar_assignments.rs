@@ -68,7 +68,7 @@ fn parallel_assignments_preserve_reads_before_writes_and_duplicate_targets() {
     ] {
         let (_, report) = analyze(root.path(), body);
         assert_eq!(report["complete"], true, "{report}");
-        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(report["semantics"], "python-scalar-summaries-6");
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), reaches);
         assert_eq!(
             report["assignment_control"],

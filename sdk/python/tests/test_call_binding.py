@@ -22,6 +22,71 @@ def install(tmp_path, parameters, call, body="return left", entry_parameters="",
     return client, rules
 
 
+@pytest.mark.parametrize("parameters,positive,blocked", [
+    ("left, *tail", "choose(source())", "choose(0)"),
+    ("left=0, *tail", "choose(left=source())", "choose()"),
+    ("left, /, *tail", "choose(source())", "choose(0)"),
+    ("left, *tail, right=0", "choose(source(), right=0)", "choose(0, right=source())"),
+    ("left, *tail, right", "choose(source(), right=0)", "choose(0, right=source())"),
+    ("left, **tail", "choose(left=source())", "choose(0)"),
+    ("left, *tail, **options", "choose(left=source())", "choose(0)"),
+])
+def test_unused_variadic_declarations_preserve_fixed_argument_selection(tmp_path, parameters, positive, blocked):
+    for call, tainted in [(positive, True), (blocked, False)]:
+        client, rules = install(tmp_path, parameters, f"sink({call})")
+        result = analyze(client, rules, "entry")
+        assert result.report.at("/complete"), result.report.at("/cutoffs")
+        assert bool(result.witnesses) is tainted
+        assert result.summaries.for_function("choose").return_parameters == (0,)
+        assert result.summaries.call_binding.variadics
+        runtime = observe(tmp_path)
+        assert runtime["raised"] is None and runtime["result"] == (17 if tainted else 0)
+
+
+@pytest.mark.parametrize("parameters,call", [
+    ("left, *tail", "choose(0, sink(source()))"),
+    ("left, **tail", "choose(0, extra=sink(source()))"),
+    ("left, *tail, **options", "choose(0, tail=sink(source()))"),
+])
+def test_extra_variadic_arguments_preserve_effects_and_remain_incomplete(tmp_path, parameters, call):
+    client, rules = install(tmp_path, parameters, call)
+    result = analyze(client, rules, "entry")
+    assert not result.report.at("/complete")
+    assert "invalid-call-binding:choose" in result.report.at("/cutoffs")
+    assert result.witnesses
+    runtime = observe(tmp_path)
+    assert runtime["raised"] is None and runtime["result"] == 0
+    assert runtime["events"] == [["source", 17], ["sink", 17]]
+
+
+def test_using_a_variadic_binding_invalidates_a_cached_fixed_summary(tmp_path):
+    client, rules = install(tmp_path, "left, *tail", "sink(choose(source()))")
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, "entry", cache)
+    assert first.report.at("/complete")
+    assert analyze(client, rules, "entry", cache).reused
+    path = tmp_path / "subject.py"
+    path.write_text(path.read_text().replace("return left", "tail = 0; return left"))
+    changed = analyze(client, rules, "entry", cache)
+    assert not changed.reused and not changed.report.at("/complete")
+    assert evidence(changed) == evidence(analyze(client, rules, "entry"))
+
+
+@pytest.mark.parametrize("mutation", ["legacy", "missing", "referenced"])
+def test_fixed_variadic_contract_cannot_be_replaced_by_an_older_contract(tmp_path, mutation):
+    client, rules = install(tmp_path, "left, *tail", "choose(source())")
+    data = copy.deepcopy(analyze(client, rules, "entry").report.to_data())
+    if mutation == "legacy":
+        data["semantics"] = "python-scalar-summaries-5"
+    elif mutation == "missing":
+        del data["call_binding"]["variadics"]
+    else:
+        data["call_binding"]["variadics"] = "allow referenced variadic values"
+        data["inputs"]["call_binding"] = copy.deepcopy(data["call_binding"])
+    with pytest.raises(FrRuntimeError):
+        FunctionSummaries.from_report(FrReport(data, ()))
+
+
 def observe(tmp_path, invocation="entry()"):
     script = '''import json, runpy, sys
 from pathlib import Path
