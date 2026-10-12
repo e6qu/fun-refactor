@@ -296,14 +296,24 @@ fn unsupported_bindings_block_function_and_import_resolution() {
 fn final_function_definitions_replace_opaque_bindings_without_checking_effects() {
     let root = tempfile::tempdir().unwrap();
     write(root.path(), "pkg/__init__.py", "@decorate\ndef relay(value):\n    pass\n@decorate\ndef relay(value):\n    pass\ndef relay(value):\n    return value\n");
-    write(root.path(), "app.py", "from pkg import relay\ndef entry():\n    return sink(relay(source()))\n");
+    write(
+        root.path(),
+        "app.py",
+        "from pkg import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
     let report = analyze(root.path(), "entry");
     let lookup = &report["inputs"]["modules"]["lookups"][0];
     assert!(lookup["submodule"].is_null());
     assert_eq!(lookup["resolution"], "function");
     assert_eq!(report["complete"], false);
-    assert!(report["cutoffs"].as_array().unwrap().contains(&json!("module-effects-unchecked")));
-    assert_eq!(report["function_summaries"]["functions"]["pkg/__init__.py::relay"]["normal_return"], true);
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("module-effects-unchecked")));
+    assert_eq!(
+        report["function_summaries"]["functions"]["pkg/__init__.py::relay"]["normal_return"],
+        true
+    );
     assert!(!report["witnesses"].as_array().unwrap().is_empty());
 }
 
