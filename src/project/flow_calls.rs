@@ -70,17 +70,27 @@ pub(super) fn generator_function(function: Node<'_>) -> bool {
         if node.kind() == "yield" {
             return true;
         }
-        let deferred = if matches!(node.kind(), "function_definition" | "class_definition" | "lambda") {
+        let deferred = if matches!(
+            node.kind(),
+            "function_definition" | "class_definition" | "lambda"
+        ) {
             node.child_by_field_name("body")
         } else {
             None
         };
-        pending.extend(node.named_children(&mut node.walk()).filter(|child| Some(*child) != deferred));
+        pending.extend(
+            node.named_children(&mut node.walk())
+                .filter(|child| Some(*child) != deferred),
+        );
     }
     false
 }
 
-fn parameter_contract<'t>(function: Node<'t>, source: &str, phase: Phase) -> Option<Vec<Parameter<'t>>> {
+fn parameter_contract<'t>(
+    function: Node<'t>,
+    source: &str,
+    phase: Phase,
+) -> Option<Vec<Parameter<'t>>> {
     let list = function.child_by_field_name("parameters")?;
     let mut result: Vec<Parameter<'t>> = Vec::new();
     let mut names = BTreeSet::new();

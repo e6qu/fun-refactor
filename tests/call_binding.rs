@@ -58,7 +58,10 @@ fn uncalled_variadic_bodies_defer_effects_but_calls_keep_their_contract() {
     for (parameters, body) in [
         ("*items", "return items[0]"),
         ("**options", "return options['value']"),
-        ("value, /, *items, flag=True, **options", "return opaque(items, options)"),
+        (
+            "value, /, *items, flag=True, **options",
+            "return opaque(items, options)",
+        ),
         ("*items", "yield items"),
     ] {
         let (_, report) = analyze_body(root.path(), parameters, body, "source()");
@@ -68,8 +71,14 @@ fn uncalled_variadic_bodies_defer_effects_but_calls_keep_their_contract() {
     }
     let (_, called) = analyze_body(root.path(), "*items", "return items[0]", "choose(source())");
     assert_eq!(called["complete"], false);
-    assert!(called["cutoffs"].as_array().unwrap().contains(&json!("unsupported-parameter-contract:choose")));
-    assert!(!called["cutoffs"].as_array().unwrap().contains(&json!("module-effects-unchecked")));
+    assert!(called["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("unsupported-parameter-contract:choose")));
+    assert!(!called["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("module-effects-unchecked")));
 }
 
 #[test]
@@ -82,11 +91,18 @@ fn generator_calls_never_transfer_their_deferred_body() {
     ] {
         let (_, report) = analyze_body(root.path(), "left", body, "choose(source())");
         assert_eq!(report["complete"], false);
-        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("generator-function")));
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("generator-function")));
         assert!(report["witnesses"].as_array().unwrap().is_empty());
     }
-    let (_, report) = analyze_body(root.path(), "left",
-        "return 0 if True else (lambda: (yield left))", "choose(source())");
+    let (_, report) = analyze_body(
+        root.path(),
+        "left",
+        "return 0 if True else (lambda: (yield left))",
+        "choose(source())",
+    );
     assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
     assert!(report["witnesses"].as_array().unwrap().is_empty());
 }

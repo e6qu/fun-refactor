@@ -746,14 +746,14 @@ impl Project<'_> {
                         !calls::definition_is_inert(node, text)
                     } else {
                         node.child_by_field_name("return_type").is_some()
-                            || node.child_by_field_name("parameters")
+                            || node
+                                .child_by_field_name("parameters")
                                 .is_some_and(|parameters| {
                                     parameters
                                         .named_children(&mut parameters.walk())
                                         .any(|p| p.kind() != "identifier")
                                 })
-                    }
-                    {
+                    } {
                         module_effects = true;
                     }
                     let Some(name_node) = node.child_by_field_name("name") else {
