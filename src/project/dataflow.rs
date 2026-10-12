@@ -811,7 +811,12 @@ impl Project<'_> {
                 }
             }
         }
-        ambiguous.extend(module_literals.iter().filter(|name| functions.contains_key(*name)).cloned());
+        ambiguous.extend(
+            module_literals
+                .iter()
+                .filter(|name| functions.contains_key(*name))
+                .cloned(),
+        );
         let entry = if let Some(modules) = &modules {
             modules.function_name(&symbol.file, &symbol.name)
         } else {

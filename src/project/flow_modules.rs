@@ -345,7 +345,11 @@ impl Modules {
                 .copied()
                 .unwrap_or(0);
             let binding = self.bindings.get(&file).and_then(|items| items.get(&name));
-            if self.literals.get(&file).is_some_and(|names| names.contains(&name)) {
+            if self
+                .literals
+                .get(&file)
+                .is_some_and(|names| names.contains(&name))
+            {
                 return ("unavailable", chain, None);
             }
             if count > 1
@@ -397,7 +401,10 @@ impl Modules {
             self.definitions
                 .get(&package)
                 .is_some_and(|items| items.contains_key(name))
-                || self.literals.get(&package).is_some_and(|items| items.contains(name))
+                || self
+                    .literals
+                    .get(&package)
+                    .is_some_and(|items| items.contains(name))
                 || self.bindings.get(&package).is_some_and(|items| {
                     items.contains_key(name)
                         && self.member_chain(&package, name).2.as_deref()
@@ -656,7 +663,11 @@ impl Modules {
             return String::new();
         }
         let base = parts[0];
-        if self.literals.get(file).is_some_and(|names| names.contains(base)) {
+        if self
+            .literals
+            .get(file)
+            .is_some_and(|names| names.contains(base))
+        {
             return String::new();
         }
         let (mut target, mut members) =
