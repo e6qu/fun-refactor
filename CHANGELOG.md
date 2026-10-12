@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.59.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.59.0...fun-refactor-v0.59.1) (2026-10-12)
+
+
+### Fixes
+
+* preserve Python package members when resolving imports ([#479](https://github.com/e6qu/fun-refactor/issues/479)) ([8032afd](https://github.com/e6qu/fun-refactor/commit/8032afd6f6bcf6299834c4e4cd701080792a3618))
+
 ## [0.59.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.2...fun-refactor-v0.59.0) (2026-10-12)
 
 
