@@ -22,6 +22,7 @@ pub(super) struct Modules {
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
+    opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
     pub cutoffs: BTreeSet<String>,
     pub inputs: Value,
 }
@@ -267,6 +268,59 @@ fn cyclic(
     result
 }
 
+// A declaration can bind a name without supplying an admitted scalar value.
+// Keep these names out of child-module lookup and function resolution.
+fn opaque_names<'s>(node: Node<'_>, source: &'s str) -> Vec<&'s str> {
+    fn targets<'s>(node: Node<'_>, source: &'s str, names: &mut Vec<&'s str>) {
+        match node.kind() {
+            "identifier" => names.push(&source[node.byte_range()]),
+            "pattern_list" | "tuple_pattern" | "list_pattern" | "list_splat_pattern"
+            | "parenthesized_expression" => {
+                for child in node.named_children(&mut node.walk()) {
+                    targets(child, source, names);
+                }
+            }
+            _ => (),
+        }
+    }
+    let mut names = Vec::new();
+    match node.kind() {
+        "class_definition" => {
+            if let Some(name) = node.child_by_field_name("name") {
+                names.push(&source[name.byte_range()]);
+            }
+        }
+        "decorated_definition" => {
+            if let Some(definition) = node.child_by_field_name("definition") {
+                if let Some(name) = definition.child_by_field_name("name") {
+                    names.push(&source[name.byte_range()]);
+                }
+            }
+        }
+        "expression_statement" => {
+            for child in node.named_children(&mut node.walk()) {
+                names.extend(opaque_names(child, source));
+            }
+        }
+        "assignment" | "augmented_assignment" => {
+            // An annotation without a value records a type but does not bind the name.
+            if node.kind() == "assignment" && node.child_by_field_name("right").is_none() {
+                return names;
+            }
+            if let Some(left) = node.child_by_field_name("left") {
+                targets(left, source, &mut names);
+            }
+            if let Some(right) = node.child_by_field_name("right") {
+                if right.kind() == "assignment" {
+                    names.extend(opaque_names(right, source));
+                }
+            }
+        }
+        _ => (),
+    }
+    names
+}
+
 fn declares_member(
     project: &Project<'_>,
     path: &Path,
@@ -289,7 +343,7 @@ fn declares_member(
         {
             return Ok(true);
         }
-        if calls::module_literal(node, source) == Some(member) {
+        if opaque_names(node, source).contains(&member) {
             return Ok(true);
         }
         if matches!(node.kind(), "import_statement" | "import_from_statement")
@@ -349,6 +403,10 @@ impl Modules {
                 .literals
                 .get(&file)
                 .is_some_and(|names| names.contains(&name))
+                || self
+                    .opaque_bindings
+                    .get(&file)
+                    .is_some_and(|names| names.contains(&name))
             {
                 return ("unavailable", chain, None);
             }
@@ -405,6 +463,10 @@ impl Modules {
                     .literals
                     .get(&package)
                     .is_some_and(|items| items.contains(name))
+                || self
+                    .opaque_bindings
+                    .get(&package)
+                    .is_some_and(|items| items.contains(name))
                 || self.bindings.get(&package).is_some_and(|items| {
                     items.contains_key(name)
                         && self.member_chain(&package, name).2.as_deref()
@@ -432,6 +494,7 @@ impl Modules {
             bindings: BTreeMap::new(),
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
+            opaque_bindings: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
@@ -471,6 +534,7 @@ impl Modules {
             let mut names = BTreeSet::new();
             let mut definitions = BTreeMap::new();
             let mut literals = BTreeSet::new();
+            let mut opaque_bindings = BTreeSet::new();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if let Some(name) = calls::module_literal(node, source) {
                     literals.insert(name.to_owned());
@@ -489,6 +553,12 @@ impl Modules {
                         }
                     }
                     continue;
+                }
+                for name in opaque_names(node, source) {
+                    opaque_bindings.insert(name.to_owned());
+                    if !names.insert(name.to_owned()) {
+                        result.cutoffs.insert("ambiguous-module-binding".into());
+                    }
                 }
                 if !matches!(node.kind(), "import_statement" | "import_from_statement") {
                     continue;
@@ -590,6 +660,7 @@ impl Modules {
             result.bindings.insert(file.clone(), bindings);
             result.definitions.insert(file.clone(), definitions);
             result.literals.insert(file.clone(), literals);
+            result.opaque_bindings.insert(file.clone(), opaque_bindings);
             result.parsed.insert(file, parsed);
         }
         let mut visited = BTreeSet::new();
@@ -667,6 +738,10 @@ impl Modules {
             .literals
             .get(file)
             .is_some_and(|names| names.contains(base))
+            || self
+                .opaque_bindings
+                .get(file)
+                .is_some_and(|names| names.contains(base))
         {
             return String::new();
         }

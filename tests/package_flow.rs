@@ -202,6 +202,65 @@ fn unsupported_import_forms_cycles_and_shadowed_module_calls_stay_incomplete() {
 }
 
 #[test]
+fn unsupported_package_bindings_cannot_select_same_named_child_files() {
+    for initializer in [
+        "class core:\n    pass\n",
+        "@decorator\ndef core(value):\n    return value\n",
+        "@decorator\nclass core:\n    pass\n",
+        "core = object()\n",
+        "core: object = object()\n",
+        "other = core = object()\n",
+        "core, other = object(), 0\n",
+        "[core, other] = [object(), 0]\n",
+        "core, *other = [object()]\n",
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        write(root.path(), "pkg/__init__.py", initializer);
+        write(root.path(), "pkg/core.py", "def relay(value):\n    return value\n");
+        write(root.path(), "app.py", "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n");
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false, "{initializer}: {report}");
+        let lookup = &report["inputs"]["modules"]["lookups"][0];
+        assert!(lookup["submodule"].is_null(), "{initializer}: {lookup}");
+        assert_eq!(lookup["resolution"], "unavailable");
+        assert!(report["inputs"]["modules"]["files"]["pkg/core.py"].is_null());
+        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("unknown-external-call:core.relay")));
+    }
+}
+
+#[test]
+fn annotations_without_values_do_not_hide_child_modules() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "pkg/__init__.py", "core: object\n");
+    write(root.path(), "pkg/core.py", "def relay(value):\n    return value\n");
+    write(root.path(), "app.py", "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n");
+    let report = analyze(root.path(), "entry");
+    let lookup = &report["inputs"]["modules"]["lookups"][0];
+    assert_eq!(lookup["submodule"]["target"], "pkg/core.py");
+    assert_eq!(lookup["resolution"], "module");
+    // Evaluating the annotation remains outside the scalar initialization model.
+    assert_eq!(report["complete"], false);
+    assert!(!report["witnesses"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn unsupported_bindings_block_function_and_import_resolution() {
+    for prefix in [
+        "def relay(value):\n    return value\nrelay = object()\n",
+        "from helper import relay\nrelay = object()\n",
+        "relay = object()\nfrom helper import relay\n",
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        write(root.path(), "helper.py", "def relay(value):\n    return value\n");
+        write(root.path(), "app.py", &format!("{prefix}def entry():\n    return sink(relay(source()))\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false);
+        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("ambiguous-module-binding")));
+        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("unknown-external-call:relay")));
+    }
+}
+
+#[test]
 fn package_parents_count_toward_the_module_budget() {
     let root = tempfile::tempdir().unwrap();
     let mut source = String::new();
