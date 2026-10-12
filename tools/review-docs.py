@@ -68,6 +68,7 @@ def links(path):
 def check_links():
     failures, seen = [], {}
     pages = guides()
+    edges = {page: set() for page in pages}
     for page in pages:
         try:
             targets = links(page)
@@ -86,6 +87,17 @@ def check_links():
                     seen[child] = anchors(child.read_text())
                 if unquote(url.fragment) not in seen[child]:
                     failures.append(f'{page.relative_to(ROOT)}: missing heading {target}')
+            if child in edges:
+                edges[page].add(child)
+    reachable, pending = {ROOT / 'README.md'}, [ROOT / 'README.md']
+    while pending:
+        for child in edges[pending.pop()]:
+            if child not in reachable:
+                reachable.add(child)
+                pending.append(child)
+    for page in pages:
+        if page.parent in (ROOT, ROOT / 'docs') and page not in reachable:
+            failures.append(f'{page.relative_to(ROOT)}: no link path from README.md')
     if failures:
         raise ValueError('\n'.join(failures))
     print(f'Checked local links and headings in {len(pages)} current guides.')

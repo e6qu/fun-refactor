@@ -12,6 +12,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | Undo a mistake or continue interrupted work | [Recovery](host-recovery.md) and [correcting a failed edit](source-repair.md) |
 | Move a route to another framework | [Route migration](feature-migration.md) |
 | Check a stated property of a small function | [Proof support](lean-specs.md) |
+| Check whether an explanation agrees with the compiler | [Compiler comparisons and limits](compiler-profile.md) |
 | Use fr from an agent program | [Short agent guide](agent-skill.md) or [Python client](agent-runtime-sdk.md) |
 | Decide whether fr saves work | [Product review](product-review.md) and [recorded results](evaluations.md) |
 | Contribute to fr | [Development](development.md) and [current handoff](continuity.md) |
@@ -82,6 +83,7 @@ stages.
 ## Verify and recover
 
 - [Project checks](project-checks.md): declare compiler, test and lint commands.
+- [Compiler comparisons](compiler-profile.md): what the tool and compiler agree on, and what remains unchecked.
 - [Lean support](lean-specs.md): proof evidence, kernels and strict correspondence checks.
 - [Agent formalization](agent-formalization.md): generate a project-specific proof workbench.
 - [File transactions](file-transactions.md): review, apply and recover file changes.
