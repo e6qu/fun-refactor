@@ -207,7 +207,7 @@ jobs:
       - name: Install the pinned upstream oracle dependency
         run: |
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
-      - name: Replay fixed calls in all three already-seen repositories
+      - name: Replay scalar helpers through actual packages and isolated declarations
         run: python3 -B tools/python-fixed-arity-probes.py --output "$RUNNER_TEMP/fixed-arity-probes-${{ github.run_id }}-${{ github.run_attempt }}"
       - uses: actions/upload-artifact@v7
         if: always()
@@ -235,6 +235,7 @@ jobs:
           python3 -B tools/test-retain-python-contract.py
           python3 -B tools/test-retain-scalar-evidence.py
           python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/test-repository-declarations.py
       - name: Retain and audit the complete current evidence family
         env:
           GH_TOKEN: ${{ github.token }}
@@ -325,6 +326,7 @@ jobs:
           python3 -B tools/python-contract.py --check-runtime
           python3 -B tools/test-retain-scalar-evidence.py
           python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/test-repository-declarations.py
           python3 -B tools/check-prose.py
       - name: Format Rust on the runner
         env:

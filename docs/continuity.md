@@ -6,6 +6,12 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
+Uncalled unannotated functions with immutable literal defaults defer their bodies. Referenced
+variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
+requires a supported fixed-slot summary. Generator construction never transfers its body, including
+yields hidden behind skipped expressions or nested defaults. Coroutine execution remains incomplete.
+The focused hosted gate passes 593 SDK controls; broad source-bound collection follows.
+
 The native analyzer and SDK use one required current format for scalar summaries, import dependencies
 and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
 Historical evidence replays its archived original source. Its readers do not enter the current SDK.

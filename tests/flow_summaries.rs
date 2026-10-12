@@ -217,7 +217,7 @@ fn retained_recursive_acceptance_matches_its_implementation_and_oracles() {
         .args([
             "tools/recursive-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-current-contract-recursive-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-declarations-recursive-flow/result.json",
         ])
         .output()
         .unwrap();
