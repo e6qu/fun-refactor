@@ -68,6 +68,15 @@ Two runtime inputs, renamed/relocated adapters, unknown calls and budget control
 The collector keeps package outcomes separate from isolated declaration results. Isolated success cannot
 establish repository acceptance or erase unchecked initialization effects in the original packages.
 
+| Expanded context | Cells | Complete | Incomplete | CLI refusals |
+| --- | ---: | ---: | ---: | ---: |
+| Four additional helpers through their original packages | 40 | 0 | 32 | 8 |
+| Exact helper/companion declarations in isolated modules | 40 | 16 | 16 | 8 |
+
+These eighty cells add 160 runtime executions to the original thirty cells and sixty executions.
+All contexts preserve renamed/relocated conclusions. Only isolated declaration modules yield complete
+answers. The package initialization boundaries and the unopened holdout keep B.repository-flow open.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The

@@ -23,6 +23,12 @@ CI caught a compiler consumer still expecting a separate per-report manifest. It
 current family receipt, checks exact report bytes and source identity, and rejects older layouts.
 Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
 
+The first expanded authored collection failed because its generator declaration contains an inactive
+sink before the entry's active sink. The expected pair used the wrong sink ordinal. The
+[failed collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
+retains all observed rows and the original validator source. Replaying that source reproduces the
+pairing error; the failure remains outside acceptance. The corrected expectation selects the active sink.
+
 The [Python behavior contract](python-contract.md) compares 181 authored programs and their
 renamed/relocated equivalents: 362 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
@@ -62,8 +68,8 @@ Keep historical reports intact. Pass full CI before merging; deep validation sup
 revisions, and every timeout stays unchanged.
 
 Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
-from its captured import/summary limits. Broaden project-derived examples beyond the authored
-identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
+from its captured import/summary limits. The expanded probes cover arithmetic and constant helpers
+alongside identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
 the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
 The next reservation pins jaraco.functools for further development. Keep it unopened until broader
 coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.
