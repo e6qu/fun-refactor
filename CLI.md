@@ -217,7 +217,7 @@ fr symbols [PATHS]... [--lang <L>] [--name <N>] [--kind <K>] [--stats]
 
 ### `fr def`
 
-Find where a name used in the code is declared.
+Find the declaration for a name you encounter in the code.
 
 Show every place a symbol is defined.
 
