@@ -253,6 +253,19 @@ class Evidence(unittest.TestCase):
 
 
 class Discovery(unittest.TestCase):
+    def test_guidance_selection_survives_reworded_instructions(self):
+        from agent_eval import native_discovery as discovery
+        excerpt = ("Find declarations with `project explore TERM [--contains]`.\n"
+                   "Follow the returned source and relationship actions.\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            selected = Path(tmp) / "selected-guide.md"
+            selected.write_text("Start from the user's question.\n" + excerpt
+                                + "Request `--profile expanded` for the larger view.\n")
+            guide = discovery.guidance(selected)
+            self.assertEqual(guide["text"], excerpt)
+            self.assertEqual(guide["source"].encode()[guide["start"]:guide["end"]],
+                             excerpt.encode())
+
     def test_selected_guide_path_is_not_mislabeled_as_the_bundled_guide(self):
         from agent_eval import native_discovery as discovery
         original = ROOT / "skills/fr/references/explore.md"
