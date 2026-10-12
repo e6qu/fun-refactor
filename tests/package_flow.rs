@@ -151,7 +151,7 @@ fn ambiguous_candidates_stubs_and_effects_stay_incomplete() {
         ("portal/__init__.pyi", ""),
         ("portal/api.pyi", ""),
         ("portal/api/__init__.py", ""),
-        ("portal/__init__.py", "state = 1\n"),
+        ("portal/__init__.py", "state = 1 + 2\n"),
         ("portal/__init__.py", "f\"{sink(source())}\"\n"),
         ("portal/__init__.py", "import unavailable_external\n"),
     ] {
