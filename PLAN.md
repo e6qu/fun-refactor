@@ -1,145 +1,101 @@
-# Build an efficient code tool for AI agents
+# Help an agent finish the right change with less work
 
-`fr` should help an AI coding agent understand an unfamiliar codebase, find the right change,
-make it, and check or prove the requested result. It should work through the CLI with agents
-such as Claude Sonnet and OpenAI Luna, without knowing which repository it will encounter.
+The goal is straightforward. Give an agent a bug or feature request in a project it has never
+seen, and help it find the right code, make the change and check the result. We want fewer
+unnecessary reads and retries, lower total cost, and reliable answers about what still needs checking.
 
-The agent should be able to start with a small code map, ask about relevant functions and callers,
-and read exact source only where needed. This is **progressive disclosure**: reveal more detail
-when it answers a question, rather than load the whole project into the conversation. A second
-agent should receive the specific question and enough checked context to answer it, without
-repeating the first agent's entire investigation.
-
-Success means correct work with less total agent effort, context and cost. A shorter tool response,
-more supported commands, or more passing fixtures does not by itself demonstrate that success.
-The [product review](docs/product-review.md) assesses what to keep, what to challenge and how to
-measure it. Use those criteria when expanding or removing features.
+For example: “Fix the rounding error in checkout without changing the public API.” The agent
+should find the calculation and its callers, explain the mistake, prepare a small patch and run
+checks that catch the reported error. Finding a function name is only one step toward that result.
 
 ## Where we are
 
-The CLI can locate declarations and callers, and return bounded structured views and source excerpts.
-It can preview edits, run declared checks, undo and redo edits, and export patches. It has resumable
-task records and Lean proof support for declared subsets. Analysis and editing support vary by
-language; parsing a file does not mean `fr` understands every possible behavior in it.
-Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
+`fr` already helps an agent find functions and callers, read selected code, preview edits and run
+checks. It keeps saved changes so the agent can undo a mistake or resume interrupted work.
+It can also trace some simple Python values and prepare proof tasks for small supported functions.
 
-The [generated status](docs/roadmap-status.md) records **9 of 18 technical acceptance items
-demonstrated in their stated test cases**. Nine remain open, and none of the four milestones
-below is complete. These counts are not a percentage of product readiness or effort remaining.
+These pieces have useful tests. They do not yet add up to a demonstrated advantage on unfamiliar
+work. In the small live comparisons, using `fr` took more calls, reading and time. One attempt
+with `fr` met a requirement the ordinary-tool attempt missed. That is a useful result, but too
+little evidence to say the tool generally saves work.
 
-We have not established a general efficiency advantage. In the retained two-task Rust comparison,
-the `fr` agent used more calls, context and time on both tasks.
-It completed an allocation requirement the ordinary-file agent missed. The [evaluation results](docs/evaluations.md#unknown-target-investigations)
-include that failure. We need repeated comparisons with current models and unfamiliar tasks.
-
-The recent boltons and more-itertools tests exercise known, scripted edits, recovery after an
-interruption, behavior checks and patch replay. They are useful regression tests. They do not
-show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
+The [current status](docs/roadmap-status.md) owns the test counts and the remaining requirements.
+All four larger goals below still have unfinished work. A passing test establishes the behavior
+it checks; it is not a percentage of product readiness.
 
 ## Latest measured result
 
-The [Python behavior contract](docs/python-contract.md) defines fourteen rule families and compares
-187 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
-374 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
-static imports, CLI refusals and search budgets. Runtime outcomes remain separate from conservative
-answers and unsupported cases. Hosted checks pass 647 focused SDK regressions and 43 corruption controls.
+The recent Python work asks: “Can this input reach this output?” Small examples check arguments,
+assignments and helper calls against Python execution. An unused function body or a plain binding
+such as `metadata = 0` no longer blocks an otherwise supported answer.
 
-The latest review found that valid line continuations inside module names caused unsupported-import
-cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
-The fix follows source syntax; it does not recognize a benchmark or expected answer.
+Real libraries expose the remaining gap. Importing a package can execute code that `fr` does not
+understand. The current tests in Toolz, funcy and pydash still leave real-package answers incomplete.
+Moving the same helper into a small isolated file sometimes produces a complete answer. That
+isolated success does not establish that the original package is understood.
 
-The contract remains finite. The boundary review adds discovery-depth limits, invalid syntax,
-CLI refusals, import ambiguity and shadowing, and module/binding-chain limits. Version-three collection
-separates CLI errors from emitted reports and checks exact budget-limited file inventories.
-B.contract acceptance requires the fresh source-bound report and all eight explicit summary
-assertions; authored examples alone cannot close it. Historical failed and preceding reports remain retained.
-The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
-comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
-
-The [repository-flow baseline](docs/python-repository-flow.md) adds thirty scalar probe cells in
-Toolz, funcy and pydash snapshots with one frozen analyzer. Runtime observations and independent
-inspection agree, and renamed/relocated adapters preserve conclusions. All 24 emitted analyses
-remain incomplete; six invalid-byte-budget calls refuse analysis. Empty witnesses cannot establish
-no path. The first held-out opening and collector failures remain part of the evidence.
+The [Python behavior guide](docs/python-contract.md) explains the examples and limits.
+The [real-library results](docs/python-repository-flow.md) keep unsuccessful attempts alongside
+successful ones. The [product review](docs/product-review.md) explains what we still need to measure.
 
 ## Next large chunk
 
-Keep one current summary, import dependency and flow cache format. Reject old formats and missing
-metadata. Do not add version dispatch, compatibility readers or migration fallbacks.
+Make the documentation answer the reader’s question before describing the machinery. Each guide
+needs a concrete task, an example and an explanation of what the result lets the user conclude.
+Keep exact commands and data fields available for readers who need them. Keep one current format;
+reject missing or old data without adding compatibility readers or migration fallbacks.
 
-Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
-from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
-Uncalled inert declarations defer their bodies; coroutine and generator calls remain incomplete.
-Distinct scalar literal module bindings are inert. Rebinding, evaluated initialization and
-global value reads remain explicit boundaries; package literals cannot masquerade as child modules.
-Address the remaining import and summary boundaries through general rules.
-The expanded probes include arithmetic and constant helpers through full packages and isolated declarations.
-Choose an unopened replacement
-held-out project before changing the analyzer. The next reserved candidate is jaraco.functools;
-its implementation remains unopened. The withdrawn Boltons reservation overlooked earlier delivery coverage.
-Treat pydash as coverage in future rounds. Freeze the revised
-implementation before evaluation. Use the same analyzer, public commands and declared source/sink configuration everywhere.
-Check selected and blocked values with runtime execution and independent inspection, and retain
-renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.
-Fix exposed defects through general rules; repository identities and expected answers must never
-select semantics.
+Then continue the Python work from the actual library failures. Improve general language rules,
+such as how imports and module-level code affect a helper call. Never teach the analyzer the names
+of test projects or their expected answers. An unfinished search must still say the answer is unknown.
 
-Keep repository and recovery gates passing. The independent live study still needs representative
-resource admission, actual fr-use accounting and complete parent/child costs. The
-[closed client investigation](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-did not justify a configuration fix. Preserve the stopped packaging collection and failed
-workstation admission; neither may be resumed or replaced by a short control.
+The next reserved test project is jaraco.functools. Its implementation remains unopened. Keep it
+unread while developing the next changes, then freeze the implementation before the first evaluation.
+Toolz, funcy and pydash are already familiar development examples. The earlier Boltons reservation
+was unsuitable because prior work had already used it. Keep that mistake in the recorded history.
+
+Keep editing, undo, interrupted-work recovery and patch delivery working as this expands.
+The stopped packaging experiment stays stopped. A later live study needs suitable independent tasks,
+explicit cost limits and complete usage records before it can run. The [closed investigation](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+does not authorize restarting it.
 
 ## Remaining product gaps
 
-| Gap | What must be demonstrated |
+| User question | What we still need to show |
 | --- | --- |
-| Agent efficiency | Correct changes on unfamiliar tasks with complete context, time and provider-cost accounting |
-| Actual fr adoption | Measure tool use separately from availability; ordinary-only success in an fr-enabled arm is not evidence of benefit |
-| Delegation | Count parent/child usage, failed children, repeated reads, handoffs and integration effort |
-| Useful analysis | General value tracing through assignments, branches and helpers, with explicit unsupported cases |
-| Simpler workflows | Measure guide, intent and task routes separately; consolidate overhead without losing correctness or recovery |
-| Source-connected proofs | Check a useful property against the implementation, including stale-proof rejection after changes |
+| “Where should I look for this bug?” | Accurate explanations and relevant source lines on unfamiliar tasks, with less wasted reading |
+| “Does this input reach the output?” | Useful answers in real projects, including a clear unknown answer when imports or effects exceed support |
+| “Did the fix solve my problem?” | Independent behavior checks for the requested change, alongside builds and regression tests |
+| “Can another agent pick this up?” | A useful handoff with the question, checked findings and remaining work, without repeating the whole investigation |
+| “Can I trust the saved answer after an edit?” | Correct invalidation and renewed checks when the code behind a finding changes |
+| “Does fr save time or money?” | Repeated comparisons that count all reading, retries, failed attempts and work by every agent |
+| “Does the proof apply to my code?” | A stated property, a checked proof and a checked connection to the actual implementation |
 
-The proposed Sonnet/Luna study still needs independent tasks and complete cost accounting.
-The [product review](docs/product-review.md) owns evaluation and removal criteria. Production
-analysis must not recognize benchmark repositories or encode their expected repairs.
+The broader comparison targets Sonnet and Luna. Its plan remains a proposal. Tool availability
+alone does not establish use: an agent that fixes a bug without calling `fr` has not shown a benefit
+from `fr`. The [review](docs/product-review.md) owns the comparison criteria and decisions about what to simplify.
 
 ## Evidence and remaining gaps
 
-| Evidence | Established result | Limit |
-| --- | --- | --- |
-| [Source repair and ordered patches](docs/source-repair.md) | Forty cells cover actual wrong bodies, whole-chain reversal and original-to-final receiver replay; undo/correct uses fewer calls | Prescribed edits; ordered patches retain intermediate source; no atomic composition or live-agent comparison |
-| [Checked recovery delivery](docs/workflow-recovery.md) | Reviewed resume and undo-and-retry through checks, delivery and receiver replay | External prerequisite repair; no combined source-repair patch or live-agent comparison |
-| [Guided body preparation](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks) | 595 fewer caller/submission bytes in four fixtures; 40 cells cover checked delivery, stale inputs, reopened undo and conflicts | Prescribed bodies; no model/token comparison or repaired-delivery result |
-| [Editing routes](docs/workflow-routes.md) | Equal patches/lifecycles across three edit shapes; guided writes remove one redundant process; 23 refusal controls pass | Prescribed tasks; no reduction in complete-program bytes or autonomous efficiency result |
-| [Delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | 31 captures completed; one repetition stayed unstarted after failed memory headroom | Inconsistent CPU differences; no targeted client fix or workstation admission |
-| [Streaming CPU comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md) | Client dominates sampled CPU; short controls cannot admit representative streaming | Six CPU stops; no macOS admission or general agent-efficiency result |
-| [Configured change pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) | Resource stop retained and independently replayed | One failed capture, three unstarted cells; no behavior or efficiency comparison |
-| [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |
-| [Native code-change report](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts; exact submissions graded on GitHub | No attempt used fr |
-| [Candidate review status](docs/candidate-review-status.md) | Scoped reviews, verified grader counterexamples and explicit packaging admission | Finite review, failed submissions and incomplete independent task selection |
-| [Technical acceptance](docs/roadmap-status.md) | Nine of 18 items demonstrated in their stated cases | Nine items and all four milestones remain open |
+Use the [evaluation guide](docs/evaluations.md) to inspect the recorded results and their limits.
+It separates tests of prescribed edits from experiments where an agent must discover a solution.
+Failures, timeouts and unstarted attempts stay visible. Missing cost information stays unknown.
 
-Detailed run history belongs in the linked reports, retained fixtures and Git history.
-Keep failures visible. Smaller source pages or scripted successes alone do not establish lower
-total agent cost. The [restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md)
-indexes historical storage archives.
+For example, a script that applies a known repair and replays its patch can check delivery.
+It cannot tell us whether an agent would find that repair, or whether the tool makes the search cheaper.
+Likewise, a smaller response does not establish a smaller bill for the complete task.
+
+The [restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md) explains how to recover historical
+records. Detailed run history belongs with those records, not in the current work instructions.
 
 ## Generalization requirements
 
-- Production analysis, editing and caching must not branch on benchmark repository names, paths,
-  revisions or expected patches. A user may configure which inputs and uses matter; those rules
-  cannot skip language semantics or force a desired answer.
-- Specify a language feature and its limits, then test it in several independently written forms.
-  Rename a helper or move a supported module, update its references, and check that the answer stays the same.
-- Before implementing repository-scale analysis, select at least three independent projects and
-  keep one out of implementation work. Freeze the analyzer before that project's first evaluation.
-  Preserve failures; after using one to improve the implementation, choose a new held-out project.
-- If the analyzer encounters unsupported behavior or reaches a resource limit, report it. A search
-  that did not finish cannot establish that a value never reaches a use.
-- Keep the old scripted examples reproducible. Their success cannot close the new generalization
-  or agent-efficiency requirements.
+- Test a language rule in several independently written forms. Renaming a helper or moving a supported file must preserve the answer.
+- Choose at least three independent projects before building project-scale analysis. Keep one unread during implementation and freeze the analyzer before evaluating it.
+- Preserve the first failure on an unfamiliar project. Once its code informs a fix, choose another unread project for the next evaluation.
+- Keep production behavior independent of test repository names, revisions and expected patches. User rules can select inputs and outputs, but cannot skip language behavior.
+- Report unsupported behavior and exhausted searches. “I could not finish checking” must never become “this cannot happen.”
+- Keep previous editing and recovery examples reproducible. Their success alone cannot establish that the tool works generally or reduces agent cost.
 
 ## Milestones and implementation checklist
 

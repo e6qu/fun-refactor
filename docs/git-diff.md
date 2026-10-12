@@ -1,4 +1,9 @@
-# Git diff detail pages
+# Read the changes in one file
+
+After listing changed paths, inspect the diff of the file you need to review.
+For example, check whether `src/main.rs` contains only the intended rounding change. Large diffs have more pages; read them before treating the review as complete.
+
+## Commands, results and limits
 
 ```sh
 fr git status --kind unstaged --limit 20

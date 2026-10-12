@@ -1,4 +1,9 @@
-# Compacting completed worktree removal archives
+# Shrink recovery records after removing a workspace
+
+After a separate Git working folder is fully removed, you may want to discard its larger recovery archive. Preview compaction first.
+This keeps a small record of the removal and deletes the full recovery data. Use it only after the removal is complete.
+
+## Commands, results and limits
 
 `fr git worktree compact-removal RECORD` previews compaction of one completed removal archive on Unix.
 A reviewed write saves a small audit summary, then deletes the full recovery record.

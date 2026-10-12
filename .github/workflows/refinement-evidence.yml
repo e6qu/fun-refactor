@@ -54,6 +54,7 @@ on:
           - retain-repository-flow
           - flow-contract
           - scalar-development
+          - docs-review
           - freeze-repository-flow
           - retain-scalar
           - retain-contract-failure
@@ -95,7 +96,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -316,6 +317,37 @@ jobs:
           path: tests/agent-eval/results/2026-10-12-frozen-utility-source
           if-no-files-found: warn
           retention-days: 7
+
+  docs-review:
+    if: inputs.group == 'docs-review' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Refresh generated prose and check documentation links
+        run: python3 -B tools/review-docs.py --write
+      - name: Check writing counts and exact generated results
+        run: |
+          python3 -B tools/check-prose.py
+          python3 -B tools/roadmap-status.py --check
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
+      - name: Save checked generated documentation
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT
+            git commit -m 'docs: refresh generated reader guides and writing counts'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
 
   scalar-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'

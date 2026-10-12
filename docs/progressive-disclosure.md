@@ -1,4 +1,9 @@
-# Progressive disclosure
+# Read more code only when you need it
+
+Start with a small overview, then open the function or caller that answers your next question.
+For example, while fixing checkout, inspect `calculate` before asking for the source of every payment helper. The commands below return references that let you request the next piece.
+
+## Commands, results and limits
 
 `fr project disclose HANDLE` lets an agent inspect a declaration without loading its source or its
 complete semantic IR. The first response contains identity, a combined commitment and two holes.

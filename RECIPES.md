@@ -1,4 +1,9 @@
-# Refactoring recipes
+# Repeat a group of related edits
+
+Suppose a cleanup needs three steps: rename a helper, move it, then update its imports. A recipe records the steps so you can preview them together.
+If a later step fails, `fr` keeps the earlier proposed edits out of your files. This guide describes the recipe format and its limits.
+
+## Commands, results and limits
 
 A recipe is a readable, repeatable multi-step refactoring. It declares what to select, what to do,
 how to handle refusals and what must hold afterward. `fr recipe FILE` previews the complete result;

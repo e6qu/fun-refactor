@@ -1,4 +1,9 @@
-# Bounded function authoring
+# Change a function implementation
+
+Suppose `calculate` uses the wrong rounding rule, but its name and arguments should stay the same. Preview a replacement for its body.
+`fr` preserves the surrounding code and lets you review the diff. Run behavior tests to check the rounding fix; a valid edit alone cannot establish it.
+
+## Commands, results and limits
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
 It supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX.

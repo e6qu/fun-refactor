@@ -1,13 +1,11 @@
-# fun-refactor agent SDK for Python
+# Use fr from a Python agent program
 
-`fr_ir.flow` provides typed control-flow graphs and opt-in `FlowCache` persistence through the
-existing Merkle stores. Input changes recompute; unrelated edits renew evidence handles without
-renewing mutation authority. See the [flow contract](../../docs/agent-investigations.md#verified-result-reuse).
-Caches store complete reports in bounded JSON chunks. The reader requires the current manifest
-and chunk envelope. Other formats fail explicitly. Storage does not enable partial analysis reuse.
+This package lets your agent find code, inspect reports and prepare reviewed changes through Python.
+For example, find `render`, keep its full report in the Python process, and show the agent only
+the caller or source lines needed for its next decision.
 
-This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
-namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
+The examples below explain the Python calls and their limits. Read [result meanings](../../docs/understanding-results.md)
+when deciding whether a finding establishes a location, a possible input connection or a checked repair.
 
 Install the wheel from the same GitHub release as the native binary. Check the exact package,
 binary and wire-schema agreement before starting a long agent session:
@@ -406,7 +404,19 @@ Summary names include the module, such as `pkg/relay.py::forward`. `FlowFacts.in
 retains cross-file occurrences and semantic follow actions. Read the [import contract](../../docs/agent-investigations.md#static-local-imports)
 for initialization assumptions, package boundaries and resource limits.
 
+## Save and revisit Python trace results
+
+Suppose you already checked whether user input reaches `send`. `FlowCache` can save a complete
+answer and ask the native tool whether its inputs still match before reusing it. Changes to
+relevant code require another analysis. This stores whole answers; it does not reuse individual
+parts of the analysis. The reader accepts only the current manifest and chunk format.
+
+See the [reuse rules](../../docs/agent-investigations.md#verified-result-reuse) for the details.
+
 ## Paged flow explanations
+
+If a trace report is large, request the part needed to explain the next step. Keep the
+unfinished sections visible; a small page does not establish that the whole search is complete.
 
 `fr_ir.flow_facts.FlowFacts` provides typed fact headers and bounded explanations.
 
@@ -434,6 +444,9 @@ Restored pages keep their revision and stale actions. See the [fact contract](..
 for model boundaries, query limits and independent acceptance.
 
 ## Compiler evidence
+
+If a source expression looks valid but the build fails, inspect the compiler message and its
+source location. Keep the declared command and build inputs with that result.
 
 `fr_ir.compiler_evidence.CompilerEvidence` converts retained, toolchain-bound check output into typed
 Rust diagnostics. It preserves failed compilation and syntax acceptance as separate observations.
@@ -465,6 +478,9 @@ See the [compiler contract](../../docs/project-checks.md#retained-compiler-diagn
 protocol limits, input declarations and coverage distinctions.
 
 ## Durable investigation targets
+
+When resuming a checkout repair, relocate the selected function in the current code before
+relying on an earlier finding. A saved name or reference can become ambiguous after another edit.
 
 `DeclarationSnapshot` separates declaration content identities, current handles and verified storage roots.
 Capture can include nested parameters and locals. Select the intended handles explicitly.
@@ -502,6 +518,9 @@ Resume a plan before relying on its proof state. Changed inputs invalidate depen
 See [retained model proofs](../../docs/agent-investigations.md#retained-model-proofs) for execution bounds and trust assumptions.
 
 ## Journaled transition failures
+
+After an interrupted task step, inspect its recorded progress. Determine which changes reached
+the files before retrying, restoring or delivering anything.
 
 A native apply, undo, redo or recovery failure may include `error.history` in `FrRuntimeError.report`.
 It identifies the transaction, action, phase, outcome and observed `journal_pending` state.

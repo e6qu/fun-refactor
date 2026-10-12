@@ -3,10 +3,27 @@
 This page owns product scope, evaluation criteria and removal decisions.
 Read the [plan](../PLAN.md) for current work and [retained reports](evaluations.md) for measurements.
 
-The product is a CLI that lets an AI agent understand code, make needed changes and fixes, and
-develop and check proofs. It should reduce the effort and context needed to complete those tasks
-correctly, including when an agent delegates a focused question to another agent. Each feature
-must justify its complexity against that objective.
+We want an agent to finish a real task correctly with less unnecessary work. For example,
+“Fix checkout rounding without changing the API” should lead to the right calculation, a small
+reviewed patch and a behavior test that catches the reported error.
+
+The tool earns its maintenance cost when it helps that whole task. Finding more symbols or
+returning a shorter report matters only when it improves the agent’s decision or reduces total work.
+A second agent should receive a focused question and useful findings, without repeating the search.
+
+## Where we want to get
+
+| User request | A useful outcome |
+| --- | --- |
+| “Explain this unexpected behavior” | A correct explanation with the relevant code and a clear account of unanswered questions |
+| “Fix this bug” | A reviewed repair that passes independent behavior and regression checks |
+| “Add this feature” | The requested behavior, including constraints that a superficial implementation could miss |
+| “Check this property” | A precise statement, an accepted proof and a checked connection to the actual code |
+| “Let another agent continue” | A handoff that saves repeated investigation and still rechecks changed dependencies |
+
+We need repeated comparisons on unfamiliar projects to show whether `fr` makes those outcomes
+more reliable or cheaper. Count all reading, retries, failures and work by every agent. The current
+results below do not yet establish that benefit.
 
 ## What the existing evidence says
 
@@ -29,8 +46,9 @@ cases establish delivery, interruption recovery and patch replay for those fixes
 measure an agent discovering a solution. A search of production Rust and Python SDK sources found
 no references to the two repository identities; that check alone does not establish generalization.
 
-The [technical status report](roadmap-status.md) shows seven demonstrated items and eleven open
-items. Its counts measure the stated test obligations. They do not measure agent efficiency.
+The [current status report](roadmap-status.md) owns the count of checks that meet their stated
+requirements. Those checks cover particular examples. All four larger project goals still have
+unfinished work, and the count does not measure savings for an agent.
 
 ## Models to evaluate
 
@@ -52,7 +70,7 @@ Review consumers and unique behavior before changing public contracts.
 |---|---|---|
 | Parsing, indexing, source locations, maps and bounded reads: `src/index/`, `src/project.rs`, `src/project/disclose.rs` | Keep as the core; measure response overhead | Can an agent locate and explain code with fewer total tokens and fewer mistaken conclusions than search plus file reads? |
 | Progressive context and object reuse: `sdk/python/src/fr_ir/context.py`, `intent.py` | Keep the capability; compare direct CLI and optional SDK use | Measure repeated reads, cached-provider input, local object growth and complete task cost. Digest verification is useful, but does every response need all its metadata? |
-| Goal, intent, guide and task layers: `src/project/agent_guide.rs`, `agent_intent.rs`, `task.rs`; SDK `guide.py`, `intent_actions.py`, `investigation*.py` | Challenge overlap and consolidate after measurement | Disable one layer at a time while retaining the same edit checks; count instructions, requests, refusals and task failures. Keep an adapter if consumers need it rather than duplicating implementations |
+| Goal, intent, guide and task layers: `src/project/agent_guide.rs`, `agent_intent.rs`, `task.rs`; SDK `guide.py`, `intent_actions.py`, `investigation*.py` | Challenge overlap and consolidate after measurement | Disable one layer at a time while retaining the same edit checks; count instructions, requests, refusals and task failures. Review existing users before consolidating routes; keep one implementation and one current format |
 | Editing, history, checks and patch delivery: `src/edit/`, `src/history/`, `src/checks/` | Keep correctness and recovery mechanisms | Simplify the agent-facing route where possible without bypassing review, stale-input rejection, checks or recovery |
 | Python flow and caching: `src/project/control_flow.rs`, `dataflow.rs`, `flow_*.rs` | Evaluate usefulness before adding more constructs | Does value tracing change the agent's decision on an unfamiliar task, and does it beat reading the relevant functions? Preserve unknown results |
 | Proof authoring and verification: `src/spec.rs`, `src/spec/`, `kernels/` | Keep proof work in scope; challenge unrelated proof machinery | Require a user-requested property, a checked connection to actual code, useful counterexamples or a concrete safety invariant. Kernel theorem counts are not proof-task success |

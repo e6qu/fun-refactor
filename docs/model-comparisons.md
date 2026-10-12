@@ -1,4 +1,9 @@
-# Retained old/new model comparisons
+# Compare a small access rule before and after a change
+
+Suppose you edit a Boolean access rule and want to check whether it allows the same inputs as before. Save the old supported model, then compare the new one.
+The result concerns those models and their stated assumptions. It does not establish that every part of the application behaves the same.
+
+## What the comparison checks
 
 Capture an admitted source function before changing it. After the change, request equivalence or
 refinement between its retained model and a newly captured model. Rust and Python functions need

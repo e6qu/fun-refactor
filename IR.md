@@ -1,4 +1,9 @@
-# The intermediary language
+# How fr represents code during translation
+
+Suppose you want to move a small Python helper to Go. `fr` first records the supported parts of the helper, then writes Go from that record.
+That shared record is the intermediate representation, or IR. Review anything the tool cannot translate and test the generated function before using it.
+
+## Commands, results and limits
 
 What a translation crosses, and where it stops.
 

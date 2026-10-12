@@ -1,4 +1,9 @@
-# HTTP contracts and framework translation
+# Keep an API working when its framework changes
+
+Suppose you move an endpoint from FastAPI to another framework. Clients still need the same URL, inputs and response.
+This guide explains which of those promises `fr` can read and carry across, and which you must test yourself.
+
+## Commands, results and limits
 
 A framework migration must preserve the behavior its callers rely on.
 `fr` extracts declared HTTP contracts, converts admitted route handlers, generates service

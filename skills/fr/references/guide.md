@@ -1,5 +1,7 @@
 # Start with a structured goal
 
+Turn the user’s task into a structured goal when the next command is unclear. For a rename, specify the old function and requested new name.
+
 Run `fr guide --from GOAL` or `FrClient.guide(AgentGoal(...))`. Supply a purpose, exact `target` or
 one-name/path `selector`, and tagged `operation`; `automatic` selects the purpose's route. Read
 `state`, refusals, uncertainty and `author_fields`. Never select ambiguous candidates by row order.

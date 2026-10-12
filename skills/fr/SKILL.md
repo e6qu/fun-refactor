@@ -1,8 +1,11 @@
 ---
 name: fr
-description: Use fr for bounded inspection, structural edits, history, Git patches, checks, and Lean evidence.
+description: Use fr to find relevant code, preview and check changes, undo mistakes, deliver patches, and inspect supported proofs.
 ---
 # Work with fr
+
+Start from the user’s question. For a checkout bug, find the calculation and callers, inspect
+the needed code, preview the fix and run the behavior check. An unfinished trace stays unknown.
 
 Run at the root or pass `-C`. Use `fr audit` when support is unclear. For a task, run
 `fr guide --from GOAL` or `FrClient.guide(AgentGoal(...))`; follow ready actions and their reference.

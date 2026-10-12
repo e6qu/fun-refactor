@@ -1,4 +1,9 @@
-# Literal defaults and signature evidence
+# Trace Python calls with default arguments
+
+If `choose(value=0)` returns its argument, `choose()` returns the default while `choose(user_input())` uses the supplied input.
+`fr` distinguishes those calls for supported literal defaults. A default that calls another function needs separate handling because Python evaluates it when defining the function.
+
+## Commands, results and limits
 
 Opt-in Python scalar summaries admit immutable literal defaults for positional-only,
 positional-or-keyword and keyword-only parameters. Explicit values retain their source-order effects

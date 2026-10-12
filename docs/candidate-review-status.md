@@ -1,4 +1,9 @@
-# Candidate task review and admission
+# Which tasks are ready for an agent comparison?
+
+Before comparing tools on a bug fix, check that the task and its tests can distinguish a correct repair from a plausible mistake.
+For example, a test that accepts an empty implementation cannot grade the requested feature. This page records which candidate tasks passed that review and what still blocks others.
+
+## Review decisions and remaining work
 
 Packaging was admitted for one bounded change pilot. That pilot is now permanently stopped
 after its first CPU-limit failure. Dotenv and platformdirs still have review gaps and are not

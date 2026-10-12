@@ -1,8 +1,16 @@
 # fun-refactor
 
-`fr` gives agents bounded, structured access to a codebase and applies reviewed changes with checks,
-undo, redo and Git patch delivery. It supports 19 parser identities in one standalone binary and
-does not require a language server, daemon or project configuration for ordinary use.
+`fr` is a command-line tool that helps an AI coding agent find code, review a change and check the result.
+It can read selected functions and callers, preview edits, run declared checks and undo saved changes.
+
+Suppose you ask an agent to fix a rounding error in checkout. It can use `fr` to find the calculation,
+inspect its callers, prepare a patch and run the test that catches the error. You can review the diff
+and reverse a saved change if it is wrong.
+
+The larger goal is to finish unfamiliar tasks with less reading, fewer retries and lower cost.
+We have useful component tests, but have not demonstrated that broader benefit. Python value tracing
+works for supported examples; imports and other behavior in real libraries still often leave an unknown answer.
+Read [where we are going](PLAN.md) or the [current results](docs/roadmap-status.md) before relying on a stronger claim.
 
 ## Install
 
@@ -86,15 +94,17 @@ fr --json audit
 fr --json guide --from goal.json
 ```
 
-An agent should:
+For a bug fix, the agent should:
 
-1. Ask `fr audit` or the skill what is supported.
-2. Express an `understand`, `trace`, `change`, `migrate` or `prove` goal.
-3. Follow the exact bounded actions returned by `fr guide`.
-4. Reveal source only when semantic or project evidence is insufficient.
-5. Author the requested scalar, typed IR, recipe, migration choice or Lean tactics.
-6. Review the complete preview and retain its basis.
-7. Execute only the unchanged review, run declared checks and keep the transaction or patch.
+1. Check what the installed tool supports with `fr audit`.
+2. Find the relevant function and inspect its callers.
+3. Read the source needed to explain the mistake.
+4. Preview the proposed change and review the whole diff.
+5. Apply that same reviewed change and run the relevant behavior checks.
+6. Keep the saved change or patch so it can be inspected, resumed or undone.
+
+`fr guide` can suggest these steps from a structured task description. The agent supplies that
+description; the tool does not interpret the user’s natural-language request on its own.
 
 The optional Python SDK keeps intermediate reports outside the model transcript and mirrors public
 IR shapes with typed objects. Download the wheel carrying the same version as `fr`, then install
@@ -231,10 +241,9 @@ reports ambiguity, incomplete parsing, weak call edges, omissions and unsupporte
 than converting them into certainty. Compilation and behavior require declared checks or another
 explicit oracle.
 
-Static framework evidence does not prove arbitrary middleware, authentication, service behavior,
-dynamic rendering or runtime-generated routes. Lean theorems establish their named model properties
-under stated assumptions; source correspondence requires a checked bridge or bounded execution
-evidence.
+Finding a route in source does not establish how its authentication or middleware behaves at runtime.
+Test the behavior that matters to your change. A Lean proof concerns its stated model and assumptions;
+check the connection to your function before treating it as a guarantee about the code.
 
 ## Documentation
 
@@ -253,15 +262,9 @@ contributors. The main references are:
 
 ## Develop
 
-The [development guide](docs/development.md) covers toolchains, tests, Lean resource limits,
-grammar provenance and releases.
-
-```sh
-cargo build --locked
-PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
-tools/check.sh wasm
-tools/check.sh deep
-```
+The [development guide](docs/development.md) explains how to build, test and contribute.
+On the shared workstation, read its resource rules first. Full builds and complete checks
+run on GitHub; a refused local guard is a reason to use CI, not to raise the limits.
 
 ## Licence
 

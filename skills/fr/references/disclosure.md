@@ -1,5 +1,7 @@
 # Progressive disclosure
 
+Ask for an overview first, then the caller or source section needed for the current question. Avoid loading the whole project into the conversation.
+
 Start with the full handle returned by `project explore` or `project find`:
 
 ```sh

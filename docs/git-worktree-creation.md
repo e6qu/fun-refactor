@@ -1,4 +1,9 @@
-# Reviewed worktree creation
+# Make a separate working folder for a task
+
+Suppose another change is in progress and you want a separate checkout for a checkout bug. Create a Git worktree on a new branch.
+It shares repository history while keeping its working files separate. Review the destination and starting commit before creating it.
+
+## Commands, results and limits
 
 Create a separate workspace from a committed snapshot while retaining the source worktree's files and index.
 Creation is available on Unix and prints JSON in both output modes.

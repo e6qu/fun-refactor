@@ -1,4 +1,9 @@
-# vendor/
+# Where the copied reference material comes from
+
+When updating a grammar, check the upstream query patterns and their licenses before changing our own patterns.
+This directory records where those reference files come from and how to verify their original contents.
+
+## Build and reference details
 
 Third-party material copied into this repository, with the provenance needed to say
 where it came from and what may be done with it.

@@ -1,4 +1,9 @@
-# Agent context protocol
+# Avoid sending an agent the same report twice
+
+Suppose an agent has already read a function report and asks for its callers next. It can keep the earlier report and request only the new information.
+The identifiers below let the client check which earlier facts it may reuse. A changed file requires a fresh check.
+
+## Commands, results and limits
 
 Project, author and forward source-history reports can omit facts that the caller has already reviewed. The omission is opt-in and bound to the exact retained facts; a normal call always remains self-contained.
 

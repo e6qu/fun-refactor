@@ -1,5 +1,7 @@
 # Application hierarchy and HTTP authoring
 
+When moving an endpoint, first inspect its route, required inputs and response. The application record below describes supported parts of that endpoint.
+
 Use `project application [TARGET] [--feature ID]` to obtain an application IR.
 Nodes retain fact identity, source confidence, gaps and reader omissions. `children`
 expresses the hierarchy. Admitted literal JSON/path handlers from Next.js, FastAPI,

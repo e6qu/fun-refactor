@@ -1,4 +1,9 @@
-# Development guide
+# Contribute a change and check it
+
+Use this guide when you need to change `fr`, add a language reader or prepare a release.
+For example, a parser fix needs both a case that now works and a case that still refuses an unsafe edit. Read the workstation limits before running any local command.
+
+## Build and contribution instructions
 
 `fr` requires stable Rust, Python 3 and the toolchains used by the language fixtures. Lean tests
 use the repository's pinned Lake project. Zig and Go tests keep their caches under `target` by

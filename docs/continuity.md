@@ -1,116 +1,61 @@
-# Contributor handoff
+# Pick up the current work
 
-Read [PLAN.md](../PLAN.md) for the objective, next chunk and remaining milestones.
-The [generated status](roadmap-status.md) owns acceptance counts. Keep completed PR history
-in Git and retained reports; this page describes the current handoff.
+Start with the [plan](../PLAN.md) for the goal and next work. The [current results](roadmap-status.md)
+own the test counts. This page gives the next contributor the decisions they need to continue.
 
-## Current result
+## What works now
 
-Summary mode admits distinct module names bound to immutable scalar literals. Rebinding, function
-and import collisions, special attributes and evaluated or mutable values remain incomplete.
-Global value reads stay unsupported. A literal package member prevents guessed child-module imports.
-The [first focused gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
-exposed obsolete literal-as-effect fixtures and an 8 KiB metadata refusal. Evaluated
-expressions now exercise those boundaries, and shorter contract descriptions preserve the existing budget.
-The [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526) passes all focused controls.
+An agent can find functions and callers, inspect selected code, preview edits, run declared checks,
+and keep saved changes for undo or resumed work. Recent Python fixes improve small trace questions.
+For example, an unused function body and `metadata = 0` no longer prevent an otherwise supported answer.
 
-Uncalled unannotated functions with immutable literal defaults defer their bodies. Referenced
-variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
-requires a supported fixed-slot summary. Generator construction never transfers its body, including
-yields hidden behind skipped expressions or nested defaults. Coroutine execution remains incomplete.
-The focused hosted gate passes 647 SDK controls. Broad probes now include arithmetic and constant helpers
-from the same three coverage libraries, with separate full-package and isolated-declaration outcomes.
+The remaining real-library problem is still visible. Toolz, funcy and pydash imports often execute
+code that the analyzer cannot handle. Their package results remain incomplete. Copying a helper
+into a small isolated module can produce a complete answer, but that does not establish that its
+original package is understood. See the [library examples and results](python-repository-flow.md).
 
-The native analyzer and SDK use one required current format for scalar summaries, import dependencies
-and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
-Historical evidence replays its archived original source. Its readers do not enter the current SDK.
-The [current collection receipts](../tests/agent-eval/results/2026-10-12-module-literals-scalar-collection/manifest.json)
-bind eight successful hosted collections to one frozen source revision. Retention independently
-audits the reports, producer attempts and source bindings before updating active evidence.
-CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
-current family receipt, checks exact report bytes and source identity, and rejects older layouts.
-Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
+## Current priority
 
-The first expanded authored collection failed because its generator declaration contains an inactive
-sink before the entry's active sink. The expected pair used the wrong sink ordinal. The
-[failed collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
-retains all observed rows and the original validator source. Replaying that source reproduces the
-pairing error; the failure remains outside acceptance. The corrected expectation selects the active sink.
+The active work is a broad documentation review. Explain the user’s task first, show an example,
+and describe what the result means before presenting commands or record fields. The [writing guide](style.md)
+now applies that rule. [Result meanings](understanding-results.md) distinguishes a found location,
+a possible input connection, an unfinished answer and a checked repair.
 
-The [Python behavior contract](python-contract.md) compares 187 authored programs and their
-renamed/relocated equivalents: 374 cases across fourteen declared rule families. It retains CPython
-outcomes separately from possible-flow answers, including unsupported and conservative results.
-Corruption controls check missing cases, altered outcomes, invented authority and source locations.
-Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 647 focused SDK regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 120 emitted incomplete analyses with explicit boundary evidence.
+After that review, continue the Python work from the actual import and initialization failures.
+Keep jaraco.functools unopened during development, and freeze the next implementation before its
+first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
+[holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
 
-The review caught valid line continuations being retained inside import module names.
-Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
-aliased, from and relative imports. Full builds and evidence refreshes run
-on GitHub; scalar refreshes are split into four jobs with 15-minute limits.
+## How to keep the results trustworthy
 
-Roadmap status is 9/18 demonstrated acceptance items and 0/4 completed milestones. This does
-not establish a general agent-efficiency advantage or complete Rust/Python semantics.
+Keep one current analyzer, SDK and cache format. Missing fields and older formats must fail
+explicitly. Historical results use their archived original code; they do not require older readers
+in the current SDK.
 
-The [repository-flow baseline](python-repository-flow.md) checks thirty cells in pinned Toolz,
-funcy and pydash snapshots. Sixty runtime executions agree with independent scalar inspection;
-renamed/relocated adapters preserve conclusions. All 24 emitted analyses remain incomplete,
-and six invalid response budgets refuse analysis. B.repository-flow remains open.
-The historical audit uses a pinned source archive from the merged baseline, so analyzer changes
-cannot silently rewrite its meaning. Source retention first failed in run 38214317595 because
-the digest replacement counted its own search string; a line-anchored replacement fixed it.
-Run 38214587144 retained the source and passed all six cohort corruption controls.
+When code or a recorded input changes, run the affected collection on GitHub. Retain the result
+with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-module-literals-scalar-collection/manifest.json)
+and [Python behavior examples](python-contract.md) identify the active results.
 
-## Next work
+Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
+retains its original result and validator. The [first initialization gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
+records obsolete boundary fixtures and a metadata-size failure; the [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526)
+passes without increasing the existing output budget. Detailed history belongs in those records.
 
-The final source-bound [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior)
-report is retained. Its acceptance entry checks all eight independently reviewed inventory counts.
-The earlier 252-case report and failed collections remain historical evidence.
+## Studies that stay stopped
 
-Workflow reports bind the canonical lockfile identity, preserving dependency versions, checksums
-and graph changes while ignoring workspace release numbers. The raw lockfile binding caused the
-route gate to fail after a release. Refresh both `workflow-routes` and `source-repair` from one
-revision and use `retain-workflows` to verify their artifacts and corruption controls on GitHub.
-Keep historical reports intact. Pass full CI before merging; deep validation supersedes obsolete
-revisions, and every timeout stays unchanged.
-
-Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
-from its captured import/summary limits. The expanded probes cover arithmetic and constant helpers
-alongside identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
-the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
-The next reservation pins jaraco.functools for further development. Keep it unopened until broader
-coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.
-Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The baseline
-analyzer stayed frozen at the B.contract merge throughout its original cohort. Unknown effects and
-exhausted budgets must continue to prevent a no-path claim.
-The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
-
-## Client-study boundary
-
-The [delivery investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-is closed. It found no justified client configuration fix. The
-[packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) remains
-permanently stopped; preserve its failed and unstarted cells. No local live client call is admitted.
-
-Streaming CI replays frozen evidence. Separate path-selected transport controls use hosted clients
-with scripted replies. Their success does not establish workstation or representative-task admission.
-A later live study needs fresh resource admission, actual fr-use accounting and complete agent costs.
-The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
+The [client investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) is closed.
+The [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) stays stopped.
+Preserve its failed and unstarted attempts. A new live comparison needs suitable independent tasks,
+resource approval and complete cost records before it can run. Read the [candidate review](candidate-review-status.md)
+for the remaining gaps.
 
 ## Before editing or merging
 
-- Follow the [development guide](development.md#working-on-a-shared-desktop): guarded, serial local
-  work; full builds, candidate execution and evidence regeneration on GitHub.
-- Use `fr` for supported inspection and reviewed edits. Treat incorrect or impractical behavior
-  as product evidence; use direct edits where no suitable operation exists.
-- Check active evidence hashes under `source_bindings`, `bindings` and `measurement_files`.
-  Index-resolution and compiler-profile reports bind all native source files and need refreshes after native edits.
-- Use configured OpenCode access and the existing `gh` login. Do not inspect or copy credentials.
-- Keep every commit message to one line of at most 80 characters, without a body or trailers.
-  When authorized, wait for passing CI and squash-merge with an explicit subject and empty body.
-- Retain failed and unstarted evaluation cells. Do not promote partial output to a submission,
-  rewrite old results, raise limits or retry a stopped collection.
-
-Use `fr audit` and `fr capabilities` for current support boundaries. Parsing does not establish
-arbitrary behavior; model theorems do not prove the host filesystem or unrelated runtime effects.
+- Follow the [workstation rules](development.md#working-on-a-shared-desktop). Use the local guard; full builds, full gates and large result collections run on GitHub.
+- If the guard refuses, move the check to CI. Do not bypass it or raise its limits.
+- Fix the cause of a failure or timeout. Keep the existing deadline.
+- Check the recorded file fingerprints before calling a result current. Native edits also affect the index and compiler reports.
+- Use the configured GitHub login. Do not inspect or copy credentials.
+- Keep commit messages to one line of at most 80 characters, with no body or trailers.
+- Wait for passing CI before a merge. When merging is authorized, squash with an explicit subject and an empty body.

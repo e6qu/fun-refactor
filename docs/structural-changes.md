@@ -1,4 +1,9 @@
-# Reviewed structural changes
+# Change a function name or arguments with its callers
+
+When you add an argument to `subtotal`, the callers may need changes too. Review the proposed edits and the discovered callers together.
+This guide covers supported rename and argument changes. Run the relevant checks before delivering the patch.
+
+## Commands, results and limits
 
 `refactor` author operations reuse the native rename and signature planners through revision-bound
 handles. Task changes require a fresh [consumer scope](change-scopes.md), select every declared

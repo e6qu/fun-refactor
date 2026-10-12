@@ -1,5 +1,7 @@
 # Export a patch or inspect Git
 
+List changed files, inspect the relevant diffs, then export the reviewed patch. Check and test it in the receiving checkout.
+
 ```sh
 fr git status --limit 8
 fr git diff app.py --limit 8

@@ -1,4 +1,9 @@
-# Hand `fr` to an agent
+# Give an agent a short guide to fr
+
+Install this skill when you want an agent to know how to find code, preview a change, run checks and undo a failed attempt.
+For example, an agent asked to fix checkout should load the relevant guide when it needs it, rather than read every command first.
+
+## Commands, results and limits
 
 The portable [`fr` skill](../skills/fr/SKILL.md) routes an agent to small references for exploration,
 authoring, checks, history, Git and Lean. Native release archives include the complete `skills/fr/`

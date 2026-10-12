@@ -1,5 +1,7 @@
 # Explore only the needed structure
 
+Start a checkout investigation by finding its route and likely helpers. Read their signatures before requesting larger source excerpts.
+
 ```sh
 fr project explore greet --in app.py
 fr project explore greet --mode behavior --target '<HANDLE>'

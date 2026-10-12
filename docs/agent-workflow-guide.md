@@ -1,4 +1,9 @@
-# Language-aware agent workflow guide
+# Choose the next command for a task
+
+Suppose you want to rename `calculate` but do not know which command to start with. Describe the task in the input below, and `fr guide` returns suggested steps.
+Your agent writes that structured input. The guide does not read a natural-language request or make the change on its own.
+
+## Commands, results and limits
 
 `fr guide --from GOAL` selects a deterministic read/preview route from structured intent. It does
 not interpret natural language or execute changes. The same `fr-agent-goal-1` data works through

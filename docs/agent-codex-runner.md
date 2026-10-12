@@ -1,4 +1,9 @@
-# Local Codex agent evaluation
+# Compare agent work on a real task
+
+Use this evaluation runner to compare how an agent solves the same task with ordinary tools and with `fr`.
+For example, both attempts should fix the same bug and face the same independent tests. These optional runs need explicit cost and resource approval; current stopped studies stay stopped.
+
+## Commands, results and limits
 
 The Codex evaluators run prepared agent tasks through `codex exec`. They are opt-in, never run in
 normal CI and require an explicit quota acknowledgement. Use them to answer a defined acceptance or

@@ -1,4 +1,9 @@
-# Browser transaction history
+# Undo a change in the browser playground
+
+If a playground rename changes the wrong function, inspect the saved change and undo it. You can redo it if needed.
+The browser checks that the affected files still match the saved change. Edited files require another review before it can safely reverse the operation.
+
+## Commands, results and limits
 
 Every successful refactoring in the WASM `Workspace` records one in-memory transaction. The apply
 report returns its numeric `transaction` and `frmb1:` transaction basis. `history()` lists retained

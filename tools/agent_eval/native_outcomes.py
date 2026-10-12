@@ -116,8 +116,10 @@ def cohort(root, grade_path=None):
 
 def markdown(reports):
     lines = ["# Native code-change outcomes and observed costs", "",
-             "These reviewed integration tasks establish no general efficiency advantage.",
-             "Failed attempts remain in cost totals. Missing totals are unknown, not zero.", ""]
+             "Use these records to ask whether an agent completed the requested change and used fr.",
+             "For example, a passing repair with zero fr calls cannot establish a benefit from fr.", "",
+             "Failed attempts remain in the time and work totals. Missing measurements stay unknown.",
+             "These reviewed tasks do not establish general time or cost savings on unfamiliar projects.", ""]
     for report in reports:
         lines += ["## " + report["cohort"], "", "Plan: `" + report["plan_sha256"] + "`.", "",
                   "| Configured model | Tools available | Outcome | Host calls | fr calls | Result bytes | Collection seconds | CLI steps complete |",

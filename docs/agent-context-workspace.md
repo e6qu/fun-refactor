@@ -1,4 +1,9 @@
-# Agent context workspace
+# Keep large reports outside the conversation
+
+An agent investigating checkout may need the callers of `calculate`, without needing every function in the project.
+The Python client stores the larger report and returns the requested section. It checks the stored contents before reusing them.
+
+## Commands, results and limits
 
 `ContextSession` turns `fr` progressive disclosure into a bounded local workspace. An agent names
 the high-level section it needs; the runtime follows only exact server-issued actions, reconstructs

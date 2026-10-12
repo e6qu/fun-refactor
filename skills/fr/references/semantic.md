@@ -1,5 +1,7 @@
 # Read and write semantic structure
 
+Inspect a function’s statements and expressions when you need to select a precise edit. Request its body only when the current task needs it.
+
 Use `fr project semantic PATH` to inspect declarations and types without source. Add `--body` only
 for the implementation being changed. Set `--nodes` to the smallest useful complete-model budget.
 A known unique target can use `--declaration NAME` and return its full handle in the same call.

@@ -1,7 +1,8 @@
 # BUGS
 
-Known defects and limitations, and their status. Updated alongside PLAN.md at every
-stage.
+Use this record when a command refuses, produces a wrong answer or cannot finish a task.
+Search for the symptom you see, then read the linked code and tests. The [plan](PLAN.md)
+explains current priorities; entries below keep the detailed defect history.
 
 Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 

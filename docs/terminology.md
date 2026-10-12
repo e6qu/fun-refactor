@@ -1,8 +1,27 @@
-# Terminology
+# Words you may see in a report
 
-This file defines the terms that the code, the tests and the other documents use. Each
-term has one meaning in this project. Use the term that appears here. Do not introduce a
-second word for the same idea.
+Start with [what you can conclude from a result](understanding-results.md). You do not need
+this whole glossary to use the tool. The table translates common terms into the user’s task.
+Exact field names stay unchanged so you can find them in command output.
+
+| Term | Meaning for your task | Example |
+| --- | --- | --- |
+| Handle | A reference to the particular code you inspected | Use the returned function handle when asking for its callers. |
+| Basis | A reference connecting a later action to a reviewed result | Apply the same preview you reviewed; request a new one after another edit. |
+| Hash or digest | A fingerprint of some contents | A changed file needs a new fingerprint. Matching fingerprints do not establish that a conclusion is correct. |
+| Source and sink | The input and output you choose to trace | Trace `read_input()` to `send()`. |
+| Witness or trace | The reported steps connecting an input to an output in the supported model | A trace through `value - value` still needs a runtime interpretation. |
+| Cutoff | A reason the tool could not finish answering | An unsupported import leaves the trace question open. |
+| Scalar | A simple value in the supported analysis, rather than a shared mutable object | An integer argument can be traced; a list with aliases needs more handling. |
+| Model or IR | A structured description of supported code | A retry limit appears as an integer expression that an edit can select. |
+| Provenance | Where a result or setting comes from | Find which configuration file supplies a value. |
+| Source binding | The recorded file fingerprints behind a saved result | Recheck a finding after its helper changes. |
+| Holdout | A test project kept unread during implementation | Evaluate it after freezing the tool to test whether the rules work beyond familiar examples. |
+| Gate | A required check before continuing | Run the checkout behavior test before delivering the repair. |
+| Cohort | A chosen group of test projects or attempts | Compare both tool setups on the same chosen tasks. |
+
+The detailed definitions below describe implementation terms for contributors. Use exact identifiers
+when referring to a command or field. In user explanations, explain the effect on the task first.
 
 ## Parsing
 
@@ -131,9 +150,9 @@ changes code produces a plan and prints it as a diff. The change reaches disk on
 **Plan.** The set of edits that a refactoring would apply, with the warnings that go with
 them. The tool computes the plan first, and you read it before anything reaches disk.
 
-**Task plan.** The proposed persistent record of a task's acceptance criteria, evidence,
-dependencies, unresolved questions and steps. Mutation steps refer to existing reviewed edit plans.
-The [roadmap](../PLAN.md) tracks implementation of this contract.
+**Task plan.** A saved record of the requested result, checked findings, relevant files,
+unanswered questions and next steps. Edit steps refer to reviewed changes. When code changes,
+recheck the findings that depend on it before continuing.
 
 **Edit.** One replacement of a span with new text, with the reason recorded beside it.
 

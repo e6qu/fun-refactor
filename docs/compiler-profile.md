@@ -1,4 +1,9 @@
-# What Rust and Python explanations establish
+# What a code explanation really establishes
+
+Finding a function, compiling it and running a test answer different questions. A parsed function may still fail to compile.
+For example, `fr` can locate a Rust expression while the compiler reports a type error at that expression. This guide explains how to read each result without treating it as a stronger guarantee.
+
+## Commands, results and limits
 
 `fr` reports several kinds of evidence. A function name and source location can come from the
 syntax index. A compiler diagnostic comes from a declared command. A runtime result comes from

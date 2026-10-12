@@ -1,4 +1,9 @@
-# Ordered scalar assignments
+# Follow a Python value through reassignment
+
+Suppose user input enters `value`, then the code replaces `value` with zero before sending it onward. The original input no longer reaches that use.
+This guide shows how `fr` handles supported overwrites, swaps and unpacking, and where its answer remains incomplete.
+
+## Commands, results and limits
 
 Opt-in Python summary analysis admits local-name assignment, chained assignment,
 and exact literal tuple/list unpacking. All scalar right-hand expressions run

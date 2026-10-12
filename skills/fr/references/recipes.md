@@ -1,5 +1,7 @@
 # Compose related refactorings
 
+Use a recipe when a repeated cleanup needs several related edits. Review the combined preview before writing any of them.
+
 Load the recipe vocabulary only when authoring a recipe:
 
 ```sh

@@ -1,4 +1,9 @@
-# Reviewed Git commits
+# Commit the staged change you reviewed
+
+Suppose only the checkout fix should enter the next commit. Inspect the staged files, preview the commit and confirm the same reviewed contents when writing.
+This command commits the whole staging area. It does not push the commit to a remote repository.
+
+## Commands, results and limits
 
 ```sh
 fr git changes --staged
@@ -8,7 +13,7 @@ fr git commit -m "Describe the change" --basis TOKEN --write
 
 `fr git commit` previews a commit of the entire index and prints JSON in both output modes.
 The preview reports `operation: "commit-preview"` and `applied: false`.
-Pass its basis back with the same message and `--write` to create and publish the reviewed commit.
+Pass its basis back with the same message and `--write` to create the reviewed local commit.
 A write requires a basis. This command is currently available on Unix.
 
 ## Scope and review

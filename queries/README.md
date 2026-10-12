@@ -1,4 +1,9 @@
-# queries/
+# Teach fr to recognize declarations and uses
+
+When adding language support, tell the extractor which syntax nodes declare a function and which use its name.
+For example, a missed call capture can leave a rename’s caller list incomplete. The query files below define those patterns.
+
+## Build and reference details
 
 Per-language fact extraction, interpreted by the generic engine in `src/extract.rs`.
 Adding a language means writing queries here, not Rust.

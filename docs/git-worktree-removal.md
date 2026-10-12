@@ -1,4 +1,9 @@
-# Reviewed worktree removal
+# Remove a separate working folder safely
+
+After finishing a task, you may want to remove its clean worktree while keeping the branch and commits. Preview the folder removal first.
+`fr` checks ownership and cleanliness, and saves supported recovery data before deleting the working files.
+
+## Commands, results and limits
 
 `fr git worktree remove PATH` previews removal of an owned, clean linked worktree on Unix.
 It retains the branch and shared repository data, and archives the private worktree metadata before deleting files.

@@ -1,5 +1,7 @@
 # Investigations
 
+When explaining why user input reaches an output, link the relevant calls and source lines. Recheck the finding when those files change.
+
 Call, reference and flow reports expose revision-bound occurrence/origin records. Read exact byte
 spans and Unicode line ranges separately from enclosing declaration handles. Missing or multiple
 origins remain explicit.

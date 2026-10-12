@@ -1,5 +1,7 @@
 # Run declared checks
 
+For a rounding fix, choose the declared check that tests rounding. Inspect its command before running it.
+
 Review the listing, then run relevant names with its basis:
 ```sh
 fr checks

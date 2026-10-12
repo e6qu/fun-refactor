@@ -1,5 +1,7 @@
 # Batch broad project queries
 
+If several names may explain a bug, inspect them in one request. Select only the views needed to decide where to read next.
+
 Save this manifest outside the source tree, substituting paths and exact names needed by the task:
 
 ```json

@@ -1,4 +1,9 @@
-# Disclosure-bound semantic editing
+# Edit the part of a report you already inspected
+
+Suppose a function contains several copies of the number `3`, but only one is a retry limit. Select that exact occurrence from the inspected report.
+The returned edit reference lets you preview a change to that occurrence without guessing its position. A changed file makes the old reference unusable.
+
+## Commands, results and limits
 
 `project disclose` attaches opaque capabilities to authorable parts of a source-free typed body.
 An agent can select a repeated scalar, complete node or statement-list position without reading

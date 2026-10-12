@@ -1,5 +1,7 @@
 # Recover an interrupted source write
 
+After an interrupted write, inspect the recorded operation and current files. Recover that operation before preparing another edit to the same files.
+
 Use `fr history` to inspect the pending operation and `fr history show ID` for its recorded state.
 Only a pending operation calls for `fr history recover ID --write`.
 Recovery restores that operation's starting snapshots; recovering an interrupted undo can therefore restore the applied result.

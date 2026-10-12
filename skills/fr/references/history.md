@@ -1,5 +1,7 @@
 # Apply or reverse source history
 
+If an edit is wrong, inspect its saved change before undoing it. Check which files the operation will restore.
+
 ```sh
 fr history show '<TX>'
 fr history undo '<TX>'

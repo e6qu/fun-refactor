@@ -1,5 +1,7 @@
 # Cross-stack surfaces
 
+For a wrongly styled button, find the component, quoted class and matching style. Treat generated names and runtime relationships as unresolved.
+
 Use `project technologies` to distinguish host languages and frameworks before choosing a reader.
 Use `project features [--feature ID]` for a bounded Next.js, standalone React, Express.js or FastAPI
 hierarchy. Treat middleware, providers, render targets and test associations as syntax candidates

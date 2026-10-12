@@ -1,4 +1,9 @@
-# Agent analysis and planning review
+# Earlier review of code understanding and task planning
+
+This review asks whether an agent can find the cause of a bug and keep track of what it still needs to check.
+For example, finding a caller is useful only if the agent can connect it to the reported failure. The dated assessment below informs the current plan; it is not a current support list.
+
+## Dated assessment and proposed work
 
 Review date: 2026-09-23. Baseline: `c22ba827`, including merged PR #355.
 The [roadmap](../PLAN.md) owns priorities and acceptance gates. This review records the reasoning

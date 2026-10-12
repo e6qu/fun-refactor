@@ -1,4 +1,9 @@
-# Recorded transaction patches
+# Give another checkout a saved change
+
+Suppose you need to apply a reviewed repair in a clean checkout. Export its saved patch, then check that Git can apply it there.
+Test the receiving checkout as well. Successful patch application establishes that the text fits, not that the repair behaves correctly.
+
+## Commands, results and limits
 
 Export a saved transaction from the workspace root:
 

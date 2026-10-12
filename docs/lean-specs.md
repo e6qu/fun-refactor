@@ -1,4 +1,9 @@
-# Lean specifications with fr
+# Check a small, stated property with Lean
+
+Suppose an access function accepts two Booleans, and you want to show that permission requires staff access or ownership.
+Lean can check a proof of that stated rule for the supported model. This guide explains how to link the proof to the code and which assumptions still need checking.
+
+## Commands, results and limits
 
 `fr` reads and writes Lean. It checks source anchors and explicit signature maps, renews reviewed
 source hashes, builds the owning Lean packages and scaffolds proof work in other projects. The

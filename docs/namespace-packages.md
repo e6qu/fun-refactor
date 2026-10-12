@@ -1,4 +1,9 @@
-# Static namespace packages
+# Follow Python imports through folders without __init__.py
+
+Some Python packages use folders without an `__init__.py` file. For example, `space/pkg/leaf.py` can define a helper imported by your application.
+`fr` can follow supported imports inside one project root. Packages spread across several search locations still need separate investigation.
+
+## Commands, results and limits
 
 Opt-in Python imported summaries now admit namespace directories inside one workspace root.
 A directory can supply a package component without an `__init__.py` file. Nested namespace and
