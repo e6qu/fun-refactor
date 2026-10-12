@@ -1,8 +1,11 @@
 # Native source-reading outcomes and observed costs
 
-Original outcomes are preserved. Tool output includes failed attempts. Collection time omits
-grader, provider, host and cache costs. Source-page counts omit code in metadata; total context
-and provider billing remain unknown. Tool availability does not establish fr use or benefit.
+Use these records to check whether an agent answered the code question correctly and used fr.
+For example, finding a source line only helps if the explanation based on it is correct.
+
+The totals include failed attempts. The recorded time does not include every grading or provider cost.
+Source-page counts also miss code carried in other report fields. Total reading and billing remain unknown.
+Having fr available does not establish that the agent used it or saved work.
 
 ## 2026-10-02-source-references
 
