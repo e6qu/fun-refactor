@@ -39,10 +39,10 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 ## Latest measured result
 
 The [Python behavior contract](docs/python-contract.md) defines fourteen rule families and compares
-181 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
-362 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
+187 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
+374 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
 static imports, CLI refusals and search budgets. Runtime outcomes remain separate from conservative
-answers and unsupported cases. Hosted checks pass 593 focused SDK regressions and 43 corruption controls.
+answers and unsupported cases. Hosted checks pass 647 focused SDK regressions and 43 corruption controls.
 
 The latest review found that valid line continuations inside module names caused unsupported-import
 cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
@@ -70,6 +70,8 @@ metadata. Do not add version dispatch, compatibility readers or migration fallba
 Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
 Uncalled inert declarations defer their bodies; coroutine and generator calls remain incomplete.
+Distinct scalar literal module bindings are inert. Rebinding, evaluated initialization and
+global value reads remain explicit boundaries; package literals cannot masquerade as child modules.
 Address the remaining import and summary boundaries through general rules.
 The expanded probes include arithmetic and constant helpers through full packages and isolated declarations.
 Choose an unopened replacement

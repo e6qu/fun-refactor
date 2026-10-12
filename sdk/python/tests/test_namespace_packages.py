@@ -88,7 +88,7 @@ def test_empty_namespace_is_an_explicit_directory_dependency(tmp_path):
 
 
 @pytest.mark.parametrize('mutation,complete', [
-    ('initializer', True), ('nested-initializer', True), ('effect', False),
+    ('initializer', True), ('nested-initializer', True), ('literal', True), ('effect', False),
     ('parent-module', False), ('parent-stub', False), ('package-stub', False),
     ('helper', True), ('missing', False), ('unrelated', True), ('sibling', True),
 ])
@@ -101,7 +101,8 @@ def test_namespace_dependency_changes_match_clean_rebuilds(tmp_path, mutation, c
     changes = {
         'initializer': ('space/__init__.py', '# regular now\n'),
         'nested-initializer': ('space/pkg/__init__.py', ''),
-        'effect': ('space/__init__.py', 'state = 1\n'),
+        'literal': ('space/__init__.py', 'state = 1\n'),
+        'effect': ('space/__init__.py', 'state = 1 + 2\n'),
         'parent-module': ('space.py', ''), 'parent-stub': ('space.pyi', ''),
         'package-stub': ('space/pkg/__init__.pyi', ''),
         'helper': ('space/pkg/leaf.py', 'def identity(value):\n    return 0\n'),

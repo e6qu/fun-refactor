@@ -151,7 +151,7 @@ fn ambiguous_candidates_stubs_and_effects_stay_incomplete() {
         ("portal/__init__.pyi", ""),
         ("portal/api.pyi", ""),
         ("portal/api/__init__.py", ""),
-        ("portal/__init__.py", "state = 1\n"),
+        ("portal/__init__.py", "state = 1 + 2\n"),
         ("portal/__init__.py", "f\"{sink(source())}\"\n"),
         ("portal/__init__.py", "import unavailable_external\n"),
     ] {
@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-declarations-final-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-module-literals-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -352,7 +352,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-declarations-final-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-12-module-literals-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -409,7 +409,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-declarations-final-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-12-module-literals-module-aliases/result.json",
         ])
         .output()
         .unwrap();

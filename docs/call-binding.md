@@ -57,7 +57,14 @@ Unannotated functions with ASCII parameters and immutable literal defaults defer
 including referenced variadics. An uncalled declaration therefore does not introduce a module-effect
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
-Annotations, decorators, evaluated defaults and other module statements still need an initialization contract.
+Annotations, decorators and evaluated defaults remain outside the initialization contract.
+
+The required `CallBinding.initialization` field admits distinct ASCII module names bound to
+immutable scalar literals in summary mode. Repeated bindings and collisions with functions,
+imports or external rules remain refused or incomplete. Special module attributes, annotations,
+containers and evaluated expressions remain unchecked. This admission concerns initialization
+only: reading a global value or importing a literal member remains unsupported. Package member
+resolution cannot replace a literal attribute with a child module.
 
 Coroutine and generator calls do not execute their bodies as ordinary scalar calls. The analyzer
 refuses those executions before transferring body effects. A yield inside a skipped expression still

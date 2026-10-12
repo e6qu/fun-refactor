@@ -53,7 +53,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-declarations-final-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-module-literals-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -63,6 +63,8 @@ its historical audit uses a pinned snapshot of the original source and collector
 The expanded collector also checks Funcy's `inc` and `dec`, Pydash's `add` and Toolz's `return_none`.
 Each helper runs through its original package and through an explicitly isolated declaration module.
 The latter copies the exact runtime function and an uncalled variadic companion from the pinned source.
+It also adds the declared authored binding `probe_metadata = 0` to exercise inert scalar initialization.
+That binding is a control, not an upstream source fragment.
 Independent AST inspection checks the scalar operation, signature and both source fragments.
 Two runtime inputs, renamed/relocated adapters, unknown calls and budget controls cover both contexts.
 The collector keeps package outcomes separate from isolated declaration results. Isolated success cannot

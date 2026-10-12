@@ -22,7 +22,8 @@ Analysis refuses calls, names, operators other than the admitted numeric sign, c
 comprehensions, lambdas, formatted strings and annotations in default contracts. It also refuses an
 unsupported default when a call supplies an explicit argument: Python evaluates defaults during
 function definition, and overriding an argument does not remove those earlier effects.
-Variadics, unpacking, dynamic dispatch and implicit exceptions remain outside this contract.
+Referenced variadic values, extra variadic arguments, unpacking, dynamic dispatch and implicit
+exceptions remain outside this contract. Unused variadic declarations admit fixed-slot calls.
 
 An analyzed entry function still represents all explicit inputs through symbolic parameter origins.
 Its default does not force the analysis to represent only a zero-argument invocation. Literal defaults
@@ -47,7 +48,7 @@ The response budget includes signature metadata, and omitted results remain inco
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
 fresh-process resumption, independent patch replay and exact reversal. The
-[retained run](../tests/agent-eval/results/2026-10-11-coverage-literal-defaults/result.json) passes those
+[retained run](../tests/agent-eval/results/2026-10-12-module-literals-literal-defaults/result.json) passes those
 checks and binds the current source. The baseline records the installed local binary separately from
 the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results

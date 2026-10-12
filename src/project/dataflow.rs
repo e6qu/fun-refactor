@@ -729,6 +729,7 @@ impl Project<'_> {
         let mut functions = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
+        let mut module_literals = BTreeSet::new();
         let mut module_effects = false;
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
@@ -740,7 +741,26 @@ impl Project<'_> {
             vec![(symbol.file.as_path(), source.as_str(), &parsed)]
         };
         for (file, text, parsed) in units {
+            let mut bound_names: BTreeSet<_> = modules
+                .as_ref()
+                .and_then(|modules| modules.bindings.get(file))
+                .into_iter()
+                .flat_map(|bindings| bindings.keys().map(String::as_str))
+                .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if options.summaries {
+                    if let Some(name) = calls::module_literal(node, text) {
+                        if !bound_names.insert(name) {
+                            module_effects = true;
+                        }
+                        module_literals.insert(if let Some(modules) = &modules {
+                            modules.function_name(file, name)
+                        } else {
+                            name.to_owned()
+                        });
+                        continue;
+                    }
+                }
                 if node.kind() == "function_definition" {
                     if if options.summaries {
                         !calls::definition_is_inert(node, text)
@@ -760,6 +780,9 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
+                    if !bound_names.insert(short) {
+                        module_effects = true;
+                    }
                     if !unicode_normalization::is_nfkc(short) {
                         module_effects = true;
                     }
@@ -788,6 +811,12 @@ impl Project<'_> {
                 }
             }
         }
+        ambiguous.extend(
+            module_literals
+                .iter()
+                .filter(|name| functions.contains_key(*name))
+                .cloned(),
+        );
         let entry = if let Some(modules) = &modules {
             modules.function_name(&symbol.file, &symbol.name)
         } else {
@@ -826,6 +855,9 @@ impl Project<'_> {
                     names.insert(name)
                         && !functions
                             .keys()
+                            .any(|key| key.rsplit("::").next() == Some(name.as_str()))
+                        && !module_literals
+                            .iter()
                             .any(|key| key.rsplit("::").next() == Some(name.as_str()))
                         && !modules.as_ref().is_some_and(|m| m
                             .bindings

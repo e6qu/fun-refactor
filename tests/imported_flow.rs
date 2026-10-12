@@ -133,7 +133,7 @@ fn imported_flow_acceptance_matches_its_inputs_and_replays_delivery() {
         .args([
             "tools/imported-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-declarations-final-imported-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-module-literals-imported-flow/result.json",
         ])
         .output()
         .unwrap();

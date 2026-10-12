@@ -25,7 +25,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
-| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. | No arbitrary search paths, import hooks or module initialization effects. Cycles and unresolved imports stay incomplete. |
+| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct immutable scalar module bindings do not execute effects. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, special attributes, cycles and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
 | Locations | Source revisions and exact UTF-8 byte spans accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
@@ -71,7 +71,7 @@ from exceptions after calling the entry function. External source and sink hooks
 | Defaults | Omitted and overridden defaults, required/default mixtures, seven literal forms, evaluated defaults and definition failure. |
 | Recursion | Direct and mutual return, constant return, independent callers, keyword substitution, explicit raise, no normal return and step exhaustion. |
 | Imports | Absolute, relative, dotted, aliased and continued imports; regular, namespace and mixed trees; re-exports, child fallback and module alias chains. Each has positive and negative helper bodies. |
-| Cross-file evidence | Keyword binding, defaults, equal helper names in different files, explicit raise, initialization effects, cycles and missing modules. |
+| Cross-file evidence | Keyword binding, defaults, equal helper names in different files, explicit raise, inert scalar bindings, initialization effects, cycles and missing modules. |
 | Refusals | Entry syntax errors, local and imported rule conflicts, competing entry stubs, and invalid step, depth and byte budgets. Runtime definition failures and entry exceptions stay separate. |
 | Discovery | Two-hop helper discovery with depths two and three; a stopped search has no absence authority. The summary-function count also has an explicit boundary example. |
 | Import boundaries | Competing modules/packages and stubs; parameter, assignment and global shadowing; conflicting bindings; module-count, source-byte, lookup-count, component and binding-chain limits. Positive and negative arguments remain independent expectations. |

@@ -104,7 +104,7 @@ def test_function_member_wins_over_unloaded_child_candidate(tmp_path):
 @pytest.mark.parametrize('path,source,cutoff', [
     ('pkg/leaf.py', 'from bridge import relay\ndef identity(value):\n    return value\n', 'cyclic-module-initialization'),
     ('pkg/__init__.py', 'from . import leaf as public\ndef leaf(value):\n    return value\n', 'unknown-external-call:forward.identity'),
-    ('pkg/__init__.py', 'from . import leaf as public\nstate = 1\n', 'module-effects-unchecked'),
+    ('pkg/__init__.py', 'from . import leaf as public\nstate = 1 + 2\n', 'module-effects-unchecked'),
     ('pkg/__init__.py', 'from . import leaf as public\nfrom erase import forward as public\n', 'ambiguous-module-binding'),
     ('pkg/__init__.py', 'import pkg.leaf\n', 'missing-or-ambiguous-import-member:relay'),
     ('pkg/__init__.py', 'from . import *\n', 'unsupported-import-form'),

@@ -6,17 +6,25 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
+Summary mode admits distinct module names bound to immutable scalar literals. Rebinding, function
+and import collisions, special attributes and evaluated or mutable values remain incomplete.
+Global value reads stay unsupported. A literal package member prevents guessed child-module imports.
+The [first focused gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
+exposed obsolete literal-as-effect fixtures and an 8 KiB metadata refusal. Evaluated
+expressions now exercise those boundaries, and shorter contract descriptions preserve the existing budget.
+The [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526) passes all focused controls.
+
 Uncalled unannotated functions with immutable literal defaults defer their bodies. Referenced
 variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
 requires a supported fixed-slot summary. Generator construction never transfers its body, including
 yields hidden behind skipped expressions or nested defaults. Coroutine execution remains incomplete.
-The focused hosted gate passes 593 SDK controls. Broad probes now include arithmetic and constant helpers
+The focused hosted gate passes 647 SDK controls. Broad probes now include arithmetic and constant helpers
 from the same three coverage libraries, with separate full-package and isolated-declaration outcomes.
 
 The native analyzer and SDK use one required current format for scalar summaries, import dependencies
 and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
 Historical evidence replays its archived original source. Its readers do not enter the current SDK.
-The [current collection receipts](../tests/agent-eval/results/2026-10-12-declarations-final-scalar-collection/manifest.json)
+The [current collection receipts](../tests/agent-eval/results/2026-10-12-module-literals-scalar-collection/manifest.json)
 bind eight successful hosted collections to one frozen source revision. Retention independently
 audits the reports, producer attempts and source bindings before updating active evidence.
 CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
@@ -29,13 +37,13 @@ sink before the entry's active sink. The expected pair used the wrong sink ordin
 retains all observed rows and the original validator source. Replaying that source reproduces the
 pairing error; the failure remains outside acceptance. The corrected expectation selects the active sink.
 
-The [Python behavior contract](python-contract.md) compares 181 authored programs and their
-renamed/relocated equivalents: 362 cases across fourteen declared rule families. It retains CPython
+The [Python behavior contract](python-contract.md) compares 187 authored programs and their
+renamed/relocated equivalents: 374 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 593 focused SDK regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 114 emitted incomplete analyses with explicit boundary evidence.
+Hosted validation passes 647 focused SDK regressions and 43 corruption controls. The inventory includes
+fourteen CLI refusals and 120 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,

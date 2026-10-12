@@ -42,6 +42,20 @@ S = ['source', 17]
 T = ['sink', 17]
 ZERO = ['sink', 0]
 EXAMPLES = [
+    example('module-literal-unused', 'names boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='metadata = -17\n'),
+    example('module-literal-global-read', 'names boundaries', 'return sink(metadata)', [['sink', 5]], 5,
+            prelude='metadata = 5\n', complete=False, cutoff='unknown-binding:metadata'),
+    example('module-literal-repeated', 'names boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='metadata = 0\nmetadata = 1\n', complete=False, cutoff='module-effects-unchecked'),
+    example('module-literal-shadow-function', 'names boundaries calls', 'return sink(relay(source()))', [S], raised='TypeError',
+            witness=True, prelude='def relay(value):\n    return value\nrelay = 0\n',
+            complete=False, cutoff='module-effects-unchecked',
+            difference='A literal replaces the helper at runtime; an unchecked module binding cannot establish execution.'),
+    example('module-literal-import-selected', 'imports names returns', 'return sink(helper.relay(source()))', [S, T], 17,
+            witness=True, prelude='import helper\n', files={'helper.py': 'metadata = 0\ndef relay(value):\n    return value\n'}),
+    example('module-literal-import-blocked', 'imports names returns', 'return sink(helper.relay(source()))', [S, ZERO], 0,
+            prelude='import helper\n', files={'helper.py': 'metadata = "constant"\ndef relay(value):\n    return 0\n'}),
     example('arithmetic', 'operands locations', 'return sink(+source() + 2)', [S, ['sink', 19]], 19, witness=True),
     example('commented-operands', 'operands locations', 'return sink(source() + # café 🦀\n    0)', [S, T], 17, witness=True),
     example('commented-unary', 'operands locations', 'return sink(+ # café 🦀\n    source())', [S, T], 17, witness=True),

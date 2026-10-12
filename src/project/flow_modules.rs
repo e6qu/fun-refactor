@@ -21,6 +21,7 @@ pub(super) struct Modules {
     namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
+    literals: BTreeMap<PathBuf, BTreeSet<String>>,
     pub cutoffs: BTreeSet<String>,
     pub inputs: Value,
 }
@@ -288,6 +289,9 @@ fn declares_member(
         {
             return Ok(true);
         }
+        if calls::module_literal(node, source) == Some(member) {
+            return Ok(true);
+        }
         if matches!(node.kind(), "import_statement" | "import_from_statement")
             && imports(node, source, path)
                 .is_some_and(|items| items.iter().any(|(alias, _)| alias == member))
@@ -341,6 +345,13 @@ impl Modules {
                 .copied()
                 .unwrap_or(0);
             let binding = self.bindings.get(&file).and_then(|items| items.get(&name));
+            if self
+                .literals
+                .get(&file)
+                .is_some_and(|names| names.contains(&name))
+            {
+                return ("unavailable", chain, None);
+            }
             if count > 1
                 || count == 1 && binding.is_some()
                 || binding.is_some_and(|binding| binding.ambiguous)
@@ -390,6 +401,10 @@ impl Modules {
             self.definitions
                 .get(&package)
                 .is_some_and(|items| items.contains_key(name))
+                || self
+                    .literals
+                    .get(&package)
+                    .is_some_and(|items| items.contains(name))
                 || self.bindings.get(&package).is_some_and(|items| {
                     items.contains_key(name)
                         && self.member_chain(&package, name).2.as_deref()
@@ -416,6 +431,7 @@ impl Modules {
             namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
             definitions: BTreeMap::new(),
+            literals: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
@@ -454,7 +470,15 @@ impl Modules {
             let mut bindings = BTreeMap::new();
             let mut names = BTreeSet::new();
             let mut definitions = BTreeMap::new();
+            let mut literals = BTreeSet::new();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if let Some(name) = calls::module_literal(node, source) {
+                    literals.insert(name.to_owned());
+                    if !names.insert(name.to_owned()) {
+                        result.cutoffs.insert("ambiguous-module-binding".into());
+                    }
+                    continue;
+                }
                 if node.kind() == "function_definition" {
                     if let Some(name) = node.child_by_field_name("name") {
                         *definitions
@@ -565,6 +589,7 @@ impl Modules {
             files.insert(file.strip_prefix(&project.root)?.to_owned(), hash(source)?);
             result.bindings.insert(file.clone(), bindings);
             result.definitions.insert(file.clone(), definitions);
+            result.literals.insert(file.clone(), literals);
             result.parsed.insert(file, parsed);
         }
         let mut visited = BTreeSet::new();
@@ -638,6 +663,13 @@ impl Modules {
             return String::new();
         }
         let base = parts[0];
+        if self
+            .literals
+            .get(file)
+            .is_some_and(|names| names.contains(base))
+        {
+            return String::new();
+        }
         let (mut target, mut members) =
             if let Some(binding) = self.bindings.get(file).and_then(|items| items.get(base)) {
                 if binding.member.is_none() {
