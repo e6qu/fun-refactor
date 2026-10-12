@@ -1,0 +1,14 @@
+{
+  "schema": "fr-python-repository-flow-cohort-1",
+  "selected_at": "2026-10-12",
+  "analyzer_revision": "aad6dc34cb48ff27c01ad964a425c94167053347",
+  "selection": "Three separately maintained, permissively licensed pure-Python utility libraries, absent from the existing repository-delivery fixtures. Pin the complete repository snapshots before collection. This is a narrow utility-library cohort, not a representative population of Python applications.",
+  "holdout": "Pydash implementation first opened in run 38180649071 after coverage passed on revision 12844dee0. The independent inspector rejected type-only overloads before native analysis or runtime execution. Generic inspector and pinned runtime-dependency corrections followed; retain that first attempt. The native analyzer remains frozen throughout. Pydash is no longer eligible as a fresh held-out project after any future analyzer change.",
+  "rules": {"version": "repository-flow-1", "sources": ["emit_value"], "sinks": ["record_value"], "sanitizers": {}, "propagators": []},
+  "budgets": {"archive_bytes": 4194304, "expanded_bytes": 16777216, "members": 4096, "steps": 4096, "depth": 8, "report_bytes": 1048576},
+  "projects": [
+    {"id": "toolz", "repository": "pytoolz/toolz", "revision": "451af60dec590a6010e2babdbf391ea8f815122f", "role": "coverage", "python_root": ".", "module": "toolz.functoolz", "function": "identity", "path": "toolz/functoolz.py"},
+    {"id": "funcy", "repository": "Suor/funcy", "revision": "40011cc3b9344d2c4e6ad2e3cff54b41ac7015f7", "role": "coverage", "python_root": ".", "module": "funcy.funcs", "function": "identity", "path": "funcy/funcs.py"},
+    {"id": "pydash", "repository": "dgilland/pydash", "revision": "24ae1aad60dec4d9d5a0e88b8d8d692ee85f232e", "role": "held-out", "python_root": "src", "module": "pydash.utilities", "function": "identity", "path": "src/pydash/utilities.py"}
+  ]
+}

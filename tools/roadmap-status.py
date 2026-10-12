@@ -37,6 +37,7 @@ KINDS = {
     'fr-unknown-target-cohort-1': 'live-agent',
     'fr-python-repository-acceptance-1': 'deterministic',
     'fr-python-repository-acceptance-2': 'deterministic',
+    'fr-python-repository-flow-cohort-result-1': 'deterministic',
 }
 
 
@@ -72,7 +73,7 @@ def binding_digest(path, schema):
     if schema == 'fr-python-repository-acceptance-2':
         return python_repository_digest(path)
     if schema not in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1', 'fr-python-contract-1', 'fr-python-contract-2',
-                      'fr-python-contract-3',
+                      'fr-python-contract-3', 'fr-python-repository-flow-cohort-result-1',
                       'fr-index-resolution-result-1') or path.name != 'Cargo.toml':
         return file_digest(path)
     manifest = tomllib.loads(path.read_text())

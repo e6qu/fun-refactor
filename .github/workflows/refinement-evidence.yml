@@ -49,6 +49,9 @@ on:
           - python-contract
           - retain-python-contract
           - retain-workflows
+          - repository-flow-coverage
+          - repository-flow-held-out
+          - retain-repository-flow
           - flow-contract
       collection_run:
         description: Successful collection run ID for Python or workflow retention
@@ -60,6 +63,22 @@ on:
         required: false
         default: ''
         type: string
+      held_out_run:
+        description: Successful held-out run for repository-flow retention
+        type: string
+        default: ''
+      failure_run:
+        description: Historical failed collector run to preserve
+        type: string
+        default: ''
+      admission_failure_run:
+        description: Failed held-out admission with no downloaded snapshot
+        type: string
+        default: ''
+      inspection_failure_run:
+        description: Historical held-out inspection failure to preserve
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -67,7 +86,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'flow-contract'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -291,6 +310,94 @@ jobs:
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
+
+  repository-flow:
+    if: startsWith(inputs.group, 'repository-flow-')
+    name: ${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Check collector provenance and negative controls
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          python3 -B tools/test-python-repository-flow.py
+      - name: Collect and independently replay bounded repository probes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+        run: |
+          arguments=(--phase "$PHASE" --output "$RUNNER_TEMP/fr-repository-flow-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")
+          if [ -n "$COVERAGE_RUN" ]; then arguments+=(--coverage-run "$COVERAGE_RUN"); fi
+          python3 -B tools/python-repository-flow.py "${arguments[@]}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: repository-flow-${{ inputs.group == 'repository-flow-coverage' && 'coverage' || 'held-out' }}
+          path: ${{ runner.temp }}/fr-repository-flow-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+
+  retain-repository-flow:
+    if: inputs.group == 'retain-repository-flow' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Check artifact and cohort admission controls
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          python3 -B tools/test-retain-python-contract.py
+          python3 -B tools/test-python-repository-flow.py
+      - name: Verify successful phases and preserve the failed collector
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+          HELD_OUT_RUN: ${{ inputs.held_out_run }}
+          FAILURE_RUN: ${{ inputs.failure_run }}
+          ADMISSION_FAILURE_RUN: ${{ inputs.admission_failure_run }}
+          INSPECTION_FAILURE_RUN: ${{ inputs.inspection_failure_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/retain-repository-flow.py --coverage-run "$COVERAGE_RUN" --held-out-run "$HELD_OUT_RUN" --failure-run "$FAILURE_RUN" --admission-failure-run "$ADMISSION_FAILURE_RUN" --inspection-failure-run "$INSPECTION_FAILURE_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the validated cohort files to this branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-repository-flow" \
+            tests/agent-eval/roadmap.json docs/roadmap-status.md docs/roadmap-status.json
+          git commit -m 'test: retain frozen repository flow baseline and failed collection'
+          git push origin "HEAD:refs/heads/$BRANCH"
 
   retain-python-contract:
     if: inputs.group == 'retain-python-contract' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'

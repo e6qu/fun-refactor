@@ -42,7 +42,7 @@ def checked_report(archive, digest):
     return checked_reports(archive, digest, ['result.json'])['result.json']
 
 
-def collection(run, artifact, report, repository, jobs, group='python-contract'):
+def collection(run, artifact, report, repository, jobs, group='python-contract', producer=None):
     contract.require(run['status'] == 'completed' and run['conclusion'] == 'success'
                      and run['path'] == '.github/workflows/refinement-evidence.yml'
                      and run['repository']['full_name'] == repository
@@ -53,7 +53,7 @@ def collection(run, artifact, report, repository, jobs, group='python-contract')
                      and artifact['workflow_run']['head_sha'] == run['head_sha']
                      and report['source_commit'] == run['head_sha'], 'collection source identity changed')
     created = datetime.fromisoformat(artifact['created_at'])
-    producers = [job for job in jobs if job['name'] == group
+    producers = [job for job in jobs if job['name'] == (producer or group)
                  and job['run_id'] == run['id'] and job['status'] == 'completed' and job['conclusion'] == 'success'
                  and datetime.fromisoformat(job['started_at']) <= created <= datetime.fromisoformat(job['completed_at'])]
     contract.require(len(producers) == 1, 'artifact must belong to one successful collection job')

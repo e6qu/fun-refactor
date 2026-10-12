@@ -56,12 +56,19 @@ assertions; authored examples alone cannot close it. Historical failed and prece
 The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
 comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
 
+The [repository-flow baseline](docs/python-repository-flow.md) adds thirty scalar probe cells in
+Toolz, funcy and pydash snapshots with one frozen analyzer. Runtime observations and independent
+inspection agree, and renamed/relocated adapters preserve conclusions. All 24 emitted analyses
+remain incomplete; six invalid-byte-budget calls refuse analysis. Empty witnesses cannot establish
+no path. The first held-out opening and collector failures remain part of the evidence.
+
 ## Next large chunk
 
-After retaining the final [B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior)
-report and passing CI, address [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects).
-Choose at least three Python projects independently, including one held out until implementation
-is frozen. Use the same analyzer, public commands and declared source/sink configuration everywhere.
+Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
+from the retained baseline. Address its import and summary boundaries through general rules,
+and broaden project-derived examples beyond identity adapters. Choose an unopened replacement
+held-out project before changing the analyzer. Treat pydash as coverage in future rounds. Freeze the revised
+implementation before evaluation. Use the same analyzer, public commands and declared source/sink configuration everywhere.
 Check selected and blocked values with runtime execution and independent inspection, and retain
 renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.
 Fix exposed defects through general rules; repository identities and expected answers must never

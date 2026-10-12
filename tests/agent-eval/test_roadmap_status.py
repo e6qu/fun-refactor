@@ -154,7 +154,8 @@ class RoadmapStatusTests(unittest.TestCase):
             return (f'[package]\nname="example"\nversion="{version}"\n[dependencies]\n'
                     f'child={{path="child",version="{version}"}}\nremote="{remote}"\n')
         for schema in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1',
-                       'fr-python-contract-1', 'fr-index-resolution-result-1'):
+                       'fr-python-contract-1', 'fr-index-resolution-result-1',
+                       'fr-python-repository-flow-cohort-result-1'):
             path.write_text(contents('1.0.0', '2.0.0'))
             expected = status.binding_digest(path, schema)
             path.write_text(contents('1.1.0', '2.0.0'))
