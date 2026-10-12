@@ -123,7 +123,7 @@ _FIXED_VARIADIC_CALL_BINDING = {
     **_LITERAL_CALL_BINDING,
     "schema": "fr-call-binding-3",
     "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
-    "variadics": "unannotated ASCII variadic parameters absent from every identifier in the function body may be omitted from fixed-slot summaries; calls must bind only declared fixed slots.",
+    "variadics": "fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
 }
 
 

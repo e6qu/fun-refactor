@@ -320,6 +320,12 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Check inexpensive controls before compilation
+        run: |
+          python3 -B tools/python-contract.py --check-runtime
+          python3 -B tools/test-retain-scalar-evidence.py
+          python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/check-prose.py
       - name: Format Rust on the runner
         env:
           BRANCH: ${{ github.ref_name }}
@@ -343,10 +349,6 @@ jobs:
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py
-          python3 -B tools/python-contract.py --check-runtime
-          python3 -B tools/test-retain-scalar-evidence.py
-          python3 -B tools/test-frozen-repository-flow.py
-          python3 -B tools/check-prose.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
