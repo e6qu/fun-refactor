@@ -21,7 +21,7 @@ For example, a checkout repair should find the calculation and callers, explain 
 
 ## What happens next
 
-Make the guides understandable from the user’s task. Then improve Python tracing from the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects after freezing the implementation, and compare complete agent tasks when independent task selection and cost limits are ready.
+Keep the guides understandable from the user’s task. Next, improve Python tracing from the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects after freezing the implementation, and compare complete agent tasks when independent task selection and cost limits are ready.
 
 See the [plan](../PLAN.md#next-large-chunk) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
