@@ -216,15 +216,26 @@ fn unsupported_package_bindings_cannot_select_same_named_child_files() {
     ] {
         let root = tempfile::tempdir().unwrap();
         write(root.path(), "pkg/__init__.py", initializer);
-        write(root.path(), "pkg/core.py", "def relay(value):\n    return value\n");
-        write(root.path(), "app.py", "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n");
+        write(
+            root.path(),
+            "pkg/core.py",
+            "def relay(value):\n    return value\n",
+        );
+        write(
+            root.path(),
+            "app.py",
+            "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n",
+        );
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], false, "{initializer}: {report}");
         let lookup = &report["inputs"]["modules"]["lookups"][0];
         assert!(lookup["submodule"].is_null(), "{initializer}: {lookup}");
         assert_eq!(lookup["resolution"], "unavailable");
         assert!(report["inputs"]["modules"]["files"]["pkg/core.py"].is_null());
-        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("unknown-external-call:core.relay")));
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("unknown-external-call:core.relay")));
     }
 }
 
@@ -232,8 +243,16 @@ fn unsupported_package_bindings_cannot_select_same_named_child_files() {
 fn annotations_without_values_do_not_hide_child_modules() {
     let root = tempfile::tempdir().unwrap();
     write(root.path(), "pkg/__init__.py", "core: object\n");
-    write(root.path(), "pkg/core.py", "def relay(value):\n    return value\n");
-    write(root.path(), "app.py", "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n");
+    write(
+        root.path(),
+        "pkg/core.py",
+        "def relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from pkg import core\ndef entry():\n    return sink(core.relay(source()))\n",
+    );
     let report = analyze(root.path(), "entry");
     let lookup = &report["inputs"]["modules"]["lookups"][0];
     assert_eq!(lookup["submodule"]["target"], "pkg/core.py");
@@ -250,12 +269,26 @@ fn unsupported_bindings_block_function_and_import_resolution() {
         "relay = object()\nfrom helper import relay\n",
     ] {
         let root = tempfile::tempdir().unwrap();
-        write(root.path(), "helper.py", "def relay(value):\n    return value\n");
-        write(root.path(), "app.py", &format!("{prefix}def entry():\n    return sink(relay(source()))\n"));
+        write(
+            root.path(),
+            "helper.py",
+            "def relay(value):\n    return value\n",
+        );
+        write(
+            root.path(),
+            "app.py",
+            &format!("{prefix}def entry():\n    return sink(relay(source()))\n"),
+        );
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], false);
-        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("ambiguous-module-binding")));
-        assert!(report["cutoffs"].as_array().unwrap().contains(&json!("unknown-external-call:relay")));
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("ambiguous-module-binding")));
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("unknown-external-call:relay")));
     }
 }
 

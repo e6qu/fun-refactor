@@ -272,7 +272,10 @@ fn opaque_names<'s>(node: Node<'_>, source: &'s str) -> Vec<&'s str> {
     fn targets<'s>(node: Node<'_>, source: &'s str, names: &mut Vec<&'s str>) {
         match node.kind() {
             "identifier" => names.push(&source[node.byte_range()]),
-            "pattern_list" | "tuple_pattern" | "list_pattern" | "list_splat_pattern"
+            "pattern_list"
+            | "tuple_pattern"
+            | "list_pattern"
+            | "list_splat_pattern"
             | "parenthesized_expression" => {
                 for child in node.named_children(&mut node.walk()) {
                     targets(child, source, names);
