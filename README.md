@@ -223,7 +223,8 @@ fr --json spec verify specs
 
 ## Scope and guarantees
 
-The parser identities are Rust, Go, Zig, Java, TypeScript, TSX, Python, Bash, HTML, CSS, SCSS,
+`fr` can read 19 source formats.
+The source formats are Rust, Go, Zig, Java, TypeScript, TSX, Python, Bash, HTML, CSS, SCSS,
 Sass, HCL, JSON, YAML, Helm, XML, Markdown and Lean. JavaScript uses the TypeScript grammar and JSX
 uses TSX. React, Next.js, Express, FastAPI and Tailwind are framework surfaces.
 

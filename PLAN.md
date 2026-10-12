@@ -14,6 +14,9 @@ Then it should run checks that catch the reported error. Finding a function name
 checks. It keeps saved changes so the agent can undo a mistake or resume interrupted work.
 It can also trace some simple Python values and prepare proof tasks for small supported functions.
 
+Before preparing a Python rename, check the installed tool with `fr --json audit` and `fr capabilities`.
+They report available commands and their limits. After the rename, run the test that checks the user’s problem.
+
 These pieces have useful tests. They do not yet add up to a demonstrated advantage on unfamiliar
 work. In the small live comparisons, using `fr` took more calls, reading and time. One attempt
 with `fr` met a requirement the ordinary-tool attempt missed. That is a useful result, but too
