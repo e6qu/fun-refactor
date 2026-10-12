@@ -557,3 +557,8 @@ Referenced variadic values, unpacking and definition-time effects remain unsuppo
 with immutable literal defaults defer their bodies, including referenced variadics. Calling them
 still requires scalar fixed-slot summaries. Coroutine and generator executions remain incomplete;
 their bodies do not transfer during ordinary call construction.
+
+`CallBinding.initialization` requires the current module initialization contract. Distinct ASCII
+names may bind immutable scalar literals without making summary analysis incomplete. Rebinding,
+function/import/rule collisions, annotations, special module attributes and evaluated or mutable
+values stay refused or incomplete. Global value reads and imported literal values remain unsupported.

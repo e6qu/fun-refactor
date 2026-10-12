@@ -107,6 +107,7 @@ _CALL_BINDING = {
     "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
     "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
     "definitions": "Declarations with unannotated ASCII parameters defer bodies, including referenced variadics. Defaults must be immutable literals; annotations, decorators and evaluated defaults remain unchecked. Calls require scalar fixed-slot summaries.",
+    "initialization": "Distinct ASCII module names may bind immutable scalar literals. Rebinding, special module attributes, annotations, containers and evaluated expressions remain unchecked. Global value reads and imported literal values remain unsupported; literals cannot replace functions, imports or external rules.",
     "implicit_exceptions": False,
     "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
     "variadics": "fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
@@ -124,6 +125,7 @@ class CallBinding:
     defaults: str
     variadics: str
     definitions: str
+    initialization: str
 
     @classmethod
     def from_data(cls, value: Any) -> CallBinding:

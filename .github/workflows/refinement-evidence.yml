@@ -172,7 +172,7 @@ jobs:
           cargo build --locked
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_function_declarations.py
+          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
       - name: Refresh retained evidence
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7
@@ -352,7 +352,7 @@ jobs:
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add '*.rs'
-            git commit -m 'style: format scalar declaration controls'
+            git commit -m 'style: format module literal controls'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
       - uses: Swatinem/rust-cache@v2
@@ -364,7 +364,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
@@ -695,7 +695,7 @@ jobs:
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check expression evaluation and source locations
-        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py
+        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
       - name: Collect successful reports and CLI refusals
         run: python3 -B tools/python-contract.py --output target/python-contract/result.json
       - name: Reject corrupted contract observations

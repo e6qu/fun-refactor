@@ -86,6 +86,30 @@ fn definition_effects_and_required_slots_are_not_hidden_by_defaults() {
 }
 
 #[test]
+fn scalar_module_literals_do_not_hide_binding_or_initialization_effects() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("rules.json"), r#"{"version":"literals","sources":["source"],"sinks":["sink"]}"#).unwrap();
+    for (binding, complete) in [
+        ("metadata = -17", true),
+        ("metadata = f'constant'", false),
+        ("metadata: int = 0", false),
+        ("metadata = 0\nmetadata = 1", false),
+        ("metadata = other = 0", false),
+        ("metadata = []", false),
+        ("metadata = source()", false),
+    ] {
+        fs::write(root.path().join("app.py"), format!("{binding}\ndef entry():\n    return sink(source())\n")).unwrap();
+        let found: Value = serde_json::from_slice(&run(root.path(), &["project", "find", "entry"]).stdout).unwrap();
+        let target = found["rows"][0][0].as_str().unwrap();
+        let output = run(root.path(), &["project", "dataflow", target, "--summaries", "--rules", root.path().join("rules.json").to_str().unwrap(), "--steps", "4096", "--bytes", "1048576"]);
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["complete"], complete, "{binding}: {}", report["cutoffs"]);
+        assert!(report["call_binding"]["initialization"].is_string());
+    }
+}
+
+#[test]
 fn literal_defaults_acceptance_replays_checked_delivery() {
     let output = Command::new("python3")
         .args([
