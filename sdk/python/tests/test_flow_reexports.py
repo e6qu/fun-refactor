@@ -63,7 +63,7 @@ def test_bare_relative_function_import_resolves_parent_binding(tmp_path):
     ('pkg/__init__.py', 'from .bridge import missing as exported\n', 'missing-or-ambiguous-import-member:exported'),
     ('pkg/__init__.py', 'from .bridge import outward as exported\nfrom .leaf import identity as exported\n', 'ambiguous-module-binding'),
     ('pkg/__init__.py', 'from .bridge import outward as exported\ndef exported(value):\n    return 0\n', 'ambiguous-module-binding'),
-    ('pkg/__init__.py', 'from .bridge import outward as exported\nstate = 1\n', 'module-effects-unchecked'),
+    ('pkg/__init__.py', 'from .bridge import outward as exported\nstate = 1 + 2\n', 'module-effects-unchecked'),
     ('pkg/__init__.py', 'import pkg.leaf as exported\n', 'unknown-external-call:forward'),
     ('pkg/bridge.py', 'import pkg.leaf as outward\n', 'unknown-external-call:forward'),
     ('pkg/__init__.py', 'from .bridge import *\n', 'unsupported-import-form'),
