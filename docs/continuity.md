@@ -22,6 +22,9 @@ The [writing guide](style.md) applies that rule. [Result meanings](understanding
 a possible input connection, an unfinished answer and a checked repair.
 
 Next, continue the Python work from the actual import and initialization failures.
+The package resolver now preserves direct class, decorated-definition and assignment bindings
+before considering a same-named file. These unsupported values still leave the answer unfinished.
+Wildcard imports, external dependencies and executed package startup remain the next library blockers.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
@@ -34,7 +37,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-docs-review-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-package-bindings-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
