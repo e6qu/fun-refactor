@@ -11,7 +11,7 @@ spec = importlib.util.spec_from_file_location('flow', ROOT / 'tools/python-repos
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
 flow.COHORT = copy.deepcopy(flow.COHORT)
-flow.COHORT['analyzer_revision'] = 'e176c24ea078687e9eb1645b8006215a87653967'
+flow.COHORT['analyzer_revision'] = 'a2989889dd2ec03c36de3e2737ff6e1d04b6a80f'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
