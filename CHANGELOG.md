@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.59.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.2...fun-refactor-v0.59.0) (2026-10-12)
+
+
+### Features
+
+* support fixed-slot helpers with strict current flow contracts ([#474](https://github.com/e6qu/fun-refactor/issues/474)) ([144c515](https://github.com/e6qu/fun-refactor/commit/144c515fbcda488bade709d400bc3bceadb41e9e))
+
+
+### Fixes
+
+* admit inert scalar module bindings without hiding name conflicts ([#477](https://github.com/e6qu/fun-refactor/issues/477)) ([e9593e1](https://github.com/e6qu/fun-refactor/commit/e9593e13590dc550c7d4d33cc68e2991807efbd1))
+* separate inert declarations from deferred function execution ([#476](https://github.com/e6qu/fun-refactor/issues/476)) ([601959c](https://github.com/e6qu/fun-refactor/commit/601959c3713099841c67f1c4d70a13d6965b58d6))
+
 ## [0.58.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.1...fun-refactor-v0.58.2) (2026-10-12)
 
 
