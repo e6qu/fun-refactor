@@ -38,14 +38,16 @@ The [Python behavior guide](docs/python-contract.md) explains the examples and l
 The [real-library results](docs/python-repository-flow.md) keep unsuccessful attempts alongside
 successful ones. The [product review](docs/product-review.md) explains what we still need to measure.
 
-## Next large chunk
+## How the guides should read
 
-Make the documentation answer the reader’s question before describing the machinery. Each guide
-needs a concrete task, an example and an explanation of what the result lets the user conclude.
+The overview and guides now start from the reader’s question before describing the machinery.
+Keep a concrete task, an example and an explanation of what the result lets the user conclude.
 Keep exact commands and data fields available for readers who need them. Keep one current format;
 reject missing or old data without adding compatibility readers or migration fallbacks.
 
-Then continue the Python work from the actual library failures. Improve general language rules,
+## Next large chunk
+
+Continue the Python work from the actual library failures. Improve general language rules,
 such as how imports and module-level code affect a helper call. Never teach the analyzer the names
 of test projects or their expected answers. An unfinished search must still say the answer is unknown.
 

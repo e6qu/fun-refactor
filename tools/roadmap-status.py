@@ -215,7 +215,7 @@ def markdown(report):
         'known repairs; they test editing and recovery. They do not measure an agent discovering '
         'the repair. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
         '## What happens next', '',
-        'Make the guides understandable from the user’s task. Then improve Python tracing from '
+        'Keep the guides understandable from the user’s task. Next, improve Python tracing from '
         'the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects '
         'after freezing the implementation, and compare complete agent tasks when independent '
         'task selection and cost limits are ready.', '',

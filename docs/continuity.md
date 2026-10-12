@@ -16,12 +16,12 @@ original package is understood. See the [library examples and results](python-re
 
 ## Current priority
 
-The active work is a broad documentation review. Explain the user’s task first, show an example,
-and describe what the result means before presenting commands or record fields. The [writing guide](style.md)
-now applies that rule. [Result meanings](understanding-results.md) distinguishes a found location,
+The documentation review now explains the user’s task first, shows an example,
+and describes the result before presenting commands or record fields. Keep that order in later edits.
+The [writing guide](style.md) applies that rule. [Result meanings](understanding-results.md) distinguishes a found location,
 a possible input connection, an unfinished answer and a checked repair.
 
-After that review, continue the Python work from the actual import and initialization failures.
+Next, continue the Python work from the actual import and initialization failures.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
