@@ -20,7 +20,7 @@ Use `fr intent --from INTENT.json` for a complete request. It selects named subt
 snapshot and returns their object digests. Use reveals for choices, proof tests or later
 subtrees.
 
-The first response identifies semantic and source sections without loading them. Prefer a relevant
+The first response lists unopened semantic and source sections. Prefer a relevant
 `semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose
 `editable_ir` is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
 exactly; do not reconstruct the handle, cursor, profile or limit.
@@ -35,8 +35,8 @@ fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE>
 fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE> --write --plan-basis <PLAN_CONTEXT_BASIS>
 ```
 
-Equal values can have different IDs; use the one at the intended semantic address. Inspect the
-complete preview before the bound write. A large scalar appears as
+Equal values can have different IDs; select the intended address. Inspect the
+complete preview before writing. A large scalar appears as
 `from_commitment`; finish its page chain to obtain the edit without repeating its value. Stale,
 unknown, malformed and no-op capabilities refuse before mutation. The same request is
 `{"edit":"frde1:...","to":"..."}` under a batch/task `disclosed` field.

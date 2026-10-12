@@ -19,7 +19,8 @@ spec.loader.exec_module(flow)
 flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
-flow.COHORT['analyzer_revision'] = '28438f52afed78a7d60794b2a24337c17485ce43'
+# The squash merge retains identical native and SDK code in reachable history.
+flow.COHORT['analyzer_revision'] = 'e9593e13590dc550c7d4d33cc68e2991807efbd1'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
