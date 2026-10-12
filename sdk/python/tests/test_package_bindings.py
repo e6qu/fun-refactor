@@ -86,6 +86,20 @@ def test_an_annotation_without_a_value_does_not_create_a_package_member(tmp_path
                                  "events": [["source", 17], ["sink", 17]], "child_loaded": True}
 
 
+@pytest.mark.parametrize("initializer,complete", [
+    ("def unused():\n    core = object()\n", True),
+    ("def unused():\n    class core:\n        pass\n", True),
+    ("class Owner:\n    core = object()\n", False),
+])
+def test_inner_scope_bindings_do_not_hide_a_package_child(tmp_path, initializer, complete):
+    client, rules = install(tmp_path, initializer)
+    result = analyze(client, rules, "entry", imports=True)
+    lookup = next(item for item in result.dependencies.lookups if item.alias == "core")
+    assert lookup.submodule.target == "library/core.py" and lookup.resolution == "module"
+    assert result.report.at("/complete") is complete
+    assert runtime(tmp_path)["result"] == 17
+
+
 @pytest.mark.parametrize("binding", BINDINGS)
 def test_adding_and_removing_a_package_binding_invalidates_saved_resolution(tmp_path, binding):
     client, rules = install(tmp_path, "")
