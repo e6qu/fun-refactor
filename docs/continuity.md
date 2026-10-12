@@ -34,7 +34,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-module-literals-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-docs-review-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
