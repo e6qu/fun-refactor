@@ -11,7 +11,7 @@ spec = importlib.util.spec_from_file_location('flow', ROOT / 'tools/python-repos
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
 flow.COHORT = copy.deepcopy(flow.COHORT)
-flow.COHORT['analyzer_revision'] = '409f18a8fed86f7e8f5f2adb46554d2006d8ffb9'
+flow.COHORT['analyzer_revision'] = 'e176c24ea078687e9eb1645b8006215a87653967'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Boltons remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
