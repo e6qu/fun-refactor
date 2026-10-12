@@ -730,6 +730,7 @@ impl Project<'_> {
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
         let mut inert_bindings = BTreeSet::new();
+        let mut literal_bindings = BTreeSet::new();
         let mut module_effects = false;
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
@@ -764,19 +765,24 @@ impl Project<'_> {
                         });
                         continue;
                     }
-                    if let Some(name) = calls::module_literal(node, text)
-                        .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"))
-                        .or_else(|| calls::module_instance(node, text, &classes))
+                    let literal = calls::module_literal(node, text)
+                        .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"));
+                    if let Some(name) =
+                        literal.or_else(|| calls::module_instance(node, text, &classes))
                     {
                         classes.remove(name);
                         if !bound_names.insert(name) {
                             module_effects = true;
                         }
-                        inert_bindings.insert(if let Some(modules) = &modules {
+                        let binding = if let Some(modules) = &modules {
                             modules.function_name(file, name)
                         } else {
                             name.to_owned()
-                        });
+                        };
+                        if literal.is_some() {
+                            literal_bindings.insert(binding.clone());
+                        }
+                        inert_bindings.insert(binding);
                         continue;
                     }
                 }
@@ -832,7 +838,7 @@ impl Project<'_> {
             }
         }
         ambiguous.extend(
-            inert_bindings
+            literal_bindings
                 .iter()
                 .filter(|name| functions.contains_key(*name))
                 .cloned(),

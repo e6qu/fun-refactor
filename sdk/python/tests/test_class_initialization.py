@@ -192,7 +192,7 @@ def test_package_objects_keep_precedence_over_same_named_files(tmp_path, kind):
 
 def test_previous_initialization_description_is_not_accepted(tmp_path):
     client, rules = install(tmp_path, "class Token:\n    pass")
-    data = copy.deepcopy(analyze(client, rules).report.to_data())
+    data = copy.deepcopy(analyze(client, rules, "entry").report.to_data())
     old = "Unique ASCII scalar bindings and literal __all__ declarations are inert; collisions and effects remain unchecked. No global reads or imported literals."
     data["call_binding"]["initialization"] = old
     data["inputs"]["call_binding"]["initialization"] = old

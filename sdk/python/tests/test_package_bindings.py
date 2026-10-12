@@ -103,6 +103,7 @@ def test_inner_scope_bindings_do_not_hide_a_package_child(tmp_path, initializer,
 @pytest.mark.parametrize("binding", [
     "core = object()\n",
     "class core:\n    pass\n",
+    "class Token:\n    pass\ncore = Token()\n",
     "@replace\ndef core(value):\n    return value\n@replace\ndef core(value):\n    return value\n",
 ])
 @pytest.mark.parametrize("function_last", [True, False])
