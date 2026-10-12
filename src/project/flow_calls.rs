@@ -280,7 +280,7 @@ pub(super) fn contract() -> Value {
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
         "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
         "definitions":"Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
-        "initialization":"Unique scalar bindings and literal __all__ declarations are inert; collisions and effects remain unchecked. No global reads or imported literals.",
+        "initialization":"Unique ASCII scalar bindings and literal __all__ declarations are inert; collisions and effects remain unchecked. No global reads or imported literals.",
         "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})

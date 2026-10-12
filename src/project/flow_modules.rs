@@ -653,6 +653,11 @@ impl Modules {
                         } else {
                             None
                         };
+                        if declared.as_ref().is_some_and(|names| {
+                            names.len() + import_count + imports.len() > IMPORT_LIMIT
+                        }) {
+                            result.cutoffs.insert("import-lookup-budget".into());
+                        }
                         if let Some(selected) = declared.filter(|names| {
                             names.len() + import_count + imports.len() <= IMPORT_LIMIT
                         }) {

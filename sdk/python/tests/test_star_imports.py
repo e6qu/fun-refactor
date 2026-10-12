@@ -101,6 +101,7 @@ def test_large_export_sets_stop_at_the_existing_import_budget(tmp_path):
     assert not result.report.at("/complete")
     assert "star-exports-unchecked" in result.report.at("/cutoffs")
     assert result.report.at("/inputs/modules/limits/imports") == 128
+    assert "import-lookup-budget" in result.report.at("/cutoffs")
     assert len(result.dependencies.lookups) <= 128
 
 
