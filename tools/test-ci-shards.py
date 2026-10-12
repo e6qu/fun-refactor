@@ -3,6 +3,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -49,6 +50,20 @@ class ShardTests(unittest.TestCase):
             self.assertTrue(plugin.selected)
             assigned.extend(plugin.selected)
         self.assertEqual(sorted(assigned), sorted(inventory))
+
+    def test_failed_native_tests_do_not_publish_a_passing_inventory(self):
+        inventory = {f"test:case{index}": ["--test", f"case{index}"] for index in range(12)}
+        failure = subprocess.CalledProcessError(101, ["cargo", "test"])
+        with tempfile.TemporaryDirectory() as temp, \
+                patch.object(shards, "native_inventory", return_value=inventory), \
+                patch.object(shards.subprocess, "run", side_effect=failure) as run, \
+                patch.object(shards, "record") as record:
+            with self.assertRaises(subprocess.CalledProcessError):
+                shards.run_native(0, Path(temp))
+            command = run.call_args.args[0]
+            self.assertIn("--no-fail-fast", command[:command.index("--")])
+            self.assertTrue(run.call_args.kwargs["check"])
+            record.assert_not_called()
 
     def evidence(self, directory):
         for kind, count in shards.COUNTS.items():

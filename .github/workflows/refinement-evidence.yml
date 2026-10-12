@@ -347,6 +347,7 @@ jobs:
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
           python3 -B tools/agent_eval/test_opencode_native.py Discovery
           python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence
+          python3 -B tools/test-ci-shards.py
       - name: Save checked generated documentation
         env:
           BRANCH: ${{ github.ref_name }}

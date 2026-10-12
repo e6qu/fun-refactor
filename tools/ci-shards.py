@@ -61,7 +61,7 @@ def run_native(index, directory):
     selected = partition(list(inventory), COUNTS["native"], weights)[index]
     if not selected:
         raise ValueError("empty native shard")
-    command = ["cargo", "test", "--locked"]
+    command = ["cargo", "test", "--locked", "--no-fail-fast"]
     for target in selected:
         command.extend(inventory[target])
     command.extend(["--", "--test-threads", "1", "--skip", SDK_WRAPPER])
