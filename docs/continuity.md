@@ -10,25 +10,26 @@ Uncalled unannotated functions with immutable literal defaults defer their bodie
 variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
 requires a supported fixed-slot summary. Generator construction never transfers its body, including
 yields hidden behind skipped expressions or nested defaults. Coroutine execution remains incomplete.
-The focused hosted gate passes 593 SDK controls; broad source-bound collection follows.
+The focused hosted gate passes 593 SDK controls. Broad probes now include arithmetic and constant helpers
+from the same three coverage libraries, with separate full-package and isolated-declaration outcomes.
 
 The native analyzer and SDK use one required current format for scalar summaries, import dependencies
 and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
 Historical evidence replays its archived original source. Its readers do not enter the current SDK.
-The [current collection receipts](../tests/agent-eval/results/2026-10-12-current-contract-scalar-collection/manifest.json)
+The [current collection receipts](../tests/agent-eval/results/2026-10-12-declarations-final-scalar-collection/manifest.json)
 bind eight successful hosted collections to one frozen source revision. Retention independently
 audits the reports, producer attempts and source bindings before updating active evidence.
 CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
 current family receipt, checks exact report bytes and source identity, and rejects older layouts.
 Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
 
-The [Python behavior contract](python-contract.md) compares 173 authored programs and their
-renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
+The [Python behavior contract](python-contract.md) compares 181 authored programs and their
+renamed/relocated equivalents: 362 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 565 focused SDK regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 108 emitted incomplete analyses with explicit boundary evidence.
+Hosted validation passes 593 focused SDK regressions and 43 corruption controls. The inventory includes
+fourteen CLI refusals and 114 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
