@@ -103,6 +103,52 @@ fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
 }
 
 #[test]
+fn plain_classes_and_default_instances_preserve_imported_scalar_summaries() {
+    for body in ["return value", "return 0"] {
+        let root = tempfile::tempdir().unwrap();
+        write(
+            root.path(),
+            "app.py",
+            "from pkg import *\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        write(
+            root.path(),
+            "pkg/__init__.py",
+            "__all__ = ['relay']\nfrom .core import relay\n",
+        );
+        write(root.path(), "pkg/core.py", &format!("class Token:\n    def __repr__(self):\n        return 'token'\n    def unused(self, *values):\n        return values\nmarker = Token()\ndef relay(value):\n    {body}\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{report}");
+        assert_eq!(
+            !report["witnesses"].as_array().unwrap().is_empty(),
+            body == "return value"
+        );
+        assert_eq!(
+            report["function_summaries"]["functions"]["pkg/core.py::relay"]["normal_return"],
+            true
+        );
+    }
+}
+
+#[test]
+fn custom_construction_cannot_turn_an_empty_trace_into_an_absence_answer() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "app.py",
+        "from core import relay\ndef entry():\n    return sink(relay(0))\n",
+    );
+    write(root.path(), "core.py", "class Token:\n    def __init__(self):\n        sink(source())\nmarker = Token()\ndef relay(value):\n    return value\n");
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false, "{report}");
+    assert!(report["witnesses"].as_array().unwrap().is_empty());
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("module-effects-unchecked")));
+}
+
+#[test]
 fn dotted_calls_and_parent_relative_imports_resolve_across_nested_packages() {
     let root = tempfile::tempdir().unwrap();
     for (path, source) in [

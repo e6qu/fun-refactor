@@ -823,7 +823,7 @@ impl Modules {
             .collect();
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
-            "policy":"static single-root packages and .py modules; acyclic re-exports, literal __all__ star imports and package child lookup. No evaluated initialization, merged namespaces, default star exports, implicit child traversal, native modules, search paths or import hooks",
+            "policy":"static single-root packages and .py modules; acyclic re-exports, literal __all__ star imports and package child lookup. No arbitrary initialization, merged namespaces, default star exports, implicit child traversal, native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
         Ok(result)
     }
