@@ -70,7 +70,7 @@ metadata. Do not add version dispatch, compatibility readers or migration fallba
 Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
 Uncalled inert declarations defer their bodies; coroutine and generator calls remain incomplete.
-Address the remaining import and summary boundaries through general rules,
+Address the remaining import and summary boundaries through general rules.
 The expanded probes include arithmetic and constant helpers through full packages and isolated declarations.
 Choose an unopened replacement
 held-out project before changing the analyzer. The next reserved candidate is jaraco.functools;
