@@ -329,6 +329,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Prepare the pinned offline text counter
+        run: |
+          python3 -m pip install --only-binary=:all: -r tools/agent_eval/requirements.txt
+          mkdir -p target/agent-eval-tokenizer
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
+            https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+          echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
       - name: Refresh generated prose and check documentation links
         run: python3 -B tools/review-docs.py --write
       - name: Check writing counts and exact generated results
@@ -338,6 +346,7 @@ jobs:
           python3 -B tools/roadmap-status.py --check
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
           python3 -B tools/agent_eval/test_opencode_native.py Discovery
+          python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence
       - name: Save checked generated documentation
         env:
           BRANCH: ${{ github.ref_name }}
@@ -346,7 +355,7 @@ jobs:
           if ! git diff --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT
+            git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
             git commit -m 'docs: refresh generated reader guides and writing counts'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi

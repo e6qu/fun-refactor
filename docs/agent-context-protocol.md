@@ -63,7 +63,7 @@ The same retained basis can compact a later redo.
 
 The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
 
-Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true` for compatibility.
+Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true`.
 
 Saving an identical plan again against the same revision reuses the existing planned transaction. The repeated report has `saved: false` and `reused_transaction: true`, so a retried agent call cannot create duplicate journal entries.
 
@@ -89,3 +89,9 @@ refuses the reviewed write.
 ## Evidence boundary
 
 Compaction changes serialization only. Limits, omitted result counts, uncertainty, source verification, parser validation, check declarations and transaction conflict checks retain their existing contracts. The full reviewed response and every compact response belong in an audit record when a workflow relies on reconstruction.
+
+The [reading-size measurement](../tests/agent-eval/context-protocol-v3.json) replays an old transcript
+with current instructions. For example, shortening a guide can reduce the text that the same
+recorded calls would return. Refresh that measurement when the guides change. The documentation
+review does this on GitHub and checks it against the unchanged original trials.
+This measures text size; it does not establish a faster repair, lower billed cost or a new agent outcome.

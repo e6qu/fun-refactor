@@ -105,6 +105,10 @@ def refresh():
     for stem, module in [('native-change', native_outcomes), ('native-read', native_read_outcomes)]:
         report = json.loads((ROOT / f'tests/agent-eval/opencode/{stem}-outcomes.json').read_text())
         (ROOT / f'docs/{stem}-outcomes.md').write_text(module.markdown(report['cohorts']))
+    protocol = load('doc_context_protocol', 'tools/agent-context-protocol-v3.py')
+    projection = protocol.measure(protocol.v2.harness.tokenizer())
+    (ROOT / 'tests/agent-eval/context-protocol-v3.json').write_text(
+        json.dumps(projection, indent=2, ensure_ascii=False) + '\n')
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True, timeout=60)
     check = load('doc_prose', 'tools/check-prose.py')
     counts, budget = check.gather(), check.read_budget()
