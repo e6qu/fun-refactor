@@ -141,22 +141,28 @@ Import aliases refer only to static module bindings; arbitrary object aliases re
 
 Ordinary modules admit function declarations, static imports, comments, inert string expressions and `pass`.
 Summary mode also admits distinct ASCII names bound to immutable scalar literals. Rebinding,
-special attributes, annotations, containers and evaluated expressions remain incomplete. Global
+annotations and evaluated expressions remain incomplete. Other special attributes and container bindings remain incomplete. Global
 value reads and imported literal members remain unsupported. A literal package member prevents
 selection of a same-named child module.
+
+A single literal `__all__` list or tuple declares names for `from helpers import *`.
+For example, `__all__ = ['forward']` lets a caller use `forward(value)` after that import.
+Empty export lists retain the imported file while importing no names.
+Computed or mutated export lists and missing declarations keep the answer incomplete.
+
 Package initializers also admit explicit local imports. Interpolated strings retain effect cutoffs.
 Function re-exports follow at most 16 named bindings to the defining function. Each member lookup
 retains its ordered `binding_chain` of source paths and names; aliases never invent a new function identity.
 `from . import forward` selects a declared binding or an unambiguous child module.
 Parent initialization dependencies bind source without creating an artificial import cycle.
 Explicit import cycles, duplicate bindings and package names that conflict with loaded child modules remain incomplete.
-Multi-root namespace merging, wildcard imports and module effects remain outside the contract.
+Combining namespace packages from several roots and other import-time effects remain outside the contract.
 Module aliases retain a terminal module and each explicit re-export binding. When a package lacks
 a declared member, a from-import retains a separate child resolution and all competing candidates.
 Qualified calls follow explicit module bindings to a defining function, within the same 16-component
 and 16-binding budgets. An initializer may import a local module; its closure must still be inert
 and acyclic. A child binding that selects that same module is admitted. Conflicting child bindings
-refuse. Global bindings and imported members with leading and trailing double underscores also refuse.
+refuse. Other global bindings and imported members with leading and trailing double underscores remain incomplete.
 Special child-module components also refuse, including direct entry selection.
 This excludes module metadata and hooks such as `__getattr__`, whether declared, imported or installed
 by loading a same-named child module.

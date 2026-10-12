@@ -127,6 +127,8 @@ class ImportLookup:
     submodule: ImportResolution | None
     terminal_module: str | None
     namespaces: tuple[str, ...]
+    star: int | None
+    exports: tuple[str, ...] | None
 
 
 def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespaces: frozenset[str]) -> None:
@@ -227,13 +229,28 @@ class FlowDependencies:
                 raise FrRuntimeError("complete closure includes a special child module")
             lookups = []
             for item in modules["lookups"]:
+                wildcard = item["alias"] == "*"
+                exports, star = item["exports"], item["star"]
+                if wildcard:
+                    if (star is not None or item["member"] is not None or item["prefix"] != "*"
+                            or item["binding_chain"] or item["submodule"] is not None
+                            or exports is not None and (not isinstance(exports, list) or len(exports) > 128
+                                or any(not isinstance(name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", name) is None for name in exports)
+                                or exports != sorted(set(exports)))
+                            or modules["complete"] and exports is None):
+                        raise FrRuntimeError("malformed star import declaration")
+                elif (exports is not None or star is not None and (type(star) is not int or not 0 <= star < len(lookups))):
+                    raise FrRuntimeError("malformed star import expansion")
                 if (item["importer"] not in paths or type(item["admitted"]) is not bool
-                        or any(not isinstance(item[field], str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item[field]) is None
+                        or not wildcard and any(not isinstance(item[field], str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item[field]) is None
                                for field in ("alias",))
                         or (item["member"] is not None and (not isinstance(item["member"], str)
                             or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
                     raise FrRuntimeError("malformed import lookup")
                 selected = _resolution(item, paths, modules["complete"], namespace_paths)
+                if wildcard and exports is not None and (not selected.admitted or not any(
+                        candidate.path == selected.target and candidate.status == "source" for candidate in selected.candidates)):
+                    raise FrRuntimeError("star export list lacks a source module")
                 if modules["complete"] and (
                         _special_attribute(item["alias"])
                         or item["member"] is not None and _special_attribute(item["member"])
@@ -245,6 +262,7 @@ class FlowDependencies:
                     raise FrRuntimeError("import binding prefix disagrees with its alias")
                 resolution = item["resolution"]
                 if (resolution not in {"module", "function", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
+                        or wildcard and resolution not in {"module", "unavailable"}
                         or modules["complete"] and resolution not in {"module", "function"}
                         or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
                     raise FrRuntimeError("import resolution disagrees with its declaration")
@@ -256,7 +274,19 @@ class FlowDependencies:
                                             _resolution(item["submodule"], paths, modules["complete"], namespace_paths)
                                             if item["submodule"] is not None else None,
                                             _path(item["terminal_module"]) if item["terminal_module"] is not None else None,
-                                            selected.namespaces))
+                                            selected.namespaces, star, tuple(exports) if exports is not None else None))
+            for index, anchor in enumerate(lookups):
+                if anchor.star is not None:
+                    declaration = lookups[anchor.star]
+                    if (declaration.alias != "*" or declaration.exports is None
+                            or anchor.member != anchor.alias or anchor.alias not in declaration.exports
+                            or (anchor.importer, anchor.module, anchor.target, anchor.candidates, anchor.admitted, anchor.packages, anchor.namespaces)
+                            != (declaration.importer, declaration.module, declaration.target, declaration.candidates, declaration.admitted, declaration.packages, declaration.namespaces)):
+                        raise FrRuntimeError("star member differs from its declaration")
+                if anchor.alias == "*":
+                    expanded = [lookup.alias for lookup in lookups if lookup.star == index]
+                    if sorted(expanded) != list(anchor.exports or ()):
+                        raise FrRuntimeError("star import expansion omits or repeats an export")
             if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
                    for lookup in lookups for hop in lookup.binding_chain):
                 raise FrRuntimeError("invalid re-export member name")

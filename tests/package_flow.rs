@@ -318,6 +318,97 @@ fn final_function_definitions_replace_opaque_bindings_without_checking_effects()
 }
 
 #[test]
+fn literal_export_lists_expand_star_imports_with_exact_definition_chains() {
+    for exports in ["['relay']", "('relay',)", "['relay', 'relay']"] {
+        let root = tempfile::tempdir().unwrap();
+        write(
+            root.path(),
+            "pkg/leaf.py",
+            &format!("__all__ = {exports}\ndef relay(value):\n    return value\n"),
+        );
+        write(
+            root.path(),
+            "pkg/__init__.py",
+            "__all__ = ['relay']\nfrom .leaf import *\n",
+        );
+        write(
+            root.path(),
+            "app.py",
+            "from pkg import *\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{report}");
+        assert!(!report["witnesses"].as_array().unwrap().is_empty());
+        let lookups = report["inputs"]["modules"]["lookups"].as_array().unwrap();
+        assert_eq!(
+            lookups.iter().filter(|item| item["alias"] == "*").count(),
+            2
+        );
+        for (index, item) in lookups.iter().enumerate() {
+            if item["alias"] == "*" {
+                assert_eq!(item["exports"], json!(["relay"]));
+                assert!(lookups
+                    .iter()
+                    .any(|member| member["star"] == index && member["member"] == "relay"));
+            }
+        }
+    }
+}
+
+#[test]
+fn empty_exports_retain_import_dependencies_without_binding_names() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helper.py",
+        "__all__ = []\ndef unused(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from helper import *\ndef entry():\n    return sink(source())\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{report}");
+    let lookup = &report["inputs"]["modules"]["lookups"][0];
+    assert_eq!(lookup["exports"], json!([]));
+    assert_eq!(lookup["terminal_module"], "helper.py");
+    assert!(report["inputs"]["modules"]["files"]["helper.py"].is_string());
+}
+
+#[test]
+fn computed_missing_and_mutated_exports_cannot_claim_a_complete_answer() {
+    for declaration in [
+        "",
+        "__all__ = build()\n",
+        "__all__ = ['relay']\n__all__.append('other')\n",
+        "__all__ = ['relay']\ncopy = __all__\n",
+        "__all__ = ['relay']\n__all__ = []\n",
+        "__all__ = [b'relay']\n",
+        "__all__ = [f'relay']\n",
+        "__all__ = ['re\\u006cay']\n",
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        write(
+            root.path(),
+            "helper.py",
+            &format!("{declaration}def relay(value):\n    return value\n"),
+        );
+        write(
+            root.path(),
+            "app.py",
+            "from helper import *\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false);
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("star-exports-unchecked")));
+    }
+}
+
+#[test]
 fn package_parents_count_toward_the_module_budget() {
     let root = tempfile::tempdir().unwrap();
     let mut source = String::new();
@@ -406,7 +497,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-package-bindings-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-star-imports-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -468,7 +559,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-package-bindings-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-12-star-imports-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -525,7 +616,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-package-bindings-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-12-star-imports-module-aliases/result.json",
         ])
         .output()
         .unwrap();

@@ -1,4 +1,5 @@
 """Independent executable examples for the declared scalar Python contract."""
+import ast
 import io
 import tokenize
 
@@ -310,6 +311,41 @@ multiple_sinks = example('import-distinct-sink-files', 'imports rules locations'
 multiple_sinks['expected_model']['pairs'] = [[0, 0], [0, 1]]
 EXAMPLES.append(multiple_sinks)
 
+for kind, exports in [('list', "['relay']"), ('tuple', "('relay',)"), ('repeated', "['relay', 'relay']")]:
+    EXAMPLES.append(example('star-' + kind + '-selected', 'imports calls names locations',
+        'return sink(relay(source()))', [S, T], 17, witness=True, prelude='from helper import *\n',
+        files={'helper.py': '__all__ = ' + exports + '\ndef relay(value):\n    return value\n'}))
+EXAMPLES.extend([
+    example('star-discarded', 'imports returns', 'return sink(relay(source()))', [S, ZERO], 0,
+            prelude='from helper import *\n', files={'helper.py': "__all__ = ['relay']\ndef relay(value):\n    return 0\n"}),
+    example('star-empty', 'imports names', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='from helper import *\n', files={'helper.py': "__all__ = []\ndef relay(value):\n    return value\n"}),
+    example('star-private', 'imports calls names', 'return sink(_relay(source()))', [S, T], 17, witness=True,
+            prelude='from helper import *\n', files={'helper.py': "__all__ = ['_relay']\ndef _relay(value):\n    return value\n"}),
+    example('star-child', 'imports calls', 'return sink(inner.relay(source()))', [S, T], 17, witness=True,
+            prelude='from pack import *\n', files={'pack/__init__.py': "__all__ = ['inner']\n",
+                                                 'pack/inner.py': 'def relay(value):\n    return value\n'}),
+    example('star-unlisted', 'imports names boundaries', 'return sink(relay(source()))', raised='NameError',
+            prelude='from helper import *\n', files={'helper.py': "__all__ = []\ndef relay(value):\n    return value\n"},
+            witness=True, complete=False, cutoff='unknown-external-call',
+            difference='An unlisted name raises before argument evaluation; incomplete analysis retains argument origins.'),
+    example('star-computed', 'imports boundaries', 'return sink(relay(source()))', [S, T], 17,
+            prelude='from helper import *\n', files={'helper.py': "__all__ = list(['relay'])\ndef relay(value):\n    return value\n"},
+            witness=True, complete=False, cutoff='star-exports-unchecked'),
+    example('star-mutated', 'imports names boundaries', 'return sink(relay(source()))', raised='NameError',
+            prelude='from helper import *\n', files={'helper.py': "__all__ = ['relay']\n__all__.clear()\ndef relay(value):\n    return value\n"},
+            witness=True, complete=False, cutoff='star-exports-unchecked',
+            difference='Mutated exports stay unchecked; Python has no imported helper and never evaluates the argument.'),
+    example('star-missing', 'imports boundaries', 'return sink(relay(source()))', raised='AttributeError', phase='definition',
+            prelude='from helper import *\n', files={'helper.py': "__all__ = ['missing']\ndef relay(value):\n    return value\n"},
+            witness=True, complete=False, cutoff='missing-or-ambiguous-import-member',
+            difference='A listed missing attribute stops import; the incomplete model retains the later argument origin.'),
+    example('star-rebound', 'imports names boundaries', 'return sink(relay(source()))', [S], raised='TypeError',
+            prelude='from helper import *\nrelay = 0\n', files={'helper.py': "__all__ = ['relay']\ndef relay(value):\n    return value\n"},
+            witness=True, complete=False, cutoff='ambiguous-module-binding',
+            difference='Rebinding stays incomplete; Python evaluates the argument and then rejects the call.'),
+])
+
 # Boundary expectations are authored before collection. A stopped search is never
 # an absence proof, and a CLI error has no analysis completeness or witness answer.
 for depth in (2, 3):
@@ -423,7 +459,7 @@ for direction, argument, events, returned in [('selected', 'source()', [S, T], 1
         prelude=''.join(f'def hop{number}():\n    return {number}\n' for number in range(65)),
         complete=False, cutoff='summary-function-budget'))
 
-RENAMES = {'entry': 'compute', 'relay': 'transfer', 'stop': 'halt', 'source': 'read_value',
+RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
            'bounce': 'recur', 'helper': 'engine', 'pack': 'parcel', 'inner': 'inside', 'bridge': 'gateway',
@@ -440,9 +476,21 @@ def cases():
                 if not moved:
                     return source
                 tokens = tokenize.generate_tokens(io.StringIO(source).readline)
-                return '# relocated π 🦀\n\n' + tokenize.untokenize(
-                    token._replace(string=RENAMES.get(token.string, token.string))
-                    if token.type == tokenize.NAME else token for token in tokens)
+                transformed = []
+                export_statement = False
+                for token in tokens:
+                    if token.type == tokenize.NAME and token.string == '__all__':
+                        export_statement = True
+                    elif token.type == tokenize.NEWLINE or token.string == ';':
+                        export_statement = False
+                    if token.type == tokenize.NAME:
+                        token = token._replace(string=RENAMES.get(token.string, token.string))
+                    elif token.type == tokenize.STRING and export_statement:
+                        value = ast.literal_eval(token.string)
+                        if isinstance(value, str) and value in RENAMES:
+                            token = token._replace(string=repr(RENAMES[value]))
+                    transformed.append(token)
+                return '# relocated π 🦀\n\n' + tokenize.untokenize(transformed)
             def relocate(path):
                 if not moved:
                     return path

@@ -73,6 +73,73 @@ pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s 
     .then_some(name)
 }
 
+pub(super) fn module_export_list(node: Node<'_>, source: &str) -> Option<BTreeSet<String>> {
+    if node.kind() != "expression_statement" || node.named_child_count() != 1 {
+        return None;
+    }
+    let assignment = node.named_child(0)?;
+    let left = assignment.child_by_field_name("left")?;
+    let right = assignment.child_by_field_name("right")?;
+    if assignment.kind() != "assignment"
+        || assignment.child_by_field_name("type").is_some()
+        || left.kind() != "identifier"
+        || &source[left.byte_range()] != "__all__"
+        || !matches!(right.kind(), "list" | "tuple")
+    {
+        return None;
+    }
+    let mut names = BTreeSet::new();
+    for (index, child) in right
+        .named_children(&mut right.walk())
+        .filter(|n| n.kind() != "comment")
+        .enumerate()
+    {
+        let text = &source[child.byte_range()];
+        let quote = text.chars().next()?;
+        let name = text.strip_prefix(quote)?.strip_suffix(quote)?;
+        if index >= 128
+            || child.kind() != "string"
+            || !matches!(quote, '\'' | '"')
+            || name.is_empty()
+            || !name
+                .chars()
+                .enumerate()
+                .all(|(i, c)| c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit())
+        {
+            return None;
+        }
+        names.insert(name.to_owned());
+    }
+    Some(names)
+}
+
+pub(super) fn declared_exports(root: Node<'_>, source: &str) -> Option<BTreeSet<String>> {
+    let mut exports = None;
+    let mut pending = Vec::new();
+    for node in root.named_children(&mut root.walk()) {
+        if let Some(names) = module_export_list(node, source) {
+            if exports.replace(names).is_some() {
+                return None;
+            }
+        } else {
+            pending.push(node);
+        }
+    }
+    while let Some(node) = pending.pop() {
+        if node.kind() == "identifier" && &source[node.byte_range()] == "__all__" {
+            return None;
+        }
+        let deferred = matches!(node.kind(), "function_definition" | "lambda")
+            .then(|| node.child_by_field_name("body"))
+            .flatten();
+        pending.extend(
+            node.named_children(&mut node.walk())
+                .filter(|child| Some(*child) != deferred),
+        );
+    }
+    exports
+}
+
 pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Parameter<'t>>> {
     parameter_contract(function, source, Phase::Call)
 }
@@ -213,7 +280,7 @@ pub(super) fn contract() -> Value {
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
         "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
         "definitions":"Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
-        "initialization":"Unique ASCII scalar literal bindings are inert; collisions and effects remain unchecked. No special attributes, global reads or imported literals.",
+        "initialization":"Unique ASCII scalar bindings and literal __all__ declarations are inert; collisions and effects remain unchecked. No global reads or imported literals.",
         "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})

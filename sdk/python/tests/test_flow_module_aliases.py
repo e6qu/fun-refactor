@@ -107,7 +107,7 @@ def test_function_member_wins_over_unloaded_child_candidate(tmp_path):
     ('pkg/__init__.py', 'from . import leaf as public\nstate = 1 + 2\n', 'module-effects-unchecked'),
     ('pkg/__init__.py', 'from . import leaf as public\nfrom erase import forward as public\n', 'ambiguous-module-binding'),
     ('pkg/__init__.py', 'import pkg.leaf\n', 'missing-or-ambiguous-import-member:relay'),
-    ('pkg/__init__.py', 'from . import *\n', 'unsupported-import-form'),
+    ('pkg/__init__.py', 'from . import *\n', 'star-exports-unchecked'),
     ('pkg/leaf.pyi', '', 'unresolved-local-import:pkg.leaf'),
     ('pkg/leaf/__init__.py', '', 'unresolved-local-import:pkg.leaf'),
     ('pkg/__init__.pyi', '', 'unresolved-local-import:pkg'),

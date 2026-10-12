@@ -749,7 +749,9 @@ impl Project<'_> {
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
-                    if let Some(name) = calls::module_literal(node, text) {
+                    if let Some(name) = calls::module_literal(node, text)
+                        .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"))
+                    {
                         if !bound_names.insert(name) {
                             module_effects = true;
                         }

@@ -41,7 +41,8 @@ def bindings():
     result = profile.bindings()
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py',
-                 'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py'):
+                 'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
+                 'sdk/python/src/fr_ir/flow_dependencies.py'):
         result[path] = file_digest(ROOT / path)
     return dict(sorted(result.items()))
 

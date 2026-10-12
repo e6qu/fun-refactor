@@ -51,6 +51,12 @@ decorators or arbitrary package startup code, and does not close the real-projec
 
 ## Recorded runs and exact test setup
 
+Literal `__all__` lists and tuples now give fr the names to follow through `from helpers import *`.
+For example, `__all__ = ['inc']` lets the resolver follow an imported `inc` function to its defining file.
+An empty list still records the import dependency, and an existing package object keeps precedence over a child file.
+Computed or directly mutated export sets remain incomplete. These are general language rules;
+the full libraries still contain other initialization and import boundaries.
+
 The first cohort uses pinned Toolz, funcy and pydash snapshots with the same native analyzer,
 frozen at `aad6dc34cb48ff27c01ad964a425c94167053347`. The
 [selection record](../tests/agent-eval/python-repository-flow/cohort.json) declares revisions,
@@ -104,7 +110,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-package-bindings-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-star-imports-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
