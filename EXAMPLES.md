@@ -1,4 +1,8 @@
-# Every refactoring, on real code
+# Examples from recorded work on real projects
+
+Use these examples to choose a command for a concrete task: find a helper’s callers, inspect a
+rename, or discover why an operation refuses. The outputs below come from the stated historical runs.
+Check `fr audit` and the [current guide](docs/README.md) for today’s support and instructions.
 
 One example per capability, each run against a public repository at a pinned commit.
 The outputs come straight from those runs. Nothing here is invented. Where a command

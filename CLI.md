@@ -1,6 +1,19 @@
 # The command line
 
-Every command `fr` has, what it answers, and what it refuses.
+Use this reference after choosing the question you need to answer. The command names and
+field names below match the tool; the examples explain why you would use them.
+
+| Your question | Commands to start with |
+| --- | --- |
+| “Where is the checkout calculation?” | `project find`, `project show` |
+| “Who calls it?” | `project calls`, `callers`, `refs` |
+| “Can this input reach the output?” | `project dataflow` for supported Python; read [result meanings](docs/understanding-results.md) |
+| “What would the fix change?” | `author`, `rename`, or a task guide; inspect the preview |
+| “Did the requested behavior improve?” | `checks`; choose a declared behavior test |
+| “How do I undo or deliver it?” | `history`, `workflow`, `git` |
+
+A name lookup, a possible trace and a passing behavior test establish different things.
+See [what you can conclude](docs/understanding-results.md) when interpreting the output.
 
 The binary is `fr`. It reads a workspace, answers questions about it, and
 changes it. Ordinary analysis needs no daemon, index warmup or configuration file.
@@ -20,13 +33,15 @@ files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan`
 `openapi --out` also authorizes writing its named output. See [Write guarantees](#write-guarantees) for failure and recovery behavior.
 `checks --run` executes declared project commands; their side effects do not enter source history. `--record-for <TX>` can attach a passing receipt to one applied transaction.
 
-**A refusal names the gap.** Where an operation cannot be done for a language
-or for an input, the tool says which and why. It exits non-zero, does not do
-half the work, and does not do nothing quietly.
+**Read the reason and the operation stage after an error.** A refusal before applying an edit
+leaves source unchanged. A check can fail after an edit reaches the files. Inspect the saved
+result before retrying or undoing it; see [write guarantees](#write-guarantees).
 
 ## Structured workflow guidance
 
 ### `fr compatibility`
+
+Check that the installed Python package and binary belong together before starting an agent session.
 
 ```sh
 fr --json compatibility
@@ -40,6 +55,8 @@ schema is `fr-sdk-compatibility-1`; the text form prints the versions and protoc
 revision for a person.
 
 ### `fr audit`
+
+Before asking for a trace or migration, check what the installed tool supports and what remains uncertain.
 
 ```sh
 fr audit
@@ -57,6 +74,8 @@ and implementation correspondence.
 See [the completion audit contract and deterministic sweep](docs/completion-audit.md).
 
 ### `fr guide`
+
+If the next command is unclear, describe the task and ask for suggested steps.
 
 ```sh
 fr guide --from GOAL.json
@@ -143,6 +162,8 @@ silent gap cannot read as a clean answer.
 
 ### `fr checks`
 
+For a rounding fix, inspect the available test commands and select the one that checks rounding.
+
 List `.fr/checks.json` declarations without execution, then select names with `--run NAME --basis TOKEN`.
 The listing provides the configuration token, argv, working directory, timeout and declared coverage.
 Execution reports bounded output, individual failures and checks that did not run.
@@ -154,6 +175,8 @@ Add `--record-for <TX>` to record a passing `frce1:` receipt on an applied sourc
 
 
 ### `fr scan`
+
+Find the files and languages present before choosing where to investigate.
 
 List the files `fr` can act on, and count the ones it cannot.
 
@@ -167,6 +190,8 @@ unsupported.
 
 ### `fr parse`
 
+Check whether the tool can read a file before relying on relationships extracted from it.
+
 Parse every file and report syntax health.
 
 ```
@@ -179,6 +204,8 @@ language.
 
 ### `fr symbols`
 
+List declarations when you need to find the part of a project related to the task.
+
 List what the workspace declares.
 
 ```
@@ -189,6 +216,8 @@ fr symbols [PATHS]... [--lang <L>] [--name <N>] [--kind <K>] [--stats]
 `selector`, `element-id` and the rest. `--name` filters by name.
 
 ### `fr def`
+
+Find the declaration for a name you encounter in the code.
 
 Show every place a symbol is defined.
 
@@ -201,6 +230,8 @@ per platform, a key set in two values files. `--first` takes the first and is
 for scripts that want one.
 
 ### `fr type`
+
+Inspect the type information available for the selected name.
 
 Show a symbol's type: what the source declared, or what follows from what it
 did.
@@ -215,6 +246,8 @@ reading.
 
 ### `fr implementations`
 
+When several types implement an interface, find the implementations you may need to inspect.
+
 Show the concrete implementations of an abstract declaration.
 
 ```
@@ -226,6 +259,8 @@ interface a type covers, a TypeScript `implements` or `extends`, a Python base
 class. Zig and Bash declare no such relationship, and the refusal says so.
 
 ### `fr usages` and `fr refs`
+
+Before renaming a helper, inspect its known uses and the confidence of each match.
 
 Show every use of a symbol.
 
@@ -241,6 +276,8 @@ resolved to nothing, which is what you want before deleting anything.
 
 ### `fr callers` and `fr callees`
 
+Ask which functions call this helper, or which helpers it calls.
+
 Walk the call graph.
 
 ```
@@ -254,6 +291,8 @@ unresolved call and says so rather than guessing past it.
 
 ### `fr graph`
 
+View the reported function relationships when a problem spans several calls.
+
 Export the whole call graph.
 
 ```
@@ -264,6 +303,8 @@ fr graph [--dot]
 confidence and by origin.
 
 ### `fr entrypoints`
+
+Find likely places where a request, command or test enters the project.
 
 List the detected entry points.
 
@@ -276,6 +317,8 @@ one looks like. `--catalogs` points at your own. `--unreachable` inverts the
 question and lists what no entry point reaches.
 
 ### `fr flow`
+
+Investigate where a configuration value comes from and which setting wins.
 
 Trace where a value comes from or goes to.
 
@@ -290,6 +333,8 @@ family supplies Helm values the way `helm` itself takes them, so a chain that
 depends on one still resolves.
 
 ### `fr stitch`
+
+Connect a configuration setting to a code use that the tool can identify.
 
 Trace configuration into the code that reads it.
 
@@ -311,6 +356,8 @@ Three questions, one command.
 
 ### `fr impact`
 
+Before changing a declaration, inspect the reported code that depends on it.
+
 Show everything a change to a symbol could affect.
 
 ```
@@ -321,6 +368,8 @@ References, callers to a depth, and the config and contract edges that reach it.
 This is the command to run before agreeing to a change, not after.
 
 ### `fr capabilities`
+
+Check whether the requested edit is supported for the selected language.
 
 Show what this tool can do, per language.
 
@@ -333,6 +382,8 @@ from the code. Every cell that is not supported carries its reason.
 `--markdown` prints the table the README publishes.
 
 ### `fr intent`
+
+Ask a specific supported question about the selected code and inspect the result before acting.
 
 `fr --json intent --from INTENT.json` compiles one `fr-agent-intent-1` request directly from one
 verified project snapshot. Pass `-` to read at most 64 KiB from standard input. The manifest names
@@ -413,6 +464,8 @@ correspondence remains false; the report lists remaining obligations.
 
 ### `fr duplicates`
 
+Find similar code when deciding whether a repeated helper needs a shared implementation.
+
 Find code written more than once.
 
 ```
@@ -423,6 +476,8 @@ Structural by default, so two copies that differ in their names still match.
 `--exact` demands the same tokens.
 
 ### `fr unused`
+
+Find declarations that appear unused, then review the search limits before deleting them.
 
 List symbols nothing appears to use.
 
@@ -440,6 +495,8 @@ Every command here prints a diff and needs `--write` to apply it.
 
 ### `fr rename`
 
+Preview a new name and the references the tool proposes to update.
+
 ```
 fr rename <TARGET> <NEW_NAME> [--write]
 ```
@@ -448,6 +505,8 @@ Renames the declaration and every reference that provably points at it. A
 reference the tool cannot prove stays where it is, and the report names it.
 
 ### `fr extract`
+
+Move a selected code region into a helper while reviewing the required inputs and outputs.
 
 ```
 fr extract <RANGE> <NAME> [--function] [--all] [--write]
@@ -483,6 +542,8 @@ One answer cannot carry both, and the refusal names the bindings.
 
 ### `fr inline`
 
+Preview replacing a helper call with its implementation.
+
 ```
 fr inline <TARGET> [--call] [--write]
 ```
@@ -492,6 +553,8 @@ callee's body. Precedence is restored from structure, so an inlined `a + b`
 inside a multiplication keeps its brackets.
 
 ### `fr signature`
+
+When changing arguments, review the declaration and the callers that need corresponding edits.
 
 ```
 fr signature <TARGET> <CHANGE> [--write]
@@ -511,6 +574,8 @@ first and passes `50`.
 
 ### `fr move`
 
+Preview moving a declaration and updating the references the tool can resolve.
+
 ```
 fr move <TARGET> <DESTINATION> [--write]
 ```
@@ -521,6 +586,8 @@ markup has no import to repoint.
 
 ### `fr delete`
 
+Check known references before previewing removal of a declaration.
+
 ```
 fr delete <TARGET> [--write]
 ```
@@ -530,6 +597,8 @@ counts as possibly hiding a use, so the refusal states what it could not see.
 
 ### `fr imports`
 
+Preview a cleanup of imports in the selected file.
+
 ```
 fr imports [FILE] [--write]
 ```
@@ -537,6 +606,8 @@ fr imports [FILE] [--write]
 Remove unused imports and sort the rest. Per file, or across the workspace.
 
 ### `fr remove-flag`
+
+Preview the code that remains when a supported flag has one chosen value.
 
 ```
 fr remove-flag <FLAG> [--value <BOOL>] [--write]
@@ -548,6 +619,8 @@ goes with them.
 
 ### `fr rewrite`
 
+Preview a supported change to an expression or statement.
+
 ```
 fr rewrite <TARGET> [REWRITE] [--write]
 ```
@@ -557,6 +630,8 @@ at that position.
 
 ### `fr restructure`
 
+Preview a supported change to the organization of selected code.
+
 ```
 fr restructure <PATTERN> <TEMPLATE> [--lang <L>] [--write]
 ```
@@ -565,6 +640,8 @@ Rewrite every occurrence of a code shape. Write the pattern and the template in
 the target language, with metavariables for the parts that vary.
 
 ### `fr recipe`
+
+Repeat a group of related edits and review their combined result.
 
 ```
 fr recipe <FILE> [--write] [--explain] [--catalogs <P>]
@@ -583,6 +660,8 @@ code that reads a recipe. With `--json`, a program writing a recipe reads what i
 may write.
 
 ### `fr spec`
+
+State the property you want checked, then inspect the proof task and its source connection.
 
 ```
 fr spec init [PATH] [--write]
@@ -700,6 +779,8 @@ implementation proofs. The latter two stay false unless future evidence supplies
 
 ### `fr author`
 
+For a wrong implementation, prepare a body edit and review its resulting source diff.
+
 ```sh
 fr author guide
 
@@ -799,6 +880,8 @@ Apply, undo/redo and patch export use one transaction ID. See [coordinated batch
 
 ### `fr task-change`
 
+Prepare related edits, required checks and patch delivery as one reviewed task.
+
 ```sh
 fr task-change --from .fr/task-change.json
 fr task-change --from .fr/task-change.json --write --basis 'frtc1:<DIGEST>'
@@ -859,6 +942,8 @@ execution.
 
 ### `fr translate`
 
+Preview a small function in another language and inspect every part the tool cannot translate.
+
 ```
 fr translate <FILE> [LANGUAGE] [--write] [--out <PATH>] [--force]
 ```
@@ -880,6 +965,8 @@ Two different promises share this command.
 stays: nobody can read a deleted input back out of the diff.
 
 ### `fr migrate`
+
+Preview a supported framework change, then test the resulting route or application.
 
 ```sh
 fr migrate feature <FEATURE-ID> --to fastapi --out service/routes/telemetry.py \
@@ -938,6 +1025,8 @@ See [the feature migration contract](docs/feature-migration.md) for the modeled 
 
 ### `fr openapi`
 
+Start from a declared API description when generating a supported service skeleton.
+
 ```
 fr openapi [--out <PATH>] [--yaml]
 ```
@@ -950,6 +1039,8 @@ undeclared stays undeclared here, rather than invented.
 ## Housekeeping
 
 ### `fr project`
+
+Find functions, inspect selected code and callers, or ask a supported Python trace question.
 
 ```sh
 fr project map
@@ -1775,6 +1866,8 @@ Each selector is limited to 512 UTF-8 bytes and their combined input to 4,096 by
 
 ### `fr workflow`
 
+Run the reviewed edit and its declared checks, keeping the result needed for recovery or delivery.
+
 ```sh
 fr workflow --from .fr-workflow
 fr workflow --from .fr-workflow --write --basis 'frwb1:<DIGEST>'
@@ -1830,6 +1923,8 @@ change plan, because any recognized source added after planning correctly invali
 
 
 ### `fr history`
+
+Inspect, apply, undo or export a saved change; first check the state it recorded.
 
 ```sh
 fr rename OldName NewName --save-plan --json
@@ -1900,6 +1995,8 @@ History restores entry kinds, file contents or UTF-8 link targets, existence and
 
 ### `fr file`
 
+Preview a file move, deletion or other supported file operation before writing.
+
 ```sh
 fr file delete obsolete.txt empty.txt
 fr file delete obsolete.txt --save-plan
@@ -1936,6 +2033,8 @@ Git is optional; operations preserve its index and use the native journal for ch
 See [file transactions](docs/file-transactions.md) for the report, permission scope and recovery limits.
 
 ### `fr git`
+
+Inspect changed files, review staging or a commit, and manage separate Git working folders.
 
 ```sh
 fr git status
@@ -2140,6 +2239,8 @@ The operation is sequential; an uncertain result names completed records and the
 
 ### `fr cache`
 
+Inspect the stored information the tool uses to avoid repeating earlier work.
+
 ```
 fr cache [--clear]
 ```
@@ -2159,6 +2260,8 @@ Calls that finish before the first five-second interval emit no progress.
 The retained controlled cache comparison checks complete reports and source invalidation alongside query time. The [evaluation guide](docs/evaluations.md) identifies the artifact family.
 
 ### `fr completions`
+
+Install shell suggestions so you can find command names and options while typing.
 
 ```
 fr completions <SHELL>

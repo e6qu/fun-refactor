@@ -1,4 +1,36 @@
-# Python repository flow baseline
+# Can Python tracing help in a real project?
+
+Suppose your application imports a utility library and sends a value through one of its helpers.
+You want to know whether user input can reach the output, including what the import does.
+
+This is an illustration of that question:
+
+```python
+from helper_library import add
+
+def handle():
+    value = read_input()
+    return send(add(value, 1))
+```
+
+Finding `add` is useful, but it does not settle the question. Importing a package can run other
+code, change bindings or reach imports the analyzer does not understand. A result with no trace
+must still say the answer is incomplete when those parts remain unchecked.
+
+## Where the tests leave us
+
+The current tests use Toolz, funcy and pydash. They check helpers through their real packages,
+then compare some helpers in small files containing the copied function and a declared control.
+
+The real-package answers still remain incomplete or refuse the deliberately invalid output budget.
+Some isolated helper examples complete. That shows a supported helper can work in a simpler setting;
+it does not show that the original package is understood. Full real-project tracing remains open.
+
+We also rename helpers and move files to check whether answers depend on the code rather than
+familiar names. Python execution checks the stated inputs separately from the analyzer’s answer.
+The counts and original attempts below remain available for review.
+
+## Recorded runs and exact test setup
 
 The first cohort uses pinned Toolz, funcy and pydash snapshots with the same native analyzer,
 frozen at `aad6dc34cb48ff27c01ad964a425c94167053347`. The
@@ -53,7 +85,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-module-literals-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-docs-review-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization

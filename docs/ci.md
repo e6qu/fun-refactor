@@ -1,4 +1,9 @@
-# CI latency and coverage
+# Run the complete checks without slowing the workstation
+
+When you open a pull request, GitHub divides the native and Python tests across runners and checks that none are missing.
+If a job times out, find what made it slow or stuck. Keep the existing deadline while fixing that cause.
+
+## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
 the Python SDK runs on four more. Each runner executes tests serially with one

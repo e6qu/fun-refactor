@@ -1,4 +1,9 @@
-# Cross-stack surface model
+# Connect a page element to its style and framework
+
+Suppose a checkout button has the wrong color. Find the component, its quoted class name and the matching style definition.
+`fr` can connect some explicit names across these files. Generated class names and runtime styling can leave those links uncertain.
+
+## Commands, results and limits
 
 `fr project technologies` identifies the thirteen requested host, framework, styling and embedded
 language surfaces. It always returns the complete taxonomy and attaches bounded source-free

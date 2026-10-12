@@ -1,4 +1,9 @@
-# Consumer scope before delivery
+# Find what a proposed change could affect
+
+Before changing the arguments of `subtotal`, find the callers that may need updating and the tests that may cover them.
+`fr` lists relationships it can identify and explains where the search stops. Review those limits before treating the list as complete.
+
+## Commands, results and limits
 
 `fr project change-scope HANDLE...` discovers indexed consumers before a reviewed change.
 It follows references to each selected declaration and then references to their lexical containing

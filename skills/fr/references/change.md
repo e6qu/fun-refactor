@@ -1,5 +1,7 @@
 # Plan a structural change
 
+Before renaming a function or changing its arguments, find the declaration and affected callers. Preview every intended edit before applying it.
+
 Check the relevant operation in the installed binary. A supported language cell still permits input-specific refusals.
 For a rename, `<TARGET>` is a unique name or the file and `position` from `project show`, such as `app.py:1:5`.
 A rename does not accept a project handle.

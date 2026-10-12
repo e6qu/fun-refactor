@@ -1,4 +1,9 @@
-# Completion audit
+# Check what fr can do before starting
+
+Before asking an agent to trace Python input or migrate a route, check whether the installed tool supports the required operation.
+`fr audit` lists its support and limits. A supported operation can still refuse a particular input; read that reason before choosing the next step.
+
+## Commands, results and limits
 
 `fr audit` gives an agent a compact support and trust summary before it chooses a workflow. The
 summary derives its counts from live predicates and catalogs.

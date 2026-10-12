@@ -1,10 +1,66 @@
-# What Python behavior does fr model?
+# Can this Python input reach that output?
 
-`fr project dataflow HANDLE --summaries --rules RULES.json` models possible scalar value
-propagation. It can explain how a configured source might reach a configured sink through
-assignments, expressions and direct helpers. It does not execute Python or prove that a path
-can run. `complete: true` means no cutoff occurred within the declared model and budget.
-It does not mean that every Python runtime effect was modeled.
+Suppose your application reads a user value and passes it to a helper. You want to know whether
+that value can reach an output, or whether the code replaces it first.
+
+```python
+def choose(left, right):
+    return left
+
+def selected():
+    return send(choose(read_input(), 0))
+
+def blocked():
+    return send(choose(0, read_input()))
+```
+
+Tell `fr` which external calls supply input and consume output, then ask for a trace:
+
+```sh
+fr --json project dataflow '<HANDLE>' --summaries --rules rules.json
+```
+
+`<HANDLE>` is the selected function reference returned by a project query. `rules.json` declares
+your assumptions about external input and output calls. The analyzer follows supported code;
+it does not execute Python or infer the behavior of every external function.
+
+## Read the answer before relying on it
+
+A trace, called a witness in the report, records a possible connection in the supported model.
+An empty trace list answers the question only when the model completes, with its assumptions and
+limits still in view. If `complete` is false, read `cutoffs`: the tool could not finish answering.
+[Result meanings](understanding-results.md) explains these cases with concrete examples.
+
+Even `complete: true` does not establish every Python runtime behavior. For example, the model
+can follow `value - value` back to the input although ordinary numeric execution produces zero.
+It also does not account for every exception Python may raise. Use runtime checks for the actual
+behavior and keep a model result separate from a safety claim.
+
+## Common questions and limits
+
+| Your question | A supported example | Where the answer remains limited |
+| --- | --- | --- |
+| “Does overwriting remove the original input?” | `value = read_input(); value = 0; send(value)` | Shared mutable objects and attribute writes need other handling. |
+| “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra variadic arguments and referenced variadic values remain incomplete. |
+| “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
+| “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
+| “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Annotations, decorators and evaluated defaults can execute at definition time. |
+| “Can a plain module constant block the trace?” | A distinct `metadata = 0` binding is inert during initialization. | Global reads, rebinding, special attributes and evaluated initialization remain unsupported. |
+| “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
+| “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions and handlers exceed this model. |
+
+For example, an inert declaration does not mean the model can read its global value:
+
+```python
+metadata = 0
+
+def entry():
+    return send(metadata)
+```
+
+Python can read this value. The current analyzer still reports an unknown binding in the function,
+so the trace answer remains incomplete. Supporting initialization and supporting global reads are
+separate pieces of work.
 
 ## Rules and executable examples
 

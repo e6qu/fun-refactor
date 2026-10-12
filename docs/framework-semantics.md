@@ -1,9 +1,14 @@
-# Framework semantic model
+# Find routes and components in a web project
+
+When investigating checkout, you may need to find the route handler and the components around it. `fr` recognizes certain source patterns in supported frameworks.
+For example, it can identify a direct route registration. Middleware and runtime registration may still require reading or running the application.
+
+## Recognized source forms
 
 `fr project features` reports a bounded source model for Next.js, standalone React, Express.js and FastAPI.
 It treats every application and feature as a candidate and records what source evidence cannot establish.
 
-## Versioned syntax witnesses
+## Source examples for the supported forms
 
 | Reader | Executable fixture | Pinned real source |
 | --- | --- | --- |

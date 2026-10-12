@@ -1,4 +1,9 @@
-# Journaled host recovery
+# Recover after a file write stops partway through
+
+Suppose an edit starts writing several files and the process stops. Inspect its saved transaction before making another change.
+`fr` records the starting files and write progress. Recovery uses those records and refuses when other edits make the recorded operation unsafe to finish or reverse.
+
+## Commands, results and limits
 
 Native source and file transactions stage their replacements before publishing any target.
 Each publication checks the target snapshot and the staged snapshot against the reviewed change.

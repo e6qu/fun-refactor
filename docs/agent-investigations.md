@@ -1,4 +1,9 @@
-# Evidence and resumable investigations
+# Explain a finding and resume an investigation
+
+Suppose an agent says user input can reach `send_email`. You need to see the relevant calls and source lines, then revisit the finding if a helper changes.
+This guide explains those reports and how saved task notes react to code changes. A missing result or unfinished search leaves the question open.
+
+## Commands, results and limits
 
 `project calls`, `project show --relations` and `project dataflow` expose source occurrences.
 An occurrence carries a revision, relative path, half-open UTF-8 span, matching 1-based Unicode

@@ -1,4 +1,9 @@
-# Repository change pages
+# Find which files changed
+
+Before reviewing a patch, list the changed files. Choose working edits, staged files, or changes since a commit.
+For example, list the paths changed by the last commit before asking for the diff of `src/main.rs`.
+
+## Commands, results and limits
 
 ```sh
 fr git changes --limit 20

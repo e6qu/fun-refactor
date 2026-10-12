@@ -1,4 +1,9 @@
-# Ordered Python expression analysis
+# Which Python expressions actually run?
+
+In `False and send_email(user_input())`, Python skips both calls. A useful trace should preserve that order.
+`fr` handles some literal choices and keeps both possibilities when it cannot decide. The details below explain why a possible path can differ from one observed execution.
+
+## Commands, results and limits
 
 Opt-in summary analysis evaluates scalar `and`, `or`, `not`, conditional expressions and comparison
 chains in Python operand order. Each operand is transferred once per expression evaluation; the

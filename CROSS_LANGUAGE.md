@@ -1,4 +1,9 @@
-# Cross-language analysis and translation
+# Follow code across languages
+
+A web page may call a Python endpoint that reads a YAML setting. When you change that setting, you need to find each affected use.
+`fr` can follow some explicit links between these files. A matching name alone does not establish which code runs.
+
+## Commands, results and limits
 
 `fr` follows declared relationships across supported language boundaries.
 Reference confidence decides which occurrences a mutation may rewrite.

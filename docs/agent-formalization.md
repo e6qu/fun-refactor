@@ -1,4 +1,9 @@
-# Agent formalization workbench
+# Turn a small code question into a proof task
+
+Suppose you want to check an access rule: permission requires either staff access or ownership. `fr` can prepare a Lean proof task for supported functions.
+The agent still writes the property and proof. An accepted proof establishes the stated property of the translated model; check its connection to the source before relying on it.
+
+## Commands, results and limits
 
 `fr spec` turns admitted declarations or structural snapshots into source-free, content-addressed
 formalization plans and a checked Lean workspace. Each step returns structured data, exact actions

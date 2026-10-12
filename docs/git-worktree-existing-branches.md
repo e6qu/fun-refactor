@@ -1,4 +1,9 @@
-# Reviewed checkout of existing branches
+# Continue an existing branch in a separate folder
+
+If the checkout fix already has a branch, open that branch in a new working folder.
+Review which branch and commit the folder will use. The command cannot attach a branch that another worktree already uses.
+
+## Commands, results and limits
 
 `fr git worktree create PATH --existing-branch NAME` previews a fresh raw checkout of an unused local branch on Unix.
 It preserves the branch tip, branch reflog and upstream configuration.

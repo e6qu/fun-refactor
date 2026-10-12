@@ -1,4 +1,9 @@
-# Python call binding
+# Which argument reaches a Python helper?
+
+Suppose `choose(left, right)` returns `left`. Passing user input as `right` should not make that input reach the result.
+`fr` checks how positional and named arguments match parameters in supported Python functions. The examples below show what it can answer and when it must leave the answer incomplete.
+
+## Commands, results and limits
 
 Opt-in summary analysis binds explicit positional and named arguments to Python parameters
 with ASCII names, including the [immutable literal defaults](literal-defaults.md) subset. Unicode identifier normalization remains outside this contract.

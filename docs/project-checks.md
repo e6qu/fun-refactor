@@ -1,4 +1,9 @@
-# Declared project checks
+# Tell fr how to test your change
+
+A rounding fix needs a test that checks the rounding rule. List that command in `.fr/checks.json` so the agent can inspect and choose it.
+`fr` runs the checks you declare; it does not infer a complete test plan from filenames.
+
+## Commands, results and limits
 
 `fr checks` lists commands from `.fr/checks.json` without executing them.
 Each declaration names the command, working directory, timeout and intended coverage.

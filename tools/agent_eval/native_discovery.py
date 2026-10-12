@@ -67,8 +67,10 @@ def guidance(path):
     label = path.relative_to(root) if path.is_relative_to(root) else path
     raw = path.read_bytes()
     require(len(raw) <= 65536, "guidance exceeds budget")
-    start = raw.index(b"For behavior discovery,")
-    end = raw.index(b"Use `--profile expanded`", start)
+    start = raw.index(b"`project explore TERM [--contains]`")
+    start = raw.rfind(b"\n", 0, start) + 1
+    end = raw.index(b"`--profile expanded`", start)
+    end = raw.rfind(b"\n", start, end) + 1
     return {"path": label.as_posix(), "source_sha256": hashlib.sha256(raw).hexdigest(),
             "source": raw.decode(), "start": start, "end": end, "text": raw[start:end].decode().rstrip() + "\n"}
 

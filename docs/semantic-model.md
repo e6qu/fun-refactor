@@ -1,4 +1,9 @@
-# Semantic project model
+# Inspect and edit the structure of a function
+
+Suppose you need to change a retry limit from `3` to `5`. `fr` can describe supported statements and expressions as data so an agent can select that value.
+This structure is called a semantic model. It helps locate and prepare an edit; finding a pattern does not prove how every execution behaves.
+
+## Commands, results and limits
 
 `fr project semantic TARGET` returns cross-language program structure without returning source text.
 `TARGET` can be an indexed directory or file path, or a revision-bound declaration handle. A

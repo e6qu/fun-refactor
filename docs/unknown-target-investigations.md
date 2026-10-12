@@ -1,4 +1,9 @@
-# Unknown-target investigation trials
+# Can an agent find the right code without a supplied edit location?
+
+Give an agent a symptom such as “these two Unicode strings should match” and let it find the relevant function.
+These trials record whether the agent finds and fixes the problem, resumes its work, and passes independent checks. Read the costs alongside the outcomes.
+
+## Tasks and recorded attempts
 
 The [task contract](../tests/agent-eval/unknown-target/task.json) pins a Unicode similarity bug in
 the published strsim crate and a cross-crate feature in the regex workspace. Prompts supply symptoms

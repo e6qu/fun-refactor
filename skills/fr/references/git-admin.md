@@ -1,5 +1,7 @@
 # Git staging and worktrees
 
+Use a separate working folder when another change is in progress. Inspect staged files before creating a commit.
+
 ## Staging and commits
 
 Use `fr git stage PATH...` for explicit paths, inspect the returned basis and index changes, then use the same selection with `--basis TOKEN --write`.

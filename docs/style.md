@@ -9,9 +9,18 @@ mistake. The same rules make a codebase readable to someone who arrives at it to
 
 ## The rules
 
-**One word for one thing.** `docs/terminology.md` lists the terms. If a term is there,
-use it. Do not use a second word for the same idea. If you need a new term, add it to
-that file first.
+**Begin with the user’s task.** Explain when the reader needs this page before introducing
+commands, record formats or internal names. For example: “Find the callers before changing
+this function’s arguments.”
+
+**Explain a term through an example.** Keep exact command and field names unchanged. Explain
+what they let the user do. A “cutoff” means the tool could not finish answering the question;
+an unsupported import is a concrete example. The [glossary](terminology.md) supplies detail,
+but a user should not need to read it before understanding a guide.
+
+**Make the example useful.** State the user’s problem, show the relevant command or code,
+then explain the result and its limits. Label an illustration as an illustration. Preserve
+actual observations in recorded experiment reports.
 
 **Short sentences.** 25 words is the limit. Most sentences are shorter. Split a long
 sentence into two.
@@ -19,8 +28,8 @@ sentence into two.
 **Active voice.** Write "the index holds the symbol", not "the symbol is held by the
 index". Passive voice is allowed when the actor does not matter.
 
-**Simple tenses.** Use the present tense for what the code does. Use the past tense only
-for events, and only in `BUGS.md` and commit messages.
+**Simple tenses.** Use present tense for current behavior. Use past tense for dated observations
+and completed experiments. Make the distinction clear.
 
 **Say what is true.** Do not define a thing by what it is not. "A refusal writes no
 files" is better than "a refusal is not a plan".
@@ -44,9 +53,9 @@ A tutorial is a lesson, and the reader is the student. The reader acts; the type
 what the reader changes; the checker is the tool that enforces the result. Do not cast
 the checker as the pupil or the hero.
 
-**People make the mistakes.** Give the story a person with a name and let the mistakes be
-theirs. A named clerk who typed `darft` gives every later sentence a subject. "A status is
-misspelled" has no one in it, and prose without actors slides back into passive voice.
+**Write from the reader’s point of view.** Use a concrete task: “You need to fix checkout
+without changing its API.” Let the reader see the decision, action and consequence. Avoid
+inventing people or stories that add detail without explaining the task.
 
 **Say what can no longer exist.** The payoff of a type is that the bad program stops being
 a program. Write "that call can't exist any more", not "the checker rejects it".
@@ -139,4 +148,14 @@ code, weigh alternatives, or say what would happen otherwise.
 Assume the reader knows how to program. Do not assume the reader knows this project,
 tree-sitter, or the language being analysed.
 
-Explain a term the first time a document uses it, or link to `docs/terminology.md`.
+Explain a term the first time a document uses it. Pair important technical details with a
+user example. A glossary link supplies more detail; it cannot replace the explanation.
+
+## Review before publishing
+
+Ask whether the opening answers “When would I use this?” Read the example and check that
+its commands exist and its interpretation matches the tool’s limits. Separate an unknown answer
+from a negative answer, a preview from a tested repair, and a model proof from runtime behavior.
+
+Keep one current report format. Do not imply that the SDK accepts older formats or fills in
+missing metadata. Link readers to the current instructions and label historical observations.

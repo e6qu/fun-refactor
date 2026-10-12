@@ -1,5 +1,7 @@
 # Explore only the needed structure
 
+Start a checkout investigation by finding its route and likely helpers. Read their signatures before requesting larger source excerpts.
+
 ```sh
 fr project explore greet --in app.py
 fr project explore greet --mode behavior --target '<HANDLE>'
@@ -22,8 +24,8 @@ Keep the cache enabled. Cold calls may report `indexing` on stderr.
 Names match bare declarations, such as `read`. Scope methods with `--in FILE_OR_HANDLE`.
 Empty results for qualified names do not establish absence.
 
-For behavior discovery, use `project explore TERM [--contains]`: at most twelve names, no source.
-Run a row's `next.arguments` for source and relationships. Pages shrink to fit the response budget;
+Use `project explore TERM [--contains]`: at most twelve names, no source.
+Run `next.arguments` for source and relationships. Pages shrink to fit the budget;
 profile sizes are maxima. Follow cursors and offsets.
 Source continuations use `--view source`; relationships use `--view relationships`.
 Each returns its view, identity and coverage. An omitted view does not establish absence.
@@ -57,8 +59,7 @@ The progressive project's `packages` branch addresses the default selection.
 Use `project verify-artifact` to compare local bytes with captured checksums. Go directories need `--go-prefix`.
 `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for supported declaration patterns.
-Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,
-or the cross-stack Merkle view.
+See [Surfaces](surfaces.md) for framework, style, diagram and cross-stack views and edits.
 Lock evidence does not authenticate its repository or model framework behavior.
 
 [Plans](investigations.md).

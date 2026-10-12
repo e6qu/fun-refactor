@@ -1,4 +1,9 @@
-# Compare ordinary tools with fr on independent tasks
+# Find out whether fr saves work
+
+The question is practical: does an agent finish the same unfamiliar task more reliably or with less time and cost when it has `fr`?
+For a bug fix, compare the final behavior and all work spent, including failed attempts. The scripts below record experiments; scripted successes alone cannot answer the question.
+
+## Commands, results and limits
 
 `tools/agent-eval-study.py` freezes a study plan and audits retained attempt records.
 Task names and repository identities are data. No production analyzer rule depends on them.

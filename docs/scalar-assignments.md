@@ -1,4 +1,9 @@
-# Ordered scalar assignments
+# Follow a Python value through reassignment
+
+Suppose user input enters `value`, then the code replaces `value` with zero before sending it onward. The original input no longer reaches that use.
+This guide shows how `fr` handles supported overwrites, swaps and unpacking, and where its answer remains incomplete.
+
+## Commands, results and limits
 
 Opt-in Python summary analysis admits local-name assignment, chained assignment,
 and exact literal tuple/list unpacking. All scalar right-hand expressions run
@@ -55,7 +60,7 @@ helper through a swap and chained assignment. Its independent CPython oracle che
 repair, a sink-free preview, fresh-process resumption, receiver replay and reversal.
 The [runtime corpus](../sdk/python/tests/test_scalar_assignments.py) covers ordering,
 locations, refusals, budgets, contract tampering and clean/cache agreement.
-The [retained acceptance](../tests/agent-eval/results/2026-10-12-module-literals-scalar-assignments/result.json)
+The [retained acceptance](../tests/agent-eval/results/2026-10-12-docs-review-scalar-assignments/result.json)
 binds the fixture, implementation and delivery checks. The baseline distinguishes
 the installed local binary from the pinned source revision. These are finite
 deterministic cases, with no live-agent or token-saving claim.

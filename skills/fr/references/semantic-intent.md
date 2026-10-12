@@ -1,5 +1,7 @@
 # Make a semantic intent change
 
+To replace a retry limit, identify its current and requested values in the selected function. Preview that one value change before applying it.
+
 Use this source-free route for an exact scalar edit inside a supported function or method.
 
 When the declaration name, operation, current value and requested value are known, preview the edit

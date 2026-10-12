@@ -1,5 +1,7 @@
 # Agent acceptance source and evidence
 
+These dated records explain what earlier tests checked. For a checkout repair, a script can test a known patch and its reversal without showing that an agent would discover the repair. Use the [current results](../../docs/roadmap-status.md) for today’s requirements and limits.
+
 The [virtual workspace task](virtual-model-workspaces/task.json) covers bounded source capture,
 isolated retained-model replay, workspace restoration and native/virtual parity. Its
 [refreshed comparison](results/2026-09-28-virtual-model-comparisons/manifest.json) records

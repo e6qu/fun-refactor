@@ -1,14 +1,16 @@
 # Application hierarchy and HTTP authoring
 
+When moving an endpoint, first inspect its route, required inputs and response. The application record below describes supported parts of that endpoint.
+
 Use `project application [TARGET] [--feature ID]` to obtain an application IR.
 Nodes retain fact identity, source confidence, gaps and reader omissions. `children`
 expresses the hierarchy. Admitted literal JSON/path handlers from Next.js, FastAPI,
 Express and Go HTTP carry a portable `route`. Other route and component boundaries
 stay explicit and manual.
 
-For bounded inspection, obtain a full map handle and start
-`project disclose HANDLE --view application`. Follow an exact `application_shortcuts`
-continuation, then reveal only the required children. The SDK accepts
+For a smaller view, use a full map handle with
+`project disclose HANDLE --view application`. Follow `application_shortcuts`
+and reveal the needed children. The SDK accepts
 `client.context(handle, view="application")`; `ApplicationIr.from_data(...)` mirrors
 the hierarchy and independently computes its object digest. Source-reader omissions
 remain unknown.
@@ -29,7 +31,7 @@ The constructors mirror `fr-http-application-1`: a bundle of `routes`, an option
 with `method`, `path`, `status`, `response` and optional `inputs`/`dependencies`.
 Expressions are `Literal(value)`, `Path(name)`, `Input(name)`, `Object(fields)`,
 `Array(items)` or `Service(method, path)` resolving to one sibling route.
-The IR file must be captured in the project snapshot. The SDK refuses overwriting.
+Capture the IR file in the project snapshot. The SDK refuses overwriting.
 
 Preview with `migrate application --ir application.json --to fastapi --out generated`.
 The input may also be the complete JSON output of `project application`; its model
@@ -57,8 +59,7 @@ intent operation; the selected intent handle supplies `--project`. Use `cutover=
 only for one recognized wholly owned source feature after target integration and
 external-reference checks. Mixed application files refuse.
 
-The application report's adapter rows cover every source, target and feature cell.
-Inspect `status` and `reason`; do not infer support from a shared host language.
+Inspect each adapter row's `status` and `reason`; sharing a host language does not imply support.
 
 Paths use literal ASCII segments and unique `{name}` parameters. Overlapping routes,
 HEAD, bodyless statuses, floating-point literals and integers outside ±(2^53−1)

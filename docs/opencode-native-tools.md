@@ -1,4 +1,9 @@
-# Test OpenCode with native source tools
+# Inspect what an agent tried with each tool setup
+
+These records compare attempts made with ordinary source tools and with `fr` available.
+For example, a successful repair counts as tool use only if the agent actually called `fr`. The records below keep failed attempts and incomplete cost information visible.
+
+## Recorded attempts and tool setup
 
 These evaluation tools let configured OpenCode sessions use ordinary source tools and optional fr
 tools against frozen inputs. They retain failures, exact submissions and incomplete accounting.

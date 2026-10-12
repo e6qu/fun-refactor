@@ -1,4 +1,9 @@
-# Evaluation evidence
+# What our tests and experiments tell us
+
+Use this page to check the evidence behind a claim about `fr`. A scripted repair can test editing and recovery, while a live comparison asks whether an agent benefits.
+For example, fewer report bytes can help a conversation, but they do not measure the total cost of fixing the bug. Read each result with its stated limits.
+
+## Recorded experiments and their limits
 
 Evaluation artifacts answer narrow questions about fixed revisions and fixtures. They are retained
 evidence, not timeless product documentation. Live support comes from `fr audit`, `fr capabilities`
@@ -772,8 +777,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-12-module-literals-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-12-module-literals-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-12-docs-review-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-12-docs-review-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -849,8 +854,8 @@ The declared upstream files pass 17 and 148 tests; the latter also reports 9,884
 Both plans invalidate analysis and outcome after the semantic edit, preserve their independent step,
 and finish with passing immutable delivery receipts. Independent receivers verify patch application,
 exact reversal and reapplication. The roadmap therefore demonstrates `A.repositories`, `C.resume`
-and `D.checked`, for seven demonstrated obligations overall; eleven obligations and all four
-milestones remain open.
+and `D.checked` in their stated cases. The [current status](roadmap-status.md) owns the latest
+counts and remaining requirements; those counts do not establish general agent savings.
 
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-roadmap-dogfood/manifest.json)
 binds the local reviewed edits used to build this work. Its generation-attempt ledger preserves

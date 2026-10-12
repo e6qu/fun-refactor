@@ -1,4 +1,9 @@
-# Checked task outcomes
+# Check that an edit solves the requested problem
+
+A function can compile and still round a bill incorrectly. Name a behavior check for the requested fix as well as the usual build checks.
+This guide shows how to require those checks before delivering a saved change or marking a task complete.
+
+## Commands, results and limits
 
 Compilation and reversible delivery can succeed while a requested behavior fails. The
 [unknown-target trials](evaluations.md#unknown-target-investigations) retained that outcome.

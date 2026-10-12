@@ -1,5 +1,9 @@
 # Browser playground
 
+Try a change before touching your checkout. For example, load a public project, rename a function, inspect the diff and export a patch. The browser keeps those edits in memory; applying the patch to your checkout is a separate step.
+
+On the shared workstation, follow the [local work limits](../docs/development.md#working-on-a-shared-desktop). Full browser builds run on GitHub.
+
 The playground loads a public GitHub repository into the browser and runs the WASM build of `fr`
 without a server. It does not send changes back to GitHub or hold an access token.
 

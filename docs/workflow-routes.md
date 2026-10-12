@@ -1,4 +1,9 @@
-# Which editing workflow should an agent use?
+# Choose a way to prepare and deliver an edit
+
+You can ask for a task guide or use individual commands to inspect, preview and apply the same change.
+For example, compare those routes for a small helper repair. The measurements below count scripted tool work; they do not tell us which route helps a live agent finish faster.
+
+## Measured routes and their limits
 
 This comparison measures the cost of reaching the same checked edit through four public
 routes. It runs prescribed programs, without a model. Calls and serialized bytes describe those

@@ -1,5 +1,7 @@
 # Keep agent state in Python
 
+Keep large reports in Python and return only the fields needed for the next decision. For example, show one relevant caller instead of the whole call report.
+
 Use this route when Python and the zero-dependency `fr_ir` package are available. It keeps complete
 reports local; print or inspect only the fields needed for the decision.
 

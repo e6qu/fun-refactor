@@ -1,4 +1,9 @@
-# Git status pages
+# See the state of your working files
+
+Before starting work, check which files have edits, which are staged and which Git does not track.
+For example, an agent should inspect a pre-existing checkout change before preparing another edit to the same file.
+
+## Commands, results and limits
 
 ```sh
 fr git status --limit 20

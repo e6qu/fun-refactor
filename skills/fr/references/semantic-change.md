@@ -1,5 +1,7 @@
 # Make a checked semantic change
 
+To change one statement, inspect that function’s supported structure and select the exact statement. Review the resulting source diff.
+
 Use this route for a small typed body edit without resending the complete body. Query one exact
 function with `fr project semantic PATH --declaration NAME --body --pointers --nodes N --minimal`.
 Choose the smallest `N` that returns the complete model.

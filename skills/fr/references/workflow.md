@@ -1,5 +1,7 @@
 # Deliver one verified transaction
 
+Deliver the reviewed change only after its required checks pass. Keep its saved transaction so you can inspect or reverse a failed attempt.
+
 Use this route after reviewing and saving one complete change plan. First list `fr checks`. Retain
 its basis, the transaction ID and the plan's `transaction_context_basis`. Write an extensionless
 control manifest outside recognized source so creating it does not stale the plan. The input

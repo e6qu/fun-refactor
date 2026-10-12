@@ -1,4 +1,9 @@
-# Agent runtime SDK
+# Use fr from a Python agent program
+
+Use the Python client when your agent needs to keep reports, inspect a few fields, or resume a reviewed change.
+For example, store the callers of `render` in Python and show the agent only the caller it needs to inspect next.
+
+## Commands, results and limits
 
 Start unfamiliar structured tasks with `FrClient.guide(AgentGoal(...))`. The language-aware guide
 selects an existing read/preview route and returns exact actions with only the required authored

@@ -1,4 +1,9 @@
-# Inspecting and resuming worktree removal
+# Finish an interrupted workspace removal
+
+Suppose removing a separate Git working folder stops halfway through. Inspect the saved removal record to see what remains and what blocks progress.
+Review that result before asking the tool to finish deleting the recorded paths.
+
+## Commands, results and limits
 
 `fr git worktree resume-removal RECORD` inspects an archived removal on Unix.
 It reports remaining paths, already missing paths and blockers without writing files.

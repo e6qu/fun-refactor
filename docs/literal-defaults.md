@@ -1,4 +1,9 @@
-# Literal defaults and signature evidence
+# Trace Python calls with default arguments
+
+If `choose(value=0)` returns its argument, `choose()` returns the default while `choose(user_input())` uses the supplied input.
+`fr` distinguishes those calls for supported literal defaults. A default that calls another function needs separate handling because Python evaluates it when defining the function.
+
+## Commands, results and limits
 
 Opt-in Python scalar summaries admit immutable literal defaults for positional-only,
 positional-or-keyword and keyword-only parameters. Explicit values retain their source-order effects
@@ -48,7 +53,7 @@ The response budget includes signature metadata, and omitted results remain inco
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
 fresh-process resumption, independent patch replay and exact reversal. The
-[retained run](../tests/agent-eval/results/2026-10-12-module-literals-literal-defaults/result.json) passes those
+[retained run](../tests/agent-eval/results/2026-10-12-docs-review-literal-defaults/result.json) passes those
 checks and binds the current source. The baseline records the installed local binary separately from
 the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results

@@ -1,4 +1,9 @@
-# Correct a failed edit and deliver the result
+# Correct an edit that failed its behavior test
+
+Suppose a rounding edit compiles but the checkout test still fails. Read the failed result and inspect the code that the edit left behind.
+Then preview a corrected implementation, or undo the earlier edit and start again. Fixing a missing test dependency cannot fix a wrong rounding rule.
+
+## Commands, results and limits
 
 A failed applied check can mean that the replacement body is wrong. Fixing a check prerequisite
 cannot repair that source. Keep the failed report, inspect the current transaction, and review

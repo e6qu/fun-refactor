@@ -1,4 +1,9 @@
-# Check explanations against source the agent actually read
+# Check an explanation against the code the agent read
+
+Suppose an agent explains when a cache entry expires. Check its answer against the source it inspected, including the helper that decides expiry.
+The comparison below records those source reads and grades the answer separately from how many tool calls the agent made.
+
+## Questions, source reads and recorded answers
 
 The OpenCode explanation comparison asks four factual questions in each of three pinned Python
 repositories: cachetools expiration, itsdangerous key rotation, and tenacity retry callbacks.
@@ -74,4 +79,4 @@ the export file. The diagnostic refusal and the successful corrected capture rem
 
 Explanation grading is one step toward the original goal. Repeatable unfamiliar-project changes,
 source-connected proofs, useful delegation and complete cost/context measurements remain open.
-The roadmap stays at seven demonstrated acceptance items out of eighteen and zero of four milestones.
+The [current status](roadmap-status.md) owns the acceptance counts. These explanation attempts do not establish a general benefit from fr.

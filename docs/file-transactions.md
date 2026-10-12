@@ -1,4 +1,9 @@
-# File transactions
+# Move or delete files with a review and an undo
+
+Suppose you want to move `old/name.rs` and delete an unused file as one reviewed change. Inspect the proposed file operations before writing.
+`fr` checks the files against that review and keeps recovery information for supported operations.
+
+## Commands, results and limits
 
 Use explicit paths relative to the workspace selected by `-C`:
 

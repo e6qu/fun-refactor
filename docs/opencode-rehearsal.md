@@ -1,4 +1,9 @@
-# Rehearse small tasks through OpenCode
+# Rehearse an agent comparison before a larger study
+
+A small rehearsal checks whether the task launcher, tool access and grading work.
+For example, both tool setups should receive the same task and their submitted changes should face the same tests. A rehearsal result does not establish savings on unfamiliar projects.
+
+## Recorded rehearsal and its setup
 
 `tools/opencode-rehearsal.py` compares ordinary source operations with the same operations plus
 bounded `fr` CLI discovery. It uses an existing local OpenCode installation and its configured

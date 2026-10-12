@@ -1,4 +1,9 @@
-# wasm-shim
+# Build the C parsers for the browser
+
+The browser build needs the C interfaces used by the parsers, without a full operating-system library.
+For example, a missing allocator symbol should stop the build rather than leave a browser failure. The declarations here support that build.
+
+## Build and reference details
 
 A libc small enough for tree-sitter, for `wasm32-unknown-unknown`.
 
@@ -9,7 +14,7 @@ to the browser would mean shipping a syscall layer to run a parser that makes no
 syscalls.
 
 So this declares exactly what the grammars reference and nothing else. The
-implementations are in `src/wasm_libc.rs`, backed by Rust's allocator and its
+implementations are in `crates/wasm-libc/src/lib.rs`, backed by Rust's allocator and its
 `compiler_builtins` memory intrinsics — no allocator of our own, no syscalls, and
 nothing that can drift from what the C actually calls, because a missing symbol is a
 link error instead of a runtime surprise.

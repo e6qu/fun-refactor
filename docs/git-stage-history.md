@@ -1,4 +1,9 @@
-# Staging history
+# Undo which files you staged
+
+If you staged the wrong file, undo that recorded staging operation without discarding your source edits. You can redo the staging later.
+The journal below records changes to the Git staging area, separately from source-edit history.
+
+## Commands, results and limits
 
 Changed `fr git stage PATH... --basis TOKEN --write` operations now record their selected index entries in a worktree-local journal.
 The result's `durability.journal.id` identifies the transaction. All-unchanged writes create no record and keep the redo stack intact.

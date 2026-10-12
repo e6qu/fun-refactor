@@ -1,4 +1,9 @@
-# Recorded worktree recovery
+# Finish creating an interrupted working folder
+
+If worktree creation stops after writing only some files, inspect its saved recovery record before trying again.
+This command completes a recorded creation. It does not take ownership of an arbitrary folder that happens to contain similar files.
+
+## Commands, results and limits
 
 `fr git worktree recover PATH` previews completion of a recorded, incomplete raw checkout on Unix.
 It fills missing committed files and finalizes the ownership receipt.

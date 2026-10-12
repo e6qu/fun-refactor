@@ -1,7 +1,12 @@
-# Application IR and HTTP adapters
+# Describe an application before moving it
+
+Before moving an HTTP service, you need to identify its routes, handlers, inputs and responses.
+For example, a checkout endpoint may require a JSON amount and return a receipt. This guide explains the shared application record that `fr` reads and writes for supported forms.
+
+## Commands, results and limits
 
 `fr project application [TARGET] [--revision REV] [--feature ID]` returns the
-versioned `fr-application-ir-1` hierarchy. Existing feature facts become nodes with
+current `fr-application-ir-1` record. Existing feature facts become nodes with
 `id`, `kind`, `source`, `data` and `children`. Application, package, dependency,
 route, handler, contract, schema, middleware, configuration, service and component
 facts retain their identities and evidence. Unparented gap facts remain roots.

@@ -1,5 +1,7 @@
 # Check Lean evidence without overstating it
 
+State a concrete property, such as the Boolean condition required for access. Check the proof and its link to the selected code.
+
 Ordinary use does not require Lean. `spec verify` requires Lean/Lake and an owning checked package.
 Preview `fr --json spec init`, then apply with `--write` or save with `--save-plan`.
 

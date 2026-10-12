@@ -1,4 +1,9 @@
-# Worktree inspection
+# Find the working folders for a repository
+
+Before starting another task, list the repository’s Git worktrees: separate folders that share the same Git history.
+The list shows their branches and commits. Use it to find the checkout you intend to inspect or change.
+
+## Commands, results and limits
 
 `fr git worktree list` discovers registered workspaces before an agent chooses where to work.
 It returns JSON in either output mode.

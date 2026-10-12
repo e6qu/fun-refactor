@@ -1,4 +1,9 @@
-# Git staging
+# Choose which files enter the next commit
+
+Suppose you changed both checkout and an unrelated note. Preview staging only the checkout files, then write the reviewed selection.
+Staging changes the contents prepared for a commit. It does not undo or rewrite your working files.
+
+## Commands, results and limits
 
 ```sh
 fr git stage src/main.rs src/api.rs

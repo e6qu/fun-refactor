@@ -206,7 +206,7 @@ fn the_published_language_count_matches_the_list() {
         ),
     };
     for (name, claims) in [
-        ("README.md", &["supports N parser identities"][..]),
+        ("README.md", &["can read N source formats"][..]),
         (
             "TUTORIAL.md",
             &["what each of the N languages supports"][..],

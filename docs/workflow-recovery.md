@@ -1,4 +1,9 @@
-# Finish delivery after a failed applied check
+# Continue after a saved change fails its checks
+
+Suppose you apply a repair and its test fails. The changed files may still be present; inspect the saved result before retrying.
+You can repair the code or a missing test prerequisite, then run the required checks again. This guide explains how to resume the recorded work.
+
+## Commands, results and limits
 
 A checked edit can change source and then fail its applied-state check. The failed report retains
 the transaction and stage outcomes, leaves later stages pending, and withholds the patch. Keep

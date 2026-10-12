@@ -1,4 +1,8 @@
-# Refactoring a real codebase with fun-refactor
+# Find, inspect and change code in a real project
+
+This walkthrough shows the decisions behind an edit: find the relevant function, inspect its
+uses, review a preview and check the result. Follow it when learning how to investigate a change
+without reading every file first. Its recorded outputs describe the pinned Helm snapshot below.
 
 Every command below ran against [helm/helm](https://github.com/helm/helm) at commit
 [`a8ab76e`](https://github.com/helm/helm/commit/a8ab76e). That repository holds 539

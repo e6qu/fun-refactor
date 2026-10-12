@@ -1,5 +1,7 @@
 # Author selected code
 
+For a bug in one function, preview a body replacement while keeping its interface. Review the diff and run the relevant behavior check.
+
 `fr author` edits bodies, semantic deltas, scalar plans, Rust declarations and imports.
 Batches accept 32 disjoint operations. Coordinate callers after signature changes.
 

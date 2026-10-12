@@ -1,4 +1,9 @@
-# Verified feature migration
+# Move one supported route between frameworks
+
+Suppose you want to move a Next.js endpoint to FastAPI while keeping its URL and response. Inspect the route, preview the generated change and test the endpoint.
+This guide covers the supported route forms and the checks needed before applying the migration.
+
+## Commands, results and limits
 
 `fr migrate feature` turns one revision-bound framework feature into an inspectable source-history transaction.
 The first subset crosses between Next.js App Router route files and FastAPI route files.

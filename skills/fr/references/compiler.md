@@ -1,5 +1,7 @@
 # Compiler evidence
 
+If code parses but does not compile, inspect the compiler’s message and the exact expression it names. Keep that result separate from syntax findings.
+
 For compiler investigations, review `checks --toolchain` and retain full execution output with
 `--output-bytes 65536`. Declare relevant environment keys and external identity files in each check.
 The toolchain identity also covers workspace Rust manifests, lockfiles, toolchain files and `.cargo` configuration.
