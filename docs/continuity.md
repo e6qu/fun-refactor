@@ -24,7 +24,8 @@ a possible input connection, an unfinished answer and a checked repair.
 Next, continue the Python work from the actual import and initialization failures.
 The package resolver now preserves direct class, decorated-definition and assignment bindings
 before considering a same-named file. These unsupported values still leave the answer unfinished.
-Wildcard imports, external dependencies and executed package startup remain the next library blockers.
+Literal export lists now let fr follow `from helpers import *`. Computed or directly mutated exports
+remain unfinished, along with external dependencies and other code that runs while importing a package.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.

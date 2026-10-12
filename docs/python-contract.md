@@ -96,6 +96,26 @@ The table describes the smaller `fr` contract. Detailed limits remain in
 
 ## How to interpret differences
 
+For a helper imported with `from helpers import *`, fr can read a fixed export declaration:
+
+```python
+# helpers.py
+__all__ = ['relay']
+
+def relay(value):
+    return value
+```
+
+With `--imports`, a call through `relay` keeps its defining file and can carry the input to an output.
+A literal tuple works too; an empty list imports no names but still records the imported file.
+A listed name beginning with `_` still counts as an export. Python defines these rules in its
+[import reference](https://docs.python.org/3.14/reference/simple_stmts.html#the-import-statement).
+
+The supported declaration uses plain quoted ASCII names in one list or tuple.
+Computed export sets, direct mutations, aliases to the export list and missing declarations remain incomplete.
+Colliding imports or local bindings also remain incomplete. A listed package child must preserve an
+existing package object before considering a file. Other import-time effects remain unchecked.
+
 The corpus records deliberate differences rather than hiding them as successful execution
 predictions. `3 < 2 < sink(source())` does not call the sink in Python. The analysis may retain
 that call because it does not evaluate comparison truth. Likewise, arithmetic cancellation

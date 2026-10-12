@@ -97,7 +97,7 @@
       "id": "python-contract",
       "path": "tests/agent-eval/results/2026-10-12-package-bindings-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 187 authored programs and 374 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "scope": "14 declared Python rules; 199 authored programs and 398 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-12-package-bindings-python-contract/result.json",
       "sha256": "4e81dec5237ad2fb9444a7ff09d7e8fa4338644039ec2449f88601525e5798d2"
     },
@@ -254,19 +254,19 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 187
+              "equals": 199
             },
             {
               "pointer": "/summary/cases",
-              "equals": 374
+              "equals": 398
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 187
+              "equals": 199
             },
             {
               "pointer": "/summary/incomplete_cases",
-              "equals": 120
+              "equals": 130
             },
             {
               "pointer": "/summary/refused_cases",
@@ -274,7 +274,7 @@
             },
             {
               "pointer": "/summary/documented_difference_cases",
-              "equals": 56
+              "equals": 64
             }
           ]
         }

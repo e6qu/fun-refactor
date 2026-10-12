@@ -248,7 +248,8 @@ class FlowDependencies:
                             or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
                     raise FrRuntimeError("malformed import lookup")
                 selected = _resolution(item, paths, modules["complete"], namespace_paths)
-                if wildcard and exports is not None and (not selected.admitted or selected.target not in paths):
+                if wildcard and exports is not None and (not selected.admitted or not any(
+                        candidate.path == selected.target and candidate.status == "source" for candidate in selected.candidates)):
                     raise FrRuntimeError("star export list lacks a source module")
                 if modules["complete"] and (
                         _special_attribute(item["alias"])

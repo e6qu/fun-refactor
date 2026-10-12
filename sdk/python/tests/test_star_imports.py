@@ -104,6 +104,22 @@ def test_large_export_sets_stop_at_the_existing_import_budget(tmp_path):
     assert len(result.dependencies.lookups) <= 128
 
 
+@pytest.mark.parametrize("count", [17, 20])
+def test_partial_module_closures_preserve_star_source_candidates(tmp_path, count):
+    client, rules = workspace(tmp_path)
+    for index in range(count):
+        (tmp_path / f"unit{index}.py").write_text(f"__all__ = ['relay{index}']\ndef relay{index}(value):\n    return value\n")
+    (tmp_path / "subject.py").write_text("".join(f"from unit{index} import *\n" for index in range(count)) +
+                                        "def entry():\n    return sink(relay0(source()))\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert not result.report.at("/complete")
+    assert "import-module-budget" in result.report.at("/cutoffs")
+    assert len(result.dependencies.files) == 16
+    missing = [lookup for lookup in result.dependencies.lookups
+               if lookup.alias == "*" and lookup.target not in dict(result.dependencies.files)]
+    assert missing and all(lookup.exports and lookup.resolution == "unavailable" for lookup in missing)
+
+
 @pytest.mark.parametrize("change", ["exports", "body", "mutate"])
 def test_export_and_helper_edits_invalidate_saved_answers(tmp_path, change):
     client, rules = install(tmp_path)
