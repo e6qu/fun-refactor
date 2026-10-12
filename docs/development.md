@@ -78,6 +78,24 @@ cargo test --test agent_skill
 python3 tools/check-agent-skill.py --fr target/debug/fr
 ```
 
+## Review documentation changes on GitHub
+
+Rewording a guide can also change the reading-size measurements that use it. For example, a
+shorter agent instruction changes the text returned in an old recorded task, even though that
+task's calls and outcome stay the same. Refresh the derived measurement before the final PR checks.
+
+Run the hosted documentation review on your working branch:
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=docs-review -f prefix=YYYY-MM-DD-docs-review
+```
+
+Replace `YOUR_BRANCH` and the date. This checks guide links, headings, writing and reading limits,
+regenerates current report pages and reading-size measurements, and runs their regression tests.
+It commits checked generated files back to that branch. Keep the original trial records unchanged.
+Pick up that commit before preparing the final change and requesting full CI.
+
 ## Refresh retained evidence
 
 `tools/refresh-refinement-evidence.py` refuses local execution and regenerates source-bound reports
