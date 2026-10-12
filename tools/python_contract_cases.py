@@ -50,9 +50,9 @@ EXAMPLES = [
     example('plain-class-default-instance-blocked', 'names returns boundaries', 'return sink(relay(source()))', [S, ZERO], 0,
             prelude='class Token:\n    pass\nmarker = Token()\ndef relay(value):\n    return 0\n'),
     example('plain-class-method-deferred', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
-            prelude='class Token:\n    def __repr__(self):\n        return str(source())\nmarker = Token()\n'),
+            prelude='class Token:\n    def __repr__(self):\n        return str(source())\nmarker = Token()\n', source_index=1),
     example('plain-class-constructor-deferred', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
-            prelude='class Token:\n    def __init__(self):\n        source()\n'),
+            prelude='class Token:\n    def __init__(self):\n        source()\n', source_index=1),
     example('plain-class-imported-helper', 'imports names returns', 'return sink(relay(source()))', [S, T], 17, witness=True,
             prelude='from helper import *\n', files={'helper.py': "__all__ = ['relay']\nclass Token:\n    def __repr__(self):\n        return 'token'\nmarker = Token()\ndef relay(value):\n    return value\n"}),
     example('plain-class-global-instance-read', 'names boundaries comparisons', 'return sink(marker is None)', [['sink', False]], False,
@@ -537,8 +537,14 @@ def cases():
             if lookup is not None:
                 lookup = {**lookup, 'importer': relocate(lookup['importer']),
                           'alias': RENAMES.get(lookup['alias'], lookup['alias']) if moved else lookup['alias']}
+            model = example['expected_model']
+            cutoff = model.get('cutoff')
+            if moved and cutoff and ':' in cutoff:
+                prefix, name = cutoff.split(':', 1)
+                model = {**model, 'cutoff': prefix + ':' + RENAMES.get(name, name)}
             result.append({**example, 'id': example['id'] + ('/moved' if moved else '/original'),
                 'source': source, 'path': path, 'files': files,
                 'module_files': module_files, 'module_lookup': lookup,
+                'expected_model': model,
                 'names': names, 'variant': 'moved' if moved else 'original'})
     return result
