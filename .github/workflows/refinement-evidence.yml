@@ -208,6 +208,14 @@ jobs:
           git commit -m 'test: retain source for historical repository flow replay'
           git push origin "HEAD:refs/heads/$BRANCH"
 
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frozen-utility-source
+          path: tests/agent-eval/results/2026-10-12-frozen-utility-source
+          if-no-files-found: warn
+          retention-days: 7
+
   scalar-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest

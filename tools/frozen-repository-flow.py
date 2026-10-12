@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import sys
 import tarfile
@@ -100,8 +101,9 @@ def retain():
     SNAPSHOT.with_name('manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     path = Path(__file__)
     text = path.read_text()
-    require(text.count("SNAPSHOT_SHA = ''") == 1, 'frozen source identity already pinned')
-    path.write_text(text.replace("SNAPSHOT_SHA = ''", f"SNAPSHOT_SHA = '{sha(data)}'"))
+    text, count = re.subn(r"^SNAPSHOT_SHA = ''$", f"SNAPSHOT_SHA = '{sha(data)}'", text, flags=re.MULTILINE)
+    require(count == 1, 'frozen source identity already pinned')
+    path.write_text(text)
     result = subprocess.run([sys.executable, '-B', str(path), '--audit', str(BASELINE)],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     require(result.returncode == 0, result.stderr[-8192:])
