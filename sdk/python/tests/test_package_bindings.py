@@ -81,7 +81,7 @@ def test_an_annotation_without_a_value_does_not_create_a_package_member(tmp_path
     result = analyze(client, rules, "entry", imports=True)
     lookup = next(item for item in result.dependencies.lookups if item.alias == "core")
     assert lookup.submodule.target == "library/core.py" and lookup.resolution == "module"
-    assert not result.report.at("/complete")  # The annotation still executes at import.
+    assert not result.report.at("/complete")  # Annotations remain outside the initialization model.
     assert runtime(tmp_path) == {"result": 17, "raised": None,
                                  "events": [["source", 17], ["sink", 17]], "child_loaded": True}
 
