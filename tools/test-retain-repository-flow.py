@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('retain_flow', ROOT / 'tools/retain-repository-flow.py')
+spec = importlib.util.spec_from_file_location('retain_flow', ROOT / 'tools/frozen-repository-flow.py')
 retain = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(retain)
 

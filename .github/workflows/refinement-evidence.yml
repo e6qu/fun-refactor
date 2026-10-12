@@ -54,6 +54,7 @@ on:
           - retain-repository-flow
           - flow-contract
           - scalar-development
+          - freeze-repository-flow
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -87,7 +88,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -175,6 +176,37 @@ jobs:
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
+
+  freeze-repository-flow:
+    if: inputs.group == 'freeze-repository-flow' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Install the pinned historical oracle dependency
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Retain the original source and replay historical controls
+        run: |
+          python3 -B tools/frozen-repository-flow.py --retain
+          python3 -B tools/test-retain-repository-flow.py
+      - name: Commit the checked frozen source
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/agent-eval/results/2026-10-12-frozen-utility-source tools/frozen-repository-flow.py
+          git commit -m 'test: retain source for historical repository flow replay'
+          git push origin "HEAD:refs/heads/$BRANCH"
 
   scalar-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
