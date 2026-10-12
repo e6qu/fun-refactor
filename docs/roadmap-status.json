@@ -12,43 +12,43 @@
   ],
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-flow-facts/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-package-flow/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-python-repositories/result.json",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-python-repositories",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-flow-cache/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
@@ -92,44 +92,50 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-compiler-profile/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-python-contract/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json",
-      "scope": "14 declared Python rules; 163 authored programs and 326 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review."
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-python-contract/result.json",
+      "scope": "14 declared Python rules; 173 authored programs and 346 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-12-fixed-variadic-index-resolution/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-index-resolution/result.json",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
     },
     {
-      "audit": "python3 tools/retain-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
+      "changed_sources": [
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "tests/flow_fixed_point.rs",
+        "tests/semantic_evidence.rs"
+      ],
+      "freshness": "stale",
       "id": "repository-flow",
       "integrity": "checked",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
-      "scope": "Three pinned utility libraries; authored scalar adapters, runtime contrasts, renames, relocation, incomplete boundaries and a frozen held-out project. Initial probes; B.repository-flow remains open."
+      "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
     }
   ],
   "milestones": {
@@ -339,19 +345,19 @@
               "pointer": "/summary/rules"
             },
             {
-              "equals": 163,
+              "equals": 173,
               "pointer": "/summary/examples"
             },
             {
-              "equals": 326,
+              "equals": 346,
               "pointer": "/summary/cases"
             },
             {
-              "equals": 163,
+              "equals": 173,
               "pointer": "/summary/renamed_relocated_cases"
             },
             {
-              "equals": 102,
+              "equals": 108,
               "pointer": "/summary/incomplete_cases"
             },
             {

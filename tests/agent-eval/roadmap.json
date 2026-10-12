@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-flow-facts/result.json",
-      "sha256": "1a114bac8d5ab494df69e759036f97125be3ec1ff72d4b2f0d1e55bc24f020f4"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-flow-facts/result.json",
+      "sha256": "d108debfa6b66377f70bfb40c2761d02c777e06cc29e37f99ca8b9723147c774"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-package-flow/result.json",
-      "sha256": "e386ab1af1e280087cf5fa186b93b897545ce200d07d1356dd22ad46e9763e63"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-package-flow/result.json",
+      "sha256": "61e488674a7301937ad9e74b01bf4acfdf834e8576a1daa91ab68a2b7452f978"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-python-repositories/result.json",
-      "sha256": "92d2f14ab9c8ae29dcea0110aacd8a04666bbff66a2915bb6748453e20afb710"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-python-repositories",
+      "sha256": "9dbdfdc29787373a7750bb46cd2c6b41e385745f2b5b496b60ee7c4a8e85eeef"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-11-coverage-flow-cache/result.json",
-      "sha256": "1a764adcbdf3bc3978143f22b31f53953bf0163e9da9bc740183d70860e67e9c"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-flow-cache/result.json",
+      "sha256": "d341aa1a7720b5aceb6ab3fe796f60dcf2832caff91df2742b9afdac3fd430a0"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json",
-      "sha256": "8ea388245e2b3c1b79552d8fd62ce96bfb60d328b21e5cc1bc7069937fa98a8e"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-compiler-profile/result.json",
+      "sha256": "0ea4e54c6a2e7a75ac421b43298fe0fa1d6fc5595c6e7323bffe2030eb3604e0"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 163 authored programs and 326 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-boundaries-python-contract/result.json",
-      "sha256": "9c82dde0180d942be0faac4ff83fc1550952b3b02124629af72b88bb1725aac5"
+      "scope": "14 declared Python rules; 173 authored programs and 346 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-12-fixed-variadic-python-contract/result.json",
+      "sha256": "710da4215bbed39f07b6072db71abd198c17a7548fc9b0cba5c60b05b0567cf4"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-12-fixed-variadic-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json",
-      "sha256": "43e805db2237968be42e14ddcb8be1ad523416a1db9a9ecc6c5fad6a4e440b7e"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-12-fixed-variadic-index-resolution/result.json",
+      "sha256": "e75380590e6c87bb35486ae8ffe721c871aaef76e02a19476cf98d298b7ec6b6"
     },
     {
       "id": "repository-flow",
