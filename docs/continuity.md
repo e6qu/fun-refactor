@@ -46,7 +46,10 @@ revisions, and every timeout stays unchanged.
 
 Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from its captured import/summary limits. Broaden project-derived examples beyond the authored
-identity adapters, and select an unopened replacement held-out project before analyzer edits.
+identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
+the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
+The next reservation pins jaraco.functools for further development. Keep it unopened until broader
+coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.
 Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The native
 analyzer stayed frozen at the B.contract merge throughout this cohort. Unknown effects and
 exhausted budgets must continue to prevent a no-path claim.

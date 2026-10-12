@@ -68,8 +68,9 @@ Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-value
 from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
 Address the remaining import and summary boundaries through general rules,
 and broaden project-derived examples beyond identity adapters. Choose an unopened replacement
-held-out project before changing the analyzer. The pinned replacement candidate is Boltons;
-its implementation remains unopened. Treat pydash as coverage in future rounds. Freeze the revised
+held-out project before changing the analyzer. The next reserved candidate is jaraco.functools;
+its implementation remains unopened. The withdrawn Boltons reservation overlooked earlier delivery coverage.
+Treat pydash as coverage in future rounds. Freeze the revised
 implementation before evaluation. Use the same analyzer, public commands and declared source/sink configuration everywhere.
 Check selected and blocked values with runtime execution and independent inspection, and retain
 renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.
