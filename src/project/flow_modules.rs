@@ -268,8 +268,6 @@ fn cyclic(
     result
 }
 
-// A declaration can bind a name without supplying an admitted scalar value.
-// Keep these names out of child-module lookup and function resolution.
 fn opaque_names<'s>(node: Node<'_>, source: &'s str) -> Vec<&'s str> {
     fn targets<'s>(node: Node<'_>, source: &'s str, names: &mut Vec<&'s str>) {
         match node.kind() {
@@ -303,7 +301,6 @@ fn opaque_names<'s>(node: Node<'_>, source: &'s str) -> Vec<&'s str> {
             }
         }
         "assignment" | "augmented_assignment" => {
-            // An annotation without a value records a type but does not bind the name.
             if node.kind() == "assignment" && node.child_by_field_name("right").is_none() {
                 return names;
             }

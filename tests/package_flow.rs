@@ -238,7 +238,6 @@ fn annotations_without_values_do_not_hide_child_modules() {
     let lookup = &report["inputs"]["modules"]["lookups"][0];
     assert_eq!(lookup["submodule"]["target"], "pkg/core.py");
     assert_eq!(lookup["resolution"], "module");
-    // Evaluating the annotation remains outside the scalar initialization model.
     assert_eq!(report["complete"], false);
     assert!(!report["witnesses"].as_array().unwrap().is_empty());
 }
