@@ -6,23 +6,36 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
+Uncalled unannotated functions with immutable literal defaults defer their bodies. Referenced
+variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
+requires a supported fixed-slot summary. Generator construction never transfers its body, including
+yields hidden behind skipped expressions or nested defaults. Coroutine execution remains incomplete.
+The focused hosted gate passes 593 SDK controls. Broad probes now include arithmetic and constant helpers
+from the same three coverage libraries, with separate full-package and isolated-declaration outcomes.
+
 The native analyzer and SDK use one required current format for scalar summaries, import dependencies
 and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
 Historical evidence replays its archived original source. Its readers do not enter the current SDK.
-The [current collection receipts](../tests/agent-eval/results/2026-10-12-current-contract-scalar-collection/manifest.json)
+The [current collection receipts](../tests/agent-eval/results/2026-10-12-declarations-final-scalar-collection/manifest.json)
 bind eight successful hosted collections to one frozen source revision. Retention independently
 audits the reports, producer attempts and source bindings before updating active evidence.
 CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
 current family receipt, checks exact report bytes and source identity, and rejects older layouts.
 Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
 
-The [Python behavior contract](python-contract.md) compares 173 authored programs and their
-renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
+The first expanded authored collection failed because its generator declaration contains an inactive
+sink before the entry's active sink. The expected pair used the wrong sink ordinal. The
+[failed collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
+retains all observed rows and the original validator source. Replaying that source reproduces the
+pairing error; the failure remains outside acceptance. The corrected expectation selects the active sink.
+
+The [Python behavior contract](python-contract.md) compares 181 authored programs and their
+renamed/relocated equivalents: 362 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 565 focused SDK regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 108 emitted incomplete analyses with explicit boundary evidence.
+Hosted validation passes 593 focused SDK regressions and 43 corruption controls. The inventory includes
+fourteen CLI refusals and 114 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
@@ -55,8 +68,8 @@ Keep historical reports intact. Pass full CI before merging; deep validation sup
 revisions, and every timeout stays unchanged.
 
 Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
-from its captured import/summary limits. Broaden project-derived examples beyond the authored
-identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
+from its captured import/summary limits. The expanded probes cover arithmetic and constant helpers
+alongside identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
 the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
 The next reservation pins jaraco.functools for further development. Keep it unopened until broader
 coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.

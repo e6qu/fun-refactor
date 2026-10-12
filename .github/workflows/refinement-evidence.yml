@@ -56,6 +56,7 @@ on:
           - scalar-development
           - freeze-repository-flow
           - retain-scalar
+          - retain-contract-failure
           - fixed-arity-probes
       collection_run:
         description: Successful collection run ID for Python or workflow retention
@@ -94,7 +95,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -171,7 +172,7 @@ jobs:
           cargo build --locked
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_scalar_assignments.py
+          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_function_declarations.py
       - name: Refresh retained evidence
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7
@@ -207,7 +208,7 @@ jobs:
       - name: Install the pinned upstream oracle dependency
         run: |
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
-      - name: Replay fixed calls in all three already-seen repositories
+      - name: Replay scalar helpers through actual packages and isolated declarations
         run: python3 -B tools/python-fixed-arity-probes.py --output "$RUNNER_TEMP/fixed-arity-probes-${{ github.run_id }}-${{ github.run_attempt }}"
       - uses: actions/upload-artifact@v7
         if: always()
@@ -218,7 +219,7 @@ jobs:
           retention-days: 7
 
   retain-scalar:
-    if: inputs.group == 'retain-scalar' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    if: (inputs.group == 'retain-scalar' || inputs.group == 'retain-contract-failure') && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -235,16 +236,26 @@ jobs:
           python3 -B tools/test-retain-python-contract.py
           python3 -B tools/test-retain-scalar-evidence.py
           python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/test-repository-declarations.py
       - name: Retain and audit the complete current evidence family
+        if: inputs.group == 'retain-scalar'
         env:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_RUNS: ${{ inputs.evidence_runs }}
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
         run: python3 -B tools/retain-scalar-evidence.py --runs "$EVIDENCE_RUNS" --prefix "$EVIDENCE_PREFIX"
+      - name: Preserve the failed authored collection with its original source
+        if: inputs.group == 'retain-contract-failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILURE_RUN: ${{ inputs.failure_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/retain-failed-python-contract.py --run "$FAILURE_RUN" --prefix "$EVIDENCE_PREFIX"
       - name: Commit the checked current evidence
         env:
           BRANCH: ${{ github.ref_name }}
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
+          EVIDENCE_GROUP: ${{ inputs.group }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
@@ -253,7 +264,11 @@ jobs:
             tools/test-compiler-profile.py tools/test-python-contract.py tools/test-workflow-route-context.py \
             tools/test-guide-body-context.py tools/test-recovery-delivery-context.py \
             tools/test-source-repair-context.py docs/roadmap-status.json docs/roadmap-status.md
-          git commit -m 'test: retain current scalar summary evidence and delivery gates'
+          if [ "$EVIDENCE_GROUP" = 'retain-contract-failure' ]; then
+            git commit -m 'test: preserve failed authored contract and original validator'
+          else
+            git commit -m 'test: retain current scalar summary evidence and delivery gates'
+          fi
           git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7
         if: always()
@@ -325,6 +340,7 @@ jobs:
           python3 -B tools/python-contract.py --check-runtime
           python3 -B tools/test-retain-scalar-evidence.py
           python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/test-repository-declarations.py
           python3 -B tools/check-prose.py
       - name: Format Rust on the runner
         env:
@@ -336,7 +352,7 @@ jobs:
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add '*.rs'
-            git commit -m 'style: format fixed-slot variadic summaries'
+            git commit -m 'style: format scalar declaration controls'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
       - uses: Swatinem/rust-cache@v2
@@ -348,7 +364,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_namespace_packages.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
@@ -679,7 +695,7 @@ jobs:
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check expression evaluation and source locations
-        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py
+        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py
       - name: Collect successful reports and CLI refusals
         run: python3 -B tools/python-contract.py --output target/python-contract/result.json
       - name: Reject corrupted contract observations

@@ -21,7 +21,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Expression selectors | `and`, `or`, `not` and conditional expressions preserve evaluation order. Boolean and None literals can select a path. | Variables, numeric values and call results have unknown truth. |
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
-| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Unused, unannotated variadic declarations may remain empty. | No dynamic dispatch, referenced variadic values, extra variadic arguments, unpacking, annotations or evaluated defaults. Invalid bindings remain incomplete. |
+| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch, referenced variadic values, extra variadic arguments, unpacking, annotations, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
@@ -59,7 +59,8 @@ Static module resolution follows the [package-flow contract](agent-investigation
 This corpus does not establish arbitrary imports, heap aliases, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
-The expanded authored corpus contains 173 programs and 346 original/renamed cases across fourteen rules.
+The authored corpus pairs every program with a renamed/relocated case across fourteen rules.
+The generated roadmap status owns the active source-bound inventory counts.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures
 from exceptions after calling the entry function. External source and sink hooks remain assumptions.
@@ -75,9 +76,9 @@ from exceptions after calling the entry function. External source and sink hooks
 | Discovery | Two-hop helper discovery with depths two and three; a stopped search has no absence authority. The summary-function count also has an explicit boundary example. |
 | Import boundaries | Competing modules/packages and stubs; parameter, assignment and global shadowing; conflicting bindings; module-count, source-byte, lookup-count, component and binding-chain limits. Positive and negative arguments remain independent expectations. |
 
-Hosted collection and 43 corruption controls validate the 346-case inventory, including fourteen
-CLI refusals and 108 emitted incomplete reports. This satisfies B.contract for the finite rules
-declared above. The earlier 252-case report remains historical evidence for its preceding inventory.
+Hosted collection and corruption controls validate the full inventory, including deliberate
+CLI refusals and emitted incomplete reports. B.contract requires every independently reviewed
+assertion in the active report. The earlier 252-case report remains historical evidence.
 The active source-bound report and acceptance assertions are selected by the
 [generated roadmap status](roadmap-status.md#bcontract-specify-reusable-python-behavior).
 Repository-general flow and exception/alias semantics remain separate acceptance items.

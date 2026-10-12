@@ -53,6 +53,61 @@ fn analyze_body(root: &Path, parameters: &str, body: &str, call: &str) -> (Strin
 }
 
 #[test]
+fn uncalled_variadic_bodies_defer_effects_but_calls_keep_their_contract() {
+    let root = tempfile::tempdir().unwrap();
+    for (parameters, body) in [
+        ("*items", "return items[0]"),
+        ("**options", "return options['value']"),
+        (
+            "value, /, *items, flag=True, **options",
+            "return opaque(items, options)",
+        ),
+        ("*items", "yield items"),
+    ] {
+        let (_, report) = analyze_body(root.path(), parameters, body, "source()");
+        assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+        assert!(!report["witnesses"].as_array().unwrap().is_empty());
+        assert!(report["function_summaries"]["functions"]["choose"].is_null());
+    }
+    let (_, called) = analyze_body(root.path(), "*items", "return items[0]", "choose(source())");
+    assert_eq!(called["complete"], false);
+    assert!(called["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("unsupported-parameter-contract:choose")));
+    assert!(!called["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("module-effects-unchecked")));
+}
+
+#[test]
+fn generator_calls_never_transfer_their_deferred_body() {
+    let root = tempfile::tempdir().unwrap();
+    for body in [
+        "yield sink(left)",
+        "return False and (yield sink(left))",
+        "return False and (lambda ignored=(yield sink(left)): 0)",
+    ] {
+        let (_, report) = analyze_body(root.path(), "left", body, "choose(source())");
+        assert_eq!(report["complete"], false);
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("generator-function")));
+        assert!(report["witnesses"].as_array().unwrap().is_empty());
+    }
+    let (_, report) = analyze_body(
+        root.path(),
+        "left",
+        "return 0 if True else (lambda: (yield left))",
+        "choose(source())",
+    );
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert!(report["witnesses"].as_array().unwrap().is_empty());
+}
+
+#[test]
 fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
     let root = tempfile::tempdir().unwrap();
     for (parameters, call, complete, witness) in [
@@ -194,7 +249,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-current-contract-call-binding/result.json",
+            "tests/agent-eval/results/2026-10-12-declarations-final-call-binding/result.json",
         ])
         .output()
         .unwrap();

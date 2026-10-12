@@ -24,13 +24,13 @@ RULES = {
 def example(key, rules, body, events=(), returned=None, raised=None, witness=False,
             prelude='', complete=True, cutoff=None, difference=None, steps=4096, source_index=0,
             normal=True, may_raise=False, files=None, path='subject.py', phase='entry', depth=8,
-            bytes_limit=262144, refusal=None, module_files=None, module_lookup=None):
+            bytes_limit=262144, refusal=None, module_files=None, module_lookup=None, sink_index=0):
     return {'id': key, 'rules_checked': rules.split(),
             'source': prelude + 'def entry():\n' + ''.join('    ' + line + '\n' for line in body.splitlines()),
             'expected_runtime': {'events': list(events), 'returned': returned, 'raised': raised, 'phase': phase},
             'expected_model': ({'outcome': 'refused', 'exit_code': 1,
                                 'error': {'error': {'kind': 'error', 'message': refusal}}} if refusal else
-                              {'outcome': 'report', 'witness': witness, 'pairs': [[source_index, 0]] if witness else [],
+                              {'outcome': 'report', 'witness': witness, 'pairs': [[source_index, sink_index]] if witness else [],
                                'complete': complete, 'cutoff': cutoff,
                                'completion': {'normal_return': normal, 'may_raise': may_raise} if complete else None}),
             'difference': difference, 'steps': steps, 'depth': depth, 'bytes': bytes_limit,
@@ -126,6 +126,26 @@ for key, parameters in [
             witness=tainted, prelude='def relay(' + parameters + '):\n    return left\n'))
 
 EXAMPLES.extend([
+    example('uncalled-variadic-body', 'calls returns boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='def unused(*items):\n    return opaque(items[0])\n'),
+    example('uncalled-keyword-body', 'calls returns boundaries', 'return sink(0)', [ZERO], 0,
+            prelude='def unused(**options):\n    return options["value"]\n'),
+    example('uncalled-generator-body', 'calls returns boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, sink_index=1, prelude='def unused(*items):\n    yield sink(items[0])\n'),
+    example('import-uncalled-variadic-body', 'imports calls returns defaults', 'return sink(relay(source()))',
+            [S, T], 17, witness=True, prelude='from helper import relay\n',
+            files={'helper.py': 'def unused(*items):\n    return opaque(items)\ndef relay(value=0):\n    return value\n'}),
+    example('called-generator-body', 'calls returns boundaries', 'deferred(source())\nreturn 0', [S], 0,
+            complete=False, cutoff='generator-function',
+            prelude='def deferred(value):\n    yield sink(value)\n'),
+    example('called-skipped-yield', 'calls returns selectors boundaries', 'deferred(source())\nreturn 0', [S], 0,
+            complete=False, cutoff='generator-function',
+            prelude='def deferred(value):\n    return False and (yield sink(value))\n'),
+    example('called-lambda-default-yield', 'calls returns selectors boundaries', 'deferred(source())\nreturn 0',
+            [S], 0, complete=False, cutoff='generator-function',
+            prelude='def deferred(value):\n    return False and (lambda ignored=(yield sink(value)): 0)\n'),
+    example('skipped-nested-generator', 'calls returns selectors', 'return sink(relay(source()))', [S, ZERO], 0,
+            prelude='def relay(value):\n    return 0 if True else (lambda: (yield value))\n'),
     example('fixed-variadic-default', 'calls defaults returns', 'return sink(relay())', [ZERO], 0,
             prelude='def relay(left=0, *tail):\n    return left\n'),
     example('fixed-variadic-extra-effect', 'calls boundaries', 'return relay(0, sink(source()))', [S, T], 0,

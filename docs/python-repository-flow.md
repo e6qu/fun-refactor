@@ -53,14 +53,31 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-current-contract-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-declarations-final-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
 boundaries still prevent repository acceptance. The original baseline bytes remain intact;
 its historical audit uses a pinned snapshot of the original source and collector.
 
-Next, broaden project-derived examples beyond identity adapters and address the remaining boundaries
+The expanded collector also checks Funcy's `inc` and `dec`, Pydash's `add` and Toolz's `return_none`.
+Each helper runs through its original package and through an explicitly isolated declaration module.
+The latter copies the exact runtime function and an uncalled variadic companion from the pinned source.
+Independent AST inspection checks the scalar operation, signature and both source fragments.
+Two runtime inputs, renamed/relocated adapters, unknown calls and budget controls cover both contexts.
+The collector keeps package outcomes separate from isolated declaration results. Isolated success cannot
+establish repository acceptance or erase unchecked initialization effects in the original packages.
+
+| Expanded context | Cells | Complete | Incomplete | CLI refusals |
+| --- | ---: | ---: | ---: | ---: |
+| Four additional helpers through their original packages | 40 | 0 | 32 | 8 |
+| Exact helper/companion declarations in isolated modules | 40 | 16 | 16 | 8 |
+
+These eighty cells add 160 runtime executions to the original thirty cells and sixty executions.
+All contexts preserve renamed/relocated conclusions. Only isolated declaration modules yield complete
+answers. The package initialization boundaries and the unopened holdout keep B.repository-flow open.
+
+Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The
 [next reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json) pins jaraco.functools.

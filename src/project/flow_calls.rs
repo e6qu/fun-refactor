@@ -21,6 +21,12 @@ pub(super) struct ParameterSignature {
     default: Option<Occurrence>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    Declaration,
+    Call,
+}
+
 fn literal_default(node: Node<'_>, source: &str) -> bool {
     match node.kind() {
         "none" | "true" | "false" | "integer" | "float" => true,
@@ -50,6 +56,41 @@ fn literal_default(node: Node<'_>, source: &str) -> bool {
 }
 
 pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Parameter<'t>>> {
+    parameter_contract(function, source, Phase::Call)
+}
+
+pub(super) fn definition_is_inert(function: Node<'_>, source: &str) -> bool {
+    function.child_by_field_name("return_type").is_none()
+        && parameter_contract(function, source, Phase::Declaration).is_some()
+}
+
+pub(super) fn generator_function(function: Node<'_>) -> bool {
+    let mut pending: Vec<_> = function.child_by_field_name("body").into_iter().collect();
+    while let Some(node) = pending.pop() {
+        if node.kind() == "yield" {
+            return true;
+        }
+        let deferred = if matches!(
+            node.kind(),
+            "function_definition" | "class_definition" | "lambda"
+        ) {
+            node.child_by_field_name("body")
+        } else {
+            None
+        };
+        pending.extend(
+            node.named_children(&mut node.walk())
+                .filter(|child| Some(*child) != deferred),
+        );
+    }
+    false
+}
+
+fn parameter_contract<'t>(
+    function: Node<'t>,
+    source: &str,
+    phase: Phase,
+) -> Option<Vec<Parameter<'t>>> {
     let list = function.child_by_field_name("parameters")?;
     let mut result: Vec<Parameter<'t>> = Vec::new();
     let mut names = BTreeSet::new();
@@ -100,11 +141,11 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
                 bare_star = true;
             }
             "list_splat_pattern" if !star => {
-                unused_variadic(node, function, source, &mut names)?;
+                variadic_parameter(node, function, source, &mut names, phase)?;
                 star = true;
             }
             "dictionary_splat_pattern" if !variadic_keywords => {
-                unused_variadic(node, function, source, &mut names)?;
+                variadic_parameter(node, function, source, &mut names, phase)?;
                 variadic_keywords = true;
             }
             _ => return None,
@@ -116,11 +157,12 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
     Some(result)
 }
 
-fn unused_variadic<'s>(
+fn variadic_parameter<'s>(
     node: Node<'_>,
     function: Node<'_>,
     source: &'s str,
     names: &mut BTreeSet<&'s str>,
+    phase: Phase,
 ) -> Option<()> {
     let mut cursor = node.walk();
     let mut children = node.named_children(&mut cursor);
@@ -131,6 +173,9 @@ fn unused_variadic<'s>(
     let text = &source[name.byte_range()];
     if !text.is_ascii() || !names.insert(text) {
         return None;
+    }
+    if phase == Phase::Declaration {
+        return Some(());
     }
     let mut pending = vec![function.child_by_field_name("body")?];
     while let Some(child) = pending.pop() {
@@ -148,7 +193,8 @@ pub(super) fn contract() -> Value {
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
+        "definitions":"Declarations with unannotated ASCII parameters defer bodies, including referenced variadics. Defaults must be immutable literals; annotations, decorators and evaluated defaults remain unchecked. Calls require scalar fixed-slot summaries.",
         "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})
