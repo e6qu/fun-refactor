@@ -250,7 +250,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json \
-            tools/test-python-contract.py tools/test-workflow-route-context.py \
+            tools/test-compiler-profile.py tools/test-python-contract.py tools/test-workflow-route-context.py \
             tools/test-guide-body-context.py tools/test-recovery-delivery-context.py \
             tools/test-source-repair-context.py docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain current scalar summary evidence and delivery gates'

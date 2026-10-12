@@ -12,6 +12,9 @@ Historical evidence replays its archived original source. Its readers do not ent
 The [current collection receipts](../tests/agent-eval/results/2026-10-12-current-contract-scalar-collection/manifest.json)
 bind eight successful hosted collections to one frozen source revision. Retention independently
 audits the reports, producer attempts and source bindings before updating active evidence.
+CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
+current family receipt, checks exact report bytes and source identity, and rejects older layouts.
+Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
 
 The [Python behavior contract](python-contract.md) compares 173 authored programs and their
 renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython

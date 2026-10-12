@@ -160,6 +160,13 @@ def main():
     directory.mkdir()
     (directory / 'manifest.json').write_text(json.dumps({'schema': 'fr-scalar-collection',
                                                         'groups': receipts}, indent=2, sort_keys=True) + '\n')
+    tests = ROOT / 'tools/test-compiler-profile.py'
+    text, count = re.subn(r"^REPORT = ROOT / '[^']+'$",
+                          f"REPORT = ROOT / 'tests/agent-eval/results/{args.prefix}-compiler-profile/result.json'",
+                          tests.read_text(), flags=re.MULTILINE)
+    require(count == 1, 'expected one active compiler profile test reference')
+    tests.write_text(text)
+    subprocess.run(['python3', '-B', 'tools/test-compiler-profile.py'], cwd=ROOT, check=True, timeout=120)
     retain.command(['python3', '-B', 'tools/roadmap-status.py', '--write'])
     retain.command(['python3', '-B', 'tools/roadmap-status.py', '--check'])
     subprocess.run(['python3', '-B', 'tools/retain-python-contract.py', '--run', str(runs['python']),
