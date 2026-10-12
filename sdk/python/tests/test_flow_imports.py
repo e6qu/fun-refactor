@@ -131,7 +131,7 @@ def test_negative_module_and_member_lookups_change_when_definitions_appear(tmp_p
 
 
 @pytest.mark.parametrize("source,cutoff", [
-    ("from leaf import *\ndef forward(value):\n    return identity(value)\n", "unsupported-import-form"),
+    ("from leaf import *\ndef forward(value):\n    return identity(value)\n", "star-exports-unchecked"),
     ("from .leaf import identity\ndef forward(value):\n    return identity(value)\n", "unsupported-import-form"),
     ("from package.leaf import identity\ndef forward(value):\n    return identity(value)\n", "unresolved-local-import:package.leaf"),
     ("import leaf\ndef forward(leaf):\n    return leaf.identity(0)\n", "ambiguous-call:leaf.identity"),

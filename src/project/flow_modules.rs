@@ -81,6 +81,21 @@ fn imports(node: Node<'_>, source: &str, file: &Path) -> Option<Vec<(String, Bin
     if from.as_ref().is_some_and(|name| !module_name(name)) {
         return None;
     }
+    if node
+        .named_children(&mut node.walk())
+        .any(|child| child.kind() == "wildcard_import")
+    {
+        return Some(vec![(
+            "*".into(),
+            Binding {
+                module: from?,
+                member: None,
+                prefix: "*".into(),
+                target: None,
+                ambiguous: false,
+            },
+        )]);
+    }
     let mut result = Vec::new();
     for child in node.children_by_field_name("name", &mut node.walk()) {
         let (name, alias) = if child.kind() == "aliased_import" {
@@ -346,14 +361,43 @@ fn declares_member(
         if opaque_names(node, source).contains(&member) {
             return Ok(true);
         }
-        if matches!(node.kind(), "import_statement" | "import_from_statement")
-            && imports(node, source, path)
-                .is_some_and(|items| items.iter().any(|(alias, _)| alias == member))
-        {
-            return Ok(true);
+        if matches!(node.kind(), "import_statement" | "import_from_statement") {
+            if let Some(items) = imports(node, source, path) {
+                for (alias, binding) in items {
+                    if alias == member {
+                        return Ok(true);
+                    }
+                    if alias == "*" {
+                        let resolution = resolve_module(project, &binding.module)?;
+                        let exports = resolution
+                            .target
+                            .as_ref()
+                            .map(|target| export_names(project, target))
+                            .transpose()?
+                            .flatten();
+                        if exports.is_none_or(|names| names.contains(member)) {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
         }
     }
     Ok(false)
+}
+
+fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<String>>> {
+    let Some(source) = project
+        .sources
+        .get(&project.root.join(target))
+        .filter(|s| s.len() <= BYTE_LIMIT)
+    else {
+        return Ok(None);
+    };
+    let parsed = Parsers::new().parse(Language::Python, source)?;
+    Ok((!parsed.has_errors())
+        .then(|| calls::declared_exports(parsed.root(), source))
+        .flatten())
 }
 
 type MemberValue = (&'static str, Vec<(PathBuf, String)>, Option<PathBuf>);
@@ -535,7 +579,15 @@ impl Modules {
             let mut definitions = BTreeMap::new();
             let mut literals = BTreeSet::new();
             let mut opaque_bindings = BTreeSet::new();
+            let declared_exports = calls::declared_exports(parsed.root(), source);
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if calls::module_export_list(node, source).is_some() {
+                    literals.insert("__all__".to_owned());
+                    if !names.insert("__all__".to_owned()) {
+                        result.cutoffs.insert("ambiguous-module-binding".into());
+                    }
+                    continue;
+                }
                 if let Some(name) = calls::module_literal(node, source) {
                     literals.insert(name.to_owned());
                     if !names.insert(name.to_owned()) {
@@ -569,13 +621,17 @@ impl Modules {
                     result.cutoffs.insert("unsupported-import-form".into());
                     continue;
                 };
-                for (alias, mut binding) in imports {
+                let mut imports: VecDeque<_> = imports
+                    .into_iter()
+                    .map(|(alias, binding)| (alias, binding, None))
+                    .collect();
+                while let Some((alias, mut binding, star)) = imports.pop_front() {
                     import_count += 1;
                     if import_count > IMPORT_LIMIT {
                         result.cutoffs.insert("import-lookup-budget".into());
                         break;
                     }
-                    if !names.insert(alias.clone()) {
+                    if alias != "*" && !names.insert(alias.clone()) {
                         binding.ambiguous = true;
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     }
@@ -585,11 +641,47 @@ impl Modules {
                         result.cutoffs.insert("special-module-attributes".into());
                     }
                     let resolution = resolve_module(project, &binding.module)?;
+                    let mut exports = None;
+                    if alias == "*" {
+                        let declared = if resolution.admitted {
+                            resolution
+                                .target
+                                .as_ref()
+                                .map(|target| export_names(project, target))
+                                .transpose()?
+                                .flatten()
+                        } else {
+                            None
+                        };
+                        if let Some(selected) = declared.filter(|names| {
+                            names.len() + import_count + imports.len() <= IMPORT_LIMIT
+                        }) {
+                            let index = lookups.len();
+                            for name in selected.iter().rev() {
+                                imports.push_front((
+                                    name.clone(),
+                                    Binding {
+                                        module: binding.module.clone(),
+                                        member: Some(name.clone()),
+                                        prefix: name.clone(),
+                                        target: None,
+                                        ambiguous: false,
+                                    },
+                                    Some(index),
+                                ));
+                            }
+                            exports = Some(selected);
+                        } else {
+                            result.cutoffs.insert("star-exports-unchecked".into());
+                        }
+                    }
                     let mut lookup = serde_json::to_value(&resolution)?;
                     lookup["importer"] = json!(file.strip_prefix(&project.root)?);
                     lookup["alias"] = json!(alias);
                     lookup["member"] = json!(binding.member);
                     lookup["prefix"] = json!(binding.prefix);
+                    lookup["star"] = json!(star);
+                    lookup["exports"] = json!(exports);
                     let submodule = if let (Some(target), Some(member)) =
                         (&resolution.target, &binding.member)
                     {
@@ -652,10 +744,14 @@ impl Modules {
                             .insert(format!("unresolved-local-import:{}", selected.module));
                     }
                     lookups.push(lookup);
-                    bindings.insert(alias, binding);
+                    if alias != "*" {
+                        bindings.insert(alias, binding);
+                    }
                 }
             }
-            if names.iter().map(String::as_str).any(special_attribute) {
+            if names.iter().map(String::as_str).any(|name| {
+                special_attribute(name) && !(name == "__all__" && declared_exports.is_some())
+            }) {
                 result.cutoffs.insert("special-module-attributes".into());
             }
             files.insert(file.strip_prefix(&project.root)?.to_owned(), hash(source)?);
