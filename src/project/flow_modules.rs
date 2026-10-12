@@ -546,9 +546,7 @@ impl Modules {
                 if node.kind() == "function_definition" {
                     if let Some(name) = node.child_by_field_name("name") {
                         let name = &source[name.byte_range()];
-                        *definitions
-                            .entry(name.to_owned())
-                            .or_insert(0) += 1;
+                        *definitions.entry(name.to_owned()).or_insert(0) += 1;
                         if calls::definition_is_inert(node, source) {
                             opaque_bindings.remove(name);
                         }
