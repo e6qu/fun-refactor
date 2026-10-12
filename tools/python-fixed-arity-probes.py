@@ -19,7 +19,7 @@ spec.loader.exec_module(flow)
 flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
-flow.COHORT['analyzer_revision'] = '95bef96e17ca73bb4cda92ffa72dd96784492ed5'
+flow.COHORT['analyzer_revision'] = '28438f52afed78a7d60794b2a24337c17485ce43'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
@@ -41,6 +41,7 @@ HELPERS = [
 CONTEXTS = ('full-package', 'isolated-declarations')
 VARIANTS = ('original', 'renamed-relocated')
 flow.COHORT['additional_helpers'] = HELPERS
+flow.COHORT['isolated_initialization'] = 'probe_metadata = 0'
 
 
 def implementation(source, name):
@@ -99,7 +100,8 @@ def prepare(root, project, helper, context, variant, case, inspected, temporary)
         scope = temporary / ('isolated-' + helper['id'])
         scope.mkdir(exist_ok=True)
         module = 'pinned_functions'
-        (scope / 'pinned_functions.py').write_text(inspected['function'] + '\n\n' + inspected['companion'] + '\n')
+        (scope / 'pinned_functions.py').write_text(flow.COHORT['isolated_initialization'] + '\n\n'
+                                                 + inspected['function'] + '\n\n' + inspected['companion'] + '\n')
     entry = 'probe_entry' if variant == 'original' else 'renamed_entry'
     path = 'repository_probe.py' if variant == 'original' else 'relocated_probe/entry.py'
     alias = 'relay' if variant == 'original' else 'renamed_relay'
