@@ -158,7 +158,7 @@ def main():
     directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
     require(not directory.exists(), 'preserve previous collection receipts')
     directory.mkdir()
-    (directory / 'manifest.json').write_text(json.dumps({'schema': 'fr-scalar-collection-1',
+    (directory / 'manifest.json').write_text(json.dumps({'schema': 'fr-scalar-collection',
                                                         'groups': receipts}, indent=2, sort_keys=True) + '\n')
     retain.command(['python3', '-B', 'tools/roadmap-status.py', '--write'])
     retain.command(['python3', '-B', 'tools/roadmap-status.py', '--check'])
