@@ -27,7 +27,7 @@ installed packages, native extensions, cached external modules or import hooks. 
 [Python import specification](https://docs.python.org/3/reference/import.html#namespace-packages)
 for the broader runtime behavior.
 
-`fr-flow-modules-5` retains five candidates per module component: its directory, `.py`, `.pyi`,
+`fr-flow-modules` retains five candidates per module component: its directory, `.py`, `.pyi`,
 `/__init__.py` and `/__init__.pyi`. A namespace component requires a directory and four absent file
 candidates. A final `.py` module may coexist with a namespace directory; the source module wins.
 Competing regular-package and source-module candidates remain an explicit ambiguity refusal.

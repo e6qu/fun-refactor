@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay already-seen utility helpers after the fixed-slot summary correction."""
+"""Replay already-seen utility helpers with the current strict summary contract."""
 import argparse
 import copy
 import importlib.util
@@ -12,7 +12,7 @@ flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['analyzer_revision'] = 'e176c24ea078687e9eb1645b8006215a87653967'
-flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Boltons remains unopened and does not participate in this regression collection.'
+flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
 original_bindings = flow.bindings
@@ -34,7 +34,7 @@ def check(value):
             if row['project'] != project['id'] or row['case'] in ('steps', 'bytes'):
                 continue
             report = row['invocations'][1]['report']
-            flow.require(report['semantics'] == 'python-scalar-summaries-6'
+            flow.require(report['semantics'] == 'python-scalar-summaries'
                          and 'unsupported-parameter-contract:' + name not in report['cutoffs'],
                          'fixed-slot helper still hits the parameter boundary')
             summary = report['function_summaries']['functions'].get(name)

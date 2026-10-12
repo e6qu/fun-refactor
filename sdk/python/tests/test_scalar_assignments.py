@@ -7,7 +7,7 @@ import pytest
 
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
-from fr_ir.flow_summaries import FunctionSummaries, _LITERAL_CALL_BINDING
+from fr_ir.flow_summaries import FunctionSummaries
 from fr_ir.runtime import FrReport, FrRuntimeError
 from test_flow_summaries import analyze, evidence, workspace
 
@@ -155,18 +155,6 @@ def test_assignment_contract_tampering_refuses(tmp_path, mutation):
     elif mutation == "input-integer": data["inputs"]["assignment_control"]["implicit_exceptions"] = 0
     else: data["semantics"] = "python-scalar-summaries-4"
     with pytest.raises(FrRuntimeError): FunctionSummaries.from_report(FrReport(data, ()))
-
-
-def test_version_four_reports_remain_readable_without_assignment_claims(tmp_path):
-    client, rules, _ = install(tmp_path, "a = source()\nsink(a)")
-    data = analyze(client, rules, "entry").report.to_data()
-    data["semantics"] = "python-scalar-summaries-4"
-    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
-    data["call_binding"] = copy.deepcopy(_LITERAL_CALL_BINDING)
-    data["inputs"]["call_binding"] = copy.deepcopy(_LITERAL_CALL_BINDING)
-    summaries = FunctionSummaries.from_report(FrReport(data, ()))
-    assert summaries.assignment_control is None and summaries.call_binding.defaults is not None
-    assert summaries.call_binding.variadics is None
 
 
 @pytest.mark.parametrize("body", [

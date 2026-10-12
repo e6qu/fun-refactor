@@ -38,10 +38,9 @@ The SDK exposes `FunctionSummary.signature` as typed `SummaryParameter` entries,
 `site` and `default` fields. It checks names, kinds, order, origin roles and snapshot consistency.
 These are bounded syntax locations, not a proof that arbitrary Python behavior matches the model.
 
-Current reports use `python-scalar-summaries-5` and `fr-call-binding-2` in public and canonical input records.
-Version-three reports retain the earlier required-parameter contract; their SDK signatures and
-literal-default contracts are `None`. Versions one and two remain readable without call-binding
-claims. Native reuse requires current analysis identities. A change to a default, parameter kind,
+Current reports use `python-scalar-summaries` and `fr-call-binding` in public and canonical input records.
+The reader requires signatures and literal-default contracts. Other formats fail explicitly.
+Native reuse requires current analysis identities. A change to a default, parameter kind,
 required slot or helper invalidates affected analysis; unrelated edits renew every signature origin.
 The response budget includes signature metadata, and omitted results remain incomplete.
 

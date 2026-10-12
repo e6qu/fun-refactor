@@ -76,7 +76,7 @@ fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     assert_eq!(negative["complete"], true, "{negative}");
     assert!(!positive["witnesses"].as_array().unwrap().is_empty());
     assert!(negative["witnesses"].as_array().unwrap().is_empty());
-    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-5");
+    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules");
     let files = positive["inputs"]["modules"]["files"].as_object().unwrap();
     assert_eq!(files.len(), 6);
     for path in [
@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-fixed-variadic-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -352,7 +352,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-fixed-variadic-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -409,7 +409,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-fixed-variadic-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-module-aliases/result.json",
         ])
         .output()
         .unwrap();

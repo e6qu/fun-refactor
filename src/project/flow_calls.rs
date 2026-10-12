@@ -143,7 +143,7 @@ fn unused_variadic<'s>(
 }
 
 pub(super) fn contract() -> Value {
-    json!({"schema":"fr-call-binding-3",
+    json!({"schema":"fr-call-binding",
         "parameters":"ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",

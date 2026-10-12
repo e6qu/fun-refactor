@@ -6,7 +6,7 @@ enum Shape {
 }
 
 pub(super) fn contract() -> Value {
-    json!({"schema":"fr-scalar-assignment-1",
+    json!({"schema":"fr-scalar-assignment",
         "evaluation":"evaluate all scalar RHS leaves left-to-right once before any target write.",
         "binding":"match literal tuple/list shapes; write local names and chained targets left-to-right.",
         "limits":"64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",

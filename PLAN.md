@@ -64,6 +64,9 @@ no path. The first held-out opening and collector failures remain part of the ev
 
 ## Next large chunk
 
+Keep one current summary, import dependency and flow cache format. Reject old formats and missing
+metadata. Do not add version dispatch, compatibility readers or migration fallbacks.
+
 Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
 Address the remaining import and summary boundaries through general rules,

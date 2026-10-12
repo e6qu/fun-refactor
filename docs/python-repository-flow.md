@@ -51,9 +51,9 @@ runtime observations, and checks corruptions after rehashing the modified receip
 retain full source inventories and upstream licenses. The
 [fixture guide](../tests/agent-eval/python-repository-flow/README.md) describes the collector.
 
-The fixed-slot correction introduces `python-scalar-summaries-6`. It admits unused, unannotated
+The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-fixed-variadic-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-current-contract-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization

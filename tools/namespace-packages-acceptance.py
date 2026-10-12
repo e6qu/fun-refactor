@@ -21,7 +21,7 @@ def audit(value):
     for name in ("positive", "negative", "after"):
         report = value[name]
         dependencies = package.FlowDependencies.from_report(package.FrReport(report, ()))
-        assert report['inputs']['modules']['schema'] == 'fr-flow-modules-5'
+        assert report['inputs']['modules']['schema'] == 'fr-flow-modules'
         assert dependencies.namespaces and 'portal' in dependencies.namespaces
         assert not any(path.endswith('/__init__.py') for path, _ in dependencies.files)
         assert len(dependencies.files) + len(dependencies.namespaces) <= 16

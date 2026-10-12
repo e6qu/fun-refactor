@@ -68,7 +68,7 @@ fn parallel_assignments_preserve_reads_before_writes_and_duplicate_targets() {
     ] {
         let (_, report) = analyze(root.path(), body);
         assert_eq!(report["complete"], true, "{report}");
-        assert_eq!(report["semantics"], "python-scalar-summaries-6");
+        assert_eq!(report["semantics"], "python-scalar-summaries");
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), reaches);
         assert_eq!(
             report["assignment_control"],
@@ -115,7 +115,7 @@ fn scalar_assignments_acceptance_replays_checked_delivery() {
         .args([
             "tools/scalar-assignments-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-fixed-variadic-scalar-assignments/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-scalar-assignments/result.json",
         ])
         .output()
         .unwrap();

@@ -6,6 +6,10 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
+The native analyzer and SDK use one required current format for scalar summaries, import dependencies
+and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
+Historical evidence replays its archived original source. Its readers do not enter the current SDK.
+
 The [Python behavior contract](python-contract.md) compares 173 authored programs and their
 renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.

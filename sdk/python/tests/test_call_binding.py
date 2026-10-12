@@ -259,7 +259,7 @@ def test_binding_dependencies_invalidate_and_match_clean_analysis(tmp_path, muta
 
 
 @pytest.mark.parametrize("mutation", ["missing", "inputs", "binding", "integer", "input-integer", "semantics"])
-def test_typed_call_contract_refuses_forged_or_mixed_versions(tmp_path, mutation):
+def test_typed_call_contract_refuses_forged_metadata(tmp_path, mutation):
     client, rules = install(tmp_path, "left", "choose(left=source())")
     data = copy.deepcopy(analyze(client, rules, "entry").report.to_data())
     if mutation == "missing": del data["call_binding"]
@@ -271,19 +271,15 @@ def test_typed_call_contract_refuses_forged_or_mixed_versions(tmp_path, mutation
     with pytest.raises(FrRuntimeError): FunctionSummaries.from_report(FrReport(data, ()))
 
 
-@pytest.mark.parametrize("version", [1, 2])
-def test_old_contracts_remain_readable_without_new_capabilities(tmp_path, version):
+@pytest.mark.parametrize("format", ["python-scalar-summaries-1", "python-scalar-summaries-2",
+                                    "python-scalar-summaries-3", "python-scalar-summaries-4",
+                                    "python-scalar-summaries-5", "python-scalar-summaries-6", "unknown"])
+def test_noncurrent_summary_formats_refuse(tmp_path, format):
     client, rules = install(tmp_path, "left", "choose(source())")
     data = analyze(client, rules, "entry").report.to_data()
-    data["semantics"] = f"python-scalar-summaries-{version}"
-    data.pop("call_binding"); data["inputs"].pop("call_binding")
-    for item in data["function_summaries"]["functions"].values(): item.pop("signature")
-    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
-    if version == 1:
-        data.pop("expression_control"); data["inputs"].pop("expression_control")
-    result = FunctionSummaries.from_report(FrReport(data, ()))
-    assert result.call_binding is None
-    assert (result.expression_control is None) == (version == 1)
+    data["semantics"] = format
+    with pytest.raises(FrRuntimeError):
+        FunctionSummaries.from_report(FrReport(data, ()))
 
 
 def test_keyword_calls_remain_independent(tmp_path):

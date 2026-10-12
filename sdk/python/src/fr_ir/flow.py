@@ -124,14 +124,14 @@ class FlowCache:
 
     def persist(self) -> str:
         return store_merkle_value(self.store, {
-            "schema": "fr-flow-cache-2", "entries": self._entries,
+            "schema": "fr-flow-cache", "entries": self._entries,
         }).digest
 
     @classmethod
     def restore(cls, store: ObjectStore, digest: str) -> FlowCache:
         value = restore_stored_value(store, digest)
         if (not isinstance(value, dict) or set(value) != {"schema", "entries"}
-                or value["schema"] not in ("fr-flow-cache-1", "fr-flow-cache-2")
+                or value["schema"] != "fr-flow-cache"
                 or not isinstance(value["entries"], dict)):
             raise FrRuntimeError("unsupported flow cache manifest")
         return cls(store, value["entries"])

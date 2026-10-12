@@ -20,7 +20,7 @@ def audit(value):
     for name in ("positive", "negative", "after"):
         report = value[name]
         summaries = package.FunctionSummaries.from_report(package.FrReport(report, ()))
-        assert report["semantics"] in {"python-scalar-summaries-5", "python-scalar-summaries-6"}
+        assert report["semantics"] == "python-scalar-summaries"
         assert summaries.assignment_control is not None
         assert summaries.assignment_control.implicit_exceptions is False
         assert report["inputs"]["assignment_control"] == report["assignment_control"]

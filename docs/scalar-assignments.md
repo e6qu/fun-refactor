@@ -38,11 +38,11 @@ assigned later in a function. A shadowed external rule cannot become a known cal
 merely because its local assignment has not executed. Definition occurrences use
 the exact target spans; swaps preserve RHS origins while linking each target write.
 
-`python-scalar-summaries-5` reports carry `fr-scalar-assignment-1` in both public
+`python-scalar-summaries` reports carry `fr-scalar-assignment` in both public
 metadata and canonical inputs. The SDK exposes `FunctionSummaries.assignment_control`
 as an `AssignmentControl`. It verifies the full contract and rejects invented
-semantics, non-Boolean flags and disagreements with input metadata. Versions one
-through four remain readable without assignment claims.
+semantics, non-Boolean flags and disagreements with input metadata. The reader requires
+the current contract and every capability field.
 
 The analyzer identity includes the assignment implementation. Changes to assignment
 sources invalidate cached results; unrelated edits renew exact occurrences. Native

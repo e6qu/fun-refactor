@@ -90,7 +90,7 @@ fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
             report["cutoffs"]
         );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
-        assert_eq!(report["call_binding"]["schema"], "fr-call-binding-3");
+        assert_eq!(report["call_binding"]["schema"], "fr-call-binding");
     }
     for (parameters, body) in [
         ("left, *extra", "return extra"),
@@ -144,7 +144,7 @@ fn required_parameters_bind_by_kind_and_name() {
             report["cutoffs"]
         );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
-        assert_eq!(report["semantics"], "python-scalar-summaries-6");
+        assert_eq!(report["semantics"], "python-scalar-summaries");
         assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
     }
 }
@@ -194,7 +194,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-fixed-variadic-call-binding/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-call-binding/result.json",
         ])
         .output()
         .unwrap();
