@@ -57,7 +57,7 @@ An empty list still records the import dependency, and an existing package objec
 Computed or directly mutated export sets remain incomplete. These are general language rules;
 the full libraries still contain other initialization and import boundaries.
 
-The next class change covers a familiar marker declaration in `funcy.primitives`:
+The class correction covers a familiar marker declaration in `funcy.primitives`:
 `EmptyType` has a deferred `__repr__` method, followed by `EMPTY = EmptyType()`.
 Plain declarations and default empty construction can stay inert while scalar helpers run.
 Custom constructors, finalizers, bases, decorators and other executed class-body code remain unchecked.
@@ -138,10 +138,12 @@ establish repository acceptance or erase unchecked initialization effects in the
 | --- | ---: | ---: | ---: | ---: |
 | Four additional helpers through their original packages | 40 | 0 | 32 | 8 |
 | Exact helper/companion declarations in isolated modules | 40 | 16 | 16 | 8 |
+| Two helpers through the complete unchanged primitive module without package parents | 20 | 8 | 8 | 4 |
 
-These eighty cells add 160 runtime executions to the original thirty cells and sixty executions.
-All contexts preserve renamed/relocated conclusions. Only isolated declaration modules yield complete
-answers. The package initialization boundaries and the unopened holdout keep B.repository-flow open.
+These one hundred cells add 200 runtime executions to the original thirty cells and sixty executions.
+All contexts preserve renamed/relocated conclusions. Isolated declarations and the standalone primitive module yield some complete answers.
+Unknown calls, exhausted budgets and full package initialization still prevent complete answers.
+The package boundaries and the unopened holdout keep B.repository-flow open.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
