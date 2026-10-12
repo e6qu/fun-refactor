@@ -7,7 +7,7 @@ import pytest
 
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
-from fr_ir.flow_summaries import FunctionSummaries, _CALL_BINDING
+from fr_ir.flow_summaries import FunctionSummaries
 from fr_ir.runtime import FrReport, FrRuntimeError
 from test_call_binding import install, observe
 from test_flow_summaries import analyze, evidence, workspace
@@ -160,19 +160,6 @@ def test_signature_and_default_contract_tampering_refuses(tmp_path, mutation):
     elif mutation == "semantics": data["call_binding"]["defaults"] = "evaluate on each call"
     else: data["semantics"] = "python-scalar-summaries-3"
     with pytest.raises(FrRuntimeError): FunctionSummaries.from_report(FrReport(data, ()))
-
-
-def test_version_three_reports_remain_readable_without_default_claims(tmp_path):
-    client, rules = install(tmp_path, "left", "choose(source())")
-    data = analyze(client, rules, "entry").report.to_data()
-    data["semantics"] = "python-scalar-summaries-3"
-    data["call_binding"] = copy.deepcopy(_CALL_BINDING)
-    data["inputs"]["call_binding"] = copy.deepcopy(_CALL_BINDING)
-    for item in data["function_summaries"]["functions"].values(): item.pop("signature")
-    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
-    summaries = FunctionSummaries.from_report(FrReport(data, ()))
-    assert summaries.call_binding.defaults is None
-    assert all(item.signature is None for item in summaries.functions)
 
 
 def test_imported_defaults_and_recursive_calls_remain_independent(tmp_path):

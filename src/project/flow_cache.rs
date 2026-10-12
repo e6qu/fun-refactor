@@ -8,7 +8,7 @@ use std::{
 
 pub(super) fn analyzer_identity() -> Result<String> {
     hash([
-        "python-scalar-fixed-point-2",
+        "python-scalar-fixed-point",
         env!("CARGO_PKG_VERSION"),
         include_str!("dataflow.rs"),
         include_str!("flow_summaries.rs"),
@@ -137,9 +137,9 @@ impl Project<'_> {
             report["input_digest"] == hash(inputs)?
                 && report["semantics"]
                     == if inputs["summary_mode"] == true {
-                        "python-scalar-summaries-5"
+                        "python-scalar-summaries"
                     } else {
-                        "python-scalar-fixed-point-2"
+                        "python-scalar-fixed-point"
                     },
             "retained flow has inconsistent analysis identities."
         );

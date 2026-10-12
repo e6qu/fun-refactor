@@ -157,15 +157,6 @@ def test_assignment_contract_tampering_refuses(tmp_path, mutation):
     with pytest.raises(FrRuntimeError): FunctionSummaries.from_report(FrReport(data, ()))
 
 
-def test_version_four_reports_remain_readable_without_assignment_claims(tmp_path):
-    client, rules, _ = install(tmp_path, "a = source()\nsink(a)")
-    data = analyze(client, rules, "entry").report.to_data()
-    data["semantics"] = "python-scalar-summaries-4"
-    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
-    summaries = FunctionSummaries.from_report(FrReport(data, ()))
-    assert summaries.assignment_control is None and summaries.call_binding.defaults is not None
-
-
 @pytest.mark.parametrize("body", [
     " = ".join(f"v{i}" for i in range(65)) + " = source()\nsink(v0)",
     ", ".join(f"v{i}" for i in range(65)) + " = " + ", ".join("source()" for _ in range(65)),

@@ -44,14 +44,13 @@ The finite runtime corpus compares independent CPython observations with origin 
 argument effects, parameter kinds and invalid binding. It does not prove source correspondence or
 general path feasibility.
 
-Current reports use `python-scalar-summaries-5` and retain `fr-call-binding-2` in both canonical inputs and
+Current reports use `python-scalar-summaries` and retain `fr-call-binding` in both canonical inputs and
 the public report. Native reuse validates both identities, even if a modified report has a freshly
 computed digest. Analyzer identities include the binding implementation.
 The response budget includes both contract copies. If even metadata cannot fit, the command refuses;
 omitting analysis sections yields an incomplete report, never a complete absence claim. The SDK exposes
-`FunctionSummaries.call_binding` and validates its complete contract. Version 1 and 2 records stay
-readable with this field set to `None`; version three retains its required-parameter contract.
-A legacy version cannot declare newer capabilities.
+`FunctionSummaries.call_binding` and validates its complete required contract. Other report formats
+fail explicitly; the reader provides no compatibility adapter.
 
 The [pinned task](../tests/agent-eval/call-binding/task.json) discovers a leaking helper through
 keyword calls and parameter separators. It requires a reviewed repair, a sink-free preview feature,

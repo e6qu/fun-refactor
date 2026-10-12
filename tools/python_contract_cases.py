@@ -115,6 +115,30 @@ for key, parameters, positive, negative in [
             'return sink(relay(' + arguments + '))', [S, T if tainted else ZERO], 17 if tainted else 0,
             witness=tainted, prelude='def relay(' + parameters + '):\n    return left\n'))
 
+for key, parameters in [
+    ('positional-tail', 'left, *tail'),
+    ('keyword-tail', 'left, **tail'),
+    ('both-tails', 'left, *tail, **options'),
+]:
+    for direction, argument, tainted in [('selected', 'source()', True), ('blocked', '0', False)]:
+        EXAMPLES.append(example('fixed-variadic-' + key + '-' + direction, 'calls returns boundaries',
+            'return sink(relay(' + argument + '))', [S, T] if tainted else [ZERO], 17 if tainted else 0,
+            witness=tainted, prelude='def relay(' + parameters + '):\n    return left\n'))
+
+EXAMPLES.extend([
+    example('fixed-variadic-default', 'calls defaults returns', 'return sink(relay())', [ZERO], 0,
+            prelude='def relay(left=0, *tail):\n    return left\n'),
+    example('fixed-variadic-extra-effect', 'calls boundaries', 'return relay(0, sink(source()))', [S, T], 0,
+            witness=True, complete=False, cutoff='invalid-call-binding',
+            prelude='def relay(left, *tail):\n    return left\n'),
+    example('fixed-variadic-extra-keyword', 'calls boundaries', 'return relay(0, unknown=sink(source()))', [S, T], 0,
+            witness=True, complete=False, cutoff='invalid-call-binding',
+            prelude='def relay(left, **tail):\n    return left\n'),
+    example('fixed-variadic-referenced', 'calls boundaries', 'return relay(source())', [S], 17,
+            complete=False, cutoff='unsupported-parameter-contract',
+            prelude='def relay(left, *tail):\n    tail = 0\n    return left\n'),
+])
+
 for key, parameters, arguments in [
     ('missing', 'left, right', 'sink(source())'),
     ('excess', 'left, right', 'sink(source()), 0, 1'),
@@ -158,9 +182,9 @@ EXAMPLES.extend([
             [S, T], 17, prelude='def relay(left, K):\n    return left\n', complete=False,
             cutoff='non-ascii-keyword-binding-unchecked'),
     example('binding-varargs', 'calls boundaries', 'return relay(source())', [S], 0,
-            prelude='def relay(*value):\n    return 0\n', complete=False, cutoff='module-effects-unchecked'),
+            prelude='def relay(*value):\n    return 0\n', complete=False, cutoff='invalid-call-binding'),
     example('binding-kwargs', 'calls boundaries', 'return relay(value=source())', [S], 0,
-            prelude='def relay(**value):\n    return 0\n', complete=False, cutoff='module-effects-unchecked'),
+            prelude='def relay(**value):\n    return 0\n', complete=False, cutoff='invalid-call-binding'),
     example('binding-unpack', 'calls boundaries', 'return relay(*source())', [S], raised='TypeError',
             prelude='def relay(value):\n    return value\n', complete=False, cutoff='argument-unpacking-unchecked'),
     example('binding-unpack-keywords', 'calls boundaries', 'return relay(**source())', [S], raised='TypeError',

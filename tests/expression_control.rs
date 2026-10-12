@@ -102,7 +102,7 @@ fn selected_expressions_skip_effects_and_keep_normal_alternatives() {
             witness,
             "{expression}"
         );
-        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(report["semantics"], "python-scalar-summaries");
         assert_eq!(
             report["expression_control"],
             report["inputs"]["expression_control"]
@@ -119,7 +119,7 @@ fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
         report[field] = if field == "semantics" {
             json!("python-scalar-summaries-1")
         } else {
-            json!({"schema":"fr-expression-control-1", "path_feasibility":true})
+            json!({"schema":"fr-expression-control", "path_feasibility":true})
         };
         let bytes = serde_json::to_vec(&report).unwrap();
         let digest = hex::encode(Sha256::digest(&bytes));
@@ -156,7 +156,7 @@ fn expression_control_acceptance_replays_checked_delivery() {
         .args([
             "tools/expression-control-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-11-coverage-expression-control/result.json",
+            "tests/agent-eval/results/2026-10-12-current-contract-expression-control/result.json",
         ])
         .output()
         .unwrap();

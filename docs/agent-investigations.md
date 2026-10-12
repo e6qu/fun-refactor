@@ -86,7 +86,7 @@ The default route cuts off recursive calls. It does not claim runtime terminatio
 
 ### Recursive function summaries
 
-Add `--summaries` to use `python-scalar-summaries-5`. The solver summarizes each reachable function
+Add `--summaries` to use `python-scalar-summaries`. The solver summarizes each reachable function
 with symbolic required parameters. Each call substitutes its own arguments into return, sink and
 exceptional effects. This keeps separate callers from sharing input values. Direct and mutual recursion
 start with empty summaries and grow monotonically until a global fixed point or a cutoff.
@@ -123,7 +123,7 @@ Function identities include the full relative path, such as `pkg/helper.py::forw
 Same-named helpers in separate packages keep separate summaries and exact cross-file occurrences.
 `project flow-facts HANDLE --imports` exposes the same analysis through bounded explanations and semantic links.
 
-The `fr-flow-modules-5` dependency record includes the entry resolution and each import lookup.
+The `fr-flow-modules` dependency record includes the entry resolution and each import lookup.
 Every module component retains its directory, `.py`, `/__init__.py`, `.pyi` and `/__init__.pyi` candidates.
 Parent components admit regular or namespace packages within one root. The final component can also
 select a source module. [Namespace dependencies](namespace-packages.md) retain directories separately
@@ -203,11 +203,10 @@ restored = FlowCache.restore(store, root)
 ```
 
 Keep the store outside the analyzed workspace. A cache holds at most 256 result roots.
-New `fr-flow-cache-2` manifests retain each complete report as canonical JSON in verified chunks.
+`fr-flow-cache` manifests retain each complete report as canonical JSON in verified chunks.
 Each chunk contains at most 32,768 characters; the joined report is limited to 1 MiB.
 This reduces object-store operations when the consumer needs the whole report.
-The reader accepts earlier `fr-flow-cache-1` manifests and tree records. A successfully refreshed
-entry uses the new encoding; other legacy entries remain readable in a mixed manifest.
+The reader requires the current manifest and chunk envelope. Other formats fail explicitly.
 Chunks are storage units. Dependency validation and reuse still apply to the entire analysis.
 `analysis.graphs` and `analysis.witnesses` provide typed access; `analysis.reused` reports reuse.
 After unrelated edits, native validation renews occurrence identities, enclosing handles and revision
@@ -506,12 +505,12 @@ The finite Boolean fixture tests that correspondence only on its two admitted in
 [Expression control](expression-control.md) extends opt-in summary analysis to short-circuit
 Boolean operators, `not`, conditional expressions and ordered comparison chains. Known Boolean
 and `None` selectors skip operands. Unknown selectors retain both normal and exceptional alternatives.
-The versioned contract is included in analysis inputs and cache validation. Numeric comparisons,
+Analysis inputs and cache validation include the current contract. Numeric comparisons,
 variable values and helper results are not specialized; the analysis still reports possible flow.
 
 ### Ordered scalar assignment contracts
 
-Opt-in summary version five adds exact literal tuple/list unpacking and chained local assignments.
+Opt-in summaries support exact literal tuple/list unpacking and chained local assignments.
 Right-hand expressions run before target writes; repeated targets bind left-to-right.
 [Scalar assignments](scalar-assignments.md) defines shape budgets, exact definition occurrences,
 SDK contracts and the remaining alias, iterable and exception boundaries.

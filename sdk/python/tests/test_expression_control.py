@@ -202,15 +202,9 @@ def test_typed_expression_contract_refuses_tampering(tmp_path, mutation):
     with pytest.raises(FrRuntimeError): FunctionSummaries.from_report(FrReport(data, ()))
 
 
-def test_legacy_summaries_stay_readable_and_budgets_stay_incomplete(tmp_path):
+def test_low_budgets_stay_incomplete(tmp_path):
     client, rules = install(tmp_path, "flag and sink(source())")
-    result = analyze(client, rules, "entry")
-    legacy = result.report.to_data(); legacy["semantics"] = "python-scalar-summaries-1"
-    legacy.pop("expression_control"); legacy["inputs"].pop("expression_control")
-    legacy.pop("call_binding"); legacy["inputs"].pop("call_binding")
-    for item in legacy["function_summaries"]["functions"].values(): item.pop("signature")
-    legacy.pop("assignment_control"); legacy["inputs"].pop("assignment_control")
-    assert FunctionSummaries.from_report(FrReport(legacy, ())).expression_control is None
+    assert analyze(client, rules, "entry").report.at("/complete")
     cache = FlowCache(MemoryObjectStore())
     for _ in range(2):
         low = analyze(client, rules, "entry", cache, steps=1)

@@ -12,7 +12,23 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-11-coverage-compiler-profile/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-12-current-contract-compiler-profile/result.json'
+
+
+def retained_report(path):
+    directory = path.parent
+    family = directory.with_name(directory.name.removesuffix('-compiler-profile') + '-scalar-collection')
+    manifest = json.loads((family / 'manifest.json').read_text())
+    if manifest['schema'] != 'fr-scalar-collection':
+        raise ValueError('unsupported scalar collection receipt')
+    receipt = manifest['groups']['compiler-profile']
+    data = path.read_bytes()
+    if receipt['files'] != {'result.json': hashlib.sha256(data).hexdigest()}:
+        raise ValueError('retained compiler profile digest changed')
+    report = json.loads(data)
+    if report['source_commit'] != receipt['collection']['source_commit']:
+        raise ValueError('compiler profile collection identity changed')
+    return report
 
 
 class CompilerProfile(unittest.TestCase):
@@ -24,13 +40,7 @@ class CompilerProfile(unittest.TestCase):
                 raise ValueError('unretained reports may only be tested on GitHub')
             cls.report = json.loads(Path(override).read_text())
         else:
-            manifest = json.loads((REPORT.parent / 'manifest.json').read_text())
-            if manifest['files'] != {'result.json': hashlib.sha256(REPORT.read_bytes()).hexdigest()}:
-                raise ValueError('retained compiler profile digest changed')
-            cls.report = json.loads(REPORT.read_text())
-            if (cls.report['source_commit'] != manifest['collection']['source_commit']
-                    or cls.report['binary_sha256'] != manifest['binary_sha256']):
-                raise ValueError('compiler profile collection identity changed')
+            cls.report = retained_report(REPORT)
 
     def changed(self, feature='python-repeated', variant='renamed-relocated'):
         value = copy.deepcopy(self.report)

@@ -6,13 +6,23 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [Python behavior contract](python-contract.md) compares 163 authored programs and their
-renamed/relocated equivalents: 326 cases across fourteen declared rule families. It retains CPython
+The native analyzer and SDK use one required current format for scalar summaries, import dependencies
+and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
+Historical evidence replays its archived original source. Its readers do not enter the current SDK.
+The [current collection receipts](../tests/agent-eval/results/2026-10-12-current-contract-scalar-collection/manifest.json)
+bind eight successful hosted collections to one frozen source revision. Retention independently
+audits the reports, producer attempts and source bindings before updating active evidence.
+CI caught a compiler consumer still expecting a separate per-report manifest. It now requires the
+current family receipt, checks exact report bytes and source identity, and rejects older layouts.
+Retention runs those compiler controls before committing evidence. Timeout limits stay unchanged.
+
+The [Python behavior contract](python-contract.md) compares 173 authored programs and their
+renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 309 focused regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 102 emitted incomplete analyses with explicit boundary evidence.
+Hosted validation passes 565 focused SDK regressions and 43 corruption controls. The inventory includes
+fourteen CLI refusals and 108 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
@@ -26,6 +36,10 @@ The [repository-flow baseline](python-repository-flow.md) checks thirty cells in
 funcy and pydash snapshots. Sixty runtime executions agree with independent scalar inspection;
 renamed/relocated adapters preserve conclusions. All 24 emitted analyses remain incomplete,
 and six invalid response budgets refuse analysis. B.repository-flow remains open.
+The historical audit uses a pinned source archive from the merged baseline, so analyzer changes
+cannot silently rewrite its meaning. Source retention first failed in run 38214317595 because
+the digest replacement counted its own search string; a line-anchored replacement fixed it.
+Run 38214587144 retained the source and passed all six cohort corruption controls.
 
 ## Next work
 
@@ -42,9 +56,12 @@ revisions, and every timeout stays unchanged.
 
 Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from its captured import/summary limits. Broaden project-derived examples beyond the authored
-identity adapters, and select an unopened replacement held-out project before analyzer edits.
-Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The native
-analyzer stayed frozen at the B.contract merge throughout this cohort. Unknown effects and
+identity adapters. The fixed-slot correction admits unused variadic declarations in fixed calls;
+the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
+The next reservation pins jaraco.functools for further development. Keep it unopened until broader
+coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.
+Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The baseline
+analyzer stayed frozen at the B.contract merge throughout its original cohort. Unknown effects and
 exhausted budgets must continue to prevent a no-path claim.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 

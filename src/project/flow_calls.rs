@@ -55,11 +55,13 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
     let mut names = BTreeSet::new();
     let mut slash = false;
     let mut star = false;
+    let mut bare_star = false;
+    let mut variadic_keywords = false;
     let mut optional = false;
     for node in list.named_children(&mut list.walk()) {
         match node.kind() {
             "comment" => (),
-            "identifier" | "default_parameter" => {
+            "identifier" | "default_parameter" if !variadic_keywords => {
                 let (name, default) = if node.kind() == "default_parameter" {
                     let name = node.child_by_field_name("name")?;
                     let value = node.child_by_field_name("value")?;
@@ -93,23 +95,61 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
                     parameter.kind = Kind::PositionalOnly;
                 }
             }
-            "keyword_separator" if !star => star = true,
+            "keyword_separator" if !star => {
+                star = true;
+                bare_star = true;
+            }
+            "list_splat_pattern" if !star => {
+                unused_variadic(node, function, source, &mut names)?;
+                star = true;
+            }
+            "dictionary_splat_pattern" if !variadic_keywords => {
+                unused_variadic(node, function, source, &mut names)?;
+                variadic_keywords = true;
+            }
             _ => return None,
         }
     }
-    if star && result.last().is_none_or(|p| p.kind != Kind::KeywordOnly) {
+    if bare_star && result.last().is_none_or(|p| p.kind != Kind::KeywordOnly) {
         return None;
     }
     Some(result)
 }
 
+fn unused_variadic<'s>(
+    node: Node<'_>,
+    function: Node<'_>,
+    source: &'s str,
+    names: &mut BTreeSet<&'s str>,
+) -> Option<()> {
+    let mut cursor = node.walk();
+    let mut children = node.named_children(&mut cursor);
+    let name = children.next()?;
+    if name.kind() != "identifier" || children.next().is_some() {
+        return None;
+    }
+    let text = &source[name.byte_range()];
+    if !text.is_ascii() || !names.insert(text) {
+        return None;
+    }
+    let mut pending = vec![function.child_by_field_name("body")?];
+    while let Some(child) = pending.pop() {
+        if child.kind() == "identifier" && &source[child.byte_range()] == text {
+            return None;
+        }
+        pending.extend(child.named_children(&mut child.walk()));
+    }
+    Some(())
+}
+
 pub(super) fn contract() -> Value {
-    json!({"schema":"fr-call-binding-2",
+    json!({"schema":"fr-call-binding",
         "parameters":"ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no evaluated or mutable defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})
 }

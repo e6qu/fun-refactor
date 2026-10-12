@@ -39,10 +39,10 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 ## Latest measured result
 
 The [Python behavior contract](docs/python-contract.md) defines fourteen rule families and compares
-163 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
-326 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
+173 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
+346 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
 static imports, CLI refusals and search budgets. Runtime outcomes remain separate from conservative
-answers and unsupported cases. Hosted checks pass 309 focused regressions and 43 corruption controls.
+answers and unsupported cases. Hosted checks pass 565 focused SDK regressions and 43 corruption controls.
 
 The latest review found that valid line continuations inside module names caused unsupported-import
 cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
@@ -64,10 +64,16 @@ no path. The first held-out opening and collector failures remain part of the ev
 
 ## Next large chunk
 
+Keep one current summary, import dependency and flow cache format. Reject old formats and missing
+metadata. Do not add version dispatch, compatibility readers or migration fallbacks.
+
 Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
-from the retained baseline. Address its import and summary boundaries through general rules,
+from the retained baseline. Fixed-slot calls now admit unused variadic declarations.
+Address the remaining import and summary boundaries through general rules,
 and broaden project-derived examples beyond identity adapters. Choose an unopened replacement
-held-out project before changing the analyzer. Treat pydash as coverage in future rounds. Freeze the revised
+held-out project before changing the analyzer. The next reserved candidate is jaraco.functools;
+its implementation remains unopened. The withdrawn Boltons reservation overlooked earlier delivery coverage.
+Treat pydash as coverage in future rounds. Freeze the revised
 implementation before evaluation. Use the same analyzer, public commands and declared source/sink configuration everywhere.
 Check selected and blocked values with runtime execution and independent inspection, and retain
 renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.

@@ -140,18 +140,19 @@ def test_package_parent_invalidates_dependents_after_plan_reopen(tmp_path, entry
     assert resumed.plan.steps[1].state == StepState.SATISFIED
 
 
-def test_legacy_module_dependency_records_remain_readable():
+@pytest.mark.parametrize("schema", ["fr-flow-modules-1", "fr-flow-modules-2", "fr-flow-modules-3",
+                                   "fr-flow-modules-4", "fr-flow-modules-5", "unknown"])
+def test_noncurrent_module_dependency_records_refuse(schema):
     digest = "1" * 64
     value = {"schema": "fr-dataflow-1", "inputs": {
         "summary_mode": True, "source": {"path": "app.py", "digest": digest},
         "selection": {"name": "entry"}, "rule_file": None, "context": "generic",
         "budget": {"steps": 128, "depth": 8, "bytes": 65536},
-        "modules": {"schema": "fr-flow-modules-1", "complete": True, "cutoffs": [],
+        "modules": {"schema": schema, "complete": True, "cutoffs": [],
             "files": {"app.py": digest, "leaf.py": digest}, "lookups": [{
                 "importer": "app.py", "alias": "helper", "module": "leaf", "member": "identity",
                 "admitted": True, "resolution": "function", "candidates": {
                     "leaf.py": {"status": "source", "digest": digest},
                     "leaf.pyi": {"status": "missing"}, "leaf/__init__.py": {"status": "missing"}}}]}}}
-    result = FlowDependencies.from_report(rehash(value))
-    assert result.entry is None and result.complete
-    assert result.lookups[0].target == "leaf.py" and result.lookups[0].prefix == "helper"
+    with pytest.raises(FrRuntimeError):
+        FlowDependencies.from_report(rehash(value))

@@ -61,7 +61,7 @@ class FunctionSummary:
     may_raise: bool
     callees: tuple[str, ...]
     evaluations: int
-    signature: tuple[SummaryParameter, ...] | None = None
+    signature: tuple[SummaryParameter, ...]
 
     @property
     def return_parameters(self) -> tuple[int, ...]:
@@ -70,7 +70,7 @@ class FunctionSummary:
 
 
 _EXPRESSION_CONTROL = {
-    "schema": "fr-expression-control-1",
+    "schema": "fr-expression-control",
     "evaluation": "left-to-right; each operand once per expression transfer.",
     "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
     "unknowns": "retain both alternatives; no variable or call-result truth specialization.",
@@ -100,22 +100,15 @@ class ExpressionControl:
 
 
 _CALL_BINDING = {
-    "schema": "fr-call-binding-1",
-    "parameters": "required ASCII-named positional-only, positional-or-keyword and keyword-only parameters.",
+    "schema": "fr-call-binding",
+    "parameters": "ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
     "evaluation": "explicit argument values in source order before parameter binding; once per transfer.",
     "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
     "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-    "boundary": "no defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+    "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
     "implicit_exceptions": False,
-}
-
-
-_LITERAL_CALL_BINDING = {
-    **_CALL_BINDING,
-    "schema": "fr-call-binding-2",
-    "parameters": "ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
-    "boundary": "no evaluated or mutable defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
     "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
+    "variadics": "fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
 }
 
 
@@ -127,18 +120,19 @@ class CallBinding:
     invalid: str
     boundary: str
     implicit_exceptions: bool
-    defaults: str | None = None
+    defaults: str
+    variadics: str
 
     @classmethod
     def from_data(cls, value: Any) -> CallBinding:
-        if (not isinstance(value, dict) or value not in (_CALL_BINDING, _LITERAL_CALL_BINDING)
+        if (not isinstance(value, dict) or value != _CALL_BINDING
                 or type(value.get("implicit_exceptions")) is not bool):
             raise FrRuntimeError("unsupported call binding contract")
         return cls(**{key: item for key, item in value.items() if key != "schema"})
 
 
 _ASSIGNMENT_CONTROL = {
-    "schema": "fr-scalar-assignment-1",
+    "schema": "fr-scalar-assignment",
     "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
     "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
     "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
@@ -169,9 +163,9 @@ class FunctionSummaries:
     converged: bool
     complete: bool
     rounds: int
-    expression_control: ExpressionControl | None = None
-    call_binding: CallBinding | None = None
-    assignment_control: AssignmentControl | None = None
+    expression_control: ExpressionControl
+    call_binding: CallBinding
+    assignment_control: AssignmentControl
 
     def for_function(self, name: str) -> FunctionSummary:
         for item in self.functions:
@@ -184,8 +178,8 @@ class FunctionSummaries:
         data = report.to_data()
         try:
             value = data["function_summaries"]
-            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}
-                    or value["schema"] != "fr-function-summaries-1" or value["enabled"] is not True
+            if (report.schema != "fr-dataflow-1" or data["semantics"] != "python-scalar-summaries"
+                    or value["schema"] != "fr-function-summaries" or value["enabled"] is not True
                     or value["mutation_authority"] is not False):
                 raise FrRuntimeError("report does not disclose function summaries")
             if (type(value["converged"]) is not bool or type(data["complete"]) is not bool
@@ -193,36 +187,18 @@ class FunctionSummaries:
                     or not isinstance(value["functions"], dict) or len(value["functions"]) > 64
                     or (data["complete"] and not value["converged"])):
                 raise FrRuntimeError("inconsistent summary convergence")
-            control = None
-            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}:
-                control = ExpressionControl.from_data(data["expression_control"])
-                ExpressionControl.from_data(data["inputs"]["expression_control"])
-                if data["inputs"]["expression_control"] != data["expression_control"]:
-                    raise FrRuntimeError("expression control disagrees with analysis inputs")
-            elif (data.get("expression_control") is not None
-                    or data["inputs"].get("expression_control") is not None):
-                raise FrRuntimeError("legacy summaries cannot declare new expression control")
-            binding = None
-            if data["semantics"] in {"python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}:
-                expected_binding = _LITERAL_CALL_BINDING if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"} else _CALL_BINDING
-                if data["call_binding"] != expected_binding:
-                    raise FrRuntimeError("call binding disagrees with summary semantics")
-                binding = CallBinding.from_data(data["call_binding"])
-                CallBinding.from_data(data["inputs"]["call_binding"])
-                if data["inputs"]["call_binding"] != data["call_binding"]:
-                    raise FrRuntimeError("call binding disagrees with analysis inputs")
-            elif (data.get("call_binding") is not None
-                    or data["inputs"].get("call_binding") is not None):
-                raise FrRuntimeError("legacy summaries cannot declare new call binding")
-            assignment = None
-            if data["semantics"] == "python-scalar-summaries-5":
-                assignment = AssignmentControl.from_data(data["assignment_control"])
-                AssignmentControl.from_data(data["inputs"]["assignment_control"])
-                if data["inputs"]["assignment_control"] != data["assignment_control"]:
-                    raise FrRuntimeError("assignment control disagrees with analysis inputs")
-            elif (data.get("assignment_control") is not None
-                    or data["inputs"].get("assignment_control") is not None):
-                raise FrRuntimeError("legacy summaries cannot declare assignment control")
+            control = ExpressionControl.from_data(data["expression_control"])
+            ExpressionControl.from_data(data["inputs"]["expression_control"])
+            if data["inputs"]["expression_control"] != data["expression_control"]:
+                raise FrRuntimeError("expression control disagrees with analysis inputs")
+            binding = CallBinding.from_data(data["call_binding"])
+            CallBinding.from_data(data["inputs"]["call_binding"])
+            if data["inputs"]["call_binding"] != data["call_binding"]:
+                raise FrRuntimeError("call binding disagrees with analysis inputs")
+            assignment = AssignmentControl.from_data(data["assignment_control"])
+            AssignmentControl.from_data(data["inputs"]["assignment_control"])
+            if data["inputs"]["assignment_control"] != data["assignment_control"]:
+                raise FrRuntimeError("assignment control disagrees with analysis inputs")
             revision = data["revision"]
 
             def occurrence(raw: Any) -> Occurrence:
@@ -262,24 +238,20 @@ class FunctionSummaries:
                     raise FrRuntimeError("malformed summary effects")
                 if data["complete"] and any(callee not in value["functions"] for callee in item["callees"]):
                     raise FrRuntimeError("complete summary has an undisclosed callee")
-                signature = None
-                if data["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"}:
-                    raw_signature = item["signature"]
-                    if not isinstance(raw_signature, list) or len(raw_signature) != len(parameters):
-                        raise FrRuntimeError("signature disagrees with summary parameters")
-                    signature = tuple(SummaryParameter.from_data(raw) for raw in raw_signature)
-                    seen = set()
-                    rank, optional = 0, False
-                    for parameter in signature:
-                        current = {"positional-only": 0, "positional-or-keyword": 1, "keyword-only": 2}[parameter.kind]
-                        if (parameter.name in seen or current < rank or parameter.site.revision != revision
-                                or current < 2 and optional and parameter.required):
-                            raise FrRuntimeError("inconsistent summary signature")
-                        seen.add(parameter.name)
-                        rank = current
-                        optional |= not parameter.required
-                elif "signature" in item:
-                    raise FrRuntimeError("legacy summaries cannot declare signature metadata")
+                raw_signature = item["signature"]
+                if not isinstance(raw_signature, list) or len(raw_signature) != len(parameters):
+                    raise FrRuntimeError("signature disagrees with summary parameters")
+                signature = tuple(SummaryParameter.from_data(raw) for raw in raw_signature)
+                seen = set()
+                rank, optional = 0, False
+                for parameter in signature:
+                    current = {"positional-only": 0, "positional-or-keyword": 1, "keyword-only": 2}[parameter.kind]
+                    if (parameter.name in seen or current < rank or parameter.site.revision != revision
+                            or current < 2 and optional and parameter.required):
+                        raise FrRuntimeError("inconsistent summary signature")
+                    seen.add(parameter.name)
+                    rank = current
+                    optional |= not parameter.required
                 functions.append(FunctionSummary(name, tuple(parameters), traces(item["returns"]),
                                                  traces(item["exceptional_returns"]), tuple(sinks),
                                                  item["normal_return"], item["may_raise"],

@@ -3,8 +3,8 @@
 `fr_ir.flow` provides typed control-flow graphs and opt-in `FlowCache` persistence through the
 existing Merkle stores. Input changes recompute; unrelated edits renew evidence handles without
 renewing mutation authority. See the [flow contract](../../docs/agent-investigations.md#verified-result-reuse).
-New caches store complete reports in bounded JSON chunks. Older manifests remain readable and
-migrate entries as they are refreshed. The storage format does not enable partial analysis reuse.
+Caches store complete reports in bounded JSON chunks. The reader requires the current manifest
+and chunk envelope. Other formats fail explicitly. Storage does not enable partial analysis reuse.
 
 This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
 namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
@@ -391,7 +391,7 @@ resumed = plan.resume(client)
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
 `FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
 The SDK independently derives admission from all candidate statuses and checks closure coverage.
-It reads legacy `fr-flow-modules-1` through `fr-flow-modules-4` records and current `fr-flow-modules-5` records.
+It requires the current `fr-flow-modules` record and all declared fields.
 `FlowDependencies.namespaces` lists retained namespace directories separately from source files.
 Each `ImportResolution` and `ImportLookup` also exposes its namespace paths. The SDK checks their
 directory candidates, absent initializers, closure coverage and shared module budget.
@@ -523,26 +523,32 @@ checks and source-correspondence limits.
 
 Summary analysis now follows `and`, `or`, `not`, conditional expressions and comparison chains.
 Boolean and `None` literals select operands; unknown selectors retain both alternatives.
-`result.summaries.expression_control` exposes the versioned contract for
-`python-scalar-summaries-2` and later. Earlier summary records remain readable with this field set to `None`.
+`result.summaries.expression_control` exposes the required expression contract for
+`python-scalar-summaries`. Reports must declare every current capability.
 See [the expression contract](../../docs/expression-control.md) for effects, cache identities and limits.
 
 
-`FunctionSummaries.call_binding` exposes the required-parameter contract in
-`python-scalar-summaries-3`. Explicit keyword arguments bind independently to positional-or-keyword
+`FunctionSummaries.call_binding` exposes the current parameter contract.
+Explicit keyword arguments bind independently to positional-or-keyword
 and keyword-only parameters; `/` preserves positional-only parameters. Argument expressions run in
 source order before declaration-order summary substitution. Missing or invalid bindings leave the
-analysis incomplete. Evaluated defaults, argument unpacking, variadics and keyword calls to external rules remain
-unsupported. Earlier report versions read with `call_binding=None` and cannot claim the new contract.
+analysis incomplete. Evaluated defaults, argument unpacking, referenced variadic values and keyword
+calls to external rules remain unsupported.
 See [Python call binding](../../docs/call-binding.md) for evaluation and refusal boundaries.
 
-`python-scalar-summaries-4` extends this contract with immutable literal defaults.
+The contract supports immutable literal defaults.
 `FunctionSummary.signature` exposes typed names, parameter kinds and exact parameter/default
-occurrences; older reports expose `signature=None`. `SummaryParameter.required` distinguishes
+occurrences. Reports must retain signatures. `SummaryParameter.required` distinguishes
 required slots from admitted defaults. Entry parameters remain symbolic even when defaults exist.
 See [literal defaults](../../docs/literal-defaults.md) for definition-time effects and cache boundaries.
 
-`python-scalar-summaries-5` adds literal sequence unpacking and chained local assignments.
+Summary analysis supports literal sequence unpacking and chained local assignments.
 `FunctionSummaries.assignment_control` exposes `AssignmentControl` with evaluation order, binding
-and resource limits. Older reports expose `None` and cannot declare this contract.
+and resource limits. The reader requires this contract in the report and analysis inputs.
 See [scalar assignments](../../docs/scalar-assignments.md) for exact origins, explicit raises and refusal boundaries.
+
+The current contract permits unused, unannotated `*args` and `**kwargs` declarations
+when every call binds only fixed parameter slots. The body must contain no identifier with
+the variadic parameter's name. `CallBinding.variadics` describes this required boundary.
+Extra arguments still cause incomplete analysis after their expressions run.
+Referenced variadic values, unpacking and definition-time effects remain unsupported.

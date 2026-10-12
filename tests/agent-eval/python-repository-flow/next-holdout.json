@@ -1,0 +1,12 @@
+{
+  "schema": "fr-python-repository-flow-holdout-selection-1",
+  "selected_at": "2026-10-12",
+  "status": "withdrawn",
+  "withdrawn_reason": "Boltons already appears in tests/agent-eval/python-repositories/task.json. The initial metadata-only reservation overlooked that earlier delivery coverage; it cannot qualify as a fresh holdout. Preserve this mistake and use replacement-holdout.json for the next development round.",
+  "baseline_revision": "1a940c5f3df0f71bc43f5e879d48946d3b5d14dc",
+  "repository": "mahmoud/boltons",
+  "revision": "4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d",
+  "selection": "An independently maintained Python utility library with no dependencies according to repository metadata. Continue the narrow utility cohort; this selection does not establish representative application coverage.",
+  "opening": "Only repository and commit metadata have been read. Keep implementation files unopened until the revised analyzer and coverage cases are frozen. Preserve the first inspection, runtime and analysis attempts, including failures.",
+  "scope": "Select project-derived scalar helpers through a declared inspection rule before runtime or analysis. Check selected and blocked arguments, renamed or relocated adapters, unknown effects and exhausted budgets. Do not reuse Toolz, funcy or pydash as a fresh holdout."
+}

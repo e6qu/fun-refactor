@@ -44,21 +44,20 @@ class ImportResolution:
     packages: tuple[str, ...]
     candidates: tuple[ImportCandidate, ...]
     admitted: bool
-    namespaces: tuple[str, ...] = ()
+    namespaces: tuple[str, ...]
 
 
 def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
-                legacy: bool = False, namespace_paths: frozenset[str] | None = None) -> ImportResolution:
-    namespace_mode = namespace_paths is not None
+                namespace_paths: frozenset[str]) -> ImportResolution:
     name = item["module"]
-    if (not isinstance(name, str) or not 1 <= len(name.split(".")) <= (1 if legacy else 16)
+    if (not isinstance(name, str) or not 1 <= len(name.split(".")) <= 16
             or any(re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", part) is None for part in name.split("."))
             or type(item["admitted"]) is not bool):
         raise FrRuntimeError("malformed module resolution")
     candidates = []
     for path, candidate in item["candidates"].items():
         status = candidate["status"]
-        if status not in ({"source", "missing", "outside-snapshot", "symlink"} | ({"directory"} if namespace_mode else set())):
+        if status not in {"source", "missing", "outside-snapshot", "symlink", "directory"}:
             raise FrRuntimeError("unknown import candidate status")
         digest = _digest(candidate["digest"]) if status == "source" else None
         if status != "source" and "digest" in candidate:
@@ -77,20 +76,17 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
         stem = "/".join(parts[:count])
         module, package, stub, package_stub = f"{stem}.py", f"{stem}/__init__.py", f"{stem}.pyi", f"{stem}/__init__.pyi"
         expected.update((module, package, stub))
-        if not legacy:
-            expected.add(package_stub)
-        if namespace_mode:
-            expected.add(stem)
-        stubs_missing = statuses.get(stub) == "missing" and (legacy or statuses.get(package_stub) == "missing")
-        is_package = not legacy and statuses.get(package) == "source" and statuses.get(module) == "missing" and stubs_missing
+        expected.update((package_stub, stem))
+        stubs_missing = statuses.get(stub) == "missing" and statuses.get(package_stub) == "missing"
+        is_package = statuses.get(package) == "source" and statuses.get(module) == "missing" and stubs_missing
         is_module = count == len(parts) and statuses.get(module) == "source" and statuses.get(package) == "missing" and stubs_missing
-        is_namespace = (namespace_mode and statuses.get(stem) == "directory"
+        is_namespace = (statuses.get(stem) == "directory"
                         and statuses.get(module) == "missing" and statuses.get(package) == "missing" and stubs_missing)
         admitted = admitted and (is_package or is_module or is_namespace)
         if is_namespace:
             namespaces.append(stem)
         if count < len(parts):
-            if not namespace_mode or is_package:
+            if is_package:
                 packages.append(package)
         else:
             target = package if is_package else module if is_module else stem if is_namespace else None
@@ -98,17 +94,13 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
         target = None
     if set(statuses) != expected:
         raise FrRuntimeError("import lookup must retain all candidate paths")
-    if (item["admitted"] != admitted or not legacy
-            and (item["target"] != target or item["packages"] != packages)):
+    if item["admitted"] != admitted or item["target"] != target or item["packages"] != packages:
         raise FrRuntimeError("import admission disagrees with its candidates")
-    if namespace_mode:
-        if item["namespaces"] != namespaces:
-            raise FrRuntimeError("namespace paths disagree with their directory candidates")
-    elif "namespaces" in item:
-        raise FrRuntimeError("legacy resolution cannot declare namespaces")
-    known = files.keys() | (namespace_paths or frozenset())
+    if item["namespaces"] != namespaces:
+        raise FrRuntimeError("namespace paths disagree with their directory candidates")
+    known = files.keys() | namespace_paths
     if complete and (not admitted or target not in known or not set(packages) <= files.keys()
-                     or not set(namespaces) <= (namespace_paths or frozenset())):
+                     or not set(namespaces) <= namespace_paths):
         raise FrRuntimeError("complete dependency closure omits an import")
     return ImportResolution(name, target, tuple(packages), tuple(candidates), admitted, tuple(namespaces))
 
@@ -128,16 +120,16 @@ class ImportLookup:
     candidates: tuple[ImportCandidate, ...]
     admitted: bool
     resolution: str
-    target: str | None = None
-    packages: tuple[str, ...] = ()
-    prefix: str | None = None
-    binding_chain: tuple[ImportBinding, ...] = ()
-    submodule: ImportResolution | None = None
-    terminal_module: str | None = None
-    namespaces: tuple[str, ...] = ()
+    target: str | None
+    packages: tuple[str, ...]
+    prefix: str
+    binding_chain: tuple[ImportBinding, ...]
+    submodule: ImportResolution | None
+    terminal_module: str | None
+    namespaces: tuple[str, ...]
 
 
-def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], module_aliases: bool = False, namespaces: frozenset[str] = frozenset()) -> None:
+def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespaces: frozenset[str]) -> None:
     known_modules = files.keys() | namespaces
     bindings: dict[tuple[str, str], list[ImportLookup]] = {}
     for lookup in lookups:
@@ -149,10 +141,6 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], module_a
             raise FrRuntimeError("import binding chain starts outside its selected member")
         if lookup.resolution == "function" and (not chain or any(hop.path not in files for hop in chain)):
             raise FrRuntimeError("resolved function lacks a source-bound binding chain")
-        if not module_aliases:
-            if lookup.resolution == "module" and chain:
-                raise FrRuntimeError("module lookup carries a function binding chain")
-            continue
         child = lookup.submodule
         if child is not None and (lookup.member is None or lookup.target is None
                 or lookup.target not in (lookup.module.replace('.', '/') + '/__init__.py',
@@ -160,13 +148,13 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], module_a
                 or child.module != f"{lookup.module}.{lookup.member}"
                 or lookup.member.startswith('__') and lookup.member.endswith('__')
                 or chain or lookup.resolution not in {"module", "unavailable"}):
-            raise FrRuntimeError("submodule fallback disagrees with its package member")
+            raise FrRuntimeError("child module lookup disagrees with its package member")
         if lookup.resolution == "module":
             if lookup.terminal_module not in known_modules or any(hop.path not in files for hop in chain):
                 raise FrRuntimeError("module alias lacks a source-bound terminal")
             if chain:
                 if child is not None:
-                    raise FrRuntimeError("submodule fallback carries an attribute chain")
+                    raise FrRuntimeError("child module lookup carries an attribute chain")
             elif lookup.terminal_module != (child.target if child is not None else lookup.target):
                 raise FrRuntimeError("module alias terminal differs from its selected module")
             elif lookup.member is not None and child is None:
@@ -196,8 +184,8 @@ class FlowDependencies:
     complete: bool
     cutoffs: tuple[str, ...]
     _dependency: Dependency
-    entry: ImportResolution | None = None
-    namespaces: tuple[str, ...] = ()
+    entry: ImportResolution
+    namespaces: tuple[str, ...]
 
     @property
     def dependency(self) -> Dependency:
@@ -216,7 +204,7 @@ class FlowDependencies:
             if _digest(data["input_digest"]) != hashlib.sha256(encoded).hexdigest():
                 raise FrRuntimeError("flow input digest differs from its dependencies")
             if (report.schema != "fr-dataflow-1" or inputs["summary_mode"] is not True
-                    or modules["schema"] not in {"fr-flow-modules-1", "fr-flow-modules-2", "fr-flow-modules-3", "fr-flow-modules-4", "fr-flow-modules-5"}
+                    or modules["schema"] != "fr-flow-modules"
                     or type(modules["complete"]) is not bool
                     or not isinstance(modules["cutoffs"], list)
                     or any(not isinstance(cutoff, str) for cutoff in modules["cutoffs"])
@@ -226,24 +214,15 @@ class FlowDependencies:
             if not 1 <= len(files) <= 16:
                 raise FrRuntimeError("module dependency count exceeds its budget")
             paths = dict(files)
-            legacy = modules["schema"] == "fr-flow-modules-1"
-            namespace_mode = modules["schema"] == "fr-flow-modules-5"
-            module_aliases = modules["schema"] in {"fr-flow-modules-4", "fr-flow-modules-5"}
-            chains = modules["schema"] in {"fr-flow-modules-3", "fr-flow-modules-4", "fr-flow-modules-5"}
-            if namespace_mode:
-                if not isinstance(modules["namespaces"], list):
-                    raise FrRuntimeError("namespace closure must be a list")
-                namespaces = tuple(_path(path) for path in modules["namespaces"])
-                if (tuple(sorted(set(namespaces))) != namespaces or set(namespaces) & paths.keys()
-                        or len(files) + len(namespaces) > 16):
-                    raise FrRuntimeError("namespace closure exceeds its budget or repeats a module")
-            else:
-                if "namespaces" in modules:
-                    raise FrRuntimeError("legacy closure cannot declare namespaces")
-                namespaces = ()
-            namespace_paths = frozenset(namespaces) if namespace_mode else None
-            entry = None if legacy else _resolution(modules["entry"], paths, modules["complete"], namespace_paths=namespace_paths)
-            if module_aliases and modules["complete"] and entry is not None and any(
+            if not isinstance(modules["namespaces"], list):
+                raise FrRuntimeError("namespace closure must be a list")
+            namespaces = tuple(_path(path) for path in modules["namespaces"])
+            if (tuple(sorted(set(namespaces))) != namespaces or set(namespaces) & paths.keys()
+                    or len(files) + len(namespaces) > 16):
+                raise FrRuntimeError("namespace closure exceeds its budget or repeats a module")
+            namespace_paths = frozenset(namespaces)
+            entry = _resolution(modules["entry"], paths, modules["complete"], namespace_paths=namespace_paths)
+            if modules["complete"] and any(
                     _special_attribute(part) for part in entry.module.split(".")[1:]):
                 raise FrRuntimeError("complete closure includes a special child module")
             lookups = []
@@ -254,50 +233,46 @@ class FlowDependencies:
                         or (item["member"] is not None and (not isinstance(item["member"], str)
                             or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
                     raise FrRuntimeError("malformed import lookup")
-                selected = _resolution(item, paths, modules["complete"], legacy, namespace_paths)
-                if module_aliases and modules["complete"] and (
+                selected = _resolution(item, paths, modules["complete"], namespace_paths)
+                if modules["complete"] and (
                         _special_attribute(item["alias"])
                         or item["member"] is not None and _special_attribute(item["member"])
                         or any(_special_attribute(part) for part in selected.module.split(".")[1:])):
                     raise FrRuntimeError("complete closure includes special module attributes")
-                prefix = item["alias"] if legacy else item["prefix"]
+                prefix = item["prefix"]
                 if (prefix not in (item["alias"], selected.module) or prefix.split(".")[0] != item["alias"]
                         or item["member"] is not None and prefix != item["alias"]):
                     raise FrRuntimeError("import binding prefix disagrees with its alias")
                 resolution = item["resolution"]
-                if (resolution not in ({"module", "function", "missing", "ambiguous", "unavailable"}
-                              | ({"cyclic", "budget"} if chains else set()))
+                if (resolution not in {"module", "function", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
                         or modules["complete"] and resolution not in {"module", "function"}
-                        or (resolution == "module" and item["member"] is not None and not module_aliases)
                         or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
                     raise FrRuntimeError("import resolution disagrees with its declaration")
                 lookups.append(ImportLookup(item["importer"], item["alias"], selected.module, item["member"],
                                             selected.candidates, selected.admitted, resolution,
                                             selected.target, selected.packages, prefix,
-                                                    tuple(ImportBinding(_path(hop["path"]), hop["name"])
-                                                          for hop in item["binding_chain"])
-                                                    if chains else (),
-                                                _resolution(item["submodule"], paths, modules["complete"], namespace_paths=namespace_paths)
-                                                if module_aliases and item["submodule"] is not None else None,
-                                                _path(item["terminal_module"]) if module_aliases and item["terminal_module"] is not None else None, selected.namespaces))
-            if chains:
-                if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
-                       for lookup in lookups for hop in lookup.binding_chain):
-                    raise FrRuntimeError("invalid re-export member name")
-                _binding_chains(lookups, paths, module_aliases, frozenset(namespaces))
+                                            tuple(ImportBinding(_path(hop["path"]), hop["name"])
+                                                  for hop in item["binding_chain"]),
+                                            _resolution(item["submodule"], paths, modules["complete"], namespace_paths)
+                                            if item["submodule"] is not None else None,
+                                            _path(item["terminal_module"]) if item["terminal_module"] is not None else None,
+                                            selected.namespaces))
+            if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
+                   for lookup in lookups for hop in lookup.binding_chain):
+                raise FrRuntimeError("invalid re-export member name")
+            _binding_chains(lookups, paths, frozenset(namespaces))
             if len(lookups) > 128:
                 raise FrRuntimeError("import lookup count exceeds its budget")
-            if namespace_mode:
-                resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None)]
-                expected_namespaces = {path for resolution in resolutions if resolution is not None and resolution.admitted
-                                       for path in resolution.namespaces}
-                if (not set(namespaces) <= expected_namespaces
-                        or modules["complete"] and set(namespaces) != expected_namespaces):
-                    raise FrRuntimeError("namespace closure disagrees with its admitted lookups")
+            resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None)]
+            expected_namespaces = {path for resolution in resolutions if resolution is not None and resolution.admitted
+                                   for path in resolution.namespaces}
+            if (not set(namespaces) <= expected_namespaces
+                    or modules["complete"] and set(namespaces) != expected_namespaces):
+                raise FrRuntimeError("namespace closure disagrees with its admitted lookups")
             source = inputs["source"]
             if source["path"] not in paths or source["digest"] != paths[source["path"]]:
                 raise FrRuntimeError("entry source differs from its dependency closure")
-            if entry is not None and (not entry.admitted or entry.target != source["path"]):
+            if not entry.admitted or entry.target != source["path"]:
                 raise FrRuntimeError("entry source differs from its module resolution")
             rules = inputs["rule_file"]
             query = {"path": _path(source["path"]), "function": inputs["selection"]["name"],

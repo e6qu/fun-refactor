@@ -622,7 +622,7 @@ impl Modules {
             .iter()
             .map(|path| path.strip_prefix(&project.root).unwrap())
             .collect();
-        result.inputs = json!({"schema":"fr-flow-modules-5", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
+        result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
             "policy":"static single-root regular and namespace packages and .py modules; explicit acyclic function and module re-exports with package child fallback. No initialization effects, merged namespace portions, implicit child traversal, native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});

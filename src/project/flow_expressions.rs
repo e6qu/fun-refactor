@@ -26,7 +26,7 @@ impl Truth {
 }
 
 pub(super) fn contract() -> Value {
-    json!({"schema":"fr-expression-control-1",
+    json!({"schema":"fr-expression-control",
         "evaluation":"left-to-right; each operand once per expression transfer.",
         "selectors":"Boolean and None literals, not, parentheses and nested selected expressions.",
         "unknowns":"retain both alternatives; no variable or call-result truth specialization.",

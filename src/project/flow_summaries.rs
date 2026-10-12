@@ -44,7 +44,7 @@ impl Solver {
     }
 
     pub fn report(&self) -> Value {
-        json!({"schema":"fr-function-summaries-1", "enabled":self.enabled,
+        json!({"schema":"fr-function-summaries", "enabled":self.enabled,
             "converged":self.converged,"rounds":self.rounds,"functions":self.table,
             "function_limit":FUNCTION_LIMIT,
             "context":"symbolic explicit parameters; bind each call independently and fill omitted literal defaults.",

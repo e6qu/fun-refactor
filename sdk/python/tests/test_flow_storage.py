@@ -26,21 +26,19 @@ def analyze(cache, client, rules):
 
 
 @pytest.mark.parametrize("disk", [False, True])
-def test_legacy_cache_reopens_rebinds_and_migrates_without_partial_reuse(tmp_path, disk):
+def test_current_cache_reopens_and_rebinds_without_partial_reuse(tmp_path, disk):
     client, rules = workspace(tmp_path)
     store = DirectoryObjectStore(tmp_path / "objects") if disk else MemoryObjectStore()
-    original = analyze(FlowCache(store), client, rules).report.to_data()
-    legacy = store_merkle_value(store, original).digest
-    root = store_merkle_value(store, {"schema": "fr-flow-cache-1", "entries": {
-        original["input_digest"]: legacy}}).digest
-    cache = FlowCache.restore(store, root)
+    cache = FlowCache(store)
+    original = analyze(cache, client, rules).report.to_data()
+    cache = FlowCache.restore(store, cache.persist())
     (tmp_path / "extra.py").write_text("def independent():\n    return 7\n")
     result = analyze(cache, client, rules)
     assert result.reused and result.report.at("/revision") != original["revision"]
     manifest = restore_stored_value(store, cache.persist())
-    assert manifest["schema"] == "fr-flow-cache-2"
+    assert manifest["schema"] == "fr-flow-cache"
     retained = restore_stored_value(store, manifest["entries"][original["input_digest"]])
-    assert retained["schema"] == "fr-flow-record-1"
+    assert retained["schema"] == "fr-flow-record"
     cache = FlowCache.restore(store, cache.persist())
     assert analyze(cache, client, rules).reused
     (tmp_path / "app.py").write_text("def entry():\n    return sink(0)\n")
@@ -80,7 +78,7 @@ def test_changed_chunk_is_rejected_by_content_verification(tmp_path):
                                    ['{"complete":true,"schema":"fr-dataflow-1","value":NaN}']])
 def test_rehashed_malformed_envelopes_refuse(chunks):
     store = MemoryObjectStore()
-    root = store_merkle_value(store, {"schema": "fr-flow-record-1", "chunks": chunks}).digest
+    root = store_merkle_value(store, {"schema": "fr-flow-record", "chunks": chunks}).digest
     with pytest.raises(FrRuntimeError):
         restore_flow_report(store, root)
 
@@ -95,9 +93,17 @@ def test_incomplete_or_oversized_reports_never_enter_store(value):
     assert len(store) == 0
 
 
-@pytest.mark.parametrize("schema", ["fr-flow-cache-3", [], None, 2])
-def test_unknown_manifest_version_refuses(schema):
+@pytest.mark.parametrize("schema", ["fr-flow-cache-1", "fr-flow-cache-2", "unknown", [], None, 2])
+def test_noncurrent_manifest_refuses(schema):
     store = MemoryObjectStore()
     root = store_merkle_value(store, {"schema": schema, "entries": {}}).digest
     with pytest.raises(FrRuntimeError, match="manifest"):
         FlowCache.restore(store, root)
+
+
+@pytest.mark.parametrize("schema", ["fr-dataflow-1", "fr-flow-record-1"])
+def test_unchunked_or_noncurrent_record_envelopes_refuse(schema):
+    store = MemoryObjectStore()
+    root = store_merkle_value(store, {"schema": schema, "complete": True}).digest
+    with pytest.raises(FrRuntimeError, match="envelope"):
+        restore_flow_report(store, root)

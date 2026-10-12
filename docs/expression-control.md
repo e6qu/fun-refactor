@@ -29,14 +29,13 @@ outside it. An evaluated unsupported expression or exhausted budget reports inco
 An expression skipped by a known selector needs no execution contract. Lexical binding checks and
 module-closure checks still apply independently, including to source containing skipped expressions.
 
-Expression control was introduced in `python-scalar-summaries-2`; current reports use version 5
+Current reports use `python-scalar-summaries`
 with [call binding](call-binding.md) and [ordered assignments](scalar-assignments.md).
-They include `fr-expression-control-1` in both the public
+They include `fr-expression-control` in both the public
 report and canonical inputs. Analyzer identities include the expression implementation. Native reuse
 rejects changed contracts even with a recomputed retained-report digest. The Python SDK exposes
-`FunctionSummaries.expression_control` and rejects malformed or inconsistent contracts. It still
-reads earlier summary records, where this field is `None`; that compatibility does not authorize
-reusing an old report under the new analyzer.
+`FunctionSummaries.expression_control` and requires its complete current contract.
+Other formats fail explicitly; the SDK provides no compatibility adapter.
 
 The [pinned task](../tests/agent-eval/expression-control/task.json) exercises unknown-target repair,
 feature delivery, resumption, reversal and independent receiver replay. The [runtime corpus](../sdk/python/tests/test_expression_control.py)
