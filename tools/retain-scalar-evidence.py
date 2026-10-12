@@ -30,6 +30,11 @@ SCRIPTS.update({group: group + '-acceptance' for groups in FLOW.values() for gro
                 if group != 'flow-fixed-point'})
 
 
+def audit_arguments(group, path):
+    flag = '--verify' if group == 'index-resolution' else '--audit'
+    return [f'tools/{SCRIPTS[group]}.py', flag, str(path)]
+
+
 def files(archive, expected_digest):
     require('sha256:' + hashlib.sha256(archive).hexdigest() == expected_digest, 'artifact digest changed')
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
@@ -85,7 +90,10 @@ def keep(group, data, identity, prefix):
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_bytes(content)
     argument = destination if group == 'python-repositories' else destination / 'result.json'
-    retain.command(['python3', '-B', f'tools/{SCRIPTS[group]}.py', '--audit', str(argument)])
+    result = subprocess.run(['python3', '-B', *audit_arguments(group, argument)], cwd=ROOT,
+                            capture_output=True, text=True, timeout=60)
+    require(result.returncode == 0, f'{group} audit failed: {result.stderr[-4096:]}')
+    print(f'Audited {group} from {identity["source_commit"]}', flush=True)
     return relative, {'collection': identity, 'files': {name: hashlib.sha256(content).hexdigest()
                                                        for name, content in data.items()}}
 
@@ -145,7 +153,7 @@ def main():
             if Path(entry['path']).parent.name.endswith('-' + group):
                 entry.update(path=str(relative / 'result.json'), sha256=receipt['files']['result.json'])
                 argument = relative if group == 'python-repositories' else relative / 'result.json'
-                entry['audit'] = f'python3 tools/{SCRIPTS[group]}.py --audit {argument}'
+                entry['audit'] = 'python3 ' + ' '.join(audit_arguments(group, argument))
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
     require(not directory.exists(), 'preserve previous collection receipts')
