@@ -48,6 +48,9 @@ Keep failures alongside corrected attempts. The [failed generator collection](..
 retains its original result and validator. The [first initialization gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
 records obsolete boundary fixtures and a metadata-size failure; the [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526)
 passes without increasing the existing output budget. Detailed history belongs in those records.
+The [class collection failure](../tests/agent-eval/results/2026-10-13-class-initialization-history-python-contract-failure/manifest.json)
+preserves four wrong source-call indices and one renamed boundary label.
+Its original validator reproduces those errors; corrected expectations retain the same runtime outcomes and limits.
 
 ## Studies that stay stopped
 
