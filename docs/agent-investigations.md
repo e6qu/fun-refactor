@@ -135,6 +135,10 @@ Duplicate bindings, shadowing, ignored files, symlink leaves or ancestors and sy
 Import aliases refer only to static module bindings; arbitrary object aliases remain unsupported.
 
 Ordinary modules admit function declarations, static imports, comments, inert string expressions and `pass`.
+Summary mode also admits distinct ASCII names bound to immutable scalar literals. Rebinding,
+special attributes, annotations, containers and evaluated expressions remain incomplete. Global
+value reads and imported literal members remain unsupported. A literal package member prevents
+selection of a same-named child module.
 Package initializers also admit explicit local imports. Interpolated strings retain effect cutoffs.
 Function re-exports follow at most 16 named bindings to the defining function. Each member lookup
 retains its ordered `binding_chain` of source paths and names; aliases never invent a new function identity.
@@ -155,7 +159,7 @@ Implicit child attributes, dynamic attributes and runtime import hooks remain ou
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
 Rule names must be unqualified in import mode.
-They cannot overlap any local function or import binding in the closure.
+They cannot overlap any local function, literal name or import binding in the closure.
 
 Budgets admit at most 16 modules, 256 KiB of module source, 128 import lookups and 16 components per module name.
 Parent initializers count toward the module and source budgets.

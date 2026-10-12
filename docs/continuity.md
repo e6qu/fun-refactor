@@ -9,8 +9,10 @@ in Git and retained reports; this page describes the current handoff.
 Summary mode admits distinct module names bound to immutable scalar literals. Rebinding, function
 and import collisions, special attributes and evaluated or mutable values remain incomplete.
 Global value reads stay unsupported. A literal package member prevents guessed child-module imports.
-The focused gate exposed obsolete literal-as-effect fixtures and an 8 KiB metadata refusal. Evaluated
+The [first focused gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
+exposed obsolete literal-as-effect fixtures and an 8 KiB metadata refusal. Evaluated
 expressions now exercise those boundaries, and shorter contract descriptions preserve the existing budget.
+The [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526) passes all focused controls.
 
 Uncalled unannotated functions with immutable literal defaults defer their bodies. Referenced
 variadics therefore do not cause module-effect cutoffs at declaration time; calling them still
