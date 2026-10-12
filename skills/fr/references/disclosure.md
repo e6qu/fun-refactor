@@ -1,8 +1,8 @@
 # Progressive disclosure
 
-Ask for an overview first, then the caller or source section needed for the current question. Avoid loading the whole project into the conversation.
+Ask for an overview, then the caller or source section needed for the question.
 
-Start with the full handle returned by `project explore` or `project find`:
+Start with the full handle from `project explore` or `project find`:
 
 ```sh
 fr project disclose <HANDLE> --token-limit 4096
@@ -13,19 +13,19 @@ fr project disclose <HANDLE> --view evidence --depth 3 --token-limit 4096
 ```
 
 Evidence catalogs `code_map`, `call_traces`, `impact` and `sources_and_sinks`. Follow an
-exact shortcut or root action. `object_digest` keys storage; the Python SDK restores it lazily.
+shortcut or root action. `object_digest` keys storage; the Python SDK restores it lazily.
 Use `--proofs` for protocol tests.
 
 Use `fr intent --from INTENT.json` for a complete request. It selects named subtrees from one
 snapshot and returns their object digests. Use reveals for choices, proof tests or later
 subtrees.
 
-The first response contains semantic and source holes without either payload. Prefer a relevant
+The first response identifies semantic and source sections without loading them. Prefer a relevant
 `semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose
-`editable_ir` count is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
+`editable_ir` is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
 exactly; do not reconstruct the handle, cursor, profile or limit.
-Each reveal exposes one IR level. Follow the child whose summary, key and semantic address match the
-task. Run exact continuation arguments to finish a child page.
+Each reveal exposes one IR level. Follow the child matching the task.
+Run exact continuations to finish a child page.
 
 An editable scalar includes `edit` with an opaque ID and exact `preview_template.arguments`.
 Replace only `<NEW_VALUE>` and run that array after `fr`:
@@ -63,8 +63,8 @@ locations. Every response gives a conservative token bound over serialized UTF-8
 when the compact envelope or a single child cannot fit.
 
 Keep `view_basis` and `commitment.root` with derived decisions. A changed project invalidates the
-target and every hole. A changed profile, limit or cursor invalidates a continuation. Do not treat an
-unrevealed hole as absence, and do not treat a Merkle digest as behavioral proof.
+target and every hole. A changed profile, limit or cursor invalidates a continuation. An unrevealed section does not
+establish absence; a Merkle digest does not prove behavior.
 
 Exact actions may be copied into a profiled batch. Batch argument arrays accept the leading
 `project` emitted by the action:

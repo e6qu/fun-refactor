@@ -1,10 +1,10 @@
 # Investigations
 
-When explaining why user input reaches an output, link the relevant calls and source lines. Recheck the finding when those files change.
+To explain why input reaches an output, link the calls and source lines. Recheck when those files change.
 
-Call, reference and flow reports expose revision-bound occurrence/origin records. Read exact byte
-spans and Unicode line ranges separately from enclosing declaration handles. Missing or multiple
-origins remain explicit.
+Call, reference and flow reports identify uses and their source locations in one revision.
+Read their byte spans and Unicode line ranges separately from enclosing declaration handles.
+Missing or multiple origins remain explicit.
 
 `fr project dataflow HANDLE` follows the declared Python scalar subset through same-file helpers.
 Use `--steps`, `--depth` and `--bytes` to bound work and output. External source, sink, propagation
@@ -15,12 +15,12 @@ Add `--summaries` for symbolic summaries of recursive same-file functions, inclu
 Inspect `function_summaries` and `completion`; convergence does not prove runtime termination.
 Aliases, exception handlers and unsupported effects remain incomplete boundaries.
 
-Read `control_flow`, `origins` and `summaries` for exact graph nodes and context-specific evaluations.
+Read `control_flow`, `origins` and `summaries` for graph nodes and context-specific evaluations.
 Synthetic exits have absent origins. Edges use local IDs; derivations do not prove path feasibility.
 `--inputs-only` fingerprints the defining file, rules, configuration, analyzer and budgets.
 Python `fr_ir.flow.FlowCache` stores complete results in a verified Merkle store and revalidates
 inputs before reuse. Keep its trusted root; stale inputs recompute and tampered objects refuse.
-Reuse renews occurrence handles, never mutation reviews. Measure overhead before relying on speedups.
+Reuse renews occurrence handles, never mutation reviews. Measure overhead first.
 
 `fr project investigate --from PLAN` revalidates a local plan and returns updated states without
 writing or executing actions. Use `--transition STEP:start`, `STEP:satisfy`, `STEP:block` or
@@ -29,9 +29,8 @@ Evidence binds input digests and task criteria. Changed inputs invalidate depend
 workspace dependency unless narrower dependency coverage is complete. References record reported
 checks and proof kinds; they do not attest execution or authorize mutation.
 
-The Python `fr_ir.investigation.TaskPlan` provides typed plans and persistence through the existing
-verified Merkle store. Keep that store outside the analyzed workspace. Resume after restoration
-before relying on retained evidence.
+Python `fr_ir.investigation.TaskPlan` saves typed plans in the verified Merkle store.
+Keep it outside the analyzed workspace. Resume restored plans before relying on their evidence.
 
 For Python body provenance, use `project semantic HANDLE --body --origins --origin-limit 40`.
 Follow `origins.continuation` or select one `--origin-pointer`. Missing mappings remain explicit.
@@ -40,8 +39,8 @@ Use `TaskStep.from_guide` to retain ready guide input. `TaskStep.checked` declar
 for `investigation_checks.run_checks`; inspect `checks --toolchain` before executing its declarations.
 
 `fr project identities` pages declaration content digests beside current handles. Pass a retained
-report with `--from` to inspect matched, ambiguous and missing correspondence. These are syntactic
-candidates; they never renew a stale mutation review. Follow [Task](task.md) and [Workflow](workflow.md)
+report with `--from` to inspect matched, ambiguous and missing correspondence.
+These candidates never renew a stale mutation review. Follow [Task](task.md) and [Workflow](workflow.md)
 for checked changes, reversal and patch delivery.
 
 For bounded explanations, follow the `analysis` action from a top-level Python exploration row.

@@ -2,7 +2,7 @@
 
 Use a recipe when a repeated cleanup needs several related edits. Review the combined preview before writing any of them.
 
-Load the recipe vocabulary only when authoring a recipe:
+Load the vocabulary when authoring:
 
 ```sh
 fr --json recipe --vocabulary
@@ -10,7 +10,7 @@ fr --json recipe rename.recipe --explain
 fr --json recipe rename.recipe
 ```
 
-For the two-file greeting example, `rename.recipe` contains:
+For the greeting example, `rename.recipe` contains:
 
 ```recipe
 schema 1
@@ -23,8 +23,8 @@ recipe rename-greeting {
 }
 ```
 
-This is an alternative to the single rename above; preview it before that rename changes the source.
-Choose expectations from the task's actual scope, rather than copying the example's file count.
+Preview this alternative before the single rename changes the source.
+Set expectations for the actual task; the example touches two files.
 Save a recipe with `--save-plan` and apply its returned transaction through history.
 All steps see the preceding virtual result, and failed expectations prevent source writes.
 A recipe composes existing operations; it cannot authorize an unsupported transformation.

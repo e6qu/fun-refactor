@@ -4,25 +4,14 @@ description: Use fr to find relevant code, preview and check changes, undo mista
 ---
 # Work with fr
 
-Start from the user’s question. For a checkout bug, find the calculation and callers, inspect
-the needed code, preview the fix and run the behavior check. An unfinished trace stays unknown.
-
-Run at the root or pass `-C`. Use `fr audit` when support is unclear. For a task, run
-`fr guide --from GOAL` or `FrClient.guide(AgentGoal(...))`; follow ready actions and their reference.
-Read [Guide](references/guide.md) for goal authoring. For direct discovery:
+For a checkout bug, find the calculation and callers, preview the fix and check behavior.
+Run at the root or pass `-C`. Start with `fr guide --from GOAL`; follow ready actions and
+their references. See [Guide](references/guide.md). Direct discovery:
 ```sh
 fr project find greet --signature
 fr project select greet render validate --signature --source --bytes 2048
 fr project map --depth 2 --limit 12
 ```
-Read coverage, omissions and statuses. Missing or clipped rows do not prove absence. Retain bases;
-stale identities refuse.
-
-Load the guide's returned reference only when needed. Direct routes: [Explore](references/explore.md),
-[Runtime](references/runtime.md), [Intents](references/intents.md), [Author](references/author.md),
-[Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
-[Git](references/git.md), or [Lean](references/lean.md).
-
-Author with handles. With targets and checks, use one reviewed
-task-change session for checks, apply, reversal and patch. Preview first. Preserve
-refusals, gaps and uncertainty.
+Read coverage and omissions; missing rows can mean an unfinished answer. Retain handles and
+bases for edits. See [Author](references/author.md) and [Workflow](references/workflow.md).
+Preview first, run checks, preserve refusals and uncertainty.

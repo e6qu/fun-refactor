@@ -1,12 +1,12 @@
 # Recover an interrupted source write
 
-After an interrupted write, inspect the recorded operation and current files. Recover that operation before preparing another edit to the same files.
+After an interrupted write, inspect the operation and files. Recover it before editing those files again.
 
-Use `fr history` to inspect the pending operation and `fr history show ID` for its recorded state.
-Only a pending operation calls for `fr history recover ID --write`.
-Recovery restores that operation's starting snapshots; recovering an interrupted undo can therefore restore the applied result.
-If recovery refuses a conflicting state, preserve the journal and report the affected paths for repair. Retry only after the blocker changes.
-A crash may leave a lock; inspect ownership instead of automatically deleting it.
+Use `fr history` and `fr history show ID` to inspect the state.
+Recover only pending operations with `fr history recover ID --write`.
+Recovery restores its starting snapshots; recovering an interrupted undo can therefore restore the applied result.
+If recovery refuses a conflict, preserve the journal and report affected paths. Retry after the blocker changes.
+A crash may leave a lock; inspect ownership before deleting it.
 
-The journal contains recovery data; deleting it loses those records. Recovery does not make multiple file replacements atomic.
+Deleting the journal loses recovery data. Recovery does not make multiple file replacements atomic.
 For ordinary undo/redo, return to [History](history.md). Git staging and worktree recovery use [separate commands](git-admin.md).
