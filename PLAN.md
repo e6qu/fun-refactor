@@ -1,12 +1,12 @@
 # Help an agent finish the right change with less work
 
-The goal is straightforward. Give an agent a bug or feature request in a project it has never
-seen, and help it find the right code, make the change and check the result. We want fewer
+The goal is straightforward. Give an agent a bug or feature request in a project it has never seen.
+Help it find the right code, make the change and check the result. We want fewer
 unnecessary reads and retries, lower total cost, and reliable answers about what still needs checking.
 
-For example: “Fix the rounding error in checkout without changing the public API.” The agent
-should find the calculation and its callers, explain the mistake, prepare a small patch and run
-checks that catch the reported error. Finding a function name is only one step toward that result.
+For example, you need to fix checkout rounding without changing the public API. The agent
+should find the calculation and its callers, explain the mistake and prepare a small patch.
+Then it should run checks that catch the reported error. Finding a function name is only one step toward that result.
 
 ## Where we are
 

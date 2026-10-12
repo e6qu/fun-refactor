@@ -101,7 +101,7 @@ For a bug fix, the agent should:
 3. Read the source needed to explain the mistake.
 4. Preview the proposed change and review the whole diff.
 5. Apply that same reviewed change and run the relevant behavior checks.
-6. Keep the saved change or patch so it can be inspected, resumed or undone.
+6. Keep the saved change or patch so you can inspect, resume or undo it.
 
 `fr guide` can suggest these steps from a structured task description. The agent supplies that
 description; the tool does not interpret the user’s natural-language request on its own.
