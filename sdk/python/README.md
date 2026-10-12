@@ -546,3 +546,9 @@ See [literal defaults](../../docs/literal-defaults.md) for definition-time effec
 `FunctionSummaries.assignment_control` exposes `AssignmentControl` with evaluation order, binding
 and resource limits. Older reports expose `None` and cannot declare this contract.
 See [scalar assignments](../../docs/scalar-assignments.md) for exact origins, explicit raises and refusal boundaries.
+
+`python-scalar-summaries-6` permits unused, unannotated `*args` and `**kwargs` declarations
+when every call binds only fixed parameter slots. The body must contain no identifier with
+the variadic parameter's name. `CallBinding.variadics` describes this boundary; earlier contracts
+expose `None`. Extra arguments still cause incomplete analysis after their expressions run.
+Referenced variadic values, unpacking and definition-time effects remain unsupported.

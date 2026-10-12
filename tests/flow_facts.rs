@@ -165,7 +165,7 @@ fn retained_fact_acceptance_matches_inputs_and_oracles() {
         .args([
             "tools/flow-facts-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-11-coverage-flow-facts/result.json",
+            "tests/agent-eval/results/2026-10-12-fixed-variadic-flow-facts/result.json",
         ])
         .output()
         .unwrap();

@@ -55,6 +55,8 @@ on:
           - flow-contract
           - scalar-development
           - freeze-repository-flow
+          - retain-scalar
+          - fixed-arity-probes
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -81,6 +83,10 @@ on:
         description: Historical held-out inspection failure to preserve
         type: string
         default: ''
+      evidence_runs:
+        description: JSON map of flow, compiler, index, repositories, python, routes, repair and probes run IDs
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -88,7 +94,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -177,6 +183,86 @@ jobs:
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
 
+  fixed-arity-probes:
+    if: inputs.group == 'fixed-arity-probes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Install the pinned upstream oracle dependency
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Replay fixed calls in all three already-seen repositories
+        run: python3 -B tools/python-fixed-arity-probes.py --output "$RUNNER_TEMP/fixed-arity-probes-${{ github.run_id }}-${{ github.run_attempt }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: fixed-arity-probes
+          path: ${{ runner.temp }}/fixed-arity-probes-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+
+  retain-scalar:
+    if: inputs.group == 'retain-scalar' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Check retention admission and historical source integrity
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          python3 -B tools/test-retain-python-contract.py
+          python3 -B tools/test-retain-scalar-evidence.py
+          python3 -B tools/test-frozen-repository-flow.py
+      - name: Retain and audit the complete current evidence family
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_RUNS: ${{ inputs.evidence_runs }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/retain-scalar-evidence.py --runs "$EVIDENCE_RUNS" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the checked current evidence
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json \
+            tools/test-python-contract.py tools/test-workflow-route-context.py \
+            tools/test-guide-body-context.py tools/test-recovery-delivery-context.py \
+            tools/test-source-repair-context.py docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain current scalar summary evidence and delivery gates'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: retained-scalar-evidence
+          path: tests/agent-eval/results/${{ inputs.prefix }}-*
+          if-no-files-found: warn
+          retention-days: 7
+
   freeze-repository-flow:
     if: inputs.group == 'freeze-repository-flow' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -258,6 +344,9 @@ jobs:
           ty check sdk/python/src
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py
           python3 -B tools/python-contract.py --check-runtime
+          python3 -B tools/test-retain-scalar-evidence.py
+          python3 -B tools/test-frozen-repository-flow.py
+          python3 -B tools/check-prose.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
@@ -349,6 +438,7 @@ jobs:
           retention-days: 7
 
   flow-contract:
+    name: scalar-evidence (${{ matrix.shard }})
     if: inputs.group == 'flow-contract'
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -6,13 +6,13 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [Python behavior contract](python-contract.md) compares 163 authored programs and their
-renamed/relocated equivalents: 326 cases across fourteen declared rule families. It retains CPython
+The [Python behavior contract](python-contract.md) compares 173 authored programs and their
+renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
 Hosted validation passes 309 focused regressions and 43 corruption controls. The inventory includes
-fourteen CLI refusals and 102 emitted incomplete analyses with explicit boundary evidence.
+fourteen CLI refusals and 108 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
 Parsing now removes explicit LF and CRLF continuations. Eight focused cases check direct,
@@ -26,6 +26,10 @@ The [repository-flow baseline](python-repository-flow.md) checks thirty cells in
 funcy and pydash snapshots. Sixty runtime executions agree with independent scalar inspection;
 renamed/relocated adapters preserve conclusions. All 24 emitted analyses remain incomplete,
 and six invalid response budgets refuse analysis. B.repository-flow remains open.
+The historical audit uses a pinned source archive from the merged baseline, so analyzer changes
+cannot silently rewrite its meaning. Source retention first failed in run 38214317595 because
+the digest replacement counted its own search string; a line-anchored replacement fixed it.
+Run 38214587144 retained the source and passed all six cohort corruption controls.
 
 ## Next work
 

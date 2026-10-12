@@ -114,8 +114,8 @@
       "path": "tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00",
       "kind": "deterministic",
-      "scope": "Three pinned utility libraries; authored scalar adapters, runtime contrasts, renames, relocation, incomplete boundaries and a frozen held-out project. Initial probes; B.repository-flow remains open.",
-      "audit": "python3 tools/retain-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json"
+      "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow.",
+      "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json"
     }
   ],
   "obligations": [
@@ -254,19 +254,19 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 163
+              "equals": 173
             },
             {
               "pointer": "/summary/cases",
-              "equals": 326
+              "equals": 346
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 163
+              "equals": 173
             },
             {
               "pointer": "/summary/incomplete_cases",
-              "equals": 102
+              "equals": 108
             },
             {
               "pointer": "/summary/refused_cases",

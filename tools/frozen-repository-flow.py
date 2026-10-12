@@ -45,7 +45,8 @@ def unpack(data, root):
         for member in archive:
             path = PurePosixPath(member.name)
             expanded += member.size
-            require(not path.is_absolute() and '..' not in path.parts and member.name not in seen
+            require(path.parts and path.as_posix() == member.name.rstrip('/')
+                    and not path.is_absolute() and '..' not in path.parts and member.name not in seen
                     and (member.isfile() or member.isdir()) and len(seen) < 8192
                     and expanded <= 64 * 1024 * 1024, 'unsafe frozen source member')
             seen.add(member.name)
