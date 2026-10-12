@@ -19,7 +19,7 @@ BASELINE_SHA = '191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00
 SOURCE_COMMIT = '80a0e47fe617c4fb6192a5cb200cb128c70f5a79'
 AUDITOR_COMMIT = '1a940c5f3df0f71bc43f5e879d48946d3b5d14dc'
 SNAPSHOT = ROOT / 'tests/agent-eval/results/2026-10-12-frozen-utility-source/source.tar.gz'
-SNAPSHOT_SHA = ''
+SNAPSHOT_SHA = '5013ad723e153b50d079c2412b9bea881fe40fc142b75c38b26f280ce6932b81'
 _temporary = None
 
 
