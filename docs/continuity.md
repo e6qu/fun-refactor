@@ -22,8 +22,8 @@ The [writing guide](style.md) applies that rule. [Result meanings](understanding
 a possible input connection, an unfinished answer and a checked repair.
 
 Next, continue the Python work from the actual import and initialization failures.
-The package resolver now preserves direct class, decorated-definition and assignment bindings
-before considering a same-named file. These unsupported values still leave the answer unfinished.
+Imports preserve a package’s classes, decorated functions and assigned values before considering
+a file with the same name. These unsupported values still leave the answer unfinished.
 Literal export lists now let fr follow `from helpers import *`. Computed or directly mutated exports
 remain unfinished, along with external dependencies and other code that runs while importing a package.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
@@ -38,7 +38,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-package-bindings-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-12-star-imports-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
