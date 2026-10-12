@@ -30,6 +30,23 @@ We also rename helpers and move files to check whether answers depend on the cod
 familiar names. Python execution checks the stated inputs separately from the analyzer’s answer.
 The counts and original attempts below remain available for review.
 
+## An import must select the object Python actually uses
+
+Imagine `helpers/__init__.py` defines a class named `Formatter`, while
+`helpers/Formatter.py` also exists. For `from helpers import Formatter`, Python selects the
+existing class. Reading the separate file instead can describe a different function and result.
+
+The package resolver now recognizes direct class definitions, decorated definitions and
+assignment targets before considering a same-named child file. It keeps their unsupported values
+unavailable for scalar calls. An annotation such as `Formatter: object` without a value does not
+create that binding; an annotation with a value does.
+
+The [runtime comparisons](../sdk/python/tests/test_package_bindings.py) check these choices with
+and without the child file. They also check saved answers after a binding appears or disappears.
+Explicitly importing the child file can replace an earlier package attribute; fr records that
+conflict and keeps the answer incomplete. This correction does not execute class bodies,
+decorators or arbitrary package startup code, and does not close the real-project tracing gap.
+
 ## Recorded runs and exact test setup
 
 The first cohort uses pinned Toolz, funcy and pydash snapshots with the same native analyzer,
@@ -85,7 +102,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-docs-review-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-12-package-bindings-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization

@@ -381,7 +381,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-docs-review-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-12-package-bindings-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -443,7 +443,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-docs-review-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-12-package-bindings-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -500,7 +500,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-12-docs-review-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-12-package-bindings-module-aliases/result.json",
         ])
         .output()
         .unwrap();
