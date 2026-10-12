@@ -18,9 +18,7 @@ fn analyze(root: &Path, parameters: &str, call: &str) -> (String, Value) {
 fn analyze_body(root: &Path, parameters: &str, body: &str, call: &str) -> (String, Value) {
     fs::write(
         root.join("app.py"),
-        format!(
-            "def choose({parameters}):\n    {body}\ndef entry():\n    return sink({call})\n"
-        ),
+        format!("def choose({parameters}):\n    {body}\ndef entry():\n    return sink({call})\n"),
     )
     .unwrap();
     fs::write(
@@ -61,17 +59,36 @@ fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
         ("left, *extra", "choose(source())", true, true),
         ("left=0, *extra", "choose()", true, false),
         ("left, /, *extra", "choose(source())", true, true),
-        ("left, *extra, right=0", "choose(0, right=source())", true, false),
-        ("left, *extra, right", "choose(source(), right=0)", true, true),
+        (
+            "left, *extra, right=0",
+            "choose(0, right=source())",
+            true,
+            false,
+        ),
+        (
+            "left, *extra, right",
+            "choose(source(), right=0)",
+            true,
+            true,
+        ),
         ("left, **extra", "choose(left=source())", true, true),
-        ("left, *extra, **others", "choose(left=source())", true, true),
+        (
+            "left, *extra, **others",
+            "choose(left=source())",
+            true,
+            true,
+        ),
         ("left, *extra", "choose(0, source())", false, false),
         ("left, **extra", "choose(0, extra=source())", false, false),
         ("left, *extra", "choose(0, sink(source()))", false, true),
         ("left, *extra, right", "choose(source())", false, false),
     ] {
         let (_, report) = analyze(root.path(), parameters, call);
-        assert_eq!(report["complete"], complete, "{parameters}: {call}: {}", report["cutoffs"]);
+        assert_eq!(
+            report["complete"], complete,
+            "{parameters}: {call}: {}",
+            report["cutoffs"]
+        );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
         assert_eq!(report["call_binding"]["schema"], "fr-call-binding-3");
     }
@@ -85,7 +102,9 @@ fn unused_variadic_declarations_accept_only_fixed_slot_calls() {
         let (_, report) = analyze_body(root.path(), parameters, body, "choose(source())");
         assert_eq!(report["complete"], false, "{parameters}: {body}");
         assert!(report["cutoffs"].as_array().unwrap().iter().any(|c| {
-            c.as_str().unwrap().starts_with("unsupported-parameter-contract:")
+            c.as_str()
+                .unwrap()
+                .starts_with("unsupported-parameter-contract:")
         }));
     }
 }
