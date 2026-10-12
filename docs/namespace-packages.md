@@ -16,8 +16,8 @@ def render():
     return sink(helper.identity(source()))
 ```
 
-Analysis follows direct dotted imports, explicit aliases, relative imports and from-import child
-fallback. Namespace aliases can pass through explicit re-exports. Function identities and occurrences
+Analysis follows direct dotted imports, explicit aliases, relative imports and explicit child
+module lookups. Namespace aliases can pass through explicit re-exports. Function identities and occurrences
 still refer to real source files. Merely importing a namespace does not load all its children;
 implicit child-attribute traversal remains outside this analysis contract.
 
@@ -42,8 +42,8 @@ implicit child discovery enters this contract.
 
 The SDK exposes `FlowDependencies.namespaces`, `ImportResolution.namespaces` and
 `ImportLookup.namespaces`. It independently derives namespace admission from candidate statuses and
-checks closure coverage, module budgets, child fallback, terminal identity and re-export chains.
-Legacy dependency schemas one through four remain readable without namespace claims.
+checks closure coverage, module budgets, child module lookups, terminal identity and re-export chains.
+The reader requires the current dependency schema and namespace metadata.
 
 Creating or deleting an initializer changes the next input identity. So do relevant missing-file,
 stub, competing-module and directory changes. Cached results agree with clean analysis after these

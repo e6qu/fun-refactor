@@ -9,13 +9,16 @@ in Git and retained reports; this page describes the current handoff.
 The native analyzer and SDK use one required current format for scalar summaries, import dependencies
 and flow cache storage. The SDK rejects old formats and missing metadata without migration or fallback.
 Historical evidence replays its archived original source. Its readers do not enter the current SDK.
+The [current collection receipts](../tests/agent-eval/results/2026-10-12-current-contract-scalar-collection/manifest.json)
+bind eight successful hosted collections to one frozen source revision. Retention independently
+audits the reports, producer attempts and source bindings before updating active evidence.
 
 The [Python behavior contract](python-contract.md) compares 173 authored programs and their
 renamed/relocated equivalents: 346 cases across fourteen declared rule families. It retains CPython
 outcomes separately from possible-flow answers, including unsupported and conservative results.
 Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 Multi-file checks also validate module inventories, candidate states and callee signatures.
-Hosted validation passes 309 focused regressions and 43 corruption controls. The inventory includes
+Hosted validation passes 565 focused SDK regressions and 43 corruption controls. The inventory includes
 fourteen CLI refusals and 108 emitted incomplete analyses with explicit boundary evidence.
 
 The review caught valid line continuations being retained inside import module names.
@@ -54,8 +57,8 @@ identity adapters. The fixed-slot correction admits unused variadic declarations
 the thirty current upstream regressions still emit 24 incomplete reports and six CLI refusals.
 The next reservation pins jaraco.functools for further development. Keep it unopened until broader
 coverage and the next analyzer freeze. The withdrawn Boltons reservation overlooked earlier delivery coverage.
-Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The native
-analyzer stayed frozen at the B.contract merge throughout this cohort. Unknown effects and
+Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The baseline
+analyzer stayed frozen at the B.contract merge throughout its original cohort. Unknown effects and
 exhausted budgets must continue to prevent a no-path claim.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 

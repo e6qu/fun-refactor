@@ -42,7 +42,7 @@ The [Python behavior contract](docs/python-contract.md) defines fourteen rule fa
 173 authored programs with CPython and `fr`. Renamed and relocated versions bring the total to
 346 cases. They cover scalar expressions, assignments, parameter binding, recursive helpers,
 static imports, CLI refusals and search budgets. Runtime outcomes remain separate from conservative
-answers and unsupported cases. Hosted checks pass 309 focused regressions and 43 corruption controls.
+answers and unsupported cases. Hosted checks pass 565 focused SDK regressions and 43 corruption controls.
 
 The latest review found that valid line continuations inside module names caused unsupported-import
 cutoffs. Import parsing now removes LF and CRLF continuations before resolving the module.
