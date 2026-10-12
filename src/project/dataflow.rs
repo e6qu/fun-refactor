@@ -405,6 +405,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("async-function");
             return Flow::new();
         }
+        if calls::generator_function(function) {
+            self.cutoff("generator-function");
+            return Flow::new();
+        }
         let Some(parameters) = self.parameter_nodes(function) else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();
@@ -738,17 +742,17 @@ impl Project<'_> {
         for (file, text, parsed) in units {
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if node.kind() == "function_definition" {
-                    if node.child_by_field_name("return_type").is_some()
-                        || if options.summaries {
-                            calls::parameters(node, text).is_none()
-                        } else {
-                            node.child_by_field_name("parameters")
+                    if if options.summaries {
+                        !calls::definition_is_inert(node, text)
+                    } else {
+                        node.child_by_field_name("return_type").is_some()
+                            || node.child_by_field_name("parameters")
                                 .is_some_and(|parameters| {
                                     parameters
                                         .named_children(&mut parameters.walk())
                                         .any(|p| p.kind() != "identifier")
                                 })
-                        }
+                    }
                     {
                         module_effects = true;
                     }

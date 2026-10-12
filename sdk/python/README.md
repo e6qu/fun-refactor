@@ -552,3 +552,8 @@ when every call binds only fixed parameter slots. The body must contain no ident
 the variadic parameter's name. `CallBinding.variadics` describes this required boundary.
 Extra arguments still cause incomplete analysis after their expressions run.
 Referenced variadic values, unpacking and definition-time effects remain unsupported.
+
+`CallBinding.definitions` discloses the current declaration contract. Uncalled unannotated functions
+with immutable literal defaults defer their bodies, including referenced variadics. Calling them
+still requires scalar fixed-slot summaries. Coroutine and generator executions remain incomplete;
+their bodies do not transfer during ordinary call construction.

@@ -32,8 +32,8 @@ Lexical checks reject repeated keyword names and invalid argument ordering befor
 transfer, including skipped branches and arguments that never return. Generator argument syntax
 is outside this contract. These checks are bounded subset validation, not a general Python compiler.
 
-Evaluated defaults, annotations, variadic parameters and argument unpacking remain outside the
-admitted contract. They require definition-time evaluation or additional execution semantics. External
+Evaluated defaults, annotations, referenced variadic values and argument unpacking remain outside the
+admitted call contract. They require definition-time evaluation or additional execution semantics. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
 those rules report `keyword-rule-contract-unchecked`. A caller can use an admitted local wrapper
 with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions and
@@ -51,6 +51,18 @@ The response budget includes both contract copies. If even metadata cannot fit, 
 omitting analysis sections yields an incomplete report, never a complete absence claim. The SDK exposes
 `FunctionSummaries.call_binding` and validates its complete required contract. Other report formats
 fail explicitly; the reader provides no compatibility adapter.
+
+The required `CallBinding.definitions` field separates declaration safety from call support.
+Unannotated functions with ASCII parameters and immutable literal defaults defer their bodies,
+including referenced variadics. An uncalled declaration therefore does not introduce a module-effect
+cutoff solely because its body or call binding lies outside the scalar model. Calling that function
+still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
+Annotations, decorators, evaluated defaults and other module statements still need an initialization contract.
+
+Coroutine and generator calls do not execute their bodies as ordinary scalar calls. The analyzer
+refuses those executions before transferring body effects. A yield inside a skipped expression still
+makes its enclosing function a generator. A nested function's deferred body belongs to its own scope;
+yield expressions in nested defaults still belong to the enclosing scope.
 
 The [pinned task](../tests/agent-eval/call-binding/task.json) discovers a leaking helper through
 keyword calls and parameter separators. It requires a reviewed repair, a sink-free preview feature,
