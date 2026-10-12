@@ -1,5 +1,7 @@
 # grammars/
 
+A user inspecting Zig `struct {}` should see an empty type. The original parser invented an empty field. The patches below fix such reading errors, so later commands start from the code the user wrote. Parsing correctly does not establish that every edit or analysis supports that code.
+
 Grammars this project compiles itself. Most are here because the published parser cannot
 read code the language accepts. Lean is here because its crate links a different
 tree-sitter, and two crates cannot both claim `links = "tree-sitter"`.

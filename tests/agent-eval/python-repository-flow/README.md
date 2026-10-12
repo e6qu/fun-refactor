@@ -1,11 +1,20 @@
-# Python repository value-flow cohort
+# Check value tracing in real Python libraries
 
-The [selection record](cohort.json) pins the revisions. Toolz and funcy are
-coverage projects. Pydash is held out: consult its implementation only after the coverage
-collection passes on the exact evaluator revision. The analyzer starts frozen at the merged
-B.contract revision. Coverage may expose a general defect before the held-out gate; a later
-analyzer change requires a new, unopened held-out project rather than another acceptance run
-on pydash.
+Suppose a user asks whether input reaches an output through a library helper. The helper’s body
+can look simple while importing its package executes other code. These tests compare those
+questions and keep an unfinished answer visible. See the [current library results](../../../docs/python-repository-flow.md).
+
+## Current development direction
+
+Toolz, funcy and pydash are already familiar test projects. Jaraco.functools remains unopened.
+Keep it unread while developing the next general language changes. The
+[reservation record](replacement-holdout.json) identifies the next independent check.
+
+## Original project selection and first opening
+
+The original [selection record](cohort.json) made Toolz and funcy development examples and
+reserved pydash for the first test after freezing the analyzer. A later analyzer change requires
+another unopened project. This section records that original selection; pydash is now familiar.
 
 The initial probe calls each library's public identity helper from an authored entry module.
 Source and sink hooks are identical everywhere, with no configured propagators or sanitizers.

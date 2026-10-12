@@ -1,15 +1,18 @@
 # Restore historical evidence without changing its contents
 
+When checking an older claim, restore the report that recorded it. For example, an old cache measurement must keep its original samples and failures. Restoring that file lets you inspect the past result; it does not establish current speed or correctness.
+
 Eleven historical flow-cache reports now use gzip storage. The
 [catalog](evidence-archives.json) records each original path, byte count, SHA-256 and Git blob ID,
 plus the compressed file's identity. It names commit `ced10cb8` as the source of the original files.
 The conversion checked every restored byte against that commit's blob identity before removing
 the expanded copy. It changed no samples, failures, measurements, source bindings or conclusions.
 
-The current acceptance report remains at
+The acceptance report used during that storage change remains at
 [`2026-09-30-assignments-flow-cache/result.json`](results/2026-09-30-assignments-flow-cache/result.json).
-Its evaluator, roadmap entry and source-bound checks remain unchanged. Historical reports retain
-their historical bindings; restoring one does not make it current or establish a new result.
+That storage change preserved its evaluator, roadmap entry and file checks. Use the
+[current results](../../docs/roadmap-status.md) to find today’s reports. Historical reports retain
+the files and versions that produced them; restoring one does not make it current.
 
 ## Size and scope
 

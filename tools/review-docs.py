@@ -16,7 +16,14 @@ def guides():
     return (sorted(ROOT.glob('*.md')) + sorted((ROOT / 'docs').glob('*.md'))
             + sorted((ROOT / 'skills/fr').rglob('*.md'))
             + [ROOT / name for name in ('sdk/python/README.md', 'queries/README.md',
-                                       'vendor/README.md', 'wasm-shim/README.md')])
+                                       'vendor/README.md', 'wasm-shim/README.md',
+                                       'web/README.md', 'grammars/README.md',
+                                       'tests/agent-eval/EVIDENCE-ARCHIVES.md',
+                                       'tests/agent-eval/PROVENANCE.md',
+                                       'tests/corpus/PROVENANCE.md',
+                                       'tests/framework-corpus/PROVENANCE.md',
+                                       'tests/agent-eval/python-repository-flow/README.md',
+                                       'tests/agent-eval/opencode/repositories/README.md')])
 
 
 def prose(text):

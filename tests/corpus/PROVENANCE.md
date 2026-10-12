@@ -1,11 +1,13 @@
 # Vendored test corpus
 
+When a user asks to translate a route, the tests need real routing code as well as small examples. These source files help reveal forms that our own examples might miss. The tables identify where each unchanged file came from; they do not establish general support for its framework.
+
 Unmodified source files from public repositories, kept here so the translation tests
 run against code somebody actually shipped and not against fixtures written to
 pass. They are **test data only**: nothing here is compiled, linted, packaged or
 shipped, and no build target references this directory.
 
-Both projects are MIT-licensed, which permits redistribution with the notice below.
+The sections below record each project’s license and its notices.
 
 ## fastapi/ — `fastapi/full-stack-fastapi-template`
 

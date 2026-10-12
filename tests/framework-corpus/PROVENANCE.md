@@ -1,5 +1,7 @@
 # Framework source corpus
 
+For “which URL serves this item request?”, reading an individual handler can miss the router prefix. These real source files test that reading step. Recognizing those declarations does not establish the endpoint’s runtime behavior.
+
 This directory contains unmodified source for framework semantic-model tests.
 The files serve as source evidence and do not enter the cross-language translation corpus.
 

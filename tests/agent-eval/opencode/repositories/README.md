@@ -1,5 +1,7 @@
 # Pinned repository inputs
 
+To check an explanation of retry behavior, use the same library source that the recorded attempt saw. These archives make that comparison reproducible. They do not show that an agent understands every version or saves work on an unfamiliar project.
+
 These archives retain complete upstream repositories, including their licenses.
 `provenance.json` records the Git revision, archive digest, file count and expanded bytes.
 Download the same revision with `gh api repos/OWNER/REPO/tarball/REVISION`.
