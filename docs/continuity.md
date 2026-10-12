@@ -26,6 +26,9 @@ Imports preserve a package’s classes, decorated functions and assigned values 
 a file with the same name. These unsupported values still leave the answer unfinished.
 Literal export lists now let fr follow `from helpers import *`. Computed or directly mutated exports
 remain unfinished, along with external dependencies and other code that runs while importing a package.
+The current class work admits plain declarations and empty instances made without custom constructors.
+Methods stay deferred. Bases, decorators, descriptors and executed class-body code remain unchecked.
+Replay complete original modules separately from copied helper declarations and full package imports.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.

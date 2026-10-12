@@ -40,9 +40,16 @@ HELPERS = [
      'companion_path': 'src/pydash/utilities.py', 'companion': 'range_'},
 ]
 CONTEXTS = ('full-package', 'isolated-declarations')
+STANDALONE_HELPERS = frozenset({'funcy-inc', 'funcy-dec'})
 VARIANTS = ('original', 'renamed-relocated')
 flow.COHORT['additional_helpers'] = HELPERS
 flow.COHORT['isolated_initialization'] = 'probe_metadata = 0'
+flow.COHORT['standalone_modules'] = sorted(STANDALONE_HELPERS)
+flow.COHORT['standalone_policy'] = 'Copy the complete original module unchanged without package parents. This context cannot establish full-package acceptance.'
+
+
+def contexts(helper):
+    return (*CONTEXTS, 'standalone-module') if helper['id'] in STANDALONE_HELPERS else CONTEXTS
 
 
 def implementation(source, name):
@@ -71,7 +78,7 @@ def implementation(source, name):
 
 
 def inspection(root, helper):
-    source = (root / helper['path']).read_text()
+    source = (root / helper['path']).read_bytes().decode()
     node, function = implementation(source, helper['function'])
     arguments = node.args.posonlyargs + node.args.args
     statements = list(node.body)
@@ -83,7 +90,7 @@ def inspection(root, helper):
                  and len(statements) == 1 and isinstance(statements[0], ast.Return)
                  and ast.dump(statements[0].value) == ast.dump(ast.parse(helper['expression'], mode='eval').body),
                  'scalar body differs from its independent specification')
-    companion_source = (root / helper['companion_path']).read_text()
+    companion_source = (root / helper['companion_path']).read_bytes().decode()
     companion, companion_function = implementation(companion_source, helper['companion'])
     flow.require(companion.args.vararg is not None
                  and any(isinstance(item, ast.Name) and item.id == companion.args.vararg.arg
@@ -98,11 +105,20 @@ def prepare(root, project, helper, context, variant, case, inspected, temporary)
         scope = root / project['python_root']
         module = helper['module']
     else:
-        scope = temporary / ('isolated-' + helper['id'])
+        scope = temporary / (context + '-' + helper['id'])
         scope.mkdir(exist_ok=True)
         module = 'pinned_functions'
-        (scope / 'pinned_functions.py').write_text(flow.COHORT['isolated_initialization'] + '\n\n'
-                                                 + inspected['function'] + '\n\n' + inspected['companion'] + '\n')
+        if context == 'isolated-declarations':
+            (scope / 'pinned_functions.py').write_text(flow.COHORT['isolated_initialization'] + '\n\n'
+                                                     + inspected['function'] + '\n\n' + inspected['companion'] + '\n')
+        else:
+            flow.require(context == 'standalone-module' and helper['id'] in STANDALONE_HELPERS,
+                         'standalone module selection changed')
+            source = (root / helper['path']).read_bytes()
+            flow.require(flow.sha(source) == inspected['source_sha256']
+                         and not any(isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.parse(source).body),
+                         'standalone source must be unchanged and import-free')
+            (scope / 'pinned_functions.py').write_bytes(source)
     entry = 'probe_entry' if variant == 'original' else 'renamed_entry'
     path = 'repository_probe.py' if variant == 'original' else 'relocated_probe/entry.py'
     alias = 'relay' if variant == 'original' else 'renamed_relay'
@@ -145,14 +161,14 @@ def assessment(row, helper):
                  and report['claim'] == 'possible-value-propagation' and type(report['complete']) is bool,
                  'declaration report authority changed')
     typed = FunctionSummaries.from_report(FrReport(report, ()))
-    if row['context'] == 'isolated-declarations' and row['case'] in ('positive', 'overwritten'):
+    if row['context'] in ('isolated-declarations', 'standalone-module') and row['case'] in ('positive', 'overwritten'):
         flow.require(report['complete'] and not report['cutoffs'], 'inert declaration still blocks scalar flow')
         flow.require(bool(report['witnesses']) == (row['case'] == 'positive' and helper['expression'] != 'None'),
                      'isolated scalar flow disagrees with its specification')
     else:
         flow.require(not report['complete'] and report['cutoffs'], 'unsupported effects claimed completeness')
     if row['case'] not in ('steps', 'bytes'):
-        name = ('pinned_functions.py' if row['context'] == 'isolated-declarations'
+        name = ('pinned_functions.py' if row['context'] != 'full-package'
                 else str(Path(helper['path']).relative_to(project_for(helper)['python_root'])))
         name += '::' + helper['function']
         summary = typed.for_function(name)
@@ -179,13 +195,13 @@ def declaration_summary(rows):
             'incomplete_cases': counts['incomplete'], 'refused_cases': counts['refused'],
             'contexts': {context: {name: sum(row['context'] == context and row['assessment']['status'] == name
                                            for row in rows) for name in ('complete', 'incomplete', 'refused')}
-                         for context in CONTEXTS},
+                         for context in (*CONTEXTS, 'standalone-module')},
             'metamorphic_agreement': agreement, 'repository_acceptance_demonstrated': False}
 
 
 def declaration_inventory(value):
     expected = {(helper['id'], context, variant, case) for helper in HELPERS
-                for context in CONTEXTS for variant in VARIANTS for case in flow.BODIES}
+                for context in contexts(helper) for variant in VARIANTS for case in flow.BODIES}
     keys = [(row['helper'], row['context'], row['variant'], row['case']) for row in value['declaration_cases']]
     flow.require(len(keys) == len(set(keys)) and set(keys) == expected, 'missing or duplicate declaration cells')
     flow.require(set(value['declaration_inspection']) == {helper['id'] for helper in HELPERS},
@@ -216,7 +232,7 @@ def declarations(value, directory, binary=None):
                     save()
                 else:
                     flow.require(value['declaration_inspection'][helper['id']] == inspected, 'declaration source changed')
-                for context in CONTEXTS:
+                for context in contexts(helper):
                     for variant in VARIANTS:
                         for case in flow.BODIES:
                             scope, path, entry, source = prepare(root, project, helper, context, variant, case, inspected, temporary)

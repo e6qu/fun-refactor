@@ -57,6 +57,13 @@ An empty list still records the import dependency, and an existing package objec
 Computed or directly mutated export sets remain incomplete. These are general language rules;
 the full libraries still contain other initialization and import boundaries.
 
+The next class change covers a familiar marker declaration in `funcy.primitives`:
+`EmptyType` has a deferred `__repr__` method, followed by `EMPTY = EmptyType()`.
+Plain declarations and default empty construction can stay inert while scalar helpers run.
+Custom constructors, finalizers, bases, decorators and other executed class-body code remain unchecked.
+The collector now also copies the complete original primitive module unchanged and tests `inc` and `dec` through it.
+This removes package parents from that separate test context. It cannot establish full-package support.
+
 The first cohort uses pinned Toolz, funcy and pydash snapshots with the same native analyzer,
 frozen at `aad6dc34cb48ff27c01ad964a425c94167053347`. The
 [selection record](../tests/agent-eval/python-repository-flow/cohort.json) declares revisions,

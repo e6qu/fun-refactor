@@ -43,6 +43,34 @@ S = ['source', 17]
 T = ['sink', 17]
 ZERO = ['sink', 0]
 EXAMPLES = [
+    example('plain-class-unused', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude="class Token:\n    'metadata'\n    code = 0\n"),
+    example('plain-class-default-instance', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='class Token:\n    pass\nmarker = Token()\n'),
+    example('plain-class-default-instance-blocked', 'names returns boundaries', 'return sink(relay(source()))', [S, ZERO], 0,
+            prelude='class Token:\n    pass\nmarker = Token()\ndef relay(value):\n    return 0\n'),
+    example('plain-class-method-deferred', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='class Token:\n    def __repr__(self):\n        return str(source())\nmarker = Token()\n'),
+    example('plain-class-constructor-deferred', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='class Token:\n    def __init__(self):\n        source()\n'),
+    example('plain-class-imported-helper', 'imports names returns', 'return sink(relay(source()))', [S, T], 17, witness=True,
+            prelude='from helper import *\n', files={'helper.py': "__all__ = ['relay']\nclass Token:\n    def __repr__(self):\n        return 'token'\nmarker = Token()\ndef relay(value):\n    return value\n"}),
+    example('plain-class-global-instance-read', 'names boundaries comparisons', 'return sink(marker is None)', [['sink', False]], False,
+            prelude='class Token:\n    pass\nmarker = Token()\n', complete=False, cutoff='unknown-binding:marker'),
+    example('plain-class-body-effect', 'names boundaries', 'return sink(source())', [S, S, T], 17, witness=True,
+            prelude='class Token:\n    source()\n', complete=False, cutoff='module-effects-unchecked', source_index=1),
+    example('plain-class-constructor-effect', 'names boundaries', 'return sink(source())', [S, S, T], 17, witness=True,
+            prelude='class Token:\n    def __init__(self):\n        source()\nmarker = Token()\n',
+            complete=False, cutoff='module-effects-unchecked', source_index=1),
+    example('plain-class-constructor-arguments', 'names boundaries', 'return sink(source())', raised='TypeError', phase='definition', witness=True,
+            prelude='class Token:\n    pass\nmarker = Token(0)\n', complete=False, cutoff='module-effects-unchecked',
+            difference='Python stops at invalid constructor arguments; an incomplete model retains the entry call.'),
+    example('plain-class-explicit-base', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='class Token(object):\n    pass\n', complete=False, cutoff='module-effects-unchecked'),
+    example('plain-class-descriptor-installation', 'names boundaries', 'return sink(0)', [S, T, ZERO], 0,
+            prelude='class Descriptor:\n    def __set_name__(self, owner, name):\n        sink(source())\ndescriptor = Descriptor()\nclass Owner:\n    field = descriptor\n',
+            complete=False, cutoff='module-effects-unchecked',
+            difference='Python invokes a descriptor during class creation; an incomplete empty trace cannot establish no connection.'),
     example('module-literal-unused', 'names boundaries', 'return sink(source())', [S, T], 17,
             witness=True, prelude='metadata = -17\n'),
     example('module-literal-global-read', 'names boundaries', 'return sink(metadata)', [['sink', 5]], 5,
@@ -463,7 +491,8 @@ RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
            'bounce': 'recur', 'helper': 'engine', 'pack': 'parcel', 'inner': 'inside', 'bridge': 'gateway',
-           'alpha': 'cedar', 'beta': 'maple', 'subject': 'renamed'}
+           'alpha': 'cedar', 'beta': 'maple', 'subject': 'renamed', 'Token': 'Tag', 'marker': 'sentinel',
+           'Descriptor': 'Notifier', 'Owner': 'Receiver', 'descriptor': 'notifier'}
 for prefix, count in [('unit', 17), ('alias', 129), ('link', 21), ('level', 17), ('hop', 65)]:
     RENAMES.update({f'{prefix}{number}': f'renamed_{prefix}{number}' for number in range(count)})
 
