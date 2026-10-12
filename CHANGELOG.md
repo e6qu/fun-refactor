@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.58.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.1...fun-refactor-v0.58.2) (2026-10-12)
+
+
+### Fixes
+
+* stabilize workflow evidence and accept the Python contract ([#472](https://github.com/e6qu/fun-refactor/issues/472)) ([aad6dc3](https://github.com/e6qu/fun-refactor/commit/aad6dc34cb48ff27c01ad964a425c94167053347))
+
+
+### Tests
+
+* retain a frozen Python repository flow baseline ([#473](https://github.com/e6qu/fun-refactor/issues/473)) ([1a940c5](https://github.com/e6qu/fun-refactor/commit/1a940c5f3df0f71bc43f5e879d48946d3b5d14dc))
+* specify Python refusals and analysis boundaries ([#469](https://github.com/e6qu/fun-refactor/issues/469)) ([5e53a07](https://github.com/e6qu/fun-refactor/commit/5e53a07cb22eeef3085c154a431960cc26db0c08))
+
 ## [0.58.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.58.0...fun-refactor-v0.58.1) (2026-10-11)
 
 
