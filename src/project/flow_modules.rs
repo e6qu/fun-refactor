@@ -545,10 +545,14 @@ impl Modules {
                 }
                 if node.kind() == "function_definition" {
                     if let Some(name) = node.child_by_field_name("name") {
+                        let name = &source[name.byte_range()];
                         *definitions
-                            .entry(source[name.byte_range()].to_owned())
+                            .entry(name.to_owned())
                             .or_insert(0) += 1;
-                        if !names.insert(source[name.byte_range()].to_owned()) {
+                        if calls::definition_is_inert(node, source) {
+                            opaque_bindings.remove(name);
+                        }
+                        if !names.insert(name.to_owned()) {
                             result.cutoffs.insert("ambiguous-module-binding".into());
                         }
                     }

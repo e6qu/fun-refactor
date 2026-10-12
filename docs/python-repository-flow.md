@@ -40,6 +40,8 @@ The package resolver now recognizes direct class definitions, decorated definiti
 assignment targets before considering a same-named child file. It keeps their unsupported values
 unavailable for scalar calls. An annotation such as `Formatter: object` without a value does not
 create that binding; an annotation with a value does.
+If an ordinary function definition later replaces an unsupported binding, fr can select that
+function. The earlier unchecked startup code still leaves the overall answer incomplete.
 
 The [runtime comparisons](../sdk/python/tests/test_package_bindings.py) check these choices with
 and without the child file. They also check saved answers after a binding appears or disappears.

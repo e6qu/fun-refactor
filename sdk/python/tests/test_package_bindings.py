@@ -100,6 +100,34 @@ def test_inner_scope_bindings_do_not_hide_a_package_child(tmp_path, initializer,
     assert runtime(tmp_path)["result"] == 17
 
 
+@pytest.mark.parametrize("binding", [
+    "core = object()\n",
+    "class core:\n    pass\n",
+    "@replace\ndef core(value):\n    return value\n@replace\ndef core(value):\n    return value\n",
+])
+@pytest.mark.parametrize("function_last", [True, False])
+def test_a_later_function_replaces_an_unsupported_binding_without_erasing_effects(tmp_path, binding, function_last):
+    function = "def core(value):\n    return value\n"
+    declarations = binding + function if function_last else function + binding
+    client, rules = install(tmp_path, "def replace(value):\n    return object()\n" + declarations)
+    (tmp_path / "subject.py").write_text(
+        "from library import core\ndef entry():\n    return sink(core(source()))\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert not result.report.at("/complete")
+    assert "module-effects-unchecked" in result.report.at("/cutoffs")
+    lookup = next(item for item in result.dependencies.lookups if item.alias == "core")
+    assert lookup.submodule is None
+    assert lookup.resolution == ("function" if function_last else "unavailable")
+    observed = runtime(tmp_path)
+    assert observed["child_loaded"] is False
+    if function_last:
+        assert result.summaries.for_function("library/__init__.py::core").return_parameters == (0,)
+        assert observed["result"] == 17 and observed["events"] == [["source", 17], ["sink", 17]]
+    else:
+        assert "unknown-external-call:core" in result.report.at("/cutoffs")
+        assert observed["raised"] == "TypeError" and observed["events"] == [["source", 17]]
+
+
 @pytest.mark.parametrize("binding", BINDINGS)
 def test_adding_and_removing_a_package_binding_invalidates_saved_resolution(tmp_path, binding):
     client, rules = install(tmp_path, "")
