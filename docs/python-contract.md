@@ -162,7 +162,7 @@ For example, `public = relay` before defining or importing `relay` remains unche
 So do `public = relay()`, attribute reads, annotated or chained assignments, and rebinding either name.
 Aliases of built-ins, classes, module objects and global values remain unsupported.
 Reading the function object in an expression also remains incomplete; supported alias calls are a separate case.
-Local shadowing, function attribute changes and shared mutable objects still need separate handling.
+Local shadowing, explicit global declarations, function attribute changes and shared mutable objects still need separate handling.
 
 ## Trace a helper that has type annotations
 

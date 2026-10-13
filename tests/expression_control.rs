@@ -156,7 +156,7 @@ fn expression_control_acceptance_replays_checked_delivery() {
         .args([
             "tools/expression-control-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-literal-collections-expression-control/result.json",
+            "tests/agent-eval/results/2026-10-13-function-aliases-expression-control/result.json",
         ])
         .output()
         .unwrap();
