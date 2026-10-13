@@ -272,6 +272,7 @@ def bindings():
     value = original_bindings()
     value['tools/python-fixed-arity-probes.py'] = flow.sha(Path(__file__).read_bytes())
     value['sdk/python/src/fr_ir/flow_summaries.py'] = flow.sha((ROOT / 'sdk/python/src/fr_ir/flow_summaries.py').read_bytes())
+    value['sdk/python/src/fr_ir/flow_initialization.py'] = flow.sha((ROOT / 'sdk/python/src/fr_ir/flow_initialization.py').read_bytes())
     return value
 
 

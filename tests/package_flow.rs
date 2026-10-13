@@ -68,6 +68,37 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn unchecked_initialization_points_to_the_original_statement_and_clears_after_repair() {
+    let root = tempfile::tempdir().unwrap();
+    let helper = "metadata = source()\ndef relay(value):\n    return value\n";
+    write(root.path(), "helpers.py", helper);
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import relay\ndef entry():\n    return sink(relay(0))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["witnesses"].as_array().unwrap().is_empty());
+    assert_eq!(report["initialization"]["omitted"], 0);
+    let sites = report["initialization"]["sites"].as_array().unwrap();
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0]["reasons"], json!(["module-statement"]));
+    let occurrence = &sites[0]["occurrence"];
+    assert_eq!(occurrence["path"], "helpers.py");
+    assert_eq!(occurrence["revision"], report["revision"]);
+    assert_eq!(occurrence["role"], "module-initialization");
+    let span = &occurrence["location"]["span"];
+    let start = span["start"].as_u64().unwrap() as usize;
+    let end = span["end"].as_u64().unwrap() as usize;
+    assert_eq!(&helper[start..end], "metadata = source()");
+    write(root.path(), "helpers.py", &helper.replace("source()", "0"));
+    let repaired = analyze(root.path(), "entry");
+    assert_eq!(repaired["complete"], true);
+    assert_eq!(repaired["initialization"], json!({"sites":[],"omitted":0}));
+}
+
+#[test]
 fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     let root = fixture();
     let positive = analyze(root.path(), "render");

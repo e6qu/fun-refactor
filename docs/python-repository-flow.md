@@ -149,5 +149,11 @@ Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The
 [next reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json) pins jaraco.functools.
+
+To inspect an incomplete answer, use the initialization locations described in the
+[Python guide](python-contract.md#find-the-statement-that-prevents-an-answer).
+They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
+The list is bounded and counts omitted locations. It does not establish package success or explain
+code in modules the import search could not load.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.

@@ -35,6 +35,41 @@ mod modules;
 #[path = "flow_summaries.rs"]
 mod summaries;
 
+#[derive(Default, Serialize)]
+struct Initialization {
+    sites: Vec<InitializationSite>,
+    omitted: usize,
+}
+
+#[derive(Serialize)]
+struct InitializationSite {
+    occurrence: Occurrence,
+    reasons: Vec<&'static str>,
+}
+
+impl Initialization {
+    fn record(
+        &mut self,
+        project: &Project<'_>,
+        file: &Path,
+        node: Node<'_>,
+        reasons: Vec<&'static str>,
+    ) -> Result<()> {
+        if reasons.is_empty() {
+            return Ok(());
+        }
+        if self.sites.len() == 16 {
+            self.omitted += 1;
+        } else {
+            self.sites.push(InitializationSite {
+                occurrence: project.occurrence(file, Span::from(node), "module-initialization")?,
+                reasons,
+            });
+        }
+        Ok(())
+    }
+}
+
 #[derive(Args)]
 pub struct Options {
     target: String,
@@ -731,7 +766,7 @@ impl Project<'_> {
         let mut ambiguous = BTreeSet::new();
         let mut inert_bindings = BTreeSet::new();
         let mut literal_bindings = BTreeSet::new();
-        let mut module_effects = false;
+        let mut initialization = Initialization::default();
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
                 .parsed
@@ -754,7 +789,7 @@ impl Project<'_> {
                     if let Some((name, constructible)) = calls::module_class(node, text) {
                         classes.remove(name);
                         if !bound_names.insert(name) {
-                            module_effects = true;
+                            initialization.record(self, file, node, vec!["binding-collision"])?;
                         } else if constructible {
                             classes.insert(name);
                         }
@@ -772,7 +807,7 @@ impl Project<'_> {
                     {
                         classes.remove(name);
                         if !bound_names.insert(name) {
-                            module_effects = true;
+                            initialization.record(self, file, node, vec!["binding-collision"])?;
                         }
                         let binding = if let Some(modules) = &modules {
                             modules.function_name(file, name)
@@ -787,6 +822,7 @@ impl Project<'_> {
                     }
                 }
                 if node.kind() == "function_definition" {
+                    let mut reasons = Vec::new();
                     if if options.summaries {
                         !calls::definition_is_inert(node, text)
                     } else {
@@ -799,7 +835,7 @@ impl Project<'_> {
                                         .any(|p| p.kind() != "identifier")
                                 })
                     } {
-                        module_effects = true;
+                        reasons.push("definition-time-code");
                     }
                     let Some(name_node) = node.child_by_field_name("name") else {
                         continue;
@@ -807,11 +843,12 @@ impl Project<'_> {
                     let short = &text[name_node.byte_range()];
                     classes.remove(short);
                     if !bound_names.insert(short) {
-                        module_effects = true;
+                        reasons.push("binding-collision");
                     }
                     if !unicode_normalization::is_nfkc(short) {
-                        module_effects = true;
+                        reasons.push("non-normalized-identifier");
                     }
+                    initialization.record(self, file, node, reasons)?;
                     let name = if let Some(modules) = &modules {
                         modules.function_name(file, short)
                     } else {
@@ -833,7 +870,7 @@ impl Project<'_> {
                                     .any(|child| child.kind() == "interpolation")
                         })))
                 {
-                    module_effects = true;
+                    initialization.record(self, file, node, vec!["module-statement"])?;
                 }
             }
         }
@@ -1006,7 +1043,7 @@ impl Project<'_> {
                 }
             }
         }
-        if module_effects {
+        if !initialization.sites.is_empty() || initialization.omitted > 0 {
             analyzer.cutoff("module-effects-unchecked");
         }
         if self
@@ -1062,10 +1099,12 @@ impl Project<'_> {
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
+            "initialization":initialization,
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         let mut omitted = serde_json::Map::new();
         for field in [
+            "initialization",
             "control_flow",
             "events",
             "summaries",
@@ -1078,13 +1117,22 @@ impl Project<'_> {
             if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
                 break;
             }
-            let count = report[field]
-                .as_array()
-                .map(Vec::len)
-                .or_else(|| report[field].as_object().map(serde_json::Map::len))
-                .unwrap_or(0);
+            let count = if field == "initialization" {
+                report[field]["sites"].as_array().map_or(0, Vec::len)
+            } else {
+                report[field]
+                    .as_array()
+                    .map(Vec::len)
+                    .or_else(|| report[field].as_object().map(serde_json::Map::len))
+                    .unwrap_or(0)
+            };
+            if field == "initialization" && count == 0 {
+                continue;
+            }
             omitted.insert(field.into(), json!(count));
-            report[field] = if matches!(
+            report[field] = if field == "initialization" {
+                json!({"sites":[],"omitted":report[field]["omitted"].as_u64().unwrap() + count as u64})
+            } else if matches!(
                 field,
                 "returns"
                     | "exceptional_returns"

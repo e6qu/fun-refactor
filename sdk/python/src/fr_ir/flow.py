@@ -13,6 +13,7 @@ from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .investigation import FlowWitness, flow_witnesses
 from .flow_summaries import FunctionSummaries
 from .flow_dependencies import FlowDependencies
+from .flow_initialization import FlowInitialization
 from .flow_storage import restore_flow_report, store_flow_report
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
@@ -109,6 +110,10 @@ class FlowAnalysis:
     def summaries(self) -> FunctionSummaries:
         return FunctionSummaries.from_report(self.report)
 
+    @property
+    def initialization(self) -> FlowInitialization:
+        return FlowInitialization.from_report(self.report)
+
 
 class FlowCache:
     """Reuse trusted local records after native dependency and occurrence validation."""
@@ -168,6 +173,7 @@ class FlowCache:
                 or report.at("/revision") != basis.at("/revision")):
             raise FrRuntimeError("flow inputs changed during analysis")
         analysis = FlowAnalysis(report)
+        analysis.initialization
         analysis.graphs
         analysis.witnesses
         if imports:
