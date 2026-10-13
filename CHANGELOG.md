@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.59.1...fun-refactor-v0.60.0) (2026-10-13)
+
+
+### Features
+
+* trace helpers through plain class initialization ([#482](https://github.com/e6qu/fun-refactor/issues/482)) ([8526349](https://github.com/e6qu/fun-refactor/commit/8526349449c618fd9c6d5ef3145db9ab38a3a8a5))
+
 ## [0.59.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.59.0...fun-refactor-v0.59.1) (2026-10-12)
 
 
