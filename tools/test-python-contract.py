@@ -78,6 +78,19 @@ class PythonContract(unittest.TestCase):
         row['runtime']['events'].reverse()
         self.reject(value)
 
+    def test_postponed_annotations_keep_their_source_directive_and_negative_paths(self):
+        for mutation in ('missing', 'candidate', 'importer'):
+            value, row = self.changed('postponed-annotations-forward/moved')
+            lookup = next(item for item in row['flow']['inputs']['modules']['lookups'] if item['future'])
+            if mutation == 'missing':
+                del lookup['future']
+            elif mutation == 'candidate':
+                lookup['candidates']['__future__.py']['status'] = 'symlink'
+            else:
+                lookup['importer'] = row['case']['path']
+            row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+
     def test_runtime_expectation_cannot_be_rewritten(self):
         value, row = self.changed()
         row['case']['expected_runtime']['returned'] = 0

@@ -206,6 +206,23 @@ def audit_case(row, case):
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
         modules = flow['inputs']['modules']
+        for lookup in modules['lookups']:
+            if lookup['future']:
+                tree = ast.parse(case['files'][lookup['importer']])
+                prefix = list(tree.body)
+                if (prefix and isinstance(prefix[0], ast.Expr)
+                        and isinstance(prefix[0].value, ast.Constant)
+                        and isinstance(prefix[0].value.value, str)):
+                    prefix.pop(0)
+                directives = []
+                for statement in prefix:
+                    if not isinstance(statement, ast.ImportFrom) or statement.module != '__future__':
+                        break
+                    directives.append(statement)
+                require(any(len(statement.names) == 1
+                            and statement.names[0].name == 'annotations'
+                            and statement.names[0].asname is None for statement in directives),
+                        'future lookup lacks a module-local directive')
         admitted = case['module_files'] if case['module_files'] is not None else case['files']
         require(modules['files'] == {path: profile.compiler.digest(case['files'][path]) for path in admitted},
                 'module source inventory changed')

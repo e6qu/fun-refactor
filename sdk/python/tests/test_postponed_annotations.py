@@ -109,7 +109,7 @@ def test_directives_belong_to_the_defining_module(tmp_path):
     result = analyze(client, rules, "entry", imports=True)
     assert not result.report.at("/complete")
     assert any(site.occurrence.path == "helpers.py" for site in result.initialization.sites)
-    assert observe(tmp_path)["raised"] == "NameError"
+    assert observe(tmp_path)["result"] == 17
 
 
 def test_single_file_mode_cannot_skip_import_candidate_checks(tmp_path):
@@ -204,6 +204,29 @@ def test_future_feature_binding_cannot_be_declared_an_external_source(tmp_path):
     rules.write_text(json.dumps(rule_data))
     with pytest.raises(FrRuntimeError, match="rule overlaps"):
         analyze(client, rules, "entry", imports=True)
+
+
+def test_package_future_binding_takes_precedence_over_a_same_named_child(tmp_path):
+    client, rules = workspace(tmp_path)
+    package = tmp_path / "pkg"
+    package.mkdir()
+    (package / "__init__.py").write_text(FUTURE)
+    (package / "annotations.py").write_text("sink(source())\n")
+    (tmp_path / "subject.py").write_text("from pkg import annotations\ndef entry():\n    return sink(0)\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert not result.report.at("/complete")
+    assert "pkg/annotations.py" not in dict(result.dependencies.files)
+    lookup = next(item for item in result.dependencies.lookups if item.importer == "subject.py")
+    assert lookup.submodule is None and lookup.resolution == "unavailable"
+    assert observe(tmp_path)["events"] == [["sink", 0]]
+
+
+def test_typed_entry_uses_its_own_postponed_signature(tmp_path):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text(FUTURE + "def entry(value: Missing = 0) -> Missing:\n    return sink(value)\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.summaries.for_function("subject.py::entry").signature[0].name == "value"
 
 
 @pytest.mark.parametrize("body", ["return annotations", "return annotations()", "return relay.__annotations__"])
