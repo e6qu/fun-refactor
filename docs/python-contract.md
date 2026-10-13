@@ -86,6 +86,34 @@ Python's [class creation and construction rules](https://docs.python.org/3.14/re
 explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
 
+## Find the statement that prevents an answer
+
+Suppose a helper's module reads a value while Python imports it:
+
+```python
+# helpers.py
+metadata = read_input()
+
+def relay(value):
+    return value
+```
+
+Your selected function may only call `send(relay(0))`. An empty trace for that function does not
+check the earlier `read_input()` call. The report stays incomplete and points to
+`metadata = read_input()` in `helpers.py` as unsupported initialization.
+
+The Python SDK exposes these locations through `analysis.initialization.sites`.
+Each site has an exact source occurrence, reasons and plain-language explanations.
+For example, use `site.occurrence.path` and `site.occurrence.location.range.start.line`
+to find the file and line. `site.occurrence.text(source, revision=analysis.report.at('/revision'))`
+reads the corresponding statement from that file's source.
+
+The report shows at most sixteen blocking statements in file and source order.
+`analysis.initialization.omitted` counts additional statements or locations omitted to fit the response budget.
+An omitted location does not mean the statement was checked. Import resolution errors remain in
+the dependency records and cutoffs; this list describes initialization in files the analyzer loaded.
+These locations explain a model limitation and do not assert that the statement executed.
+
 ## Rules and executable examples
 
 The rule registry and independently written programs live in

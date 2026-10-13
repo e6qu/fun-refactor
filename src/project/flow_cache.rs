@@ -155,6 +155,10 @@ impl Project<'_> {
             report["assignment_control"] == inputs["assignment_control"],
             "retained flow has inconsistent assignment control."
         );
+        ensure!(
+            report["initialization"] == json!({"sites":[],"omitted":0}),
+            "complete retained flow has unchecked initialization."
+        );
         let revision = report["revision"].as_str().unwrap_or_default().to_owned();
         let mut ids = BTreeMap::new();
         let files = if let Some(files) = inputs["modules"]["files"].as_object() {

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-13-class-initialization-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):
@@ -147,6 +147,21 @@ class PythonContract(unittest.TestCase):
     def test_wrong_source_revision(self):
         value, row = self.changed()
         row['flow']['revision'] = 'stale'
+        self.reject(value)
+
+    def test_initialization_location_must_name_a_whole_module_statement(self):
+        value, row = self.changed('default-evaluated-override/moved')
+        # Point to the nested source call rather than the surrounding declaration.
+        source = row['case']['source']
+        tree = contract.ast.parse(source)
+        call = next(node for node in contract.ast.walk(tree)
+                    if isinstance(node, contract.ast.Call)
+                    and isinstance(node.func, contract.ast.Name)
+                    and node.func.id == row['case']['names']['source'])
+        lines = source.encode().splitlines(keepends=True)
+        start = sum(map(len, lines[:call.lineno - 1])) + call.col_offset
+        end = sum(map(len, lines[:call.end_lineno - 1])) + call.end_col_offset
+        row['flow']['initialization']['sites'][0]['occurrence']['location'] = contract.profile.location(source, start, end)
         self.reject(value)
 
     def test_trace_locations_and_revisions(self):

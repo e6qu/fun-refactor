@@ -42,7 +42,7 @@ def bindings():
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
-                 'sdk/python/src/fr_ir/flow_dependencies.py'):
+                 'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
     return dict(sorted(result.items()))
 
@@ -63,18 +63,22 @@ def oracle_json(encoded):
     return result.stdout
 
 
-def ast_locations(case, path=None):
+def ast_locations(case, path=None, *, module_only=False):
     source = case['files'][path] if path else case['source']
     lines = source.encode().splitlines(keepends=True)
     offsets = [0]
     for line in lines:
         offsets.append(offsets[-1] + len(line))
     spans, calls = set(), {}
-    for node in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    for node in tree.body if module_only else ast.walk(tree):
         if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             continue
         span = (offsets[node.lineno - 1] + node.col_offset, offsets[node.end_lineno - 1] + node.end_col_offset)
         spans.add(span)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.decorator_list:
+            first = min(item.lineno for item in node.decorator_list)
+            spans.add((offsets[first - 1] + node.col_offset, span[1]))
         if isinstance(node, ast.Call):
             calls[span] = node.func.id if isinstance(node.func, ast.Name) else None
     return spans, calls
@@ -186,6 +190,15 @@ def audit_case(row, case):
     require(flow['assignment_control']['implicit_exceptions'] is False
             and flow['call_binding']['implicit_exceptions'] is False, 'implicit exception boundary changed')
     locations = {path: ast_locations(case, path) for path in case['files']}
+    for site in flow['initialization']['sites']:
+        point = site['occurrence']
+        path = point['path']
+        require(path in locations, 'initialization file changed')
+        location = point['location']
+        start, end = location['span']['start'], location['span']['end']
+        require((start, end) in ast_locations(case, path, module_only=True)[0]
+                and location == profile.location(case['files'][path], start, end),
+                'initialization source correspondence changed')
     sources = sorted((path, *span) for path, (_, calls) in locations.items()
                      for span, name in calls.items() if name == case['names']['source'])
     sinks = sorted((path, *span) for path, (_, calls) in locations.items()

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .runtime import FrReport, FrRuntimeError, Occurrence
+from .flow_initialization import FlowInitialization
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,7 @@ class FunctionSummaries:
 
     @classmethod
     def from_report(cls, report: FrReport) -> FunctionSummaries:
+        FlowInitialization.from_report(report)
         data = report.to_data()
         try:
             value = data["function_summaries"]

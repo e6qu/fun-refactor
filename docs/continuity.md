@@ -29,6 +29,8 @@ remain unfinished, along with external dependencies and other code that runs whi
 The current class work admits plain declarations and empty instances made without custom constructors.
 Methods stay deferred. Bases, decorators, descriptors and executed class-body code remain unchecked.
 Replay complete original modules separately from copied helper declarations and full package imports.
+Unchecked initialization now identifies exact source statements and counts locations omitted from the report.
+Use these locations to choose further language work; they do not change the tracing conclusion.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
@@ -41,7 +43,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-class-initialization-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-initialization-locations-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
@@ -51,6 +53,9 @@ passes without increasing the existing output budget. Detailed history belongs i
 The [class collection failure](../tests/agent-eval/results/2026-10-13-class-initialization-history-python-contract-failure/manifest.json)
 preserves four wrong source-call indices and one renamed boundary label.
 Its original validator reproduces those errors; corrected expectations retain the same runtime outcomes and limits.
+The [first initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039)
+passed the native controls and 845 SDK tests. Its new reuse test stored a report inside the sample project,
+which made the next name search ambiguous. The corrected test keeps that report outside the project.
 
 ## Studies that stay stopped
 

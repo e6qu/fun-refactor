@@ -117,7 +117,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-13-class-initialization-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-13-initialization-locations-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -149,5 +149,11 @@ Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The
 [next reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json) pins jaraco.functools.
+
+To inspect an incomplete answer, use the initialization locations described in the
+[Python guide](python-contract.md#find-the-statement-that-prevents-an-answer).
+They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
+The list is bounded and counts omitted locations. It does not establish package success or explain
+code in modules the import search could not load.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.
