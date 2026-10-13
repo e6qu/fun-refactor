@@ -53,6 +53,9 @@ passes without increasing the existing output budget. Detailed history belongs i
 The [class collection failure](../tests/agent-eval/results/2026-10-13-class-initialization-history-python-contract-failure/manifest.json)
 preserves four wrong source-call indices and one renamed boundary label.
 Its original validator reproduces those errors; corrected expectations retain the same runtime outcomes and limits.
+The [first initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039)
+passed the native controls and 845 SDK tests. Its new reuse test stored a report inside the sample project,
+which made the next name search ambiguous. The corrected test keeps that report outside the project.
 
 ## Studies that stay stopped
 

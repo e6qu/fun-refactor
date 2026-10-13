@@ -2,6 +2,8 @@
 import copy
 import hashlib
 import json
+from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -149,10 +151,11 @@ def test_native_reuse_rejects_missing_current_initialization_disclosure(tmp_path
     data = original.report.to_data()
     del data["initialization"]
     encoded = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    path = tmp_path / "retained.json"
-    path.write_text(encoded)
     handle = client.project("find", "entry").definition_target().handle
-    with pytest.raises(FrRuntimeError, match="unchecked initialization"):
-        client.project('dataflow', handle, '--summaries', '--rules', str(rules), '--context', 'html',
-                       '--steps', '4096', '--bytes', '1048576', '--reuse', str(path),
-                       '--reuse-digest', hashlib.sha256(encoded.encode()).hexdigest())
+    with tempfile.TemporaryDirectory(prefix="fr-initialization-retained-") as directory:
+        path = Path(directory) / "retained.json"
+        path.write_text(encoded)
+        with pytest.raises(FrRuntimeError, match="unchecked initialization"):
+            client.project('dataflow', handle, '--summaries', '--rules', str(rules), '--context', 'html',
+                           '--steps', '4096', '--bytes', '1048576', '--reuse', str(path),
+                           '--reuse-digest', hashlib.sha256(encoded.encode()).hexdigest())
