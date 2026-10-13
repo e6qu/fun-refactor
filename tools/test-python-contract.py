@@ -91,6 +91,25 @@ class PythonContract(unittest.TestCase):
             row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
             self.reject(value)
 
+    def test_annotation_text_cannot_replace_the_parameter_name_in_a_trace(self):
+        value, row = self.changed('postponed-annotations-forward/moved')
+        helper = next(path for path in row['case']['files'] if path != row['case']['path'])
+        source = row['case']['files'][helper]
+        definition = next(node for node in contract.ast.parse(source).body
+                          if isinstance(node, contract.ast.FunctionDef))
+        argument = definition.args.args[0]
+        spans, _ = contract.ast_locations(row['case'], helper)
+        start = sum(len(line) for line in source.encode().splitlines(keepends=True)[:argument.lineno - 1]) + argument.col_offset
+        name_span = (start, start + len(argument.arg.encode()))
+        assert name_span in spans
+        for occurrence in row['flow']['witnesses'][0]['trace']['occurrences']:
+            if occurrence['path'] == helper and occurrence['location']['span'] == {'start': name_span[0], 'end': name_span[1]}:
+                occurrence['location'] = contract.profile.location(source, name_span[1] + 2, name_span[1] + 9)
+                break
+        else:
+            self.fail('trace did not disclose its parameter name')
+        self.reject(value)
+
     def test_runtime_expectation_cannot_be_rewritten(self):
         value, row = self.changed()
         row['case']['expected_runtime']['returned'] = 0

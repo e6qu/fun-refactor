@@ -67,6 +67,9 @@ The new reuse test also exposed format validation after the freshness check; non
 now fail before dependency changes can trigger fresh analysis.
 The daily audit also canceled an unfinished merge audit on the same commit.
 Scheduled checks now wait for an active audit; newer pushes can still replace older work.
+The first annotation behavior collection found a source-checker gap: Python's annotated argument
+span includes its type, while a trace points to the parameter name. The checker now includes
+that name's exact byte span and still rejects a substituted annotation span.
 
 ## Studies that stay stopped
 
