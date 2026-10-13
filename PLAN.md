@@ -35,6 +35,8 @@ Small literal collections such as `registry = {}` now receive the same treatment
 Reading or changing that registry still needs separate support.
 Plain function-name assignments such as `public = relay` can preserve the helper's behavior.
 Calls through the new name retain the original function's source locations.
+Unused built-in references such as `sorter = sorted` can also coexist with a supported helper.
+Calling or reading that stored sorting function still leaves the answer incomplete.
 
 Real libraries expose the remaining gap. Importing a package can execute code that `fr` does not
 understand. The current tests in Toolz, funcy and pydash still leave real-package answers incomplete.

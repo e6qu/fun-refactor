@@ -182,7 +182,8 @@ These assignments store functions without calling them. Changing `relay` to retu
 removes the connection to the output. Supported local imports behave the same way.
 Calling `sorter`, or reading that function object as a value, still leaves the answer incomplete.
 
-Both sides must be plain ASCII names, and the destination must be new.
+Both sides must be plain ASCII names, and the left-hand name must be new to the module.
+A built-in with that name does not count as a module binding.
 The source must be an unshadowed name from Python's [built-in function and type list](https://docs.python.org/3.14/library/functions.html).
 `help` is excluded because the `site` module supplies it. Special destination names are excluded too.
 For example, `sorted = 0; sorter = sorted` does not qualify as a built-in reference.

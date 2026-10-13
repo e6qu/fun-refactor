@@ -48,9 +48,14 @@ and mutations remain unchecked; the original packages still receive incomplete a
 Plain assignments to already-bound local functions now retain the defining helper's behavior and locations.
 For example, `public = relay` lets calls through `public` use the original helper's arguments and return.
 The familiar library replay removes Toolz's `comp = compose` from its reported startup blockers.
-Missing names, built-ins, computed assignments, rebinding and shared mutable objects remain unchecked.
-The next work should use the remaining statements. Toolz still binds built-in names such as
-`sorted = sorted` and builds its signature registry. Funcy computes exports and changes function attributes.
+Missing names, computed assignments, rebinding and shared mutable objects remain unchecked.
+Unused references to standard built-ins now receive inert treatment too.
+For example, `sorter = sorted` can coexist with a supported helper without calling the sorting function.
+Calling or reading that stored function still leaves the answer unfinished.
+The familiar Toolz replay removes `sorted = sorted`, `map = map` and `filter = filter` from the startup blockers.
+Its omitted blocker count falls from 80 to 77; full-package answers remain incomplete.
+The next work should use the remaining statements. Toolz still builds and changes its signature registry.
+Funcy computes exports and changes function attributes.
 Pydash still exhausts the import lookup budget. Check these separately before claiming whole-package support.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
