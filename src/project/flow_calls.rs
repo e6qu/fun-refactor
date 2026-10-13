@@ -323,7 +323,9 @@ fn parameter_contract<'t>(
     phase: Phase,
 ) -> Option<Vec<Parameter<'t>>> {
     if function.child_by_field_name("type_parameters").is_some()
-        || !postponed && function.child_by_field_name("return_type").is_some()
+        || function
+            .child_by_field_name("return_type")
+            .is_some_and(|node| !postponed || !postponed_annotation(node))
     {
         return None;
     }
@@ -336,10 +338,12 @@ fn parameter_contract<'t>(
     let mut variadic_keywords = false;
     let mut optional = false;
     for mut node in list.named_children(&mut list.walk()) {
+        if matches!(node.kind(), "typed_parameter" | "typed_default_parameter")
+            && (!postponed || !postponed_annotation(node.child_by_field_name("type")?))
+        {
+            return None;
+        }
         if node.kind() == "typed_parameter" {
-            if !postponed {
-                return None;
-            }
             node = node.named_child(0)?;
         }
         match node.kind() {
@@ -348,9 +352,6 @@ fn parameter_contract<'t>(
                 if !variadic_keywords =>
             {
                 let (name, default) = if node.kind() != "identifier" {
-                    if node.kind() == "typed_default_parameter" && !postponed {
-                        return None;
-                    }
                     let name = node.child_by_field_name("name")?;
                     let value = node.child_by_field_name("value")?;
                     if name.kind() != "identifier" || !literal_default(value, source) {
@@ -404,6 +405,26 @@ fn parameter_contract<'t>(
     Some(result)
 }
 
+fn postponed_annotation(node: Node<'_>) -> bool {
+    let mut pending = vec![node];
+    for _ in 0..128 {
+        let Some(node) = pending.pop() else {
+            return true;
+        };
+        if matches!(
+            node.kind(),
+            "await" | "yield" | "named_expression" | "splat_type" | "constrained_type"
+        ) {
+            return false;
+        }
+        pending.extend(node.named_children(&mut node.walk()));
+        if pending.len() > 128 {
+            return false;
+        }
+    }
+    pending.is_empty()
+}
+
 fn variadic_parameter<'s>(
     node: Node<'_>,
     function: Node<'_>,
@@ -441,7 +462,7 @@ pub(super) fn contract() -> Value {
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
         "boundary":"no evaluated or mutable defaults, unpostponed annotations, type parameters, referenced variadics, extra variadic arguments, unpacking or coroutine/generator execution. Keyword external-rule contracts and non-normalized identifier spellings remain unchecked.",
-        "definitions":"ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Calls require scalar fixed slots.",
+        "definitions":"ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Each annotation admits up to 128 syntax nodes; await, yield, assignment expressions and type unpacking remain unchecked. Calls require scalar fixed slots.",
         "initialization":"ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
         "variadics":"fixed-slot summaries omit unused ASCII variadic parameters, with annotations only under an admitted future directive. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",

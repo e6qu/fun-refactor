@@ -141,6 +141,24 @@ def test_postponed_methods_are_deferred_in_plain_classes(tmp_path):
     assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]
 
 
+@pytest.mark.parametrize("annotation", ["(value := source())", "(yield source())", "(await source())",
+                                      "*Missing", "tuple[" + ", ".join("Missing" for _ in range(160)) + "]"])
+@pytest.mark.parametrize("position", ["parameter", "default", "return"])
+def test_compiler_sensitive_and_large_annotations_remain_unchecked(tmp_path, annotation, position):
+    signature = "value: " + annotation + (" = 0" if position == "default" else "")
+    suffix = ""
+    if position == "return":
+        signature, suffix = "value", " -> " + annotation
+    client, rules = install(tmp_path, FUTURE + "def relay(" + signature + ")" + suffix + ":\n    return value\n")
+    try:
+        result = analyze(client, rules, "entry", imports=True)
+    except FrRuntimeError as error:
+        assert "syntax" in str(error)
+    else:
+        assert not result.report.at("/complete")
+        assert "module-effects-unchecked" in result.report.at("/cutoffs")
+
+
 @pytest.mark.parametrize("path", ["__future__.py", "__future__/__init__.py", "__future__.pyi",
                                    "__future__/__init__.pyi", "__future__"])
 def test_local_candidates_prevent_standard_library_admission(tmp_path, path):

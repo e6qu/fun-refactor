@@ -116,6 +116,8 @@ Defaults still execute: `def relay(value: MissingType = read_input()): ...` leav
 Decorators, type parameters, annotation inspection and annotated class attributes also remain unchecked.
 The supported directive imports only `annotations`, without aliases or other future features.
 Single-file analysis cannot accept it because that mode does not check the import candidates.
+Annotations containing `await`, `yield`, assignment expressions or type unpacking remain unchecked.
+Each supported annotation contains at most 128 syntax nodes.
 
 ## Find the statement that prevents an answer
 

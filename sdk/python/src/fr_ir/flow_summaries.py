@@ -108,7 +108,7 @@ _CALL_BINDING = {
     "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
     "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
     "boundary": "no evaluated or mutable defaults, unpostponed annotations, type parameters, referenced variadics, extra variadic arguments, unpacking or coroutine/generator execution. Keyword external-rule contracts and non-normalized identifier spellings remain unchecked.",
-    "definitions": "ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Calls require scalar fixed slots.",
+    "definitions": "ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Each annotation admits up to 128 syntax nodes; await, yield, assignment expressions and type unpacking remain unchecked. Calls require scalar fixed slots.",
     "initialization": "ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
     "implicit_exceptions": False,
     "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
