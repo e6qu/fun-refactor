@@ -1,0 +1,22 @@
+{
+  "schema": "fr-failed-python-contract",
+  "admitted": false,
+  "run_id": "38318045100",
+  "attempt": 1,
+  "producer_job_id": 115039292941,
+  "source_commit": "22feac468091bba3770a4d0b20d4afbfb5975aaf",
+  "url": "https://github.com/e6qu/fun-refactor/actions/runs/38318045100",
+  "artifact_id": 11777454140,
+  "artifact_digest": "sha256:214230a7479b6697607f65ed2b75b036fa51c4ec5ad95484ff9b55935ac199cd",
+  "errors": [
+    "plain-class-method-deferred/original: source-to-sink pairing changed",
+    "plain-class-method-deferred/moved: source-to-sink pairing changed",
+    "plain-class-constructor-deferred/original: source-to-sink pairing changed",
+    "plain-class-constructor-deferred/moved: source-to-sink pairing changed",
+    "plain-class-global-instance-read/moved: analysis boundary changed"
+  ],
+  "files": {
+    "result.json": "d9bd9550afa1715e8ee2c5b05c44ff67050f40604d8ab8f8bf9929778b128d9d",
+    "source.tar.gz": "73d447b20f025d31c867c6175197ee808166472b612ac5f21fc4138ed4fffc1f"
+  }
+}

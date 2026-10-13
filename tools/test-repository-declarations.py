@@ -17,7 +17,7 @@ class DeclarationEvidence(unittest.TestCase):
                 'declaration_cases': [
                     {'helper': helper['id'], 'project': helper['project'],
                      'context': context, 'variant': variant, 'case': case}
-                    for helper in declarations.HELPERS for context in declarations.CONTEXTS
+                    for helper in declarations.HELPERS for context in declarations.contexts(helper)
                     for variant in declarations.VARIANTS for case in declarations.flow.BODIES]}
 
     def test_missing_or_duplicate_cells_cannot_narrow_coverage(self):

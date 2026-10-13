@@ -729,7 +729,8 @@ impl Project<'_> {
         let mut functions = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
-        let mut module_literals = BTreeSet::new();
+        let mut inert_bindings = BTreeSet::new();
+        let mut literal_bindings = BTreeSet::new();
         let mut module_effects = false;
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
@@ -741,6 +742,7 @@ impl Project<'_> {
             vec![(symbol.file.as_path(), source.as_str(), &parsed)]
         };
         for (file, text, parsed) in units {
+            let mut classes = BTreeSet::new();
             let mut bound_names: BTreeSet<_> = modules
                 .as_ref()
                 .and_then(|modules| modules.bindings.get(file))
@@ -749,17 +751,38 @@ impl Project<'_> {
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
-                    if let Some(name) = calls::module_literal(node, text)
-                        .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"))
-                    {
+                    if let Some((name, constructible)) = calls::module_class(node, text) {
+                        classes.remove(name);
                         if !bound_names.insert(name) {
                             module_effects = true;
+                        } else if constructible {
+                            classes.insert(name);
                         }
-                        module_literals.insert(if let Some(modules) = &modules {
+                        inert_bindings.insert(if let Some(modules) = &modules {
                             modules.function_name(file, name)
                         } else {
                             name.to_owned()
                         });
+                        continue;
+                    }
+                    let literal = calls::module_literal(node, text)
+                        .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"));
+                    if let Some(name) =
+                        literal.or_else(|| calls::module_instance(node, text, &classes))
+                    {
+                        classes.remove(name);
+                        if !bound_names.insert(name) {
+                            module_effects = true;
+                        }
+                        let binding = if let Some(modules) = &modules {
+                            modules.function_name(file, name)
+                        } else {
+                            name.to_owned()
+                        };
+                        if literal.is_some() {
+                            literal_bindings.insert(binding.clone());
+                        }
+                        inert_bindings.insert(binding);
                         continue;
                     }
                 }
@@ -782,6 +805,7 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
+                    classes.remove(short);
                     if !bound_names.insert(short) {
                         module_effects = true;
                     }
@@ -814,7 +838,7 @@ impl Project<'_> {
             }
         }
         ambiguous.extend(
-            module_literals
+            literal_bindings
                 .iter()
                 .filter(|name| functions.contains_key(*name))
                 .cloned(),
@@ -858,7 +882,7 @@ impl Project<'_> {
                         && !functions
                             .keys()
                             .any(|key| key.rsplit("::").next() == Some(name.as_str()))
-                        && !module_literals
+                        && !inert_bindings
                             .iter()
                             .any(|key| key.rsplit("::").next() == Some(name.as_str()))
                         && !modules.as_ref().is_some_and(|m| m

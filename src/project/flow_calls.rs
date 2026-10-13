@@ -73,6 +73,107 @@ pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s 
     .then_some(name)
 }
 
+pub(super) fn module_class<'s>(node: Node<'_>, source: &'s str) -> Option<(&'s str, bool)> {
+    if node.kind() != "class_definition" {
+        return None;
+    }
+    let name_node = node.child_by_field_name("name")?;
+    let body = node.child_by_field_name("body")?;
+    let name = &source[name_node.byte_range()];
+    if !name.is_ascii() || name.starts_with("__") && name.ends_with("__") {
+        return None;
+    }
+    for child in node.named_children(&mut node.walk()) {
+        if child == name_node || child == body || child.kind() == "comment" {
+            continue;
+        }
+        if child.kind() != "argument_list"
+            || child
+                .named_children(&mut child.walk())
+                .any(|n| n.kind() != "comment")
+        {
+            return None;
+        }
+    }
+    let mut constructible = true;
+    for child in body.named_children(&mut body.walk()) {
+        if matches!(child.kind(), "comment" | "pass_statement")
+            || module_literal(child, source).is_some()
+        {
+            continue;
+        }
+        if child.kind() == "expression_statement"
+            && child.named_child_count() == 1
+            && child
+                .named_child(0)
+                .is_some_and(|n| n.kind() == "string" && literal_default(n, source))
+        {
+            continue;
+        }
+        if child.kind() != "function_definition" || !definition_is_inert(child, source) {
+            return None;
+        }
+        let method = child.child_by_field_name("name")?;
+        let method = &source[method.byte_range()];
+        if !method.is_ascii()
+            || matches!(
+                method,
+                "__name__"
+                    | "__class__"
+                    | "__module__"
+                    | "__qualname__"
+                    | "__doc__"
+                    | "__dict__"
+                    | "__weakref__"
+                    | "__slots__"
+                    | "__classcell__"
+                    | "__annotations__"
+                    | "__annotate__"
+                    | "__type_params__"
+                    | "__firstlineno__"
+                    | "__static_attributes__"
+                    | "__mro__"
+                    | "__bases__"
+                    | "__base__"
+                    | "__abstractmethods__"
+            )
+        {
+            return None;
+        }
+        constructible &= !matches!(method, "__new__" | "__init__" | "__del__");
+    }
+    Some((name, constructible))
+}
+
+pub(super) fn module_instance<'s>(
+    node: Node<'_>,
+    source: &'s str,
+    classes: &BTreeSet<&str>,
+) -> Option<&'s str> {
+    if node.kind() != "expression_statement" || node.named_child_count() != 1 {
+        return None;
+    }
+    let assignment = node.named_child(0)?;
+    if assignment.kind() != "assignment" || assignment.child_by_field_name("type").is_some() {
+        return None;
+    }
+    let left = assignment.child_by_field_name("left")?;
+    let right = assignment.child_by_field_name("right")?;
+    let name = &source[left.byte_range()];
+    let function = right.child_by_field_name("function")?;
+    let arguments = right.child_by_field_name("arguments")?;
+    (left.kind() == "identifier"
+        && name.is_ascii()
+        && !(name.starts_with("__") && name.ends_with("__"))
+        && right.kind() == "call"
+        && function.kind() == "identifier"
+        && classes.contains(&source[function.byte_range()])
+        && arguments
+            .named_children(&mut arguments.walk())
+            .all(|n| n.kind() == "comment"))
+    .then_some(name)
+}
+
 pub(super) fn module_export_list(node: Node<'_>, source: &str) -> Option<BTreeSet<String>> {
     if node.kind() != "expression_statement" || node.named_child_count() != 1 {
         return None;
@@ -280,7 +381,7 @@ pub(super) fn contract() -> Value {
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
         "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
         "definitions":"Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
-        "initialization":"Unique ASCII scalar bindings and literal __all__ declarations are inert; collisions and effects remain unchecked. No global reads or imported literals.",
+        "initialization":"ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
         "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})

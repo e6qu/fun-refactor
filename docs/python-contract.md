@@ -62,6 +62,30 @@ Python can read this value. The current analyzer still reports an unknown bindin
 so the trace answer remains incomplete. Supporting initialization and supporting global reads are
 separate pieces of work.
 
+A library may create an unused marker while it defines a helper:
+
+```python
+class Marker:
+    def __repr__(self):
+        return 'marker'
+
+EMPTY = Marker()
+
+def relay(value):
+    return value
+```
+
+This plain declaration and default empty construction do not prevent an otherwise supported answer.
+The method body stays deferred. The supported class has no bases, decorators or type parameters.
+Its body contains comments, literal strings, `pass`, scalar attributes or unannotated method declarations with inert defaults.
+The call must name an unchanged class defined earlier in the same file and pass no arguments.
+
+For example, adding `def __init__(self): read_input()` makes `EMPTY = Marker()` execute custom code.
+That initialization remains unchecked, as do custom `__new__` or `__del__` methods, descriptors and other evaluated class-body statements.
+Python's [class creation and construction rules](https://docs.python.org/3.14/reference/datamodel.html#creating-the-class-object)
+explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
+Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
+
 ## Rules and executable examples
 
 The rule registry and independently written programs live in
