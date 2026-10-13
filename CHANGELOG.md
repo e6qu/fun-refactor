@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.62.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.61.0...fun-refactor-v0.62.0) (2026-10-13)
+
+
+### Features
+
+* trace Python helpers with postponed annotations ([#486](https://github.com/e6qu/fun-refactor/issues/486)) ([dd5ab96](https://github.com/e6qu/fun-refactor/commit/dd5ab96a942ba68a3a30a375259fe99cb7f32e8c))
+
 ## [0.61.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.60.0...fun-refactor-v0.61.0) (2026-10-13)
 
 
