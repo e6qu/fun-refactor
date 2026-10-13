@@ -29,9 +29,10 @@ it checks; it is not a percentage of product readiness.
 ## Latest measured result
 
 The recent Python work asks: “Can this input reach this output?” Small examples check arguments,
-assignments and helper calls against Python execution. An unused function body, a plain binding
-such as `metadata = 0`, or a small literal collection such as `registry = {}` no longer blocks an
-otherwise supported answer. Reading or changing that registry still needs separate support.
+assignments and helper calls against Python execution. Unused function bodies and plain bindings
+such as `metadata = 0` no longer block an otherwise supported answer.
+Small literal collections such as `registry = {}` now receive the same treatment.
+Reading or changing that registry still needs separate support.
 
 Real libraries expose the remaining gap. Importing a package can execute code that `fr` does not
 understand. The current tests in Toolz, funcy and pydash still leave real-package answers incomplete.

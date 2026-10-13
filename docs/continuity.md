@@ -90,6 +90,10 @@ The [second collection gate](https://github.com/e6qu/fun-refactor/actions/runs/3
 passed all native controls and 1111 SDK tests. Its imported hash-callback test exposed an observer
 that supplied source/sink functions only to the caller's globals. The corrected test uses the
 isolated import observer, which supplies those functions to imported modules too.
+The [first collection documentation check](https://github.com/e6qu/fun-refactor/actions/runs/38430801404)
+found one new sentence beyond the existing prose budget. Splitting the explanation keeps that budget unchanged.
+Review also found stale roadmap assertions for the older 211-program inventory.
+They now match the independently checked 237 programs; broader package and product goals remain open.
 
 ## Studies that stay stopped
 
