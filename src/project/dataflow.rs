@@ -430,7 +430,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
-        if function.child_by_field_name("return_type").is_some() {
+        if function.child_by_field_name("return_type").is_some()
+            && !self.annotations_postponed(self.file)
+        {
             self.cutoff("function-annotation-effects");
         }
         if function
@@ -777,6 +779,9 @@ impl Project<'_> {
             vec![(symbol.file.as_path(), source.as_str(), &parsed)]
         };
         for (file, text, parsed) in units {
+            let postponed = modules
+                .as_ref()
+                .is_some_and(|m| m.annotations_postponed(file));
             let mut classes = BTreeSet::new();
             let mut bound_names: BTreeSet<_> = modules
                 .as_ref()
@@ -786,7 +791,8 @@ impl Project<'_> {
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
-                    if let Some((name, constructible)) = calls::module_class(node, text) {
+                    if let Some((name, constructible)) = calls::module_class(node, text, postponed)
+                    {
                         classes.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
@@ -824,7 +830,7 @@ impl Project<'_> {
                 if node.kind() == "function_definition" {
                     let mut reasons = Vec::new();
                     if if options.summaries {
-                        !calls::definition_is_inert(node, text)
+                        !calls::definition_is_inert(node, text, postponed)
                     } else {
                         node.child_by_field_name("return_type").is_some()
                             || node
@@ -860,6 +866,9 @@ impl Project<'_> {
                     contexts.insert(name, (file, text));
                 } else if !(options.imports
                     && matches!(node.kind(), "import_statement" | "import_from_statement"))
+                    && !modules
+                        .as_ref()
+                        .is_some_and(|m| m.future_statement_is_inert(file, node.start_byte()))
                     && (!matches!(
                         node.kind(),
                         "comment" | "expression_statement" | "pass_statement"
@@ -1033,6 +1042,7 @@ impl Project<'_> {
             for (file, bindings) in &modules.bindings {
                 for (alias, binding) in bindings {
                     if binding.member.is_some()
+                        && !binding.future
                         && !modules.is_module(file, alias)
                         && !analyzer
                             .functions

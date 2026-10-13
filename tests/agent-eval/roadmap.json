@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-flow-facts/result.json",
-      "sha256": "e92a75cea8348a76eeca128a76bb2d29869e513fee4660ef913d4d2de17c814a"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-flow-facts/result.json",
+      "sha256": "565c33ed9385905016cdd1a187e273e550a939fa15a5ecac7d4ce5fcc4a3bd7f"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-package-flow/result.json",
-      "sha256": "6e3da296368f5a96a947ca98f285393117daf0a0ac649cbea75e044e2c42db59"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-package-flow/result.json",
+      "sha256": "bdb92d8032d4f7af49351890fb1b23b4d945b635af3b4c386e4cca1101de9b2c"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-python-repositories",
-      "sha256": "bd46b1d1d99abc8d71aa4fd6a41c3b911ed39d6a7e589f3f7006d7f5a391476b"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-python-repositories",
+      "sha256": "a98be27f815ad1bc5bf45c736b9b572e08a80d8b151384f9581aa886e7153bd8"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-flow-cache/result.json",
-      "sha256": "9f7b9a857ac3f16c2cc2e9fdf79da49d9ad191db52e51c53952d6aaa343d6453"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-flow-cache/result.json",
+      "sha256": "cb6ca99674e90a02b40ac10570136bc599f77c7b3d6170bd062130d844065e36"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-compiler-profile/result.json",
-      "sha256": "45c6ffc50ebe9826faef2ad067cd7ba29000e53941ad763645841b26fec12e25"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-compiler-profile/result.json",
+      "sha256": "0c15ae0ede401d28801c435275d579dbe7242a3cdcabe924a5cc5f66f757678a"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 211 authored programs and 422 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json",
-      "sha256": "d05782b96b69497b69ffbb12630a6da68c9ec302abc875616f31c1e178105136"
+      "scope": "14 declared Python rules; 220 authored programs and 440 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-postponed-annotations-python-contract/result.json",
+      "sha256": "f9c00adc22e8aa5c6f11369a3c1f9c834c6e331e3f3825f19d5ce79d677c50c1"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-postponed-annotations-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-initialization-locations-index-resolution/result.json",
-      "sha256": "0b0766cd4490b51633a1ab059e9f29c0880ddb173009fa13434723643b4df0ec"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-postponed-annotations-index-resolution/result.json",
+      "sha256": "ee95d213f627e0e3ebc2a434ccb4e5c57bf6f00cbf8abc1d1f55975552a835b7"
     },
     {
       "id": "repository-flow",

@@ -68,6 +68,49 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn postponed_annotations_retain_negative_import_candidates_and_check_local_shadows() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "helpers.py", "from __future__ import annotations\ndef relay(value: Missing, /, *, flag: Missing = 0) -> source():\n    return value\n");
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    let lookup = report["inputs"]["modules"]["lookups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["future"] == true)
+        .unwrap();
+    assert_eq!(lookup["resolution"], "future");
+    assert_eq!(lookup["importer"], "helpers.py");
+    assert_eq!(lookup["candidates"].as_object().unwrap().len(), 5);
+    assert!(lookup["candidates"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|value| value["status"] == "missing"));
+    write(
+        root.path(),
+        "__future__.py",
+        "annotations = 0\nsink(source())\n",
+    );
+    let shadowed = analyze(root.path(), "entry");
+    assert_eq!(shadowed["complete"], false);
+    assert!(shadowed["inputs"]["modules"]["files"]
+        .get("__future__.py")
+        .is_some());
+    assert!(shadowed["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|site| site["occurrence"]["path"] == "__future__.py"));
+}
+
+#[test]
 fn unchecked_initialization_points_to_the_original_statement_and_clears_after_repair() {
     let root = tempfile::tempdir().unwrap();
     let helper = "metadata = source()\ndef relay(value):\n    return value\n";
@@ -574,7 +617,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-initialization-locations-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-13-postponed-annotations-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -636,7 +679,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-initialization-locations-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-13-postponed-annotations-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -693,7 +736,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-initialization-locations-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-13-postponed-annotations-module-aliases/result.json",
         ])
         .output()
         .unwrap();

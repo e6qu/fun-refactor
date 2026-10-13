@@ -1,5 +1,5 @@
 use super::{hash, occurrence::Occurrence, Project};
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Context, Result};
 use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -130,6 +130,30 @@ impl Project<'_> {
             report["schema"] == "fr-dataflow-1",
             "expected a retained dataflow report"
         );
+        let summary_mode = report["inputs"]["summary_mode"]
+            .as_bool()
+            .context("retained flow has an invalid summary mode")?;
+        let contract = if summary_mode {
+            super::dataflow::call_contract()
+        } else {
+            Value::Null
+        };
+        ensure!(
+            report.get("call_binding") == Some(&contract)
+                && report["inputs"].get("call_binding") == Some(&contract),
+            "retained flow has inconsistent or unsupported call binding."
+        );
+        if let Some(modules) = report["inputs"].get("modules") {
+            ensure!(
+                modules["lookups"].as_array().is_some_and(|lookups| {
+                    lookups.iter().all(|lookup| {
+                        lookup["future"].is_boolean()
+                            && (lookup["future"] == true) == (lookup["resolution"] == "future")
+                    })
+                }),
+                "retained flow has inconsistent future import markers."
+            );
+        }
         if report["inputs"] != *inputs || report["complete"] != true {
             return Ok(None);
         }

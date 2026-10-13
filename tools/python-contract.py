@@ -63,7 +63,7 @@ def oracle_json(encoded):
     return result.stdout
 
 
-def ast_locations(case, path=None, *, module_only=False):
+def ast_locations(case, path=None, *, module_only=False, parameters_only=False):
     source = case['files'][path] if path else case['source']
     lines = source.encode().splitlines(keepends=True)
     offsets = [0]
@@ -75,7 +75,13 @@ def ast_locations(case, path=None, *, module_only=False):
         if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             continue
         span = (offsets[node.lineno - 1] + node.col_offset, offsets[node.end_lineno - 1] + node.end_col_offset)
+        if parameters_only:
+            if isinstance(node, ast.arg):
+                spans.add((span[0], span[0] + len(node.arg.encode())))
+            continue
         spans.add(span)
+        if isinstance(node, ast.arg):
+            spans.add((span[0], span[0] + len(node.arg.encode())))
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.decorator_list:
             first = min(item.lineno for item in node.decorator_list)
             spans.add((offsets[first - 1] + node.col_offset, span[1]))
@@ -190,6 +196,7 @@ def audit_case(row, case):
     require(flow['assignment_control']['implicit_exceptions'] is False
             and flow['call_binding']['implicit_exceptions'] is False, 'implicit exception boundary changed')
     locations = {path: ast_locations(case, path) for path in case['files']}
+    parameter_locations = {path: ast_locations(case, path, parameters_only=True)[0] for path in case['files']}
     for site in flow['initialization']['sites']:
         point = site['occurrence']
         path = point['path']
@@ -206,6 +213,23 @@ def audit_case(row, case):
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
         modules = flow['inputs']['modules']
+        for lookup in modules['lookups']:
+            if lookup['future']:
+                tree = ast.parse(case['files'][lookup['importer']])
+                prefix = list(tree.body)
+                if (prefix and isinstance(prefix[0], ast.Expr)
+                        and isinstance(prefix[0].value, ast.Constant)
+                        and isinstance(prefix[0].value.value, str)):
+                    prefix.pop(0)
+                directives = []
+                for statement in prefix:
+                    if not isinstance(statement, ast.ImportFrom) or statement.module != '__future__':
+                        break
+                    directives.append(statement)
+                require(any(len(statement.names) == 1
+                            and statement.names[0].name == 'annotations'
+                            and statement.names[0].asname is None for statement in directives),
+                        'future lookup lacks a module-local directive')
         admitted = case['module_files'] if case['module_files'] is not None else case['files']
         require(modules['files'] == {path: profile.compiler.digest(case['files'][path]) for path in admitted},
                 'module source inventory changed')
@@ -250,6 +274,8 @@ def audit_case(row, case):
             require((start, end) in spans and location == profile.location(case['files'][path], start, end)
                     and occurrence['revision'] == flow['revision'],
                     'witness source correspondence changed')
+            if occurrence['role'] in ('parameter', 'entry-parameter', 'summary-parameter'):
+                require((start, end) in parameter_locations[path], 'witness parameter name changed')
             if occurrence['role'] in ('source', 'sink'):
                 require(calls.get((start, end)) == case['names'][occurrence['role']], 'witness call identity changed')
             if occurrence['role'] in ('summary-call', 'call-result'):

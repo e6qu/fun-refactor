@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-13-postponed-annotations-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):
@@ -76,6 +76,38 @@ class PythonContract(unittest.TestCase):
             self.reject(value)
         value, row = self.changed('keyword-order/moved')
         row['runtime']['events'].reverse()
+        self.reject(value)
+
+    def test_postponed_annotations_keep_their_source_directive_and_negative_paths(self):
+        for mutation in ('missing', 'candidate', 'importer'):
+            value, row = self.changed('postponed-annotations-forward/moved')
+            lookup = next(item for item in row['flow']['inputs']['modules']['lookups'] if item['future'])
+            if mutation == 'missing':
+                del lookup['future']
+            elif mutation == 'candidate':
+                lookup['candidates']['__future__.py']['status'] = 'symlink'
+            else:
+                lookup['importer'] = row['case']['path']
+            row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+
+    def test_annotation_text_cannot_replace_the_parameter_name_in_a_trace(self):
+        value, row = self.changed('postponed-annotations-forward/moved')
+        helper = next(path for path in row['case']['files'] if path != row['case']['path'])
+        source = row['case']['files'][helper]
+        definition = next(node for node in contract.ast.parse(source).body
+                          if isinstance(node, contract.ast.FunctionDef))
+        argument = definition.args.args[0]
+        spans, _ = contract.ast_locations(row['case'], helper)
+        start = sum(len(line) for line in source.encode().splitlines(keepends=True)[:argument.lineno - 1]) + argument.col_offset
+        name_span = (start, start + len(argument.arg.encode()))
+        assert name_span in spans
+        for occurrence in row['flow']['witnesses'][0]['trace']['occurrences']:
+            if occurrence['path'] == helper and occurrence['location']['span'] == {'start': name_span[0], 'end': name_span[1]}:
+                occurrence['location'] = contract.profile.location(source, name_span[1] + 2, name_span[1] + 9)
+                break
+        else:
+            self.fail('trace did not disclose its parameter name')
         self.reject(value)
 
     def test_runtime_expectation_cannot_be_rewritten(self):

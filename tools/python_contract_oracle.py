@@ -31,7 +31,7 @@ def execute(case, namespace):
             module = importlib.import_module(case['path'][:-3].replace('/', '.'))
             namespace = vars(module)
         else:
-            exec(compile(case['source'], case['path'], 'exec'), namespace)
+            exec(compile(case['source'], case['path'], 'exec', dont_inherit=True), namespace)
         phase = 'entry'
         returned = namespace[case['names']['entry']]()
     except Exception as error:
@@ -48,6 +48,7 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(source.encode())
         sys.path.insert(0, str(root))
+        sys.modules.pop('__future__', None)
         print(json.dumps(execute(case, {}), ensure_ascii=False))
 
 

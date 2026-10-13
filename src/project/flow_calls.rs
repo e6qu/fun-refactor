@@ -73,7 +73,11 @@ pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s 
     .then_some(name)
 }
 
-pub(super) fn module_class<'s>(node: Node<'_>, source: &'s str) -> Option<(&'s str, bool)> {
+pub(super) fn module_class<'s>(
+    node: Node<'_>,
+    source: &'s str,
+    postponed: bool,
+) -> Option<(&'s str, bool)> {
     if node.kind() != "class_definition" {
         return None;
     }
@@ -110,7 +114,7 @@ pub(super) fn module_class<'s>(node: Node<'_>, source: &'s str) -> Option<(&'s s
         {
             continue;
         }
-        if child.kind() != "function_definition" || !definition_is_inert(child, source) {
+        if child.kind() != "function_definition" || !definition_is_inert(child, source, postponed) {
             return None;
         }
         let method = child.child_by_field_name("name")?;
@@ -241,13 +245,53 @@ pub(super) fn declared_exports(root: Node<'_>, source: &str) -> Option<BTreeSet<
     exports
 }
 
-pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Parameter<'t>>> {
-    parameter_contract(function, source, Phase::Call)
+pub(super) fn future_annotation_nodes(root: Node<'_>, source: &str) -> BTreeSet<usize> {
+    let mut result = BTreeSet::new();
+    let mut first = true;
+    for node in root.named_children(&mut root.walk()) {
+        if node.kind() == "comment" {
+            continue;
+        }
+        if first && node.kind() == "expression_statement" && node.named_child_count() == 1 {
+            let value = node.named_child(0).unwrap();
+            let prefix = source[value.byte_range()]
+                .split(['\'', '"'])
+                .next()
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            if value.kind() == "string" && literal_default(value, source) && !prefix.contains('b') {
+                first = false;
+                continue;
+            }
+        }
+        first = false;
+        if node.kind() != "future_import_statement" {
+            break;
+        }
+        let names: Vec<_> = node
+            .children_by_field_name("name", &mut node.walk())
+            .collect();
+        if names.len() != 1
+            || names[0].kind() != "dotted_name"
+            || &source[names[0].byte_range()] != "annotations"
+        {
+            return BTreeSet::new();
+        }
+        result.insert(node.start_byte());
+    }
+    result
 }
 
-pub(super) fn definition_is_inert(function: Node<'_>, source: &str) -> bool {
-    function.child_by_field_name("return_type").is_none()
-        && parameter_contract(function, source, Phase::Declaration).is_some()
+pub(super) fn parameters<'t>(
+    function: Node<'t>,
+    source: &str,
+    postponed: bool,
+) -> Option<Vec<Parameter<'t>>> {
+    parameter_contract(function, source, postponed, Phase::Call)
+}
+
+pub(super) fn definition_is_inert(function: Node<'_>, source: &str, postponed: bool) -> bool {
+    parameter_contract(function, source, postponed, Phase::Declaration).is_some()
 }
 
 pub(super) fn generator_function(function: Node<'_>) -> bool {
@@ -275,8 +319,16 @@ pub(super) fn generator_function(function: Node<'_>) -> bool {
 fn parameter_contract<'t>(
     function: Node<'t>,
     source: &str,
+    postponed: bool,
     phase: Phase,
 ) -> Option<Vec<Parameter<'t>>> {
+    if function.child_by_field_name("type_parameters").is_some()
+        || function
+            .child_by_field_name("return_type")
+            .is_some_and(|node| !postponed || !postponed_annotation(node))
+    {
+        return None;
+    }
     let list = function.child_by_field_name("parameters")?;
     let mut result: Vec<Parameter<'t>> = Vec::new();
     let mut names = BTreeSet::new();
@@ -285,11 +337,21 @@ fn parameter_contract<'t>(
     let mut bare_star = false;
     let mut variadic_keywords = false;
     let mut optional = false;
-    for node in list.named_children(&mut list.walk()) {
+    for mut node in list.named_children(&mut list.walk()) {
+        if matches!(node.kind(), "typed_parameter" | "typed_default_parameter")
+            && (!postponed || !postponed_annotation(node.child_by_field_name("type")?))
+        {
+            return None;
+        }
+        if node.kind() == "typed_parameter" {
+            node = node.named_child(0)?;
+        }
         match node.kind() {
             "comment" => (),
-            "identifier" | "default_parameter" if !variadic_keywords => {
-                let (name, default) = if node.kind() == "default_parameter" {
+            "identifier" | "default_parameter" | "typed_default_parameter"
+                if !variadic_keywords =>
+            {
+                let (name, default) = if node.kind() != "identifier" {
                     let name = node.child_by_field_name("name")?;
                     let value = node.child_by_field_name("value")?;
                     if name.kind() != "identifier" || !literal_default(value, source) {
@@ -343,6 +405,26 @@ fn parameter_contract<'t>(
     Some(result)
 }
 
+fn postponed_annotation(node: Node<'_>) -> bool {
+    let mut pending = vec![node];
+    for _ in 0..128 {
+        let Some(node) = pending.pop() else {
+            return true;
+        };
+        if matches!(
+            node.kind(),
+            "await" | "yield" | "named_expression" | "splat_type" | "constrained_type"
+        ) {
+            return false;
+        }
+        pending.extend(node.named_children(&mut node.walk()));
+        if pending.len() > 128 {
+            return false;
+        }
+    }
+    pending.is_empty()
+}
+
 fn variadic_parameter<'s>(
     node: Node<'_>,
     function: Node<'_>,
@@ -375,22 +457,27 @@ fn variadic_parameter<'s>(
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
-        "parameters":"ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
-        "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
-        "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
-        "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
-        "definitions":"Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
-        "initialization":"ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
-        "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
-        "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
+        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; required or immutable literal defaults.",
+        "evaluation":"Evaluate explicit values once in source order before binding.",
+        "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
+        "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+        "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
+        "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
+        "initialization":"ASCII scalars, literal __all__, plain classes and unchanged empty construction are inert. Global reads, collisions and other effects stay unchecked.",
+        "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
+        "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
+        self.modules
+            .is_some_and(|modules| modules.annotations_postponed(file))
+    }
+
     pub(super) fn parameter_nodes(&self, function: Node<'t>) -> Option<Vec<Node<'t>>> {
         if self.solver.enabled {
-            parameters(function, self.source)
+            parameters(function, self.source, self.annotations_postponed(self.file))
                 .map(|items| items.into_iter().map(|p| p.node).collect())
         } else {
             let list = function.child_by_field_name("parameters")?;
@@ -456,7 +543,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         names: &[Option<String>],
     ) -> Option<Vec<Flow>> {
         let source = self.contexts[name].1;
-        let Some(parameters) = parameters(function, source) else {
+        let Some(parameters) = parameters(
+            function,
+            source,
+            self.annotations_postponed(self.contexts[name].0),
+        ) else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
@@ -529,7 +620,7 @@ pub(super) fn valid_call_syntax(node: Node<'_>, source: &str) -> bool {
 
 impl Analyzer<'_, '_, '_> {
     pub(super) fn parameter_signature(&self, function: Node<'_>) -> Vec<ParameterSignature> {
-        parameters(function, self.source)
+        parameters(function, self.source, self.annotations_postponed(self.file))
             .unwrap_or_default()
             .into_iter()
             .map(|parameter| ParameterSignature {

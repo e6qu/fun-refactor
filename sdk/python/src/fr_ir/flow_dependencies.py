@@ -129,6 +129,7 @@ class ImportLookup:
     namespaces: tuple[str, ...]
     star: int | None
     exports: tuple[str, ...] | None
+    future: bool
 
 
 def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespaces: frozenset[str]) -> None:
@@ -229,6 +230,9 @@ class FlowDependencies:
                 raise FrRuntimeError("complete closure includes a special child module")
             lookups = []
             for item in modules["lookups"]:
+                future = item["future"]
+                if type(future) is not bool:
+                    raise FrRuntimeError("future import marker must be a boolean")
                 wildcard = item["alias"] == "*"
                 exports, star = item["exports"], item["star"]
                 if wildcard:
@@ -247,7 +251,14 @@ class FlowDependencies:
                         or (item["member"] is not None and (not isinstance(item["member"], str)
                             or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
                     raise FrRuntimeError("malformed import lookup")
-                selected = _resolution(item, paths, modules["complete"], namespace_paths)
+                selected = _resolution(item, paths, modules["complete"] and not future, namespace_paths)
+                if future and (selected.module != "__future__"
+                        or item["alias"] != "annotations" or item["member"] != "annotations"
+                        or item["prefix"] != "annotations" or item["resolution"] != "future"
+                        or any(candidate.status != "missing" for candidate in selected.candidates)
+                        or item["binding_chain"] or item["submodule"] is not None
+                        or item["terminal_module"] is not None or star is not None or exports is not None):
+                    raise FrRuntimeError("postponed annotations lack an unshadowed future directive")
                 if wildcard and exports is not None and (not selected.admitted or not any(
                         candidate.path == selected.target and candidate.status == "source" for candidate in selected.candidates)):
                     raise FrRuntimeError("star export list lacks a source module")
@@ -261,9 +272,10 @@ class FlowDependencies:
                         or item["member"] is not None and prefix != item["alias"]):
                     raise FrRuntimeError("import binding prefix disagrees with its alias")
                 resolution = item["resolution"]
-                if (resolution not in {"module", "function", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
+                if (resolution not in {"module", "function", "future", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
+                        or (resolution == "future") != future
                         or wildcard and resolution not in {"module", "unavailable"}
-                        or modules["complete"] and resolution not in {"module", "function"}
+                        or modules["complete"] and resolution not in {"module", "function", "future"}
                         or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
                     raise FrRuntimeError("import resolution disagrees with its declaration")
                 lookups.append(ImportLookup(item["importer"], item["alias"], selected.module, item["member"],
@@ -274,7 +286,7 @@ class FlowDependencies:
                                             _resolution(item["submodule"], paths, modules["complete"], namespace_paths)
                                             if item["submodule"] is not None else None,
                                             _path(item["terminal_module"]) if item["terminal_module"] is not None else None,
-                                            selected.namespaces, star, tuple(exports) if exports is not None else None))
+                                            selected.namespaces, star, tuple(exports) if exports is not None else None, future))
             for index, anchor in enumerate(lookups):
                 if anchor.star is not None:
                     declaration = lookups[anchor.star]

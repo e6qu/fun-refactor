@@ -31,6 +31,10 @@ Methods stay deferred. Bases, decorators, descriptors and executed class-body co
 Replay complete original modules separately from copied helper declarations and full package imports.
 Unchecked initialization now identifies exact source statements and counts locations omitted from the report.
 Use these locations to choose further language work; they do not change the tracing conclusion.
+Postponed annotation support follows a concrete pydash blocker: its typed helpers use
+`from __future__ import annotations`. Such signatures can defer annotations when the defining
+module has a supported directive and every local `__future__` candidate is missing.
+Defaults, decorators, annotation inspection and local shadows still need separate checks.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
@@ -43,7 +47,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-initialization-locations-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-postponed-annotations-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
@@ -56,6 +60,16 @@ Its original validator reproduces those errors; corrected expectations retain th
 The [first initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039)
 passed the native controls and 845 SDK tests. Its new reuse test stored a report inside the sample project,
 which made the next name search ambiguous. The corrected test keeps that report outside the project.
+The [first annotation gate](https://github.com/e6qu/fun-refactor/actions/runs/38381948322)
+passed native controls and 915 SDK tests. Two reports exceeded the unchanged 8 KiB limit
+after contract text grew. Compact current contract text fixes that regression.
+The new reuse test also exposed format validation after the freshness check; noncurrent contracts
+now fail before dependency changes can trigger fresh analysis.
+The daily audit also canceled an unfinished merge audit on the same commit.
+Scheduled checks now wait for an active audit; newer pushes can still replace older work.
+The first annotation behavior collection found a source-checker gap: Python's annotated argument
+span includes its type, while a trace points to the parameter name. The checker now includes
+that name's exact byte span and still rejects a substituted annotation span.
 
 ## Studies that stay stopped
 

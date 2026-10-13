@@ -6,6 +6,7 @@ from typing import Any
 
 from .runtime import FrReport, FrRuntimeError, Occurrence
 from .flow_initialization import FlowInitialization
+from .flow_dependencies import FlowDependencies
 
 
 @dataclass(frozen=True)
@@ -102,16 +103,16 @@ class ExpressionControl:
 
 _CALL_BINDING = {
     "schema": "fr-call-binding",
-    "parameters": "ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
-    "evaluation": "explicit argument values in source order before parameter binding; once per transfer.",
-    "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
-    "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-    "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
-    "definitions": "Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
-    "initialization": "ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; required or immutable literal defaults.",
+    "evaluation": "Evaluate explicit values once in source order before binding.",
+    "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
+    "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
+    "boundary": "No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
+    "definitions": "ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
+    "initialization": "ASCII scalars, literal __all__, plain classes and unchanged empty construction are inert. Global reads, collisions and other effects stay unchecked.",
     "implicit_exceptions": False,
-    "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
-    "variadics": "fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
+    "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
+    "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
 }
 
 
@@ -183,6 +184,8 @@ class FunctionSummaries:
         FlowInitialization.from_report(report)
         data = report.to_data()
         try:
+            if "modules" in data["inputs"]:
+                FlowDependencies.from_report(report)
             value = data["function_summaries"]
             if (report.schema != "fr-dataflow-1" or data["semantics"] != "python-scalar-summaries"
                     or value["schema"] != "fr-function-summaries" or value["enabled"] is not True
