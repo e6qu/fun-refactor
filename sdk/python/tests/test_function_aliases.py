@@ -131,18 +131,20 @@ def test_aliases_keep_the_existing_sixteen_hop_limit(tmp_path, imports, count):
 
 
 @pytest.mark.parametrize("imports", [False, True])
-@pytest.mark.parametrize("body", [
-    "public = 0\nreturn sink(public(source()))",
-    "global public\nreturn sink(public(source()))",
+@pytest.mark.parametrize("body,cutoff,returned,raised", [
+    ("public = 0\nreturn sink(public(source()))", "ambiguous-call:public", None, "TypeError"),
+    ("global public\nreturn sink(public(source()))", "unsupported-lexical-binding", 17, None),
 ])
-def test_local_and_global_alias_shadowing_remains_incomplete(tmp_path, imports, body):
+def test_local_alias_shadowing_and_global_declarations_remain_incomplete(tmp_path, imports, body, cutoff, returned, raised):
     client, rules = install(tmp_path, "def relay(value):\n    return value\npublic = relay\n", imports)
     path = tmp_path / "subject.py"
     prefix = path.read_text().split("def entry():")[0]
     path.write_text(prefix + "def entry():\n" + "".join("    " + line + "\n" for line in body.splitlines()))
     result = analyze(client, rules, "entry", imports=imports)
     assert not result.report.at("/complete") and not result.initialization.sites
-    assert "ambiguous-call:public" in result.report.at("/cutoffs")
+    assert cutoff in result.report.at("/cutoffs")
+    runtime = observe(tmp_path)
+    assert runtime["result"] == returned and runtime["raised"] == raised
 
 
 def test_an_alias_value_read_is_distinct_from_an_alias_call(tmp_path):

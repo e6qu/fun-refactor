@@ -96,6 +96,10 @@ The [first collection documentation check](https://github.com/e6qu/fun-refactor/
 found one new sentence beyond the existing prose budget. Splitting the explanation keeps that budget unchanged.
 Review also found stale roadmap assertions for the older 211-program inventory.
 They now match the independently checked 237 programs; broader package and product goals remain open.
+The [first function-alias gate](https://github.com/e6qu/fun-refactor/actions/runs/38440122902)
+passed native controls and 1206 SDK tests. Two new tests expected a global declaration to behave
+like a local assignment. Corrected controls distinguish lexical declarations from local shadowing
+and compare both outcomes with Python. Neither case can establish a complete answer.
 
 ## Studies that stay stopped
 
