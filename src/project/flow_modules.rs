@@ -21,6 +21,7 @@ pub(super) struct Modules {
     pub parsed: BTreeMap<PathBuf, Parsed>,
     namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
+    pub function_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
     opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
@@ -557,6 +558,7 @@ impl Modules {
             parsed: BTreeMap::new(),
             namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
+            function_aliases: BTreeMap::new(),
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
             opaque_bindings: BTreeMap::new(),
@@ -581,6 +583,7 @@ impl Modules {
         }
         let mut bytes = 0;
         let mut import_count = 0;
+        let mut alias_count = 0;
         while let Some(file) = pending.pop_front() {
             if result.parsed.len() + result.namespaces.len() >= MODULE_LIMIT {
                 result.cutoffs.insert("import-module-budget".into());
@@ -637,6 +640,33 @@ impl Modules {
                         }
                     }
                     continue;
+                }
+                if let Some((name, target)) = calls::module_function_alias(node, source) {
+                    if names.contains(target) && alias_count < IMPORT_LIMIT {
+                        alias_count += 1;
+                        let ambiguous = !names.insert(name.to_owned());
+                        if ambiguous {
+                            result.cutoffs.insert("ambiguous-module-binding".into());
+                        }
+                        bindings.insert(
+                            name.to_owned(),
+                            Binding {
+                                module: entry_name(file.strip_prefix(&project.root)?)
+                                    .context("function alias requires a root-local module")?,
+                                member: Some(target.to_owned()),
+                                future: false,
+                                prefix: name.to_owned(),
+                                target: Some(file.strip_prefix(&project.root)?.to_owned()),
+                                ambiguous,
+                            },
+                        );
+                        result
+                            .function_aliases
+                            .entry(file.clone())
+                            .or_default()
+                            .insert(node.start_byte(), name.to_owned());
+                        continue;
+                    }
                 }
                 for name in opaque_names(node, source) {
                     opaque_bindings.insert(name.to_owned());
@@ -828,6 +858,24 @@ impl Modules {
                 .cutoffs
                 .insert("package-child-binding-conflict".into());
         }
+        let aliases = std::mem::take(&mut result.function_aliases);
+        for (file, items) in aliases {
+            for (offset, name) in items {
+                if result.resolve(&file, &name).is_empty() {
+                    result
+                        .opaque_bindings
+                        .entry(file.clone())
+                        .or_default()
+                        .insert(name);
+                } else {
+                    result
+                        .function_aliases
+                        .entry(file.clone())
+                        .or_default()
+                        .insert(offset, name);
+                }
+            }
+        }
         for lookup in &mut lookups {
             let target = lookup["target"]
                 .as_str()
@@ -872,7 +920,21 @@ impl Modules {
             .iter()
             .map(|path| path.strip_prefix(&project.root).unwrap())
             .collect();
+        let alias_bindings = &result.bindings;
+        let aliases: Vec<_> = result
+            .function_aliases
+            .iter()
+            .flat_map(|(file, aliases)| {
+                aliases.iter().map(move |(offset, name)| {
+                    json!({
+                        "path":file.strip_prefix(&project.root).unwrap(), "name":name,
+                        "target":alias_bindings[file][name].member, "offset":offset
+                    })
+                })
+            })
+            .collect();
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
+            "function_aliases":aliases,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
             "policy":"static single-root packages and .py modules; acyclic re-exports, literal __all__ star imports and package child lookup. Correctly placed annotations directives use standard CPython __future__ only when all local candidates are missing. No arbitrary initialization, merged namespaces, default star exports, implicit child traversal, other native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});

@@ -132,6 +132,38 @@ Python's [class creation and construction rules](https://docs.python.org/3.14/re
 explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
 
+## Follow a helper through another function name
+
+Suppose a module exposes its helper under a shorter name:
+
+```python
+# helpers.py
+def relay(value):
+    return value
+
+public = relay
+```
+
+With summaries enabled, fr can follow `send(public(read_input()))` to `relay`.
+The same applies when `relay` was imported from a supported local module before the assignment.
+Imports, re-exports and literal export lists can expose `public` to other modules.
+The trace retains the original helper's parameter and return locations.
+Changing `relay` to return zero removes the connection to that output.
+
+The assignment only binds a new name; it does not call the function.
+See Python's [assignment rules](https://docs.python.org/3.14/reference/simple_stmts.html#assignment-statements).
+Both sides must be plain ASCII names, with the original name already bound in that module.
+The target name must be new, and the source must resolve to a function within the existing sixteen-hop limit.
+Import and alias hops share that limit. A single-file alias chain counts its final function too.
+Each analysis admits at most 128 function-alias declarations, without changing the import lookup limit.
+Dependency records retain each admitted assignment and reject missing or inconsistent alias hops.
+
+For example, `public = relay` before defining or importing `relay` remains unchecked.
+So do `public = relay()`, attribute reads, annotated or chained assignments, and rebinding either name.
+Aliases of built-ins, classes, module objects and global values remain unsupported.
+Reading the function object in an expression also remains incomplete; supported alias calls are a separate case.
+Local shadowing, explicit global declarations, function attribute changes and shared mutable objects still need separate handling.
+
 ## Trace a helper that has type annotations
 
 Suppose your helper declares types, but your question is whether it forwards an input:

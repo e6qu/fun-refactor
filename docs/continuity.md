@@ -45,9 +45,13 @@ For example, `registry = {}` and `modules = ('calc', 'colls')` can coexist with 
 its input. This removes Toolz's empty registry declarations and funcy's literal module-name tuple
 from the reported startup blockers. Calls, unpacking, comprehensions, unhashable keys, global reads
 and mutations remain unchecked; the original packages still receive incomplete answers.
-The next work should use the remaining source locations: Toolz assigns existing names and builds
-its signature registry, funcy computes its exports and changes function attributes, and pydash
-still exhausts the import lookup budget. Check these separately before claiming whole-package support.
+Plain assignments to already-bound local functions now retain the defining helper's behavior and locations.
+For example, `public = relay` lets calls through `public` use the original helper's arguments and return.
+The familiar library replay removes Toolz's `comp = compose` from its reported startup blockers.
+Missing names, built-ins, computed assignments, rebinding and shared mutable objects remain unchecked.
+The next work should use the remaining statements. Toolz still binds built-in names such as
+`sorted = sorted` and builds its signature registry. Funcy computes exports and changes function attributes.
+Pydash still exhausts the import lookup budget. Check these separately before claiming whole-package support.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
@@ -60,7 +64,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-literal-collections-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-function-aliases-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
@@ -94,6 +98,10 @@ The [first collection documentation check](https://github.com/e6qu/fun-refactor/
 found one new sentence beyond the existing prose budget. Splitting the explanation keeps that budget unchanged.
 Review also found stale roadmap assertions for the older 211-program inventory.
 They now match the independently checked 237 programs; broader package and product goals remain open.
+The [first function-alias gate](https://github.com/e6qu/fun-refactor/actions/runs/38440122902)
+passed native controls and 1206 SDK tests. Two new tests expected a global declaration to behave
+like a local assignment. Corrected controls distinguish lexical declarations from local shadowing
+and compare both outcomes with Python. Neither case can establish a complete answer.
 
 ## Studies that stay stopped
 

@@ -33,6 +33,8 @@ assignments and helper calls against Python execution. Unused function bodies an
 such as `metadata = 0` no longer block an otherwise supported answer.
 Small literal collections such as `registry = {}` now receive the same treatment.
 Reading or changing that registry still needs separate support.
+Plain function-name assignments such as `public = relay` can preserve the helper's behavior.
+Calls through the new name retain the original function's source locations.
 
 Real libraries expose the remaining gap. Importing a package can execute code that `fr` does not
 understand. The current tests in Toolz, funcy and pydash still leave real-package answers incomplete.

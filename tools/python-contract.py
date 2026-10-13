@@ -176,7 +176,7 @@ def audit_case(row, case):
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     assumptions = [
-        'scalar values; no aliases, monkey patching or implicit flows.',
+        'scalar values; no shared mutable aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
         'explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
@@ -213,6 +213,16 @@ def audit_case(row, case):
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
         modules = flow['inputs']['modules']
+        for alias in modules['function_aliases']:
+            text = case['files'][alias['path']]
+            lines = text.splitlines(keepends=True)
+            statements = ast.parse(text).body
+            matches = [node for node in statements if isinstance(node, ast.Assign)
+                       and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+                       and node.targets[0].id == alias['name'] and isinstance(node.value, ast.Name)
+                       and node.value.id == alias['target']
+                       and len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == alias['offset']]
+            require(len(matches) == 1, 'function alias differs from its source assignment')
         for lookup in modules['lookups']:
             if lookup['future']:
                 tree = ast.parse(case['files'][lookup['importer']])
