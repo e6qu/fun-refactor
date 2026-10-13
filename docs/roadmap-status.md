@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**8 of 18 specific test requirements have matching recorded results; 10 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**9 of 18 specific test requirements have matching recorded results; 9 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 ## What works and what still gets in the way
 
@@ -32,7 +32,7 @@ The implementation column counts completed code changes. The test column counts 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
-| B. Explain how values move through code | 4/5 | 1/4 | open |
+| B. Explain how values move through code | 4/5 | 2/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
 
@@ -92,11 +92,11 @@ Next: Keep the small examples as regression tests while testing more varied prog
 
 ### B.contract: Specify reusable Python behavior
 
-**State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
+**State: demonstrated.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
 User example: A helper returns its left argument; check selected, ignored and overwritten input cases against Python.
 
-Recorded results or remaining work: python-contract: unmet /summary/examples; python-contract: unmet /summary/cases; python-contract: unmet /summary/renamed_relocated_cases; python-contract: unmet /summary/incomplete_cases; python-contract: unmet /summary/documented_difference_cases.
+Recorded results or remaining work: python-contract.
 
 Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh source-bound evidence after changes; repository-general flow and effects remain separate obligations.
 
