@@ -103,6 +103,9 @@ Python postpones these annotations, so the missing type name does not prevent th
 The directive must appear at the beginning of the defining module, after any module docstring or comments.
 A directive in the caller does not apply to its imported helpers.
 See Python's [future statement rules](https://docs.python.org/3.14/reference/simple_stmts.html#future-statements).
+Python 3.14 also defers ordinary annotations, but this analyzer supports the explicit directive only.
+The [Python 3.14 changes](https://docs.python.org/3.14/whatsnew/3.14.html#pep-649-pep-749-deferred-evaluation-of-annotations)
+describe that broader behavior.
 
 The import still matters. fr checks for a local `__future__.py`, package, stub or directory.
 It assumes the standard CPython feature only when all five local candidates are missing.
