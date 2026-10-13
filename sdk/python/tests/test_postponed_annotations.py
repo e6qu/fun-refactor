@@ -179,6 +179,33 @@ def test_adding_and_removing_a_local_shadow_invalidates_a_saved_answer(tmp_path)
     assert not edited.reused and not edited.report.at("/complete")
 
 
+def test_symlink_candidates_cannot_authorize_a_standard_future_directive(tmp_path):
+    client, rules = install(tmp_path, FUTURE + "def relay(value: Missing):\n    return value\n")
+    (tmp_path / "__future__.py").symlink_to(tmp_path / "helpers.py")
+    result = analyze(client, rules, "entry", imports=True)
+    assert not result.report.at("/complete")
+    lookup = next(item for item in result.dependencies.lookups if item.module == "__future__")
+    assert not lookup.future
+    assert next(item for item in lookup.candidates if item.path == "__future__.py").status == "symlink"
+
+
+def test_referenced_typed_variadics_still_exceed_the_fixed_slot_model(tmp_path):
+    client, rules = install(tmp_path, FUTURE + "def relay(value: Missing, *unused: Missing):\n    return unused\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert not result.report.at("/complete")
+    assert not result.initialization.sites
+    assert "unsupported-parameter-contract:helpers.py::relay" in result.report.at("/cutoffs")
+
+
+def test_future_feature_binding_cannot_be_declared_an_external_source(tmp_path):
+    client, rules = install(tmp_path, FUTURE + "def relay(value: Missing):\n    return value\n")
+    rule_data = json.loads(rules.read_text())
+    rule_data["sources"].append("annotations")
+    rules.write_text(json.dumps(rule_data))
+    with pytest.raises(FrRuntimeError, match="rule overlaps"):
+        analyze(client, rules, "entry", imports=True)
+
+
 @pytest.mark.parametrize("body", ["return annotations", "return annotations()", "return relay.__annotations__"])
 def test_annotation_inspection_and_feature_values_remain_unchecked(tmp_path, body):
     client, rules = install(tmp_path, FUTURE + "def relay(value: Missing):\n    " + body + "\n", value="0")

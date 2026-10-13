@@ -430,7 +430,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
-        if function.child_by_field_name("return_type").is_some() {
+        if function.child_by_field_name("return_type").is_some()
+            && !self.annotations_postponed(self.file)
+        {
             self.cutoff("function-annotation-effects");
         }
         if function
