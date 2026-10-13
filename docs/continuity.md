@@ -51,6 +51,7 @@ The familiar library replay removes Toolz's `comp = compose` from its reported s
 Missing names, computed assignments, rebinding and shared mutable objects remain unchecked.
 Unused references to standard built-ins now receive inert treatment too.
 For example, `sorter = sorted` can coexist with a supported helper without calling the sorting function.
+A left-hand name must be new to its module; an existing built-in with that name does not count as a module binding.
 Calling or reading that stored function still leaves the answer unfinished.
 The familiar Toolz replay removes `sorted = sorted`, `map = map` and `filter = filter` from the startup blockers.
 Its omitted blocker count falls from 80 to 77; full-package answers remain incomplete.
@@ -107,6 +108,11 @@ The [first function-alias gate](https://github.com/e6qu/fun-refactor/actions/run
 passed native controls and 1206 SDK tests. Two new tests expected a global declaration to behave
 like a local assignment. Corrected controls distinguish lexical declarations from local shadowing
 and compare both outcomes with Python. Neither case can establish a complete answer.
+The [first built-in-reference PR check](https://github.com/e6qu/fun-refactor/actions/runs/38473217926)
+passed 460 SDK tests in its final shard. The saved Python contract audit rejected a later wording edit
+to its recorded guide. Restoring the collected guide keeps the report and input fingerprints intact.
+The clarification lives here instead. Documentation review now audits the saved Python contract
+after generating pages, so it catches changed inputs before the full SDK gate.
 
 ## Studies that stay stopped
 
