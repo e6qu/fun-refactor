@@ -40,10 +40,14 @@ its retained annotation diagnostics therefore do not mean the focused directive 
 Literal `__version__`, `__author__`, `__license__` and `__copyright__` declarations now receive the
 same inert treatment as ordinary module constants. Import controls, global reads, evaluated values
 and repeated bindings remain unchecked. This removes a metadata blocker, not the full package boundaries.
-The next collection work covers Toolz's empty registry dictionaries and funcy's tuple of module names.
-Bounded literal collection allocation can stay inert at module scope. Calls, unpacking, comprehensions,
-unhashable keys, global reads and mutations remain unchecked. Keep the whole-package results separate
-from otherwise supported helpers that happen to have unused collections.
+Unused literal collections now let otherwise supported helpers receive a complete answer.
+For example, `registry = {}` and `modules = ('calc', 'colls')` can coexist with a helper that forwards
+its input. This removes Toolz's empty registry declarations and funcy's literal module-name tuple
+from the reported startup blockers. Calls, unpacking, comprehensions, unhashable keys, global reads
+and mutations remain unchecked; the original packages still receive incomplete answers.
+The next work should use the remaining source locations: Toolz assigns existing names and builds
+its signature registry, funcy computes its exports and changes function attributes, and pydash
+still exhausts the import lookup budget. Check these separately before claiming whole-package support.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
