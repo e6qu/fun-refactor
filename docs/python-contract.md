@@ -160,9 +160,38 @@ Dependency records retain each admitted assignment and reject missing or inconsi
 
 For example, `public = relay` before defining or importing `relay` remains unchecked.
 So do `public = relay()`, attribute reads, annotated or chained assignments, and rebinding either name.
-Aliases of built-ins, classes, module objects and global values remain unsupported.
+Calls through stored built-ins, classes, module objects and global values remain unsupported.
 Reading the function object in an expression also remains incomplete; supported alias calls are a separate case.
 Local shadowing, explicit global declarations, function attribute changes and shared mutable objects still need separate handling.
+
+## Trace a helper beside an unused built-in reference
+
+Suppose a module stores Python's sorting function for another part of the program:
+
+```python
+# helpers.py
+sorter = sorted
+map = map
+
+def relay(value):
+    return value
+```
+
+With summaries enabled, fr can still follow `send(relay(read_input()))`.
+These assignments store functions without calling them. Changing `relay` to return zero
+removes the connection to the output. Supported local imports behave the same way.
+Calling `sorter`, or reading that function object as a value, still leaves the answer incomplete.
+
+Both sides must be plain ASCII names, and the destination must be new.
+The source must be an unshadowed name from Python's [built-in function and type list](https://docs.python.org/3.14/library/functions.html).
+`help` is excluded because the `site` module supplies it. Special destination names are excluded too.
+For example, `sorted = 0; sorter = sorted` does not qualify as a built-in reference.
+A previously defined local function named `sorted` instead follows the ordinary function-alias rules.
+Calls, attributes, parentheses, annotations, chained assignments and rebinding remain unchecked.
+Any explicit `__builtins__` reference in the module prevents this admission, including a deferred function parameter.
+The result assumes ordinary, unchanged built-ins; it does not establish behavior under custom loading or monkey patching.
+Python's [name-resolution rules](https://docs.python.org/3.14/reference/executionmodel.html#resolution-of-names)
+explain why a module binding takes precedence over a built-in with the same name.
 
 ## Trace a helper that has type annotations
 

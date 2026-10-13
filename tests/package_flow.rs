@@ -68,6 +68,45 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn unused_builtin_references_preserve_helpers_without_admitting_calls_or_shadows() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helpers.py",
+        "sorted = sorted\nmap = map\nfilter = filter\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    assert_eq!(report["initialization"]["sites"], json!([]));
+    assert_eq!(report["inputs"]["modules"]["function_aliases"], json!([]));
+    write(
+        root.path(),
+        "helpers.py",
+        "sorted = 0\npublic = sorted\ndef relay(value):\n    return 0\n",
+    );
+    let shadowed = analyze(root.path(), "entry");
+    assert_eq!(shadowed["complete"], false);
+    assert!(!shadowed["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    write(
+        root.path(),
+        "helpers.py",
+        "public = abs\ndef relay(value):\n    return public(value)\n",
+    );
+    let called = analyze(root.path(), "entry");
+    assert_eq!(called["complete"], false);
+    assert_eq!(called["initialization"]["sites"], json!([]));
+}
+
+#[test]
 fn function_aliases_follow_original_helpers_and_keep_rebinding_unchecked() {
     let root = tempfile::tempdir().unwrap();
     write(

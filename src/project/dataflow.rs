@@ -790,6 +790,7 @@ impl Project<'_> {
                 .as_ref()
                 .is_some_and(|m| m.annotations_postponed(file));
             let mut classes = BTreeSet::new();
+            let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
                 .and_then(|modules| modules.function_aliases.get(file))
@@ -805,6 +806,22 @@ impl Project<'_> {
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
+                    if let Some((name, _)) = calls::module_builtin_reference(node, text)
+                        .filter(|(_, target)| !explicit_builtins && !bound_names.contains(target))
+                    {
+                        classes.remove(name);
+                        if !bound_names.insert(name) {
+                            initialization.record(self, file, node, vec!["binding-collision"])?;
+                        }
+                        let binding = if let Some(modules) = &modules {
+                            modules.function_name(file, name)
+                        } else {
+                            name.to_owned()
+                        };
+                        literal_bindings.insert(binding.clone());
+                        inert_bindings.insert(binding);
+                        continue;
+                    }
                     if let Some((name, target)) = calls::module_function_alias(node, text) {
                         let alias = if let Some(modules) = &modules {
                             modules
@@ -1153,7 +1170,7 @@ impl Project<'_> {
             "semantics": if options.summaries {"python-scalar-summaries"} else {"python-scalar-fixed-point"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
-            "assumptions": ["scalar values; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
+            "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,

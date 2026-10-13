@@ -95,6 +95,108 @@ pub(super) fn module_function_alias<'s>(
     .then_some((name, target))
 }
 
+pub(super) fn module_builtin_reference<'s>(
+    node: Node<'_>,
+    source: &'s str,
+) -> Option<(&'s str, &'s str)> {
+    module_function_alias(node, source).filter(|(_, target)| {
+        matches!(
+            *target,
+            "abs"
+                | "aiter"
+                | "all"
+                | "anext"
+                | "any"
+                | "ascii"
+                | "bin"
+                | "bool"
+                | "breakpoint"
+                | "bytearray"
+                | "bytes"
+                | "callable"
+                | "chr"
+                | "classmethod"
+                | "compile"
+                | "complex"
+                | "delattr"
+                | "dict"
+                | "dir"
+                | "divmod"
+                | "enumerate"
+                | "eval"
+                | "exec"
+                | "filter"
+                | "float"
+                | "format"
+                | "frozenset"
+                | "getattr"
+                | "globals"
+                | "hasattr"
+                | "hash"
+                | "hex"
+                | "id"
+                | "input"
+                | "int"
+                | "isinstance"
+                | "issubclass"
+                | "iter"
+                | "len"
+                | "list"
+                | "locals"
+                | "map"
+                | "max"
+                | "memoryview"
+                | "min"
+                | "next"
+                | "object"
+                | "oct"
+                | "open"
+                | "ord"
+                | "pow"
+                | "print"
+                | "property"
+                | "range"
+                | "repr"
+                | "reversed"
+                | "round"
+                | "set"
+                | "setattr"
+                | "slice"
+                | "sorted"
+                | "staticmethod"
+                | "str"
+                | "sum"
+                | "super"
+                | "tuple"
+                | "type"
+                | "vars"
+                | "zip"
+                | "__import__"
+        )
+    })
+}
+
+pub(super) fn explicit_builtins(root: Node<'_>, source: &str) -> bool {
+    let mut cursor = root.walk();
+    loop {
+        let node = cursor.node();
+        if node.kind() == "identifier" && &source[node.byte_range()] == "__builtins__" {
+            return true;
+        }
+        if cursor.goto_first_child() {
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return false;
+            }
+        }
+    }
+}
+
 fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
     match node.kind() {
         "parenthesized_expression" => {
@@ -581,7 +683,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
-        "initialization":"Literals, prior function aliases, exports, plain classes and empty instances are inert. Global value reads, collisions and other effects stay unchecked.",
+        "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Reads, collisions and effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})
