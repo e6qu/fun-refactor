@@ -43,6 +43,21 @@ S = ['source', 17]
 T = ['sink', 17]
 ZERO = ['sink', 0]
 EXAMPLES = [
+    example('module-metadata-forward', 'imports names returns boundaries', 'return sink(relay(source()))', [S, T], 17, witness=True,
+            prelude='from helper import relay\n', files={'helper.py': "__version__ = '8.1.0'\n__author__ = 'owner'\n__license__ = 'MIT'\n__copyright__ = 'owner'\ndef relay(value):\n    return value\n"}),
+    example('module-metadata-blocked', 'imports names returns boundaries', 'return sink(relay(source()))', [S, ZERO], 0,
+            prelude='from helper import relay\n', files={'helper.py': "__version__ = '8.1.0'\ndef relay(value):\n    return 0\n"}),
+    example('module-metadata-evaluated', 'imports names boundaries', 'return sink(0)', [S, ZERO], 0,
+            prelude='from helper import relay\n', files={'helper.py': '__version__ = source()\ndef relay(value):\n    return value\n'},
+            complete=False, cutoff='module-effects-unchecked'),
+    example('module-metadata-mutable', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude='__version__ = []\n', complete=False, cutoff='module-effects-unchecked'),
+    example('module-metadata-repeated', 'names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude="__version__ = '8'\n__version__ = '9'\n", complete=False, cutoff='module-effects-unchecked'),
+    example('module-metadata-global-read', 'names boundaries', 'return sink(__version__)', [['sink', '8.1.0']], '8.1.0',
+            prelude="__version__ = '8.1.0'\n", complete=False, cutoff='unknown-binding:__version__'),
+    example('module-metadata-import-control', 'imports names boundaries', 'return sink(source())', [S, T], 17, witness=True,
+            prelude="__path__ = ''\n", files={}, complete=False, cutoff='module-effects-unchecked'),
     example('postponed-annotations-forward', 'imports calls returns boundaries', 'return sink(relay(source()))', [S, T], 17, witness=True,
             prelude='from helper import relay\n', files={'helper.py': 'from __future__ import annotations\ndef relay(value: Missing) -> Missing:\n    return value\n'}),
     example('postponed-annotations-blocked', 'imports calls returns boundaries', 'return sink(relay(source()))', [S, ZERO], 0,

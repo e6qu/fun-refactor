@@ -611,7 +611,9 @@ impl Modules {
                     }
                     continue;
                 }
-                if let Some(name) = calls::module_literal(node, source) {
+                if let Some(name) = calls::module_literal(node, source)
+                    .or_else(|| calls::module_metadata(node, source))
+                {
                     literals.insert(name.to_owned());
                     if !names.insert(name.to_owned()) {
                         result.cutoffs.insert("ambiguous-module-binding".into());
@@ -799,7 +801,9 @@ impl Modules {
                 }
             }
             if names.iter().map(String::as_str).any(|name| {
-                special_attribute(name) && !(name == "__all__" && declared_exports.is_some())
+                special_attribute(name)
+                    && !(name == "__all__" && declared_exports.is_some())
+                    && !(literals.contains(name) && calls::metadata_name(name))
             }) {
                 result.cutoffs.insert("special-module-attributes".into());
             }

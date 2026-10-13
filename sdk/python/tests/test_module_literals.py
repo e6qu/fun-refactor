@@ -12,6 +12,98 @@ from test_flow_summaries import analyze, evidence, workspace
 
 
 LITERALS = ["None", "True", "False", "17", "-17", "+2.5", "2j", "'café'", "b'bytes'", "r'raw'", "((0))"]
+METADATA = ["__version__", "__author__", "__license__", "__copyright__"]
+
+
+@pytest.mark.parametrize("name", METADATA)
+@pytest.mark.parametrize("imports", [False, True])
+@pytest.mark.parametrize("forwards", [False, True])
+def test_literal_package_metadata_preserves_helper_flow(tmp_path, name, imports, forwards):
+    client, rules = workspace(tmp_path)
+    helper = name + " = 'café'\ndef relay(value):\n    return " + ("value" if forwards else "0") + "\n"
+    if imports:
+        package = tmp_path / "library"
+        package.mkdir()
+        (package / "__init__.py").write_text(helper)
+        prefix = "from library import relay\n"
+    else:
+        prefix = helper
+    (tmp_path / "subject.py").write_text(prefix + "def entry():\n    return sink(relay(source()))\n")
+    result = analyze(client, rules, "entry", imports=imports)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert bool(result.witnesses) is forwards
+    assert not result.initialization.sites
+    assert observe(tmp_path) == {"result": 17 if forwards else 0, "raised": None,
+                                "events": [["source", 17], ["sink", 17 if forwards else 0]]}
+
+
+@pytest.mark.parametrize("binding", [
+    "__version__ = source()", "__version__ = []", "__author__ = f'{source()}'",
+    "__license__: str = 'MIT'", "__copyright__ = other = 'owner'",
+    "__version__ = '1'\n__version__ = '2'", "__custom__ = 0",
+    "__path__ = ''", "__name__ = ''", "__package__ = ''", "__spec__ = None",
+    "__loader__ = None", "__file__ = ''", "__cached__ = ''", "__builtins__ = 0",
+    "__annotations__ = None", "__annotate__ = None", "__getattr__ = None",
+])
+@pytest.mark.parametrize("imports", [False, True])
+def test_metadata_exception_does_not_hide_evaluation_or_import_controls(tmp_path, binding, imports):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text(binding + "\ndef entry():\n    return sink(source())\n")
+    result = analyze(client, rules, "entry", imports=imports)
+    assert not result.report.at("/complete")
+    assert "module-effects-unchecked" in result.report.at("/cutoffs")
+    assert result.initialization.sites
+
+
+def test_metadata_reads_and_class_metadata_stay_unchecked(tmp_path):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text("__version__ = '8.1.0'\ndef entry():\n    return sink(__version__)\n")
+    result = analyze(client, rules, "entry")
+    assert not result.report.at("/complete") and not result.initialization.sites
+    assert "unknown-binding:__version__" in result.report.at("/cutoffs")
+    assert observe(tmp_path)["result"] == "8.1.0"
+    (tmp_path / "subject.py").write_text("class Token:\n    __version__ = '8.1.0'\ndef entry():\n    return sink(source())\n")
+    result = analyze(client, rules, "entry")
+    assert not result.report.at("/complete") and result.initialization.sites
+
+
+@pytest.mark.parametrize("edit", ["__version__ = '9'\n", "__version__ = source()\n",
+                                  "__version__ = '8'\n__version__ = '9'\n"])
+def test_metadata_edits_invalidate_reuse(tmp_path, edit):
+    client, rules = workspace(tmp_path)
+    helper = tmp_path / "helper.py"
+    body = "def relay(value):\n    return value\n"
+    helper.write_text("__version__ = '8'\n" + body)
+    (tmp_path / "subject.py").write_text("from helper import relay\ndef entry():\n    return sink(relay(source()))\n")
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, "entry", cache, imports=True)
+    assert first.report.at("/complete") and analyze(client, rules, "entry", cache, imports=True).reused
+    helper.write_text(edit + body)
+    result = analyze(client, rules, "entry", cache, imports=True)
+    assert not result.reused
+    assert evidence(result) == evidence(analyze(client, rules, "entry", imports=True))
+    assert result.report.at("/complete") is (edit == "__version__ = '9'\n")
+
+
+def test_metadata_binding_cannot_be_an_external_rule(tmp_path):
+    client, rules = workspace(tmp_path)
+    rules.write_text('{"version":"metadata-test","sources":["__version__"],"sinks":["sink"]}')
+    (tmp_path / "subject.py").write_text("__version__ = '8'\ndef entry():\n    return sink(__version__())\n")
+    with pytest.raises(FrRuntimeError, match="rule overlaps"):
+        analyze(client, rules, "entry")
+
+
+@pytest.mark.parametrize("prefix", [
+    "__version__ = '8'\ndef __version__(value):\n    return value\n",
+    "def __version__(value):\n    return value\n__version__ = '8'\n",
+])
+@pytest.mark.parametrize("imports", [False, True])
+def test_metadata_function_collisions_remain_incomplete(tmp_path, prefix, imports):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text(prefix + "def entry():\n    return sink(__version__(source()))\n")
+    result = analyze(client, rules, "entry", imports=imports)
+    assert not result.report.at("/complete")
+    assert "module-effects-unchecked" in result.report.at("/cutoffs")
 
 
 @pytest.mark.parametrize("literal", LITERALS)

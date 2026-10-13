@@ -117,7 +117,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-13-postponed-annotations-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-13-module-metadata-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -155,5 +155,9 @@ To inspect an incomplete answer, use the initialization locations described in t
 They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
 The list is bounded and counts omitted locations. It does not establish package success or explain
 code in modules the import search could not load.
+The familiar pydash result reaches the 128 import-lookup limit before its annotation directives
+are checked. The focused postponed-annotation examples pass; that package still needs a solution
+for the other imports and executed initialization. Literal package metadata such as
+`__version__ = "8.1.0"` can now stay inert without admitting import controls or global reads.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.
