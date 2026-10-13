@@ -777,8 +777,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-13-module-metadata-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-13-module-metadata-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-13-literal-collections-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-13-literal-collections-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
