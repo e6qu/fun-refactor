@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.60.0...fun-refactor-v0.61.0) (2026-10-13)
+
+
+### Features
+
+* explain unchecked Python module initialization ([#484](https://github.com/e6qu/fun-refactor/issues/484)) ([aa3d306](https://github.com/e6qu/fun-refactor/commit/aa3d306af39e8208890302f6a11a9c10b88bcef1))
+
 ## [0.60.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.59.1...fun-refactor-v0.60.0) (2026-10-13)
 
 
