@@ -150,7 +150,12 @@ pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&
         if count > 128 {
             return None;
         }
-        pending.extend(node.named_children(&mut node.walk()));
+        for child in node.named_children(&mut node.walk()) {
+            if count + pending.len() >= 128 {
+                return None;
+            }
+            pending.push(child);
+        }
     }
     let mut root = value;
     while root.kind() == "parenthesized_expression" {
