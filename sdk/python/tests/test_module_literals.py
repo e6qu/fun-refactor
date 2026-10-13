@@ -131,12 +131,12 @@ def test_unused_distinct_scalar_bindings_do_not_poison_initialization(tmp_path, 
 
 
 @pytest.mark.parametrize("binding", [
-    "metadata = []", "metadata = {}", "metadata = (0,)", "metadata = 1 + 2",
+    "metadata = 1 + 2",
     "metadata = f'constant'", "metadata = f'{source()}'", "metadata = source()",
     "metadata: int = 0", "metadata = other = 0", "metadata, other = 0, 1",
     "metadata = 0\nmetadata = 1", "__path__ = 'elsewhere'", "méta = 0",
 ])
-def test_evaluated_mutable_special_or_repeated_bindings_stay_incomplete(tmp_path, binding):
+def test_evaluated_special_or_repeated_bindings_stay_incomplete(tmp_path, binding):
     client, rules = workspace(tmp_path)
     (tmp_path / "subject.py").write_text(binding + "\ndef entry():\n    return sink(source())\n")
     result = analyze(client, rules, "entry")

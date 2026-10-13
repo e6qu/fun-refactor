@@ -68,6 +68,36 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn literal_collection_initialization_keeps_values_opaque_and_mutations_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "library/__init__.py",
+        "metadata = ({}, [0], ('module',), {1})\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from library import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    write(
+        root.path(),
+        "library/__init__.py",
+        "metadata = []\nmetadata.append(source())\ndef relay(value):\n    return value\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|site| site["occurrence"]["path"] == "library/__init__.py"));
+}
+
+#[test]
 fn literal_package_metadata_does_not_hide_initialization_effects() {
     let root = tempfile::tempdir().unwrap();
     write(
