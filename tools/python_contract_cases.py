@@ -546,12 +546,59 @@ for direction, argument, events, returned in [('selected', 'source()', [S, T], 1
         prelude=''.join(f'def hop{number}():\n    return {number}\n' for number in range(65)),
         complete=False, cutoff='summary-function-budget'))
 
+EXAMPLES.extend([
+    example('function-alias-selected', 'calls returns names locations', 'return sink(public(source()))', [S, T], 17,
+            witness=True, prelude='def relay(value):\n    return value\npublic = relay\n'),
+    example('function-alias-discarded', 'calls returns names', 'return sink(public(source()))', [S, ZERO], 0,
+            prelude='def relay(value):\n    return 0\npublic = relay\n'),
+    example('function-alias-keyword-discarded', 'calls names', 'return sink(public(right=source(), left=0))', [S, ZERO], 0,
+            prelude='def relay(*, left, right):\n    return left\npublic = relay\n'),
+    example('function-alias-default', 'calls defaults names', 'return sink(public())', [ZERO], 0,
+            prelude='def relay(value=0):\n    return value\npublic = relay\n'),
+    example('function-alias-import', 'imports calls names locations', 'return sink(public(source()))', [S, T], 17,
+            witness=True, prelude='from helper import public\n',
+            files={'helper.py': 'def relay(value):\n    return value\npublic = relay\n'}),
+    example('function-alias-module', 'imports calls names locations', 'return sink(helper.public(source()))', [S, T], 17,
+            witness=True, prelude='import helper\n',
+            files={'helper.py': 'def relay(value):\n    return value\npublic = relay\n'}),
+    example('function-alias-reexport', 'imports calls names locations', 'return sink(public(source()))', [S, T], 17,
+            witness=True, prelude='from alpha import public\n', files={
+                'alpha.py': 'from beta import relay\npublic = relay\n',
+                'beta.py': 'def relay(value):\n    return value\n'}),
+    example('function-alias-before-definition', 'names boundaries', 'return sink(source())', raised='NameError',
+            phase='definition', witness=True, prelude='public = relay\ndef relay(value):\n    return value\n',
+            complete=False, cutoff='module-effects-unchecked',
+            difference='A later declaration cannot supply an earlier alias; Python fails before entry execution.'),
+    example('function-alias-evaluated', 'calls boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='def relay():\n    return 0\npublic = relay()\n',
+            complete=False, cutoff='module-effects-unchecked'),
+    example('function-alias-rebound-source', 'names boundaries', 'return sink(public(source()))', [S, T], 17,
+            witness=True, prelude='def relay(value):\n    return value\npublic = relay\nrelay = 0\n',
+            complete=False, cutoff='module-effects-unchecked'),
+    example('function-alias-local-shadow', 'names boundaries', 'public = 0\nreturn sink(public(source()))', [S],
+            raised='TypeError', witness=True, prelude='def relay(value):\n    return value\npublic = relay\n',
+            complete=False, cutoff='ambiguous-call:public',
+            difference='The shadowed call preserves argument origins only in an incomplete report; Python raises before the sink.'),
+    example('function-alias-hop-budget', 'names boundaries', 'return sink(public(source()))', [S, T], 17,
+            witness=True, prelude='def relay(value):\n    return value\n' +
+                'alias0 = relay\n' + ''.join(f'alias{n} = alias{n - 1}\n' for n in range(1, 15)) + 'public = alias14\n',
+            complete=False, cutoff='module-effects-unchecked'),
+    example('function-alias-before-import', 'imports names boundaries', 'return sink(source())', raised='NameError',
+            phase='definition', witness=True, prelude='public = relay\nfrom helper import relay\n',
+            files={'helper.py': 'def relay(value):\n    return value\n'},
+            complete=False, cutoff='module-effects-unchecked',
+            difference='A later import cannot initialize an earlier alias; Python raises before entry execution.'),
+    example('function-alias-class-attribute', 'names boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='def relay(value):\n    return value\nclass Token:\n    public = relay\n',
+            complete=False, cutoff='module-effects-unchecked'),
+])
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
            'bounce': 'recur', 'helper': 'engine', 'pack': 'parcel', 'inner': 'inside', 'bridge': 'gateway',
            'alpha': 'cedar', 'beta': 'maple', 'subject': 'renamed', 'Token': 'Tag', 'marker': 'sentinel',
-           'Descriptor': 'Notifier', 'Owner': 'Receiver', 'descriptor': 'notifier'}
+           'Descriptor': 'Notifier', 'Owner': 'Receiver', 'descriptor': 'notifier', 'public': 'exported'}
 for prefix, count in [('unit', 17), ('alias', 129), ('link', 21), ('level', 17), ('hop', 65)]:
     RENAMES.update({f'{prefix}{number}': f'renamed_{prefix}{number}' for number in range(count)})
 

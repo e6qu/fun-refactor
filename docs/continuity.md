@@ -45,9 +45,11 @@ For example, `registry = {}` and `modules = ('calc', 'colls')` can coexist with 
 its input. This removes Toolz's empty registry declarations and funcy's literal module-name tuple
 from the reported startup blockers. Calls, unpacking, comprehensions, unhashable keys, global reads
 and mutations remain unchecked; the original packages still receive incomplete answers.
-The next work should use the remaining source locations: Toolz assigns existing names and builds
-its signature registry, funcy computes its exports and changes function attributes, and pydash
-still exhausts the import lookup budget. Check these separately before claiming whole-package support.
+The next function-name work follows Toolz's `comp = compose` declaration.
+Plain assignments to already-bound local functions can retain the defining helper's behavior and locations.
+Missing names, built-ins, computed assignments, rebinding and shared mutable objects remain unchecked.
+Toolz also builds its signature registry, funcy computes exports and changes function attributes,
+and pydash still exhausts the import lookup budget. Check these separately before claiming whole-package support.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.

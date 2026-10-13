@@ -83,6 +83,18 @@ pub(super) fn module_metadata<'s>(node: Node<'_>, source: &'s str) -> Option<&'s
     scalar_assignment(node, source).filter(|name| metadata_name(name))
 }
 
+pub(super) fn module_function_alias<'s>(
+    node: Node<'_>,
+    source: &'s str,
+) -> Option<(&'s str, &'s str)> {
+    let (name, value) = literal_assignment(node, source)?;
+    let target = &source[value.byte_range()];
+    (value.kind() == "identifier"
+        && target.is_ascii()
+        && !(name.starts_with("__") && name.ends_with("__")))
+    .then_some((name, target))
+}
+
 fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
     match node.kind() {
         "parenthesized_expression" => {
@@ -569,7 +581,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
-        "initialization":"Scalar and bounded collection literals, literal exports, plain classes and empty instances are inert. Global reads, collisions and other effects stay unchecked.",
+        "initialization":"Literals, prior function aliases, exports, plain classes and empty instances are inert. Global value reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

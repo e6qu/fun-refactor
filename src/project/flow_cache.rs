@@ -145,6 +145,32 @@ impl Project<'_> {
         );
         if let Some(modules) = report["inputs"].get("modules") {
             ensure!(
+                modules["function_aliases"]
+                    .as_array()
+                    .is_some_and(|aliases| {
+                        aliases.len() <= 128
+                            && aliases.iter().all(|alias| {
+                                alias["path"]
+                                    .as_str()
+                                    .is_some_and(|path| modules["files"].get(path).is_some())
+                                    && ["name", "target"].iter().all(|field| {
+                                        alias[*field].as_str().is_some_and(|name| {
+                                            !name.is_empty()
+                                                && name.chars().enumerate().all(|(i, ch)| {
+                                                    ch == '_'
+                                                        || ch.is_ascii_alphabetic()
+                                                        || i > 0 && ch.is_ascii_digit()
+                                                })
+                                        })
+                                    })
+                                    && alias["offset"]
+                                        .as_u64()
+                                        .is_some_and(|offset| offset < 262_144)
+                            })
+                    }),
+                "retained flow has malformed function aliases."
+            );
+            ensure!(
                 modules["lookups"].as_array().is_some_and(|lookups| {
                     lookups.iter().all(|lookup| {
                         lookup["future"].is_boolean()

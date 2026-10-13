@@ -180,6 +180,7 @@ struct Analyzer<'a, 'p, 't> {
     file: &'a Path,
     source: &'a str,
     functions: BTreeMap<String, Node<'t>>,
+    function_aliases: BTreeMap<String, (String, usize)>,
     ambiguous: BTreeSet<String>,
     modules: Option<&'a modules::Modules>,
     contexts: BTreeMap<String, (&'a Path, &'a str)>,
@@ -344,9 +345,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             merge(&mut joined, argument.clone());
         }
         let base = name.split('.').next().unwrap();
-        let resolved = self
-            .modules
-            .map_or_else(|| name.clone(), |modules| modules.resolve(self.file, &name));
+        let resolved = self.modules.map_or_else(
+            || {
+                self.function_aliases
+                    .get(&name)
+                    .map_or_else(|| name.clone(), |(target, _)| target.clone())
+            },
+            |modules| modules.resolve(self.file, &name),
+        );
         if env.values.contains_key(base)
             || self.ambiguous.contains(&resolved)
             || self
@@ -763,7 +769,8 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
-        let mut functions = BTreeMap::new();
+        let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
+        let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
         let mut inert_bindings = BTreeSet::new();
@@ -783,14 +790,60 @@ impl Project<'_> {
                 .as_ref()
                 .is_some_and(|m| m.annotations_postponed(file));
             let mut classes = BTreeSet::new();
+            let module_aliases: BTreeSet<_> = modules
+                .as_ref()
+                .and_then(|modules| modules.function_aliases.get(file))
+                .into_iter()
+                .flat_map(|aliases| aliases.values().map(String::as_str))
+                .collect();
             let mut bound_names: BTreeSet<_> = modules
                 .as_ref()
                 .and_then(|modules| modules.bindings.get(file))
                 .into_iter()
                 .flat_map(|bindings| bindings.keys().map(String::as_str))
+                .filter(|name| !module_aliases.contains(name))
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
+                    if let Some((name, target)) = calls::module_function_alias(node, text) {
+                        let alias = if let Some(modules) = &modules {
+                            modules
+                                .function_aliases
+                                .get(file)
+                                .and_then(|aliases| aliases.get(&node.start_byte()))
+                                .map(|_| (modules.resolve(file, name), 0))
+                        } else {
+                            function_aliases.get(target).cloned().or_else(|| {
+                                functions
+                                    .get(target)
+                                    .filter(|node| {
+                                        calls::definition_is_inert(**node, text, postponed)
+                                    })
+                                    .map(|_| (target.to_owned(), 0))
+                            })
+                        };
+                        if let Some((target, depth)) = alias.filter(|(_, depth)| {
+                            *depth < 15 && (modules.is_some() || function_aliases.len() < 128)
+                        }) {
+                            classes.remove(name);
+                            if !bound_names.insert(name) {
+                                initialization.record(
+                                    self,
+                                    file,
+                                    node,
+                                    vec!["binding-collision"],
+                                )?;
+                            }
+                            let binding = if let Some(modules) = &modules {
+                                modules.function_name(file, name)
+                            } else {
+                                function_aliases.insert(name.to_owned(), (target, depth + 1));
+                                name.to_owned()
+                            };
+                            inert_bindings.insert(binding);
+                            continue;
+                        }
+                    }
                     if let Some((name, constructible)) = calls::module_class(node, text, postponed)
                     {
                         classes.remove(name);
@@ -1016,6 +1069,7 @@ impl Project<'_> {
             file: &symbol.file,
             source,
             functions,
+            function_aliases,
             ambiguous,
             modules: modules.as_ref(),
             contexts,
@@ -1099,7 +1153,7 @@ impl Project<'_> {
             "semantics": if options.summaries {"python-scalar-summaries"} else {"python-scalar-fixed-point"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
-            "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
+            "assumptions": ["scalar values; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,

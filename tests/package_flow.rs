@@ -68,6 +68,52 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn function_aliases_follow_original_helpers_and_keep_rebinding_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helpers.py",
+        "def relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "library/__init__.py",
+        "from helpers import relay\npublic = relay\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from library import public\ndef entry():\n    return sink(public(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    assert_eq!(report["initialization"]["sites"], json!([]));
+    assert!(report["function_summaries"]["functions"]
+        .get("helpers.py::relay")
+        .is_some());
+    write(
+        root.path(),
+        "helpers.py",
+        "def relay(value):\n    return 0\n",
+    );
+    let blocked = analyze(root.path(), "entry");
+    assert_eq!(blocked["complete"], true, "{}", blocked["cutoffs"]);
+    assert_eq!(blocked["witnesses"], json!([]));
+    write(
+        root.path(),
+        "library/__init__.py",
+        "from helpers import relay\npublic = relay\npublic = 0\n",
+    );
+    let changed = analyze(root.path(), "entry");
+    assert_eq!(changed["complete"], false);
+    assert!(!changed["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
 fn literal_collection_initialization_keeps_values_opaque_and_mutations_unchecked() {
     let root = tempfile::tempdir().unwrap();
     write(
