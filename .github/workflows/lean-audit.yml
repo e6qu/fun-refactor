@@ -17,8 +17,8 @@ on:
 
 concurrency:
   group: lean-audit-${{ github.ref }}
-  # A queued older main revision must not hold the newest audit behind it.
-  cancel-in-progress: true
+  # New pushes replace older audits; scheduled checks wait for an active audit.
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 env:
   CARGO_TERM_COLOR: always

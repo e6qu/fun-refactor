@@ -65,6 +65,8 @@ passed native controls and 915 SDK tests. Two reports exceeded the unchanged 8 K
 after contract text grew. Compact current contract text fixes that regression.
 The new reuse test also exposed format validation after the freshness check; noncurrent contracts
 now fail before dependency changes can trigger fresh analysis.
+The daily audit also canceled an unfinished merge audit on the same commit.
+Scheduled checks now wait for an active audit; newer pushes can still replace older work.
 
 ## Studies that stay stopped
 
