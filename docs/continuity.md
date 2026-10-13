@@ -31,7 +31,7 @@ Methods stay deferred. Bases, decorators, descriptors and executed class-body co
 Replay complete original modules separately from copied helper declarations and full package imports.
 Unchecked initialization now identifies exact source statements and counts locations omitted from the report.
 Use these locations to choose further language work; they do not change the tracing conclusion.
-The next annotation work follows a concrete pydash blocker: its typed helpers use
+Postponed annotation support follows a concrete pydash blocker: its typed helpers use
 `from __future__ import annotations`. Such signatures can defer annotations when the defining
 module has a supported directive and every local `__future__` candidate is missing.
 Defaults, decorators, annotation inspection and local shadows still need separate checks.
