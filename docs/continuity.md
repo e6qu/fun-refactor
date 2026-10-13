@@ -82,6 +82,10 @@ that name's exact byte span and still rejects a substituted annotation span.
 The [first collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38417041882)
 found an obsolete native fixture that required an empty list declaration to remain incomplete.
 The corrected fixture checks accepted literal allocations and keeps mutation unchecked.
+The [second collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38419813576)
+passed all native controls and 1111 SDK tests. Its imported hash-callback test exposed an observer
+that supplied source/sink functions only to the caller's globals. The corrected test uses the
+isolated import observer, which supplies those functions to imported modules too.
 
 ## Studies that stay stopped
 

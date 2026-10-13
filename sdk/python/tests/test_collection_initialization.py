@@ -4,7 +4,7 @@ import pytest
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrRuntimeError
-from test_call_binding import observe
+from test_postponed_annotations import observe
 from test_flow_summaries import analyze, evidence, workspace
 
 
