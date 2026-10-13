@@ -55,7 +55,7 @@ fn literal_default(node: Node<'_>, source: &str) -> bool {
     }
 }
 
-fn scalar_assignment<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+fn literal_assignment<'s, 't>(node: Node<'t>, source: &'s str) -> Option<(&'s str, Node<'t>)> {
     if node.kind() != "expression_statement" || node.named_child_count() != 1 {
         return None;
     }
@@ -66,8 +66,13 @@ fn scalar_assignment<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
     let left = assignment.child_by_field_name("left")?;
     let right = assignment.child_by_field_name("right")?;
     let name = &source[left.byte_range()];
-    (left.kind() == "identifier" && name.is_ascii() && literal_default(right, source))
-        .then_some(name)
+    (left.kind() == "identifier" && name.is_ascii()).then_some((name, right))
+}
+
+fn scalar_assignment<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+    literal_assignment(node, source)
+        .filter(|(_, value)| literal_default(*value, source))
+        .map(|(name, _)| name)
 }
 
 pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
@@ -76,6 +81,95 @@ pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s 
 
 pub(super) fn module_metadata<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
     scalar_assignment(node, source).filter(|name| metadata_name(name))
+}
+
+fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
+    match node.kind() {
+        "parenthesized_expression" => {
+            let children: Vec<_> = node
+                .named_children(&mut node.walk())
+                .filter(|child| child.kind() != "comment")
+                .collect();
+            children.len() == 1 && collection_value(children[0], source, hashable)
+        }
+        "tuple" | "expression_list" => node
+            .named_children(&mut node.walk())
+            .filter(|child| child.kind() != "comment")
+            .all(|child| collection_value(child, source, hashable)),
+        "list" => {
+            !hashable
+                && node
+                    .named_children(&mut node.walk())
+                    .filter(|child| child.kind() != "comment")
+                    .all(|child| collection_value(child, source, false))
+        }
+        "set" => {
+            !hashable
+                && node
+                    .named_children(&mut node.walk())
+                    .filter(|child| child.kind() != "comment")
+                    .all(|child| collection_value(child, source, true))
+        }
+        "dictionary" => {
+            !hashable
+                && node
+                    .named_children(&mut node.walk())
+                    .filter(|child| child.kind() != "comment")
+                    .all(|child| {
+                        child.kind() == "pair"
+                            && child
+                                .child_by_field_name("key")
+                                .is_some_and(|key| collection_value(key, source, true))
+                            && child
+                                .child_by_field_name("value")
+                                .is_some_and(|value| collection_value(value, source, false))
+                    })
+        }
+        _ => {
+            literal_default(node, source)
+                && (node.kind() != "string"
+                    || !source[node.byte_range()]
+                        .split(['\'', '"'])
+                        .next()
+                        .unwrap_or_default()
+                        .to_ascii_lowercase()
+                        .contains('t'))
+        }
+    }
+}
+
+pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+    let (name, value) = literal_assignment(node, source)?;
+    if name.starts_with("__") && name.ends_with("__") {
+        return None;
+    }
+    let mut pending = vec![value];
+    let mut count = 0;
+    while let Some(node) = pending.pop() {
+        count += 1;
+        if count > 128 {
+            return None;
+        }
+        for child in node.named_children(&mut node.walk()) {
+            if count + pending.len() >= 128 {
+                return None;
+            }
+            pending.push(child);
+        }
+    }
+    let mut root = value;
+    while root.kind() == "parenthesized_expression" {
+        root = root
+            .named_children(&mut root.walk())
+            .find(|child| child.kind() != "comment")?;
+    }
+    if !matches!(
+        root.kind(),
+        "list" | "tuple" | "expression_list" | "dictionary" | "set"
+    ) {
+        return None;
+    }
+    collection_value(value, source, false).then_some(name)
 }
 
 pub(super) fn metadata_name(name: &str) -> bool {
@@ -475,7 +569,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
-        "initialization":"ASCII scalars, literal exports and metadata, plain classes and empty instances are inert. Global reads, collisions and other effects stay unchecked.",
+        "initialization":"Scalar and bounded collection literals, literal exports, plain classes and empty instances are inert. Global reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

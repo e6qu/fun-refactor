@@ -612,6 +612,7 @@ impl Modules {
                     continue;
                 }
                 if let Some(name) = calls::module_literal(node, source)
+                    .or_else(|| calls::module_collection(node, source))
                     .or_else(|| calls::module_metadata(node, source))
                 {
                     literals.insert(name.to_owned());

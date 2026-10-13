@@ -62,6 +62,29 @@ Python can read this value. The current analyzer still reports an unknown bindin
 so the trace answer remains incomplete. Supporting initialization and supporting global reads are
 separate pieces of work.
 
+An unused module can also prepare a literal collection while defining a helper:
+
+```python
+# helpers.py
+registry = {}
+modules = ("calc", "colls", "tree")
+
+def relay(value):
+    return value
+```
+
+These declarations no longer block an otherwise supported `send(relay(read_input()))` trace.
+Module lists, tuples, dictionaries and sets can contain scalar literals and nested literal collections.
+Each initializer must fit within 128 named syntax nodes, including wrappers, strings and comments.
+Dictionary keys and set members must contain only hashable scalar literals or tuples of those values.
+Python's [collection display rules](https://docs.python.org/3.14/reference/expressions.html#displays-for-lists-sets-and-dictionaries)
+explain which expressions run while creating a collection.
+
+For example, `registry = {"input": read_input()}` executes a call during import and remains unchecked.
+Unpacking, comprehensions, names, formatted or template strings and computed values remain unsupported.
+Reading or mutating `registry` also leaves the answer incomplete. The allowance applies to distinct
+ASCII module names; class attributes, function defaults and special metadata keep their existing rules.
+
 A helper package can also declare ordinary release and author information:
 
 ```python
@@ -189,7 +212,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
-| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct immutable scalar module bindings do not execute effects. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, special attributes, cycles and unresolved imports stay incomplete. |
+| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, mutations, special attributes, cycles and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
 | Locations | Source revisions and exact UTF-8 byte spans accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |

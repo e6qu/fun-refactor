@@ -807,6 +807,7 @@ impl Project<'_> {
                         continue;
                     }
                     let literal = calls::module_literal(node, text)
+                        .or_else(|| calls::module_collection(node, text))
                         .or_else(|| calls::module_metadata(node, text))
                         .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"));
                     if let Some(name) =

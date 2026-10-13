@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-module-metadata-flow-facts/result.json",
-      "sha256": "4a1c48038c6917bfe427ada053ece6d3aca8b1ae33e0d3f0415866ff35b65af0"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-literal-collections-flow-facts/result.json",
+      "sha256": "f1badb261a18fefe0b2266090ed75dddd920319f02ba7fa8526fd81b7792d3e9"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-module-metadata-package-flow/result.json",
-      "sha256": "cc5f33fefd62c9c428340b07a0a8909a7c08ea0e433c09d166f4600bc4a0b546"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-literal-collections-package-flow/result.json",
+      "sha256": "7480b742cebd5518c2d4d2838735ea8ac02ae0bee629ece4dbf6d673b9dd5c0b"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-module-metadata-python-repositories",
-      "sha256": "4f355d9b1225738063ea8b9ce6438be3644926e308b049bdaf8c332e388ff1b9"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-literal-collections-python-repositories",
+      "sha256": "d85eb5145250124d058efed2eb8a1b6fbbddaf891b6734c847d295520d41de29"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-module-metadata-flow-cache/result.json",
-      "sha256": "1b4dc035c23fe719c5c42111538df5d7fc96197e56ab66fd954a8f747e2fc9c3"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-literal-collections-flow-cache/result.json",
+      "sha256": "8adf044226dd84aeeed1bdf9df70eca2642bae2c151ea46adcb7b1258e3d81f0"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-module-metadata-compiler-profile/result.json",
-      "sha256": "c64cbcef7ce07f5ad32f0ff63ac9591f83a9c3773658237642892fcbbfbed473"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-literal-collections-compiler-profile/result.json",
+      "sha256": "b3ae917d44fd5baaf5875c6c3536f4cc89792ec74a04338eb9c3db310b609598"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 227 authored programs and 454 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-module-metadata-python-contract/result.json",
-      "sha256": "fa1d048638f6884d0188608696d806c60793a107047eb42e358e13f02ed53aa8"
+      "scope": "14 declared Python rules; 237 authored programs and 474 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-literal-collections-python-contract/result.json",
+      "sha256": "d01f47c1656d23e4e994e80a126f63dd4f63fd6de39567098a01ff5fb99a6c28"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-13-module-metadata-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-literal-collections-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-module-metadata-index-resolution/result.json",
-      "sha256": "251a17f50643ea63c95e36f9cd7aa8a83482836b39fc3cbf7991ee7ff2fa91a8"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-literal-collections-index-resolution/result.json",
+      "sha256": "ab8c4eb48195b44215721086627977d0a17f86f68e8f381962dba7d9589d66cf"
     },
     {
       "id": "repository-flow",
@@ -254,19 +254,19 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 211
+              "equals": 237
             },
             {
               "pointer": "/summary/cases",
-              "equals": 422
+              "equals": 474
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 211
+              "equals": 237
             },
             {
               "pointer": "/summary/incomplete_cases",
-              "equals": 142
+              "equals": 172
             },
             {
               "pointer": "/summary/refused_cases",
@@ -274,7 +274,7 @@
             },
             {
               "pointer": "/summary/documented_difference_cases",
-              "equals": 68
+              "equals": 74
             }
           ]
         }

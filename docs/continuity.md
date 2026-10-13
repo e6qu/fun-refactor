@@ -40,6 +40,14 @@ its retained annotation diagnostics therefore do not mean the focused directive 
 Literal `__version__`, `__author__`, `__license__` and `__copyright__` declarations now receive the
 same inert treatment as ordinary module constants. Import controls, global reads, evaluated values
 and repeated bindings remain unchecked. This removes a metadata blocker, not the full package boundaries.
+Unused literal collections now let otherwise supported helpers receive a complete answer.
+For example, `registry = {}` and `modules = ('calc', 'colls')` can coexist with a helper that forwards
+its input. This removes Toolz's empty registry declarations and funcy's literal module-name tuple
+from the reported startup blockers. Calls, unpacking, comprehensions, unhashable keys, global reads
+and mutations remain unchecked; the original packages still receive incomplete answers.
+The next work should use the remaining source locations: Toolz assigns existing names and builds
+its signature registry, funcy computes its exports and changes function attributes, and pydash
+still exhausts the import lookup budget. Check these separately before claiming whole-package support.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
@@ -52,7 +60,7 @@ in the current SDK.
 
 When code or a recorded input changes, run the affected collection on GitHub. Retain the result
 with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-module-metadata-scalar-collection/manifest.json)
+result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-literal-collections-scalar-collection/manifest.json)
 and [Python behavior examples](python-contract.md) identify the active results.
 
 Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
@@ -75,6 +83,17 @@ Scheduled checks now wait for an active audit; newer pushes can still replace ol
 The first annotation behavior collection found a source-checker gap: Python's annotated argument
 span includes its type, while a trace points to the parameter name. The checker now includes
 that name's exact byte span and still rejects a substituted annotation span.
+The [first collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38417041882)
+found an obsolete native fixture that required an empty list declaration to remain incomplete.
+The corrected fixture checks accepted literal allocations and keeps mutation unchecked.
+The [second collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38419813576)
+passed all native controls and 1111 SDK tests. Its imported hash-callback test exposed an observer
+that supplied source/sink functions only to the caller's globals. The corrected test uses the
+isolated import observer, which supplies those functions to imported modules too.
+The [first collection documentation check](https://github.com/e6qu/fun-refactor/actions/runs/38430801404)
+found one new sentence beyond the existing prose budget. Splitting the explanation keeps that budget unchanged.
+Review also found stale roadmap assertions for the older 211-program inventory.
+They now match the independently checked 237 programs; broader package and product goals remain open.
 
 ## Studies that stay stopped
 

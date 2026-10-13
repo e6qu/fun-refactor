@@ -99,7 +99,10 @@ fn scalar_module_literals_do_not_hide_binding_or_initialization_effects() {
         ("metadata: int = 0", false),
         ("metadata = 0\nmetadata = 1", false),
         ("metadata = other = 0", false),
-        ("metadata = []", false),
+        ("metadata = []", true),
+        ("metadata = {}", true),
+        ("metadata = (0,)", true),
+        ("metadata = []\nmetadata.append(source())", false),
         ("metadata = source()", false),
     ] {
         fs::write(
@@ -147,7 +150,7 @@ fn literal_defaults_acceptance_replays_checked_delivery() {
         .args([
             "tools/literal-defaults-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-module-metadata-literal-defaults/result.json",
+            "tests/agent-eval/results/2026-10-13-literal-collections-literal-defaults/result.json",
         ])
         .output()
         .unwrap();
