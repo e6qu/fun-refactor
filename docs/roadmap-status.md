@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**9 of 18 specific test requirements have matching recorded results; 9 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**8 of 18 specific test requirements have matching recorded results; 10 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 ## What works and what still gets in the way
 
@@ -32,7 +32,7 @@ The implementation column counts completed code changes. The test column counts 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
-| B. Explain how values move through code | 4/5 | 2/4 | open |
+| B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
 
@@ -92,11 +92,11 @@ Next: Keep the small examples as regression tests while testing more varied prog
 
 ### B.contract: Specify reusable Python behavior
 
-**State: demonstrated.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
+**State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
 User example: A helper returns its left argument; check selected, ignored and overwritten input cases against Python.
 
-Recorded results or remaining work: python-contract.
+Recorded results or remaining work: python-contract: stale source binding.
 
 Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh source-bound evidence after changes; repository-general flow and effects remain separate obligations.
 
@@ -235,7 +235,7 @@ The entries below identify the stored test results. “Current” means their re
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / model-proof | checked | historical | Three Boolean model relations; no source implementation correspondence. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / live-agent | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-13-builtin-bindings-compiler-profile/result.json) / compiler | checked | current | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-compiler-profile/result.json` |
-| [python-contract](../tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json) / semantic-contract | checked | current | 14 declared Python rules; 262 authored programs and 524 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json` |
+| [python-contract](../tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json) / semantic-contract | checked | stale (1 changed inputs) | 14 declared Python rules; 262 authored programs and 524 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json` |
 | [index-resolution](../tests/agent-eval/results/2026-10-13-builtin-bindings-index-resolution/result.json) / measurement | checked | current | Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-builtin-bindings-index-resolution/result.json` |
 | [repository-flow](../tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json) / deterministic | checked | stale (9 changed inputs) | Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow. Audit: `python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json` |
 

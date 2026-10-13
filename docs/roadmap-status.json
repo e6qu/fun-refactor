@@ -103,8 +103,10 @@
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "docs/python-contract.md"
+      ],
+      "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
@@ -157,13 +159,14 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.contract",
         "B.repository-flow",
         "B.effects"
       ],
@@ -333,7 +336,9 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [],
+      "blockers": [
+        "python-contract: stale source binding"
+      ],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh source-bound evidence after changes; repository-general flow and effects remain separate obligations.",
@@ -376,7 +381,7 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Specify reusable Python behavior"
     },
     {
