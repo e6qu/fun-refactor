@@ -79,6 +79,9 @@ Scheduled checks now wait for an active audit; newer pushes can still replace ol
 The first annotation behavior collection found a source-checker gap: Python's annotated argument
 span includes its type, while a trace points to the parameter name. The checker now includes
 that name's exact byte span and still rejects a substituted annotation span.
+The [first collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38417041882)
+found an obsolete native fixture that required an empty list declaration to remain incomplete.
+The corrected fixture checks accepted literal allocations and keeps mutation unchecked.
 
 ## Studies that stay stopped
 

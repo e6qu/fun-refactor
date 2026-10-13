@@ -99,7 +99,10 @@ fn scalar_module_literals_do_not_hide_binding_or_initialization_effects() {
         ("metadata: int = 0", false),
         ("metadata = 0\nmetadata = 1", false),
         ("metadata = other = 0", false),
-        ("metadata = []", false),
+        ("metadata = []", true),
+        ("metadata = {}", true),
+        ("metadata = (0,)", true),
+        ("metadata = []\nmetadata.append(source())", false),
         ("metadata = source()", false),
     ] {
         fs::write(
