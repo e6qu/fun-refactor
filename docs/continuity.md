@@ -60,6 +60,11 @@ Its original validator reproduces those errors; corrected expectations retain th
 The [first initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039)
 passed the native controls and 845 SDK tests. Its new reuse test stored a report inside the sample project,
 which made the next name search ambiguous. The corrected test keeps that report outside the project.
+The [first annotation gate](https://github.com/e6qu/fun-refactor/actions/runs/38381948322)
+passed native controls and 915 SDK tests. Two reports exceeded the unchanged 8 KiB limit
+after contract text grew. Compact current contract text fixes that regression.
+The new reuse test also exposed format validation after the freshness check; noncurrent contracts
+now fail before dependency changes can trigger fresh analysis.
 
 ## Studies that stay stopped
 

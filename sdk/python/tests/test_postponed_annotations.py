@@ -287,11 +287,16 @@ def test_rehashed_future_lookup_corruption_is_rejected(tmp_path, mutation):
             reader(FrReport(data, ()))
 
 
-def test_native_reuse_rejects_the_previous_call_contract(tmp_path):
+@pytest.mark.parametrize("mutation", ["previous-contract", "missing-future"])
+def test_native_reuse_rejects_noncurrent_contracts_before_checking_freshness(tmp_path, mutation):
     client, rules = install(tmp_path, FUTURE + "def relay(value: Missing):\n    return value\n")
     data = analyze(client, rules, "entry", imports=True).report.to_data()
-    for binding in (data["call_binding"], data["inputs"]["call_binding"]):
-        binding["definitions"] = "Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots."
+    if mutation == "previous-contract":
+        for binding in (data["call_binding"], data["inputs"]["call_binding"]):
+            binding["definitions"] = "Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots."
+    else:
+        lookup = next(item for item in data["inputs"]["modules"]["lookups"] if item["future"])
+        del lookup["future"]
     data["input_digest"] = hashlib.sha256(json.dumps(data["inputs"], sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
     encoded = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     handle = client.project("find", "entry").definition_target().handle
