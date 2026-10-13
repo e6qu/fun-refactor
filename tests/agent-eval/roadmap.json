@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-class-initialization-flow-facts/result.json",
-      "sha256": "f4c90883dd60ae2b0a3df40f3f69db8d5b48e09ba3eead4dde17d3d5185b2916"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-flow-facts/result.json",
+      "sha256": "e92a75cea8348a76eeca128a76bb2d29869e513fee4660ef913d4d2de17c814a"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-class-initialization-package-flow/result.json",
-      "sha256": "dfdce07a794a833cbe584ea9af04c148de1413808b71c51f0f0c879738ec2132"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-package-flow/result.json",
+      "sha256": "6e3da296368f5a96a947ca98f285393117daf0a0ac649cbea75e044e2c42db59"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-class-initialization-python-repositories",
-      "sha256": "3aaee9f44eecf94324fe41f8173aef82c4582488265ba169bd535b8abc24e92e"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-python-repositories",
+      "sha256": "bd46b1d1d99abc8d71aa4fd6a41c3b911ed39d6a7e589f3f7006d7f5a391476b"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-class-initialization-flow-cache/result.json",
-      "sha256": "89c997b9c74cbf417a65e25c29a77caceb9ec064393f9fc449c48272fedb388b"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-flow-cache/result.json",
+      "sha256": "9f7b9a857ac3f16c2cc2e9fdf79da49d9ad191db52e51c53952d6aaa343d6453"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-class-initialization-compiler-profile/result.json",
-      "sha256": "59b3545d03ed34ace1f4b3b5afd794109a745c5fba94a112448c309d7958d028"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-compiler-profile/result.json",
+      "sha256": "45c6ffc50ebe9826faef2ad067cd7ba29000e53941ad763645841b26fec12e25"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json",
       "kind": "semantic-contract",
       "scope": "14 declared Python rules; 211 authored programs and 422 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-class-initialization-python-contract/result.json",
-      "sha256": "8959af2de2e5a81761ce64aa7bb57c5d19576dd508f738c94ac9a1e35bbc4352"
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-initialization-locations-python-contract/result.json",
+      "sha256": "d05782b96b69497b69ffbb12630a6da68c9ec302abc875616f31c1e178105136"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-13-class-initialization-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-initialization-locations-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-class-initialization-index-resolution/result.json",
-      "sha256": "8138e689de3db89b784302ff95bc7b8cddd975b89037401900ac0d2180af621f"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-initialization-locations-index-resolution/result.json",
+      "sha256": "0b0766cd4490b51633a1ab059e9f29c0880ddb173009fa13434723643b4df0ec"
     },
     {
       "id": "repository-flow",
