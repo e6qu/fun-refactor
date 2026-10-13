@@ -63,14 +63,15 @@ def oracle_json(encoded):
     return result.stdout
 
 
-def ast_locations(case, path=None):
+def ast_locations(case, path=None, *, module_only=False):
     source = case['files'][path] if path else case['source']
     lines = source.encode().splitlines(keepends=True)
     offsets = [0]
     for line in lines:
         offsets.append(offsets[-1] + len(line))
     spans, calls = set(), {}
-    for node in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    for node in tree.body if module_only else ast.walk(tree):
         if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             continue
         span = (offsets[node.lineno - 1] + node.col_offset, offsets[node.end_lineno - 1] + node.end_col_offset)
@@ -195,7 +196,7 @@ def audit_case(row, case):
         require(path in locations, 'initialization file changed')
         location = point['location']
         start, end = location['span']['start'], location['span']['end']
-        require((start, end) in locations[path][0]
+        require((start, end) in ast_locations(case, path, module_only=True)[0]
                 and location == profile.location(case['files'][path], start, end),
                 'initialization source correspondence changed')
     sources = sorted((path, *span) for path, (_, calls) in locations.items()
