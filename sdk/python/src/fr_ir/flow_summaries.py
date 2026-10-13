@@ -6,6 +6,7 @@ from typing import Any
 
 from .runtime import FrReport, FrRuntimeError, Occurrence
 from .flow_initialization import FlowInitialization
+from .flow_dependencies import FlowDependencies
 
 
 @dataclass(frozen=True)
@@ -106,12 +107,12 @@ _CALL_BINDING = {
     "evaluation": "explicit argument values in source order before parameter binding; once per transfer.",
     "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
     "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-    "boundary": "no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
-    "definitions": "Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
+    "boundary": "no evaluated or mutable defaults, unpostponed annotations, type parameters, referenced variadics, extra variadic arguments, unpacking or coroutine/generator execution. Keyword external-rule contracts and non-normalized identifier spellings remain unchecked.",
+    "definitions": "ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Calls require scalar fixed slots.",
     "initialization": "ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
     "implicit_exceptions": False,
     "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
-    "variadics": "fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
+    "variadics": "fixed-slot summaries omit unused ASCII variadic parameters, with annotations only under an admitted future directive. Their names must never occur as body identifiers; calls bind only fixed slots.",
 }
 
 
@@ -183,6 +184,8 @@ class FunctionSummaries:
         FlowInitialization.from_report(report)
         data = report.to_data()
         try:
+            if "modules" in data["inputs"]:
+                FlowDependencies.from_report(report)
             value = data["function_summaries"]
             if (report.schema != "fr-dataflow-1" or data["semantics"] != "python-scalar-summaries"
                     or value["schema"] != "fr-function-summaries" or value["enabled"] is not True

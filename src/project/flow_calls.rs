@@ -73,7 +73,11 @@ pub(super) fn module_literal<'s>(node: Node<'_>, source: &'s str) -> Option<&'s 
     .then_some(name)
 }
 
-pub(super) fn module_class<'s>(node: Node<'_>, source: &'s str) -> Option<(&'s str, bool)> {
+pub(super) fn module_class<'s>(
+    node: Node<'_>,
+    source: &'s str,
+    postponed: bool,
+) -> Option<(&'s str, bool)> {
     if node.kind() != "class_definition" {
         return None;
     }
@@ -110,7 +114,7 @@ pub(super) fn module_class<'s>(node: Node<'_>, source: &'s str) -> Option<(&'s s
         {
             continue;
         }
-        if child.kind() != "function_definition" || !definition_is_inert(child, source) {
+        if child.kind() != "function_definition" || !definition_is_inert(child, source, postponed) {
             return None;
         }
         let method = child.child_by_field_name("name")?;
@@ -241,13 +245,53 @@ pub(super) fn declared_exports(root: Node<'_>, source: &str) -> Option<BTreeSet<
     exports
 }
 
-pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Parameter<'t>>> {
-    parameter_contract(function, source, Phase::Call)
+pub(super) fn future_annotation_nodes(root: Node<'_>, source: &str) -> BTreeSet<usize> {
+    let mut result = BTreeSet::new();
+    let mut first = true;
+    for node in root.named_children(&mut root.walk()) {
+        if node.kind() == "comment" {
+            continue;
+        }
+        if first && node.kind() == "expression_statement" && node.named_child_count() == 1 {
+            let value = node.named_child(0).unwrap();
+            let prefix = source[value.byte_range()]
+                .split(['\'', '"'])
+                .next()
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            if value.kind() == "string" && literal_default(value, source) && !prefix.contains('b') {
+                first = false;
+                continue;
+            }
+        }
+        first = false;
+        if node.kind() != "future_import_statement" {
+            break;
+        }
+        let names: Vec<_> = node
+            .children_by_field_name("name", &mut node.walk())
+            .collect();
+        if names.len() != 1
+            || names[0].kind() != "dotted_name"
+            || &source[names[0].byte_range()] != "annotations"
+        {
+            return BTreeSet::new();
+        }
+        result.insert(node.start_byte());
+    }
+    result
 }
 
-pub(super) fn definition_is_inert(function: Node<'_>, source: &str) -> bool {
-    function.child_by_field_name("return_type").is_none()
-        && parameter_contract(function, source, Phase::Declaration).is_some()
+pub(super) fn parameters<'t>(
+    function: Node<'t>,
+    source: &str,
+    postponed: bool,
+) -> Option<Vec<Parameter<'t>>> {
+    parameter_contract(function, source, postponed, Phase::Call)
+}
+
+pub(super) fn definition_is_inert(function: Node<'_>, source: &str, postponed: bool) -> bool {
+    parameter_contract(function, source, postponed, Phase::Declaration).is_some()
 }
 
 pub(super) fn generator_function(function: Node<'_>) -> bool {
@@ -275,8 +319,14 @@ pub(super) fn generator_function(function: Node<'_>) -> bool {
 fn parameter_contract<'t>(
     function: Node<'t>,
     source: &str,
+    postponed: bool,
     phase: Phase,
 ) -> Option<Vec<Parameter<'t>>> {
+    if function.child_by_field_name("type_parameters").is_some()
+        || !postponed && function.child_by_field_name("return_type").is_some()
+    {
+        return None;
+    }
     let list = function.child_by_field_name("parameters")?;
     let mut result: Vec<Parameter<'t>> = Vec::new();
     let mut names = BTreeSet::new();
@@ -285,11 +335,22 @@ fn parameter_contract<'t>(
     let mut bare_star = false;
     let mut variadic_keywords = false;
     let mut optional = false;
-    for node in list.named_children(&mut list.walk()) {
+    for mut node in list.named_children(&mut list.walk()) {
+        if node.kind() == "typed_parameter" {
+            if !postponed {
+                return None;
+            }
+            node = node.named_child(0)?;
+        }
         match node.kind() {
             "comment" => (),
-            "identifier" | "default_parameter" if !variadic_keywords => {
-                let (name, default) = if node.kind() == "default_parameter" {
+            "identifier" | "default_parameter" | "typed_default_parameter"
+                if !variadic_keywords =>
+            {
+                let (name, default) = if node.kind() != "identifier" {
+                    if node.kind() == "typed_default_parameter" && !postponed {
+                        return None;
+                    }
                     let name = node.child_by_field_name("name")?;
                     let value = node.child_by_field_name("value")?;
                     if name.kind() != "identifier" || !literal_default(value, source) {
@@ -379,18 +440,23 @@ pub(super) fn contract() -> Value {
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no evaluated or mutable defaults, annotations, referenced variadics, extra variadic arguments, unpacking, coroutine or generator execution, keyword external-rule contracts or non-normalized identifier spellings.",
-        "definitions":"Unannotated ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Calls require scalar fixed slots.",
+        "boundary":"no evaluated or mutable defaults, unpostponed annotations, type parameters, referenced variadics, extra variadic arguments, unpacking or coroutine/generator execution. Keyword external-rule contracts and non-normalized identifier spellings remain unchecked.",
+        "definitions":"ASCII signatures with immutable literal defaults defer bodies, including referenced variadics. Annotations require an admitted module-local future directive. Calls require scalar fixed slots.",
         "initialization":"ASCII scalar bindings, literal __all__, plain classes and unchanged default construction are inert. Global value flow, collisions and other effects stay unchecked.",
-        "variadics":"fixed-slot summaries omit unused, unannotated ASCII variadic parameters. Their names must never occur as body identifiers; calls bind only fixed slots.",
+        "variadics":"fixed-slot summaries omit unused ASCII variadic parameters, with annotations only under an admitted future directive. Their names must never occur as body identifiers; calls bind only fixed slots.",
         "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
+        self.modules
+            .is_some_and(|modules| modules.annotations_postponed(file))
+    }
+
     pub(super) fn parameter_nodes(&self, function: Node<'t>) -> Option<Vec<Node<'t>>> {
         if self.solver.enabled {
-            parameters(function, self.source)
+            parameters(function, self.source, self.annotations_postponed(self.file))
                 .map(|items| items.into_iter().map(|p| p.node).collect())
         } else {
             let list = function.child_by_field_name("parameters")?;
@@ -456,7 +522,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         names: &[Option<String>],
     ) -> Option<Vec<Flow>> {
         let source = self.contexts[name].1;
-        let Some(parameters) = parameters(function, source) else {
+        let Some(parameters) = parameters(
+            function,
+            source,
+            self.annotations_postponed(self.contexts[name].0),
+        ) else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
@@ -529,7 +599,7 @@ pub(super) fn valid_call_syntax(node: Node<'_>, source: &str) -> bool {
 
 impl Analyzer<'_, '_, '_> {
     pub(super) fn parameter_signature(&self, function: Node<'_>) -> Vec<ParameterSignature> {
-        parameters(function, self.source)
+        parameters(function, self.source, self.annotations_postponed(self.file))
             .unwrap_or_default()
             .into_iter()
             .map(|parameter| ParameterSignature {

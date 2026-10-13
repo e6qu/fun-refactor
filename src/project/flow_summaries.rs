@@ -120,8 +120,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         arguments: Vec<Flow>,
         call: Node<'t>,
     ) -> Flow {
-        let valid = calls::parameters(function, self.contexts[name].1)
-            .is_some_and(|parameters| parameters.len() == arguments.len());
+        let valid = calls::parameters(
+            function,
+            self.contexts[name].1,
+            self.annotations_postponed(self.contexts[name].0),
+        )
+        .is_some_and(|parameters| parameters.len() == arguments.len());
         if !valid {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();

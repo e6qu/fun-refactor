@@ -44,7 +44,7 @@ behavior and keep a model result separate from a safety claim.
 | “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra variadic arguments and referenced variadic values remain incomplete. |
 | “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
-| “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Annotations, decorators and evaluated defaults can execute at definition time. |
+| “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and evaluated defaults execute during definition. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | A distinct `metadata = 0` binding is inert during initialization. | Global reads, rebinding, special attributes and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
 | “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions and handlers exceed this model. |
@@ -77,7 +77,7 @@ def relay(value):
 
 This plain declaration and default empty construction do not prevent an otherwise supported answer.
 The method body stays deferred. The supported class has no bases, decorators or type parameters.
-Its body contains comments, literal strings, `pass`, scalar attributes or unannotated method declarations with inert defaults.
+Its body contains comments, literal strings, `pass`, scalar attributes or supported method declarations with inert defaults.
 The call must name an unchanged class defined earlier in the same file and pass no arguments.
 
 For example, adding `def __init__(self): read_input()` makes `EMPTY = Marker()` execute custom code.
@@ -85,6 +85,34 @@ That initialization remains unchecked, as do custom `__new__` or `__del__` metho
 Python's [class creation and construction rules](https://docs.python.org/3.14/reference/datamodel.html#creating-the-class-object)
 explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
+
+## Trace a helper that has type annotations
+
+Suppose your helper declares types, but your question is whether it forwards an input:
+
+```python
+# helpers.py
+from __future__ import annotations
+
+def relay(value: MissingType) -> MissingType:
+    return value
+```
+
+With summaries and imports enabled, fr can follow `send(relay(read_input()))` through this helper.
+Python postpones these annotations, so the missing type name does not prevent the module from loading.
+The directive must appear at the beginning of the defining module, after any module docstring or comments.
+A directive in the caller does not apply to its imported helpers.
+See Python's [future statement rules](https://docs.python.org/3.14/reference/simple_stmts.html#future-statements).
+
+The import still matters. fr checks for a local `__future__.py`, package, stub or directory.
+It assumes the standard CPython feature only when all five local candidates are missing.
+Each lookup retains those missing paths; adding a local shadow changes the saved answer's inputs.
+A local shadow remains subject to the ordinary import and initialization checks.
+
+Defaults still execute: `def relay(value: MissingType = read_input()): ...` leaves the answer unfinished.
+Decorators, type parameters, annotation inspection and annotated class attributes also remain unchecked.
+The supported directive imports only `annotations`, without aliases or other future features.
+Single-file analysis cannot accept it because that mode does not check the import candidates.
 
 ## Find the statement that prevents an answer
 
@@ -129,7 +157,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Expression selectors | `and`, `or`, `not` and conditional expressions preserve evaluation order. Boolean and None literals can select a path. | Variables, numeric values and call results have unknown truth. |
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
-| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch, referenced variadic values, extra variadic arguments, unpacking, annotations, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
+| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch, referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
