@@ -35,6 +35,11 @@ Postponed annotation support follows a concrete pydash blocker: its typed helper
 `from __future__ import annotations`. Such signatures can defer annotations when the defining
 module has a supported directive and every local `__future__` candidate is missing.
 Defaults, decorators, annotation inspection and local shadows still need separate checks.
+The familiar pydash package exhausts its 128 import lookups before reaching the annotation directives;
+its retained annotation diagnostics therefore do not mean the focused directive controls failed.
+Literal `__version__`, `__author__`, `__license__` and `__copyright__` declarations now receive the
+same inert treatment as ordinary module constants. Import controls, global reads, evaluated values
+and repeated bindings remain unchecked. This removes a metadata blocker, not the full package boundaries.
 Keep jaraco.functools unopened during development, and freeze the next implementation before its
 first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
 [holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.

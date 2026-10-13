@@ -45,7 +45,7 @@ behavior and keep a model result separate from a safety claim.
 | “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
 | “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and evaluated defaults execute during definition. Use the supported future directive for annotations. |
-| “Can a plain module constant block the trace?” | A distinct `metadata = 0` binding is inert during initialization. | Global reads, rebinding, special attributes and evaluated initialization remain unsupported. |
+| “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
 | “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions and handlers exceed this model. |
 
@@ -61,6 +61,29 @@ def entry():
 Python can read this value. The current analyzer still reports an unknown binding in the function,
 so the trace answer remains incomplete. Supporting initialization and supporting global reads are
 separate pieces of work.
+
+A helper package can also declare ordinary release and author information:
+
+```python
+# helpers.py
+__version__ = "8.1.0"
+__author__ = "Example contributors"
+
+def relay(value):
+    return value
+```
+
+When your application calls `send(relay(read_input()))`, these unused literal declarations
+no longer prevent an otherwise supported trace. The exception covers `__version__`, `__author__`,
+`__license__` and `__copyright__` at module scope, using the same immutable scalar literals as
+ordinary module constants. It does not admit evaluated expressions, mutable values, annotated
+assignments, repeated bindings or class metadata. Reading `__version__` inside a function still
+leaves the answer incomplete.
+
+Assignments to import controls such as `__path__`, `__package__` and `__spec__` remain unchecked.
+Python uses these attributes when loading modules; see its
+[import rules](https://docs.python.org/3.14/reference/import.html#module-spec).
+Other special names remain outside this metadata exception.
 
 A library may create an unused marker while it defines a helper:
 

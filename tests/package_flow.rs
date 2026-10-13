@@ -68,6 +68,36 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn literal_package_metadata_does_not_hide_initialization_effects() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "library/__init__.py",
+        "__version__ = '8.1.0'\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from library import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    write(
+        root.path(),
+        "library/__init__.py",
+        "__version__ = source()\ndef relay(value):\n    return value\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|site| site["occurrence"]["path"] == "library/__init__.py"));
+}
+
+#[test]
 fn postponed_annotations_retain_negative_import_candidates_and_check_local_shadows() {
     let root = tempfile::tempdir().unwrap();
     write(root.path(), "helpers.py", "from __future__ import annotations\ndef relay(value: Missing, /, *, flag: Missing = 0) -> source():\n    return value\n");

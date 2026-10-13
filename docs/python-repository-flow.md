@@ -155,5 +155,9 @@ To inspect an incomplete answer, use the initialization locations described in t
 They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
 The list is bounded and counts omitted locations. It does not establish package success or explain
 code in modules the import search could not load.
+The familiar pydash result reaches the 128 import-lookup limit before its annotation directives
+are checked. The focused postponed-annotation examples pass; that package still needs a solution
+for the other imports and executed initialization. Literal package metadata such as
+`__version__ = "8.1.0"` can now stay inert without admitting import controls or global reads.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.
