@@ -31,6 +31,10 @@ The grader requires every quotation to match the pinned source and to have appea
 result delivered to that agent. An accurate guess without retrieved evidence fails. Explanations
 are read-only; an edit request refuses. The grader never imports or executes repository code.
 
+For the cache example, an answer needs the source statement that decides expiration, not just the
+class declaration. A correct guess can still fail this source-reading task if the agent never read
+the required statement. That score concerns this fixed question; it cannot certify general understanding.
+
 This is a finite factual check. It does not judge arbitrary prose, prove a theorem, or establish
 that the agent understands the entire program. Required source anchors can reject a correct
 explanation expressed with different evidence. CI separately runs reviewed behavioral controls

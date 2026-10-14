@@ -18,6 +18,10 @@ The record distinguishes an absent file from an empty file. Undo therefore remov
 a translation or other refactoring, and redo recreates it before the changed paths are reindexed.
 Unrelated files are outside the transaction and remain untouched.
 
+Illustration: rename a checkout helper, then change an unrelated note in the playground.
+Undo can reverse the rename while keeping the note. If you edit the renamed helper itself,
+undo refuses the conflict; inspect it before choosing another change.
+
 `transaction_patch(id, reverse)` exports one transaction. `patch()` folds every currently applied
 transaction back to the loaded workspace basis. Both call the same Rust Git text renderer as native
 `fr history patch`; the playground's Download Patch button uses the cumulative form. Exports include
@@ -28,6 +32,10 @@ per transaction and 64 MiB total. `compact_history(keep)` retains the newest req
 steps. It folds older applied steps into the cumulative patch basis, then discards old redo and
 abandoned records. The cumulative patch remains byte-identical. Compacted transaction IDs cannot be
 undone, redone or exported individually, and IDs are never reused.
+
+The Download Patch button includes all currently applied changes since the loaded starting files.
+For example, a rename followed by a body repair contributes both changes to that patch.
+Keep a separate export before discarding history you may need to reverse individually.
 
 `session()` exports `fr-browser-session-1`, a canonical checkpoint containing current files and the
 complete retained history. `Workspace.from_session(text)` accepts at most 4 MiB and 4,096 files. It

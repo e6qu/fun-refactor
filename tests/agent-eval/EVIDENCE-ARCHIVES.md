@@ -48,6 +48,10 @@ and 1 GiB of restored data. Verification reads one file at a time in 128 KiB chu
 archives and tests corrupt data, oversized output, invalid paths, symlinks and failed restoration.
 Restore only the report needed for an investigation; the active audit needs no restoration step.
 
+For example, restore the September cache report to inspect its measured first and repeated runs.
+Keep its source fingerprints and failure records with those samples. To measure today's analyzer,
+run a new collection on GitHub. Rewriting an old report with current values would erase the comparison.
+
 The [original September 25 report](results/2026-09-25-flow-cache/result.json.gz) supports the historical
 cache comparison. The other ten archives preserve intermediate reports from September 28 and 29.
 All remain available in a fresh checkout without a separate download or external artifact service.

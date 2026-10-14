@@ -65,7 +65,14 @@ No checkout files, refs, shared objects, invoking index or repository configurat
 
 Compaction discards recovery data and cannot be undone through `fr`.
 The retained summary supports audit inspection, not reconstruction of the removed worktree's private metadata.
+
+For example, you may want to restore the removed checkout next week. Keep its full archive until
+that need has passed. After compaction, you can inspect the removal summary, but cannot use that
+summary to run `undo-removal`. Preview lists the recovery data you will lose.
 Bulk writes are sequential rather than filesystem-atomic.
+
+If two archives compact and the third fails, those first two stay compacted.
+Read the completed paths in the result, then inspect the archive where processing stopped.
 `applied: true` means every selected archive compacted; `applied: null` returns completed paths and the archive where processing stopped.
 There is no automatic retention period or archive-directory purge.
 

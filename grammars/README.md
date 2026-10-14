@@ -12,6 +12,11 @@ took, and the provenance to check all three.
 
 ## Adding one
 
+Run grammar generation and real-project comparisons on a dedicated runner.
+The [shared workstation limits](../docs/development.md#working-on-a-shared-desktop) apply to local inspection.
+For example, a grammar fix for an empty Zig type must also keep ordinary nonempty types readable.
+The comparison below checks supported neighbors as well as the failing form.
+
 1. Fetch the upstream release the crate publishes, at its tag.
 2. Patch `grammar.js` where the published parser is wrong. The patch must keep the parser
    correct for the language: it may accept what the language accepts, and nothing more.

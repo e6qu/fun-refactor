@@ -54,3 +54,7 @@ native CLI operations.
 Repository loading is limited to 400 files and 6 MiB, smallest files first. The interface reports
 every omitted file. See `src/github.ts` for the loader contract.
 
+For example, a checkout helper may call a file that the loader omitted. A caller list in that
+partial workspace cannot establish the full project's affected code. Inspect the omitted files and
+test the exported patch in the complete checkout before using it.
+

@@ -30,7 +30,8 @@ The destination and raw file restrictions from [reviewed creation](git-worktree-
 The destination must be fresh, with an existing parent outside Git repositories.
 Files come from the reviewed commit, including when the invoking worktree has staged, unstaged or untracked changes.
 Packed refs, SHA-256 repositories and invocation from another linked worktree are supported.
-Symlinks and submodules remain outside the supported checkout subset. `fr` accepts repository worktree configuration and applies the same lifecycle checks as new-branch creation.
+Regular files and supported symbolic links use the same checkout rules as new-branch creation.
+Submodules remain unsupported. Repository worktree configuration uses the same lifecycle checks too.
 
 ## Review and reference preservation
 
@@ -53,15 +54,19 @@ Observed registration races can still produce partial creation; they do not auth
 ## Receipts and lifecycle
 
 Creation receipts record whether the branch existed before creation.
-Older receipts and removal archives without that field retain their original new-branch interpretation.
 Recovery fills an incomplete checkout from its recorded commit and preserves the existing branch.
 Reviewed removal and removal resumption retain the branch after deleting the owned workspace.
 The invoking worktree's index and source files receive no writes.
 
 Only `applied: true` confirms completion. Inspect `applied` even when the CLI exits successfully.
 Preflight refusals use the ordinary error response. Mutation failures return `applied: null` and inspection guidance.
-A registered failure with an ownership receipt can use [creation recovery](git-worktree-recovery.md).
-Failures before receipt publication still require inspection of the destination, branch and registrations.
+A registered failure with an ownership receipt or matching durable preparation can use
+[creation recovery](git-worktree-recovery.md). Inspect the destination, branch and registration first.
+Without that recorded ownership evidence, recovery refuses.
+
+For example, you already committed the checkout repair on `agent/task`. Creating its worktree copies
+that branch's reviewed commit; it does not reset the branch or copy unfinished edits from another folder.
+If a later commit moves the branch after preview, prepare a new preview before creation.
 See [removal](git-worktree-removal.md) and [removal resumption](git-worktree-removal-resumption.md) for later cleanup.
 
 ## Formal coverage

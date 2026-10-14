@@ -1,133 +1,82 @@
 # Pick up the current work
 
-Start with the [plan](../PLAN.md) for the goal and next work. The [current results](roadmap-status.md)
-own the test counts. This page gives the next contributor the decisions they need to continue.
+Read the [plan](../PLAN.md) for the goal and [current results](roadmap-status.md) for the checked requirements.
+This handoff tells the next contributor what to do now. Earlier failures belong in the
+[development history](evaluations.md#python-development-history).
 
-## What works now
+## What users can do now
 
-An agent can find functions and callers, inspect selected code, preview edits, run declared checks,
-and keep saved changes for undo or resumed work. Recent Python fixes improve small trace questions.
-For example, an unused function body and `metadata = 0` no longer prevent an otherwise supported answer.
+An agent can find functions and callers, read selected code, prepare a reviewed edit, run declared
+checks, and keep changes for undo or resumption. Small Python examples can also follow an input
+through a helper to an output.
 
-The remaining real-library problem is still visible. Toolz, funcy and pydash imports often execute
-code that the analyzer cannot handle. Their package results remain incomplete. Copying a helper
-into a small isolated module can produce a complete answer, but that does not establish that its
-original package is understood. See the [library examples and results](python-repository-flow.md).
+For example, you ask whether a customer-supplied value reaches `send(value)`. A supported helper
+can return a trace with its source locations. If importing the helper runs unsupported setup code,
+the result stays incomplete. An empty trace then leaves your question open.
 
-## Current priority
+Toolz, funcy and pydash still give incomplete full-package answers. Some copied helpers work in small
+isolated files. That helps test a language rule; it does not establish that the original package works.
+We also have not demonstrated that fr saves time or money on unfamiliar tasks.
 
-The documentation review now explains the user’s task first, shows an example,
-and describes the result before presenting commands or record fields. Keep that order in later edits.
-The [writing guide](style.md) applies that rule. [Result meanings](understanding-results.md) distinguishes a found location,
-a possible input connection, an unfinished answer and a checked repair.
+## What to work on next
 
-Next, continue the Python work from the actual import and initialization failures.
-Imports preserve a package’s classes, decorated functions and assigned values before considering
-a file with the same name. These unsupported values still leave the answer unfinished.
-Literal export lists now let fr follow `from helpers import *`. Computed or directly mutated exports
-remain unfinished, along with external dependencies and other code that runs while importing a package.
-The current class work admits plain declarations and empty instances made without custom constructors.
-Methods stay deferred. Bases, decorators, descriptors and executed class-body code remain unchecked.
-Replay complete original modules separately from copied helper declarations and full package imports.
-Unchecked initialization now identifies exact source statements and counts locations omitted from the report.
-Use these locations to choose further language work; they do not change the tracing conclusion.
-Postponed annotation support follows a concrete pydash blocker: its typed helpers use
-`from __future__ import annotations`. Such signatures can defer annotations when the defining
-module has a supported directive and every local `__future__` candidate is missing.
-Defaults, decorators, annotation inspection and local shadows still need separate checks.
-The familiar pydash package exhausts its 128 import lookups before reaching the annotation directives;
-its retained annotation diagnostics therefore do not mean the focused directive controls failed.
-Literal `__version__`, `__author__`, `__license__` and `__copyright__` declarations now receive the
-same inert treatment as ordinary module constants. Import controls, global reads, evaluated values
-and repeated bindings remain unchecked. This removes a metadata blocker, not the full package boundaries.
-Unused literal collections now let otherwise supported helpers receive a complete answer.
-For example, `registry = {}` and `modules = ('calc', 'colls')` can coexist with a helper that forwards
-its input. This removes Toolz's empty registry declarations and funcy's literal module-name tuple
-from the reported startup blockers. Calls, unpacking, comprehensions, unhashable keys, global reads
-and mutations remain unchecked; the original packages still receive incomplete answers.
-Plain assignments to already-bound local functions now retain the defining helper's behavior and locations.
-For example, `public = relay` lets calls through `public` use the original helper's arguments and return.
-The familiar library replay removes Toolz's `comp = compose` from its reported startup blockers.
-Missing names, computed assignments, rebinding and shared mutable objects remain unchecked.
-Unused references to standard built-ins now receive inert treatment too.
-For example, `sorter = sorted` can coexist with a supported helper without calling the sorting function.
-A left-hand name must be new to its module; an existing built-in with that name does not count as a module binding.
-Calling or reading that stored function still leaves the answer unfinished.
-The familiar Toolz replay removes `sorted = sorted`, `map = map` and `filter = filter` from the startup blockers.
-Its omitted blocker count falls from 80 to 77; full-package answers remain incomplete.
-The next work should use the remaining statements. Toolz still builds and changes its signature registry.
-Funcy computes exports and changes function attributes.
-Pydash still exhausts the import lookup budget. Check these separately before claiming whole-package support.
-Keep jaraco.functools unopened during development, and freeze the next implementation before its
-first evaluation. Toolz, funcy and pydash are already familiar test projects. The recorded
-[holdout selection](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reservation.
+Use the reported import and startup statements to choose the next Python language rule.
+The [Python guide](python-contract.md) owns current support and limits; avoid maintaining another
+support list here.
 
-## How to keep the results trustworthy
+| Observed problem | Why it matters to a user | Next investigation |
+| --- | --- | --- |
+| Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
+| Funcy computes exports and changes function attributes | A helper's exported name or behavior can depend on setup | Separate computed names from changes that affect a call |
+| Pydash exhausts 128 import lookups | The search stops before it can answer the selected trace question | Find the repeated or necessary lookups; preserve the limit while addressing the cause |
 
-Keep one current analyzer, SDK and cache format. Missing fields and older formats must fail
-explicitly. Historical results use their archived original code; they do not require older readers
-in the current SDK.
+Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
+answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
+retain the complete attempts and limits.
 
-When code or a recorded input changes, run the affected collection on GitHub. Retain the result
-with the file fingerprints and run identity that produced it. Do not edit hashes to make an old
-result appear current. The [current collection receipt](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
-and [Python behavior examples](python-contract.md) identify the active results.
+Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
+Toolz, funcy and pydash are familiar development examples. The
+[selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reserved project.
 
-Keep failures alongside corrected attempts. The [failed generator collection](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json)
-retains its original result and validator. The [first initialization gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263)
-records obsolete boundary fixtures and a metadata-size failure; the [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526)
-passes without increasing the existing output budget. Detailed history belongs in those records.
-The [class collection failure](../tests/agent-eval/results/2026-10-13-class-initialization-history-python-contract-failure/manifest.json)
-preserves four wrong source-call indices and one renamed boundary label.
-Its original validator reproduces those errors; corrected expectations retain the same runtime outcomes and limits.
-The [first initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039)
-passed the native controls and 845 SDK tests. Its new reuse test stored a report inside the sample project,
-which made the next name search ambiguous. The corrected test keeps that report outside the project.
-The [first annotation gate](https://github.com/e6qu/fun-refactor/actions/runs/38381948322)
-passed native controls and 915 SDK tests. Two reports exceeded the unchanged 8 KiB limit
-after contract text grew. Compact current contract text fixes that regression.
-The new reuse test also exposed format validation after the freshness check; noncurrent contracts
-now fail before dependency changes can trigger fresh analysis.
-The daily audit also canceled an unfinished merge audit on the same commit.
-Scheduled checks now wait for an active audit; newer pushes can still replace older work.
-The first annotation behavior collection found a source-checker gap: Python's annotated argument
-span includes its type, while a trace points to the parameter name. The checker now includes
-that name's exact byte span and still rejects a substituted annotation span.
-The [first collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38417041882)
-found an obsolete native fixture that required an empty list declaration to remain incomplete.
-The corrected fixture checks accepted literal allocations and keeps mutation unchecked.
-The [second collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38419813576)
-passed all native controls and 1111 SDK tests. Its imported hash-callback test exposed an observer
-that supplied source/sink functions only to the caller's globals. The corrected test uses the
-isolated import observer, which supplies those functions to imported modules too.
-The [first collection documentation check](https://github.com/e6qu/fun-refactor/actions/runs/38430801404)
-found one new sentence beyond the existing prose budget. Splitting the explanation keeps that budget unchanged.
-Review also found stale roadmap assertions for the older 211-program inventory.
-They now match the independently checked 237 programs; broader package and product goals remain open.
-The [first function-alias gate](https://github.com/e6qu/fun-refactor/actions/runs/38440122902)
-passed native controls and 1206 SDK tests. Two new tests expected a global declaration to behave
-like a local assignment. Corrected controls distinguish lexical declarations from local shadowing
-and compare both outcomes with Python. Neither case can establish a complete answer.
-The [first built-in-reference PR check](https://github.com/e6qu/fun-refactor/actions/runs/38473217926)
-passed 460 SDK tests in its final shard. The saved Python contract audit rejected a later wording edit
-to its recorded guide. Restoring the collected guide keeps the report and input fingerprints intact.
-The clarification lives here instead. Documentation review now audits the saved Python contract
-after generating pages, so it catches changed inputs before the full SDK gate.
+Keep editing, undo, resumption and patch delivery working as the analysis expands.
+After useful real-project answers improve, compare complete unfamiliar tasks and count all reading,
+retries and failures. Do not infer savings from a smaller report or a passing scripted repair.
+
+## Keep the documentation useful
+
+The first broad review is merged. Continue checking detailed sections, examples and cross-links.
+Start with the user's question, show the action, explain the result and say what still needs checking.
+Use the [writing guide](style.md) and [result meanings](understanding-results.md).
+
+For example, “the build passed” still needs the test that reproduces checkout's rounding error.
+A saved review becomes stale when another edit changes the files it covers.
+
+## Keep saved results trustworthy
+
+Keep one current analyzer, SDK and report format. Missing fields and older formats fail explicitly.
+Historical results use their archived original code.
+
+When code or a recorded input changes, collect the affected results on GitHub.
+Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
+a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
+
+The [current collection receipt](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
+identifies the active reports. Preserve failed attempts beside corrected ones; the
+[development history](evaluations.md#python-development-history) keeps their explanations and links.
 
 ## Studies that stay stopped
 
 The [client investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) is closed.
 The [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) stays stopped.
-Preserve its failed and unstarted attempts. A new live comparison needs suitable independent tasks,
-resource approval and complete cost records before it can run. Read the [candidate review](candidate-review-status.md)
-for the remaining gaps.
+Keep its failed and unstarted attempts. A new live comparison needs independent tasks, agreed resource
+and cost limits, and complete usage records. The [candidate review](candidate-review-status.md) lists remaining gaps.
 
 ## Before editing or merging
 
-- Follow the [workstation rules](development.md#working-on-a-shared-desktop). Use the local guard; full builds, full gates and large result collections run on GitHub.
-- If the guard refuses, move the check to CI. Do not bypass it or raise its limits.
+- Follow the [workstation rules](development.md#working-on-a-shared-desktop). Use the local guard; full builds, full gates and large collections run on GitHub.
+- If the guard refuses, move the work to CI. Keep its limits.
 - Fix the cause of a failure or timeout. Keep the existing deadline.
-- Check the recorded file fingerprints before calling a result current. Native edits also affect the index and compiler reports.
-- Use the configured GitHub login. Do not inspect or copy credentials.
-- Keep commit messages to one line of at most 80 characters, with no body or trailers.
+- Check recorded input fingerprints before describing a result as current.
+- Use the configured GitHub login; leave credential files alone.
+- Keep each commit message to one line of at most 80 characters, with no body or trailers.
 - Wait for passing CI before a merge. When merging is authorized, squash with an explicit subject and an empty body.

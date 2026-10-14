@@ -5,8 +5,12 @@ For example, a missed call capture can leave a rename’s caller list incomplete
 
 ## Build and reference details
 
-Per-language fact extraction, interpreted by the generic engine in `src/extract.rs`.
-Adding a language means writing queries here, not Rust.
+The generic engine in `src/extract.rs` reads these per-language patterns.
+They select declarations, uses and imports. Adding a language also needs registration and build steps;
+follow the [development guide](../docs/development.md#add-or-extend-a-language).
+
+For example, a helper declaration can appear in a symbol list while a missing call pattern hides
+its callers. Test both the declaration and its use before trusting a rename's affected-code list.
 
 The capture conventions are documented at the top of `src/extract.rs`; it is the
 authority, since it is what reads these files.

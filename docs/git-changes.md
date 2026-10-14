@@ -24,6 +24,10 @@ The default compares the index with working files. `--staged` compares HEAD with
 These selections follow [Git diff semantics](https://git-scm.com/docs/git-diff), including tracked membership and built-in content conversion.
 Untracked files are excluded. Use [Git status](git-status.md) to discover them.
 
+For example, you changed `pricing.py` and created `test_pricing.py` without staging it.
+This query can show the tracked edit while omitting the new test. Use status to find that untracked
+file before reviewing or delivering the complete repair.
+
 Use a returned path with [Git diff details](git-diff.md):
 
 ```sh

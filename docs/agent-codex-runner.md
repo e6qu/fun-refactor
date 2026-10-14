@@ -45,6 +45,11 @@ The manifest records acceptance, failures, source and evaluator identities, prom
 settings and available usage fields. Failed cohorts remain diagnostic evidence and must not support
 an acceptance or efficiency claim. Replay does not contact the model service.
 
+For the bug example, read both attempts' independent scores before comparing their usage.
+If one returns a smaller answer but fails the regression test, report that failure with its cost.
+If billing is incomplete, keep the dollar comparison unknown. A dry run prepares commands; it is
+not a completed agent attempt.
+
 Task-specific evaluators may add stronger isolation and oracles. The completion, matched-context and
 matched-source runners freeze their own binaries, verify exact outputs and retain offline replay
 commands. See [evaluation evidence](evaluations.md) for accepted results, diagnostic history,
