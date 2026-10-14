@@ -68,6 +68,25 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn function_documentation_preserves_calls_without_hiding_other_writes() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "app.py", "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n");
+    for (returned, witnesses) in [("value", 1), ("0", 0)] {
+        write(root.path(), "helpers.py", &format!("def relay(value):\n    return {returned}\nrelay.__doc__ = \"helper\"\nrelay.__doc__ = None\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+        assert_eq!(report["witnesses"].as_array().unwrap().len(), witnesses);
+        assert_eq!(report["initialization"]["sites"], json!([]));
+    }
+    for statement in ["relay.__doc__ = source()", "relay.__defaults__ = (0,)", "relay = 0\nrelay.__doc__ = \"helper\"", "public = relay\npublic.__doc__ = \"helper\""] {
+        write(root.path(), "helpers.py", &format!("def relay(value):\n    return value\n{statement}\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false);
+        assert!(!report["initialization"]["sites"].as_array().unwrap().is_empty());
+    }
+}
+
+#[test]
 fn unused_builtin_references_preserve_helpers_without_admitting_calls_or_shadows() {
     let root = tempfile::tempdir().unwrap();
     write(

@@ -109,7 +109,7 @@ _CALL_BINDING = {
     "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
     "boundary": "No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
     "definitions": "ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
-    "initialization": "Literals, aliases, built-in references, exports and plain classes/instances are inert. Reads, collisions and effects stay unchecked.",
+    "initialization": "Literals, aliases, built-in references, exports and plain classes/instances are inert. Literal __doc__ writes to prior unchanged plain functions preserve scalar calls. Reads, collisions and other effects stay unchecked.",
     "implicit_exceptions": False,
     "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
     "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",

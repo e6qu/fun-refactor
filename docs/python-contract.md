@@ -62,6 +62,30 @@ Python can read this value. The current analyzer still reports an unknown bindin
 so the trace answer remains incomplete. Supporting initialization and supporting global reads are
 separate pieces of work.
 
+A library may update a function's help text after defining it:
+
+```python
+# helpers.py
+def relay(value):
+    return value
+
+relay.__doc__ = "Return the supplied value."
+```
+
+Your `send(relay(read_input()))` trace can still follow the original helper.
+Python changes the help text; this write does not change the supported scalar call.
+The allowance covers a literal text string or `None` assigned to `__doc__` on a plain,
+undecorated function already defined in that file, with a supported signature.
+Repeated documentation writes are allowed. Replacing the function, importing after its
+definition, or executing unchecked code removes this allowance for that function.
+
+Writing through an alias or to an imported function stays unchecked.
+So do computed values, formatted strings, byte strings, template strings, annotated or
+chained assignments, and other attributes. For example, `relay.__doc__ = read_input()`
+executes a call, while `relay.__defaults__ = (0,)` changes omitted arguments.
+Both keep the answer incomplete. Reading `relay.__doc__` inside the selected function
+also remains unsupported; admitting a write does not add a model of metadata reads.
+
 An unused module can also prepare a literal collection while defining a helper:
 
 ```python
@@ -273,7 +297,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
-| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, mutations, special attributes, cycles and unresolved imports stay incomplete. |
+| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations and special attribute writes, cycles and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
 | Locations | Source revisions and exact UTF-8 byte spans accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
