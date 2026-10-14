@@ -1122,6 +1122,10 @@ impl Modules {
         self.member_chain(file, name).0 == "module"
     }
 
+    pub fn is_value(&self, file: &Path, name: &str) -> bool {
+        self.member_chain(file, name).0 == "value"
+    }
+
     pub fn function_name(&self, file: &Path, name: &str) -> String {
         format!(
             "{}::{name}",

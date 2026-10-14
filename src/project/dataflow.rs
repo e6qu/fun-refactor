@@ -1140,6 +1140,7 @@ impl Project<'_> {
                     if binding.member.is_some()
                         && !binding.future
                         && !modules.is_module(file, alias)
+                        && !modules.is_value(file, alias)
                         && !analyzer
                             .functions
                             .contains_key(&modules.resolve(file, alias))
