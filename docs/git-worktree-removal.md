@@ -27,6 +27,10 @@ The entire checkout must match the current commit's raw blobs, entry kinds and e
 All files must be present. Extra files and directories refuse, including ignored paths and local history directories.
 The regular-file, symlink, path and payload restrictions from [raw creation](git-worktree-creation.md) apply.
 
+For example, an ignored build directory can stop removal even when Git status looks clean.
+Inspect and handle that content before preparing a fresh removal preview.
+The branch and commits remain available after a completed removal; the command removes this working folder.
+
 The index must match the committed inventory with plain entries.
 Staged changes, conflicts, intent-to-add, assume-unchanged and skip-worktree entries refuse.
 Active Git operations, existing locks and unknown private metadata also refuse.

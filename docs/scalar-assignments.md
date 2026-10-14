@@ -5,10 +5,9 @@ This guide shows how `fr` handles supported overwrites, swaps and unpacking, and
 
 ## Commands, results and limits
 
-Opt-in Python summary analysis admits local-name assignment, chained assignment,
-and exact literal tuple/list unpacking. All scalar right-hand expressions run
-left-to-right before any target changes. Chained target groups and repeated names
-then bind left-to-right, using those retained values.
+Python summary analysis supports local assignments, chained assignments and matching literal tuple/list unpacking.
+It evaluates the right-hand expressions left to right before changing target names.
+It then assigns those values to the targets in order.
 
 ```python
 a, b = source(), 0
@@ -18,6 +17,10 @@ left = right = source() # one RHS evaluation
 left, left = source(), 0
 sink(left)              # the final write contains no source
 ```
+
+In the swap above, the original input moves from `a` to `b`. Follow `b` to find its later use.
+In the repeated-name assignment, the final write replaces `left` with zero.
+An empty trace after that overwrite is useful only when the whole analysis completes.
 
 Nested literal sequences can match nested tuple or list targets. Parentheses around
 one name do not introduce unpacking unless they contain a comma. Empty literal

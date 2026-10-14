@@ -15,11 +15,17 @@ Use the [independent study planner and auditor](agent-study.md) for new matched 
 It records planned cells, failed outcomes and complete declared agent usage without invoking models.
 Its offline tests are infrastructure checks, not evidence of live-agent savings.
 
-- Deterministic protocol checks execute fixed workflows without a model.
-- Live-agent trials retain prompts, tool events, settings, usage and scores.
-- Matched cohorts give two agents the same requested outcomes and compare their exposed context.
-- Formal checks prove named model properties under explicit assumptions.
-- Compiler, test and behavioral checks establish only the behavior they execute.
+| Kind of evidence | Example question it can answer | What remains open |
+| --- | --- | --- |
+| Scripted workflow | “Can this known repair be applied, undone and exported?” | Whether an agent can discover the repair |
+| Live agent attempt | “Did the agent solve this task with this setup?” | Whether that result repeats on other tasks |
+| Paired comparison | “How did ordinary tools and fr perform on the same requested task?” | General savings beyond the measured attempts |
+| Model proof | “Does the stated rule hold under these definitions and assumptions?” | Its connection to the actual implementation |
+| Compiler or behavior check | “Did these commands and tested inputs pass?” | Untested inputs and undeclared dependencies |
+
+For example, a scripted checkout patch may pass every delivery check because the script already
+knows the edit. To learn whether `fr` helps an agent find it, compare discovery on an unfamiliar
+task and count the whole attempt. A smaller caller report alone cannot answer that question.
 
 Every retained run has a manifest under `tests/agent-eval/results/`. Manifests bind inputs,
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;

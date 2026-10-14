@@ -12,6 +12,10 @@ line. Relationship endpoints retain declaration locations separately. A call off
 indexed reference has an absent origin; conflicting spans have multiple origins. Neither case
 creates an invented range. `Occurrence.from_data` and `Occurrence.text` provide typed Python access.
 
+Illustration: `send(value); send(0)` has two calls on one line. Use the occurrence location to
+identify the call that carries the input. The function's location covers both calls and cannot
+identify that use by itself. Byte spans select source text; the line range helps you read it.
+
 Evidence disclosure uses a compact flow record: path, exact byte span, start position and occurrence
 ID, bound to its disclosure revision. Declaration details remain accessible through their handles.
 
@@ -46,12 +50,12 @@ fr --json project dataflow '<HANDLE>' --steps 256 --depth 8
 fr --json project dataflow '<HANDLE>' --rules rules.json --context html
 ```
 
-The `python-scalar-fixed-point-2` subset covers scalar parameters, literals, identifier assignments,
-arithmetic and Boolean expressions, branches, while loops, returns and direct same-file helper calls.
-Assignment replaces prior origins. Joins union possible origins and intersect definitely bound names.
-Helper arguments transfer to parameters and returned values. Reports retain exact control/use events,
-return origins and source-to-sink witnesses. This is value propagation with unchecked feasibility;
-it does not establish runtime call dispatch, absence of exceptions or security of an application.
+The `python-scalar-fixed-point-2` subset follows simple values through assignments, expressions,
+branches, while loops, returns and direct helpers in the same file.
+An assignment replaces the value's earlier origins. Where branches meet, the report keeps possible
+origins from either branch and names that both branches define.
+Helper arguments connect to parameters and returned values. Reported traces describe possible connections
+in this model. They do not establish an actual execution or the security of the application.
 
 Rules name external contracts and carry a required version:
 
@@ -104,8 +108,9 @@ Branch feasibility and implicit Python exceptions remain outside the model.
 
 The solver admits at most 64 functions and 512 control nodes per function. `--steps` covers all rounds.
 `--depth` bounds discovery of new helpers; calls to already discovered recursive functions use their current summary.
-An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
-dynamic calls retain their cutoffs. Exception causes remain incomplete.
+An exhausted budget always makes the result incomplete. Unknown external calls, dynamic calls and
+forms outside the current [alias and annotation rules](python-contract.md) retain cutoffs.
+Exception causes remain incomplete.
 [Ordered scalar expressions](expression-control.md) now admit calls with conditional evaluation.
 [Call binding](call-binding.md) adds explicit keywords and positional-only and keyword-only parameters.
 [Literal defaults](literal-defaults.md) extend binding with immutable defaults and exact signature origins.
@@ -137,13 +142,14 @@ Each admitted source requires absent competing source and stub candidates.
 Missing parents, competing modules, new stubs and changed initializers change the next input identity.
 Named member lookups report functions, modules, missing declarations, ambiguity or unavailable modules.
 Duplicate bindings, shadowing, ignored files, symlink leaves or ancestors and syntax errors keep the report incomplete.
-Import aliases refer only to static module bindings; arbitrary object aliases remain unsupported.
+Static module aliases and supported plain function aliases can select a helper.
+Arbitrary object aliases remain unsupported.
 
-Ordinary modules admit function declarations, static imports, comments, inert string expressions and `pass`.
-Summary mode also admits distinct ASCII names bound to immutable scalar literals. Rebinding,
-annotations and evaluated expressions remain incomplete. Other special attributes and container bindings remain incomplete. Global
-value reads and imported literal members remain unsupported. A literal package member prevents
-selection of a same-named child module.
+The [Python behavior guide](python-contract.md) owns the current initialization rules.
+It shows supported unused literals, collections, metadata, function aliases and built-in references.
+An unused declaration can leave a helper trace complete while reading its global value still remains
+unsupported. Rebinding and evaluated initialization outside those rules leave the answer unfinished.
+A literal package member prevents selection of a same-named child module.
 
 Plain class declarations can also leave a helper answer complete.
 For example, an unused `class Marker: pass` and `EMPTY = Marker()` add no custom constructor call.
@@ -169,9 +175,9 @@ a declared member, a from-import retains a separate child resolution and all com
 Qualified calls follow explicit module bindings to a defining function, within the same 16-component
 and 16-binding budgets. An initializer may import a local module; its closure must still be inert
 and acyclic. A child binding that selects that same module is admitted. Conflicting child bindings
-refuse. Other global bindings and imported members with leading and trailing double underscores remain incomplete.
+refuse. Special bindings outside the documented metadata and future-annotation rules remain incomplete.
 Special child-module components also refuse, including direct entry selection.
-This excludes module metadata and hooks such as `__getattr__`, whether declared, imported or installed
+This excludes import controls and hooks such as `__getattr__`, whether declared, imported or installed
 by loading a same-named child module.
 Implicit child attributes, dynamic attributes and runtime import hooks remain outside this subset.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
@@ -209,7 +215,7 @@ Their timings cover different operations and establish no general speed or live-
 selection, rules, context, summary mode, budgets, analyzer implementation and indexed manifests/lockfiles.
 The whole defining file covers helper bodies, local shadowing and negative same-file lookups.
 `--imports` expands this scope to its static module closure and import candidates.
-Incomplete analyses and skipped configuration snapshots cannot be reused. A changed input falls back to clean analysis.
+Incomplete analyses and skipped configuration snapshots cannot be reused. A changed input requires fresh analysis.
 
 The SDK uses the existing verified Merkle store:
 
@@ -223,6 +229,10 @@ analysis = cache.analyze(client, fresh_handle, steps=1024)
 root = cache.persist()
 restored = FlowCache.restore(store, root)
 ```
+
+Illustration: changing an unrelated note may let the cache reuse a trace after validation.
+Changing the helper that returns the value requires fresh analysis. Matching saved bytes alone
+cannot tell you whether that helper still behaves the same.
 
 Keep the store outside the analyzed workspace. A cache holds at most 256 result roots.
 `fr-flow-cache` manifests retain each complete report as canonical JSON in verified chunks.
@@ -281,6 +291,10 @@ references and the acceptance criteria it satisfies. Hypotheses and unresolved q
 agent input. States are pending, ready, running, satisfied, blocked and stale. Interrupted running
 steps reopen as ready; resumption cannot attest completion of an interrupted command. Explicit
 transitions use `STEP:start`, `STEP:satisfy`, `STEP:block` and `STEP:reset`.
+
+For example, save “Which input produces the wrong total?” with the code and checks behind its answer.
+If another agent edits that code, resumption marks the finding stale. Recheck it before continuing.
+An interrupted check reopens as work to do; a saved plan cannot claim that the check finished.
 
 Dependencies cover indexed source, admitted configuration/lockfiles, name lookups (including empty
 results), analyzer identity and whole-workspace identity. A missing digest captures an input only

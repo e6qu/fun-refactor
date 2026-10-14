@@ -23,6 +23,10 @@ It preserves working-file bytes, untracked files, index bytes and completed stag
 It supports initial commits and ordinary single-parent commits on attached local branches, including linked worktrees and SHA-256 repositories.
 It supports indexed regular files, executable files, binary blobs and symlink blobs without reading their working replacements.
 
+Illustration: the checkout fix is staged, and a note from earlier work is also staged.
+This command would commit both. Review `fr git changes --staged` and the staged diffs before preparing
+the commit. A short changed-path preview cannot exclude files from the committed tree.
+
 `head` identifies the branch and nullable parent commit. `tree` identifies the complete proposed tree.
 `index_paths` counts the complete inventory. `changed_paths` contains a bounded list of changed names without source bodies or rename pairing.
 `--limit` defaults to 20 and accepts 1 through 500. `page` reports total, returned and omitted path counts.

@@ -63,14 +63,14 @@ fr audit
 fr --json audit workflows
 ```
 
-`audit` publishes a compact, content-addressed support and trust summary. Live language and
-capability predicates, catalogs, compatibility policies and proof schema constants supply its data.
-The summary stays below one normal context packet and gives exact
-commands for revealing the `capabilities`, `workflows`, `recipes`, `semantic`, `frameworks`,
-`proofs` or `boundaries` section. A support cell means its predicate admits that language or
-adapter. Exact inputs can still refuse. Named acceptance tests remain obligations
-until they run on the reported revision, and model theorems remain separate from runtime behavior
-and implementation correspondence.
+`audit` summarizes support in the installed binary. It gives commands to open the `capabilities`,
+`workflows`, `recipes`, `semantic`, `frameworks`, `proofs` or `boundaries` section.
+The report comes from the same support rules the commands use.
+
+For example, a supported Python edit can still refuse your function because its body contains
+an unsupported construct. Read that reason before choosing another edit.
+A listed test names a check to run; it does not say the check passed on your project.
+A listed theorem states a property of its model; read how that model connects to the source.
 See [the completion audit contract and deterministic sweep](docs/completion-audit.md).
 
 ### `fr guide`

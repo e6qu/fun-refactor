@@ -5,9 +5,8 @@ The journal below records changes to the Git staging area, separately from sourc
 
 ## Commands, results and limits
 
-Changed `fr git stage PATH... --basis TOKEN --write` operations now record their selected index entries in a worktree-local journal.
+Changed `fr git stage PATH... --basis TOKEN --write` operations record their selected index entries in a worktree-local journal.
 The result's `durability.journal.id` identifies the transaction. All-unchanged writes create no record and keep the redo stack intact.
-Earlier staging writes made before journal support have no retrospective record.
 
 ```sh
 fr git stage-history list --limit 20
@@ -30,6 +29,10 @@ Output remains JSON in both CLI output modes.
 
 Undo restores the recorded prior index entries and their ordinary flags; redo restores the recorded staged result and flags.
 Neither operation reads or modifies working-file contents, resets HEAD, creates commits, or changes source history.
+
+Illustration: you stage the wrong checkout file, then keep editing it. Staging undo restores what
+was staged before that operation and preserves the latest working contents.
+Use source history only when you intend to reverse a recorded source edit.
 The working files can differ, be missing, or have become binary since staging.
 Unrelated staged paths survive, including unrelated conflict stages and index flags.
 The journal records only changed paths. An explicitly selected path with an unchanged action remains outside that transaction.
@@ -77,7 +80,7 @@ New journal directories use mode `0700`; state files use private temporary files
 Symlink storage and malformed records cause refusal.
 
 Each record retains before/after blob bytes, modes, identities and ordinary flags, with a SHA-256 record digest.
-Plain entries omit the additive flag field in storage, preserving compatibility with existing schema-one record digests.
+Plain entries omit the flag field in the current stored representation.
 Old blobs must be readable when staging begins; demand fetching remains disabled.
 Replays recreate needed objects from recorded bytes and check their Git identities, including SHA-256 repositories.
 This supports restoring an old staged blob after Git prunes it. Source bodies stay inside local storage and outside reports.

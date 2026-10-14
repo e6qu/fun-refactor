@@ -63,6 +63,10 @@ Successful verification reports `basis_verified: true`; a query without a suppli
 A changed selected index identity, index flags, raw working body, existence state or projected mode causes refusal.
 Unrelated staged and working changes do not invalidate this basis.
 
+For the checkout example, another edit to a selected checkout file makes the staging preview stale.
+Preview it again before writing. An edit to the unrelated note can leave this selection valid.
+Already-staged unrelated files also stay staged, so inspect the whole index before committing.
+
 Before emitting a result, the preview rechecks the selected index entries, rereads selected working files, and checks the index again.
 All validation completes before any result appears. A validation failure emits an error without partial entries.
 The checks do not freeze concurrent files or index entries, or detect changes fully restored between observations.

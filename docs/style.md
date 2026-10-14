@@ -31,6 +31,10 @@ index". Passive voice is allowed when the actor does not matter.
 **Simple tenses.** Use present tense for current behavior. Use past tense for dated observations
 and completed experiments. Make the distinction clear.
 
+**Separate instructions from run history.** A current guide tells the reader what to do with the
+installed tool. A dated experiment tells them what happened in that attempt. Preserve unsuccessful
+attempts and their original output. Link the current instructions from historical pages when needed.
+
 **Say what is true.** Do not define a thing by what it is not. "A refusal writes no
 files" is better than "a refusal is not a plan".
 
@@ -159,3 +163,17 @@ from a negative answer, a preview from a tested repair, and a model proof from r
 
 Keep one current report format. Do not imply that the SDK accepts older formats or fills in
 missing metadata. Link readers to the current instructions and label historical observations.
+
+Review the detailed sections too. A plain opening cannot explain a later paragraph that only lists
+internal nouns. For each important field or restriction, explain its effect with a user example:
+
+| Detail to explain | Example of a useful explanation |
+| --- | --- |
+| `complete: false` | “The import search stopped, so an empty trace cannot rule out the connection.” |
+| A stale review | “Another edit changed checkout after your preview. Prepare and review a new diff.” |
+| A passing command | “The build passed; run the fractional-price test to check the reported rounding error.” |
+| An unsupported argument change | “Removing `record_purchase()` could remove a database write, so this route refuses.” |
+| A recorded proof | “Lean accepted the access-rule model; its connection to the source still needs checking.” |
+
+Keep one authoritative explanation of each behavior. When support changes, update that guide and
+replace conflicting summaries with a link. Keep exact commands, field names and numerical limits intact.

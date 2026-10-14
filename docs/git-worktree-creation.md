@@ -46,6 +46,10 @@ All worktree registration bytes participate, including registrations outside any
 Changing the row limit preserves the basis. Changes to working files and staged content also preserve it.
 Creation always copies the selected committed tree.
 
+For example, an uncommitted checkout fix in your current folder does not appear in the new worktree.
+The new folder starts from the chosen commit. Inspect that starting point before continuing the task;
+creating another folder cannot transfer unfinished edits by itself.
+
 `--write` requires the preview token. The writer captures the selected blobs and repeats the proposal checks before creating a directory.
 It atomically publishes a bounded `fr-worktree-creation-*.json` preparation in the shared Git directory before the first destination or registration mutation.
 That record contains the reviewed proposal and identifies the destination; it omits source bodies.

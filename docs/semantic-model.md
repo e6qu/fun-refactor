@@ -44,6 +44,11 @@ optional branches and loops, variant matches, failure propagation, deferred clea
 regions, suspension and higher-order functions. Each row says `behavior_proved: false`; it is a
 structural observation rather than a behavioral proof.
 
+For the retry example, two occurrences of `3` may mean different things: the retry count and a
+delay. Select the returned pointer for the intended expression, then review the generated diff.
+Finding the integer establishes its location. A retry test checks whether changing it to `5`
+produces the behavior you want.
+
 ## Typed body authoring
 
 Inspect the contract before constructing a body. These commands do not build a project index:

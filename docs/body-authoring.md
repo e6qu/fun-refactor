@@ -11,8 +11,8 @@ It retains the signature, outer attributes, documentation and every byte outside
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
 Use `fr project semantic HANDLE --body` with `replace-body-semantic` for complete bodies or
-`edit-body-semantic` for checked deltas. These routes let an agent read and write versioned
-cross-language IR instead of source fragments.
+`edit-body-semantic` for selected changes. These routes let an agent describe supported statements
+and expressions as structured data in the current format.
 The [semantic model contract](semantic-model.md) defines its source boundary, node budget, JSON form,
 writer checks and task-change integration. Both routes preserve the same bytes outside the selected body.
 
@@ -24,6 +24,11 @@ fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
 fr history show '<TX>'
 fr history apply '<TX>' --write
 ```
+
+For the rounding fix, `/tmp/body.txt` contains only the replacement body in the target language.
+Review that body in the surrounding function before applying the saved transaction.
+The command keeps the header and callers unchanged. If the repair needs different arguments or
+imports, prepare those edits too and check the complete result.
 
 `HANDLE` identifies the function, not its file or enclosing type.
 A short ID requires the map's `--revision`; a full handle includes its revision.

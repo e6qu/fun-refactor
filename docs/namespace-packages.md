@@ -23,7 +23,7 @@ def render():
 
 Analysis follows direct dotted imports, explicit aliases, relative imports and explicit child
 module lookups. Namespace aliases can pass through explicit re-exports. Function identities and occurrences
-still refer to real source files. Merely importing a namespace does not load all its children;
+still refer to real source files. Importing a namespace does not load all its children;
 implicit child-attribute traversal remains outside this analysis contract.
 
 The declared import environment contains one workspace root. Python can merge namespace portions
@@ -55,12 +55,16 @@ stub, competing-module and directory changes. Cached results agree with clean an
 mutations. Unrelated sources and unloaded siblings can retain the same analysis inputs; reuse renews
 all source occurrences against the current revision. The dependency also enters persisted task plans.
 
+For the example above, adding `space/pkg/__init__.py` changes how Python loads the helper.
+A saved trace must check that new file before reuse. Adding an unloaded sibling file can leave
+the selected helper's inputs unchanged. The import report records those distinctions for resumption.
+
 The [pinned task](../tests/agent-eval/namespace-packages/task.json) starts from an unknown leaking helper
 inside a namespace package. Its independent CPython oracle checks public results and AST coordinates.
 The delivery evaluator requires discovered repair, a sink-free preview feature, fresh-process
 resumption, stale-review refusal, independent patch replay and exact reversal.
 The [retained run](../tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/result.json)
-passes these checks and binds the current implementation and fixture.
+passes these checks and records the implementation and fixture used for that run.
 The [runtime tests](../sdk/python/tests/test_namespace_packages.py) cover mixed package trees,
 namespace entries, aliases, filesystem boundaries, budgets and forged dependency metadata.
 These finite tests do not establish general import equivalence or source correspondence.

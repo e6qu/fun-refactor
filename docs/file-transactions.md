@@ -1,6 +1,6 @@
 # Move or delete files with a review and an undo
 
-Suppose you want to move `old/name.rs` and delete an unused file as one reviewed change. Inspect the proposed file operations before writing.
+Suppose you want to move `old/name.rs` or delete an unused file. Inspect the proposed file operation before writing.
 `fr` checks the files against that review and keeps recovery information for supported operations.
 
 ## Commands, results and limits
@@ -26,6 +26,10 @@ Use the existing symbol-level `fr delete` when its reference checks match the in
 It preserves contents or link target, entry kind and the complete recorded regular-file mode. The
 source deletion and destination creation share one transaction, basis, patch and reversal history.
 It does not rewrite imports, references or package declarations.
+
+For example, moving `old/name.rs` can leave an import pointing at the old path.
+The move preserves the file and supports undo, but you must review the imports and run the build.
+Each move or deletion command records its own transaction; the sequence above contains separate plans.
 
 ## Executable permissions
 

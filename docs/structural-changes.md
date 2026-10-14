@@ -38,7 +38,7 @@ The SDK's `RefactorRequest` validates the transport; native preflight checks sou
 Author batches accept the same request through `from`. Low-level authoring supplies a reviewed
 mutation; scope-bound task delivery adds the required discovery and check selections.
 
-## Admitted subset
+## Which changes this route can handle
 
 Targets are Rust free functions. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
@@ -46,6 +46,10 @@ Signature changes retain unused-parameter and function-value refusals from the n
 Every parameter must have an explicit primitive integer, Boolean or character type. Every indexed
 call argument must be an integer, Boolean or character literal, including negative integer literals.
 Calls with variables, computations, blocks, macros or effects remain outside this signature route.
+
+Illustration: removing an unused third argument from `subtotal(2, 3, 0)` fits the literal-argument
+restriction. Removing it from `subtotal(2, 3, record_purchase())` could remove an action the user needs.
+That call refuses. Inspect the caller and prepare a separate reviewed change for its behavior.
 
 These restrictions prevent this route from removing an effectful argument or changing the order of
 side effects. They do not prove general source equivalence. Compiler checks still establish typing;

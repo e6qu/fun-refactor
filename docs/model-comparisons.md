@@ -37,6 +37,11 @@ inputs. Quantification covers every Boolean assignment to the old parameters.
 old output. This direction permits stricter acceptance rules. It does not express arbitrary refinement
 of effects, errors, state or termination.
 
+Illustration: changing `staff or owner` to `staff and owner` makes the model's access rule stricter.
+The new rule can satisfy `refines`, because every newly allowed input was allowed before.
+It fails `equivalent`, because staff alone no longer grants access. Choose the relation that matches
+your requirement, then check the remaining connection between the models and the actual source.
+
 ## Bounded source and virtual workspaces
 
 Capture accepts at most 64 KiB of source before parsing. It derives the model from that retained
@@ -103,4 +108,4 @@ token-saving claim.
 The [retained artifacts](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json)
 and [SDK regressions](../sdk/python/tests/test_refinement.py) cover the complete lifecycle,
 zero and eight parameters, source/model tampering, stale reviews, proof failures, size limits,
-saved-plan reversal and existing formal-model compatibility.
+saved-plan reversal and current formal-model validation.

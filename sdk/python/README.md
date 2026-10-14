@@ -8,7 +8,7 @@ The examples below explain the Python calls and their limits. Read [result meani
 when deciding whether a finding establishes a location, a possible input connection or a checked repair.
 
 Install the wheel from the same GitHub release as the native binary. Check the exact package,
-binary and wire-schema agreement before starting a long agent session:
+binary and report-format agreement before starting a long agent session:
 
 ```python
 from fr_ir.runtime import FrClient
@@ -28,13 +28,18 @@ from fr_ir.runtime import FrClient
 client = FrClient(".")
 found = client.project("find", "render", "--signature")
 target = found.definition_target()
+handle = target.handle
 session = client.context(
-    target.handle, view="evidence",
+    handle, view="evidence",
     store=DirectoryObjectStore("/tmp/fr-objects"),
 )
 code_map = session.materialize_section("code_map")
 packet = session.packet({"code_map": "/model/code_map"}, max_bytes=4096)
 ```
+
+`found` keeps the full lookup report. `definition_target()` requires one matching definition;
+an absent or ambiguous `render` refuses. Choose the intended declaration before opening a session.
+The code map stays in Python until your program sends or prints `packet`.
 
 Keep a directory object store outside the analyzed project so cache creation does not invalidate
 its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
@@ -108,8 +113,8 @@ compiled = client.compile(AgentIntent(handle, "trace"))
 call_traces = compiled.at("/selected/call_traces")
 ```
 
-`understand`, `trace`, `change`, `migrate` and `prove` expand to fixed evidence sections. Use
-`IntentNeed` names a projection or a pointer inside a purpose-approved section. Native compilation
+`understand`, `trace`, `change`, `migrate` and `prove` select report sections for those tasks.
+Use `IntentNeed` to name a section or a pointer inside a section allowed for that purpose. Native compilation
 uses one project snapshot and no progressive subprocess calls. Pass a `MemoryObjectStore` or
 `DirectoryObjectStore` to verify and retain each selected subtree. `client.prepare` keeps the
 progressive action traversal available for protocol testing and parity checks.

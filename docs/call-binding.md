@@ -37,8 +37,10 @@ Lexical checks reject repeated keyword names and invalid argument ordering befor
 transfer, including skipped branches and arguments that never return. Generator argument syntax
 is outside this contract. These checks are bounded subset validation, not a general Python compiler.
 
-Evaluated defaults, annotations, referenced variadic values and argument unpacking remain outside the
-admitted call contract. They require definition-time evaluation or additional execution semantics. External
+Evaluated defaults, referenced variadic values and argument unpacking remain outside the
+supported call contract. Annotations require the documented
+[future-annotation directive](python-contract.md#trace-a-helper-that-has-type-annotations).
+Other annotation evaluation remains unchecked. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
 those rules report `keyword-rule-contract-unchecked`. A caller can use an admitted local wrapper
 with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions and
@@ -62,14 +64,13 @@ Unannotated functions with ASCII parameters and immutable literal defaults defer
 including referenced variadics. An uncalled declaration therefore does not introduce a module-effect
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
-Annotations, decorators and evaluated defaults remain outside the initialization contract.
+Decorators, evaluated defaults and annotations outside the documented future rule remain unchecked during initialization.
 
-The required `CallBinding.initialization` field admits distinct ASCII module names bound to
-immutable scalar literals in summary mode. Repeated bindings and collisions with functions,
-imports or external rules remain refused or incomplete. Special module attributes, annotations,
-containers and evaluated expressions remain unchecked. This admission concerns initialization
-only: reading a global value or importing a literal member remains unsupported. Package member
-resolution cannot replace a literal attribute with a child module.
+The required `CallBinding.initialization` field describes which declarations may coexist with a trace.
+The [current Python examples](python-contract.md) cover unused literals, collections, metadata, plain classes,
+function aliases and built-in references. They also state the collision and evaluation limits.
+For example, `registry = {}` can initialize without blocking a helper, but reading that global registry
+still leaves the answer unfinished. A literal package member cannot select a same-named child module.
 
 Coroutine and generator calls do not execute their bodies as ordinary scalar calls. The analyzer
 refuses those executions before transferring body effects. A yield inside a skipped expression still

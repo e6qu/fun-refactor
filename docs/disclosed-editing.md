@@ -5,9 +5,9 @@ The returned edit reference lets you preview a change to that occurrence without
 
 ## Commands, results and limits
 
-`project disclose` attaches opaque capabilities to authorable parts of a source-free typed body.
-An agent can select a repeated scalar, complete node or statement-list position without reading
-source, guessing an RFC 6901 path or constructing a role locator.
+`project disclose` returns edit references beside supported values and statements in the structured body.
+Copy the reference for the item you inspected into its preview command.
+Each reference selects a particular location, so equal values elsewhere remain distinct.
 
 ## Scalar capabilities
 
@@ -17,6 +17,10 @@ replacing only `<NEW_VALUE>`:
 ```sh
 fr author edit-body-disclosed '<FULL_HANDLE>' --edit 'frde1:<DIGEST>' --to 7
 ```
+
+For the retry example, use the descriptor beside the retry count. This command previews replacing
+that selected value with `7`. Review the diff to confirm the intended location, then run a retry
+behavior check after applying it. The reference does not establish that `7` is the correct limit.
 
 The eleven scalar operations are the same operations as semantic intents: integer, float, string
 and Boolean literals; name, field and keyword names; binary and unary operators; template text;

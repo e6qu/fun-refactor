@@ -28,11 +28,15 @@ original, applied, restored and reapplied lifecycle stages. `acceptance_checks` 
 checks and again after redo. They never run on the original or restored state. This permits a bug
 reproducer to fail before the repair while still checking exact reversal.
 
+Illustration: `compile` succeeds on the broken subtotal function, but `behavior` checks a bill with
+fractional prices and fails. After the repair, both must pass. Reversing the repair may make
+`behavior` fail again, which is why it runs only on the repaired states.
+
 Preview binds the acceptance selection, configuration and toolchain identity into the task-change
 basis. An unknown name or changed review refuses before source mutation. Execution rechecks the
 acceptance toolchain before each run and retains source, configuration and toolchain stability.
 The regular workflow manifest uses an optional `acceptance-checks` object containing `basis`, `names`
-and `toolchain-digest`. Existing manifests without this field keep their previous stages and behavior.
+and `toolchain-digest`. Include it when delivery must require separate checks of the requested result.
 
 A failed stage stops the workflow and withholds its patch. Source remains at the reported history
 state, usually applied, so the agent can diagnose the failure or explicitly undo it. The workflow

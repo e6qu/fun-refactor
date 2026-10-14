@@ -5,10 +5,14 @@ For example, while fixing checkout, inspect `calculate` before asking for the so
 
 ## Commands, results and limits
 
-`fr project disclose HANDLE` lets an agent inspect a declaration without loading its source or its
-complete semantic IR. The first response contains identity, a combined commitment and two holes.
-One hole commits to the source-free semantic model; the other commits to the exact declaration
-source. Every hole carries the exact argument array that reveals it.
+`fr project disclose HANDLE` starts with a small report about one declaration.
+It returns references to two unopened sections: the structured model and the exact source.
+The report calls those references “holes”. Each includes the command arguments to open it.
+Their fingerprints let a client check that later pages belong to the same report.
+
+Illustration: you need to change one retry limit. Open the function's structured body and find
+the integer you intend to change. Read its source if the structure leaves the meaning unclear.
+If a response has a continuation, follow it before treating that section as fully read.
 
 Use `--view evidence --depth N` to commit a source-free project context instead. Its four stable
 domains are `code_map`, `call_traces`, `impact` and `sources_and_sinks`. The code map carries the

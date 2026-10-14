@@ -13,6 +13,10 @@ Steps run in file order against one virtual workspace, so each step sees the pre
 failed later step keeps every earlier edit out of the working tree. The complete run can use source
 history, patch export, undo, redo and recovery.
 
+Illustration: the first step renames a helper, but moving it would create a collision.
+Read the refusal and correct the recipe or selected target before applying it.
+A successful recipe preview still needs behavior checks; its expectations concern the conditions you declared.
+
 ```
 schema 1
 

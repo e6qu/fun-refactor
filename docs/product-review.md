@@ -1,13 +1,13 @@
 # Does fr help an agent do useful work more efficiently?
 
-This page owns product scope, evaluation criteria and removal decisions.
-Read the [plan](../PLAN.md) for current work and [retained reports](evaluations.md) for measurements.
+Use this page to decide what helps an agent finish a task and what needs further measurement.
+Read the [plan](../PLAN.md) for current work and [recorded experiments](evaluations.md) for measurements.
 
 We want an agent to finish a real task correctly with less unnecessary work. For example,
 “Fix checkout rounding without changing the API” should lead to the right calculation, a small
 reviewed patch and a behavior test that catches the reported error.
 
-The tool earns its maintenance cost when it helps that whole task. Finding more symbols or
+The tool is worth maintaining when it helps that whole task. Finding more symbols or
 returning a shorter report matters only when it improves the agent’s decision or reduces total work.
 A second agent should receive a focused question and useful findings, without repeating the search.
 
@@ -63,10 +63,14 @@ unknown. Advertised model performance cannot establish a benefit from fr.
 
 ## What deserves scrutiny
 
-These are candidates for measurement, not claims that a subsystem is unused.
-Review consumers and unique behavior before changing public contracts.
+These areas need measurement before expansion or removal. Check who uses each part and which
+useful behavior depends on it before changing commands or formats.
 
-| Area and concrete code | Initial disposition | Evidence needed before removing or expanding it |
+For example, if a caller query sends more text than reading the helper, ask whether that extra text
+prevented a wrong edit. If it did not help the task, shorten the route and measure again.
+Keep review, undo and relevant checks working while simplifying the instructions.
+
+| Area and concrete code | What to do first | What we need to learn before removing or expanding it |
 |---|---|---|
 | Parsing, indexing, source locations, maps and bounded reads: `src/index/`, `src/project.rs`, `src/project/disclose.rs` | Keep as the core; measure response overhead | Can an agent locate and explain code with fewer total tokens and fewer mistaken conclusions than search plus file reads? |
 | Progressive context and object reuse: `sdk/python/src/fr_ir/context.py`, `intent.py` | Keep the capability; compare direct CLI and optional SDK use | Measure repeated reads, cached-provider input, local object growth and complete task cost. Digest verification is useful, but does every response need all its metadata? |

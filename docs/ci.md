@@ -60,6 +60,11 @@ The runtime target excludes runner queue delays. Inspect job timestamps and shar
 logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
 
+For example, a job queued for twenty minutes has not spent twenty minutes executing tests.
+Compare `startedAt`, completed steps and the test log to find the work that used the deadline.
+If one test repeatedly rebuilds an unchanged index, fix that repeated work and rerun the full test.
+Keep its behavior cases and time limit intact.
+
 In [run 37290564129](https://github.com/e6qu/fun-refactor/actions/runs/37290564129),
 the single repository recipe replay exhausted its job's 15-minute deadline. Build
 time was 50 seconds; the test then ran for more than 13 minutes before cancellation.

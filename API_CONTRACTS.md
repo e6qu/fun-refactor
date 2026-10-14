@@ -6,8 +6,8 @@ This guide explains which of those promises `fr` can read and carry across, and 
 ## Commands, results and limits
 
 A framework migration must preserve the behavior its callers rely on.
-`fr` extracts declared HTTP contracts, converts admitted route handlers, generates service
-skeletons from OpenAPI documents and migrates normalized application IR across compatible adapters.
+`fr` reads declared HTTP contracts, converts supported route handlers and generates service
+skeletons from OpenAPI documents. It can also move a supported application record between framework writers.
 See the [application IR](docs/application-ir.md) for the broader project-level model.
 
 ## Contract surface

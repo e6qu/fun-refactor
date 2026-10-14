@@ -84,6 +84,14 @@ An accepted signature map establishes correspondence with the two declared signa
 A Lean theorem establishes its proposition under its definitions and assumptions.
 A shared execution test compares the implementation and model on the selected cases.
 
+Illustration: you prove that `allowed(staff, owner)` requires staff access or ownership in the Lean model.
+An unchanged source hash confirms which function you reviewed. A signature check confirms the declared
+arguments and result. Neither check establishes that the source computes the same rule as the model.
+Require that connection before describing the original function as proved.
+
+If you change the access rule, inspect the new source before `spec sync` renews its hash.
+Renewing a fingerprint cannot repair a proof or establish the new behavior.
+
 A theorem about a Lean model alone does not prove the Rust implementation refines that model.
 Translation into Lean does not supply that proof either.
 Implementation correspondence needs its own argument or a justified verified generation path.
