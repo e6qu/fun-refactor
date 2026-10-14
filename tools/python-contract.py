@@ -176,7 +176,7 @@ def audit_case(row, case):
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
     assumptions = [
-        'scalar values; no shared mutable aliases, monkey patching or implicit flows.',
+        'scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
         'explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']

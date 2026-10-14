@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-function-aliases-flow-facts/result.json",
-      "sha256": "cc8af1907601c2df99efab0a0fef3fff716cc72a8870c2291d43308200fec5a8"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-flow-facts/result.json",
+      "sha256": "4c7f1d7f3ff81d0cf8627316080dfeda2ca035de7950c41585222a2a0b7e86a4"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-function-aliases-package-flow/result.json",
-      "sha256": "47ae354b3243ea735a22b53a6e1f72b878d0ee8647df91a1bc78cdf33446d139"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-package-flow/result.json",
+      "sha256": "b27b0ba8d94d349048fc11617c42a0d808ad90106fae3af7307f05524a5900c3"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-function-aliases-python-repositories",
-      "sha256": "f379ecebe1ce4e83a3b84cd12611d3a59f06e7b7ef68c574e563c109be822137"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-python-repositories",
+      "sha256": "d332026b625470e26fd5c707965e08e8f4163deeab56649e6f903d84a92e4137"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-function-aliases-flow-cache/result.json",
-      "sha256": "8c7a278078685a675375a011fc350caad692322c45d54f5dd37096c8a57aadf4"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-flow-cache/result.json",
+      "sha256": "488b96cde184f80fd068d879a772de47acd10d4d5f84afe0350659636dc6b64b"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-function-aliases-compiler-profile/result.json",
-      "sha256": "86733d53826b1e8f68e103d678dc39bb4943c49ef543acf30d088dabdce6c5a2"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-compiler-profile/result.json",
+      "sha256": "954283f16e71aeacee2e1cd22913fe03da3763f4ecd09d12c005d8a382e4ce2f"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 251 authored programs and 502 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-function-aliases-python-contract/result.json",
-      "sha256": "c05901af55a8754770f815be28f19f52080a21c50d4c5d2088419ab394386289"
+      "scope": "14 declared Python rules; 262 authored programs and 524 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-13-builtin-bindings-python-contract/result.json",
+      "sha256": "18ae78d3fe109fb88964ed334620d3c672720b5b6135d71c9af49d6a5211ca73"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-13-function-aliases-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-13-builtin-bindings-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-function-aliases-index-resolution/result.json",
-      "sha256": "0729f58cc8b4a4d1876e0337140752c6a6f9c4d57390eeffad0fd20081c06456"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-13-builtin-bindings-index-resolution/result.json",
+      "sha256": "1a1f02c3cf3662eb2834980dacf013b8d4f02bd6c182b730ac35e869b16cbf27"
     },
     {
       "id": "repository-flow",
@@ -254,19 +254,19 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 251
+              "equals": 262
             },
             {
               "pointer": "/summary/cases",
-              "equals": 502
+              "equals": 524
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 251
+              "equals": 262
             },
             {
               "pointer": "/summary/incomplete_cases",
-              "equals": 186
+              "equals": 200
             },
             {
               "pointer": "/summary/refused_cases",
