@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-14-value-imports-flow-facts/result.json",
-      "sha256": "ce583df4c154ed52f59caf836e45dff5f9fa0addf1fe729c3bbad2e366253126"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-flow-facts/result.json",
+      "sha256": "57e66ebcbeb6529678d4b89bcce7cc8e2b2bf47f0ecf2f55db0a0948f1e004b7"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-14-value-imports-package-flow/result.json",
-      "sha256": "3dcc0ab0dcebe7767fd4eec8c24340aa86415831a0a4cfa7b0a23e8fae2bb0b4"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-package-flow/result.json",
+      "sha256": "719cff20ef45828232930df32eacac144f366adff8818cc20fb78660ec57716d"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-14-value-imports-python-repositories",
-      "sha256": "aaf803fabc540125e433ae476ec1ee273e5b9309529136f341573b6f24e8f4b5"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-python-repositories",
+      "sha256": "c6764f112d5c90d5ade731226e028a8894fa791383ef601748f4d281b512db43"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-14-value-imports-flow-cache/result.json",
-      "sha256": "d1e12873b1ef29ebbebd14ed47093b614fa92eac20402c803afee2ea841ed61f"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-flow-cache/result.json",
+      "sha256": "b6cce4743c27280c8317425f3167247778cd7c1399fac1884fce4658df3b81a1"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-14-value-imports-compiler-profile/result.json",
-      "sha256": "06f6d7950cfbe28a2f2554e9ff97b9a8882af1df459bb51542072c6fdd21a6a5"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-14-named-defaults-compiler-profile/result.json",
+      "sha256": "d610b7e73530967c6247866d38504f2f29f3e8cb104151479c4ecfe5bb49258e"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 285 authored programs and 570 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-14-value-imports-python-contract/result.json",
-      "sha256": "68db03a0446920628ef6af6e970308ffd99a258b94f2bcbdac5d8a1e1af4bfbe"
+      "scope": "14 declared Python rules; 297 authored programs and 594 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-14-named-defaults-python-contract/result.json",
+      "sha256": "71905fb1f680d9292778691ea36497af84f03da0f900d5132fa7d9d487d29bbe"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-14-value-imports-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-14-named-defaults-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-14-value-imports-index-resolution/result.json",
-      "sha256": "5a3c6e06c68190a24a3fb03721aca5c29f7e88140326d62cbd5fb075ae43e602"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-14-named-defaults-index-resolution/result.json",
+      "sha256": "13f8f40a3e339bab787afdd53089c10c5938d20eb6f54177b154702a699d2bbe"
     },
     {
       "id": "repository-flow",
