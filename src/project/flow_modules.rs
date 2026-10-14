@@ -24,6 +24,7 @@ pub(super) struct Modules {
     pub function_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
+    values: BTreeMap<PathBuf, BTreeMap<String, (usize, &'static str)>>,
     opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
     future_nodes: BTreeMap<PathBuf, BTreeSet<usize>>,
     pub cutoffs: BTreeSet<String>,
@@ -412,6 +413,71 @@ fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<
 
 type MemberValue = (&'static str, Vec<(PathBuf, String)>, Option<PathBuf>);
 
+pub(super) fn value_bindings_valid(modules: &Value) -> bool {
+    let Some(values) = modules["value_bindings"].as_array() else {
+        return false;
+    };
+    let Some(lookups) = modules["lookups"].as_array() else {
+        return false;
+    };
+    if values.len() > IMPORT_LIMIT {
+        return false;
+    }
+    let mut declarations = BTreeSet::new();
+    let mut previous = None;
+    for value in values {
+        let Some(path) = value["path"].as_str() else {
+            return false;
+        };
+        let Some(name) = value["name"].as_str() else {
+            return false;
+        };
+        let Some(offset) = value["offset"].as_u64() else {
+            return false;
+        };
+        if value.as_object().is_none_or(|value| value.len() != 4)
+            || modules["files"].get(path).is_none()
+            || !identifier(name)
+            || special_attribute(name)
+            || offset >= BYTE_LIMIT as u64
+            || !matches!(
+                value["kind"].as_str(),
+                Some("literal" | "class" | "instance")
+            )
+            || !declarations.insert((path, name))
+            || previous.is_some_and(|previous| previous >= (path, offset))
+        {
+            return false;
+        }
+        previous = Some((path, offset));
+    }
+    let mut referenced = BTreeSet::new();
+    for lookup in lookups {
+        if !matches!(lookup["resolution"].as_str(), Some("function" | "value")) {
+            continue;
+        }
+        let Some(terminal) = lookup["binding_chain"]
+            .as_array()
+            .and_then(|chain| chain.last())
+        else {
+            return false;
+        };
+        let Some(path) = terminal["path"].as_str() else {
+            return false;
+        };
+        let Some(name) = terminal["name"].as_str() else {
+            return false;
+        };
+        if declarations.contains(&(path, name)) != (lookup["resolution"] == "value") {
+            return false;
+        }
+        if lookup["resolution"] == "value" {
+            referenced.insert((path, name));
+        }
+    }
+    referenced == declarations
+}
+
 impl Modules {
     pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
         self.future_nodes
@@ -465,6 +531,13 @@ impl Modules {
                 .copied()
                 .unwrap_or(0);
             let binding = self.bindings.get(&file).and_then(|items| items.get(&name));
+            if self
+                .values
+                .get(&file)
+                .is_some_and(|values| values.contains_key(&name))
+            {
+                return ("value", chain, None);
+            }
             if self
                 .literals
                 .get(&file)
@@ -561,6 +634,7 @@ impl Modules {
             function_aliases: BTreeMap::new(),
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
+            values: BTreeMap::new(),
             opaque_bindings: BTreeMap::new(),
             future_nodes: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
@@ -603,6 +677,8 @@ impl Modules {
             let mut names = BTreeSet::new();
             let mut definitions = BTreeMap::new();
             let mut literals = BTreeSet::new();
+            let mut values = BTreeMap::new();
+            let mut classes = BTreeSet::new();
             let mut opaque_bindings = BTreeSet::new();
             let declared_exports = calls::declared_exports(parsed.root(), source);
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
@@ -619,14 +695,38 @@ impl Modules {
                     .or_else(|| calls::module_metadata(node, source))
                 {
                     literals.insert(name.to_owned());
+                    classes.remove(name);
                     if !names.insert(name.to_owned()) {
+                        values.remove(name);
                         result.cutoffs.insert("ambiguous-module-binding".into());
+                    } else if !special_attribute(name) {
+                        values.insert(name.to_owned(), (node.start_byte(), "literal"));
+                    }
+                    continue;
+                }
+                let class = calls::module_class(node, source, result.annotations_postponed(&file));
+                let value = class.map(|(name, _)| (name, "class")).or_else(|| {
+                    calls::module_instance(node, source, &classes).map(|name| (name, "instance"))
+                });
+                if let Some((name, kind)) = value {
+                    classes.remove(name);
+                    if !names.insert(name.to_owned()) {
+                        values.remove(name);
+                        opaque_bindings.insert(name.to_owned());
+                        result.cutoffs.insert("ambiguous-module-binding".into());
+                    } else {
+                        values.insert(name.to_owned(), (node.start_byte(), kind));
+                        if class.is_some_and(|(_, constructible)| constructible) {
+                            classes.insert(name);
+                        }
                     }
                     continue;
                 }
                 if node.kind() == "function_definition" {
                     if let Some(name) = node.child_by_field_name("name") {
                         let name = &source[name.byte_range()];
+                        values.remove(name);
+                        classes.remove(name);
                         *definitions.entry(name.to_owned()).or_insert(0) += 1;
                         if calls::definition_is_inert(
                             node,
@@ -645,6 +745,8 @@ impl Modules {
                     if names.contains(target) && alias_count < IMPORT_LIMIT {
                         alias_count += 1;
                         let ambiguous = !names.insert(name.to_owned());
+                        values.remove(name);
+                        classes.remove(name);
                         if ambiguous {
                             result.cutoffs.insert("ambiguous-module-binding".into());
                         }
@@ -669,6 +771,8 @@ impl Modules {
                     }
                 }
                 for name in opaque_names(node, source) {
+                    values.remove(name);
+                    classes.remove(name);
                     opaque_bindings.insert(name.to_owned());
                     if !names.insert(name.to_owned()) {
                         result.cutoffs.insert("ambiguous-module-binding".into());
@@ -695,6 +799,8 @@ impl Modules {
                         break;
                     }
                     if alias != "*" && !names.insert(alias.clone()) {
+                        values.remove(&alias);
+                        classes.remove(alias.as_str());
                         binding.ambiguous = true;
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     }
@@ -842,6 +948,7 @@ impl Modules {
             result.bindings.insert(file.clone(), bindings);
             result.definitions.insert(file.clone(), definitions);
             result.literals.insert(file.clone(), literals);
+            result.values.insert(file.clone(), values);
             result.opaque_bindings.insert(file.clone(), opaque_bindings);
             result.parsed.insert(file, parsed);
         }
@@ -908,7 +1015,7 @@ impl Modules {
                 .iter()
                 .map(|(path, name)| { json!({"path":path,"name":name}) })
                 .collect::<Vec<_>>());
-            if !matches!(status, "function" | "module" | "future") {
+            if !matches!(status, "function" | "value" | "module" | "future") {
                 result.cutoffs.insert(format!(
                     "missing-or-ambiguous-import-member:{}",
                     lookup["alias"].as_str().unwrap()
@@ -921,6 +1028,21 @@ impl Modules {
             .map(|path| path.strip_prefix(&project.root).unwrap())
             .collect();
         let alias_bindings = &result.bindings;
+        let mut referenced_values = BTreeMap::new();
+        for lookup in &lookups {
+            if lookup["resolution"] != "value" {
+                continue;
+            }
+            let terminal = lookup["binding_chain"].as_array().unwrap().last().unwrap();
+            let path = terminal["path"].as_str().unwrap();
+            let name = terminal["name"].as_str().unwrap();
+            let (offset, kind) = result.values[&project.root.join(path)][name];
+            referenced_values.insert(
+                (path, offset),
+                json!({"path":path,"name":name,"offset":offset,"kind":kind}),
+            );
+        }
+        let value_bindings: Vec<_> = referenced_values.into_values().collect();
         let aliases: Vec<_> = result
             .function_aliases
             .iter()
@@ -935,6 +1057,7 @@ impl Modules {
             .collect();
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
             "function_aliases":aliases,
+            "value_bindings":value_bindings,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
             "policy":"static single-root packages and .py modules; acyclic re-exports, literal __all__ star imports and package child lookup. Correctly placed annotations directives use standard CPython __future__ only when all local candidates are missing. No arbitrary initialization, merged namespaces, default star exports, implicit child traversal, other native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
@@ -997,6 +1120,10 @@ impl Modules {
 
     pub fn is_module(&self, file: &Path, name: &str) -> bool {
         self.member_chain(file, name).0 == "module"
+    }
+
+    pub fn is_value(&self, file: &Path, name: &str) -> bool {
+        self.member_chain(file, name).0 == "value"
     }
 
     pub fn function_name(&self, file: &Path, name: &str) -> String {

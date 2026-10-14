@@ -32,6 +32,10 @@ pub(super) fn expression_contract() -> Value {
 
 #[path = "flow_modules.rs"]
 mod modules;
+
+pub(super) fn value_bindings_valid(value: &Value) -> bool {
+    modules::value_bindings_valid(value)
+}
 #[path = "flow_summaries.rs"]
 mod summaries;
 
@@ -1136,6 +1140,7 @@ impl Project<'_> {
                     if binding.member.is_some()
                         && !binding.future
                         && !modules.is_module(file, alias)
+                        && !modules.is_value(file, alias)
                         && !analyzer
                             .functions
                             .contains_key(&modules.resolve(file, alias))

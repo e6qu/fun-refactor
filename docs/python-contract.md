@@ -49,6 +49,37 @@ behavior and keep a model result separate from a safety claim.
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
 | “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions and handlers exceed this model. |
 
+## Import an unused value beside a helper
+
+```python
+# helpers.py
+LIMIT = 10
+
+def relay(value):
+    return value
+
+# app.py
+from helpers import LIMIT, relay
+
+def entry():
+    return send(relay(read_input()))
+```
+
+The unused `LIMIT` import no longer blocks this trace. The report identifies it as a value
+and retains its defining file and declaration position. This covers previously supported
+scalar and bounded collection literals, plain classes, and instances created by a plain
+class without a custom constructor. Aliased imports, static re-exports and literal export
+lists can carry these values too. Names must be ASCII; special metadata imports remain unchecked.
+
+Importing a value does not add a model for reading or calling it. For example,
+`send(LIMIT)` and `LIMIT(read_input())` still leave the answer incomplete.
+So does `def unused(key=LIMIT): ...`: named defaults need a separate rule that accounts for
+the value Python reads during definition. Computed setup, missing imports, conflicting bindings
+and package cycles also remain unfinished. A declared package value takes precedence over
+a same-named child file; it cannot be treated as that child to obtain a callable helper.
+
+## Keep declarations separate from reads
+
 For example, an inert declaration does not mean the model can read its global value:
 
 ```python

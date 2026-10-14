@@ -68,6 +68,41 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn unused_value_imports_preserve_helpers_and_keep_value_calls_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helpers.py",
+        "class Token:\n    pass\nmarker = Token()\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "bridge.py",
+        "from helpers import marker, relay\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from bridge import marker, relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        report["inputs"]["modules"]["value_bindings"],
+        json!([{"path":"helpers.py","name":"marker","kind":"instance","offset":22}])
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from bridge import marker, relay\ndef entry():\n    return sink(marker(source()))\n",
+    );
+    let called = analyze(root.path(), "entry");
+    assert_eq!(called["complete"], false);
+    assert_eq!(called["inputs"]["modules"]["complete"], true);
+}
+
+#[test]
 fn function_documentation_preserves_calls_without_hiding_other_writes() {
     let root = tempfile::tempdir().unwrap();
     write(
@@ -530,7 +565,14 @@ fn unsupported_package_bindings_cannot_select_same_named_child_files() {
         assert_eq!(report["complete"], false, "{initializer}: {report}");
         let lookup = &report["inputs"]["modules"]["lookups"][0];
         assert!(lookup["submodule"].is_null(), "{initializer}: {lookup}");
-        assert_eq!(lookup["resolution"], "unavailable");
+        assert_eq!(
+            lookup["resolution"],
+            if initializer.starts_with("class core:") {
+                "value"
+            } else {
+                "unavailable"
+            }
+        );
         assert!(report["inputs"]["modules"]["files"]["pkg/core.py"].is_null());
         assert!(report["cutoffs"]
             .as_array()
@@ -797,7 +839,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-14-function-docs-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-14-value-imports-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -859,7 +901,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-14-function-docs-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-14-value-imports-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -916,7 +958,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-14-function-docs-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-14-value-imports-module-aliases/result.json",
         ])
         .output()
         .unwrap();

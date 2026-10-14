@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-14-function-docs-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-14-value-imports-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):
@@ -33,13 +33,25 @@ class PythonContract(unittest.TestCase):
                 raise ValueError('contract collection identity changed')
 
     def changed(self, name='unicode-local/moved'):
-        value = copy.deepcopy(self.report)
-        row = next(row for row in value['cases'] if row['case']['id'] == name)
+        value = copy.deepcopy({key: item for key, item in self.report.items() if key != 'cases'})
+        value['cases'] = list(self.report['cases'])
+        index = next(index for index, row in enumerate(value['cases']) if row['case']['id'] == name)
+        row = copy.deepcopy(value['cases'][index])
+        value['cases'][index] = row
         return value, row
 
     def reject(self, value):
         with self.assertRaises((ValueError, AssertionError)):
             contract.audit(value)
+
+    def test_corruption_fixtures_leave_the_retained_report_unchanged(self):
+        before = contract.profile.compiler.digest(self.report)
+        value, row = self.changed()
+        value['source_bindings'].clear()
+        value['cases'].pop()
+        row['runtime']['events'].clear()
+        row['flow']['witnesses'][0]['trace']['occurrences'][0]['location']['span']['start'] += 1
+        self.assertEqual(contract.profile.compiler.digest(self.report), before)
 
     def test_complete_inventory_and_independent_outcomes(self):
         self.assertEqual(contract.audit(self.report), contract.summary())
@@ -81,6 +93,20 @@ class PythonContract(unittest.TestCase):
             value, _ = self.changed()
             value['source_bindings'][path] = 'stale'
             self.reject(value)
+
+    def test_imported_values_must_match_the_declared_kind_and_source_position(self):
+        for case, kind in [('value-import-scalar', 'class'), ('value-import-class', 'literal'),
+                           ('value-import-instance', 'literal')]:
+            value, row = self.changed(case + '/original')
+            row['flow']['inputs']['modules']['value_bindings'][0]['kind'] = kind
+            row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+        value, row = self.changed('value-import-reexport/original')
+        binding = row['flow']['inputs']['modules']['value_bindings'][0]
+        source = row['case']['files'][binding['path']]
+        binding['offset'] = source.encode().index(b'def relay')
+        row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+        self.reject(value)
 
     def test_runtime_events_and_order(self):
         for field, replacement in [('events', []), ('returned', 0), ('raised', 'TypeError')]:
