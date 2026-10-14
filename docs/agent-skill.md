@@ -64,8 +64,13 @@ fr rename old_name new_name --save-plan
 fr history show '<TX>'
 fr history apply '<TX>' --write --no-diff
 fr checks
+fr checks --run '<CHECK_NAME>' --basis '<CHECK_BASIS>'
 fr history patch '<TX>' --output change.patch
 ```
+
+Replace the check name and basis with values from the listing. Choose a check that reproduces
+the reported bug. `fr checks` by itself lists commands; it does not run them.
+If the selected check fails, inspect the applied transaction and correct or undo it before delivery.
 
 The request to inspect or export a patch does not grant permission to commit or publish. Keep source
 history, Git staging and worktree journals as separate review boundaries.

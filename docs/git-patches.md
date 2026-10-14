@@ -22,10 +22,14 @@ Journal validation refuses unsafe parent symlinks. A selected leaf may be a reco
 The receiving files must match the recorded starting state closely enough for Git to apply the patch.
 Export does not check the receiving workspace or promise that a patch will apply there.
 Use the basis check below to compare complete affected-file snapshots before exporting.
-`git apply --check` performs that check without applying changes.
+`git apply --check` checks whether Git can apply the patch without changing files.
 Git can accept contextual patches despite differences outside the hunks; this is not an exact snapshot check.
 Use `fr history apply 1 --write` for the transaction engine's exact basis check in the original workspace.
 Applying a patch with Git does not update `fr` history.
+
+Illustration: the receiving checkout has a different comment outside the patch's changed lines.
+Git may still apply the patch, while the complete-file snapshot check reports a mismatch.
+Read which check passed, inspect the receiving changes and run the behavior test there.
 
 Export the inverse change with `fr history patch 1 --reverse`.
 It starts from the recorded result, regardless of the current history status.

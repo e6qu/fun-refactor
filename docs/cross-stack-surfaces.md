@@ -20,6 +20,11 @@ The style reader does not evaluate CSS nesting, the cascade, specificity, Tailwi
 generated output. Those limits appear in each affected row. Class names are bounded; arbitrary HTML,
 JSX and CSS source is absent. Source handles provide the explicit next disclosure step.
 
+For the checkout button, a unique `.buy` definition can help you find a literal `className="buy"` use.
+It cannot tell you which color wins after the browser applies other rules.
+Inspect the relevant styles and check the rendered page. Renaming the definition and changing its
+use are separate edits, so review both before claiming the button still matches its style.
+
 `fr project diagrams` reports each Markdown document and its ATX heading hierarchy. Mermaid fences
 attach to the nearest preceding heading. Named nodes and supported edges attach to the fence, with
 edge rows referring to their node IDs. Diagram labels and sequence messages are omitted. Unknown
