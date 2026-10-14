@@ -6,7 +6,7 @@ Before asking an agent to trace Python input or migrate a route, check whether t
 ## Commands, results and limits
 
 `fr audit` gives an agent a compact support and trust summary before it chooses a workflow. The
-summary derives its counts from live predicates and catalogs.
+summary uses the same support rules as the installed commands.
 
 ```sh
 fr audit
@@ -18,12 +18,14 @@ Each report uses schema `fr-completion-audit-1` and carries a Merkle object root
 parser, capability, workflow, recipe and application counts. Seven bounded detail sections expose
 the underlying schemas, commands, source policy, proof classes and refusal reasons.
 
-Keep these claims separate:
+Read each kind of entry according to what it tells you:
 
-- A support predicate says whether a route admits a language, adapter or feature class.
-- An acceptance target identifies an executable repository test.
-- A retained evaluation records one fixed run.
-- A proof names a model, its assumptions and its checked correspondence boundary.
+| Entry | Example | Your next action |
+| --- | --- | --- |
+| Supported operation | Python body replacement is available | Preview your function and read any refusal |
+| Test name | A repository check covers reversal | Run the relevant check on the revision you intend to use |
+| Recorded experiment | A fixed patch passed on a chosen task | Read that task and the limits before generalizing |
+| Model theorem | A rule requires an unchanged review | Check which model it proves and how that connects to the code |
 
 An unrun test remains an obligation. A supported route can refuse a particular input. A model
 theorem does not establish runtime behavior or general source equivalence.

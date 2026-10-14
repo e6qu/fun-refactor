@@ -16,6 +16,10 @@ rechecks every affected path and synchronizes its existing ancestor directories.
 paths that recovery did not need to write. A conflict or synchronization failure retains pending
 recovery when the journal has not yet published its final checkpoint.
 
+Illustration: a two-file checkout edit stops after writing the first file. Recovery can restore
+that file and leave the second at its starting contents. If someone then edits the first file,
+recovery refuses the conflict. Preserve that edit and inspect the saved snapshots before resolving it.
+
 ## Error reports
 
 A failed transition adds `error.history` to the existing CLI JSON error object. The Python runtime

@@ -96,6 +96,11 @@ regenerates current report pages and reading-size measurements, and runs their r
 It commits checked generated files back to that branch. Keep the original trial records unchanged.
 Pick up that commit before preparing the final change and requesting full CI.
 
+Some guides are also recorded inputs to tests. For example, changing `docs/python-contract.md`
+changes the Python report's input fingerprint even when the edit only changes wording.
+Finish those edits before collecting fresh results. Use the hosted collectors to refresh affected
+reports; preserve their old records. Never change a recorded hash to make stale evidence pass.
+
 ## Refresh retained evidence
 
 `tools/refresh-refinement-evidence.py` refuses local execution and regenerates source-bound reports

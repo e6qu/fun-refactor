@@ -106,9 +106,10 @@ For a bug fix, the agent should:
 `fr guide` can suggest these steps from a structured task description. The agent supplies that
 description; the tool does not interpret the user’s natural-language request on its own.
 
-The optional Python SDK keeps intermediate reports outside the model transcript and mirrors public
-IR shapes with typed objects. Download the wheel carrying the same version as `fr`, then install
-and verify the pair:
+The optional Python client can keep a large report in memory and send the agent only the section
+it needs. For example, send the callers of `calculate` without repeating the whole project map.
+Its constructors also check the shape of edits before sending them to `fr`.
+Download the wheel carrying the same version as `fr`, then install and verify the pair:
 
 ```sh
 python3 -m venv .venv
@@ -123,7 +124,9 @@ python3 -m venv .venv
 .venv/bin/python -m pip install ./sdk/python
 ```
 
-This example performs a checked rename through one retained native review:
+This example prepares a rename, shows its diff and runs the declared `unit` check after execution.
+The project must already declare that check in `.fr/checks.json`.
+Review the printed diff before running the final two lines:
 
 ```python
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector

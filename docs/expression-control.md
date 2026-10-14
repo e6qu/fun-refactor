@@ -5,9 +5,9 @@ In `False and send_email(user_input())`, Python skips both calls. A useful trace
 
 ## Commands, results and limits
 
-Opt-in summary analysis evaluates scalar `and`, `or`, `not`, conditional expressions and comparison
-chains in Python operand order. Each operand is transferred once per expression evaluation; the
-fixed-point solver can evaluate a function repeatedly. Effects come only from admitted operands.
+Summary analysis follows `and`, `or`, `not`, conditional expressions and comparison chains in
+Python's evaluation order. It follows each operand once during one expression evaluation.
+It can revisit a function while solving its summary; those visits are analysis work, not runtime calls.
 
 ```python
 False and sink(source())          # The right operand is skipped.
@@ -20,6 +20,10 @@ expressions preserve that information. Variables, call results and numeric compa
 Unknown selectors retain both alternatives without asserting they are feasible together. For example,
 `1 < 0 < sink(source())` can retain a possible sink effect because comparison values are not solved.
 Zero, strings and other literal values are also not specialized by this transfer layer.
+
+If you are investigating an unwanted email, `False and send_email(user_input())` gives a supported
+reason to skip that call. An unknown `enabled` flag requires considering both alternatives.
+Inspect the flag or run a behavior test before claiming that the reported email path executes.
 
 A Boolean operator returns its selected operand's origins. A conditional expression returns the
 selected branches' origins, without adding the selector as an implicit flow. An unknown branch

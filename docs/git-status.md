@@ -34,6 +34,10 @@ Its fields are `paths`, `staged`, `unstaged`, `untracked` and `conflicted`.
 A mixed file contributes to both staged and unstaged counts; conflicts contribute only to the conflict count.
 Therefore the category counts need not sum to `paths`.
 
+Illustration: you stage a checkout fix, then edit the same file again. That path contributes to
+both `staged` and `unstaged`. The commit would contain the staged contents; your latest working edit
+needs separate review. Use `fr git diff PATH --staged` to inspect the proposed commit contents.
+
 Untracked directories expand to files. Repository ignore rules still apply; ignored files do not appear.
 Submodules are excluded through Git's `--ignore-submodules=all`, including staged gitlink changes.
 The report declares `submodules: "ignored"`. Its `clean` value means no changes in this selected scope.

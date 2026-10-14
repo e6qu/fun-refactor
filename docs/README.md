@@ -37,33 +37,33 @@ For ongoing repository work, read the [plan](../PLAN.md) for priorities, the
 - [Examples](../EXAMPLES.md): short task-oriented command sequences.
 - [Recipes](../RECIPES.md): declarative multi-step refactoring.
 - [Cross-language behavior](../CROSS_LANGUAGE.md): language resolution and edit rules.
-- [IR reference](../IR.md): syntax and semantic intermediate representations.
+- [IR reference](../IR.md): how supported code becomes a structured record for edits and translation.
 - [HTTP contracts](../API_CONTRACTS.md): declared service-contract analysis.
-- [Terminology](terminology.md): identities, bases, evidence and lifecycle terms.
+- [Terminology](terminology.md): what report terms mean for your task.
 
 ## Integrate an agent
 
 Begin with the quickstart, then choose the runtime or protocol detail needed by the integration.
 
 - [Agent quickstart](agent-skill.md): install and use the portable skill.
-- [Goal and workflow contract](agent-workflow-guide.md): turn a task description into suggested steps.
-- [Checked task outcomes](checked-outcomes.md): gate delivery and retained plan completion on post-change behavior checks.
-- [Consumer scopes](change-scopes.md): discover bounded callers and test candidates, associate declared checks and bind reviewed changes to fresh scope evidence.
-- [Structural changes](structural-changes.md): scope-bound Rust rename and scalar signature delivery.
-- [Model comparisons](model-comparisons.md): retained old/new Boolean models, explicit relations and checked proof resumption.
-- [Python runtime](agent-runtime-sdk.md): keep intermediate reports outside the model transcript.
+- [Choose the next command](agent-workflow-guide.md): turn a structured task description into suggested steps.
+- [Check the requested result](checked-outcomes.md): require a behavior test before delivering the patch or finishing the task.
+- [Find affected code](change-scopes.md): list known callers and related tests, and see what the search missed.
+- [Change a function and its callers](structural-changes.md): supported Rust renames and argument changes.
+- [Compare two small models](model-comparisons.md): state the relation to check and resume its proof after verifying the inputs.
+- [Python client](agent-runtime-sdk.md): send the agent the part of a report it needs.
 - [Context workspace](agent-context-workspace.md): store reports and return the section the agent needs.
-- [Context protocol](agent-context-protocol.md): reuse earlier reports and check review references.
-- [Progressive disclosure](progressive-disclosure.md): reveal semantic, project and source branches.
-- [Completion audit](completion-audit.md): inspect live support and trust boundaries.
+- [Reuse a report](agent-context-protocol.md): avoid repeated text while checking that the earlier report still applies.
+- [Read only what you need](progressive-disclosure.md): open a function, relationship or source page when it answers the next question.
+- [Check installed support](completion-audit.md): see which operations are available and what they can establish.
 - [Evaluation evidence](evaluations.md): reproduce and interpret deterministic and live-agent runs.
 - [Codex runner](agent-codex-runner.md): run optional paid live-agent evaluations.
 - [Unknown-target trials](unknown-target-investigations.md): compare discovery and resumed delivery on pinned upstream tasks.
 
-For a change, the normal path is
-`audit → goal → guide → bounded evidence → preview → reviewed execution → checks → patch`.
-The [goal guide](agent-workflow-guide.md) owns this contract; the other pages explain individual
-stages.
+For a change, check installed support, find and read the relevant code, then prepare a preview.
+Review the whole diff, apply that reviewed change and run checks for the requested behavior.
+Export the patch after those checks pass. The [goal guide](agent-workflow-guide.md) connects those steps;
+the other pages explain each action and its limits.
 
 ## Understand and change code
 
@@ -74,7 +74,7 @@ stages.
 - [Scalar assignments](scalar-assignments.md): ordered unpacking, swaps and chained local writes.
 - [Namespace packages](namespace-packages.md): static single-root imports and typed directory dependencies.
 - [Body authoring](body-authoring.md): replace bodies and coordinate declarations.
-- [Disclosed editing](disclosed-editing.md): edit through returned scalar and typed-IR capabilities.
+- [Edit the item you inspected](disclosed-editing.md): use the returned edit reference to select a value or statement.
 - [Cross-stack surfaces](cross-stack-surfaces.md): CSS, Tailwind, Markdown and Mermaid facts and edits.
 - [Framework semantics](framework-semantics.md): React, Next.js, Express and FastAPI recognition.
 - [Application IR](application-ir.md): describe supported routes and components before moving them.
@@ -84,7 +84,7 @@ stages.
 
 - [Project checks](project-checks.md): declare compiler, test and lint commands.
 - [Compiler comparisons](compiler-profile.md): what the tool and compiler agree on, and what remains unchecked.
-- [Lean support](lean-specs.md): proof evidence, kernels and strict correspondence checks.
+- [Lean support](lean-specs.md): check a stated property and see whether it connects to the actual code.
 - [Agent formalization](agent-formalization.md): generate a project-specific proof workbench.
 - [File transactions](file-transactions.md): review, apply and recover file changes.
 - [Browser history](browser-history.md): bounded history in the WASM interface.
@@ -121,11 +121,11 @@ Python scalar flow, dependency invalidation and checked investigation delivery.
 
 ## Evaluate agent use
 
-- [OpenCode tools](opencode-native-tools.md): configured collection, resource admission and frozen replay.
+- [OpenCode tools](opencode-native-tools.md): how recorded attempts were run, limited and checked again.
 - [OpenCode rehearsals](opencode-rehearsal.md): earlier small-task comparison protocol and retained results.
 - [Source-grounded explanations](opencode-source-evidence.md): check answers against source the agent actually read.
-- [Candidate review status](candidate-review-status.md): admitted tasks, failed reviews and remaining gaps.
-- [Independent study](agent-study.md): task plans, parent/child accounting and failure-preserving reports.
+- [Candidate review status](candidate-review-status.md): which proposed tasks met the study rules and which still need work.
+- [Independent study](agent-study.md): compare whole tasks and count work by every agent, including failed attempts.
 - [Evaluation evidence](evaluations.md): measured outcomes and historical limits.
 - [Evidence restoration](../tests/agent-eval/EVIDENCE-ARCHIVES.md): recover archived results exactly.
 

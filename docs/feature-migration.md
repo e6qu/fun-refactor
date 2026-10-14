@@ -39,6 +39,11 @@ Each selected semantic fact has one disposition:
 - `agent-decision` covers recognized facts whose project-specific use needs review.
 - `unsupported` covers explicit semantic gaps and translator notes.
 
+Illustration: moving `/checkout` preserves a recognized URL and literal response automatically.
+An authentication decision marked `agent-decision` still needs your project's policy.
+An unsupported handler calculation needs implementation work. Test authorized, unauthorized and invalid-input
+requests before describing the migrated endpoint as ready to use.
+
 The first automatic step translates the selected route file.
 For a destination under `app` or `src/app`, a captured package manifest with a string-valued Next.js dependency proves registration by route placement.
 The report binds that target application and makes registration a second automatic step.

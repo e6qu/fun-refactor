@@ -5,15 +5,17 @@ That shared record is the intermediate representation, or IR. Review anything th
 
 ## Commands, results and limits
 
-What a translation crosses, and where it stops.
+`fr translate` reads supported code into a shared record, then writes the target language from
+that record. Readers and writers cover Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean.
+Each language supports particular constructs. A language appearing in this list does not mean
+the tool can translate every program in that language.
 
-`fr translate` never rewrites one language into another directly. It reads the
-source into a single representation, and writes that out again. Eight languages have
-a reader: Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean. Eight have a
-writer, the same eight. Fifty-six ordered pairs go through one vocabulary.
+For example, moving a helper that adds two integers requires a record of its arguments, addition
+and return. A source construct or target behavior outside support appears as an explicit gap.
+Review those gaps, compile the output and test the behavior you need before using it.
 
-The vocabulary lives in `src/transpile/ir.rs`. This document says what is in it,
-why each piece earned a place, and what a writer does when it cannot spell one.
+The vocabulary lives in `src/transpile/ir.rs`. The tables below explain what each record holds
+and why the distinction matters to generated code.
 
 Agents can discover the public body subset through `fr author semantic-schema`. One category or
 one kind can be requested without reading this file or the Rust source. The adjacent-tag JSON uses
@@ -27,9 +29,8 @@ Direct translation costs a reader and a writer per pair. Fifty-six pairs need
 fifty-six of each. A middle costs eight readers and eight writers, and every
 improvement to one reader reaches every target at once.
 
-The middle also decides the honest thing. A pair-to-pair translator either finds
-a spelling or produces nothing. A middle holds the construct, hands it to a
-writer, and lets the writer say it cannot spell it. That refusal is the report.
+The shared record also keeps unsupported constructs visible. A writer reports when it cannot
+express a recorded construct in the target language. Read that report before accepting the output.
 
 ## The shape
 
@@ -95,7 +96,7 @@ Twelve types.
 | `Float` | |
 | `String` | |
 | `List(T)` | |
-| `Set(T)` | Read as a list, `seen.add(x)` twice put two in and every size was wrong |
+| `Set(T)` | Adding the same value twice must still leave one member; a list can hold duplicates |
 | `Map(K, V)` | |
 | `Optional(T)` | |
 | `Tuple(Vec<Type>)` | Go's multiple return has to cross as the pair it is |

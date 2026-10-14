@@ -6,10 +6,15 @@ For example, a checkout endpoint may require a JSON amount and return a receipt.
 ## Commands, results and limits
 
 `fr project application [TARGET] [--revision REV] [--feature ID]` returns the
-current `fr-application-ir-1` record. Existing feature facts become nodes with
+current `fr-application-ir-1` record. Recognized parts of the application become nodes with
 `id`, `kind`, `source`, `data` and `children`. Application, package, dependency,
 route, handler, contract, schema, middleware, configuration, service and component
 facts retain their identities and evidence. Unparented gap facts remain roots.
+
+Illustration: a checkout route may declare `POST /checkout`, require an integer amount and return
+a literal JSON response. The record keeps those facts together so you can review a migration.
+If the handler calculates a receipt using unsupported behavior, its route stays `manual`.
+Read that handler and decide how to move it; a discovered URL alone cannot supply its implementation.
 
 The builder drains bounded feature pages before assembling the hierarchy. Duplicate
 identities, absent parents, cycles and excess size refuse the query. The model

@@ -5,9 +5,13 @@ Your agent writes that structured input. The guide does not read a natural-langu
 
 ## Commands, results and limits
 
-`fr guide --from GOAL` selects a deterministic read/preview route from structured intent. It does
-not interpret natural language or execute changes. The same `fr-agent-goal-1` data works through
-`FrClient.guide` in Python.
+Write the task description in `GOAL`, then run `fr guide --from GOAL` to get commands that read
+code or preview a change. The agent supplies the task description and any replacement code.
+The same `fr-agent-goal-1` input works through `FrClient.guide` in Python.
+
+The illustration below changes an integer from `7` to `9` in one Rust function.
+Your project must declare the `unit` check. The returned actions prepare the change; inspect the
+complete diff before execution. A passing check establishes only the behavior that check exercises.
 
 ```json
 {
@@ -32,7 +36,17 @@ selector can restrict `scope`, symbol `kind`, parser `language` and `locals`. No
 workspace hierarchy. Ambiguous names return at most eight candidates and an exact omission count;
 they never choose an arbitrary declaration. Repeat the goal with one returned full handle.
 
-The purposes are `understand`, `trace`, `change`, `migrate` and `prove`. `operation` defaults to
+Choose a purpose that matches the question:
+
+| Purpose | User question |
+| --- | --- |
+| `understand` | “Where is the calculation and what code surrounds it?” |
+| `trace` | “What calls this helper, or where does a value go?” |
+| `change` | “Prepare the edit I have specified.” |
+| `migrate` | “Can this supported route move to the selected framework?” |
+| `prove` | “Prepare a task for the property I want to check.” |
+
+`operation` defaults to
 `{"kind":"automatic"}`. Automatic understanding/tracing selects bounded evidence; automatic changes
 select semantic deltas; migration requires an advertised destination; proving selects the
 formalization workbench for admitted targets or a Lean proof task.
@@ -181,9 +195,9 @@ properties and tactics. Generated formalization admits typed pure declarations f
 listed by `fr --json audit proofs` and structural snapshots for the remaining parser identities. An
 `implementation` proof expectation returns an explicit unsupported state.
 
-Some older direct commands return unversioned JSON objects. Their guide actions have a null
-`output_schema`; versioned commands identify their exact schema and `schema_field`, including
-`semantic_schema` for minimal semantic reports. The navigator preserves this distinction.
+Some direct commands return JSON without a schema field. Their guide actions have a null
+`output_schema`. Other commands identify the current schema and `schema_field`, including
+`semantic_schema` for minimal semantic reports. Follow the returned output contract.
 
 `FrKernels.AgentGuide` proves matching purpose/live support/source permission requirements, exact
 bounded author-field binding and the complete unchanged-review requirement for execution. Rust,

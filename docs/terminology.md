@@ -19,6 +19,16 @@ Exact field names stay unchanged so you can find them in command output.
 | Holdout | A test project kept unread during implementation | Evaluate it after freezing the tool to test whether the rules work beyond familiar examples. |
 | Gate | A required check before continuing | Run the checkout behavior test before delivering the repair. |
 | Cohort | A chosen group of test projects or attempts | Compare both tool setups on the same chosen tasks. |
+| Consumer | Code that uses a declaration you may change | A caller of `subtotal` may need updating when its arguments change. |
+| Dependency | An input whose change can invalidate a finding | Recheck the trace when its imported helper changes. |
+| Disclosure | Opening a requested part of a larger report | Read one function body before asking for the whole subsystem. |
+| Effect | An action beyond calculating a returned value | Removing `record_purchase()` from a call can remove a database write. |
+| Inert declaration | A declaration whose supported initialization leaves the trace unchanged | An unused `registry = {}` can coexist with a helper trace; mutating it needs more support. |
+| Fixed point | The stage where repeating the analysis adds no new modeled facts | Summaries for recursive helpers stop growing; runtime termination still needs separate reasoning. |
+| Refinement | A stated relation between two models | A stricter access rule allows only inputs that the old rule allowed. |
+| Correspondence | A checked or proposed connection between two descriptions | A matching function candidate after a rename still needs a fresh edit review. |
+| Receipt | A saved result tied to the inputs it checked | A passing checkout test receipt becomes stale after the relevant source changes. |
+| Admission predicate | A rule deciding whether an operation may proceed | A stale preview fails the rule for applying a reviewed change. |
 
 The detailed definitions below describe implementation terms for contributors. Use exact identifiers
 when referring to a command or field. In user explanations, explain the effect on the task first.

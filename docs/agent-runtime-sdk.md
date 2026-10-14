@@ -5,9 +5,9 @@ For example, store the callers of `render` in Python and show the agent only the
 
 ## Commands, results and limits
 
-Start unfamiliar structured tasks with `FrClient.guide(AgentGoal(...))`. The language-aware guide
-selects an existing read/preview route and returns exact actions with only the required authored
-fields. `follow_guide` revalidates freshness and output identity before returning local report data.
+Start a structured task with `FrClient.guide(AgentGoal(...))` when you need help choosing a command.
+The guide returns actions that read code or preview a change, with the fields the agent must supply.
+`follow_guide` checks that the guide still applies before running an action and returning its report.
 See the
 [goal and workflow contract](agent-workflow-guide.md) for schemas, proof boundaries and complete
 guided-versus-manual process and byte accounting.
@@ -94,8 +94,8 @@ at most 32 named projections across four current evidence sections and uses 64 c
 section and 512 across the complete request, and returns at most 64 KiB. The default 192-call
 budget covers each current built-in purpose. An explicit RFC 6901 suffix can select a smaller value
 inside a section. Native compilation uses one `fr` process and reports zero progressive calls.
-`client.prepare(intent)` retains the earlier action-by-action implementation for protocol tests and
-independent parity checks. Passing an object store to `compile` verifies and stores each selected
+`client.prepare(intent)` follows each returned reading action for protocol tests and
+independent agreement checks. Passing an object store to `compile` verifies and stores each selected
 Merkle subtree under the digest returned by Rust.
 
 A complete `change` intent can retain the reviewed action in the same packet. Wrap one direct

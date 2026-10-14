@@ -12,6 +12,10 @@ said it.
 
 Get the repository and the binary:
 
+The commands below include a source build. On a shared desktop, install a
+[release binary](README.md#install) and keep full builds on a runner.
+The [development guide](docs/development.md#working-on-a-shared-desktop) gives the project’s local resource limits.
+
 ```console
 $ git clone https://github.com/helm/helm.git
 $ cd helm && git checkout a8ab76e
@@ -25,7 +29,7 @@ $ cargo install --path ../fun-refactor    # or: cargo build --release
 ## 1. What is in here?
 
 Start by asking what the tool can read. It indexes nothing until you ask for
-something. Asking first is also the cheapest way to learn whether it parses a
+something. Asking first lets you see whether it parses a
 language you care about.
 
 ```console
@@ -46,6 +50,10 @@ nothing about it. Every command that indexes the workspace names the files it co
 not parse in full, on stderr and as `unparsed_files` in its JSON. `fr rename` also
 warns you that references may be missing, and `fr duplicates` lists the files it
 skipped.
+
+For your own bug, a skipped file may contain the caller or configuration you need.
+Inspect those omissions before concluding that a rename reaches every use.
+The following historical outputs describe this Helm snapshot; your checkout can have different omissions.
 
 ## 2. Naming the thing you mean
 

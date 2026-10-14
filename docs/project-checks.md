@@ -57,6 +57,15 @@ It combines with `--quiet-success`. Default reports and listings keep their decl
 
 Coverage descriptions come from project declarations. They do not establish test coverage, behavior preservation or formal verification.
 
+For example, a check called `unit` might exercise only zero-price checkout. Its name and `covers`
+text cannot establish correct rounding. Read the command and test cases, then declare a check
+that reproduces the reported fractional-price error. See [checked outcomes](checked-outcomes.md)
+for requiring that check only after the repair.
+
+If a check times out, inspect its diagnostics and command before retrying. A command waiting for
+input, leaving child processes alive or repeating work needs a fix to that cause.
+Changing the time limit alone does not explain the failure.
+
 ## Source-bound transaction receipts
 
 An execution report captures `source_revision` before the first selected command and compares it with the revision after every command.
@@ -76,8 +85,8 @@ Repeating the same evidence is idempotent.
 `fr history show <TRANSACTION>` displays recorded rows, and undo or redo retains them as historical evidence for the named revision.
 Corrupt receipt data makes the journal invalid instead of silently weakening the claim.
 
-This is a boundary-snapshot receipt rather than a filesystem snapshot held during execution.
-A command can mutate and restore a source file between observations.
+The receipt compares source before and after commands; it does not freeze files while they run.
+For example, a test that changes a file and restores it before the next observation can escape detection.
 Files in unsupported languages, check executable contents, dependencies, services, environment variables and external state do not enter the source revision.
 The receipt therefore establishes which declared commands passed at one stable observed source boundary; it does not prove their declared coverage or general behavior preservation.
 

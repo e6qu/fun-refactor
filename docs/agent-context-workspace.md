@@ -5,10 +5,9 @@ The Python client stores the larger report and returns the requested section. It
 
 ## Commands, results and limits
 
-`ContextSession` turns `fr` progressive disclosure into a bounded local workspace. An agent names
-the high-level section it needs; the runtime follows only exact server-issued actions, reconstructs
-that subtree, verifies its Merkle digest and returns a selected packet. Intermediate reports remain
-inside the Python process.
+`ContextSession` reads the report pages needed for a selected section and keeps them in Python.
+It follows commands returned by `fr`, assembles the section and checks its content fingerprint.
+The agent receives only the selected fields, within the requested size limit.
 
 ```python
 from fr_ir.context import DirectoryObjectStore
@@ -29,6 +28,10 @@ packet = session.packet(
     max_bytes=4096,
 )
 ```
+
+This example reads the code map for `render`. `code_map` remains a Python value until the client
+sends or prints it. `packet` selects that map for the agent's answer.
+If the source changes while pages are loading, start a new session from a fresh handle.
 
 The evidence view exposes `code_map`, `call_traces`, `impact` and `sources_and_sinks` through the
 same method. Semantic and project views use the same `materialize(pointer)` primitive. `packet`

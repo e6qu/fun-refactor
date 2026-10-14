@@ -26,7 +26,18 @@ The compact response retains its query-specific result and adds:
 }
 ```
 
-Copy the three declared fields from the reviewed full report and remove `context_omitted` to reconstruct the full response exactly. The basis is SHA-256 over the JSON encoding of `["fr-context-1", revision, handle_prefix, coverage]`; callers may treat it as opaque. `fr` recomputes it from the current project. Source, manifest, scan-policy or tool-version drift changes the project revision and refuses the compact call. Authoring validates the basis before saving or applying a transaction.
+The client reconstructs the response by copying the three named fields from its saved full report
+and removing `context_omitted`. Keep `context_basis` as an opaque reference; copy it unchanged.
+`fr` checks that the current project still matches it before omitting those fields.
+Changes to source, manifests, scan policy or tool version require a fresh full report.
+Authoring checks this reference before saving or applying a transaction.
+
+For example, the agent can avoid reading the same project coverage twice while asking for callers.
+If another agent edits a helper between those calls, the compact request refuses. Read a fresh
+full report, then continue from its new reference.
+
+For client implementers, the basis is SHA-256 over the JSON encoding of
+`["fr-context-1", revision, handle_prefix, coverage]`.
 
 Do not use an omitted response without its complete reviewed basis. A compact response is evidence only when its basis matches that retained report and none of the omitted fields is already present with a competing value.
 
@@ -67,7 +78,9 @@ Transaction bases cannot compact undo or recovery because those reverse diffs we
 
 Saving an identical plan again against the same revision reuses the existing planned transaction. The repeated report has `saved: false` and `reused_transaction: true`, so a retried agent call cannot create duplicate journal entries.
 
-Project, plan and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for them.
+Use each reference only for the action that returned it. A project report, an edit preview and
+a saved transaction cover different contents. For example, `context_basis` from a caller query
+cannot replace `plan_context_basis` when saving an edit. Check and Git references have their own roles too.
 
 ## Reviewed task-change context
 

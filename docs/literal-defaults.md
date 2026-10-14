@@ -24,7 +24,8 @@ binding. Positional defaults must form a trailing suffix, including across `/`. 
 parameters can mix required and defaulted slots.
 
 Analysis refuses calls, names, operators other than the admitted numeric sign, containers,
-comprehensions, lambdas, formatted strings and annotations in default contracts. It also refuses an
+comprehensions, lambdas and formatted strings in default values. Function annotations require the documented
+[future-annotation rule](python-contract.md#trace-a-helper-that-has-type-annotations). It also refuses an
 unsupported default when a call supplies an explicit argument: Python evaluates defaults during
 function definition, and overriding an argument does not remove those earlier effects.
 Referenced variadic values, extra variadic arguments, unpacking, dynamic dispatch and implicit

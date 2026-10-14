@@ -4,6 +4,11 @@ Use these examples to choose a command for a concrete task: find a helper’s ca
 rename, or discover why an operation refuses. The outputs below come from the stated historical runs.
 Check `fr audit` and the [current guide](docs/README.md) for today’s support and instructions.
 
+Read each example as an account of that command on the recorded revision.
+For example, a caller list tells you which known uses to inspect before editing a helper.
+An empty list needs the report's omissions and resolution limits before you conclude that nobody calls it.
+Use [result meanings](docs/understanding-results.md) to decide what follow-up check your task needs.
+
 One example per capability, each run against a public repository at a pinned commit.
 The outputs come straight from those runs. Nothing here is invented. Where a command
 refused or found nothing, the refusal or the empty result stands as printed.

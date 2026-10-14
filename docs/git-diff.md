@@ -32,6 +32,10 @@ Inspection does not load transaction history or write source, history or index d
 These comparisons follow [Git diff semantics](https://git-scm.com/docs/git-diff), including tracked membership, attributes and built-in content conversion.
 They do not establish raw filesystem snapshot equality or provide an edit precondition.
 
+For example, after staging a checkout fix and editing the file again, the default diff shows only
+the later working edit. `--staged` shows the contents proposed for the commit.
+Use both when you need to review the complete work.
+
 `schema` is 1. Metadata includes `repository_root`, `path`, `scope`, `base_commit`, `diff_revision`, `changed` and `binary`.
 `base_commit` is null for the default comparison and for staged inspection on an unborn branch.
 `change` is null when unchanged. Otherwise it contains `status` (`A`, `D` or `M`), before/after modes and before/after object IDs.
@@ -50,6 +54,10 @@ Untracked files require another inspection interface. Non-UTF-8 patch text and m
 `counts` reports total `hunks`, `added` lines and `deleted` lines before pagination.
 Git's binary classification produces metadata without source rows, with null added/deleted counts.
 Mode-only changes and empty-file additions/deletions can also have zero rows while `changed` remains true.
+
+If a script becomes executable, a zero-row diff can still matter. Read the before and after modes.
+If a source excerpt has `truncated: true`, it shows only part of that line; inspect the rest before
+accepting a change whose meaning depends on it.
 
 Each entry has one of these `kind` values:
 

@@ -5,9 +5,13 @@ The agent still writes the property and proof. An accepted proof establishes the
 
 ## Commands, results and limits
 
-`fr spec` turns admitted declarations or structural snapshots into source-free, content-addressed
-formalization plans and a checked Lean workspace. Each step returns structured data, exact actions
-and selected proof context. The agent writes the properties and proof tactics.
+`fr spec` prepares a Lean workspace from supported functions or recorded file structure.
+It returns the translated model, the assumptions and commands for the next step.
+The agent states the property and writes its proof.
+
+For example, choose a Boolean access function, inspect its translated rule and state the permission
+property you need. After Lean accepts the proof, read the remaining source-connection requirements.
+`source_implementation_proved: false` means the result still does not prove the original function.
 
 ## Supported kernel
 
@@ -82,7 +86,7 @@ It reads no project source and writes no history. An admitted evaluation failure
 `passed: false` and a tagged failure; malformed requests or response ceilings fail the command.
 The SDK checks exact fields, native value bounds, policies, request identity and result identity.
 `FormalKernel.evaluation` mirrors language-neutral `SourceBinding` and `KernelEvidence` metadata.
-The legacy `FormalBinding.rust_type` wire field remains available through the `source_type` alias.
+`FormalBinding.rust_type` is the current wire field; `source_type` exposes that value in Python.
 
 ## Agent workflow
 

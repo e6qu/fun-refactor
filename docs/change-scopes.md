@@ -5,15 +5,19 @@ Before changing the arguments of `subtotal`, find the callers that may need upda
 
 ## Commands, results and limits
 
-`fr project change-scope HANDLE...` discovers indexed consumers before a reviewed change.
-It follows references to each selected declaration and then references to their lexical containing
-declarations. Cycles terminate. The report retains every admitted reference's exact occurrence,
-confidence and consumer, plus built-in test candidates among the reached declarations.
+`fr project change-scope HANDLE...` lists code that may need attention when the selected functions
+change. It follows references to each function, then references to the declarations containing those
+uses. Each result includes the use location, the containing declaration and the tool's confidence.
+Related tests appear as candidates. You still choose checks that exercise the requested behavior.
 
 ```sh
 fr --json project find subtotal
 fr --json project change-scope '<HANDLE>' --depth 4 --nodes 128 --references 512 --bytes 65536
 ```
+
+Illustration: `checkout` calls `subtotal`, and a test calls `checkout`. The search can lead from
+`subtotal` to both declarations. If it stops at a limit, read `cutoffs` before changing the arguments.
+A caller in another repository or a call selected at runtime may remain outside this search.
 
 The selected handles must identify distinct declarations. Stable resumption selectors use exact file,
 name and declaration kind. Multiple matching declarations refuse; this route does not select an overload
@@ -64,7 +68,7 @@ result = client.execute(review)
 The optional task-change binding makes native preview and execution revalidate the complete scope.
 Every edit target must belong to the discovered declaration set. Every declared candidate check must
 appear in the task's lifecycle or acceptance selection. Extra checks remain permitted.
-An absent binding preserves the previous explicit task-change workflow.
+Use the scope binding when delivery must recheck this caller search before applying the edit.
 
 `scope.dependency` captures the whole selected workspace, declaration selectors, query limits,
 check declarations, association-map bytes and analyzer rules. Adding a consumer, changing configuration,

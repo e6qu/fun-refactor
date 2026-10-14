@@ -9,6 +9,11 @@ A web page may call a Python endpoint that reads a YAML setting. When you change
 Reference confidence decides which occurrences a mutation may rewrite.
 A configuration trace, a resolved reference and a translated function provide different evidence.
 
+Illustration: a page calls `/checkout`, while a Python handler reads a YAML setting named `currency`.
+An explicit setting reference may help locate its use. The shared word `currency` in another file
+does not prove a runtime connection or permit renaming an external API field.
+Review the relationship's confidence and test the endpoint after changing it.
+
 ## Current sample
 
 The bundled corpus exercises multiple languages in one workspace:
