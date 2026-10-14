@@ -41,6 +41,7 @@ def bindings():
     result = profile.bindings()
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
+                 'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -213,6 +214,28 @@ def audit_case(row, case):
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
         modules = flow['inputs']['modules']
+        for binding in modules['value_bindings']:
+            text = case['files'][binding['path']]
+            lines = text.splitlines(keepends=True)
+            declarations = ast.parse(text).body
+            matches = [node for node in declarations
+                       if len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == binding['offset']]
+            require(len(matches) == 1, 'imported value lacks its declaration position')
+            node = matches[0]
+            if binding['kind'] == 'class':
+                require(isinstance(node, ast.ClassDef) and node.name == binding['name']
+                        and not node.bases and not node.keywords and not node.decorator_list,
+                        'imported class differs from its plain declaration')
+            else:
+                require(isinstance(node, ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], ast.Name) and node.targets[0].id == binding['name'],
+                        'imported value differs from its assignment')
+                if binding['kind'] == 'literal':
+                    ast.literal_eval(node.value)
+                else:
+                    require(binding['kind'] == 'instance' and isinstance(node.value, ast.Call)
+                            and isinstance(node.value.func, ast.Name) and not node.value.args and not node.value.keywords,
+                            'imported instance differs from its constructor')
         for alias in modules['function_aliases']:
             text = case['files'][alias['path']]
             lines = text.splitlines(keepends=True)

@@ -155,7 +155,7 @@ def test_package_exported_children_preserve_existing_objects(tmp_path):
     changed = analyze(client, rules, "entry", imports=True)
     assert not changed.report.at("/complete") and observe(tmp_path)["raised"] == "AttributeError"
     lookup = next(item for item in changed.dependencies.lookups if item.alias == "leaf")
-    assert lookup.submodule is None and lookup.resolution == "unavailable"
+    assert lookup.submodule is None and lookup.resolution == "value"
 
 
 @pytest.mark.parametrize("prefix", ["relay = 0\n", "from other import relay\n", "def relay(value):\n    return 0\n"])

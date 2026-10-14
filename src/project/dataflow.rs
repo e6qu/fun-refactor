@@ -32,6 +32,10 @@ pub(super) fn expression_contract() -> Value {
 
 #[path = "flow_modules.rs"]
 mod modules;
+
+pub(super) fn value_bindings_valid(value: &Value) -> bool {
+    modules::value_bindings_valid(value)
+}
 #[path = "flow_summaries.rs"]
 mod summaries;
 

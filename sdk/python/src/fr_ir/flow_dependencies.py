@@ -140,10 +140,20 @@ class FunctionAlias:
     offset: int
 
 
+@dataclass(frozen=True)
+class ValueBinding:
+    path: str
+    name: str
+    offset: int
+    kind: str
+
+
 def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespaces: frozenset[str],
-                    aliases: tuple[FunctionAlias, ...]) -> None:
+                    aliases: tuple[FunctionAlias, ...], values: tuple[ValueBinding, ...]) -> None:
     known_modules = files.keys() | namespaces
     assignments = {(alias.path, alias.name): alias for alias in aliases}
+    declarations = {(value.path, value.name) for value in values}
+    referenced = set()
     bindings: dict[tuple[str, str], list[ImportLookup]] = {}
     for lookup in lookups:
         bindings.setdefault((lookup.importer, lookup.alias), []).append(lookup)
@@ -152,8 +162,14 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespac
             raise FrRuntimeError("import binding chain exceeds its budget or repeats a binding")
         if chain and (lookup.member is None or (chain[0].path, chain[0].name) != (lookup.target, lookup.member)):
             raise FrRuntimeError("import binding chain starts outside its selected member")
-        if lookup.resolution == "function" and (not chain or any(hop.path not in files for hop in chain)):
-            raise FrRuntimeError("resolved function lacks a source-bound binding chain")
+        if lookup.resolution in {"function", "value"} and (not chain or any(hop.path not in files for hop in chain)):
+            raise FrRuntimeError("resolved member lacks a source-bound binding chain")
+        if lookup.resolution in {"function", "value"}:
+            terminal = (chain[-1].path, chain[-1].name)
+            if (terminal in declarations) != (lookup.resolution == "value"):
+                raise FrRuntimeError("imported value differs from its declaration")
+            if lookup.resolution == "value":
+                referenced.add(terminal)
         child = lookup.submodule
         if child is not None and (lookup.member is None or lookup.target is None
                 or lookup.target not in (lookup.module.replace('.', '/') + '/__init__.py',
@@ -175,7 +191,7 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespac
         elif lookup.terminal_module is not None:
             raise FrRuntimeError("non-module lookup carries a terminal module")
     for lookup in lookups:
-        if lookup.resolution not in {"function", "module"}:
+        if lookup.resolution not in {"function", "value", "module"}:
             continue
         for index, hop in enumerate(lookup.binding_chain):
             following = bindings.get((hop.path, hop.name), [])
@@ -186,14 +202,16 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespac
                         or (suffix[0].path, suffix[0].name) != (assignment.path, assignment.target)):
                     raise FrRuntimeError("function alias chain disagrees with its assignment")
                 continue
-            if not suffix and lookup.resolution == "function":
+            if not suffix and lookup.resolution in {"function", "value"}:
                 if following:
-                    raise FrRuntimeError("function binding chain ends at another import")
+                    raise FrRuntimeError("member binding chain ends at another import")
             elif (len(following) != 1 or following[0].resolution != lookup.resolution
                     or following[0].binding_chain != suffix
                     or following[0].terminal_module != lookup.terminal_module
                     or lookup.resolution == "module" and following[0].prefix != following[0].alias):
                 raise FrRuntimeError("binding chain disagrees with its re-export lookup")
+    if referenced != declarations:
+        raise FrRuntimeError("value inventory differs from its referenced imports")
     for assignment in aliases:
         if (assignment.path, assignment.name) in bindings:
             raise FrRuntimeError("function alias overlaps an import binding")
@@ -228,6 +246,7 @@ class FlowDependencies:
     files: tuple[tuple[str, str], ...]
     lookups: tuple[ImportLookup, ...]
     function_aliases: tuple[FunctionAlias, ...]
+    value_bindings: tuple[ValueBinding, ...]
     complete: bool
     cutoffs: tuple[str, ...]
     _dependency: Dependency
@@ -261,6 +280,26 @@ class FlowDependencies:
             if not 1 <= len(files) <= 16:
                 raise FrRuntimeError("module dependency count exceeds its budget")
             paths = dict(files)
+            raw_values = modules["value_bindings"]
+            if not isinstance(raw_values, list) or len(raw_values) > 128:
+                raise FrRuntimeError("value binding inventory exceeds its budget")
+            values = []
+            for value in raw_values:
+                if (not isinstance(value, dict) or set(value) != {"path", "name", "offset", "kind"}
+                        or value["path"] not in paths
+                        or not isinstance(value["name"], str)
+                        or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", value["name"]) is None
+                        or _special_attribute(value["name"])
+                        or value["kind"] not in {"literal", "class", "instance"}
+                        or type(value["offset"]) is not int or not 0 <= value["offset"] < 262144):
+                    raise FrRuntimeError("malformed value binding")
+                values.append(ValueBinding(value["path"], value["name"], value["offset"], value["kind"]))
+            value_bindings = tuple(values)
+            if (len({(value.path, value.name) for value in value_bindings}) != len(value_bindings)
+                    or len({(value.path, value.offset) for value in value_bindings}) != len(value_bindings)
+                    or [(value.path, value.offset) for value in value_bindings]
+                       != sorted((value.path, value.offset) for value in value_bindings)):
+                raise FrRuntimeError("value binding inventory repeats or reorders a declaration")
             raw_aliases = modules["function_aliases"]
             if not isinstance(raw_aliases, list) or len(raw_aliases) > 128:
                 raise FrRuntimeError("function alias inventory exceeds its budget")
@@ -336,11 +375,11 @@ class FlowDependencies:
                         or item["member"] is not None and prefix != item["alias"]):
                     raise FrRuntimeError("import binding prefix disagrees with its alias")
                 resolution = item["resolution"]
-                if (resolution not in {"module", "function", "future", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
+                if (resolution not in {"module", "function", "value", "future", "missing", "ambiguous", "unavailable", "cyclic", "budget"}
                         or (resolution == "future") != future
                         or wildcard and resolution not in {"module", "unavailable"}
-                        or modules["complete"] and resolution not in {"module", "function", "future"}
-                        or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
+                        or modules["complete"] and resolution not in {"module", "function", "value", "future"}
+                        or (resolution in {"function", "value", "missing", "ambiguous"} and item["member"] is None)):
                     raise FrRuntimeError("import resolution disagrees with its declaration")
                 lookups.append(ImportLookup(item["importer"], item["alias"], selected.module, item["member"],
                                             selected.candidates, selected.admitted, resolution,
@@ -366,7 +405,7 @@ class FlowDependencies:
             if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
                    for lookup in lookups for hop in lookup.binding_chain):
                 raise FrRuntimeError("invalid re-export member name")
-            _binding_chains(lookups, paths, frozenset(namespaces), function_aliases)
+            _binding_chains(lookups, paths, frozenset(namespaces), function_aliases, value_bindings)
             if len(lookups) > 128:
                 raise FrRuntimeError("import lookup count exceeds its budget")
             resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None)]
@@ -385,6 +424,6 @@ class FlowDependencies:
                      "rules": rules, "context": inputs["context"], **inputs["budget"]}
             dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
                                     _digest(data["input_digest"]))
-            return cls(files, tuple(lookups), function_aliases, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces)
+            return cls(files, tuple(lookups), function_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed flow dependencies") from error

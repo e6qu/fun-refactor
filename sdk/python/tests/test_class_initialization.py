@@ -186,7 +186,7 @@ def test_package_objects_keep_precedence_over_same_named_files(tmp_path, kind):
     assert not result.report.at("/complete")
     assert "module-effects-unchecked" not in result.report.at("/cutoffs")
     lookup = next(item for item in result.dependencies.lookups if item.alias == "channel")
-    assert lookup.submodule is None and lookup.resolution == "unavailable"
+    assert lookup.submodule is None and lookup.resolution == "value"
     assert observe(tmp_path)["raised"] == "AttributeError"
 
 
