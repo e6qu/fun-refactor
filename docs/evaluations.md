@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-13-builtin-bindings-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-14-function-docs-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-14-function-docs-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -871,7 +871,7 @@ have a separate scope from the current-source GitHub acceptance reports.
 Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).
 ## Python development history
 
-These notes describe problems found on 2026-10-12 and 2026-10-13.
+These notes describe problems found from 2026-10-12 through 2026-10-14.
 Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
 The original failed reports, validators and CI logs remain unchanged.
 
@@ -887,6 +887,10 @@ The original failed reports, validators and CI logs remain unchanged.
 | Documentation exceeded its writing budget and assertions named an older case inventory | Split the sentence and match the independently checked inventory at that collection | [Documentation check](https://github.com/e6qu/fun-refactor/actions/runs/38430801404) |
 | Two alias tests treated global declarations like local assignments | Compare lexical declarations and local shadowing separately with Python execution | [Function-alias gate](https://github.com/e6qu/fun-refactor/actions/runs/38440122902) |
 | A later wording edit changed an input behind a saved report | Restore the collected guide and audit saved Python inputs during documentation review | [Built-in-reference PR check](https://github.com/e6qu/fun-refactor/actions/runs/38473217926) |
+| GitHub cancelled a waiting job with an internal runner error before tests started | Retry the same checks with the original deadline; keep the failed attempt | [Function-documentation check, first attempt](https://github.com/e6qu/fun-refactor/actions/runs/38540355301/attempts/1) |
+
+The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
+preserves the results before literal function documentation writes were admitted.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,

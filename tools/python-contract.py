@@ -40,7 +40,7 @@ def require(condition, message):
 def bindings():
     result = profile.bindings()
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
-                 'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py',
+                 'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -53,7 +53,7 @@ def oracle(case):
     return json.loads(oracle_json(json.dumps(case, sort_keys=True, ensure_ascii=False)))
 
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=len(EXAMPLES) * 2)
 def oracle_json(encoded):
     case = json.loads(encoded)
     if not case['imports']:

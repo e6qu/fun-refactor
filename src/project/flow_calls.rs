@@ -83,6 +83,38 @@ pub(super) fn module_metadata<'s>(node: Node<'_>, source: &'s str) -> Option<&'s
     scalar_assignment(node, source).filter(|name| metadata_name(name))
 }
 
+pub(super) fn module_function_doc<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+    if node.kind() != "expression_statement" || node.named_child_count() != 1 {
+        return None;
+    }
+    let assignment = node.named_child(0)?;
+    if assignment.kind() != "assignment" || assignment.child_by_field_name("type").is_some() {
+        return None;
+    }
+    let left = assignment.child_by_field_name("left")?;
+    let right = assignment.child_by_field_name("right")?;
+    let object = left.child_by_field_name("object")?;
+    let attribute = left.child_by_field_name("attribute")?;
+    let name = &source[object.byte_range()];
+    if left.kind() != "attribute"
+        || object.kind() != "identifier"
+        || !name.is_ascii()
+        || &source[attribute.byte_range()] != "__doc__"
+    {
+        return None;
+    }
+    let text_literal = right.kind() == "string"
+        && literal_default(right, source)
+        && !source[right.byte_range()]
+            .split(['\'', '"'])
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .chars()
+            .any(|prefix| matches!(prefix, 'b' | 't'));
+    (right.kind() == "none" || text_literal).then_some(name)
+}
+
 pub(super) fn module_function_alias<'s>(
     node: Node<'_>,
     source: &'s str,
@@ -683,7 +715,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
-        "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Reads, collisions and effects stay unchecked.",
+        "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Literal __doc__ writes to prior unchanged plain functions preserve scalar calls. Reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

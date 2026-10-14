@@ -68,6 +68,41 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn function_documentation_preserves_calls_without_hiding_other_writes() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    for (returned, witnesses) in [("value", 1), ("0", 0)] {
+        write(root.path(), "helpers.py", &format!("def relay(value):\n    return {returned}\nrelay.__doc__ = \"helper\"\nrelay.__doc__ = None\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+        assert_eq!(report["witnesses"].as_array().unwrap().len(), witnesses);
+        assert_eq!(report["initialization"]["sites"], json!([]));
+    }
+    for statement in [
+        "relay.__doc__ = source()",
+        "relay.__defaults__ = (0,)",
+        "relay = 0\nrelay.__doc__ = \"helper\"",
+        "public = relay\npublic.__doc__ = \"helper\"",
+    ] {
+        write(
+            root.path(),
+            "helpers.py",
+            &format!("def relay(value):\n    return value\n{statement}\n"),
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false);
+        assert!(!report["initialization"]["sites"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
 fn unused_builtin_references_preserve_helpers_without_admitting_calls_or_shadows() {
     let root = tempfile::tempdir().unwrap();
     write(
@@ -762,7 +797,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-builtin-bindings-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-14-function-docs-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -824,7 +859,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-builtin-bindings-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-14-function-docs-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -881,7 +916,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-13-builtin-bindings-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-14-function-docs-module-aliases/result.json",
         ])
         .output()
         .unwrap();

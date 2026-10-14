@@ -790,6 +790,7 @@ impl Project<'_> {
                 .as_ref()
                 .is_some_and(|m| m.annotations_postponed(file));
             let mut classes = BTreeSet::new();
+            let mut documentable = BTreeSet::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
@@ -806,10 +807,16 @@ impl Project<'_> {
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if options.summaries {
+                    if calls::module_function_doc(node, text)
+                        .is_some_and(|name| documentable.contains(name))
+                    {
+                        continue;
+                    }
                     if let Some((name, _)) = calls::module_builtin_reference(node, text)
                         .filter(|(_, target)| !explicit_builtins && !bound_names.contains(target))
                     {
                         classes.remove(name);
+                        documentable.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         }
@@ -843,6 +850,7 @@ impl Project<'_> {
                             *depth < 15 && (modules.is_some() || function_aliases.len() < 128)
                         }) {
                             classes.remove(name);
+                            documentable.remove(name);
                             if !bound_names.insert(name) {
                                 initialization.record(
                                     self,
@@ -864,6 +872,7 @@ impl Project<'_> {
                     if let Some((name, constructible)) = calls::module_class(node, text, postponed)
                     {
                         classes.remove(name);
+                        documentable.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         } else if constructible {
@@ -884,6 +893,7 @@ impl Project<'_> {
                         literal.or_else(|| calls::module_instance(node, text, &classes))
                     {
                         classes.remove(name);
+                        documentable.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         }
@@ -920,11 +930,17 @@ impl Project<'_> {
                     };
                     let short = &text[name_node.byte_range()];
                     classes.remove(short);
+                    documentable.remove(short);
                     if !bound_names.insert(short) {
                         reasons.push("binding-collision");
                     }
                     if !unicode_normalization::is_nfkc(short) {
                         reasons.push("non-normalized-identifier");
+                    }
+                    if reasons.is_empty() {
+                        documentable.insert(short);
+                    } else {
+                        documentable.clear();
                     }
                     initialization.record(self, file, node, reasons)?;
                     let name = if let Some(modules) = &modules {
@@ -951,7 +967,10 @@ impl Project<'_> {
                                     .any(|child| child.kind() == "interpolation")
                         })))
                 {
+                    documentable.clear();
                     initialization.record(self, file, node, vec!["module-statement"])?;
+                } else if matches!(node.kind(), "import_statement" | "import_from_statement") {
+                    documentable.clear();
                 }
             }
         }
