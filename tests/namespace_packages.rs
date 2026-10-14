@@ -90,7 +90,7 @@ fn namespace_packages_acceptance_replays_checked_delivery() {
         .args([
             "tools/namespace-packages-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-14-function-docs-namespace-packages/result.json",
+            "tests/agent-eval/results/2026-10-14-value-imports-namespace-packages/result.json",
         ])
         .output()
         .unwrap();
