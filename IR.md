@@ -6,7 +6,8 @@ That shared record is the intermediate representation, or IR. Review anything th
 ## Commands, results and limits
 
 `fr translate` reads supported code into a shared record, then writes the target language from
-that record. Readers and writers cover Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean.
+that record. Eight languages have a reader: Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean.
+Eight have a writer, the same eight. Fifty-six ordered pairs go through one vocabulary.
 Each language supports particular constructs. A language appearing in this list does not mean
 the tool can translate every program in that language.
 
