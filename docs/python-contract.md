@@ -73,10 +73,47 @@ lists can carry these values too. Names must be ASCII; special metadata imports 
 
 Importing a value does not add a model for reading or calling it. For example,
 `send(LIMIT)` and `LIMIT(read_input())` still leave the answer incomplete.
-So does `def unused(key=LIMIT): ...`: named defaults need a separate rule that accounts for
-the value Python reads during definition. Computed setup, missing imports, conflicting bindings
+An unused module function such as `def unused(key=LIMIT): ...` can read a previously available value
+without running its body. The [default-name example](#read-a-known-name-in-an-unused-functions-default)
+explains this declaration rule. Calling a function with a named default remains unfinished.
+Computed setup, missing imports, conflicting bindings
 and package cycles also remain unfinished. A declared package value takes precedence over
 a same-named child file; it cannot be treated as that child to obtain a callable helper.
+
+## Read a known name in an unused function's default
+
+Python reads a default when it defines the function. Reading an already-created object does not
+construct it again or run the function body:
+
+```python
+class EmptyType:
+    pass
+
+EMPTY = EmptyType()
+
+def unused(key=EMPTY):
+    return unknown_operation(key)
+
+def relay(value):
+    return value
+
+def entry():
+    return send(relay(read_input()))
+```
+
+The unused function no longer blocks the supported entry trace. Its default reads the earlier `EMPTY`
+binding. This covers earlier checked literals, collections, plain classes and supported instances,
+including static value imports before the definition. Names must be ASCII and exclude special metadata.
+Parentheses, fixed parameter kinds and unused-function variadics follow their existing rules.
+
+Moving `EMPTY = EmptyType()` below the definition is different: Python raises `NameError` while defining
+the function. Deleted, conflicting and unknown bindings remain unchecked. Unsupported setup clears
+the known bindings available to later defaults. A later declaration cannot repair an earlier read.
+
+Calling `unused()`, even with an explicit replacement argument, remains outside the literal-default
+call model. The rule defers an uncalled body; it does not model shared object defaults or global reads
+inside analyzed bodies. `key=EmptyType()`, attributes, subscripts and other computed defaults remain unchecked.
+Decorators, class-method defaults and unsupported annotation evaluation keep their separate boundaries.
 
 ## Keep declarations separate from reads
 

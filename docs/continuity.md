@@ -27,7 +27,7 @@ support list here.
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
 | Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy imports marker values and uses defaults such as `key=EMPTY` | A harmless-looking default can read a value or execute code while Python defines the helper | Known value imports have a separate rule; next account for which value is available when each default is created |
+| Funcy uses defaults such as `key=EMPTY` | An unused definition can read an existing marker without running its body; calling the helper needs a separate answer | Check the remaining default calls and import setup after known prior values can defer unused definitions |
 | Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an

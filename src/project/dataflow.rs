@@ -795,6 +795,7 @@ impl Project<'_> {
                 .is_some_and(|m| m.annotations_postponed(file));
             let mut classes = BTreeSet::new();
             let mut documentable = BTreeSet::new();
+            let mut default_values = BTreeSet::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
@@ -821,6 +822,7 @@ impl Project<'_> {
                     {
                         classes.remove(name);
                         documentable.remove(name);
+                        default_values.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         }
@@ -855,6 +857,7 @@ impl Project<'_> {
                         }) {
                             classes.remove(name);
                             documentable.remove(name);
+                            default_values.remove(name);
                             if !bound_names.insert(name) {
                                 initialization.record(
                                     self,
@@ -878,9 +881,13 @@ impl Project<'_> {
                         classes.remove(name);
                         documentable.remove(name);
                         if !bound_names.insert(name) {
+                            default_values.remove(name);
                             initialization.record(self, file, node, vec!["binding-collision"])?;
-                        } else if constructible {
-                            classes.insert(name);
+                        } else {
+                            default_values.insert(name.to_owned());
+                            if constructible {
+                                classes.insert(name);
+                            }
                         }
                         inert_bindings.insert(if let Some(modules) = &modules {
                             modules.function_name(file, name)
@@ -899,7 +906,10 @@ impl Project<'_> {
                         classes.remove(name);
                         documentable.remove(name);
                         if !bound_names.insert(name) {
+                            default_values.remove(name);
                             initialization.record(self, file, node, vec!["binding-collision"])?;
+                        } else if !(name.starts_with("__") && name.ends_with("__")) {
+                            default_values.insert(name.to_owned());
                         }
                         let binding = if let Some(modules) = &modules {
                             modules.function_name(file, name)
@@ -916,7 +926,12 @@ impl Project<'_> {
                 if node.kind() == "function_definition" {
                     let mut reasons = Vec::new();
                     if if options.summaries {
-                        !calls::definition_is_inert(node, text, postponed)
+                        !calls::definition_is_inert_with_values(
+                            node,
+                            text,
+                            postponed,
+                            &default_values,
+                        )
                     } else {
                         node.child_by_field_name("return_type").is_some()
                             || node
@@ -935,6 +950,7 @@ impl Project<'_> {
                     let short = &text[name_node.byte_range()];
                     classes.remove(short);
                     documentable.remove(short);
+                    default_values.remove(short);
                     if !bound_names.insert(short) {
                         reasons.push("binding-collision");
                     }
@@ -945,6 +961,7 @@ impl Project<'_> {
                         documentable.insert(short);
                     } else {
                         documentable.clear();
+                        default_values.clear();
                     }
                     initialization.record(self, file, node, reasons)?;
                     let name = if let Some(modules) = &modules {
@@ -972,9 +989,20 @@ impl Project<'_> {
                         })))
                 {
                     documentable.clear();
+                    default_values.clear();
                     initialization.record(self, file, node, vec!["module-statement"])?;
                 } else if matches!(node.kind(), "import_statement" | "import_from_statement") {
                     documentable.clear();
+                    if let Some(modules) = &modules {
+                        for name in modules.names_imported_at(file, node.start_byte()) {
+                            default_values.remove(name);
+                            if modules.is_value(file, name)
+                                && !(name.starts_with("__") && name.ends_with("__"))
+                            {
+                                default_values.insert(name.to_owned());
+                            }
+                        }
+                    }
                 }
             }
         }

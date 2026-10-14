@@ -60,11 +60,13 @@ omitting analysis sections yields an incomplete report, never a complete absence
 fail explicitly; the reader provides no compatibility adapter.
 
 The required `CallBinding.definitions` field separates declaration safety from call support.
-Unannotated functions with ASCII parameters and immutable literal defaults defer their bodies,
+Module functions with ASCII parameters and literal or earlier known value defaults defer their bodies,
 including referenced variadics. An uncalled declaration therefore does not introduce a module-effect
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
-Decorators, evaluated defaults and annotations outside the documented future rule remain unchecked during initialization.
+The [named-default example](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks whether a value exists before the declaration.
+Named defaults still prevent scalar calls, even with explicit replacement arguments.
+Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
 
 The required `CallBinding.initialization` field describes which declarations may coexist with a trace.
 The [current Python examples](python-contract.md) cover unused literals, collections, metadata, plain classes,
