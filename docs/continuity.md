@@ -27,8 +27,8 @@ support list here.
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
 | Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy computes exports and changes function attributes | A helper's exported name or behavior can depend on setup | Separate computed names from changes that affect a call |
-| Pydash exhausts 128 import lookups | The search stops before it can answer the selected trace question | Find the repeated or necessary lookups; preserve the limit while addressing the cause |
+| Funcy computes exports and changes function attributes | A helper's exported name or behavior can depend on setup | Check computed names and changes to callable objects; literal documentation writes now have a narrow rule |
+| Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
 answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
@@ -44,7 +44,7 @@ retries and failures. Do not infer savings from a smaller report or a passing sc
 
 ## Keep the documentation useful
 
-The first broad review is merged. Continue checking detailed sections, examples and cross-links.
+Both broad documentation passes are merged. Keep detailed sections, examples and cross-links current.
 Start with the user's question, show the action, explain the result and say what still needs checking.
 Use the [writing guide](style.md) and [result meanings](understanding-results.md).
 
@@ -60,7 +60,7 @@ When code or a recorded input changes, collect the affected results on GitHub.
 Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
 a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
+The [current collection receipt](../tests/agent-eval/results/2026-10-14-function-docs-scalar-collection/manifest.json)
 identifies the active reports. Preserve failed attempts beside corrected ones; the
 [development history](evaluations.md#python-development-history) keeps their explanations and links.
 
