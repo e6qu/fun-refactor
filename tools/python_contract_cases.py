@@ -554,10 +554,10 @@ EXAMPLES.extend([
             prelude='from helper import marker, relay\n',
             files={'helper.py': 'marker = {}\ndef relay(value):\n    return 0\n'}),
     example('value-import-class', 'imports names calls returns', 'return sink(relay(source()))', [S, T], 17,
-            witness=True, prelude='from helper import Token, relay\n',
+            witness=True, source_index=1, sink_index=1, prelude='from helper import Token, relay\n',
             files={'helper.py': 'class Token:\n    def __init__(self):\n        sink(source())\ndef relay(value):\n    return value\n'}),
     example('value-import-instance', 'imports names calls returns locations', 'return sink(relay(source()))', [S, T], 17,
-            witness=True, prelude='from helper import marker, relay\n',
+            witness=True, source_index=1, prelude='from helper import marker, relay\n',
             files={'helper.py': 'class Token:\n    def __repr__(self):\n        return str(source())\nmarker = Token()\ndef relay(value):\n    return value\n'}),
     example('value-import-reexport', 'imports names calls locations', 'return sink(relay(source()))', [S, T], 17,
             witness=True, prelude='from alpha import marker, relay\n', files={
@@ -747,7 +747,10 @@ def cases():
             cutoff = model.get('cutoff')
             if moved and cutoff and ':' in cutoff:
                 prefix, name = cutoff.split(':', 1)
-                model = {**model, 'cutoff': prefix + ':' + RENAMES.get(name, name)}
+                renamed = RENAMES.get(name, name)
+                if '.' in name and all(part.isidentifier() for part in name.split('.')):
+                    renamed = '.'.join(RENAMES.get(part, part) for part in name.split('.'))
+                model = {**model, 'cutoff': prefix + ':' + renamed}
             result.append({**example, 'id': example['id'] + ('/moved' if moved else '/original'),
                 'source': source, 'path': path, 'files': files,
                 'module_files': module_files, 'module_lookup': lookup,

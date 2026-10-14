@@ -82,6 +82,20 @@ class PythonContract(unittest.TestCase):
             value['source_bindings'][path] = 'stale'
             self.reject(value)
 
+    def test_imported_values_must_match_the_declared_kind_and_source_position(self):
+        for case, kind in [('value-import-scalar', 'class'), ('value-import-class', 'literal'),
+                           ('value-import-instance', 'literal')]:
+            value, row = self.changed(case + '/original')
+            row['flow']['inputs']['modules']['value_bindings'][0]['kind'] = kind
+            row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+        value, row = self.changed('value-import-reexport/original')
+        binding = row['flow']['inputs']['modules']['value_bindings'][0]
+        source = row['case']['files'][binding['path']]
+        binding['offset'] = source.encode().index(b'def relay')
+        row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+        self.reject(value)
+
     def test_runtime_events_and_order(self):
         for field, replacement in [('events', []), ('returned', 0), ('raised', 'TypeError')]:
             value, row = self.changed()
