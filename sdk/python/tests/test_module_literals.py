@@ -170,7 +170,9 @@ def test_a_literal_package_member_cannot_be_replaced_by_a_child_module(tmp_path)
     result = analyze(client, rules, "entry", imports=True)
     assert not result.report.at("/complete")
     lookup = next(item for item in result.dependencies.lookups if item.alias == "core")
-    assert lookup.submodule is None and lookup.resolution == "unavailable"
+    assert lookup.submodule is None and lookup.resolution == "value"
+    assert result.dependencies.complete
+    assert result.dependencies.value_bindings[0].kind == "literal"
     assert observe(tmp_path)["raised"] == "AttributeError"
 
 
