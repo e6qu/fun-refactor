@@ -53,7 +53,7 @@ def oracle(case):
     return json.loads(oracle_json(json.dumps(case, sort_keys=True, ensure_ascii=False)))
 
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=len(EXAMPLES) * 2)
 def oracle_json(encoded):
     case = json.loads(encoded)
     if not case['imports']:

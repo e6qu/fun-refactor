@@ -45,6 +45,19 @@ class PythonContract(unittest.TestCase):
         self.assertEqual(contract.audit(self.report), contract.summary())
         self.assertEqual(set(contract.RULES), {rule for case in contract.EXAMPLES for rule in case['rules_checked']})
 
+    def test_repeated_audits_reuse_runtime_executions_and_still_check_report_rows(self):
+        contract.oracle_json.cache_clear()
+        self.assertEqual(contract.audit(self.report), contract.summary())
+        first = contract.oracle_json.cache_info()
+        self.assertEqual(contract.audit(self.report), contract.summary())
+        second = contract.oracle_json.cache_info()
+        self.assertEqual(second.misses, first.misses)
+        self.assertGreater(second.hits, first.hits)
+        self.assertEqual(first.currsize, len(contract.cases()))
+        value, row = self.changed()
+        row['runtime']['returned'] = 0
+        self.reject(value)
+
     def test_missing_or_duplicate_case(self):
         for duplicate in (False, True):
             value, _ = self.changed()
