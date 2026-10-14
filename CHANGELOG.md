@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.63.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.62.0...fun-refactor-v0.63.0) (2026-10-14)
+
+
+### Features
+
+* follow Python helpers through plain function aliases ([#491](https://github.com/e6qu/fun-refactor/issues/491)) ([b8ca2d8](https://github.com/e6qu/fun-refactor/commit/b8ca2d863eb74c7789d8760c3630aa9aad98143c))
+* trace Python helpers beside unused built-in references ([#492](https://github.com/e6qu/fun-refactor/issues/492)) ([31ffe3f](https://github.com/e6qu/fun-refactor/commit/31ffe3f46f8c69d660e24cc585c9cf53c2e0d4e8))
+* trace Python helpers with literal module collections ([#490](https://github.com/e6qu/fun-refactor/issues/490)) ([18dd6c6](https://github.com/e6qu/fun-refactor/commit/18dd6c6d7d9e723a8cc913a99ddf27ab0d6655c4))
+* trace Python helpers with literal package metadata ([#488](https://github.com/e6qu/fun-refactor/issues/488)) ([8484174](https://github.com/e6qu/fun-refactor/commit/848417495aa2527518e1df564e606f0affc5663b))
+
+
+### Fixes
+
+* preserve Python traces across literal function documentation ([#495](https://github.com/e6qu/fun-refactor/issues/495)) ([e0b9978](https://github.com/e6qu/fun-refactor/commit/e0b9978bbad827a94025fb2111fff6fcc4f42332))
+
+
+### Documentation
+
+* explain project goals and tasks through user examples ([#493](https://github.com/e6qu/fun-refactor/issues/493)) ([166808f](https://github.com/e6qu/fun-refactor/commit/166808fac5bc94a708daf1b20490033b2425f934))
+* explain remaining guides and separate current work from history ([#494](https://github.com/e6qu/fun-refactor/issues/494)) ([a67319c](https://github.com/e6qu/fun-refactor/commit/a67319cf4ab52064b60ca56da167053606a01d12))
+
 ## [0.62.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.61.0...fun-refactor-v0.62.0) (2026-10-13)
 
 
