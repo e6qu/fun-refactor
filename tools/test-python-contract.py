@@ -33,13 +33,25 @@ class PythonContract(unittest.TestCase):
                 raise ValueError('contract collection identity changed')
 
     def changed(self, name='unicode-local/moved'):
-        value = copy.deepcopy(self.report)
-        row = next(row for row in value['cases'] if row['case']['id'] == name)
+        value = copy.deepcopy({key: item for key, item in self.report.items() if key != 'cases'})
+        value['cases'] = list(self.report['cases'])
+        index = next(index for index, row in enumerate(value['cases']) if row['case']['id'] == name)
+        row = copy.deepcopy(value['cases'][index])
+        value['cases'][index] = row
         return value, row
 
     def reject(self, value):
         with self.assertRaises((ValueError, AssertionError)):
             contract.audit(value)
+
+    def test_corruption_fixtures_leave_the_retained_report_unchanged(self):
+        before = contract.profile.compiler.digest(self.report)
+        value, row = self.changed()
+        value['source_bindings'].clear()
+        value['cases'].pop()
+        row['runtime']['events'].clear()
+        row['flow']['witnesses'][0]['trace']['occurrences'][0]['location']['span']['start'] += 1
+        self.assertEqual(contract.profile.compiler.digest(self.report), before)
 
     def test_complete_inventory_and_independent_outcomes(self):
         self.assertEqual(contract.audit(self.report), contract.summary())
