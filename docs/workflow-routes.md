@@ -13,16 +13,20 @@ programs; they do not establish autonomous agent efficiency or billed token savi
 
 | Route | Use it when | Checks and recovery | Existing consumers |
 | --- | --- | --- | --- |
-| `guide` → reviewed intent | The agent has a structured goal and needs an admitted operation | Binds the goal, target, allowed operation, source permission and check/delivery policy; native intent revalidates them before writing | `FrClient.review_guide`, `tests/fixtures/tagged_intent_sdk.py`, `tools/upstream-multibody-agent.py`, `tools/proof-authoring-agent.py` |
-| `intent` | The operation is known and needs a bounded evidence packet | Binds selected evidence and the complete operation review; writes use the same checked lifecycle | `FrClient.compile`, `tests/agent_intent_cli.rs`, capability/recipe/migration/proof clients |
-| `task-change` | Exact structural edits and named checks are known | Resolves request references, binds fragments and postconditions, checks original/applied/restored states, retains history and patch | `FrClient.review`, configured change runners, `tools/task-change-context.py` |
-| `author batch` → `workflow` | The caller needs a separately saved plan or explicit transaction composition | Author validates disjoint edits and source freshness; workflow binds checks and delivery to the saved transaction | CLI authoring, `tools/author-batch-context.py`, task template consumers |
+| `guide` → reviewed intent | You know the requested change and need help choosing a supported command | Rechecks the task, selected code, authored edit and required checks before writing | `FrClient.review_guide`, `tests/fixtures/tagged_intent_sdk.py`, `tools/upstream-multibody-agent.py`, `tools/proof-authoring-agent.py` |
+| `intent` | You have chosen an operation and need its relevant report sections | Keeps those reports and the complete edit review together for checked execution | `FrClient.compile`, `tests/agent_intent_cli.rs`, capability/recipe/migration/proof clients |
+| `task-change` | You already have exact targets, replacement code and named checks | Reviews the complete edit, checks requested states and keeps history and patch delivery | `FrClient.review`, configured change runners, `tools/task-change-context.py` |
+| `author batch` → `workflow` | You need to save an edit plan separately before arranging its checks and delivery | Checks the edits first; the later workflow requires the chosen checks for that saved transaction | CLI authoring, `tools/author-batch-context.py`, task template consumers |
 
 These are overlapping layers, not four interchangeable APIs. Guide and intent cover capabilities,
 recipes, migrations and proof work beyond structural task changes. A saved direct-author plan is
 also useful without delivery. Direct authoring does not attach required checks to the transaction;
 its workflow enforces the chosen checks. Task and intent transactions retain that requirement.
 No route is scheduled for removal based only on in-repository callers.
+
+Illustration: you have read the rounding function, written its replacement and chosen the regression test.
+Use `task-change` to review and deliver those known inputs. If you need help selecting the supported
+operation first, use `guide`. The agent still supplies the intended edit and reviews the whole diff.
 
 The instruction entry point is `skills/fr/SKILL.md`. Guide, intents, task and author references
 each explain their own manifest and review identity. Task's manual template composition is still

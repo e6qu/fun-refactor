@@ -21,7 +21,7 @@ The command returns JSON in both output modes. File bodies and archived metadata
 ## Archive validation
 
 The record must be a regular `record.json` file in a removal archive directly under the shared Git directory.
-The reader accepts the existing version-one removal format and limits the record to 128 MiB.
+The reader requires the current removal record format and limits it to 128 MiB.
 It checks ownership fields, parent identities, allowed private metadata paths and the recorded Git links.
 Archived metadata contents retain the removal limit of 16 MiB in total, including any preserved `config.worktree` bytes.
 The inventory and source hashes must agree with the retained commit; private metadata hashes must agree with the archived bytes.
@@ -55,6 +55,10 @@ Resumption accepts partial checkout deletion, partial private metadata deletion 
 It can also confirm a removal whose directories disappeared before its completion marker was written.
 It does not restore source files, reconstruct metadata or adopt replacement files.
 Resolve blockers deliberately, then request a fresh inspection and use its basis.
+
+Illustration: removal deleted `pricing.py` but stopped with `test_pricing.py` still present.
+The missing path counts as finished work. The surviving file can be deleted only if it still matches
+the reviewed removal. An added note or changed test is a blocker to inspect, not cleanup to guess.
 
 ## Writes and failures
 

@@ -869,3 +869,33 @@ failed evaluator attempts and later successes. Local probes use the installed ol
 have a separate scope from the current-source GitHub acceptance reports.
 
 Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).
+## Python development history
+
+These notes describe problems found on 2026-10-12 and 2026-10-13.
+Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
+The original failed reports, validators and CI logs remain unchanged.
+
+| Problem found | Response recorded during that work | Original record |
+| --- | --- | --- |
+| Function-initialization collection failed | Keep the generator result with its original validator; correct obsolete fixtures and report-size handling | [Generator failure](../tests/agent-eval/results/2026-10-12-declarations-history-python-contract-failure/manifest.json), [first gate](https://github.com/e6qu/fun-refactor/actions/runs/38247965263), [corrected gate](https://github.com/e6qu/fun-refactor/actions/runs/38248690526) |
+| Class tests named four wrong call locations and one wrong boundary | Correct the expectations while preserving the original failed result and runtime outcomes | [Class collection failure](../tests/agent-eval/results/2026-10-13-class-initialization-history-python-contract-failure/manifest.json) |
+| A stored trace report made the next function lookup ambiguous | Keep the report outside the analyzed sample project | [Initialization-location gate](https://github.com/e6qu/fun-refactor/actions/runs/38363037039) |
+| Added contract text exceeded an 8 KiB report limit | Shorten the current contract text; keep the limit | [Annotation gate](https://github.com/e6qu/fun-refactor/actions/runs/38381948322) |
+| An annotation span included the type when a trace named only the parameter | Check the parameter name's exact location and reject a substituted type span | [Recorded annotation notes](https://github.com/e6qu/fun-refactor/blob/166808fac5bc94a708daf1b20490033b2425f934/docs/continuity.md#how-to-keep-the-results-trustworthy) |
+| A fixture still expected unused empty collections to block tracing | Check supported literal allocation and keep mutation unchecked | [First collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38417041882) |
+| The runtime observer supplied input/output functions only to the caller | Use the isolated import observer to supply them to imported modules too | [Second collection gate](https://github.com/e6qu/fun-refactor/actions/runs/38419813576) |
+| Documentation exceeded its writing budget and assertions named an older case inventory | Split the sentence and match the independently checked inventory at that collection | [Documentation check](https://github.com/e6qu/fun-refactor/actions/runs/38430801404) |
+| Two alias tests treated global declarations like local assignments | Compare lexical declarations and local shadowing separately with Python execution | [Function-alias gate](https://github.com/e6qu/fun-refactor/actions/runs/38440122902) |
+| A later wording edit changed an input behind a saved report | Restore the collected guide and audit saved Python inputs during documentation review | [Built-in-reference PR check](https://github.com/e6qu/fun-refactor/actions/runs/38473217926) |
+
+For example, saving a report inside a sample project can change what the next code query sees.
+The report itself may still contain correct bytes. The selected project's inputs have changed,
+so the next lookup needs validation. Keeping reports outside the analyzed tree avoids that extra input.
+
+The annotation work also found format validation after the freshness check. Current readers now reject
+a noncurrent contract before deciding whether changed dependencies require fresh analysis.
+A daily audit had cancelled an unfinished merge audit on the same commit. Scheduled checks now wait
+for an active audit; a newer push can still replace older work.
+
+The [call-binding guide](call-binding.md) keeps the built-in-name clarification outside the source-bound Python guide.
+These changes address the recorded failures. They do not establish whole-package support or general agent savings.

@@ -14,6 +14,10 @@ review and passing finite checks do not establish independent task selection or 
 correctness. Failed calls supply no accepted review, even when readable text remains.
 The [candidate pack](../tests/agent-eval/opencode/candidates/README.md) owns source and grader identities.
 
+Illustration: “accept an alternative value only when the environment variable is absent” requires
+separate absent, empty and present-variable tests. A repair that treats empty as absent can look
+plausible while violating the request. Review those cases before using the task to compare tools.
+
 ## Packaging
 
 | Requirement family | Evidence | Remaining limit |

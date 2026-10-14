@@ -4,6 +4,17 @@ Use this record when a command refuses, produces a wrong answer or cannot finish
 Search for the symptom you see, then read the linked code and tests. The [plan](PLAN.md)
 explains current priorities; entries below keep the detailed defect history.
 
+| What happened to your task? | What to read first |
+| --- | --- |
+| A rename refused before writing | Its refusal reason, then the current [CLI instructions](CLI.md) |
+| A trace returned no answer | Its completeness and cutoff fields; see [result meanings](docs/understanding-results.md) |
+| An applied edit failed its test | The transaction and failed stage; see [correcting the edit](docs/source-repair.md) |
+| A write stopped halfway through | The saved recovery state; see [file recovery](docs/host-recovery.md) |
+| A result looks wrong despite supported input | Search for the symptom below, then report the source example and actual output |
+
+An unsupported import leaves a question unanswered. A tool that reports an unsupported case as a
+complete negative answer has a correctness defect. Include that distinction when reporting a problem.
+
 Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 
 Open entries describe actionable defects. Boundary entries describe behavior that available static

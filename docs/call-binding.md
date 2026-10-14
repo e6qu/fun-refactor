@@ -72,6 +72,11 @@ function aliases and built-in references. They also state the collision and eval
 For example, `registry = {}` can initialize without blocking a helper, but reading that global registry
 still leaves the answer unfinished. A literal package member cannot select a same-named child module.
 
+For an unused built-in reference, the left-hand name must be new to the module.
+Python's existing built-in with that name does not count as a module binding.
+For example, `sorted = sorted` can coexist with a supported helper, while calling that stored function
+still leaves the answer unfinished.
+
 Coroutine and generator calls do not execute their bodies as ordinary scalar calls. The analyzer
 refuses those executions before transferring body effects. A yield inside a skipped expression still
 makes its enclosing function a generator. A nested function's deferred body belongs to its own scope;

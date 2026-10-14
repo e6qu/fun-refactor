@@ -22,14 +22,14 @@ The command returns JSON in both output modes.
 New creation operations record `fr-creation.json` in the linked worktree's private Git metadata directory.
 The receipt binds the canonical destination, its parent, shared Git directory and linked metadata directory to their filesystem identities.
 It also binds the `.git` link file's identity and bytes, branch, commit, tree and repository-local `extensions.worktreeConfig` mode.
-The receipt records whether creation used an existing branch; older receipts default to new-branch mode.
+The receipt also records whether creation used an existing branch.
 The file starts with `complete: false`. Creation or recovery changes it to `complete: true` after checkout verification and synchronization.
 Successful creation reports its `ownership_record` path.
 
 A receipt records local ownership observations; it is not a signed attestation against a malicious local user.
 Moved or replaced worktree directories and Git links cause refusal. Malformed receipts and missing ownership data also refuse.
 Completed receipts refuse recovery, including when an agent later deletes tracked files intentionally.
-Older worktrees without receipts require manual inspection. Recovery does not adopt them automatically.
+Worktrees without a receipt or matching preparation require manual inspection. Recovery does not adopt them automatically.
 
 Before mutation, creation publishes a destination-keyed preparation record in the shared Git directory.
 The record binds the complete reviewed proposal and stays below 64 MiB; it contains file identities and sizes without source bodies.
@@ -46,6 +46,11 @@ It inventories the entire destination, including ignored paths, and refuses extr
 Existing regular files must match committed bytes and the Git executable bit. Existing symlinks must match the committed target bytes.
 Matching entries retain their bytes and inode identities; regular files also retain permissions. Missing tracked entries can be created.
 Other non-regular entries refuse.
+
+Illustration: creation wrote `pricing.py` but stopped before writing `test_pricing.py`.
+Recovery can keep the matching first file and create the missing second file.
+If you edited `pricing.py` after the interruption, preserve that edit and inspect the conflict.
+Recovery will not replace it with committed contents.
 
 When worktree configuration is enabled, recovery accepts an absent `config.worktree` or preserves an existing regular file of at most 1 MiB.
 Its identity, mode and content digest participate in the basis, and recovery verifies that the file remains unchanged before completing the receipt.

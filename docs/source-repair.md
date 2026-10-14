@@ -23,6 +23,10 @@ There are two existing routes:
 Neither route resumes the old transaction. [Applied-state resume](workflow-recovery.md) requires
 unchanged recorded source. A corrected body needs fresh handles, a fresh review, and a new transaction.
 
+If you hand another person only the second patch, their checkout must already contain the first,
+incorrect edit. To deliver from the original checkout, use the corrected transaction after undo,
+or the full ordered patch chain. Check the receiving checkout's behavior before delivery.
+
 Prefer undo-and-correct when the original source can be restored safely. In this comparison,
 it used fewer calls and fewer serialized protocol bytes. Existing exports also supported the
 ordered-patch route; these results do not justify another public operation.

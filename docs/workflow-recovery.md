@@ -11,6 +11,10 @@ that report. Failure does not mean that source was restored.
 
 Choose recovery from the actual source state:
 
+Illustration: a correct repair fails because the declared test command cannot find its compiler.
+Fixing that prerequisite can let you recheck the unchanged repair. If the test instead reports a wrong
+subtotal, the source needs a new edit. Choose the route below from that distinction.
+
 - If an external check prerequisite failed and the recorded edited source is still correct,
   repair that prerequisite, review an applied-state workflow, and resume delivery.
 - If the source needs repair, prepare a new reviewed transaction. Either undo first or repair
@@ -106,7 +110,8 @@ general agent efficiency.
 The same run refreshed the earlier 40-cell body and 38-cell route comparisons. Repository
 [run 38043863822](https://github.com/e6qu/fun-refactor/actions/runs/38043863822) refreshed the two
 existing Python tasks, including 365 behavior cases, interruption and patch replay. These remain
-known scripted tasks. The roadmap stays at 7/18 demonstrated items and 0/4 completed milestones.
+known scripted tasks. At that collection, the roadmap had 7/18 demonstrated items and 0/4 completed milestones.
+Read the [current results](roadmap-status.md) for today's counts.
 
 The CLI change also required fresh [host-interruption evidence](https://github.com/e6qu/fun-refactor/actions/runs/38044842471).
 That run passed 430 handled-failure boundaries, 430 process-exit boundaries and 224 model cases.

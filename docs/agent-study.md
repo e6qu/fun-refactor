@@ -9,6 +9,10 @@ For a bug fix, compare the final behavior and all work spent, including failed a
 Task names and repository identities are data. No production analyzer rule depends on them.
 The same format accepts different models, single agents and delegated work.
 
+For example, two agents try the same checkout repair. Both face the same behavior test.
+If one delegates work, count the helper agent's reading, failed attempts and the final integration too.
+Comparing only the lead agent's last response would miss part of the cost of finishing the repair.
+
 The auditor checks retained evidence. `tools/agent-eval-host.py` now sends provider requests through
 the budget ledger and grades submitted code against private cases in a container. The existing
 Codex launcher bounds process resources. Tests use fake providers and small executable submissions;

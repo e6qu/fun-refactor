@@ -13,6 +13,16 @@ Read the [plan](../PLAN.md#next-large-chunk) for current admission and work prio
 Historical protocols below remain available for their frozen cohorts; an old command example
 does not authorize resuming a stopped collection.
 
+Choose a record by the question you want to answer:
+
+| Your question | Record to read | Limit |
+| --- | --- | --- |
+| “Did the agent give a correct explanation?” | [Source-reading results](native-read-outcomes.md) | A recorded source quotation and a task score cover the chosen facts |
+| “Did it produce the requested repair?” | [Change results](native-change-outcomes.md) | Read behavior failures and timeouts alongside successful submissions |
+| “Did fr help?” | Tool events in those attempts | Having fr available does not establish that the agent used it |
+| “Was it cheaper?” | Complete attempt usage and cost records | Missing provider usage stays unknown; source bytes alone cannot answer |
+| “Can we restart the packaging study?” | [Closed investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | The recorded pilot stays stopped |
+
 ## Configured code-change trials
 
 `tools/terminal-changes.py` freezes, collects and replays code changes using terminal structured

@@ -56,6 +56,10 @@ keeps every path match. Unique and ambiguous candidates remain labeled as static
 The readers validate captured syntax and project revision identity.
 They do not import a framework, start a server or prove runtime reachability.
 Application facts state those gaps.
+
+Illustration: source declares `/checkout` on a router that the application mounts under `/api`.
+The running endpoint may be `/api/checkout`. Read the mounting code and test an actual request
+before using the discovered route as the deployed URL. Dynamic mounting can leave the answer unresolved.
 FastAPI include-router and mounted prefixes can change a final runtime path, so the current application fact names them as unresolved.
 Next.js rewrites, `basePath`, package resolution, bundling and runtime configuration also remain unresolved.
 

@@ -18,6 +18,10 @@ This compares investigation and authoring surfaces; it does not compare manual G
 
 ## Interruption and evidence
 
+For example, an agent receives “these Unicode strings should match”, finds the comparison code and
+proposes a repair. A test script that already knows where to edit checks a different question.
+Keep those two kinds of result separate when deciding whether the tool helps discovery.
+
 Discovery ends with a reviewed proposal and an agent-authored handoff: diagnosis, cited discovery
 events, selected source dependencies and pending work. No source change has executed. The evaluator
 then appends an inert comment to one selected dependency and attempts the old review. That attempt
@@ -37,8 +41,10 @@ change. The comment exercises source dependency invalidation, not semantic chang
 
 ## Reproduction
 
-Build the current native binary with one compiler worker. Prepare the pinned regex dependencies
-using the development guide before offline runs. The deterministic rehearsal supplies the solution
+Build and replay on a dedicated runner. Use one compiler worker and prepare the pinned regex
+dependencies with the [development guide](development.md#build-and-test-on-a-dedicated-runner).
+The shared workstation's guard and limits apply to any lightweight local inspection.
+The deterministic rehearsal supplies the solution
 and tests the harness; it must never count as an agent result:
 
 ```sh
