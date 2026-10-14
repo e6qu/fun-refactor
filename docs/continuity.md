@@ -60,7 +60,7 @@ When code or a recorded input changes, collect the affected results on GitHub.
 Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
 a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-14-value-imports-scalar-collection/manifest.json)
+The [current collection receipt](../tests/agent-eval/results/2026-10-14-named-defaults-scalar-collection/manifest.json)
 identifies the active reports. Preserve failed attempts beside corrected ones; the
 [development history](evaluations.md#python-development-history) keeps their explanations and links.
 
