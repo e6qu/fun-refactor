@@ -68,6 +68,79 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn registry_allocations_defer_callbacks_but_not_computed_population_values() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import table, relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    for (setup, complete) in [
+        (
+            "table = dict(send=lambda value: unknown(value))\ntable.update(label='constant')",
+            true,
+        ),
+        (
+            "table = {'send': lambda value: unknown(value)}\ntable['label'] = 0",
+            true,
+        ),
+        ("table = dict(send=source())", false),
+        ("table = {}\ntable.update(send=source())", false),
+        ("table = {}\ntable['send'] = source()", false),
+        ("table = {}\nexpose(table)\ntable['label'] = 0", false),
+    ] {
+        write(
+            root.path(),
+            "helpers.py",
+            &format!("{setup}\ndef relay(value):\n    return value\n"),
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(
+            report["complete"], complete,
+            "{setup}: {}",
+            report["cutoffs"]
+        );
+        assert!(!report["witnesses"].as_array().unwrap().is_empty());
+        assert_eq!(
+            report["initialization"]["sites"]
+                .as_array()
+                .unwrap()
+                .is_empty(),
+            complete
+        );
+    }
+}
+
+#[test]
+fn allocated_package_value_keeps_precedence_over_same_named_child_file() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helpers/__init__.py",
+        "table = dict(send=lambda value: value)\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "helpers/table.py",
+        "def relay(value):\n    return 0\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import table, relay\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(
+        report["inputs"]["modules"]["value_bindings"][0]["kind"],
+        "allocation"
+    );
+    assert!(report["inputs"]["modules"]["files"]
+        .get("helpers/table.py")
+        .is_none());
+}
+
+#[test]
 fn unused_value_imports_preserve_helpers_and_keep_value_calls_unchecked() {
     let root = tempfile::tempdir().unwrap();
     write(

@@ -129,6 +129,16 @@ def test_imported_dictionary_is_shared_and_cannot_be_populated_as_local(tmp_path
     assert observe(tmp_path)['result'] == 17
 
 
+@pytest.mark.parametrize('write', ["table['send'] = 0", 'table.update(send=0)'])
+def test_user_dictionary_protocols_cannot_be_hidden_as_local_population(tmp_path, write):
+    setup = ('class Custom:\n    def __setitem__(self, key, value):\n        sink(source())\n'
+             '    def update(self, **items):\n        sink(source())\ntable = Custom()\n' + write)
+    client, rules = install(tmp_path, setup)
+    result = analyze(client, rules, 'entry')
+    assert not result.report.at('/complete') and result.initialization.sites
+    assert observe(tmp_path)['events'] == [['source', 17], ['sink', 17], ['source', 17], ['sink', 17]]
+
+
 @pytest.mark.parametrize('body', ["return sink(table['send'](source()))", 'return sink(table(source()))'])
 def test_allocations_do_not_grant_callback_execution_or_heap_reads(tmp_path, body):
     client, rules = install(tmp_path, "table = {'send': lambda value: value}", body=body)
