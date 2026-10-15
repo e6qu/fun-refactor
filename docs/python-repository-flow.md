@@ -147,6 +147,14 @@ All contexts preserve renamed/relocated conclusions. Isolated declarations and t
 Unknown calls, exhausted budgets and full package initialization still prevent complete answers.
 The package boundaries and the unopened holdout keep B.repository-flow open.
 
+Sharing wildcard provider searches lets the current replay reach later imports without raising a limit.
+Funcy's package initializer now needs 14 searches instead of 126. Its imported `EMPTY` marker resolves,
+and `funcmakers.py` enters the loaded code. The representative `inc` case uses 120 searches and
+reaches the separate 16-file limit. Toolz also reaches three more files and no longer exhausts
+the import-search budget. Pydash still reaches that budget through ordinary named imports.
+The full-package outcomes in the table stay unchanged. The
+[handoff](continuity.md#what-to-work-on-next) describes the next investigation with these differences in view.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The

@@ -26,22 +26,31 @@ support list here.
 
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
-| Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy's exports consume 126 of 128 import lookups before most helper modules are visited | The later `EMPTY` import is not resolved, so its defaults stay incomplete even though small imported-marker examples already work | Work out how to spend the 128 lookups on the selected helper's dependencies without skipping package startup code |
-| Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
+| Toolz builds and changes a signature registry, with unresolved imports and cycles elsewhere | Import setup can affect which helper the application calls | Inspect the remaining registry operations and the newly reached startup code |
+| Funcy now resolves `EMPTY` but reaches the 16-file limit | Asking whether input passes through `inc` still leaves some imported code unchecked | Investigate the remaining helper dependencies and startup statements within the existing bounds |
+| Pydash still exhausts 128 searches across ordinary imported names | Repeatedly finding one provider can prevent a later helper from entering the answer | Investigate sharing provider searches for ordinary named imports while retaining every binding and startup dependency |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
 answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
 retain the complete attempts and limits.
 
-The current library replay admits six more of Funcy's startup statements, including supported
-built-in-base class declarations: 94 unchecked statements become 88. Toolz stays at 86 and pydash
-at 510. None of the 40 full-package
-cases becomes complete; 32 remain incomplete and eight are refused.
+Wildcard exports now share one search for their provider. Funcy's package initializer uses 14
+searches instead of 126, and the representative `inc` case uses 120 overall. Its `EMPTY` imports
+now resolve, including the marker used by collection-helper defaults. The analyzer also reaches
+`funcmakers.py`, bringing the loaded files from 15 to the existing limit of 16.
 
-The earlier handoff mistook the unresolved `EMPTY` defaults for a missing marker rule. The retained
-lookup list shows the budget was already spent before that import. Keep this distinction when choosing
-the next change: support in a small module does not mean the full package fits within the same limits.
+For example, `send(inc(read_input()))` still needs an incomplete answer when other imported code
+falls outside that limit. Resolving the marker fixes one obstacle; it does not settle the whole question.
+The earlier handoff mistook those unresolved defaults for a missing marker rule. Small imported-marker
+examples already worked; repeated provider searches had consumed the full-package lookup allowance.
+
+The representative Funcy result now counts 80 unchecked startup statements across 16 files, compared
+with 88 across 15. Toolz reaches three more files and counts 92 statements instead of 86;
+its import-search cutoff disappears. Pydash stays at 510 across eight files and still reaches 128 searches.
+These counts cover different loaded code. None of the 40 full-package cases becomes complete;
+32 remain incomplete and eight are refused. The
+[audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38719745979)
+keeps the source snapshots, outcomes and visited-file differences together.
 
 Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are familiar development examples. The
