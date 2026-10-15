@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-15-shared-star-searches-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-15-shared-star-searches-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-15-shared-named-searches-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -900,12 +900,19 @@ The original failed reports, validators and CI logs remain unchanged.
 | Three main audit runners could not download the existing `actions/setup-go` commit and failed before tests started | Install the same Go 1.27.2 release from its official checksum-verified archive through the shared local action | [First setup failure](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708027), [round-trip setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256707969), [translation setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708093) |
 | A value-import test still treated an unused `object`-based class as unsupported | Keep the negative case with an unsupported `list` base; retain the positive built-in-base runtime comparisons | [First built-in-base SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38697413065) |
 | Compiler evidence repeatedly hashed large driver files with an unoptimized SHA-256 dependency and reached the 15-minute job deadline | Optimize that dependency in development builds, compare digest bytes independently and keep every check and deadline | [Partial original artifact](../tests/agent-eval/results/2026-10-15-import-search-compiler-timeout/manifest.json), [timed-out run](https://github.com/e6qu/fun-refactor/actions/runs/38713751219) |
+| An older Pages build finished after the newer build and cancelled its deployment | Cancel older Pages workflows when a newer push arrives; retry the latest deployment with its original artifact and deadlines | [Newer revision, cancelled deploy](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/1), [older build that finished later](https://github.com/e6qu/fun-refactor/actions/runs/38725757264) |
+| A named-import byte test added JSON whitespace before measuring the compact response | Enforce the same 65,536-byte limit on the client's actual output and measure compact encoding | [First named-import gate](https://github.com/e6qu/fun-refactor/actions/runs/38727247627) |
+| Review found that an over-limit named-import fixture expected its unvisited provider among the loaded files | Expect only the entry file; supersede collection before authored report generation and keep the 128-name limit | [Superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38730391730) |
 
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
 and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.
 Collecting compiler identities, diagnostics and changed-input refusals then took about 13 seconds.
 The complete job passed in 9 minutes 55 seconds, within its unchanged 15-minute deadline.
+
+The [latest Pages deployment](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/2)
+passed after retrying only the cancelled deploy job. It reused the successful build for the latest
+merged revision and kept every deployment deadline.
 
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
@@ -921,6 +928,8 @@ The [built-in type-map collection](../tests/agent-eval/results/2026-10-15-type-r
 preserves the results before classes could declare verified built-in bases.
 The [built-in-base collection](../tests/agent-eval/results/2026-10-15-builtin-bases-scalar-collection/manifest.json)
 preserves the results before wildcard exports shared their provider searches.
+The [shared wildcard collection](../tests/agent-eval/results/2026-10-15-shared-star-searches-scalar-collection/manifest.json)
+preserves the results before ordinary named imports shared searches within a statement.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("bodies", ROOT / "tools/guide-body-context.py")
 bodies = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bodies)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-shared-star-searches-workflows/guide-body-context.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-shared-named-searches-workflows/guide-body-context.json'
 
 
 class BodyEvidence(unittest.TestCase):

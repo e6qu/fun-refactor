@@ -488,15 +488,32 @@ then keeps a binding record for every exported name. For example, if a module ex
 and 127 other functions, asking whether `send(relay(read_input()))` carries input does not require
 128 separate searches for the same module. Its startup code remains part of the answer.
 
-Ordinary imports and wildcard provider searches share the existing 128-search budget. A package-child
-search caused by a wildcard member also consumes that budget. The source limit stays at 256 KiB
+Names in a single `from` statement also share their provider search:
+
+```python
+from helpers import relay as selected, another_helper
+
+def entry():
+    return send(selected(read_input()))
+```
+
+Here fr searches for `helpers` once and keeps both requested bindings, including the alias `selected`.
+This works for at most 128 names per statement, with or without parentheses and trailing commas.
+A longer list stays incomplete. Separate statements consume separate searches, even for the same provider.
+Sharing a provider does not hide its startup code or choose a guessed binding after a collision.
+
+Ordinary imports and shared provider searches use the existing 128-search budget. Every package-child
+search, including one from an ordinary named import, also consumes that budget. The source limit stays at 256 KiB
 across at most 16 modules. More than 128 distinct imported value declarations refuses analysis;
 sharing a provider search does not remove that declaration limit.
 
-The current dependency record stores each search in `inputs.modules.lookups`. A wildcard record
+The current dependency record stores each provider search in `inputs.modules.lookups`. A wildcard record
 contains its literal `exports` and matching `members`; each member keeps its name, resolution,
-binding chain, child search and terminal module. Its provider candidates appear once. Other import
-records have an empty `members` list. Missing, repeated or invented members fail validation.
+binding chain, child search and terminal module. Its provider candidates appear once.
+A named `from` record stores the first binding and a `names` inventory of `[alias, member]` pairs in source order.
+Its `members` hold the remaining bindings, each with an alias, member, prefix, resolution, binding chain,
+child search and terminal module. Module imports and wildcard records have a null `names` inventory.
+Missing, extra or reordered bindings fail validation. The fixed `names_per_import` limit is 128.
 The SDK's `analysis.dependencies.lookups` exposes the expanded binding evidence, while
 `analysis.dependencies.lookup_count` reports the searches charged against the budget.
 

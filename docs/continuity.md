@@ -28,14 +28,15 @@ support list here.
 | --- | --- | --- |
 | Toolz builds and changes a signature registry, with unresolved imports and cycles elsewhere | Import setup can affect which helper the application calls | Inspect the remaining registry operations and the newly reached startup code |
 | Funcy now resolves `EMPTY` but reaches the 16-file limit | Asking whether input passes through `inc` still leaves some imported code unchecked | Investigate the remaining helper dependencies and startup statements within the existing bounds |
-| Pydash still exhausts 128 searches across ordinary imported names | Repeatedly finding one provider can prevent a later helper from entering the answer | Investigate sharing provider searches for ordinary named imports while retaining every binding and startup dependency |
+| Pydash clears the repeated-search limit but reaches the 256 KiB source limit | An input-through-`add` question still leaves part of the package unchecked | Investigate checking the selected helper and the startup code that can affect it within the existing source bound |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
 answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
 retain the complete attempts and limits.
 
-Wildcard exports now share one search for their provider. Funcy's package initializer uses 14
-searches instead of 126, and the representative `inc` case uses 120 overall. Its `EMPTY` imports
+Wildcard exports share one search for their provider. Funcy's package initializer uses 14
+searches instead of 126. Sharing ordinary named imports within a statement now also reduces
+the representative `inc` case from 120 searches to 75. Its `EMPTY` imports
 now resolve, including the marker used by collection-helper defaults. The analyzer also reaches
 `funcmakers.py`, bringing the loaded files from 15 to the existing limit of 16.
 
@@ -44,13 +45,13 @@ falls outside that limit. Resolving the marker fixes one obstacle; it does not s
 The earlier handoff mistook those unresolved defaults for a missing marker rule. Small imported-marker
 examples already worked; repeated provider searches had consumed the full-package lookup allowance.
 
-The representative Funcy result now counts 80 unchecked startup statements across 16 files, compared
-with 88 across 15. Toolz reaches three more files and counts 92 statements instead of 86;
-its import-search cutoff disappears. Pydash stays at 510 across eight files and still reaches 128 searches.
-These counts cover different loaded code. None of the 40 full-package cases becomes complete;
+The current familiar-library replay uses the same loaded files as the wildcard collection.
+Funcy stays at 80 unchecked startup statements across 16 files, and Toolz stays at 92 across 14.
+Pydash now uses 47 searches and reaches the separate 256 KiB source limit. It counts 420 unchecked
+startup statements instead of 510 across the same eight files. None of the 40 full-package cases becomes complete;
 32 remain incomplete and eight are refused. The
-[audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38719745979)
-keeps the source snapshots, outcomes and visited-file differences together.
+[audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38739064758)
+keeps the source snapshots, outcomes and remaining limits together.
 
 Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are familiar development examples. The
@@ -78,7 +79,7 @@ When code or a recorded input changes, collect the affected results on GitHub.
 Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
 a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-15-shared-star-searches-scalar-collection/manifest.json)
+The [current collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json)
 identifies the active reports. Preserve failed attempts beside corrected ones; the
 [development history](evaluations.md#python-development-history) keeps their explanations and links.
 

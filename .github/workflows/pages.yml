@@ -24,6 +24,10 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The build holds no environment, so it starts the moment the push lands. This used
   # to be one job with the environment on it, which meant the whole thing — toolchain,

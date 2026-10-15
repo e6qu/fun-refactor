@@ -11,47 +11,64 @@ from typing import Any
 from .investigation import Dependency, DependencyKind
 from .runtime import FrReport, FrRuntimeError
 
-MODULE_POLICY = ("Single-root static modules/packages; wildcard names share module searches and retain per-name bindings. "
-                 "Checked annotations directives require absent local __future__ candidates. Dynamic initialization/imports, "
-                 "merged namespaces, implicit children and search paths stay unchecked.")
+MODULE_POLICY = ("Single-root static modules/packages; names in one from-import share a provider search and retain every binding. "
+                 "Child searches consume the same budget. Annotations directives require absent local __future__ candidates. "
+                 "Dynamic setup/imports, merged namespaces and search paths stay unchecked.")
 
 
 def _expanded_lookups(modules: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
     limits = modules["limits"]
     if (modules["policy"] != MODULE_POLICY or not isinstance(limits, dict)
             or any(type(value) is not int for value in limits.values()) or limits != {
-            "modules": 16, "source_bytes": 262144, "imports": 128, "module_components": 16, "binding_chain": 16}):
+            "modules": 16, "source_bytes": 262144, "imports": 128, "names_per_import": 128,
+            "module_components": 16, "binding_chain": 16}):
         raise FrRuntimeError("unsupported module lookup contract")
     records = modules["lookups"]
     if not isinstance(records, list) or len(records) > 128:
         raise FrRuntimeError("import lookup count exceeds its budget")
     fields = {"module", "candidates", "packages", "namespaces", "target", "admitted", "importer", "alias",
-              "member", "prefix", "exports", "future", "submodule", "resolution", "binding_chain", "terminal_module", "members"}
+              "member", "prefix", "exports", "future", "submodule", "resolution", "binding_chain", "terminal_module", "members", "names"}
     member_fields = {"name", "resolution", "binding_chain", "submodule", "terminal_module"}
+    named_fields = {"alias", "member", "prefix", "resolution", "binding_chain", "submodule", "terminal_module"}
     expanded = []
     count = len(records)
     for record in records:
         if not isinstance(record, dict) or set(record) != fields:
             raise FrRuntimeError("malformed compact import lookup")
         members = record["members"]
-        if not isinstance(members, list) or len(members) > 128 or record["alias"] != "*" and members:
-            raise FrRuntimeError("malformed wildcard member inventory")
-        if record["alias"] == "*" and (record["exports"] is not None and not isinstance(record["exports"], list)
+        wildcard = record["alias"] == "*"
+        named = not wildcard and record["member"] is not None
+        names = record["names"]
+        if not isinstance(members, list) or len(members) > 128 or not wildcard and record["exports"] is not None:
+            raise FrRuntimeError("malformed import member inventory")
+        if named:
+            if (not isinstance(names, list) or not 1 <= len(names) <= 128 or len(members) + 1 != len(names)
+                    or names[0] != [record["alias"], record["member"]] or record["prefix"] != record["alias"]
+                    or any(not isinstance(pair, list) or len(pair) != 2 or any(not isinstance(name, str)
+                        or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", name) is None for name in pair) for pair in names)):
+                raise FrRuntimeError("named import inventory differs from its bindings")
+        elif names is not None or not wildcard and members:
+            raise FrRuntimeError("unexpected named import inventory")
+        if wildcard and (record["exports"] is not None and not isinstance(record["exports"], list)
                 or [member.get("name") if isinstance(member, dict) else None for member in members] != (record["exports"] or [])):
             raise FrRuntimeError("wildcard member inventory differs from its exports")
-        anchor = {key: value for key, value in record.items() if key != "members"}
+        anchor = {key: value for key, value in record.items() if key not in {"members", "names"}}
         anchor["star"] = None
+        count += anchor["submodule"] is not None
         index = len(expanded)
         expanded.append(anchor)
-        for member in members:
-            if not isinstance(member, dict) or set(member) != member_fields:
-                raise FrRuntimeError("malformed wildcard binding")
+        for offset, member in enumerate(members):
+            if not isinstance(member, dict) or set(member) != (member_fields if wildcard else named_fields):
+                raise FrRuntimeError("malformed shared import binding")
             count += member["submodule"] is not None
-            expanded.append({**anchor, **{key: value for key, value in member.items() if key != "name"},
-                             "alias": member["name"], "member": member["name"], "prefix": member["name"],
-                             "exports": None, "star": index})
+            binding = {**anchor, **{key: value for key, value in member.items() if key != "name"}}
+            if wildcard:
+                binding.update(alias=member["name"], member=member["name"], prefix=member["name"], star=index, exports=None)
+            elif names[offset + 1] != [member["alias"], member["member"]] or member["prefix"] != member["alias"]:
+                raise FrRuntimeError("named member differs from its requested binding")
+            expanded.append(binding)
     if count > 128:
-        raise FrRuntimeError("wildcard child searches exceed the import budget")
+        raise FrRuntimeError("package-child searches exceed the import budget")
     return expanded, count
 
 

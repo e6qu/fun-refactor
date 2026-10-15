@@ -756,6 +756,32 @@ EXAMPLES.extend([
 ])
 
 EXAMPLES.extend([
+    example('shared-named-wide-forward', 'imports calls names locations', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from helper import ' + ', '.join(WIDE_NAMES) + '\n', files={'helper.py': WIDE_PROVIDER}),
+    example('shared-named-wide-discard', 'imports calls returns', 'return sink(chosen(source()))', [S, ZERO], 0,
+            prelude='from helper import relay as chosen, ' + ', '.join(WIDE_NAMES[1:]) + '\n',
+            files={'helper.py': WIDE_PROVIDER.replace('def relay(value):\n    return value', 'def relay(value):\n    return 0')}),
+    example('shared-named-reexport', 'imports calls names locations', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from bridge import ' + ', '.join(WIDE_NAMES) + '\n', files={'helper.py': WIDE_PROVIDER,
+            'bridge.py': 'from helper import ' + ', '.join(WIDE_NAMES) + '\n'}),
+    example('shared-named-marker', 'imports defaults names boundaries', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from helper import ' + ', '.join(MARKER_NAMES) + '\ndef unused(key=EMPTY):\n    return key\n',
+            files={'helper.py': 'class Token:\n    pass\nEMPTY = Token()\n' +
+                   ''.join(f'def {name}(value):\n    return value\n' for name in WIDE_NAMES[:-1])}),
+    example('shared-named-startup', 'imports names boundaries', 'return sink(0)', [S, T, ZERO], 0,
+            prelude='from helper import ' + ', '.join(WIDE_NAMES) + '\n', files={'helper.py': WIDE_PROVIDER + 'sink(source())\n'},
+            complete=False, cutoff='module-effects-unchecked'),
+    example('shared-named-child', 'imports calls locations', 'return sink(selected.relay(source()))', [S, T], 17,
+            witness=True, prelude='from pack import marker, inner as selected\n', files={'pack/__init__.py': 'marker = 0\n',
+            'pack/inner.py': 'def relay(value):\n    return value\n'}),
+    example('shared-named-over-binding-limit', 'imports names boundaries', 'return sink(source())', [S, T], 17,
+            witness=True, prelude='from helper import ' + ', '.join([*WIDE_NAMES, 'extra']) + '\n',
+            files={'helper.py': WIDE_PROVIDER + 'def extra(value):\n    return value\n'},
+            module_files=['subject.py'], complete=False, cutoff='import-binding-budget'),
+    example('shared-named-value-limit', 'imports names boundaries', 'return sink(source())', [S, T], 17,
+            prelude=''.join('from ' + module + ' import ' + ', '.join(f'{module}{index}' for index in range(65)) + '\n'
+                            for module in ('left', 'right')), files=VALUE_MODULES,
+            refusal='import value declaration budget exceeds 128'),
     example('named-default-prior-scalar', 'defaults names boundaries', 'return sink(source())', [S, T], 17,
             witness=True, prelude='marker = 0\ndef unused(key=marker):\n    raise RuntimeError()\n'),
     example('named-default-prior-collection', 'defaults names boundaries', 'return sink(source())', [S, T], 17,

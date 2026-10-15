@@ -46,7 +46,8 @@ def bindings():
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',
-                 'sdk/python/tests/test_shared_star_imports.py', 'sdk/python/tests/test_star_imports.py',
+                 'sdk/python/tests/test_shared_star_imports.py', 'sdk/python/tests/test_shared_named_imports.py',
+                 'sdk/python/tests/test_star_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -264,6 +265,19 @@ def audit_case(row, case):
                        and len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == alias['offset']]
             require(len(matches) == 1, 'function alias differs from its source assignment')
         for lookup in modules['lookups']:
+            if lookup['names'] is not None:
+                statements = ast.parse(case['files'][lookup['importer']]).body
+                matches = []
+                for statement in statements:
+                    if not isinstance(statement, ast.ImportFrom):
+                        continue
+                    parent = lookup['importer'].split('/')[:-1]
+                    module = (parent[:len(parent) + 1 - statement.level] if statement.level else [])
+                    module += statement.module.split('.') if statement.module else []
+                    names = [[item.asname or item.name, item.name] for item in statement.names]
+                    if '.'.join(module) == lookup['module'] and names == lookup['names']:
+                        matches.append(statement)
+                require(matches, 'named import inventory differs from its source statement')
             if lookup['future']:
                 tree = ast.parse(case['files'][lookup['importer']])
                 prefix = list(tree.body)
