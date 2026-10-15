@@ -443,7 +443,7 @@ pub(super) fn value_bindings_valid(modules: &Value) -> bool {
             || offset >= BYTE_LIMIT as u64
             || !matches!(
                 value["kind"].as_str(),
-                Some("literal" | "class" | "instance")
+                Some("literal" | "class" | "instance" | "registry")
             )
             || !declarations.insert((path, name))
             || previous.is_some_and(|previous| previous >= (path, offset))
@@ -684,6 +684,7 @@ impl Modules {
             let mut opaque_bindings = BTreeSet::new();
             let declared_exports = calls::declared_exports(parsed.root(), source);
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
+            let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if calls::module_export_list(node, source).is_some() {
                     literals.insert("__all__".to_owned());
@@ -707,9 +708,16 @@ impl Modules {
                     continue;
                 }
                 let class = calls::module_class(node, source, result.annotations_postponed(&file));
-                let value = class.map(|(name, _)| (name, "class")).or_else(|| {
-                    calls::module_instance(node, source, &classes).map(|name| (name, "instance"))
-                });
+                let registry = (!explicit_builtins)
+                    .then(|| calls::module_type_registry(node, source, |name| names.contains(name)))
+                    .flatten();
+                let value = registry
+                    .map(|name| (name, "registry"))
+                    .or_else(|| class.map(|(name, _)| (name, "class")))
+                    .or_else(|| {
+                        calls::module_instance(node, source, &classes)
+                            .map(|name| (name, "instance"))
+                    });
                 if let Some((name, kind)) = value {
                     classes.remove(name);
                     if !names.insert(name.to_owned()) {
