@@ -777,7 +777,7 @@ EXAMPLES.extend([
     example('shared-named-over-binding-limit', 'imports names boundaries', 'return sink(source())', [S, T], 17,
             witness=True, prelude='from helper import ' + ', '.join([*WIDE_NAMES, 'extra']) + '\n',
             files={'helper.py': WIDE_PROVIDER + 'def extra(value):\n    return value\n'},
-            complete=False, cutoff='import-binding-budget'),
+            module_files=['subject.py'], complete=False, cutoff='import-binding-budget'),
     example('shared-named-value-limit', 'imports names boundaries', 'return sink(source())', [S, T], 17,
             prelude=''.join('from ' + module + ' import ' + ', '.join(f'{module}{index}' for index in range(65)) + '\n'
                             for module in ('left', 'right')), files=VALUE_MODULES,
