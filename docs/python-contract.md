@@ -273,7 +273,7 @@ For example, adding `def __init__(self): read_input()` makes `EMPTY = Marker()` 
 That initialization remains unchecked, as do instances with custom `__new__` or `__del__` methods,
 descriptors and other evaluated class-body statements.
 Python's [class creation and construction rules](https://docs.python.org/3.14/reference/datamodel.html#creating-the-class-object)
-explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
+explain these calls. Constructing imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
 
 ## Follow a helper through another function name
