@@ -831,8 +831,9 @@ impl Modules {
             let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
             let mut allocations = initializers::Allocations::default();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
-                let allocation = allocations.statement(node, source,
-                    |name| explicit_builtins || names.contains(name));
+                let allocation = allocations.statement(node, source, |name| {
+                    explicit_builtins || names.contains(name)
+                });
                 if matches!(allocation, Some(initializers::Statement::Population)) {
                     continue;
                 }

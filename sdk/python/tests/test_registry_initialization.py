@@ -143,6 +143,24 @@ def test_a_default_can_capture_a_registry_but_cannot_run_it(tmp_path):
     assert not analyze(client, rules, 'entry').report.at('/complete')
 
 
+@pytest.mark.parametrize('count,complete', [(122, True), (123, False)])
+def test_dictionary_constructor_keeps_the_existing_allocation_node_limit(tmp_path, count, complete):
+    client, rules = install(tmp_path, 'table = dict(items=[' + ','.join('0' for _ in range(count)) + '])')
+    result = analyze(client, rules, 'entry')
+    assert result.report.at('/complete') is complete
+    assert bool(result.initialization.sites) is (not complete)
+    assert observe(tmp_path)['result'] == 17
+
+
+@pytest.mark.parametrize('count,complete', [(119, True), (120, False)])
+def test_population_counts_the_entire_write_statement(tmp_path, count, complete):
+    client, rules = install(tmp_path, 'table = {}\ntable.update(items=[' + ','.join('0' for _ in range(count)) + '])')
+    result = analyze(client, rules, 'entry')
+    assert result.report.at('/complete') is complete
+    assert bool(result.initialization.sites) is (not complete)
+    assert observe(tmp_path)['result'] == 17
+
+
 @pytest.mark.parametrize('extra', ['table.update(send=source())', "table['send'] = source()", 'table = missing'])
 def test_population_edits_invalidate_saved_answers(tmp_path, extra):
     client, rules = install(tmp_path, 'table = dict(send=lambda: 0)', 'value')

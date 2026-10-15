@@ -818,8 +818,14 @@ impl Project<'_> {
                 .filter(|name| !module_aliases.contains(name))
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
-                let allocation = options.summaries.then(|| allocations.statement(node, text,
-                    |name| explicit_builtins || bound_names.contains(name))).flatten();
+                let allocation = options
+                    .summaries
+                    .then(|| {
+                        allocations.statement(node, text, |name| {
+                            explicit_builtins || bound_names.contains(name)
+                        })
+                    })
+                    .flatten();
                 if matches!(allocation, Some(initializers::Statement::Population)) {
                     continue;
                 }
@@ -918,7 +924,8 @@ impl Project<'_> {
                         });
                         continue;
                     }
-                    let literal = allocated.or_else(|| calls::module_literal(node, text))
+                    let literal = allocated
+                        .or_else(|| calls::module_literal(node, text))
                         .or_else(|| calls::module_collection(node, text))
                         .or_else(|| {
                             (!explicit_builtins)

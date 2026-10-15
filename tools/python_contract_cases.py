@@ -876,6 +876,43 @@ EXAMPLES.extend([
             complete=False, cutoff='module-effects-unchecked'),
 ])
 
+for key, setup in [
+    ('lambda', 'table = lambda value=0, /, *items, key=None, **options: unknown(value)\n'),
+    ('literal', "table = {'send': [lambda value: unknown(value)]}\n"),
+    ('constructor', "table = dict(send=lambda value: unknown(value), label='café')\n"),
+    ('combined', "table = dict({'send': lambda: missing()}, count=0)\n"),
+    ('item', "table = {}\ntable['send'] = lambda value: unknown(value)\n"),
+    ('update', 'table = dict()\ntable.update(send=lambda: missing())\n'),
+    ('replace', "table = {}\ntable['send'] = lambda: missing()\ntable.update(send=0)\n"),
+]:
+    for forwarded in (False, True):
+        EXAMPLES.append(example('startup-registry-' + key + ('-selected' if forwarded else '-discarded'),
+            'imports calls names returns boundaries', 'return sink(relay(source()))', [S, T if forwarded else ZERO],
+            17 if forwarded else 0, witness=forwarded, prelude='from helper import table, relay\n',
+            files={'helper.py': setup + 'def relay(value):\n    return ' + ('value' if forwarded else '0') + '\n'}))
+
+EXAMPLES.extend([
+    example('startup-registry-evaluated-value', 'imports calls names boundaries', 'return sink(relay(source()))',
+            [S, S, T], 17, witness=True, source_index=1, prelude='from helper import table, relay\n',
+            files={'helper.py': 'table = dict(send=source())\ndef relay(value):\n    return value\n'},
+            complete=False, cutoff='module-effects-unchecked'),
+    example('startup-registry-evaluated-default', 'defaults names calls boundaries', 'return sink(source())',
+            [S, S, T], 17, witness=True, source_index=1, prelude='table = lambda value=source(): value\n',
+            complete=False, cutoff='module-effects-unchecked'),
+    example('startup-registry-mutation-call', 'names calls boundaries', 'return sink(source())',
+            [S, S, T], 17, witness=True, source_index=1, prelude="table = {}\ntable['send'] = source()\n",
+            complete=False, cutoff='module-effects-unchecked'),
+    example('startup-registry-shared-write', 'imports names boundaries', 'return sink(source())',
+            [S, T], 17, witness=True, prelude="from helper import table\ntable['send'] = 0\n",
+            files={'helper.py': 'table = {}\n'}, complete=False, cutoff='module-effects-unchecked'),
+    example('startup-registry-global-read', 'names boundaries', 'table\nreturn sink(source())',
+            [S, T], 17, witness=True, prelude='table = dict(send=lambda: missing())\n',
+            complete=False, cutoff='unknown-binding:table'),
+    example('startup-registry-called-callback', 'names calls boundaries', "return sink(table['send'](source()))",
+            [S, T], 17, prelude="table = {'send': lambda value: value}\n",
+            complete=False, cutoff='unsupported-call-syntax'),
+])
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',

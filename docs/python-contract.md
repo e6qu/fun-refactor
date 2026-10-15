@@ -231,8 +231,70 @@ explain which expressions run while creating a collection.
 
 For example, `registry = {"input": read_input()}` executes a call during import and remains unchecked.
 Unpacking, comprehensions, names, formatted or template strings and computed values remain unsupported.
-Reading or mutating `registry` also leaves the answer incomplete. The allowance applies to distinct
+Reading `registry` also leaves the answer incomplete. The allowance applies to distinct
 ASCII module names; class attributes, function defaults and special metadata keep their existing rules.
+
+## Prepare a callback table without calling its entries
+
+A dictionary stores values under keys. A callback is a function stored for a later call;
+`lambda value: value` creates a function that returns its argument when called.
+Creating that function does not execute its body. Its defaults, however, are evaluated immediately.
+
+Suppose `helpers.py` prepares a table while your application imports an unrelated scalar helper:
+
+```python
+# helpers.py
+handlers = dict(send=lambda value: unknown_operation(value))
+handlers['label'] = 'example'
+handlers.update(blocked=lambda: 0)
+
+def relay(value):
+    return value
+
+# app.py
+from helpers import handlers, relay
+
+def entry():
+    return send(relay(read_input()))
+```
+
+Use the input/output rules at the start of this guide, find `entry`, and include `--imports`
+when asking for its trace. The example describes source files to analyze, not a script with
+implementations of `read_input()`, `send()` or `unknown_operation()`.
+The analyzer can finish this trace because preparing the table does not call its entries.
+Changing `relay` to return `0` removes the modeled connection even though the table stays the same.
+
+The checked construction forms are literal lists, tuples and dictionaries containing literals
+or deferred callbacks, plus unshadowed built-in `dict` calls.
+For example, `dict({'send': lambda value: value}, label='example')` combines a literal dictionary
+with named entries. Dictionaries can nest, and callbacks may have immutable scalar defaults.
+Imported allocations retain their defining file, declaration position and `allocation` value kind.
+Importing that value still does not permit reading its contents or calling it in a scalar trace.
+
+Item assignment and `update` are checked only for a dictionary created earlier in the same module.
+Keys must be hashable literals: ordinary strings, numbers, booleans, `None` or tuples of those values.
+Values must use the checked allocation forms. Replacing one such value cannot run a user finalizer.
+An allocation has the existing 128-node syntax allowance; a population operation counts its whole statement.
+Comments and wrappers count. The callback's body also counts toward the syntax limit even though it is deferred.
+
+These similar-looking changes leave the answer incomplete:
+
+| Change to the example | Why more checking is needed |
+| --- | --- |
+| `handlers = dict(send=read_input())` | Construction calls `read_input()` immediately. |
+| `handlers = dict(send=lambda value=read_input(): value)` | The callback default calls `read_input()` immediately. |
+| `handlers.update(send=read_input())` | Populating the table executes a call. |
+| `from other import handlers; handlers['label'] = 'example'` | The dictionary belongs to another module and may be shared. |
+| `configure(handlers); handlers['label'] = 'example'` | An unknown call may change the dictionary or expose it elsewhere. |
+| `handlers['send'](read_input())` inside `entry` | Calling stored callbacks and tracing shared objects need a different model. |
+
+Imports and unrecognized startup operations end the local ownership allowance.
+Aliases, nested item writes, unpacking, computed keys, custom objects and other dictionary methods remain unchecked.
+If the name `dict` was replaced by a local function or import, its spelling does not make it a built-in constructor.
+Package import limits, response limits and deadlines remain unchanged.
+This checks more startup syntax; it does not establish complete support for a utility package or reduced agent cost.
+
+## Declare package metadata
 
 A helper package can also declare ordinary release and author information:
 

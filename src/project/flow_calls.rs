@@ -55,7 +55,10 @@ pub(super) fn literal_default(node: Node<'_>, source: &str) -> bool {
     }
 }
 
-pub(super) fn literal_assignment<'s, 't>(node: Node<'t>, source: &'s str) -> Option<(&'s str, Node<'t>)> {
+pub(super) fn literal_assignment<'s, 't>(
+    node: Node<'t>,
+    source: &'s str,
+) -> Option<(&'s str, Node<'t>)> {
     if node.kind() != "expression_statement" || node.named_child_count() != 1 {
         return None;
     }

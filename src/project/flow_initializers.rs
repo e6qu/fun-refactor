@@ -1,4 +1,3 @@
-//! Bounded allocations and writes that cannot call user code during startup.
 use super::*;
 
 #[derive(Default)]
@@ -42,17 +41,24 @@ fn dictionary(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) ->
     if node.kind() == "dictionary" {
         return children(node).iter().all(|pair| {
             pair.kind() == "pair"
-                && pair.child_by_field_name("key")
+                && pair
+                    .child_by_field_name("key")
                     .is_some_and(|key| calls::collection_value(key, source, true))
-                && pair.child_by_field_name("value")
+                && pair
+                    .child_by_field_name("value")
                     .is_some_and(|node| value(node, source, shadowed))
         });
     }
-    let Some(function) = node.child_by_field_name("function").and_then(calls::unparenthesized) else {
+    let Some(function) = node
+        .child_by_field_name("function")
+        .and_then(calls::unparenthesized)
+    else {
         return false;
     };
-    if node.kind() != "call" || function.kind() != "identifier"
-        || &source[function.byte_range()] != "dict" || shadowed("dict")
+    if node.kind() != "call"
+        || function.kind() != "identifier"
+        || &source[function.byte_range()] != "dict"
+        || shadowed("dict")
     {
         return false;
     }
@@ -69,9 +75,11 @@ fn arguments(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) -> 
         let Some(name) = node.child_by_field_name("name") else {
             return false;
         };
-        name.kind() == "identifier" && source[name.byte_range()].is_ascii()
+        name.kind() == "identifier"
+            && source[name.byte_range()].is_ascii()
             && keywords.insert(&source[name.byte_range()])
-            && node.child_by_field_name("value")
+            && node
+                .child_by_field_name("value")
                 .is_some_and(|node| value(node, source, shadowed))
     })
 }
@@ -84,9 +92,12 @@ fn value(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) -> bool
         return true;
     }
     match node.kind() {
-        "lambda" => node.child_by_field_name("parameters").is_none()
-            || calls::definition_is_inert(node, source, false),
-        "list" | "tuple" | "expression_list" => children(node).iter()
+        "lambda" => {
+            node.child_by_field_name("parameters").is_none()
+                || calls::definition_is_inert(node, source, false)
+        }
+        "list" | "tuple" | "expression_list" => children(node)
+            .iter()
             .all(|node| value(*node, source, shadowed)),
         "dictionary" | "call" => dictionary(node, source, shadowed),
         _ => false,
@@ -107,7 +118,6 @@ impl<'s> Allocations<'s> {
                 if !shadowed(name) && dictionary(right, source, &shadowed) {
                     self.dictionaries.insert(name);
                 }
-                // Preserve existing literal records and their declaration kind.
                 if calls::module_literal(node, source).is_none()
                     && calls::module_collection(node, source).is_none()
                 {
@@ -120,13 +130,13 @@ impl<'s> Allocations<'s> {
             return Some(Statement::Population);
         }
         if matches!(node.kind(), "comment" | "pass_statement")
-            || node.kind() == "function_definition" && calls::definition_is_inert(node, source, false)
+            || node.kind() == "function_definition"
+                && calls::definition_is_inert(node, source, false)
             || calls::module_metadata(node, source).is_some()
             || calls::module_export_list(node, source).is_some()
         {
             return None;
         }
-        // Imports, escaped objects, rebinding and unknown calls end local ownership.
         self.dictionaries.clear();
         None
     }
@@ -135,24 +145,51 @@ impl<'s> Allocations<'s> {
         if node.kind() != "expression_statement" || node.named_child_count() != 1 {
             return false;
         }
-        let Some(expression) = node.named_child(0) else { return false; };
+        let Some(expression) = node.named_child(0) else {
+            return false;
+        };
         if expression.kind() == "assignment" && expression.child_by_field_name("type").is_none() {
-            let Some(left) = expression.child_by_field_name("left") else { return false; };
-            let Some(object) = left.child_by_field_name("value").and_then(calls::unparenthesized) else { return false; };
-            return left.kind() == "subscript" && object.kind() == "identifier"
+            let Some(left) = expression.child_by_field_name("left") else {
+                return false;
+            };
+            let Some(object) = left
+                .child_by_field_name("value")
+                .and_then(calls::unparenthesized)
+            else {
+                return false;
+            };
+            return left.kind() == "subscript"
+                && object.kind() == "identifier"
                 && self.dictionaries.contains(&source[object.byte_range()])
                 && children(left).len() == 2
-                && left.child_by_field_name("subscript")
+                && left
+                    .child_by_field_name("subscript")
                     .is_some_and(|key| calls::collection_value(key, source, true))
-                && expression.child_by_field_name("right")
+                && expression
+                    .child_by_field_name("right")
                     .is_some_and(|node| value(node, source, shadowed));
         }
-        let Some(function) = expression.child_by_field_name("function").and_then(calls::unparenthesized) else { return false; };
-        let Some(object) = function.child_by_field_name("object").and_then(calls::unparenthesized) else { return false; };
-        expression.kind() == "call" && function.kind() == "attribute" && object.kind() == "identifier"
+        let Some(function) = expression
+            .child_by_field_name("function")
+            .and_then(calls::unparenthesized)
+        else {
+            return false;
+        };
+        let Some(object) = function
+            .child_by_field_name("object")
+            .and_then(calls::unparenthesized)
+        else {
+            return false;
+        };
+        expression.kind() == "call"
+            && function.kind() == "attribute"
+            && object.kind() == "identifier"
             && self.dictionaries.contains(&source[object.byte_range()])
-            && function.child_by_field_name("attribute").is_some_and(|name| &source[name.byte_range()] == "update")
-            && expression.child_by_field_name("arguments")
+            && function
+                .child_by_field_name("attribute")
+                .is_some_and(|name| &source[name.byte_range()] == "update")
+            && expression
+                .child_by_field_name("arguments")
                 .is_some_and(|args| arguments(args, source, shadowed))
     }
 }
