@@ -140,15 +140,17 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_
                 created, creation_output, creation_error = execute(create_command(grader, staged, name), b"", root, 10, 65536)
                 require(created["exit_code"] == 0 and not created["stop_reason"],
                         "container creation failed: " + json.dumps(failure_details(created, creation_output, creation_error)))
-                execution, output, error = execute(DOCKER + ["start", "--attach", "--interactive", name],
+                execution, output, execution_error = execute(DOCKER + ["start", "--attach", "--interactive", name],
                                                    case["stdin"].encode(), root, limits["wall_seconds"], limits["output_bytes"])
-                inspected, state, _ = execute(DOCKER + ["inspect", "--format", "{{json .State}}", name], b"", root, 5, 65536)
-                require(inspected["exit_code"] == 0 and not inspected["stop_reason"], "container state unavailable")
-                state = json.loads(state)
-                verdict.update(execution=execution, container_state=state,
+                verdict.update(execution=execution,
                                stdout_sha256=hashlib.sha256(output).hexdigest(),
-                               stderr_sha256=hashlib.sha256(error).hexdigest(), stdout_bytes=len(output), stderr_bytes=len(error),
-                               stdout_base64=base64.b64encode(output).decode(), stderr_base64=base64.b64encode(error).decode())
+                               stderr_sha256=hashlib.sha256(execution_error).hexdigest(), stdout_bytes=len(output), stderr_bytes=len(execution_error),
+                               stdout_base64=base64.b64encode(output).decode(), stderr_base64=base64.b64encode(execution_error).decode())
+                inspected, state, inspection_error = execute(DOCKER + ["inspect", "--format", "{{json .State}}", name], b"", root, 5, 65536)
+                require(inspected["exit_code"] == 0 and not inspected["stop_reason"],
+                        "container state unavailable: " + json.dumps(failure_details(inspected, state, inspection_error)))
+                state = json.loads(state)
+                verdict["container_state"] = state
                 verdict["passed"] = (not execution["stop_reason"] and not state["Running"]
                                      and not state["OOMKilled"] and not state.get("Error")
                                      and state["ExitCode"] == case["exit_code"] and output == case["stdout"].encode())
@@ -162,6 +164,7 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_
                         "grader container cleanup failed; stop the worker: " + json.dumps({
                             "case": case["id"][:128], "container": name,
                             "prior_failure": verdict["failure"][:1024] if verdict["failure"] else None,
+                            "execution": failure_details(execution, output, execution_error) if "execution" in verdict else None,
                             "cleanup": failure_details(removed, cleanup_output, cleanup_error)}))
             results.append(verdict)
     return {"schema": "fr-isolated-grade-1", "grader_sha256": expected_sha256, "candidate": retained,

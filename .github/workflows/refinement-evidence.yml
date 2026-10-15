@@ -347,6 +347,11 @@ jobs:
           echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
       - name: Refresh generated prose and check documentation links
         run: python3 -B tools/review-docs.py --write
+      - name: Check the native document link reader without building the project
+        run: |
+          rustup toolchain install stable --profile minimal
+          CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE" rustc --edition=2021 --test tests/docs_links.rs -o "$RUNNER_TEMP/fr-docs-links"
+          "$RUNNER_TEMP/fr-docs-links" --test-threads=1
       - name: Validate the retained Python contract after documentation edits
         run: python3 -B tools/test-python-contract.py
       - name: Check writing counts and exact generated results
@@ -418,6 +423,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_shared_named_imports.py sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
 
   workflow-routes:

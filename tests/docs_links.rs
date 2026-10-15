@@ -32,8 +32,9 @@ fn documents() -> BTreeSet<String> {
 
 /// The relative Markdown link targets in one file.
 fn links_in(text: &str) -> Vec<String> {
+    let text = without_code(text);
     let mut found = Vec::new();
-    let mut rest = text;
+    let mut rest = text.as_str();
     while let Some(open) = rest.find("](") {
         let after = &rest[open + 2..];
         let Some(close) = after.find(')') else { break };
@@ -45,6 +46,126 @@ fn links_in(text: &str) -> Vec<String> {
         found.push(target.split('#').next().unwrap_or(target).to_string());
     }
     found
+}
+
+fn without_code(text: &str) -> String {
+    let mut prose = String::new();
+    let mut fence = None;
+    for line in text.lines() {
+        let trimmed = line.trim_start();
+        let marker = trimmed.as_bytes().first().copied();
+        let width = trimmed
+            .bytes()
+            .take_while(|byte| Some(*byte) == marker)
+            .count();
+        if matches!(marker, Some(b'`' | b'~')) && width >= 3 {
+            if let Some((opening, length)) = fence {
+                if marker == Some(opening) && width >= length && trimmed[width..].trim().is_empty()
+                {
+                    fence = None;
+                }
+                prose.push('\n');
+                continue;
+            }
+            if marker != Some(b'`') || !trimmed[width..].contains('`') {
+                fence = Some((marker.unwrap(), width));
+                prose.push('\n');
+                continue;
+            }
+        }
+        if fence.is_none() {
+            prose.push_str(line);
+        }
+        prose.push('\n');
+    }
+    let mut visible = String::new();
+    let mut rest = prose.as_str();
+    while let Some(start) = rest.find('`') {
+        if rest[..start]
+            .bytes()
+            .rev()
+            .take_while(|byte| *byte == b'\\')
+            .count()
+            % 2
+            == 1
+        {
+            visible.push_str(&rest[..start + 1]);
+            rest = &rest[start + 1..];
+            continue;
+        }
+        visible.push_str(&rest[..start]);
+        rest = &rest[start..];
+        let width = rest.bytes().take_while(|byte| *byte == b'`').count();
+        let mut search = width;
+        let mut closing = None;
+        while let Some(offset) = rest[search..].find('`') {
+            let position = search + offset;
+            if rest[width..position].contains("\n\n") {
+                break;
+            }
+            let length = rest[position..]
+                .bytes()
+                .take_while(|byte| *byte == b'`')
+                .count();
+            if length == width {
+                closing = Some(position + length);
+                break;
+            }
+            search = position + length;
+        }
+        if let Some(end) = closing {
+            visible.push(' ');
+            rest = &rest[end..];
+        } else {
+            visible.push_str(&rest[..width]);
+            rest = &rest[width..];
+        }
+    }
+    visible.push_str(rest);
+    visible
+}
+
+#[test]
+fn link_extraction_ignores_code_and_retains_real_targets() {
+    assert_eq!(
+        links_in("`handlers['send'](read_input())` and [missing](missing.md)"),
+        ["missing.md"]
+    );
+    assert_eq!(
+        links_in("``code `items[0](value)` here`` [real](guide.md#example)"),
+        ["guide.md"]
+    );
+    assert_eq!(
+        links_in("[`helper['send'](value)`](guide.md)"),
+        ["guide.md"]
+    );
+    assert_eq!(links_in("`unclosed [real](missing.md)"), ["missing.md"]);
+    assert_eq!(
+        links_in("\\`literal [real](missing.md) \\`"),
+        ["missing.md"]
+    );
+    assert_eq!(
+        links_in("`` unmatched ` [real](missing.md)"),
+        ["missing.md"]
+    );
+}
+
+#[test]
+fn link_extraction_ignores_fenced_code_without_hiding_following_links() {
+    for (opening, closing, inner) in [
+        ("```python", "```", "``"),
+        ("~~~~text", "~~~~~", "```"),
+        ("````", "`````", "```"),
+    ] {
+        let text = format!(
+            "[before](before.md)\n{opening}\n[example](fake.md)\n{inner}\n{closing}\n[after](after.md)"
+        );
+        assert_eq!(links_in(&text), ["before.md", "after.md"]);
+    }
+    assert_eq!(
+        links_in("```inline [fake](fake.md)``` [real](guide.md)"),
+        ["guide.md"]
+    );
 }
 
 fn repository_name(from: &str, target: &str) -> Option<String> {

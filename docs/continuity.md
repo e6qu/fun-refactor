@@ -43,7 +43,7 @@ The [Python guide](python-contract.md) owns supported behavior. The [library res
 | Does input pass through Funcy's `inc`? | The search reaches its existing 16-file limit | Check which remaining imports and startup statements affect the selected helper within that bound |
 | Does input pass through Pydash's `add`? | The search reaches its existing 256 KiB source limit | Investigate checking the helper and relevant startup code within that bound |
 
-The most recent language change shares one provider search among names in the same `from` statement.
+The previous import-search change shares one provider search among names in the same `from` statement.
 For `from helpers import add, subtract`, it finds `helpers` once while retaining both names and their binding order.
 Child-module searches still count separately. No search or source limit increased.
 
@@ -54,15 +54,23 @@ Funcy still has 80 across 16 files; Toolz still has 92 across 14.
 All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-output-budget refusals.
 These counts describe analysis progress, not complete package support or lower agent cost.
 
+The current language change checks harmless registry construction and local dictionary writes.
+A registry is a table holding values or functions for later use.
+For example, `handlers = dict(send=lambda value: value)` creates a function without calling it.
+The [callback-table example](python-contract.md#prepare-a-callback-table-without-calling-its-entries)
+compares that setup with an evaluated default or an imported shared dictionary.
+Reading the table's contents, calling its stored functions and arbitrary package startup remain unfinished.
+Keep those limits visible when reviewing the fresh package replay; more supported syntax alone does not close the real-project requirement.
+
 ## Keep the next unfamiliar test useful
 
 Jaraco.functools remains unread. Keep it that way during development, then freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [language-change collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json) identifies the results from the last analyzer change.
-The reader review refreshes the [Python example receipt](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) separately because its guide text changed.
-Its 347 programs and 694 original or renamed cases are unchanged; the other runtime sources are unchanged.
+The [language-change collection receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json) identifies the current analyzer collection.
+The [Python example receipt](../tests/agent-eval/results/2026-10-15-registry-startup-python-contract/manifest.json)
+covers 367 programs and 734 original or renamed cases, including the new callback-table comparisons.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.

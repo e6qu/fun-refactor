@@ -12,7 +12,40 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-reader-review-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-registry-startup-python-contract/result.json'
+
+
+class RegistryAllocations(unittest.TestCase):
+    def accepts(self, text):
+        import ast
+        from python_contract_allocations import audit_declaration
+        statements = ast.parse(text).body
+        return audit_declaration(statements[-1], statements)
+
+    def test_callback_body_is_deferred_but_default_is_evaluated(self):
+        self.assertTrue(self.accepts('table = dict(send=lambda: source())'))
+        self.assertFalse(self.accepts('table = dict(send=lambda value=source(): value)'))
+
+    def test_constructor_values_are_not_assumed_harmless(self):
+        for expression in ('dict(send=source())', 'dict(missing)', 'dict(**{})', 'dict([(0, 1)])'):
+            self.assertFalse(self.accepts('table = ' + expression))
+
+    def test_dictionary_keys_cannot_run_custom_hashing(self):
+        self.assertTrue(self.accepts("table = {('key', 0): lambda: missing()}"))
+        self.assertFalse(self.accepts('table = {Key(): lambda: missing()}'))
+        self.assertFalse(self.accepts('table = {[]: lambda: missing()}'))
+
+    def test_replaced_builtin_is_not_accepted_by_spelling(self):
+        for setup in ('dict = custom', 'def dict(**items):\n    return items',
+                      'from helper import dict', 'from helper import *', '__builtins__ = custom'):
+            self.assertFalse(self.accepts(setup + '\ntable = dict(send=lambda: 0)'))
+
+    def test_literal_dictionary_does_not_call_a_shadowed_constructor(self):
+        self.assertTrue(self.accepts("dict = custom\ntable = {'send': lambda: 0}"))
+
+    def test_mutable_and_global_defaults_remain_outside_the_contract(self):
+        for default in ('[]', '{}', 'missing', 'source()'):
+            self.assertFalse(self.accepts('table = lambda value=' + default + ': value'))
 
 
 class PythonContract(unittest.TestCase):

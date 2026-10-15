@@ -27,7 +27,7 @@ enum Phase {
     Call,
 }
 
-fn literal_default(node: Node<'_>, source: &str) -> bool {
+pub(super) fn literal_default(node: Node<'_>, source: &str) -> bool {
     match node.kind() {
         "none" | "true" | "false" | "integer" | "float" => true,
         "string" => {
@@ -55,7 +55,10 @@ fn literal_default(node: Node<'_>, source: &str) -> bool {
     }
 }
 
-fn literal_assignment<'s, 't>(node: Node<'t>, source: &'s str) -> Option<(&'s str, Node<'t>)> {
+pub(super) fn literal_assignment<'s, 't>(
+    node: Node<'t>,
+    source: &'s str,
+) -> Option<(&'s str, Node<'t>)> {
     if node.kind() != "expression_statement" || node.named_child_count() != 1 {
         return None;
     }
@@ -229,7 +232,7 @@ pub(super) fn explicit_builtins(root: Node<'_>, source: &str) -> bool {
     }
 }
 
-fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
+pub(super) fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
     match node.kind() {
         "parenthesized_expression" => {
             let children: Vec<_> = node
@@ -284,24 +287,28 @@ fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> bool {
     }
 }
 
-pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
-    let (name, value) = literal_assignment(node, source)?;
-    if name.starts_with("__") && name.ends_with("__") {
-        return None;
-    }
-    let mut pending = vec![value];
+pub(super) fn initialization_fits(node: Node<'_>) -> bool {
+    let mut pending = vec![node];
     let mut count = 0;
     while let Some(node) = pending.pop() {
         count += 1;
         if count > 128 {
-            return None;
+            return false;
         }
         for child in node.named_children(&mut node.walk()) {
             if count + pending.len() >= 128 {
-                return None;
+                return false;
             }
             pending.push(child);
         }
+    }
+    true
+}
+
+pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+    let (name, value) = literal_assignment(node, source)?;
+    if name.starts_with("__") && name.ends_with("__") || !initialization_fits(value) {
+        return None;
     }
     let mut root = value;
     while root.kind() == "parenthesized_expression" {
@@ -325,7 +332,7 @@ pub(super) fn metadata_name(name: &str) -> bool {
     )
 }
 
-fn unparenthesized(mut node: Node<'_>) -> Option<Node<'_>> {
+pub(super) fn unparenthesized(mut node: Node<'_>) -> Option<Node<'_>> {
     while node.kind() == "parenthesized_expression" {
         let mut cursor = node.walk();
         let mut children = node
@@ -452,22 +459,8 @@ pub(super) fn module_type_registry<'s>(
     shadowed: impl Fn(&str) -> bool,
 ) -> Option<&'s str> {
     let (name, value) = literal_assignment(node, source)?;
-    if name.starts_with("__") && name.ends_with("__") {
+    if name.starts_with("__") && name.ends_with("__") || !initialization_fits(value) {
         return None;
-    }
-    let mut pending = vec![value];
-    let mut count = 0;
-    while let Some(node) = pending.pop() {
-        count += 1;
-        if count > 128 {
-            return None;
-        }
-        for child in node.named_children(&mut node.walk()) {
-            if count + pending.len() >= 128 {
-                return None;
-            }
-            pending.push(child);
-        }
     }
     let value = unparenthesized(value)?;
     if value.kind() != "dictionary" {
@@ -950,7 +943,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"Module function bodies defer with literal or known prior defaults, including variadics. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
-        "initialization":"Literals, aliases, builtin refs/maps and exports are inert. Bases: none or unshadowed object/dict/Exception. Plain instances and prior function __doc__ writes are inert. Other effects stay unchecked.",
+        "initialization":"Inert: literals/aliases, builtin refs/maps, exports, plain instances, prior function __doc__. Bases: none/unshadowed object/dict/Exception. Lambda/dict setup/item/update <=128 nodes; own writes only.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

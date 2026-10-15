@@ -584,7 +584,7 @@ pub(super) fn value_bindings_valid(modules: &Value) -> bool {
             || offset >= BYTE_LIMIT as u64
             || !matches!(
                 value["kind"].as_str(),
-                Some("literal" | "class" | "instance" | "registry")
+                Some("literal" | "class" | "instance" | "registry" | "allocation")
             )
             || !declarations.insert((path, name))
             || previous.is_some_and(|previous| previous >= (path, offset))
@@ -829,7 +829,18 @@ impl Modules {
             let declared_exports = calls::declared_exports(parsed.root(), source);
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
             let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
+            let mut allocations = initializers::Allocations::default();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                let allocation = allocations.statement(node, source, |name| {
+                    explicit_builtins || names.contains(name)
+                });
+                if matches!(allocation, Some(initializers::Statement::Population)) {
+                    continue;
+                }
+                let allocated = match allocation {
+                    Some(initializers::Statement::Declaration(name)) => Some(name),
+                    _ => None,
+                };
                 if calls::module_export_list(node, source).is_some() {
                     literals.insert("__all__".to_owned());
                     if !names.insert("__all__".to_owned()) {
@@ -862,6 +873,7 @@ impl Modules {
                     .flatten();
                 let value = registry
                     .map(|name| (name, "registry"))
+                    .or_else(|| allocated.map(|name| (name, "allocation")))
                     .or_else(|| class.map(|(name, _)| (name, "class")))
                     .or_else(|| {
                         calls::module_instance(node, source, &classes)

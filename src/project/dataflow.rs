@@ -19,6 +19,9 @@ mod assignments;
 #[path = "flow_calls.rs"]
 mod calls;
 
+#[path = "flow_initializers.rs"]
+mod initializers;
+
 pub(super) fn call_contract() -> Value {
     calls::contract()
 }
@@ -800,6 +803,7 @@ impl Project<'_> {
             let mut default_values = BTreeSet::new();
             let mut default_scalars = BTreeSet::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
+            let mut allocations = initializers::Allocations::default();
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
                 .and_then(|modules| modules.function_aliases.get(file))
@@ -814,6 +818,21 @@ impl Project<'_> {
                 .filter(|name| !module_aliases.contains(name))
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                let allocation = options
+                    .summaries
+                    .then(|| {
+                        allocations.statement(node, text, |name| {
+                            explicit_builtins || bound_names.contains(name)
+                        })
+                    })
+                    .flatten();
+                if matches!(allocation, Some(initializers::Statement::Population)) {
+                    continue;
+                }
+                let allocated = match allocation {
+                    Some(initializers::Statement::Declaration(name)) => Some(name),
+                    _ => None,
+                };
                 if options.summaries {
                     if calls::module_function_doc(node, text)
                         .is_some_and(|name| documentable.contains(name))
@@ -905,7 +924,8 @@ impl Project<'_> {
                         });
                         continue;
                     }
-                    let literal = calls::module_literal(node, text)
+                    let literal = allocated
+                        .or_else(|| calls::module_literal(node, text))
                         .or_else(|| calls::module_collection(node, text))
                         .or_else(|| {
                             (!explicit_builtins)

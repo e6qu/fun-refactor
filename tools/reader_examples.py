@@ -97,16 +97,44 @@ def first_trace(binary, folder):
     return 2
 
 
+def registry_trace(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Prepare a callback table without calling its entries\n', 1)[1].split('\n## ', 1)[0]
+    source, = blocks(lesson, 'python')
+    helper, app = source.removeprefix('# helpers.py\n').split('# app.py\n', 1)
+    (folder / 'app.py').write_text(app)
+    (folder / 'rules.json').write_text(blocks(page, 'json')[0])
+    variants = [
+        (helper, True, True),
+        (helper.replace('\n    return value\n', '\n    return 0\n'), True, False),
+        (helper.replace('lambda value: unknown_operation(value)', 'read_input()'), False, True),
+    ]
+    assert len({source for source, _, _ in variants}) == 3
+    for source, complete, reaches in variants:
+        (folder / 'helpers.py').write_text(source)
+        found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
+        assert len(found['rows']) == 1 and found['page']['remaining'] == 0
+        target = dict(zip(found['columns'], found['rows'][0]))['handle']
+        result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
+                                     '--summaries', '--imports', '--rules', 'rules.json'])
+        assert result['complete'] is complete, result.get('cutoffs')
+        assert bool(result['witnesses']) is reaches
+    return len(variants)
+
+
 def check(binary):
     measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
         root = Path(directory)
-        change, trace = root / 'change', root / 'trace'
+        change, trace, registry = root / 'change', root / 'trace', root / 'registry'
         change.mkdir()
         trace.mkdir()
+        registry.mkdir()
         commands = first_change(binary, change)
         traces = first_trace(binary, trace)
+        setups = registry_trace(binary, registry)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
+            'registry_setup_examples': setups,
             'verified_measurement_rows': measurements}
 
 
