@@ -723,6 +723,38 @@ EXAMPLES.extend([
             complete=False, cutoff='module-effects-unchecked'),
 ])
 
+WIDE_NAMES = ['relay', *[f'helper{index}' for index in range(127)]]
+WIDE_PROVIDER = '__all__ = ' + repr(WIDE_NAMES) + '\n' + ''.join(
+    f'def {name}(value):\n    return value\n' for name in WIDE_NAMES)
+MARKER_NAMES = ['EMPTY', *WIDE_NAMES[:-1]]
+VALUE_MODULES = {name + '.py': '__all__ = ' + repr([f'{name}{index}' for index in range(65)]) + '\n' +
+                 ''.join(f'{name}{index} = 0\n' for index in range(65)) for name in ('left', 'right')}
+EXAMPLES.extend([
+    example('shared-star-wide-forward', 'imports calls names locations', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from helper import *\n', files={'helper.py': WIDE_PROVIDER}),
+    example('shared-star-wide-discard', 'imports calls returns', 'return sink(relay(source()))', [S, ZERO], 0,
+            prelude='from helper import *\n', files={'helper.py': WIDE_PROVIDER.replace('def relay(value):\n    return value', 'def relay(value):\n    return 0')}),
+    example('shared-star-reexport', 'imports calls names locations', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from bridge import *\n', files={'helper.py': WIDE_PROVIDER,
+            'bridge.py': '__all__ = ' + repr(WIDE_NAMES) + '\nfrom helper import *\n'}),
+    example('shared-star-marker', 'imports defaults names boundaries', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from helper import *\ndef unused(key=EMPTY):\n    return key\n',
+            files={'helper.py': '__all__ = ' + repr(MARKER_NAMES) + '\nclass Token:\n    pass\nEMPTY = Token()\n' +
+                   ''.join(f'def {name}(value):\n    return value\n' for name in WIDE_NAMES[:-1])}),
+    example('shared-star-startup', 'imports names boundaries', 'return sink(0)', [S, T, ZERO], 0,
+            prelude='from helper import *\n', files={'helper.py': WIDE_PROVIDER + 'sink(source())\n'},
+            complete=False, cutoff='module-effects-unchecked'),
+    example('shared-star-child', 'imports calls locations', 'return sink(inner.relay(source()))', [S, T], 17,
+            witness=True, prelude='from pack import *\n', files={'pack/__init__.py': "__all__ = ['inner', 'leaf']\n",
+            'pack/inner.py': 'def relay(value):\n    return value\n', 'pack/leaf.py': 'pass\n'}),
+    example('shared-star-over-export-limit', 'imports calls boundaries', 'return sink(relay(source()))', [S, T], 17,
+            witness=True, prelude='from helper import *\n', files={'helper.py': WIDE_PROVIDER.replace(repr(WIDE_NAMES), repr([*WIDE_NAMES, 'extra'])) +
+            'def extra(value):\n    return value\n'}, complete=False, cutoff='star-exports-unchecked'),
+    example('shared-star-value-limit', 'imports names boundaries', 'return sink(source())', [S, T], 17,
+            prelude='from left import *\nfrom right import *\n', files=VALUE_MODULES,
+            refusal='import value declaration budget exceeds 128'),
+])
+
 EXAMPLES.extend([
     example('named-default-prior-scalar', 'defaults names boundaries', 'return sink(source())', [S, T], 17,
             witness=True, prelude='marker = 0\ndef unused(key=marker):\n    raise RuntimeError()\n'),

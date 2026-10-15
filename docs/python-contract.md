@@ -483,6 +483,23 @@ A listed name beginning with `_` still counts as an export. Python defines these
 [import reference](https://docs.python.org/3.14/reference/simple_stmts.html#the-import-statement).
 
 The supported declaration uses plain quoted ASCII names in one list or tuple.
+Each declaration admits at most 128 names. A wildcard import searches for its provider once,
+then keeps a binding record for every exported name. For example, if a module exports `relay`
+and 127 other functions, asking whether `send(relay(read_input()))` carries input does not require
+128 separate searches for the same module. Its startup code remains part of the answer.
+
+Ordinary imports and wildcard provider searches share the existing 128-search budget. A package-child
+search caused by a wildcard member also consumes that budget. The source limit stays at 256 KiB
+across at most 16 modules. More than 128 distinct imported value declarations refuses analysis;
+sharing a provider search does not remove that declaration limit.
+
+The current dependency record stores each search in `inputs.modules.lookups`. A wildcard record
+contains its literal `exports` and matching `members`; each member keeps its name, resolution,
+binding chain, child search and terminal module. Its provider candidates appear once. Other import
+records have an empty `members` list. Missing, repeated or invented members fail validation.
+The SDK's `analysis.dependencies.lookups` exposes the expanded binding evidence, while
+`analysis.dependencies.lookup_count` reports the searches charged against the budget.
+
 Computed export sets, direct mutations, aliases to the export list and missing declarations remain incomplete.
 Colliding imports or local bindings also remain incomplete. A listed package child must preserve an
 existing package object before considering a file. Other import-time effects remain unchecked.

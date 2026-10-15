@@ -46,6 +46,7 @@ def bindings():
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',
+                 'sdk/python/tests/test_shared_star_imports.py', 'sdk/python/tests/test_star_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -284,7 +285,11 @@ def audit_case(row, case):
                 'module source inventory changed')
         require(dependencies.complete is modules['complete'], 'module completeness changed')
         directories = {str(parent) for path in case['files'] for parent in Path(path).parents if str(parent) != '.'}
-        for lookup in [modules['entry'], *modules['lookups']]:
+        searches = [modules['entry'], *modules['lookups']]
+        searches.extend(lookup['submodule'] for lookup in modules['lookups'] if lookup['submodule'] is not None)
+        searches.extend(member['submodule'] for lookup in modules['lookups'] for member in lookup['members']
+                        if member['submodule'] is not None)
+        for lookup in searches:
             for path, fact in lookup['candidates'].items():
                 expected = ({'status': 'source', 'digest': profile.compiler.digest(case['files'][path])}
                             if path in case['files'] else

@@ -11,6 +11,49 @@ from typing import Any
 from .investigation import Dependency, DependencyKind
 from .runtime import FrReport, FrRuntimeError
 
+MODULE_POLICY = ("Single-root static modules/packages; wildcard names share module searches and retain per-name bindings. "
+                 "Checked annotations directives require absent local __future__ candidates. Dynamic initialization/imports, "
+                 "merged namespaces, implicit children and search paths stay unchecked.")
+
+
+def _expanded_lookups(modules: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
+    limits = modules["limits"]
+    if (modules["policy"] != MODULE_POLICY or not isinstance(limits, dict)
+            or any(type(value) is not int for value in limits.values()) or limits != {
+            "modules": 16, "source_bytes": 262144, "imports": 128, "module_components": 16, "binding_chain": 16}):
+        raise FrRuntimeError("unsupported module lookup contract")
+    records = modules["lookups"]
+    if not isinstance(records, list) or len(records) > 128:
+        raise FrRuntimeError("import lookup count exceeds its budget")
+    fields = {"module", "candidates", "packages", "namespaces", "target", "admitted", "importer", "alias",
+              "member", "prefix", "exports", "future", "submodule", "resolution", "binding_chain", "terminal_module", "members"}
+    member_fields = {"name", "resolution", "binding_chain", "submodule", "terminal_module"}
+    expanded = []
+    count = len(records)
+    for record in records:
+        if not isinstance(record, dict) or set(record) != fields:
+            raise FrRuntimeError("malformed compact import lookup")
+        members = record["members"]
+        if not isinstance(members, list) or len(members) > 128 or record["alias"] != "*" and members:
+            raise FrRuntimeError("malformed wildcard member inventory")
+        if record["alias"] == "*" and (record["exports"] is not None and not isinstance(record["exports"], list)
+                or [member.get("name") if isinstance(member, dict) else None for member in members] != (record["exports"] or [])):
+            raise FrRuntimeError("wildcard member inventory differs from its exports")
+        anchor = {key: value for key, value in record.items() if key != "members"}
+        anchor["star"] = None
+        index = len(expanded)
+        expanded.append(anchor)
+        for member in members:
+            if not isinstance(member, dict) or set(member) != member_fields:
+                raise FrRuntimeError("malformed wildcard binding")
+            count += member["submodule"] is not None
+            expanded.append({**anchor, **{key: value for key, value in member.items() if key != "name"},
+                             "alias": member["name"], "member": member["name"], "prefix": member["name"],
+                             "exports": None, "star": index})
+    if count > 128:
+        raise FrRuntimeError("wildcard child searches exceed the import budget")
+    return expanded, count
+
 
 def _path(value: Any) -> str:
     if (not isinstance(value, str) or not value or "\\" in value
@@ -243,6 +286,7 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], namespac
 
 @dataclass(frozen=True)
 class FlowDependencies:
+    """Source dependencies; lookups expand per-name evidence, lookup_count counts module searches."""
     files: tuple[tuple[str, str], ...]
     lookups: tuple[ImportLookup, ...]
     function_aliases: tuple[FunctionAlias, ...]
@@ -252,6 +296,7 @@ class FlowDependencies:
     _dependency: Dependency
     entry: ImportResolution
     namespaces: tuple[str, ...]
+    lookup_count: int
 
     @property
     def dependency(self) -> Dependency:
@@ -331,8 +376,9 @@ class FlowDependencies:
             if modules["complete"] and any(
                     _special_attribute(part) for part in entry.module.split(".")[1:]):
                 raise FrRuntimeError("complete closure includes a special child module")
+            records, lookup_count = _expanded_lookups(modules)
             lookups = []
-            for item in modules["lookups"]:
+            for item in records:
                 future = item["future"]
                 if type(future) is not bool:
                     raise FrRuntimeError("future import marker must be a boolean")
@@ -406,8 +452,6 @@ class FlowDependencies:
                    for lookup in lookups for hop in lookup.binding_chain):
                 raise FrRuntimeError("invalid re-export member name")
             _binding_chains(lookups, paths, frozenset(namespaces), function_aliases, value_bindings)
-            if len(lookups) > 128:
-                raise FrRuntimeError("import lookup count exceeds its budget")
             resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None)]
             expected_namespaces = {path for resolution in resolutions if resolution is not None and resolution.admitted
                                    for path in resolution.namespaces}
@@ -424,6 +468,6 @@ class FlowDependencies:
                      "rules": rules, "context": inputs["context"], **inputs["budget"]}
             dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
                                     _digest(data["input_digest"]))
-            return cls(files, tuple(lookups), function_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces)
+            return cls(files, tuple(lookups), function_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed flow dependencies") from error

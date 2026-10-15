@@ -686,15 +686,106 @@ fn literal_export_lists_expand_star_imports_with_exact_definition_chains() {
             lookups.iter().filter(|item| item["alias"] == "*").count(),
             2
         );
-        for (index, item) in lookups.iter().enumerate() {
+        for item in lookups {
             if item["alias"] == "*" {
                 assert_eq!(item["exports"], json!(["relay"]));
-                assert!(lookups
-                    .iter()
-                    .any(|member| member["star"] == index && member["member"] == "relay"));
+                assert_eq!(item["members"][0]["name"], "relay");
             }
         }
     }
+}
+
+#[test]
+fn wide_star_exports_share_candidates_without_dropping_binding_chains() {
+    let root = tempfile::tempdir().unwrap();
+    let names: Vec<_> = std::iter::once("relay".to_owned())
+        .chain((0..127).map(|index| format!("helper{index}")))
+        .collect();
+    let mut helper = format!("__all__ = {}\n", serde_json::to_string(&names).unwrap());
+    for name in &names {
+        helper.push_str(&format!("def {name}(value):\n    return value\n"));
+    }
+    write(root.path(), "helpers.py", &helper);
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import *\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{report}");
+    let lookups = report["inputs"]["modules"]["lookups"].as_array().unwrap();
+    assert_eq!(lookups.len(), 1);
+    let members = lookups[0]["members"].as_array().unwrap();
+    assert_eq!(members.len(), 128);
+    for member in members {
+        assert_eq!(member.as_object().unwrap().len(), 5);
+        assert_eq!(member["resolution"], "function");
+        assert_eq!(
+            member["binding_chain"],
+            json!([{"path":"helpers.py","name":member["name"]}])
+        );
+    }
+    assert_eq!(report["inputs"]["modules"]["limits"]["imports"], 128);
+}
+
+#[test]
+fn wildcard_child_searches_cannot_escape_the_import_limit() {
+    let root = tempfile::tempdir().unwrap();
+    let names: Vec<_> = (0..128).map(|index| format!("child{index:03}")).collect();
+    write(
+        root.path(),
+        "pkg/__init__.py",
+        &format!("__all__ = {}\n", serde_json::to_string(&names).unwrap()),
+    );
+    for name in &names {
+        write(root.path(), &format!("pkg/{name}.py"), "pass\n");
+    }
+    write(
+        root.path(),
+        "app.py",
+        "from pkg import *\ndef entry():\n    return sink(0)\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("import-lookup-budget")));
+    let members = report["inputs"]["modules"]["lookups"][0]["members"]
+        .as_array()
+        .unwrap();
+    assert_eq!(members.len(), 128);
+    assert_eq!(
+        members
+            .iter()
+            .filter(|member| !member["submodule"].is_null())
+            .count(),
+        127
+    );
+    assert_eq!(members.last().unwrap()["resolution"], "budget");
+}
+
+#[test]
+fn sharing_star_searches_keeps_provider_startup_effects_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "helpers.py",
+        "__all__ = ['relay']\nsink(source())\ndef relay(value):\n    return value\n",
+    );
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import *\ndef entry():\n    return sink(relay(source()))\n",
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["initialization"]["sites"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|site| site["occurrence"]["path"] == "helpers.py"));
+    assert!(!report["witnesses"].as_array().unwrap().is_empty());
 }
 
 #[test]

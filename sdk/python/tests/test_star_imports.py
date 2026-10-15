@@ -92,17 +92,18 @@ def test_unchecked_export_sets_never_establish_absence(tmp_path, exports, prelud
         assert observe(tmp_path)["result"] == 17
 
 
-def test_large_export_sets_stop_at_the_existing_import_budget(tmp_path):
-    names = [f"helper{index}" for index in range(128)]
+def test_export_names_share_the_module_search_within_the_existing_export_limit(tmp_path):
+    names = ["relay", *[f"helper{index}" for index in range(127)]]
     client, rules = install(tmp_path)
     (tmp_path / "library/leaf.py").write_text("__all__ = " + repr(names) + "\n" +
         "".join(f"def {name}(value):\n    return value\n" for name in names))
     result = analyze(client, rules, "entry", imports=True)
-    assert not result.report.at("/complete")
-    assert "star-exports-unchecked" in result.report.at("/cutoffs")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.report.at("/inputs/modules/limits/imports") == 128
-    assert "import-lookup-budget" in result.report.at("/cutoffs")
-    assert len(result.dependencies.lookups) <= 128
+    assert result.dependencies.lookup_count == 2
+    assert len(result.report.at("/inputs/modules/lookups")) == 2
+    assert len(result.dependencies.lookups) > 128
+    assert observe(tmp_path)["result"] == 17
 
 
 @pytest.mark.parametrize("count", [17, 20])
@@ -171,22 +172,22 @@ def test_star_and_local_binding_collisions_remain_explicit(tmp_path, prefix, sta
     assert "ambiguous-module-binding" in result.report.at("/cutoffs")
 
 
-@pytest.mark.parametrize("mutation", ["missing-star", "missing-exports", "omit", "extra", "link", "repeat"])
+@pytest.mark.parametrize("mutation", ["missing-members", "missing-exports", "omit", "extra", "old-link", "repeat"])
 def test_rehashed_star_records_cannot_drop_or_invent_expansion_members(tmp_path, mutation):
     client, rules = install(tmp_path)
     data = copy.deepcopy(analyze(client, rules, "entry", imports=True).report.to_data())
     lookups = data["inputs"]["modules"]["lookups"]
     anchor = next(item for item in lookups if item["alias"] == "*")
-    member = next(item for item in lookups if item["star"] == 0)
-    if mutation == "missing-star":
-        del member["star"]
+    member = anchor["members"][0]
+    if mutation == "missing-members":
+        del anchor["members"]
     elif mutation == "missing-exports":
         del anchor["exports"]
     elif mutation == "omit":
-        lookups.remove(member)
+        anchor["members"].remove(member)
     elif mutation == "extra":
         anchor["exports"].append("invented")
-    elif mutation == "link":
+    elif mutation == "old-link":
         member["star"] = True
     else:
         anchor["exports"].append("relay")
