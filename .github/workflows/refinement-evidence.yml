@@ -245,6 +245,14 @@ jobs:
           EVIDENCE_RUNS: ${{ inputs.evidence_runs }}
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
         run: python3 -B tools/retain-scalar-evidence.py --runs "$EVIDENCE_RUNS" --prefix "$EVIDENCE_PREFIX"
+      - name: Compare familiar-library outcomes and visited source files
+        if: inputs.group == 'retain-scalar'
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B tools/compare-python-library-probes.py \
+            tests/agent-eval/results/2026-10-15-builtin-bases-fixed-arity-probes/result.json \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-fixed-arity-probes/result.json"
       - name: Preserve the failed authored collection with its original source
         if: inputs.group == 'retain-contract-failure'
         env:
