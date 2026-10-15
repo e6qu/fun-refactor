@@ -1,10 +1,19 @@
-# Native code-change outcomes and observed costs
+# Did the recorded agents complete their code changes?
 
 Use these records to ask whether an agent completed the requested change and used fr.
 For example, a passing repair with zero fr calls cannot establish a benefit from fr.
 
 Failed attempts remain in the time and work totals. Missing measurements stay unknown.
 These reviewed tasks do not establish general time or cost savings on unfamiliar projects.
+
+The baseline offers ordinary file tools. The compared setup offers those tools plus fr.
+An attempt is one model trying one task. A behavior pass means the submitted code passed its declared tests.
+A collection failure means the attempt stopped before producing a complete record; it still contributes its observed work.
+
+Host calls count requests received by the experiment launcher. Result bytes count produced tool replies, not all text the model read.
+Collection seconds cover monitored attempt processes and exclude remote grading, provider work and global cache costs.
+CLI steps complete means the recorded command-line usage covers the submitted attempt; it does not mean billing is verified.
+See [baselines and overhead](benchmarks.md) before interpreting differences as tool savings.
 
 ## 2026-10-02-code-changes
 
@@ -29,6 +38,9 @@ Plan: `76243d6223c4b764fb85a16d2437715b2b611a45e211f350af5562f9046c6217`.
 | zai-coding-plan/glm-5.3-flash | ordinary files + fr | 1 collection failed, 1 behavior pass | 227.4 |
 
 Collection time includes failed attempts; it excludes remote grading time.
+Seconds per behavior pass divides all observed attempt time by the number of passing submissions in that group.
+For example, a 120-second failure followed by a 60-second pass contributes 180 seconds per pass.
+With no passes the ratio is undefined; unstarted or unresolved attempts do not become zero-cost successes.
 Host bytes are produced results, not complete model context. See JSON for native stream confirmations,
 partial usage, resource samples, tool schemas and paired outcomes. Provider billing remains unverified.
 
@@ -51,5 +63,8 @@ Plan: `5217e3521e71dc2b78de5bd787b6631db8c321f83cca13cce05658a3a4f699dd`.
 | zai-coding-plan/glm-5.3-flash | ordinary files + fr | 1 behavior pass | 100.6 |
 
 Collection time includes failed attempts; it excludes remote grading time.
+Seconds per behavior pass divides all observed attempt time by the number of passing submissions in that group.
+For example, a 120-second failure followed by a 60-second pass contributes 180 seconds per pass.
+With no passes the ratio is undefined; unstarted or unresolved attempts do not become zero-cost successes.
 Host bytes are produced results, not complete model context. See JSON for native stream confirmations,
 partial usage, resource samples, tool schemas and paired outcomes. Provider billing remains unverified.

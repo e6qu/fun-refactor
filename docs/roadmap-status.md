@@ -44,6 +44,10 @@ These are the specific requirements, checked one by one. Each item gives a user 
 
 An oracle is an independent reference check, such as Python execution. A source binding records fingerprints of inputs behind a saved result. Changed inputs require renewed checks. A held-out project stays unread while developing the tool, then tests whether the rules work beyond familiar examples.
 
+A source supplies a tracked input; a sink consumes it. A sanitizer is a user-declared cleaning function for a particular output context, such as HTML. An effect is another action the code performs, such as writing a file.
+
+A cache saves earlier results for possible reuse. Reuse must check their recorded inputs before trusting them. Latency means elapsed request time; aggregate memory measures the combined memory held by the measured processes.
+
 ### A.exact: Point to the exact code behind an answer
 
 User example: An agent explains a bug and links the exact call and source lines it inspected.
