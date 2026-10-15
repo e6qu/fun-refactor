@@ -115,7 +115,7 @@ fn scalar_assignments_acceptance_replays_checked_delivery() {
         .args([
             "tools/scalar-assignments-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-assignments/result.json",
+            "tests/agent-eval/results/2026-10-15-type-registries-scalar-assignments/result.json",
         ])
         .output()
         .unwrap();

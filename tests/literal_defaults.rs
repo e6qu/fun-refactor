@@ -195,6 +195,70 @@ fn imported_function_uses_its_own_local_scalar_default() {
 }
 
 #[test]
+fn builtin_type_registries_preserve_unused_marker_defaults() {
+    let root = tempfile::tempdir().unwrap();
+    for value in [
+        "{type(object.__dict__): dict, type({}.keys()): list, type({}.values()): list, type({}.items()): list}",
+        "{int: str, bool: bytes}",
+        "{type(None): object}",
+        "{type({(0,): [None]}): dict}",
+    ] {
+        for imports in [false, true] {
+            let report = analyze_program(root.path(), &format!("class Token:\n    pass\nmarker = Token()\nregistry = {value}\ndef unused(key=marker):\n    return opaque(key)\ndef entry():\n    return sink(source())\n"), imports);
+            assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+            assert!(report["initialization"]["sites"].as_array().unwrap().is_empty());
+        }
+    }
+}
+
+#[test]
+fn builtin_type_registries_keep_shadowing_and_callbacks_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    for source in [
+        "type = source\nregistry = {type({}): list}\n",
+        "list = source\nregistry = {type({}): list}\n",
+        "class object:\n    pass\nregistry = {type(object.__dict__): dict}\n",
+        "registry = {type(source()): list}\n",
+        "registry = {type({}.keys(source())): list}\n",
+        "registry = {type(1 + 2): int}\n",
+        "registry = {type({}): source}\n",
+        "def unused(__builtins__):\n    pass\nregistry = {type({}): list}\n",
+    ] {
+        let report = analyze_program(
+            root.path(),
+            &(source.to_owned() + "def entry():\n    return sink(source())\n"),
+            false,
+        );
+        assert_eq!(report["complete"], false, "{source}");
+        assert!(!report["initialization"]["sites"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
+fn imported_registry_retains_its_distinct_value_kind() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("helpers.py"),
+        "registry = {type({}.keys()): list}\n",
+    )
+    .unwrap();
+    let report = analyze_program(
+        root.path(),
+        "from helpers import registry\ndef entry():\n    return sink(source())\n",
+        true,
+    );
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    let binding = &report["inputs"]["modules"]["value_bindings"][0];
+    assert_eq!(binding["path"], "helpers.py");
+    assert_eq!(binding["name"], "registry");
+    assert_eq!(binding["kind"], "registry");
+    assert_eq!(binding["offset"], 0);
+}
+
+#[test]
 fn imported_default_values_are_available_only_after_the_import() {
     let root = tempfile::tempdir().unwrap();
     fs::write(
@@ -299,7 +363,7 @@ fn literal_defaults_acceptance_replays_checked_delivery() {
         .args([
             "tools/literal-defaults-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-scalar-named-defaults-literal-defaults/result.json",
+            "tests/agent-eval/results/2026-10-15-type-registries-literal-defaults/result.json",
         ])
         .output()
         .unwrap();

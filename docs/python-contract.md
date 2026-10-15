@@ -312,6 +312,41 @@ The result assumes ordinary, unchanged built-ins; it does not establish behavior
 Python's [name-resolution rules](https://docs.python.org/3.14/reference/executionmodel.html#resolution-of-names)
 explain why a module binding takes precedence over a built-in with the same name.
 
+## Keep a built-in type map during import
+
+A library may prepare a map of built-in types before defining the helper you want to trace:
+
+```python
+FACTORIES = {
+    type(object.__dict__): dict,
+    type({}.keys()): list,
+    type({}.values()): list,
+    type({}.items()): list,
+}
+
+def relay(value):
+    return value
+```
+
+That setup no longer blocks a supported `send(relay(read_input()))` trace.
+The map stores known type objects; it does not construct any of its values.
+It also preserves earlier known markers for an unused declaration such as `def unused(key=EMPTY): ...`.
+
+Keys may be direct built-in type names or `type(...)` applied to a supported literal, `object.__dict__`,
+or an empty dictionary's argument-free `keys()`, `values()` or `items()` call.
+Values must be direct built-in type references. The admitted names are `bool`, `bytes`, `complex`,
+`dict`, `float`, `frozenset`, `int`, `list`, `object`, `set`, `str`, `tuple` and `type`.
+Parentheses and comments are allowed. The whole initializer still fits within 128 named syntax nodes.
+
+The destination must be a new ASCII module name outside special metadata. Required built-in names
+must be unshadowed; any explicit `__builtins__` reference disables this allowance.
+Custom objects, arbitrary attributes, computed arguments, constructor calls, unpacking and comprehensions remain unchecked.
+For example, `type(custom.keys())` may execute user code, while `type({}.keys())` uses an empty built-in dictionary.
+An imported map retains its defining file, declaration position and distinct `registry` value kind.
+Import aliases, reexports and explicit star exports preserve that record.
+Reading, calling, changing or rebinding the map still leaves the answer incomplete.
+The rule describes supported startup behavior; it does not establish a working full-package trace.
+
 ## Trace a helper that has type annotations
 
 Suppose your helper declares types, but your question is whether it forwards an input:

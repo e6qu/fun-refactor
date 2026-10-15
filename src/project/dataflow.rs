@@ -904,6 +904,15 @@ impl Project<'_> {
                     }
                     let literal = calls::module_literal(node, text)
                         .or_else(|| calls::module_collection(node, text))
+                        .or_else(|| {
+                            (!explicit_builtins)
+                                .then(|| {
+                                    calls::module_type_registry(node, text, |name| {
+                                        bound_names.contains(name)
+                                    })
+                                })
+                                .flatten()
+                        })
                         .or_else(|| calls::module_metadata(node, text))
                         .or_else(|| calls::module_export_list(node, text).map(|_| "__all__"));
                     if let Some(name) =

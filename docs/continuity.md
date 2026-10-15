@@ -27,12 +27,16 @@ support list here.
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
 | Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy builds `FACTORY_REPLACE` using runtime calls before its `key=EMPTY` definitions | Unchecked earlier setup clears the known names available to later defaults | Investigate that dictionary's type and method calls, then revisit object-marker calls |
+| Funcy imports an `EMPTY` object marker and uses it in defaults such as `key=EMPTY` | The type map is now checked, but these defaults still prevent a complete answer about an unrelated helper | Investigate the imported marker's defining value and definition-time safety before admitting these defaults |
 | Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
 answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
 retain the complete attempts and limits.
+
+The current library replay removes Funcy's built-in type map from the unchecked setup list:
+95 statements become 94. Toolz stays at 86 and pydash at 510. None of the 40 full-package
+cases becomes complete; 32 remain incomplete and eight are refused.
 
 Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are familiar development examples. The
@@ -60,7 +64,7 @@ When code or a recorded input changes, collect the affected results on GitHub.
 Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
 a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-collection/manifest.json)
+The [current collection receipt](../tests/agent-eval/results/2026-10-15-type-registries-scalar-collection/manifest.json)
 identifies the active reports. Preserve failed attempts beside corrected ones; the
 [development history](evaluations.md#python-development-history) keeps their explanations and links.
 

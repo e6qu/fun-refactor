@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-15-scalar-named-defaults-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-15-type-registries-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-15-type-registries-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -897,6 +897,7 @@ The original failed reports, validators and CI logs remain unchanged.
 | The scalar-default capture map omitted its Rust path-type import | Import the path type and rerun the same native controls | [Scalar-default compiler check](https://github.com/e6qu/fun-refactor/actions/runs/38666372468) |
 | Longer scalar-default contract text exceeded existing report byte budgets | Shorten the repeated contract wording while retaining the rules and limits; recollect source-bound reports | [Scalar-default SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38666586639), [collection precheck](https://github.com/e6qu/fun-refactor/actions/runs/38667422037) |
 | A name-based SDK assignment grouped a long report audit with several proof checks and hit the 15-minute deadline | Use measured case durations to balance the same four groups; preserve every test, execution order and deadline | [Scalar-default full CI timeout](https://github.com/e6qu/fun-refactor/actions/runs/38670183873/job/116211233691) |
+| Three main audit runners could not download the existing `actions/setup-go` commit and failed before tests started | Install the same Go 1.27.2 release from its official checksum-verified archive through the shared local action | [First setup failure](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708027), [round-trip setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256707969), [translation setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708093) |
 
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
@@ -906,6 +907,8 @@ The [value-import collection](../tests/agent-eval/results/2026-10-14-value-impor
 preserves the results before known prior values could defer unused module function defaults.
 The [named-default declaration collection](../tests/agent-eval/results/2026-10-14-named-defaults-scalar-collection/manifest.json)
 preserves the results before calls could use captured local scalar defaults.
+The [scalar-default call collection](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-collection/manifest.json)
+preserves the results before bounded built-in type maps could coexist with supported traces.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,

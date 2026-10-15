@@ -290,7 +290,7 @@ class FlowDependencies:
                         or not isinstance(value["name"], str)
                         or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", value["name"]) is None
                         or _special_attribute(value["name"])
-                        or value["kind"] not in {"literal", "class", "instance"}
+                        or value["kind"] not in {"literal", "class", "instance", "registry"}
                         or type(value["offset"]) is not int or not 0 <= value["offset"] < 262144):
                     raise FrRuntimeError("malformed value binding")
                 values.append(ValueBinding(value["path"], value["name"], value["offset"], value["kind"]))

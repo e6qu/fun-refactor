@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-type-registries-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):
@@ -96,7 +96,7 @@ class PythonContract(unittest.TestCase):
 
     def test_imported_values_must_match_the_declared_kind_and_source_position(self):
         for case, kind in [('value-import-scalar', 'class'), ('value-import-class', 'literal'),
-                           ('value-import-instance', 'literal')]:
+                           ('value-import-instance', 'literal'), ('type-registry-import', 'literal')]:
             value, row = self.changed(case + '/original')
             row['flow']['inputs']['modules']['value_bindings'][0]['kind'] = kind
             row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])

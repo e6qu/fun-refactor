@@ -44,6 +44,7 @@ def bindings():
                  'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
+                 'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -234,6 +235,16 @@ def audit_case(row, case):
                         'imported value differs from its assignment')
                 if binding['kind'] == 'literal':
                     ast.literal_eval(node.value)
+                elif binding['kind'] == 'registry':
+                    types = {'bool', 'bytes', 'complex', 'dict', 'float', 'frozenset',
+                             'int', 'list', 'object', 'set', 'str', 'tuple', 'type'}
+                    require(isinstance(node.value, ast.Dict) and bool(node.value.keys)
+                            and all(isinstance(value, ast.Name) and value.id in types for value in node.value.values)
+                            and all(isinstance(key, ast.Name) and key.id in types
+                                    or isinstance(key, ast.Call) and isinstance(key.func, ast.Name)
+                                    and key.func.id == 'type' and len(key.args) == 1 and not key.keywords
+                                    for key in node.value.keys),
+                            'imported registry differs from its type-map declaration')
                 else:
                     require(binding['kind'] == 'instance' and isinstance(node.value, ast.Call)
                             and isinstance(node.value.func, ast.Name) and not node.value.args and not node.value.keywords,

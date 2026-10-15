@@ -325,6 +325,171 @@ pub(super) fn metadata_name(name: &str) -> bool {
     )
 }
 
+fn unparenthesized(mut node: Node<'_>) -> Option<Node<'_>> {
+    while node.kind() == "parenthesized_expression" {
+        let mut cursor = node.walk();
+        let mut children = node
+            .named_children(&mut cursor)
+            .filter(|n| n.kind() != "comment");
+        node = children.next()?;
+        if children.next().is_some() {
+            return None;
+        }
+    }
+    Some(node)
+}
+
+fn builtin_type_reference(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) -> bool {
+    let Some(node) = unparenthesized(node) else {
+        return false;
+    };
+    let name = &source[node.byte_range()];
+    node.kind() == "identifier"
+        && matches!(
+            name,
+            "bool"
+                | "bytes"
+                | "complex"
+                | "dict"
+                | "float"
+                | "frozenset"
+                | "int"
+                | "list"
+                | "object"
+                | "set"
+                | "str"
+                | "tuple"
+                | "type"
+        )
+        && !shadowed(name)
+}
+
+fn builtin_type_query(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) -> bool {
+    let Some(node) = unparenthesized(node) else {
+        return false;
+    };
+    if builtin_type_reference(node, source, shadowed) {
+        return true;
+    }
+    let Some(function) = node
+        .child_by_field_name("function")
+        .and_then(unparenthesized)
+    else {
+        return false;
+    };
+    let Some(arguments) = node.child_by_field_name("arguments") else {
+        return false;
+    };
+    let arguments: Vec<_> = arguments
+        .named_children(&mut arguments.walk())
+        .filter(|n| n.kind() != "comment")
+        .collect();
+    if node.kind() != "call"
+        || function.kind() != "identifier"
+        || &source[function.byte_range()] != "type"
+        || shadowed("type")
+        || arguments.len() != 1
+    {
+        return false;
+    }
+    let Some(value) = unparenthesized(arguments[0]) else {
+        return false;
+    };
+    if collection_value(value, source, false) {
+        return true;
+    }
+    let attribute = if value.kind() == "attribute" {
+        value
+    } else if value.kind() == "call" {
+        let Some(arguments) = value.child_by_field_name("arguments") else {
+            return false;
+        };
+        if arguments
+            .named_children(&mut arguments.walk())
+            .any(|n| n.kind() != "comment")
+        {
+            return false;
+        }
+        let Some(attribute) = value
+            .child_by_field_name("function")
+            .and_then(unparenthesized)
+        else {
+            return false;
+        };
+        attribute
+    } else {
+        return false;
+    };
+    let (Some(object), Some(member)) = (
+        attribute.child_by_field_name("object"),
+        attribute.child_by_field_name("attribute"),
+    ) else {
+        return false;
+    };
+    let Some(object) = unparenthesized(object) else {
+        return false;
+    };
+    if attribute.kind() != "attribute" {
+        return false;
+    }
+    if value.kind() == "attribute" {
+        object.kind() == "identifier"
+            && &source[object.byte_range()] == "object"
+            && !shadowed("object")
+            && &source[member.byte_range()] == "__dict__"
+    } else {
+        object.kind() == "dictionary"
+            && object
+                .named_children(&mut object.walk())
+                .all(|n| n.kind() == "comment")
+            && matches!(&source[member.byte_range()], "keys" | "values" | "items")
+    }
+}
+
+pub(super) fn module_type_registry<'s>(
+    node: Node<'_>,
+    source: &'s str,
+    shadowed: impl Fn(&str) -> bool,
+) -> Option<&'s str> {
+    let (name, value) = literal_assignment(node, source)?;
+    if name.starts_with("__") && name.ends_with("__") {
+        return None;
+    }
+    let mut pending = vec![value];
+    let mut count = 0;
+    while let Some(node) = pending.pop() {
+        count += 1;
+        if count > 128 {
+            return None;
+        }
+        for child in node.named_children(&mut node.walk()) {
+            if count + pending.len() >= 128 {
+                return None;
+            }
+            pending.push(child);
+        }
+    }
+    let value = unparenthesized(value)?;
+    if value.kind() != "dictionary" {
+        return None;
+    }
+    let pairs: Vec<_> = value
+        .named_children(&mut value.walk())
+        .filter(|n| n.kind() != "comment")
+        .collect();
+    (!pairs.is_empty()
+        && pairs.iter().all(|pair| {
+            pair.kind() == "pair"
+                && pair
+                    .child_by_field_name("key")
+                    .is_some_and(|key| builtin_type_query(key, source, &shadowed))
+                && pair
+                    .child_by_field_name("value")
+                    .is_some_and(|value| builtin_type_reference(value, source, &shadowed))
+        }))
+    .then_some(name)
+}
+
 pub(super) fn module_class<'s>(
     node: Node<'_>,
     source: &'s str,
@@ -769,7 +934,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"Module function bodies defer with literal or known prior defaults, including variadics. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
-        "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Literal __doc__ writes to prior unchanged plain functions preserve scalar calls. Reads, collisions and other effects stay unchecked.",
+        "initialization":"Literals, aliases, built-in references/type maps, exports and plain classes/instances are inert. Prior plain-function __doc__ writes preserve calls. Reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

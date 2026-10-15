@@ -70,6 +70,7 @@ Imported values, collections and object markers still prevent calls, even with e
 Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
 
 The required `CallBinding.initialization` field describes which declarations may coexist with a trace.
+It includes [bounded maps of built-in types](python-contract.md#keep-a-built-in-type-map-during-import).
 The [current Python examples](python-contract.md) cover unused literals, collections, metadata, plain classes,
 function aliases and built-in references. They also state the collision and evaluation limits.
 For example, `registry = {}` can initialize without blocking a helper, but reading that global registry
