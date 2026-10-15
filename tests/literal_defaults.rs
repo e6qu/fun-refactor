@@ -358,6 +358,64 @@ fn scalar_module_literals_do_not_hide_binding_or_initialization_effects() {
 }
 
 #[test]
+fn builtin_bases_defer_unused_constructor_bodies() {
+    let root = tempfile::tempdir().unwrap();
+    for base in ["object", "dict", "Exception", "((dict))"] {
+        let declaration =
+            format!("class Token({base}):\n    def __init__(self):\n        sink(source())\n");
+        for imports in [false, true] {
+            let prelude = if imports {
+                fs::write(root.path().join("helpers.py"), &declaration).unwrap();
+                "from helpers import Token\n".to_owned()
+            } else {
+                declaration.clone()
+            };
+            let report = analyze_program(
+                root.path(),
+                &format!("{prelude}def entry():\n    return sink(source())\n"),
+                imports,
+            );
+            assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+            assert!(report["initialization"]["sites"]
+                .as_array()
+                .unwrap()
+                .is_empty());
+            if imports {
+                assert_eq!(
+                    report["inputs"]["modules"]["value_bindings"][0]["kind"],
+                    "class"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn builtin_base_names_cannot_hide_custom_class_creation() {
+    let root = tempfile::tempdir().unwrap();
+    for base in ["object", "dict", "Exception"] {
+        let source = format!("class {base}:\n    def __init_subclass__(cls):\n        sink(source())\nclass Token({base}):\n    pass\ndef entry():\n    return sink(0)\n");
+        let report = analyze_program(root.path(), &source, false);
+        assert_eq!(report["complete"], false);
+        assert!(report["initialization"]["sites"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|site| { site["occurrence"]["location"]["range"]["start"]["line"] == 4 }));
+    }
+}
+
+#[test]
+fn inherited_dict_and_exception_construction_stays_unchecked() {
+    let root = tempfile::tempdir().unwrap();
+    for (base, complete) in [("object", true), ("dict", false), ("Exception", false)] {
+        let source = format!("class Token({base}):\n    pass\nmarker = Token()\ndef entry():\n    return sink(source())\n");
+        let report = analyze_program(root.path(), &source, false);
+        assert_eq!(report["complete"], complete, "{}", report["cutoffs"]);
+    }
+}
+
+#[test]
 fn literal_defaults_acceptance_replays_checked_delivery() {
     let output = Command::new("python3")
         .args([

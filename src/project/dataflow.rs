@@ -881,7 +881,10 @@ impl Project<'_> {
                             continue;
                         }
                     }
-                    if let Some((name, constructible)) = calls::module_class(node, text, postponed)
+                    if let Some((name, constructible)) =
+                        calls::module_class(node, text, postponed, |name| {
+                            explicit_builtins || bound_names.contains(name)
+                        })
                     {
                         classes.remove(name);
                         documentable.remove(name);

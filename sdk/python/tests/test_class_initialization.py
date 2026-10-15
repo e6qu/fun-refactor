@@ -73,7 +73,7 @@ def test_plain_declarations_and_default_instances_preserve_scalar_answers(tmp_pa
 
 
 UNCHECKED = [
-    "class Token(object):\n    pass",
+    "class Token(list):\n    pass",
     "class Token(metaclass=type):\n    pass",
     "def decorate(cls):\n    return cls\n@decorate\nclass Token:\n    pass",
     "class Token:\n    @staticmethod\n    def unused():\n        pass",

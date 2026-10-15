@@ -45,6 +45,7 @@ def bindings():
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
+                 'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
@@ -227,7 +228,9 @@ def audit_case(row, case):
             node = matches[0]
             if binding['kind'] == 'class':
                 require(isinstance(node, ast.ClassDef) and node.name == binding['name']
-                        and not node.bases and not node.keywords and not node.decorator_list,
+                        and (not node.bases or len(node.bases) == 1 and isinstance(node.bases[0], ast.Name)
+                             and node.bases[0].id in {'object', 'dict', 'Exception'})
+                        and not node.keywords and not node.decorator_list,
                         'imported class differs from its plain declaration')
             else:
                 require(isinstance(node, ast.Assign) and len(node.targets) == 1

@@ -27,7 +27,7 @@ support list here.
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
 | Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy imports an `EMPTY` object marker and uses it in defaults such as `key=EMPTY` | The type map is now checked, but these defaults still prevent a complete answer about an unrelated helper | Investigate the imported marker's defining value and definition-time safety before admitting these defaults |
+| Funcy's exports consume 126 of 128 import lookups before most helper modules are visited | The later `EMPTY` import is not resolved, so its defaults stay incomplete even though small imported-marker examples already work | Investigate bounded import traversal for the selected helper while preserving package startup effects and the existing limit |
 | Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
@@ -37,6 +37,10 @@ retain the complete attempts and limits.
 The current library replay removes Funcy's built-in type map from the unchecked setup list:
 95 statements become 94. Toolz stays at 86 and pydash at 510. None of the 40 full-package
 cases becomes complete; 32 remain incomplete and eight are refused.
+
+The earlier handoff mistook the unresolved `EMPTY` defaults for a missing marker rule. The retained
+lookup list shows the budget was already spent before that import. Keep this distinction when choosing
+the next change: support in a small module does not mean the full package fits within the same limits.
 
 Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are familiar development examples. The

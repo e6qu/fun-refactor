@@ -18,7 +18,7 @@ from test_flow_summaries import analyze, evidence, workspace
 
 @pytest.mark.parametrize("imports", [False, True])
 @pytest.mark.parametrize("definition,instance,reason,fragment", [
-    ("class Token(object):\n    pass", "", "module-statement", "class Token(object):\n    pass"),
+    ("class Token(list):\n    pass", "", "module-statement", "class Token(list):\n    pass"),
     ("class Token:\n    def __init__(self):\n        sink(source())", "marker = Token()",
      "module-statement", "marker = Token()"),
     ("def unused(value=source()):\n    return value", "", "definition-time-code",
