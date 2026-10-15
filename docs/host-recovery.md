@@ -3,6 +3,11 @@
 Suppose an edit starts writing several files and the process stops. Inspect its saved transaction before making another change.
 `fr` records the starting files and write progress. Recovery uses those records and refuses when other edits make the recorded operation unsafe to finish or reverse.
 
+A file transaction records an edit's starting and intended contents.
+If writing stops partway through, the journal records which operation is pending.
+Recovery uses that record to restore a supported starting state; it differs from undoing an already completed change.
+For a crashed rename, inspect the affected files and journal before attempting another edit.
+
 ## Commands, results and limits
 
 Native source and file transactions stage their replacements before publishing any target.
@@ -67,7 +72,7 @@ creation, serialization, replacement and sync; snapshot checks; and recovery syn
 Every case reads the journal afresh, resumes pending work and compares filesystem snapshots and stacks.
 Additional cases alter staged bytes, modes and symlinks, interrupt rollback, or edit a restored file.
 
-The hooks exist only in test builds. Production commands have no fault-injection environment switch.
+The hooks exist only in test builds. Production commands have no deliberately interrupted-operation environment switch.
 The matrix keeps its fixtures within temporary workspaces. It does not exercise disk exhaustion,
 partial kernel writes, lock acquisition failure, device loss or a machine power cut.
 Atomic rename, filesystem sync, snapshot reads, advisory locks and the host process remain trusted.
@@ -79,4 +84,4 @@ memory history have separate contracts.
 The [Lean model](../kernels/FrKernels/HostRecovery.lean) proves required publication matches,
 conflict refusal, exact abstract restoration and idempotence. Source anchors bind the two Rust
 predicates; 224 executable results compare Rust and Lean. These results establish finite model
-agreement and model theorems. They do not prove correspondence for the host filesystem adapter.
+agreement and model theorems. They do not prove correspondence (the stated connection between two descriptions) for the host filesystem adapter.

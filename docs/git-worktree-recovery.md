@@ -3,6 +3,11 @@
 If worktree creation stops after writing only some files, inspect its saved recovery record before trying again.
 This command completes a recorded creation. It does not take ownership of an arbitrary folder that happens to contain similar files.
 
+Creation can stop after Git records a new working folder but before all its files arrive.
+An ownership receipt records which creation operation owns the incomplete state.
+For an interrupted repair checkout, inspect that receipt before asking recovery to finish the folder.
+Recovery checks ownership and current contents; a folder containing someone else's changes must not be replaced.
+
 ## Commands, results and limits
 
 `fr git worktree recover PATH` previews completion of a recorded, incomplete raw checkout on Unix.
@@ -105,6 +110,6 @@ The prepared-recovery predicate requires an absent receipt, matching preparation
 The entry-mode predicate requires a blob and exactly one recognized regular, executable or symlink kind.
 Abstract file models prove preservation of accepted existing contents and modes, and refusal of changed files.
 Shared Rust/Lean tests exercise all boolean inputs for these predicates.
-Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence proofs.
+Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence (the stated connection between two descriptions) proofs.
 
 Completed receipts support [reviewed removal](git-worktree-removal.md) of clean owned worktrees.

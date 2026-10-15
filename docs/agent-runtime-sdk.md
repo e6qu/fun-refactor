@@ -3,6 +3,12 @@
 Use the Python client when your agent needs to keep reports, inspect a few fields, or resume a reviewed change.
 For example, store the callers of `render` in Python and show the agent only the caller it needs to inspect next.
 
+SDK means software development kit; here it is a Python library for calling the `fr` command.
+`FrClient` selects the project. A report is the returned data, and a pointer such as `/diff` selects a field within it.
+The examples assume `fr` is installed and the Python package is available in the interpreter running the program.
+For a repair, keep the report in Python, print the complete proposed diff, review it, then execute that reviewed change.
+Keeping intermediate results outside the conversation still incurs Python execution, memory and validation costs.
+
 ## Commands, results and limits
 
 Start a structured task with `FrClient.guide(AgentGoal(...))` when you need help choosing a command.
@@ -118,7 +124,7 @@ assert result.passed
 
 The compiled value retains the exact canonical manifest, preview digest and `fraa1:` basis.
 `execute_intent` checks those local identities before native `fr` rebuilds the review. Changed
-source, intent, action, checks, postconditions or delivery options refuse before history creation.
+source, intent, action, checks, required conditions after the edit or delivery options refuse before history creation.
 The accepted route uses the same checked reversal and patch lifecycle as `TaskChange`.
 
 ## Complete reviewed changes
@@ -143,10 +149,10 @@ operations refuse execution.
 
 A complete semantic scalar guide exposes `guide.semantic_scalar_action()`. It returns the typed
 task operation only after matching the guide's ready manifest to the goal, target, checks, delivery
-and postconditions, so the agent need not restate the same manifest.
+and required conditions after the edit, so the agent need not restate the same manifest.
 
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`
-serializes it once into canonical UTF-8 bytes and passes those bytes on standard input. A
+serializes it once into canonical UTF-8 (the text encoding used to count source bytes) bytes and passes those bytes on standard input. A
 `TaskReview` requires a ready non-executed preview, the exact manifest SHA-256 and a well-formed
 `frtc1` basis.
 
@@ -187,14 +193,18 @@ same JSON protocol and exact actions.
 
 ## Controlled comparison
 
+The baseline exposes each request and reply separately to the agent.
+The compared approach runs those same requests inside one Python program and sends back its selected result.
+This measures conversation bytes. It does not time Python startup, report validation or the tool's internal execution.
+
 The retained generic fixture performs the same five internal `fr` calls in both arms: find, initial
 evidence disclosure, one exact reveal, task-change preview and task-change execution. Both arms
-produce the same final source and patch SHA-256, eight passed lifecycle stages and applied history
+produce the same final source and patch SHA-256, eight passed apply, check, reversal and delivery stages and applied history
 state.
 
 The direct JSON arm exposes five request/response exchanges totaling 17,689 bytes. The runtime arm
 exposes its complete 1,471-byte Python program and 422-byte result in one exchange, while the four
-intermediate reports stay inside that local process. Agent-visible payload is 1,893 bytes, an 89.3%
+intermediate reports stay inside that local process. Text sent to the agent is 1,893 bytes, an 89.3%
 reduction in this fixed task. Internal work remains five `fr` calls in both arms.
 
 ```sh
@@ -210,7 +220,7 @@ the same selected value digest. Progressive compilation uses 89 subprocesses and
 internal response bytes; native compilation uses one subprocess and receives 4,975 bytes. The final
 native packet is 4,975 bytes versus 3,909 for the locally assembled packet because it also carries
 the project coverage envelope. These are deterministic process and byte measurements, not model,
-token, quota or population results.
+token, quota or results across a wider range of tasks.
 
 ```sh
 python3 tools/native-intent-context.py --fr target/debug/fr

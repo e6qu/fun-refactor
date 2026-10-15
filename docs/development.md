@@ -3,6 +3,11 @@
 Use this guide when you need to change `fr`, add a language reader or prepare a release.
 For example, a parser fix needs both a case that now works and a case that still refuses an unsafe edit. Read the workstation limits before running any local command.
 
+A gate is a required set of checks before a change proceeds. A fixture is a small input used by a test.
+Source provenance records where copied code came from, including its revision and license.
+For a Python import fix, add a small example that distinguishes the old mistake from the intended behavior.
+Run bounded local checks through the guard below, and send builds and complete test suites to GitHub.
+
 ## Build and contribution instructions
 
 `fr` requires stable Rust, Python 3 and the toolchains used by the language fixtures. Lean tests
@@ -19,7 +24,7 @@ python3 /Users/zardoz/.codex/tools/fr-local-guard.py COMMAND...
 ```
 
 The guard lowers priority, throttles sampled CPU toward half of one core and enforces a
-180-second deadline. It stops at 1 GiB sampled aggregate RSS, 2 GiB of generated `target` data,
+180-second deadline. It stops at 1 GiB sampled aggregate RSS (resident set size, the measured memory held by a process), 2 GiB of generated `target` data,
 or less than 64 GiB free disk. If it refuses, move the workload to CI; do not bypass or raise limits.
 One compiler worker alone does not control memory or disk growth. Sampling can miss brief peaks.
 
@@ -103,14 +108,14 @@ reports; preserve their old records. Never change a recorded hash to make stale 
 
 ## Refresh retained evidence
 
-`tools/refresh-refinement-evidence.py` refuses local execution and regenerates source-bound reports
+`tools/refresh-refinement-evidence.py` refuses local execution and regenerates reports tied to recorded source inputs
 on GitHub runners. The [CI guide](ci.md) owns refresh groups and coverage requirements.
 The manual `Refresh refinement evidence` workflow uploads results from a directory unique to each
 run and attempt under the runner's temporary directory. Reports stay outside the compiler cache.
 Supply a new dated `prefix` to retain new report directories.
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
 The `flow` group runs scalar, package and SDK boundary tests, then refreshes ten flow reports and index measurements.
-The `dependency` group refreshes compiler, correspondence, semantic, index-consumer, proof and host
+The `dependency` group refreshes compiler, correspondence (the stated connection between two descriptions), semantic, index-consumer, proof and host
 evidence after shared dependency changes. The `contexts` group refreshes four workflow comparisons
 with the pinned tokenizer. Different groups can run independently on GitHub.
 Index-resolution evidence binds every Rust source file and must be refreshed after any Rust source change.

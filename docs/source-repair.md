@@ -3,6 +3,11 @@
 Suppose a rounding edit compiles but the checkout test still fails. Read the failed result and inspect the code that the edit left behind.
 Then preview a corrected implementation, or undo the earlier edit and start again. Fixing a missing test dependency cannot fix a wrong rounding rule.
 
+An applied transaction is a saved change already written to your files.
+A failed behavior check can leave that change applied. Its receipt records the failure, not an automatic rollback.
+A receiver is a separate checkout used to test exported patches.
+For a wrong subtotal, inspect the current code, review a corrective edit, then check both the final behavior and patch replay.
+
 ## Commands, results and limits
 
 A failed applied check can mean that the replacement body is wrong. Fixing a check prerequisite
@@ -102,12 +107,12 @@ comparison. Frozen historical runner snapshots remain unchanged.
 ## Retained results
 
 [Run 38055066754](https://github.com/e6qu/fun-refactor/actions/runs/38055066754) built the CLI and
-passed all 40 comparison cells and 16 corruption tests. Execution took 2 minutes 25 seconds;
+passed all 40 comparison cells and 16 tests that reject altered records. Execution took 2 minutes 25 seconds;
 runner queue time was separate. The [retained report](../tests/agent-eval/results/2026-10-10-source-repair/result.json)
 contains both complete programs, every recorded fr request and response, and the receiver checks.
 Its adjacent manifest verifies the archive, executable, source commit and report digest.
 
-Eight successful deliveries passed original and final checks, complete reversal, receiver replay,
+Eight successful deliveries passed original and final checks, complete reversal, patch application and checks in another checkout,
 independent behavior and actual conflicting-apply controls. The other 32 cells retained wrong
 repairs, stale source or check declarations, and later conflicting edits without delivering a patch.
 The ordered-patch route also rejected repair-only and reversed-order patches on original receivers.

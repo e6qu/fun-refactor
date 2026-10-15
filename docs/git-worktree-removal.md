@@ -3,6 +3,11 @@
 After finishing a task, you may want to remove its clean worktree while keeping the branch and commits. Preview the folder removal first.
 `fr` checks ownership and cleanliness, and saves supported recovery data before deleting the working files.
 
+A worktree is a separate working folder sharing Git history. Removing it deletes that folder, not the shared commits.
+The removal preview checks its branch, files and registered state. A recovery archive retains supported information needed for reversal.
+After finishing a repair, review what will disappear and where the archive will live before confirming removal.
+Local changes or unsupported files can require refusal instead of deletion.
+
 ## Commands, results and limits
 
 `fr git worktree remove PATH` previews removal of an owned, clean linked worktree on Unix.
@@ -123,4 +128,4 @@ The shared configuration predicate also requires the reviewed repository mode an
 A separate abstract namespace model proves that removing selected paths preserves unselected paths.
 Shared Rust/Lean cases cover every boolean predicate input.
 The reversal predicate requires a complete archive, absent checkout and metadata paths, and an unoccupied branch registration; Lean proves all four requirements and abstract destination restoration, unrelated-path preservation and repeated deletion.
-These results do not prove correspondence for filesystem observation, unlinking, Git transactions or crash durability.
+These results do not prove correspondence (the stated connection between two descriptions) for filesystem observation, unlinking, Git transactions or crash durability.

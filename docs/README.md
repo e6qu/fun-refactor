@@ -15,6 +15,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | Check whether an explanation agrees with the compiler | [Compiler comparisons and limits](compiler-profile.md) |
 | Use fr from an agent program | [Short agent guide](agent-skill.md) or [Python client](agent-runtime-sdk.md) |
 | Decide whether fr saves work | [Product review](product-review.md) and [recorded results](evaluations.md) |
+| Understand a performance number | [Comparisons, baselines and overhead](benchmarks.md) |
 | Contribute to fr | [Development](development.md) and [current handoff](continuity.md) |
 
 The examples in the guides describe user tasks. Exact commands, data fields and limits remain
@@ -57,6 +58,7 @@ Begin with the quickstart, then choose the runtime or protocol detail needed by 
 - [Read only what you need](progressive-disclosure.md): open a function, relationship or source page when it answers the next question.
 - [Check installed support](completion-audit.md): see which operations are available and what they can establish.
 - [Evaluation evidence](evaluations.md): reproduce and interpret deterministic and live-agent runs.
+- [Performance measurements](benchmarks.md): what each comparison measures, its baseline and the costs it includes or leaves unknown.
 - [Codex runner](agent-codex-runner.md): run optional paid live-agent evaluations.
 - [Unknown-target trials](unknown-target-investigations.md): compare discovery and resumed delivery on pinned upstream tasks.
 

@@ -1,53 +1,49 @@
-# Investigations
+# Explain a finding and keep it useful
 
-To explain why input reaches an output, link the calls and source lines. Recheck when those files change.
+For “does this input reach send?”, connect the reported calls to their source lines.
+A source supplies the configured input; a sink consumes it. A witness is a possible connection in the supported model.
+It is not a recorded execution. A cutoff explains why analysis could not finish.
 
-Call, reference and flow reports identify uses and their source locations in one revision.
-Read their byte spans and Unicode line ranges separately from enclosing declaration handles.
-Missing or multiple origins remain explicit.
+## Ask the value question
 
-`fr project dataflow HANDLE` follows the declared Python scalar subset through same-file helpers.
-Use `--steps`, `--depth` and `--bytes` to bound work and output. External source, sink, propagation
-and sanitizer contracts come from `--rules`; `--context` selects the sanitizer context. Check every
-cutoff and omission. A report describes explicit value propagation with unchecked path feasibility.
-It cannot establish application security. While loops use bounded fixed-point analysis. The default route cuts off recursion.
-Add `--summaries` for symbolic summaries of recursive same-file functions, including return, sink and explicit raise effects.
-Inspect `function_summaries` and `completion`; convergence does not prove runtime termination.
-Aliases, exception handlers and unsupported effects remain incomplete boundaries.
+Run `fr project dataflow '<HANDLE>' --summaries --rules rules.json --context html`.
 
-Read `control_flow`, `origins` and `summaries` for graph nodes and context-specific evaluations.
-Synthetic exits have absent origins. Edges use local IDs; derivations do not prove path feasibility.
-`--inputs-only` fingerprints the defining file, rules, configuration, analyzer and budgets.
-Python `fr_ir.flow.FlowCache` stores complete results in a verified Merkle store and revalidates
-inputs before reuse. Keep its trusted root; stale inputs recompute and tampered objects refuse.
-Reuse renews occurrence handles, never mutation reviews. Measure overhead first.
+Obtain the handle from a project query. The rules file declares sources, sinks, propagation and context-specific sanitizers.
+These are assumptions about external calls, not behaviors the tool discovers automatically.
+`--steps`, `--depth` and `--bytes` bound work and output.
+Read completion, cutoffs and omissions with the witnesses. An incomplete empty report cannot rule out a connection.
 
-`fr project investigate --from PLAN` revalidates a local plan and returns updated states without
-writing or executing actions. Use `--transition STEP:start`, `STEP:satisfy`, `STEP:block` or
-`STEP:reset` for explicit transitions. Preserve hypotheses, open questions and required checks.
-Evidence binds input digests and task criteria. Changed inputs invalidate dependent work. Use a
-workspace dependency unless narrower dependency coverage is complete. References record reported
-checks and proof kinds; they do not attest execution or authorize mutation.
+A function summary describes which argument origins can contribute to its result or supported actions.
+`--summaries` supports selected recursive same-file functions. The default route cuts off recursion.
+Repeated analysis reaching a stable result does not prove the function terminates at runtime.
+Exception handlers, shared mutable objects and unsupported calls can leave the answer incomplete.
 
-Python `fr_ir.investigation.TaskPlan` saves typed plans in the verified Merkle store.
-Keep it outside the analyzed workspace. Resume restored plans before relying on their evidence.
+## Check where the answer comes from
 
-For Python body provenance, use `project semantic HANDLE --body --origins --origin-limit 40`.
-Follow `origins.continuation` or select one `--origin-pointer`. Missing mappings remain explicit.
-`SemanticOrigins` links those records to authoring pointers and same-revision flow occurrences.
-Use `TaskStep.from_guide` to retain ready guide input. `TaskStep.checked` declares the input scope
-for `investigation_checks.run_checks`; inspect `checks --toolchain` before executing its declarations.
+Call, reference and flow reports identify individual uses and source locations in one revision.
+A byte range selects written text; the enclosing handle selects its declaration.
+Some generated nodes have no exact source origin. Keep missing or ambiguous mappings visible.
 
-`fr project identities` pages declaration content digests beside current handles. Pass a retained
-report with `--from` to inspect matched, ambiguous and missing correspondence.
-These candidates never renew a stale mutation review. Follow [Task](task.md) and [Workflow](workflow.md)
-for checked changes, reversal and patch delivery.
+Run `fr project semantic '<HANDLE>' --body --origins --origin-limit 40` for source mappings.
+Use `fr project flow-facts '<HANDLE>' --rules rules.json --context html --limit 2` for paged explanations.
 
-For bounded explanations, follow the `analysis` action from a top-level Python exploration row.
-`project flow-facts HANDLE --rules rules.json --context html --limit 2` returns fact headers;
-each fact has a bounded explanation action. Follow returned continuations to keep all input options.
-Read analysis, disclosure and mapping coverage separately. A full explanation covers one fact.
-Missing witnesses establish model absence only with a complete catalogue and complete analysis.
-Occurrences link by exact spans to semantic and authoring pointers; normalized nodes can lack origins.
-These links are syntax evidence and do not prove source correspondence or feasible paths.
-`fr_ir.flow_facts.FlowFacts` validates pages and persists them without refreshing stale actions.
+Follow returned `origins.continuation` and fact explanation actions without dropping their input options.
+A complete explanation covers one fact; it does not make an incomplete overall analysis complete.
+`SemanticOrigins` connects source locations to structured edit pointers.
+`FlowFacts` checks and stores report pages without renewing stale actions.
+
+## Resume without trusting outdated findings
+
+A task plan stores questions, hypotheses, observations, dependencies and required checks.
+`fr project investigate --from PLAN` rechecks a local plan without writing or executing actions.
+Explicit transitions use `--transition STEP:start`, `:satisfy`, `:block` or `:reset`.
+Changed inputs invalidate dependent findings; unrelated notes can survive.
+
+Python `TaskPlan` stores plans in a verified object store outside the analyzed project.
+Resume restored plans before using them. `TaskStep.checked` names check inputs; inspect `checks --toolchain` before execution.
+Candidate matches from `project identities --from REPORT` never renew an edit review.
+
+`FlowCache` stores complete results and validates inputs before reuse. Keep its trusted root fingerprint.
+Stale inputs recompute; altered records refuse. Reuse renews finding locations, not permission to write.
+Measure validation and storage overhead against fresh analysis before claiming a benefit.
+Use [task changes](task.md) and [workflows](workflow.md) for checked delivery and reversal.

@@ -2,11 +2,16 @@
 
 When checking an older claim, restore the report that recorded it. For example, an old cache measurement must keep its original samples and failures. Restoring that file lets you inspect the past result; it does not establish current speed or correctness.
 
+An artifact is a file saved by an experiment. A digest is a fingerprint of its contents.
+An archive compresses those files; restoration must reproduce the original bytes and fingerprints.
+For an old cache-speed claim, restore its original report rather than regenerating different timings with today's tool.
+The storage saving describes an expanded checkout, not Git history or agent cost.
+
 Eleven historical flow-cache reports now use gzip storage. The
 [catalog](evidence-archives.json) records each original path, byte count, SHA-256 and Git blob ID,
 plus the compressed file's identity. It names commit `ced10cb8` as the source of the original files.
 The conversion checked every restored byte against that commit's blob identity before removing
-the expanded copy. It changed no samples, failures, measurements, source bindings or conclusions.
+the expanded copy. It changed no samples, failures, measurements, recorded input fingerprints or conclusions.
 
 The acceptance report used during that storage change remains at
 [`2026-09-30-assignments-flow-cache/result.json`](results/2026-09-30-assignments-flow-cache/result.json).
@@ -49,7 +54,7 @@ archives and tests corrupt data, oversized output, invalid paths, symlinks and f
 Restore only the report needed for an investigation; the active audit needs no restoration step.
 
 For example, restore the September cache report to inspect its measured first and repeated runs.
-Keep its source fingerprints and failure records with those samples. To measure today's analyzer,
+Keep its source-file fingerprints and failure records with those samples. To measure today's analyzer,
 run a new collection on GitHub. Rewriting an old report with current values would erase the comparison.
 
 The [original September 25 report](results/2026-09-25-flow-cache/result.json.gz) supports the historical

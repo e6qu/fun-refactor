@@ -3,9 +3,15 @@
 Suppose you edit a Boolean access rule and want to check whether it allows the same inputs as before. Save the old supported model, then compare the new one.
 The result concerns those models and their stated assumptions. It does not establish that every part of the application behaves the same.
 
+A Boolean value is `true` or `false`. A model describes the supported Boolean calculation as data for a proof.
+Equivalent means both models return the same answer for every input covered by the comparison.
+Refinement here means every input accepted by the new model was also accepted by the old one.
+For an access rule, replacing “staff or owner” with “staff and owner” is stricter but changes some answers.
+The Python snippets assume an initialized proof package, a `FrClient` named `client` and an object store named `store`.
+
 ## What the comparison checks
 
-Capture an admitted source function before changing it. After the change, request equivalence or
+Capture an supported source function before changing it. After the change, request equivalence or
 refinement between its retained model and a newly captured model. Rust and Python functions need
 explicit Boolean parameters and a Boolean result. The route admits at most eight parameters per
 function and the existing pure formalization subset. Calls, effects and integer arithmetic refuse.
@@ -46,7 +52,7 @@ your requirement, then check the remaining connection between the models and the
 
 Capture accepts at most 64 KiB of source before parsing. It derives the model from that retained
 text in an isolated in-memory workspace, then checks that the caller's source is unchanged.
-Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 bytes.
+Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 (the text encoding used to count source bytes) bytes.
 Oversized virtual files are rejected before copying; native reads stop after the limit plus one
 byte. Other formalization routes retain their existing limits.
 
@@ -88,24 +94,24 @@ assert run.passed and run.resumed.complete
 Retained reports expose `evidence.model_comparisons`, including snapshot digests, relation, argument
 map and checked status. Source, package, baseline, proof and checker changes invalidate dependent
 steps. Restored plans revalidate their inputs in a fresh process. A stored proof never authorizes a
-source write. Complete-source snapshots conservatively invalidate after unrelated edits in that file.
+source write. Saved complete source contents conservatively invalidate after unrelated edits in that file.
 
 ## Scope and evidence
 
-These theorems concern generated Boolean models. Parsing, extraction and source/model correspondence
+These theorems concern generated Boolean models. Parsing, extraction and the connection between source and its model
 remain trusted or unproved. Historical snapshots retain content identity; they do not authenticate a
 repository revision. Numeric overflow, runtime types, external consumers and general translation
 semantics remain outside this contract. `source_implementation_proved` stays false.
 
 The [pinned task](../tests/agent-eval/refinement/task.json) covers Rust rename and parameter removal,
 Rust/Python equivalence and a stricter Boolean rule. Its independent oracle compiles Rust and checks
-all eight input assignments against Python expectations. The deterministic evaluator compares
+all eight input assignments against Python expectations. The scripted evaluator compares
 prescribed text edits with reviewed native delivery, retains false-claim refusal, and replays both
 patches with exact reversal. Fresh receiver proof checks regenerate the models from retained source.
-The [evaluator](../tools/refinement-acceptance.py) records these finite outcomes without a live-agent or
+The [evaluator](../tools/refinement-acceptance.py) records these outcomes for tested cases without a live-agent or
 token-saving claim.
 
 The [retained artifacts](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json)
 and [SDK regressions](../sdk/python/tests/test_refinement.py) cover the complete lifecycle,
-zero and eight parameters, source/model tampering, stale reviews, proof failures, size limits,
+zero and eight parameters, source and model tampering, stale reviews, proof failures, size limits,
 saved-plan reversal and current formal-model validation.

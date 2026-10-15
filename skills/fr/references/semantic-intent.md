@@ -2,7 +2,9 @@
 
 To replace a retry limit, identify its current and requested values in the selected function. Preview that one value change before applying it.
 
-Use this source-free route for an exact scalar edit inside a supported function or method.
+A scalar is a simple value such as an integer. The intent selects a specific value change, and the preview must establish the intended location.
+
+Use this route without source text for an exact scalar edit inside a supported function or method.
 
 When the declaration name, operation, current value and requested value are known, preview the edit
 directly from the workspace path:
@@ -16,7 +18,7 @@ This resolves one declaration below `.`, selects one scalar and includes the gen
 the preview. It needs no project query or payload. Duplicate names and zero or multiple scalar
 matches refuse. Pass the preview's `plan_context_basis` to the write command.
 
-Use a standalone source-free plan query when review must happen before author preview:
+Use a standalone plan query without source text when review must happen before author preview:
 
 ```text
 fr project semantic . --declaration NAME --body --locator-op set-int --locator-from 1 --intent-to 2 --nodes 128 --minimal

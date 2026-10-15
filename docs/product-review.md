@@ -3,6 +3,12 @@
 Use this page to decide what helps an agent finish a task and what needs further measurement.
 Read the [plan](../PLAN.md) for current work and [recorded experiments](evaluations.md) for measurements.
 
+The baseline is the alternative used in a comparison. Here it is an agent using ordinary search, reads and edits.
+An arm is one tool setup, such as those same tools plus `fr`.
+Overhead includes extra instructions, indexing, process calls, report validation and review needed to use the tool.
+For a checkout repair, count that work alongside the final test outcome.
+The [measurement guide](benchmarks.md) explains which existing numbers include these costs and which leave them unmeasured.
+
 We want an agent to finish a real task correctly with less unnecessary work. For example,
 “Fix checkout rounding without changing the API” should lead to the right calculation, a small
 reviewed patch and a behavior test that catches the reported error.
@@ -115,7 +121,7 @@ Independent task selection, full accounting and resource admission must be ready
 Freeze four task instances across at least three independent repositories: explain a behavior,
 fix a bug, add a feature, and prove a stated property about a bounded function. Choose tasks by
 coverage needs before implementation, rather than choosing ones the current commands already solve.
-Pin revisions, requirements, hidden graders, model settings, resource budgets and a held-out project.
+Pin revisions, requirements, hidden graders, model settings, resource budgets and a project kept unread during development.
 For understanding, grade factual accuracy and source references; for changes, use independent
 behavior and regression checks; for proofs, check the theorem and its connection to the source.
 
@@ -150,12 +156,12 @@ For each attempt retain:
   Report wall-clock duration and total agent time separately; parallelism can reduce one and increase the other.
 - Initial skill/schema instructions, every disclosed tool result, source reads, retries, pagination,
   repeated disclosure and fallback. Measure maximum active context as well as cumulative input.
-- Tool CPU, sampled aggregate RSS, disk and cache growth, cold versus warm behavior, and full build
+- Tool CPU, sampled aggregate RSS (resident set size, the measured memory held by a process), disk and cache growth, cold versus warm behavior, and full build
   or check costs. Response byte limits do not measure complete prompt usage, and sampled memory
   peaks can miss short-lived allocations.
 
 The CLI currently labels its disclosure budget a conservative token upper bound compatible with
-byte-fallback tokenizers, calculated from serialized UTF-8 bytes in
+byte-fallback tokenizers, calculated from serialized UTF-8 (the text encoding used to count source bytes) bytes in
 [`src/project/disclose.rs`](../src/project/disclose.rs). That bounds a response under the stated
 assumption; it is not a tokenizer measurement or the provider's charge for the full conversation.
 Keep that safety limit separate from the usage measurements above.

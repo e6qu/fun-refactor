@@ -540,6 +540,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fr", required=True, type=Path, help="Built fr binary to validate.")
     args = parser.parse_args()
+    from reader_examples import check as check_reader_examples
+
+    reader_examples = check_reader_examples(args.fr.resolve())
     files, entry_bytes, route_bytes = check_bundle()
     exercise = Exercise(str(args.fr.resolve()))
     with tempfile.TemporaryDirectory(prefix="fr-agent-skill-") as directory:
@@ -562,7 +565,7 @@ def main():
     expected = [(path, tuple(command)) for path in files for command in commands(path)]
     assert sorted(exercise.executed) == sorted(expected), "Every fenced shell example must execute."
     assert exercise.exploration_bytes < source_bytes
-    print(json.dumps({"passed": True, "shell_examples": exercise.examples,
+    print(json.dumps({"passed": True, "reader_examples": reader_examples, "shell_examples": exercise.examples,
                       "entry_bytes": entry_bytes, "reference_bytes": sum(path.stat().st_size for path in files) - entry_bytes,
                       "route_bytes": route_bytes,
                       "exploration_output_bytes": exercise.exploration_bytes,

@@ -3,10 +3,16 @@
 Suppose an agent says user input can reach `send_email`. You need to see the relevant calls and source lines, then revisit the finding if a helper changes.
 This guide explains those reports and how saved task notes react to code changes. A missing result or unfinished search leaves the question open.
 
+An occurrence is one particular written use of a name, with a file and location.
+A source supplies a value; a sink consumes it. For example, configure `read_input()` as the source and `send()` as the sink.
+A function summary records which inputs can contribute to its result and supported actions.
+A saved finding also records its dependencies, the source and settings whose changes require a fresh check.
+Finding a possible connection helps an investigation; running a test checks an actual behavior.
+
 ## Commands, results and limits
 
 `project calls`, `project show --relations` and `project dataflow` expose source occurrences.
-An occurrence carries a revision, relative path, half-open UTF-8 span, matching 1-based Unicode
+An occurrence carries a revision, relative path, UTF-8 (the text encoding used to count source bytes) byte range with its end position excluded, matching 1-based Unicode
 range, role and enclosing declaration handle. Its `fro1` identity distinguishes two calls on one
 line. Relationship endpoints retain declaration locations separately. A call offset without an
 indexed reference has an absent origin; conflicting spans have multiple origins. Neither case
@@ -16,7 +22,7 @@ Illustration: `send(value); send(0)` has two calls on one line. Use the occurren
 identify the call that carries the input. The function's location covers both calls and cannot
 identify that use by itself. Byte spans select source text; the line range helps you read it.
 
-Evidence disclosure uses a compact flow record: path, exact byte span, start position and occurrence
+Evidence disclosure uses a compact flow record: path, exact source byte range, start position and occurrence
 ID, bound to its disclosure revision. Declaration details remain accessible through their handles.
 
 ## Semantic origins
@@ -112,15 +118,15 @@ An exhausted budget always makes the result incomplete. Unknown external calls, 
 forms outside the current [alias and annotation rules](python-contract.md) retain cutoffs.
 Exception causes remain incomplete.
 [Ordered scalar expressions](expression-control.md) now admit calls with conditional evaluation.
-[Call binding](call-binding.md) adds explicit keywords and positional-only and keyword-only parameters.
+[Call binding](call-binding.md) adds explicit keywords and positional-only and keyword-only parameters (slots that calls must supply by name).
 [Literal defaults](literal-defaults.md) extend binding with immutable defaults and exact signature origins.
 All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
-the default solver stays within one file and does not track heap effects.
+the default solver stays within one file and does not track changes to shared mutable objects.
 
 The [retained corpus](../tests/agent-eval/results/2026-09-24-recursive-flow/result.json) compares recursive
 flow against independent Python execution and AST positions. Five Lean theorems establish parameter
 selection and monotonicity in the finite-origin model. Native substitution matches all 1,024 executable
-model cases. These theorems do not prove the parser, solver or Python implementation correspondence.
+model cases. These theorems do not prove the parser, solver or Python implementation correspondence (the stated connection between two descriptions).
 
 ### Static local imports
 
@@ -138,10 +144,10 @@ Every module component retains its directory, `.py`, `/__init__.py`, `.pyi` and 
 Parent components admit regular or namespace packages within one root. The final component can also
 select a source module. [Namespace dependencies](namespace-packages.md) retain directories separately
 from source files and count both against the module budget.
-Each admitted source requires absent competing source and stub candidates.
+Each supported source requires absent competing source and stub candidates.
 Missing parents, competing modules, new stubs and changed initializers change the next input identity.
 Named member lookups report functions, modules, missing declarations, ambiguity or unavailable modules.
-Duplicate bindings, shadowing, ignored files, symlink leaves or ancestors and syntax errors keep the report incomplete.
+Duplicate bindings, shadowing (a nearer declaration hiding an earlier name), ignored files, symlink leaves or ancestors and syntax errors keep the report incomplete.
 Static module aliases and supported plain function aliases can select a helper.
 Arbitrary object aliases remain unsupported.
 
@@ -167,7 +173,7 @@ shows the grouped records and their limits.
 Computed or mutated export lists and missing declarations keep the answer incomplete.
 
 Package initializers also admit explicit local imports. Interpolated strings retain effect cutoffs.
-Function re-exports follow at most 16 named bindings to the defining function. Each member lookup
+Function re-exports (making an imported name available from another module) follow at most 16 named bindings to the defining function. Each member lookup
 retains its ordered `binding_chain` of source paths and names; aliases never invent a new function identity.
 `from . import forward` selects a declared binding or an unambiguous child module.
 Parent initialization dependencies bind source without creating an artificial import cycle.
@@ -209,7 +215,7 @@ These results do not prove the full resolver, Python source correspondence or pa
 The [package task](../tests/agent-eval/package-flow/task.json) adds unknown-target repair and feature requirements.
 Its [retained delivery](../tests/agent-eval/results/2026-09-26-package-flow/result.json) records deterministic discovery,
 parent invalidation, independent plan evidence, stale review refusal and two independently replayed patches.
-The ordinary arm uses AST inspection and direct source edits; the fr arm discovers targets through summaries and import records.
+The ordinary arm uses inspection of the parsed syntax tree and direct source edits; the fr arm discovers targets through summaries and import records.
 Their timings cover different operations and establish no general speed or live-agent claim.
 
 ## Verified result reuse
@@ -238,14 +244,14 @@ Changing the helper that returns the value requires fresh analysis. Matching sav
 cannot tell you whether that helper still behaves the same.
 
 Keep the store outside the analyzed workspace. A cache holds at most 256 result roots.
-`fr-flow-cache` manifests retain each complete report as canonical JSON in verified chunks.
+`fr-flow-cache` manifests retain each complete report as canonical JSON, the normalized encoding used to compare records and compute their fingerprints, in verified chunks.
 Each chunk contains at most 32,768 characters; the joined report is limited to 1 MiB.
 This reduces object-store operations when the consumer needs the whole report.
 The reader requires the current manifest and chunk envelope. Other formats fail explicitly.
 Chunks are storage units. Dependency validation and reuse still apply to the entire analysis.
 `analysis.graphs` and `analysis.witnesses` provide typed access; `analysis.reused` reports reuse.
 After unrelated edits, native validation renews occurrence identities, enclosing handles and revision
-metadata. Retained results must equal clean analysis after that renewal. It never renews mutation reviews.
+metadata. Retained results must equal fresh analysis after that renewal. It never renews mutation reviews.
 
 The native `--reuse FILE --reuse-digest SHA256` route accepts a retained JSON report and its trusted
 canonical JSON digest. The SDK obtains both from a verified Merkle root. A digest establishes content
@@ -255,18 +261,26 @@ root as prior analysis. Tampering refuses; mismatched inputs and incomplete reco
 Reuse remains opt-in and coarse. It avoids flow transfer while retaining parsing, indexing, dependency
 checks and occurrence renewal. Small inputs may cost more to restore than to analyze.
 The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) measures six scalar workloads and six edit types.
+Its baseline is the earlier SDK's per-node storage, already warm from a previous analysis.
+The compared storage uses chunks of a complete report, also warm.
+This percentage compares two cache representations, not cached analysis against fresh analysis.
+Both still parse, index and validate dependencies. The saved stores also occupy more disk space, as quantified below.
 Report chunks reduced warm median latency 24–68% on that host. Warmed stores used 1.35–2.91 times
 the bytes of per-node records because repeated subtrees no longer deduplicate at every field.
 The native call count and disclosed context are unchanged. This tradeoff does not justify partial-summary reuse or a general speed claim.
 Warm medians still exceed cold medians in that corpus, so caching remains an explicit choice.
 The [measurement tool](../tools/flow-acceptance.py) records cold, warm, unrelated-edit and relevant-edit
-latency, child/worker peak RSS, report bytes and transfer steps in isolated workers. Tokens are unavailable.
+latency, child/worker peak RSS (resident set size, the measured memory held by a process), report bytes and transfer steps in isolated workers. Tokens are unavailable.
 
 The [Flow kernel](../kernels/FrKernels/Flow.lean) proves lattice join laws and overwrite properties.
-The native join is checked against its executable model over 1,024 finite cases. This establishes
+The native join is checked against its executable model over 1,024 tested cases. This establishes
 the tested correspondence, not a proof of the whole Python analyzer or host cache.
 
 ## Task plans
+
+A task plan records the question, observations, dependencies and required checks.
+For a rounding investigation, keep “this caller supplies cents” as an observation, and “the conversion is wrong” as a hypothesis to test.
+A changed helper requires rechecking findings that depend on it; an unrelated note can remain valid.
 
 `fr project investigate --from plan.json` validates a local plan and returns its refreshed states.
 It never executes an action or writes a plan file. The typed SDK persists plans through the existing
@@ -416,7 +430,7 @@ into a file. Insertion reparses the complete result, refuses existing indexed bi
 wildcard imports, and preserves all original bytes. Compiler/runtime checks remain necessary.
 
 The [pinned corpus](../tests/agent-eval/investigation/task.json) supplies a negative-total symptom
-and quote requirement without an edit target. The deterministic evaluator discovers a subtraction
+and quote requirement without an edit target. The scripted evaluator discovers a subtraction
 through semantic evidence, performs reviewed changes, exercises reversal and replays both patches
 in an independent receiver before running the behavioral oracle. It is not a live-agent trial.
 
@@ -469,7 +483,7 @@ Its omissions remain visible and prevent complete results.
 
 The [retained acceptance](../tests/agent-eval/results/2026-09-24-flow-facts/result.json) compares raw
 analysis and paged facts under the same contracts. The independent oracle executes nine cases and
-checks UTF-8 AST coordinates. Full explanations add provenance and may exceed raw analysis in bytes
+checks UTF-8 syntax-tree source positions. Full explanations add provenance and may exceed raw analysis in bytes
 and latency. Four Lean theorems establish disclosure coverage policy; native code matches all eight
 Boolean cases. These checks do not prove the analyzer or its source correspondence.
 

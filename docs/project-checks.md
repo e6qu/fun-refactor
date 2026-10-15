@@ -3,6 +3,11 @@
 A rounding fix needs a test that checks the rounding rule. List that command in `.fr/checks.json` so the agent can inspect and choose it.
 `fr` runs the checks you declare; it does not infer a complete test plan from filenames.
 
+A check is a named command declared by the project, such as its rounding test.
+The declaration records the executable and arguments; a basis connects later execution to the list you inspected.
+A receipt saves the outcome with the source and settings used by that execution.
+For a repair, declare the actual behavior test as well as a build command, and inspect both before running them.
+
 ## Commands, results and limits
 
 `fr checks` lists commands from `.fr/checks.json` without executing them.
@@ -110,7 +115,7 @@ Output capture uses temporary files to avoid pipe deadlocks and unbounded in-mem
 The runner polls every 20 ms and stops a running child above 16 MiB on either stream.
 This is a soft disk limit; a fast writer can exceed it between polls.
 The output budget retains up to 65,536 raw bytes per stream, with exact omitted-byte counts for the observed capture.
-UTF-8 replacement decoding and JSON escaping can expand the displayed text beyond that raw-byte budget.
+UTF-8 (the text encoding used to count source bytes) replacement decoding and JSON escaping can expand the displayed text beyond that raw-byte budget.
 Descendants can keep changing a capture until process-group cleanup completes, or longer when they
 escape that group or run on a platform without group cleanup.
 
@@ -122,6 +127,11 @@ CLI regressions cover preview, stale configuration, selection, failure reports, 
 The execution layer has test evidence; no Lean proof covers process behavior or project-check semantics.
 
 ## Controlled report measurement
+
+The baseline returns the check declarations again in every execution reply.
+The comparison omits those repeated declarations after the caller has retained their reviewed listing.
+The percentage below divides saved reply tokens by baseline reply tokens, not by the entire task's input.
+It does not measure execution or reconstruction overhead. See [performance meanings](benchmarks.md) for the wider cost boundary.
 
 The retained workspace agent traces repeat the reviewed declarations in four check execution reports per trial.
 Applying declaration omission to those frozen payloads gives this deterministic projection:
@@ -208,7 +218,7 @@ The adapter executes no compiler commands. It validates retained execution again
 configuration, executable, build and declared external identities. It requires full declarations;
 `--no-declarations` output alone cannot establish those inputs.
 
-Diagnostic facts bind their rule, confidence, parent, input identity and exact admitted source spans.
+Diagnostic facts bind their rule, confidence, parent, input identity and exact supported source spans.
 The adapter omits compiler-rendered source, suggestions and source-line text. Explicit source actions
 use revision-bound file handles. Macro expansions, external files, unsupported paths and invalid byte
 boundaries retain mapping gaps. Rust parser acceptance and compiler rejection remain separate observations.

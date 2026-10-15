@@ -3,6 +3,11 @@
 Suppose you need to change a retry limit from `3` to `5`. `fr` can describe supported statements and expressions as data so an agent can select that value.
 This structure is called a semantic model. It helps locate and prepare an edit; finding a pattern does not prove how every execution behaves.
 
+A semantic model is a structured record of supported code. A statement performs a step; an expression computes a value.
+IR means intermediate representation, the shared vocabulary used for that record.
+A JSON pointer selects a field or array element: `/body/0` means the first item in the `body` array.
+For a retry fix, inspect the pointer for the retry integer before replacing it; another equal integer may describe a delay.
+
 ## Commands, results and limits
 
 `fr project semantic TARGET` returns cross-language program structure without returning source text.
@@ -59,7 +64,7 @@ fr author semantic-schema statement --kind return
 fr author semantic-schema expression --kind binary
 ```
 
-`fr author replace-body-semantic HANDLE --from FILE` accepts a source-free body with schema
+`fr author replace-body-semantic HANDLE --from FILE` accepts a body without source text with schema
 `fr-semantic-body-1`:
 
 ```json
@@ -111,6 +116,11 @@ fewer bytes. Treat direct JSON as the measured default for a small one-off body.
 early category checks or reuse matters, and measure broader tasks before claiming a context saving.
 The [evaluation evidence guide](evaluations.md) records the artifact family and its limits.
 
+Here the two approaches produce the same structured body: write JSON directly, or write Python using the SDK constructors.
+The 65.7% token difference compares direct JSON with the SDK attempt after the recorded cache accounting.
+The 51.5% byte difference compares the producer texts in the other direction: SDK versus direct JSON.
+These use different counters and denominators. Neither measures execution overhead of the generated function, and billed cost remains unknown.
+
 ## Checked semantic deltas
 
 A complete bounded body report includes `body_identity` with schema `fr-semantic-body-1`, an
@@ -128,7 +138,7 @@ category and kind. Paths that exceed the change contract's limit do not appear.
 
 The pure `fr author apply-semantic-change --body BODY --change CHANGE --canonical` command checks a
 delta without scanning a project. It refuses malformed or escaped paths, missing targets, category
-crossings, unsupported or source-bearing nodes, invalid indices, stale bases, no-ops and any invalid
+crossings, unsupported nodes or nodes containing source text, invalid indices, stale bases, no-ops and any invalid
 intermediate body. Each operation resolves against the previous canonical result.
 
 The Python SDK mirrors the same operation hierarchy:
@@ -164,7 +174,7 @@ existing review bases and drift checks. Use `replace-body-semantic` or `edit-bod
 operation name in author, project-task and task-change manifests.
 
 The Lean project model proves whole-model budget admission. The Lean author model proves that
-admission requires the exact schema, a supported target, source-free input and bounded size. Shared
+admission requires the exact schema, a supported target, input without source text and bounded size. Shared
 executions cover selected numeric boundaries, every Boolean admission state and the expanded task
 target matrix. The anchored catalog model proves uniqueness within each finite category, refusal of
 both unsupported kinds and category separation. All 155 category/index cases agree with Rust.
@@ -206,7 +216,7 @@ When the operation and both scalar values are known, add `--intent-to VALUE` to 
 semantic query. It resolves exactly one locator and returns `fr-semantic-edit-plan-1` with the full
 generated intent, input and result body identities, and refinement evidence. When `--locators` is
 omitted, this form also omits the semantic model and pattern rows. It therefore discovers the file,
-handle, body basis and intent in one source-free request:
+handle, body basis and intent in one request without source text:
 
 ```sh
 fr project semantic . --declaration calculate --body \

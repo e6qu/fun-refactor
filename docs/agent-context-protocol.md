@@ -3,6 +3,11 @@
 Suppose an agent has already read a function report and asks for its callers next. It can keep the earlier report and request only the new information.
 The identifiers below let the client check which earlier facts it may reuse. A changed file requires a fresh check.
 
+Context is the text available to an agent for its next decision.
+A report can repeat project details the agent already read. A basis is a returned fingerprint connecting later output to that earlier report.
+For a second caller query, retain the complete first report before requesting an abbreviated reply.
+The client must reconstruct and verify omitted fields; storing the earlier report and checking it still costs work.
+
 ## Commands, results and limits
 
 Project, author and forward source-history reports can omit facts that the caller has already reviewed. The omission is opt-in and bound to the exact retained facts; a normal call always remains self-contained.
@@ -27,7 +32,7 @@ The compact response retains its query-specific result and adds:
 ```
 
 The client reconstructs the response by copying the three named fields from its saved full report
-and removing `context_omitted`. Keep `context_basis` as an opaque reference; copy it unchanged.
+and removing `context_omitted`. Keep `context_basis` as an reference to copy unchanged; copy it unchanged.
 `fr` checks that the current project still matches it before omitting those fields.
 Changes to source, manifests, scan policy or tool version require a fresh full report.
 Authoring checks this reference before saving or applying a transaction.
@@ -72,7 +77,7 @@ fr history redo '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_B
 
 The same retained basis can compact a later redo.
 
-The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
+The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 (the text encoding used to count source bytes) `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
 
 Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true`.
 
@@ -100,6 +105,11 @@ refuses the reviewed write.
 `fr history patch TX --output FILE` writes a new patch atomically and returns its SHA-256, byte count and transaction metadata without serializing the patch into agent context. The command refuses an existing output path. Keep the artifact alongside the compact report; ordinary stdout and JSON exports remain available when patch text is needed inline.
 
 ## Evidence boundary
+
+The baseline is the original recorded reply with repeated fields.
+The text-size comparison substitutes abbreviated replies and current instructions into that same old sequence of calls.
+Reconstructing a reply requires retaining and checking the earlier full report; those CPU and storage costs are not measured here.
+This is a projection of an existing transcript, not a fresh agent completing the task.
 
 Compaction changes serialization only. Limits, omitted result counts, uncertainty, source verification, parser validation, check declarations and transaction conflict checks retain their existing contracts. The full reviewed response and every compact response belong in an audit record when a workflow relies on reconstruction.
 

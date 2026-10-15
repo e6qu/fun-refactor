@@ -3,6 +3,11 @@
 Suppose removing a separate Git working folder stops halfway through. Inspect the saved removal record to see what remains and what blocks progress.
 Review that result before asking the tool to finish deleting the recorded paths.
 
+Removing a worktree can stop between saving its recovery archive and deleting the folder.
+Resumption means continuing that recorded operation after inspecting the state it reached.
+The archive records what the operation owns; it does not authorize deleting newly created files.
+For an interrupted cleanup, inspect the saved result and remaining paths before resuming the same removal.
+
 ## Commands, results and limits
 
 `fr git worktree resume-removal RECORD` inspects an archived removal on Unix.
@@ -93,4 +98,4 @@ Use the original record path with `compact-removal` to inspect or finish compact
 An anchored resume predicate accepts absent paths and requires identity, byte and mode matches for present files.
 Lean proves both properties. Shared Rust/Lean cases cover all sixteen boolean inputs.
 The abstract selected-removal model also proves idempotence: applying the same selected removal twice has the same result as applying it once.
-Archive parsing, host observations, Git leases, filesystem deletion and crash durability remain outside general correspondence proofs.
+Archive parsing, host observations, Git leases, filesystem deletion and crash durability remain outside general correspondence (the stated connection between two descriptions) proofs.

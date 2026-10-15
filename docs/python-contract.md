@@ -3,6 +3,12 @@
 Suppose your application reads a user value and passes it to a helper. You want to know whether
 that value can reach an output, or whether the code replaces it first.
 
+This guide models a limited part of Python rather than executing your application.
+A parameter is a named function slot; an argument is the value a call supplies to it.
+In `choose(left, right)`, returning `left` selects the first slot, even if the caller writes named arguments in another order.
+`read_input()` and `send()` below stand for external functions your project supplies.
+You must configure their roles as input and output; they are not built-ins or calls this guide asks you to execute.
+
 ```python
 def choose(left, right):
     return left
@@ -14,15 +20,35 @@ def blocked():
     return send(choose(0, read_input()))
 ```
 
-Tell `fr` which external calls supply input and consume output, then ask for a trace:
+To try this analysis example, save the Python definitions above as `app.py` in a new folder.
+They describe calls to your external functions; this example asks `fr` to inspect them without invoking those functions.
+Save this JSON as `rules.json` beside it:
 
-```sh
-fr --json project dataflow '<HANDLE>' --summaries --rules rules.json
+```json
+{
+  "version": "tutorial",
+  "sources": ["read_input"],
+  "sinks": ["send"],
+  "sanitizers": {},
+  "propagators": []
+}
 ```
 
-`<HANDLE>` is the selected function reference returned by a project query. `rules.json` declares
-your assumptions about external input and output calls. The analyzer follows supported code;
-it does not execute Python or infer the behavior of every external function.
+The source list names calls supplying the tracked input; the sink list names calls receiving it.
+Empty sanitizer and propagator settings add no external cleaning or forwarding rules.
+`version` identifies this rule set so changed rules can invalidate saved results.
+From that folder, find the selected function and ask for a trace:
+
+```sh
+fr -C . --json project find selected
+fr -C . --json project dataflow '<HANDLE>' --summaries --rules rules.json
+```
+
+Replace `<HANDLE>`, including the brackets, with the full reference returned by `find`.
+For `selected`, the model can follow input through the first argument and report a possible connection.
+Repeat `find` for `blocked` and use its new handle: returning the first argument then discards the tracked second argument.
+Read completion and cutoffs before accepting either answer.
+The rules are your assumptions about external calls, not a discovery of their complete implementation.
 
 ## Read the answer before relying on it
 
@@ -41,15 +67,19 @@ behavior and keep a model result separate from a safety claim.
 | Your question | A supported example | Where the answer remains limited |
 | --- | --- | --- |
 | “Does overwriting remove the original input?” | `value = read_input(); value = 0; send(value)` | Shared mutable objects and attribute writes need other handling. |
-| “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra variadic arguments and referenced variadic values remain incomplete. |
+| “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra arguments through `*args` or `**kwargs`, and reading those variadic values remain incomplete. |
 | “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
 | “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and evaluated defaults execute during definition. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
-| “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions and handlers exceed this model. |
+| “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions (errors an operation can raise without an explicit `raise`) and handlers exceed this model. |
 
 ## Import an unused value beside a helper
+
+The following snippets illustrate separate files, identified by their comments.
+Importing makes a name from one module available in another. An alias gives it another local name; a re-export exposes an imported name again.
+These examples extend the configured input/output question above. They do not ask you to run undefined external calls.
 
 ```python
 # helpers.py
@@ -68,7 +98,7 @@ def entry():
 The unused `LIMIT` import no longer blocks this trace. The report identifies it as a value
 and retains its defining file and declaration position. This covers previously supported
 scalar and bounded collection literals, plain classes, and instances created by a plain
-class without a custom constructor. Aliased imports, static re-exports and literal export
+class without a custom constructor. Aliased imports, static re-exports (making an imported name available from another module) and literal export
 lists can carry these values too. Names must be ASCII; special metadata imports remain unchecked.
 
 Importing a value does not add a model for reading or calling it. For example,
@@ -306,7 +336,7 @@ For example, `public = relay` before defining or importing `relay` remains unche
 So do `public = relay()`, attribute reads, annotated or chained assignments, and rebinding either name.
 Calls through stored built-ins, classes, module objects and global values remain unsupported.
 Reading the function object in an expression also remains incomplete; supported alias calls are a separate case.
-Local shadowing, explicit global declarations, function attribute changes and shared mutable objects still need separate handling.
+Local shadowing (a nearer declaration hiding an earlier name), explicit global declarations, function attribute changes and shared mutable objects still need separate handling.
 
 ## Trace a helper beside an unused built-in reference
 
@@ -448,14 +478,14 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Expression selectors | `and`, `or`, `not` and conditional expressions preserve evaluation order. Boolean and None literals can select a path. | Variables, numeric values and call results have unknown truth. |
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
-| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch, referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
+| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
 | Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations and special attribute writes, cycles and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
-| Locations | Source revisions and exact UTF-8 byte spans accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
+| Locations | Source revisions and exact UTF-8 (the text encoding used to count source bytes) source byte ranges accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
 | Budgets and refusals | Unsupported constructs and exhausted searches carry cutoffs and remain incomplete. Invalid entry syntax, invalid budgets and conflicting caller rules refuse analysis. | A CLI error has no completeness or witness answer. Absence of witnesses in an incomplete report establishes no absence of flow. |
 
 The Python reference defines [expression evaluation order](https://docs.python.org/3.14/reference/expressions.html#evaluation-order),
@@ -529,7 +559,7 @@ can leave an origin in the model even when Python returns zero.
 An implicit exception is a stronger boundary: `1 // 0` stops Python before the following
 statement, while the current scalar model can retain that statement with `complete: true`.
 Do not use that result as an exception-safety claim. Explicit raise tests check path termination
-and argument ordering; they do not establish exception-type correspondence.
+and argument ordering; they do not establish exception-type correspondence (the stated connection between two descriptions).
 
 An unresolved import can stop Python before entry while `fr` retains argument origins through
 the unknown call. Such a witness is incomplete and cannot establish that the call can execute.
@@ -537,7 +567,7 @@ Imported sink traces can end with caller records after the sink. The audit check
 sink site and permits only AST-backed summary calls after it.
 
 Static module resolution follows the [package-flow contract](agent-investigations.md#static-local-imports).
-This corpus does not establish arbitrary imports, heap aliases, async behavior or whole-language
+This corpus does not establish arbitrary imports, multiple names for the same mutable object, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
 The authored corpus pairs every program with a renamed/relocated case across fourteen rules.
@@ -548,7 +578,7 @@ from exceptions after calling the entry function. External source and sink hooks
 
 | Coverage | Examples |
 | --- | --- |
-| Binding | Selected and discarded arguments for positional-only, ordinary and keyword-only parameters, including mixed separators; seven invalid bindings retain argument effects. |
+| Binding | Selected and discarded arguments for positional-only, ordinary and keyword-only parameters (slots that calls must supply by name), including mixed separators; seven invalid bindings retain argument effects. |
 | Defaults | Omitted and overridden defaults, required/default mixtures, seven literal forms, evaluated defaults and definition failure. |
 | Recursion | Direct and mutual return, constant return, independent callers, keyword substitution, explicit raise, no normal return and step exhaustion. |
 | Imports | Absolute, relative, dotted, aliased and continued imports; regular, namespace and mixed trees; re-exports, child fallback and module alias chains. Each has positive and negative helper bodies. |
@@ -557,18 +587,18 @@ from exceptions after calling the entry function. External source and sink hooks
 | Discovery | Two-hop helper discovery with depths two and three; a stopped search has no absence authority. The summary-function count also has an explicit boundary example. |
 | Import boundaries | Competing modules/packages and stubs; parameter, assignment and global shadowing; conflicting bindings; module-count, source-byte, lookup-count, component and binding-chain limits. Positive and negative arguments remain independent expectations. |
 
-Hosted collection and corruption controls validate the full inventory, including deliberate
+Hosted collection and tests that reject altered records validate the full inventory, including deliberate
 CLI refusals and emitted incomplete reports. B.contract requires every independently reviewed
 assertion in the active report. The earlier 252-case report remains historical evidence.
-The active source-bound report and acceptance assertions are selected by the
+The active report tied to recorded source inputs and acceptance assertions are selected by the
 [generated roadmap status](roadmap-status.md#bcontract-specify-reusable-python-behavior).
 Repository-general flow and exception/alias semantics remain separate acceptance items.
 
 ## Evidence and regression checks
 
 `tools/python-contract.py` collects CPython outcomes and bounded `fr` reports on GitHub runners.
-Its offline audit checks the full case inventory, source bindings, caller rules, completeness,
-cutoffs, declared model differences and exact AST locations in every witness. It also checks
+Its offline audit checks the full case inventory, recorded input fingerprints, caller rules, completeness,
+cutoffs, declared model differences and exact syntax-tree source locations in every witness. It also checks
 module inventories, candidate file states, callee identities, parameter kinds and default locations.
 Budget-limited reports must retain the exact independently declared admitted file subset; candidate
 facts still correspond to the entire authored workspace. A declared binding-chain cutoff checks the

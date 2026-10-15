@@ -3,6 +3,11 @@
 If you staged the wrong file, undo that recorded staging operation without discarding your source edits. You can redo the staging later.
 The journal below records changes to the Git staging area, separately from source-edit history.
 
+The index stores file states selected for the next commit. Staging history records changes to that selection.
+Source history instead records edits to your working files; the two histories have different IDs.
+If you stage an unrelated note, undo the staging record to restore the earlier index while keeping the note's working contents.
+Inspect the returned journal and record ID before choosing an undo command.
+
 ## Commands, results and limits
 
 Changed `fr git stage PATH... --basis TOKEN --write` operations record their selected index entries in a worktree-local journal.
@@ -132,5 +137,5 @@ The crash-review model proves that only the absence of pending, lock and prepara
 The index-entry model proves that replay requires stage zero and rejects intent-to-add while accepting every combination of assume-unchanged and skip-worktree.
 These laws assume correct snapshot identities and replacement of exactly the selected entries.
 The existing history stack laws also describe the intended undo/redo ordering.
-Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence remain outside these proofs.
+Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence (the stated connection between two descriptions) remain outside these proofs.
 Regression tests cover the implemented journal, replay, recovery and compaction paths.

@@ -3,6 +3,11 @@
 When adding language support, tell the extractor which syntax nodes declare a function and which use its name.
 For example, a missed call capture can leave a rename’s caller list incomplete. The query files below define those patterns.
 
+A parser turns written code into a syntax tree, a nested description of its structure.
+A query matches parts of that tree. A capture labels a match so `fr` can recognize a declaration or use.
+For a new language, capture the function's name and body separately, then test a caller using that name.
+Recognizing the syntax is the first step; name resolution and safe edits need their own checks.
+
 ## Build and reference details
 
 The generic engine in `src/extract.rs` reads these per-language patterns.

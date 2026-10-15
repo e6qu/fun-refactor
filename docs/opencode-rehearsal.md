@@ -3,6 +3,12 @@
 A small rehearsal checks whether the task launcher, tool access and grading work.
 For example, both tool setups should receive the same task and their submitted changes should face the same tests. A rehearsal result does not establish savings on unfamiliar projects.
 
+A rehearsal tests the experiment machinery before making claims about tool usefulness.
+An arm is a tool setup, a cell is one planned attempt, and a grader checks its final submission.
+The baseline uses file listing, search, reads and edits; the compared setup also permits bounded `fr` discovery commands.
+For the same bug request, both setups must face the same behavior checks and resource limits.
+Its restricted command protocol differs from unrestricted everyday agent use.
+
 ## Recorded rehearsal and its setup
 
 `tools/opencode-rehearsal.py` compares ordinary source operations with the same operations plus
@@ -38,7 +44,7 @@ The plan embeds bounded source bundles and binds grader bytes, runner implementa
 binary identity, model IDs, repetitions and randomized arm order. It contains eight cells: two tasks,
 two models and two arms, with one attempt each. Run cells in their frozen order. Choose requirements
 and independent graders before changing the tool to suit a task. The included synthetic tasks are
-protocol controls and are unsuitable as a held-out project.
+protocol controls and are unsuitable as a project kept unread during development.
 
 Custom manifests use the same schema. Source directories must contain at most 100 regular files
 and 1 MiB of contents; symlinks refuse. Each grader is a trusted, reviewed Python program outside
@@ -63,7 +69,7 @@ separate subscription or account limits. A reported zero cost is retained as a C
 dollar cost remains unknown. Do not use this route where a strict dollar cap is required.
 
 Each attempt has at most eight model responses and 120 seconds. Individual subprocesses have a
-45-second deadline, 768 MiB sampled process-group RSS, 20 sampled CPU seconds, a 1 MiB output cap
+45-second deadline, 768 MiB sampled process-group RSS (resident set size, the measured memory held by a process), 20 sampled CPU seconds, a 1 MiB output cap
 and a 16 MiB workspace-growth cap. Retained attempt data also has a 16 MiB limit. The outer guard
 additionally serializes work, throttles CPU toward half a core, keeps aggregate RSS below its 1 GiB
 sampled limit, preserves 64 GiB free disk and caps target data at 2 GiB. Stops remain failures;

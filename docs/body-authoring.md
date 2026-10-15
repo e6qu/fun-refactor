@@ -3,6 +3,11 @@
 Suppose `calculate` uses the wrong rounding rule, but its name and arguments should stay the same. Preview a replacement for its body.
 `fr` preserves the surrounding code and lets you review the diff. Run behavior tests to check the rounding fix; a valid edit alone cannot establish it.
 
+A function body is the code executed when the function is called; its interface includes its name and arguments.
+A handle is the full reference returned by a query selecting that function.
+A fragment is a file containing the replacement body. A batch describes several edits to preview together.
+For a rounding repair, obtain the handle, write the replacement in the function's language, then inspect the combined diff before applying it.
+
 ## Commands, results and limits
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
@@ -61,7 +66,7 @@ For Rust:
 }
 ```
 
-Both the old and new bodies must fit 1 through 65,536 UTF-8 bytes. A brace-delimited block is naturally at least two bytes.
+Both the old and new bodies must fit 1 through 65,536 UTF-8 (the text encoding used to count source bytes) bytes. A brace-delimited block is naturally at least two bytes.
 The input file itself must fit 65,536 bytes, including whitespace outside the block.
 The reader trims surrounding whitespace and preserves all bytes inside the block.
 It refuses non-UTF-8 input, NUL bytes, symlink inputs and nonregular files.
@@ -237,9 +242,9 @@ Typing, name resolution and behavior still need project checks after application
 
 `fr task-change --from MANIFEST` composes task resolution, batch authoring and checked delivery.
 Use it when concrete fragments and declared checks already exist. The task-change manifest extends
-the task target rows with `from`, adds author postconditions, and carries the check output budget in
+the task target rows with `from`, adds author required conditions after the edit, and carries the check output budget in
 `delivery`. One preview returns the query evidence, resolved targets, complete author diff and all
-planned lifecycle stages.
+planned apply, check, reversal and delivery stages.
 
 The preview's `frtc1:` basis binds the manifest bytes, project revision, resolved queries and
 targets, fragment-derived author report, exact before/after payloads, selected check configuration,
@@ -254,7 +259,7 @@ undone according to the failing stage, while the requested patch remains absent.
 ## Review and transactions
 
 Both output modes return JSON. Individual operations use schema `fr-author-1`; batches use `fr-author-batch-1`.
-Reports include the reviewed revision and coverage, with handles, bounded paths, signatures and original byte spans for selected operations.
+Reports include the reviewed revision and coverage, with handles, bounded paths, signatures and original source byte ranges for selected operations.
 Body reports identify the original and replacement syntax as `block` or `expression`.
 For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
 It stops before the body; postfix wrappers and type assertions remain visible in the selected source, rather than in this header excerpt.
@@ -299,7 +304,7 @@ Five Go history workflows compile and run before edits, after application, after
 They exercise receiver state, named results with `defer` and multiline raw strings, while checking saved fragments and patch applicability.
 Batch cases cover coordinated caller/signature/helper changes, mixed languages, shared revisions, conflicts, malformed manifests and saved transactions.
 A declaration, caller and import-organization batch compiles with warnings denied after application and redo, restores both files on undo and retains unrelated source.
-That workflow checks four explicit postconditions. Six negative forms refuse without creating history or changing source.
+That workflow checks four explicit required conditions after the edit. Six negative forms refuse without creating history or changing source.
 A two-file Rust batch compiles and runs before changes, after application, after undo and after redo.
 A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
 A reported body-and-import batch also produces matching Rust and Lean splice results over Unicode source.
@@ -324,7 +329,7 @@ Lean proves that removing inserted characters at a valid boundary recovers the o
 Reported file and module, impl and trait insertions, including their separators, also produce matching Rust and Lean results.
 The [placement model](lean-specs.md#declaration-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
 Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; ten CLI previews match too.
-These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.
+These proofs do not establish general correspondence (the stated connection between two descriptions) for AST selection, parsing, type correctness, filesystem operations or the full authoring command.
 
 The `refactor` batch operation accepts a JSON rename or scalar signature request for a Rust free
 function. [Structural task delivery](structural-changes.md) binds its resulting edits to a reviewed

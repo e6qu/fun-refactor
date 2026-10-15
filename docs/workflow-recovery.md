@@ -3,6 +3,11 @@
 Suppose you apply a repair and its test fails. The changed files may still be present; inspect the saved result before retrying.
 You can repair the code or a missing test prerequisite, then run the required checks again. This guide explains how to resume the recorded work.
 
+A workflow arranges applying a saved edit, checking it, reversing it if requested and exporting its patch.
+A transaction stores the edit; a receipt records one check's outcome for particular inputs.
+A prerequisite is something the check needs, such as an installed compiler.
+If the prerequisite fails, fix it before rechecking the unchanged source. If the calculation is wrong, prepare a new reviewed edit.
+
 ## Commands, results and limits
 
 A checked edit can change source and then fail its applied-state check. The failed report retains
@@ -62,7 +67,7 @@ The first stage is `check-applied`; there is no initial `apply`. With reversal e
 are `check-applied`, `undo`, `check-restored`, `redo`, `check-applied`, and `deliver-patch`.
 Declared acceptance checks run after each applied check. Each successful applied check records
 its receipt against the transaction and exact source revision. Patch delivery occurs only after
-all requested stages pass. Independent receiver replay and behavior checks remain separate work.
+all requested stages pass. Independent patch application and checks in another checkout and behavior checks remain separate work.
 
 `check-original` is invalid in resume mode: the transaction is already applied. Use
 `exercise-reversal` to check restored source. A repeated check failure again stops later stages
@@ -81,17 +86,22 @@ edited source. The caller authors every replacement body.
 
 Retained programs include reopening, review, execution and receipt selection. Reports include
 the initial failed attempt, recovery traffic, exact source, patches, check receipts and fresh
-receiver replay. Successful receiver patches also face an independent behavior check and a
+patch application and checks in another checkout. Successful receiver patches also face an independent behavior check and a
 conflicting receiver checkout. These are workflow regressions, with no live model or general
-token-efficiency claim. Source repair and combined delivery across multiple transactions remain
+claim of lower token use. Source repair and combined delivery across multiple transactions remain
 outside this comparison.
 
 ## Retained results
 
+The baseline undoes the failed applied change and retries it after fixing the external prerequisite.
+The compared route resumes checks on the same already-applied source.
+Both start from the recorded failure and deliver the same final patch.
+The table counts complete recovery programs and protocol traffic, not elapsed time or provider cost.
+
 [Run 38043857792](https://github.com/e6qu/fun-refactor/actions/runs/38043857792) passed the native
 workflow tests, SDK type checks and all 32 comparison cells. Eight successful deliveries passed
 receiver application, behavior and conflict controls. The other 24 cells retained renewed check
-failures and stale source/check refusals without delivery. Twelve offline corruption tests audit
+failures and stale source/check refusals without delivery. Twelve offline tests that reject altered records audit
 the [retained report](../tests/agent-eval/results/2026-10-10-recovery-delivery/recovery-delivery-context.json).
 
 | Edit shape | Resume caller bytes | Undo/retry caller bytes | Resume total protocol bytes | Undo/retry total protocol bytes |

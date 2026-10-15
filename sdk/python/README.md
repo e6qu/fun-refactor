@@ -4,6 +4,12 @@ This package lets your agent find code, inspect reports and prepare reviewed cha
 For example, find `render`, keep its full report in the Python process, and show the agent only
 the caller or source lines needed for its next decision.
 
+The SDK is a Python library that invokes the installed `fr` command; it is not another Python analyzer.
+Create a `FrClient` with the project folder. Its methods return structured reports.
+A handle is the full returned reference to selected code. A pointer such as `/diff` selects a field from a report.
+A review shows the proposed change; execution applies that same reviewed operation.
+Install the package in the Python environment running these examples. Fragment snippets reuse `client` and earlier returned values.
+
 The examples below explain the Python calls and their limits. Read [result meanings](../../docs/understanding-results.md)
 when deciding whether a finding establishes a location, a possible input connection or a checked repair.
 
@@ -87,7 +93,7 @@ session, validates every fragment against its source commitment and stops once t
 location is covered. `SourceFragment.location`, `span` and `source_span` remain file-relative, so
 `fragment.text_at(location)` accepts a covered AST location directly. Its `offset` remains relative
 to the committed declaration for exact protocol paging. The fragment and session verify line ranges
-and byte spans against revealed text and the target definition. AST locations stay file-relative for capability authoring.
+and source byte ranges against revealed text and the target definition. syntax-tree source locations stay file-relative for capability authoring.
 `ByteSpan` also serves as the optional range of `CapabilityOperation`, so an AST name or definition
 span can flow into a reviewed capability without rebuilding a raw mapping.
 Direct `project find`, `select`, `map`, `explore` and `show` reports expose typed definitions as
@@ -183,7 +189,7 @@ agent-written tactics and pinned checker. Neither class generates proof tactics.
 
 `PropertyTask.from_data(...)` validates `fr-property-task-1` and independently recomputes its Merkle
 address. `PropertyTerm` and `PropertyProposition` mirror the Rust proposition IR. The task's
-`property(...)` method checks names, disclosed types, model arity and the 64-node/16-level ceilings,
+`property(...)` method checks names, disclosed types, model argument count and the 64-node/16-level ceilings,
 then returns an `AgentProperty` with the exact `fr-formal-property-1` wire shape:
 
 ```python
@@ -225,7 +231,7 @@ fr author replace-body-semantic HANDLE --from change.json
 
 `Type`, `Stmt`, `Expr` and `TemplatePart` reject values from another node category. The SDK exposes
 no constructor for either `unsupported` variant and detects cycles during serialization. Rust
-performs the final strict field, schema, size and source-free checks.
+performs the final strict field, schema, size and absence-of-source checks.
 
 Build a smaller change when the agent already has a semantic body. The SDK computes the canonical
 body identity and infers the replacement category from the typed node:
@@ -300,7 +306,7 @@ The opaque identity determines the operation, position, and accepted node catego
 that the optional value shape agrees with that capability and with the current Merkle commitment.
 
 Build one complete reviewed change session without separate fragment files. These classes mirror
-the `fr-task-change-1` wire shape and validate request order, target inputs, postconditions, checks,
+the `fr-task-change-1` wire shape and validate request order, target inputs, required conditions after the edit, checks,
 paths and byte ceilings before writing JSON:
 
 ```python
@@ -325,14 +331,14 @@ reviewed task-change basis.
 
 Use `ChangeScope.inspect(client, [handle])` from `fr_ir.change_scope` for bounded indexed consumers
 and test candidates. Declare exact file-to-check associations in `.fr/check-scopes.json`, then use
-`client.review(scope.bind(change))` to require fresh scope inputs, admitted targets and candidate checks.
+`client.review(scope.bind(change))` to require fresh scope inputs, supported targets and candidate checks.
 Persist the scope and attach its dependency to a task plan; incomplete discovery cannot satisfy a step.
 See [consumer scopes](../../docs/change-scopes.md) for boundaries and explicit refresh after a change.
 
 Use `TaskChange(..., acceptance_checks=["behavior"])` for checks that must pass only after the change.
 They run after apply and redo; failure stops patch delivery and retains the applied state for diagnosis.
 `fr_ir.investigation_delivery.run_delivery` retains the receipt and attaches its final checks to an
-explicit outcome step. See [checked outcomes](../../docs/checked-outcomes.md) for fresh-process
+explicit outcome step. See [checked outcomes](../../docs/checked-outcomes.md) for new-process
 completion, invalidation, failure handling and the distinction between lifecycle and acceptance checks.
 
 Disclosure trees can be stored by content address:
@@ -554,7 +560,7 @@ See [the expression contract](../../docs/expression-control.md) for effects, cac
 
 `FunctionSummaries.call_binding` exposes the current parameter contract.
 Explicit keyword arguments bind independently to positional-or-keyword
-and keyword-only parameters; `/` preserves positional-only parameters. Argument expressions run in
+and keyword-only parameters (slots that calls must supply by name); `/` preserves positional-only parameters (slots that calls must supply by position). Argument expressions run in
 source order before declaration-order summary substitution. Missing or invalid bindings leave the
 analysis incomplete. Evaluated defaults, argument unpacking, referenced variadic values and keyword
 calls to external rules remain unsupported.

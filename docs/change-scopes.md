@@ -3,6 +3,11 @@
 Before changing the arguments of `subtotal`, find the callers that may need updating and the tests that may cover them.
 `fr` lists relationships it can identify and explains where the search stops. Review those limits before treating the list as complete.
 
+A consumer is code that uses the function being changed. A change scope lists the consumers and related tests found by the search.
+For `subtotal(price)`, adding a required `tax` argument can require changes at every caller.
+A handle selects the function; a basis connects the later edit to the scope you reviewed.
+Missing relationships or unfinished pages mean the caller list cannot yet be treated as complete.
+
 ## Commands, results and limits
 
 `fr project change-scope HANDLE...` lists code that may need attention when the selected functions
@@ -52,7 +57,7 @@ visible. The map permits 32 check names, 64 paths per check and 64 KiB in total.
 A check becomes a candidate when its declared paths intersect affected files. The report lists uncovered
 files and missing associations. `review_ready` requires complete indexed discovery, no unresolved or weak
 references, mapped affected files and at least one declared check. It does not prove test execution or
-runtime coverage. External consumers, reflection and dynamic dispatch remain outside this relation.
+runtime coverage. External consumers, reflection and dynamic dispatch (choosing a callable from runtime values) remain outside this relation.
 
 ## Scope-bound changes and resumable plans
 
@@ -89,7 +94,7 @@ The Rust/Lean readiness comparison covers all 16 Boolean admission cases. Its th
 small predicate; they do not prove the index, consumer closure, test catalog or source behavior.
 
 The [pinned evaluation](../tests/agent-eval/results/2026-09-28-change-scope/manifest.json)
-compares independent Python AST inspection with native discovery, then checks two-file delivery,
-fresh-process resumption, added-consumer invalidation and independent patch replay.
+compares independent Python inspection of the parsed syntax tree with native discovery, then checks two-file delivery,
+resumption in a new process, added-consumer invalidation and independent patch replay.
 The [SDK tests](../sdk/python/tests/test_change_scope.py) exercise budgets, ambiguity, coordinates,
 mapping drift and refusal boundaries. This is deterministic acceptance, not a live-agent trial.

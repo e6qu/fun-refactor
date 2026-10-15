@@ -3,6 +3,11 @@
 Suppose a function contains several copies of the number `3`, but only one is a retry limit. Select that exact occurrence from the inspected report.
 The returned edit reference lets you preview a change to that occurrence without guessing its position. A changed file makes the old reference unusable.
 
+Disclosure means opening a selected part of a larger report.
+A descriptor is the returned edit reference for one item, such as the retry count rather than another equal integer.
+A scalar is one simple value, such as a number, string or Boolean.
+Copy the item-specific reference into its preview command and supply the replacement; do not construct the reference yourself.
+
 ## Commands, results and limits
 
 `project disclose` returns edit references beside supported values and statements in the structured body.
@@ -48,7 +53,7 @@ Delete a statement:
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' --edit 'frdi1:<DIGEST>'
 ```
 
-`replace` accepts one source-free node in the descriptor's `accepts` category. `insert-statement`
+`replace` accepts one node without source text in the descriptor's `accepts` category. `insert-statement`
 accepts one statement at its bound `before` or `append` position, including an empty list.
 `delete-statement` accepts no value. The existing semantic-change validator remains the execution
 authority for node categories, source freedom, pointer and index bounds, result size and strict IR
@@ -83,7 +88,7 @@ accepts exactly one matching identity with the same current node or statement li
 the operation's value shape, the bound node category and a real replacement. Source, declaration,
 body, node/list, operation, category or position drift therefore refuses before history creation.
 
-For large values, descriptors and receipts use the same tagged canonical JSON tree as progressive
+For large values, descriptors and receipts use the same tagged canonical JSON, the normalized encoding used to compare records and compute their fingerprints, tree as progressive
 disclosure. `serialized_bytes` measures compact JSON bytes. A commitment does not reveal its value
 or prove program behavior.
 

@@ -3,6 +3,12 @@
 Suppose you want to rename `calculate` but do not know which command to start with. Describe the task in the input below, and `fr guide` returns suggested steps.
 Your agent writes that structured input. The guide does not read a natural-language request or make the change on its own.
 
+A goal is a task description written as JSON, a structured format using named fields.
+A selector identifies code by a unique name or path. An operation describes the requested action.
+The guide returns commands and any fields the agent must still supply; it does not invent replacement code.
+For the example below, save the JSON as `goal.json`, declare the `unit` check, and run `fr guide --from goal.json`.
+Its `from` and `to` values select a particular integer change, not a general request to fix any incorrect calculation.
+
 ## Commands, results and limits
 
 Write the task description in `GOAL`, then run `fr guide --from GOAL` to get commands that read
@@ -49,7 +55,7 @@ Choose a purpose that matches the question:
 `operation` defaults to
 `{"kind":"automatic"}`. Automatic understanding/tracing selects bounded evidence; automatic changes
 select semantic deltas; migration requires an advertised destination; proving selects the
-formalization workbench for admitted targets or a Lean proof task.
+formalization workbench for supported targets or a Lean proof task.
 Automatic Lean declaration goals derive the obligation from its selected name; file goals still
 need an exact obligation. Missing specification packages receive a non-writing initialization
 preview before formal scaffold authoring.
@@ -61,7 +67,7 @@ preview before formal scaffold authoring.
 | `semantic-scalar` | Live `operation`, exact `from` and new `to` | Semantic locator/intent and task planners |
 | `semantic-change` | Basis-bound typed operations | Semantic change catalog and writer |
 | `semantic-body` | Typed statement tree | Semantic body catalog and writer |
-| `source-body` | Complete body in the target language, after `allow_source: true` | Bounded source reveal and `replace-body` writer |
+| `source-body` | Complete body in the target language, after `allow_source: true` | Bounded source read and `replace-body` writer |
 | `source-bodies` | Complete bodies for one primary and up to seven additional exact declarations | Bounded reveals and one reviewed multi-target body change |
 | `surface-edit` | `surface`: `styles` or `diagrams`, then returned edit ID and new scalar | CSS/host/Markdown/Mermaid capabilities |
 | `framework-migration` | Advertised destination, feature or application output, and optional registration data | Feature or application IR compatibility |
@@ -74,7 +80,7 @@ optional stdin `input` and only the `author_fields` needed by each action. `read
 complete inputs. Templates with author fields require those fields first. Returned arrays never
 contain `--write` or `--save-plan`. Review and execution use the existing task, history, workflow,
 migration or proof engine's complete basis.
-An exact declaration target carries the same `location.name` and `location.definition` byte spans
+An exact declaration target carries the same `location.name` and `location.definition` source byte ranges
 and line ranges through its guide, disclosure and native intent packets.
 Recipe guidance includes only its live verb, relevant selector fields, target values, support and
 matched/refusal expectation forms. Target-kind and language incompatibility refuses before authoring.
@@ -92,7 +98,7 @@ In the Python SDK, `guide.source_body_action({handle: body_text})` builds that t
 retained targets, named checks and delivery policy. Supply every guided handle exactly once;
 names and list positions are not substitutes for handles. Python bodies are relative suites;
 braced languages include the outer braces. The helper copies the supplied text, derives exact
-file/edit postconditions and makes no subprocess call. For example, after reading a single
+file/edit required conditions after the edit and makes no subprocess call. For example, after reading a single
 Python target and authoring its replacement:
 
 ```python
@@ -119,11 +125,11 @@ the edit again. Source changes require a new review and transaction.
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR
 nodes. Option-like string values use equals-form arguments so the CLI preserves their data role.
-The native task planner checks uniqueness, scalar category, writer admission and postconditions
+The native task planner checks uniqueness, scalar category, writer admission and required conditions after the edit
 before the guide advertises it. The common Python delivery API wraps the corresponding typed task
 operation in the same `GuideReview` used by every other writable route.
 `guide.semantic_scalar_action()` returns that typed operation only when the ready task manifest
-exactly matches the retained goal, target, checks, delivery and postconditions.
+exactly matches the retained goal, target, checks, delivery and required conditions after the edit.
 
 ```python
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
@@ -190,7 +196,7 @@ report before `basis`, `object_root` and the measured length; `frag1:` additiona
 goal, project revision, all live capability forms/support, recipe vocabulary and semantic catalog.
 
 The verification ladder keeps reparse, compiler, declared checks, behavioral oracles, model theorems
-and implementation correspondence separate. A route starts with no proved behavior. Agents author
+and implementation correspondence (the stated connection between two descriptions) separate. A route starts with no proved behavior. Agents author
 properties and tactics. Generated formalization admits typed pure declarations for the languages
 listed by `fr --json audit proofs` and structural snapshots for the remaining parser identities. An
 `implementation` proof expectation returns an explicit unsupported state.
@@ -209,7 +215,7 @@ boundaries.
 
 The [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a generic
 Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and completes
-all eight lifecycle stages. It compares guided delivery with separate discovery/task review and
+all eight apply, check, reversal and delivery stages. It compares guided delivery with separate discovery/task review and
 with the stronger inline-discovery task baseline. Counts retain complete prescribed programs and
 canonical request/response sizes. They establish neither autonomous agent efficiency nor billing.
 

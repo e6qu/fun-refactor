@@ -2,6 +2,8 @@
 
 Keep large reports in Python and return only the fields needed for the next decision. For example, show one relevant caller instead of the whole call report.
 
+The SDK is the Python library invoking `fr`. Reports stay in the Python process; a pointer selects the fields sent to the agent.
+
 Use this route when Python and the zero-dependency `fr_ir` package are available. It keeps complete
 reports local; print or inspect only the fields needed for the decision.
 
@@ -9,7 +11,7 @@ reports local; print or inspect only the fields needed for the decision.
 from fr_ir.runtime import FrClient
 client = FrClient(".")
 found = client.project("find", "render", "--signature")
-handle = found.at("/rows/0/0")
+handle = found.definition_target().handle
 ```
 
 Start a local progressive workspace with `session = client.context(handle, view="semantic" |
@@ -32,7 +34,6 @@ pointer suffixes when the default section values would exceed the packet budget.
 
 For intent-bound operations, read [Intents](intents.md). Use `TaggedIntentAction` from
 `fr_ir.intent_actions` to bind tasks, recipes, direct capabilities, migration and proof delivery.
-The untagged `IntentAction` remains the legacy one-direct-target wire format.
 
 Construct `TaskChange`, `TaskTarget` and `TaskDelivery` as shown in [Task](task.md). Preview with
 `review = client.review(change)`, inspect selected values with `review.at(POINTER)`, then call

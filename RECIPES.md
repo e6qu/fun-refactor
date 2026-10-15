@@ -3,6 +3,12 @@
 Suppose a cleanup needs three steps: rename a helper, move it, then update its imports. A recipe records the steps so you can preview them together.
 If a later step fails, `fr` keeps the earlier proposed edits out of your files. This guide describes the recipe format and its limits.
 
+The recipe language is a small set of instructions for editing code, often called a domain-specific language or DSL.
+A selector chooses code: `kind=function` chooses functions, and `name~"legacy_*"` narrows them by name.
+A step requests an edit to those selections. A refusal explains why an edit cannot proceed.
+An expectation checks a stated condition afterward. For a cleanup, an expectation about unused names still needs behavior tests.
+Recipe execution includes parsing and every underlying edit; its speed compared with separate commands is unmeasured.
+
 ## Commands, results and limits
 
 A recipe is a readable, repeatable multi-step refactoring. It declares what to select, what to do,

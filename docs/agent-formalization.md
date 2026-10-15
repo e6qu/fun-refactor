@@ -3,6 +3,11 @@
 Suppose you want to check an access rule: permission requires either staff access or ownership. `fr` can prepare a Lean proof task for supported functions.
 The agent still writes the property and proof. An accepted proof establishes the stated property of the translated model; check its connection to the source before relying on it.
 
+Lean is a proof checker. A property is the precise claim you ask it to check.
+For example, “access requires staff status or ownership” is a property of an access function.
+A model is a description of supported source behavior in Lean. A theorem proves a claim about that model under stated assumptions.
+Checking the theorem and checking that the model describes the actual source are separate responsibilities.
+
 ## Commands, results and limits
 
 `fr spec` prepares a Lean workspace from supported functions or recorded file structure.
@@ -36,7 +41,7 @@ supply no implementation equivalence proof.
 ## Structural targets
 
 For HTML, CSS, SCSS, Sass, HCL, JSON, YAML, Helm, XML and Markdown, use
-`PATH::__fr_structure__`. The model checks retained byte spans, name containment and ordered
+`PATH::__fr_structure__`. The model checks retained source byte ranges, name containment and ordered
 immediate parent links. Each fact kind retains at most 32 rows; gap diagnostics retain 16.
 The IR records omitted counts, clipped names, confidence and its provenance policy.
 Parser completeness, omitted facts, rendering, configuration behavior and embedded execution remain unproved.
@@ -59,12 +64,12 @@ anchor the complete source file.
 
 `spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
 semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains
-the current generated model, named term definition and exact correspondence proposition.
+the current generated model, named term definition and exact correspondence (the stated connection between two descriptions) proposition.
 `source_implementation_proved` remains false. Parser extraction and source semantics still require evidence.
-General Lean laws cover binding resolution, shadowing, lifted indices, literal substitution,
+General Lean laws cover binding resolution, shadowing (a nearer declaration hiding an earlier name), lifted indices, literal substitution,
 evaluation determinism, short-circuit behavior and arithmetic bounds. A conditional multiplication/addition
-law and a concrete grouping fixture cover operator-tree evaluation; parser lowering remains separate.
-Execution tests compare finite cases with executable Lean and installed source toolchains.
+law and a concrete grouping fixture cover operator-tree evaluation; parser lowering (converting source into the structured code model) remains separate.
+Execution tests compare tested cases with executable Lean and installed source toolchains.
 They do not prove general source implementation equivalence.
 
 ## Direct evaluation and Python mirror
@@ -154,7 +159,7 @@ fr --json spec plan src/lib.rs::both --property-from property.json > formal-plan
 
 The agent owns the property name, parameters, proposition and every later proof tactic. `fr`
 rejects stale task identities, unsafe or duplicate names, types outside the disclosed signature,
-unknown variables, model arity errors, type errors and oversized trees. The rendered theorem and
+unknown variables, model argument count errors, type errors and oversized trees. The rendered theorem and
 authored tree are both committed by the plan digest.
 
 Scaffolding reparses the plan with unknown-field rejection, regenerates it from the current source
@@ -216,7 +221,7 @@ remains the authority for strict anchors and a warnings-as-errors Lake build.
 relation rules. The Rust test compares 574 finite admission inputs with the Lean executable.
 The resource-policy comparison adds 135 shared Rust/Python/Lean inputs.
 The pure evaluator corpus adds 913 Rust/Lean executions, including arithmetic edges and structured values. Integration tests cover candidate exclusions,
-plan addressing, plan tampering and drift, source-free output, proof preservation, bounded goal
+plan addressing, plan tampering and drift, output without source text, proof preservation, bounded goal
 disclosure, agent-authored multi-input properties, failed and corrected proof attempts, exact proof
 replacement, undo and redo. Python independently recomputes plan, property-task, proof-task and
 receipt addresses and rejects mutation.

@@ -3,6 +3,12 @@
 The question is practical: does an agent finish the same unfamiliar task more reliably or with less time and cost when it has `fr`?
 For a bug fix, compare the final behavior and all work spent, including failed attempts. The scripts below record experiments; scripted successes alone cannot answer the question.
 
+A study compares the same task under declared conditions. An arm is one tool setup; a cell is one planned attempt.
+A matched pair uses the same task and model with ordinary tools, then ordinary tools plus `fr`.
+A manifest is the input file recording those choices. Freezing it saves their identities before attempts start.
+A grader independently checks the submitted result; an oracle is a reference implementation or expected behavior used by that check.
+For checkout, count both agents' complete work and apply the same rounding tests. The [measurement guide](benchmarks.md) explains baselines and overhead.
+
 ## Commands, results and limits
 
 `tools/agent-eval-study.py` freezes a study plan and audits retained attempt records.
@@ -77,7 +83,7 @@ The auditor checks each referenced file's digest, confines it to that directory 
 16 MiB. This version accepts one bounded trace artifact per attempt.
 
 Every record includes `schema: fr-agent-study-attempt-1`, its `cell` ID, `plan_sha256` and `status`.
-The plan digest uses UTF-8 JSON with sorted keys, compact separators and ASCII escaping;
+The plan digest uses UTF-8 (the text encoding used to count source bytes) JSON with sorted keys, compact separators and ASCII escaping;
 `agent_eval.study.digest` is the shared implementation. Duplicate JSON keys and nonfinite numbers refuse.
 
 A `blocked` record needs a nonempty `reason`. It means execution never started and cannot contain
@@ -193,7 +199,7 @@ For this launcher, `model_settings` has exactly `reasoning_effort` and `service_
 
 The launcher uses a fresh POSIX process group. It kills that group after parent exit, timeout,
 resource excess or monitor failure. Output retention stops at 16 MiB across stdout and stderr.
-Defaults bound wall time to 900 seconds, sampled group RSS to 768 MiB, sampled CPU to 600 seconds
+Defaults bound wall time to 900 seconds, sampled group RSS (resident set size, the measured memory held by a process) to 768 MiB, sampled CPU to 600 seconds
 and session-directory growth to 128 MiB. The version probe has a ten-second deadline and 64 KiB output cap.
 Run this workload on a GitHub worker; workstation invocations still require the local resource guard.
 

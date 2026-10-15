@@ -1,6 +1,8 @@
 # Prepare one structural task
 
-For a change involving several callers, collect the relevant functions and required checks together. Keep unresolved relationships visible in the plan.
+For a change involving several callers, collect their functions and checks. Keep unresolved relationships visible.
+
+A manifest groups queries and checks. Handles select code; bases connect edits to reviewed results.
 
 Use one `project task` call when an edit needs several project views, exact targets and declared
 delivery checks. The manifest runs ordinary read-only project queries on one revision. Later query

@@ -61,10 +61,20 @@ successful ones. The [product review](docs/product-review.md) explains what we s
 
 Start each guide from the reader’s question before describing the machinery.
 Show the task, a concrete example, the meaning of the result and the next action.
+Introduce concepts where the example first needs them. A reader should not need another manual to understand the lesson.
+State required files, installed tools and values returned by earlier commands before using them in an example.
+Explain each performance comparison's baseline and included costs; the [measurement guide](docs/benchmarks.md) supplies examples.
 Keep exact commands and data fields available for readers who need them. Keep one current format;
 reject missing or old data without adding compatibility readers or migration fallbacks.
 
 ## Next large chunk
+
+Finish the reader review before extending Python support.
+Revise current guides, agent instructions and project trackers, including the generators that recreate reports.
+Check examples against actual commands and refresh measurements whose input text changes.
+Preserve original experiment outputs, failures and unstarted attempts.
+
+Then return to the Python work below.
 
 Continue the Python work from the actual library failures. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
@@ -123,8 +133,9 @@ records. Detailed run history belongs with those records, not in the current wor
 ## Milestones and implementation checklist
 
 Checkboxes track implementation only. The [status report](docs/roadmap-status.md) lists the behavior
-each milestone must demonstrate, its supporting tests and what is missing. The catalog is now
-`agent-analysis-v2`: open requirements include unfamiliar projects and complete agent-cost accounting;
+each milestone must demonstrate, its supporting tests and what is missing.
+The catalog is the machine-readable list of those requirements. Its identifier is `agent-analysis-v2`.
+Open requirements include unfamiliar projects and complete agent-cost accounting;
 demonstrated items retain their original, limited scope.
 
 ### A. Find relevant code and explain the evidence
@@ -165,8 +176,9 @@ Check whether an earlier assignment overwrites it. Report possible paths separat
 - [x] Distinguish candidate call relationships, possible value transfers and proved statements.
   See the [analysis contract](docs/agent-investigations.md).
 
-Still needed: generalization across independently selected projects, useful positive and negative
-answers, and honest handling of shared mutable objects and implicit exceptions. The two recent
+Still needed: useful reaching-input and blocked-input answers across independently selected projects.
+Shared mutable objects and implicit exceptions also need honest handling.
+An implicit exception is an error an operation can raise without an explicit `raise`. The two recent
 repository delivery tasks still report incomplete or refused flow analysis.
 
 ### C. Resume work and reuse correct answers
@@ -197,7 +209,7 @@ a patch another checkout can apply. For a proof request, connect the theorem to 
 
 - [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
   [Caller discovery](docs/change-scopes.md) and [structural changes](docs/structural-changes.md) cover
-  specific cases; dynamic dispatch and inferred contracts remain incomplete.
+  specific cases; dynamic dispatch (choosing a callable from runtime values) and inferred contracts remain incomplete.
 - [ ] Extend analysis and editing representations for reusable language features required by observed
   tasks, with defined success, failure and side effects.
 - [ ] Translate a function under explicit arithmetic, error and evaluation-order rules, independently

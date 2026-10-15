@@ -2,6 +2,11 @@
 
 To check an explanation of retry behavior, use the same library source that the recorded attempt saw. These archives make that comparison reproducible. They do not show that an agent understands every version or saves work on an unfamiliar project.
 
+Pinned means fixed to an identified Git revision. An archive stores the source files for that revision.
+A digest fingerprints those bytes so another reader can verify the same input.
+For an agent's retry explanation, inspect the pinned library rather than today's changing upstream branch.
+Restoring a source archive does not rerun or improve the recorded answer.
+
 These archives retain complete upstream repositories, including their licenses.
 `provenance.json` records the Git revision, archive digest, file count and expanded bytes.
 Download the same revision with `gh api repos/OWNER/REPO/tarball/REVISION`.

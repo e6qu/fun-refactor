@@ -3,6 +3,11 @@
 The browser build needs the C interfaces used by the parsers, without a full operating-system library.
 For example, a missing allocator symbol should stop the build rather than leave a browser failure. The declarations here support that build.
 
+WASM, or WebAssembly, is the browser's compiled execution format.
+The parsers include C code that expects libc, the C language's standard runtime interfaces.
+A shim supplies the small set of declarations needed to link those parsers for the browser target.
+For a missing C function during linking, inspect whether the shim and its implementation provide that interface.
+
 ## Build and reference details
 
 A libc small enough for tree-sitter, for `wasm32-unknown-unknown`.

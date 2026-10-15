@@ -2,11 +2,16 @@
 
 These dated records explain what earlier tests checked. For a checkout repair, a script can test a known patch and its reversal without showing that an agent would discover the repair. Use the [current results](../../docs/roadmap-status.md) for today’s requirements and limits.
 
+An acceptance test checks a declared requirement. A fixture supplies the chosen input for that test.
+A manifest records which source, executable and report were used; a digest fingerprints their contents.
+For a recorded patch replay, check that those identities match before interpreting its passing result.
+The historical tests below have different scopes; none becomes a live-agent comparison merely by using `fr`.
+
 The [virtual workspace task](virtual-model-workspaces/task.json) covers bounded source capture,
 isolated retained-model replay, workspace restoration and native/virtual parity. Its
 [refreshed comparison](results/2026-09-28-virtual-model-comparisons/manifest.json) records
 GitHub runner results for the updated VFS and model code. Six `2026-09-28-virtual-*` reports
-refresh the affected source bindings.
+refresh the affected recorded input fingerprints.
 The comparison also retains the Python scanner source after its discarded-value warning cleanup.
 The [dogfood record](results/2026-09-28-virtual-dogfood/manifest.json) holds actual repository
 previews, saved plans, applied changes and 15 bounded syntax-only translation checks.
@@ -14,11 +19,11 @@ Earlier evidence remains unchanged.
 
 The [Boolean comparison fixture](refinement/task.json) is repository-owned Rust and Python source.
 The [retained comparison](results/2026-09-28-model-comparisons/manifest.json) binds source snapshots,
-three generated Lean relations, proof reports, fresh-process plans, both patches and a false claim.
+three generated Lean relations, proof reports, new-process plans, both patches and a false claim.
 Its deterministic oracle compiles Rust and checks all eight assignments. Receiver audits apply,
 check, reverse and reapply both patches. No source implementation proof or live-agent claim follows.
 The [dogfood record](results/2026-09-28-refinement-dogfood/manifest.json) retains actual repository edits.
-Six `2026-09-28-refinement-*` reports refresh affected source bindings on a GitHub runner;
+Six `2026-09-28-refinement-*` reports refresh affected recorded input fingerprints on a GitHub runner;
 previous dated reports remain unchanged.
 
 The [consumer-scope fixture](change-scope/task.json) is repository-owned Python source. Its
@@ -206,7 +211,7 @@ is pinned in [its runner snapshot](runner-snapshots/upstream-cross-crate-bodies-
 
 The [guided application migration acceptance](results/2026-09-21-application-migration-acceptance/manifest.json)
 uses a pinned Express fixture with a path parameter, required canonical integer query input and
-required Boolean JSON body input. The live agent follows the source-free application IR route,
+required Boolean JSON body input. The live agent follows the application IR route without source text,
 previews a Go standard-library HTTP adapter and executes one unchanged review. The source remains
 for coexistence while `generated/routes.go` is created. All eight delivery stages pass the declared
 Go check. A fresh receiver replays the patch and passes seven HTTP cases covering two successful
@@ -218,7 +223,7 @@ writable operations. The evaluator is pinned in
 
 The [guided Lean proof acceptance](results/2026-09-21-proof-authoring-acceptance/manifest.json)
 uses a generated Lean 4.28 package containing one source-anchored identity theorem with explicit
-proof debt. The live agent follows the source-free proof route, inspects the exact theorem and
+proof debt. The live agent follows the proof route without source text, inspects the exact theorem and
 contract, authors and checks tactics, previews the proof-region patch and executes one unchanged
 review. All eight delivery stages pass the declared Lean check. A fresh receiver replays the patch;
 strict `fr spec verify` reports one fresh anchor, zero obligations, zero debts and a successful

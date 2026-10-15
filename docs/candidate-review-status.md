@@ -3,6 +3,11 @@
 Before comparing tools on a bug fix, check that the task and its tests can distinguish a correct repair from a plausible mistake.
 For example, a test that accepts an empty implementation cannot grade the requested feature. This page records which candidate tasks passed that review and what still blocks others.
 
+A candidate is a proposed task for an agent comparison. Its grader is the independent program checking submitted repairs.
+Admission means the task passed the stated review requirements; it does not authorize a new paid run.
+For example, a missing-variable fix needs separate tests for absent, empty and present values.
+A reviewer finding no contradiction in one case leaves the other cases unchecked.
+
 ## Review decisions and remaining work
 
 Packaging was admitted for one bounded change pilot. That pilot is now permanently stopped
@@ -25,7 +30,7 @@ plausible while violating the request. Review those cases before using the task 
 | Intersection fallback, matching finals, bounds and exclusions | Both scoped model reviews completed; hosted behavior cases pass | Finite cases; the assessment rejects and preserves the repeated incorrect postrelease finding |
 | Constructor/call policies, inference and empty sets | One model review completed; independent hosted checks passed 324 policy combinations | GLM's policy review exhausted output and remains failed |
 | Object identity, order, duplicates and one-shot iterables | Both scoped reviews completed; GitHub verified a distinct-object counterexample and the strengthened identity check | No exhaustive iterator or object-behavior proof |
-| Existing `contains` and individual `Specifier` APIs | Both scoped reviews completed; existing API cases and unchanged-source checks pass | Only the admitted source and declared cases are covered |
+| Existing `contains` and individual `Specifier` APIs | Both scoped reviews completed; existing API cases and unchanged-source checks pass | Only the supported source and declared cases are covered |
 
 The [scoped review and assessment](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/README.md)
 records all eleven areas. Its [admission decision](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/admission.json)

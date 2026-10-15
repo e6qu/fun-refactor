@@ -3,6 +3,11 @@
 This review asks whether an agent can find the cause of a bug and keep track of what it still needs to check.
 For example, finding a caller is useful only if the agent can connect it to the reported failure. The dated assessment below informs the current plan; it is not a current support list.
 
+This is a dated design assessment. “Evidence” means a recorded observation, such as a compiler error or a source location.
+A task plan stores the question, observations and remaining checks so work can continue after a pause.
+For example, keep “the caller supplies cents” separate from “rounding is wrong,” which still needs checking.
+Use the current plan for priorities; later implementation does not turn this old assessment into a new measurement.
+
 ## Dated assessment and proposed work
 
 Review date: 2026-09-23. Baseline: `c22ba827`, including merged PR #355.
@@ -38,8 +43,8 @@ Adding another wrapper around an existing edit contributes less until an observe
 | Agent routing | Structured purposes, deterministic guides, native intent packets and typed SDK operations | Route selection does not manage a continuing investigation |
 | Changes | Refactors, recipes, semantic edits, authored bodies, surface edits and application migrations | Support varies by language, construct and effects |
 | Delivery | Immutable reviews, checks, recoverable history, reversal and Git patch delivery | Behavioral correctness requires suitable oracles |
-| Lean | Anchors, signature maps, model obligations, proof authoring, executable kernels and finite correspondence cases | General source implementation equivalence remains an explicit obligation |
-| Evaluations | Pinned deterministic cases and accepted guided live trials with independent oracles | Task breadth, repeated trials and unknown-target investigations need expansion |
+| Lean | Anchors, signature maps, model obligations, proof authoring, executable kernels and finite correspondence (the stated connection between two descriptions) cases | General source implementation equivalence remains an explicit obligation |
+| Evaluations | Pinned scripted cases and accepted guided live trials with independent oracles | Task breadth, repeated trials and unknown-target investigations need expansion |
 
 The live audit is the authority for support counts. Its capability cells are admission predicates,
 not accuracy measurements. The [evaluation guide](evaluations.md) identifies accepted manifests
@@ -49,7 +54,7 @@ and separates deterministic evidence from live trials.
 
 ### Exact occurrences and analysis provenance
 
-Declaration locations now connect AST identities to editable text. `src/span.rs` defines byte spans
+Declaration locations now connect AST identities to editable text. `src/span.rs` defines source byte ranges
 and line ranges; `src/project.rs` exposes them in targeted declaration reports. Python verifies
 the selected targets and revealed text.
 
@@ -184,11 +189,11 @@ These are proposed additions to the existing corpus. Pin independent oracles bef
 | Write a feature | Acceptance criteria, insertion points, contracts and callers | Add behavior across modules without supplying the edit target in advance |
 | Refactor or restructure | Complete target set, ambiguity handling and preservation evidence | Move or change a declaration and update its consumers through one reviewed delivery |
 | Translate code | Source/target semantics, fidelity gaps and correspondence evidence | Compare both implementations on declared cases and report unmodeled behavior |
-| Prove old or new code | Property, assumptions, anchors and source/model relationship | Check a property, change a dependency and reject the stale evidence |
+| Prove old or new code | Property, assumptions, anchors and source and model relationship | Check a property, change a dependency and reject the stale evidence |
 | Resume a task | Retained evidence, dependency changes and invalidated steps | Continue after a relevant edit while retaining independently valid work |
 
 Use positive, negative, ambiguous and truncated cases. Measure useful task completion, false claims,
-diagnostic precision, context bytes, source reveal, latency and recomputation. Record tokens and
+diagnostic precision, context bytes, source read, latency and recomputation. Record tokens and
 cache usage only when the runner exposes them. Compare against ordinary search plus source editing
 and against the current `fr` workflow on the same task and revision.
 
@@ -212,7 +217,7 @@ This review reads the implementation, protocol guides, roadmap, handoff and reta
 It runs the live audit, workflow audit, proof audit and capability report from the existing local binary.
 A small Rust fixture confirms exact declaration locations and the explicit parameter-flow boundary.
 These checks assess contracts; they do not replay compiler, behavioral or Lean acceptance suites.
-The retained representative registry audit passes: six deterministic cases, ten live trials and
+The retained representative registry audit passes: six scripted cases, ten live trials and
 two matched cohorts. The ten capability-matrix tests, local documentation links, prose budget and
 diff whitespace checks pass for this documentation update.
 

@@ -3,6 +3,12 @@
 Suppose your application imports a utility library and sends a value through one of its helpers.
 You want to know whether user input can reach the output, including what the import does.
 
+A library import can execute a package's `__init__.py` before making its helper available.
+That startup code can change names or shared objects, so reading only the helper's body can miss relevant behavior.
+A source is the configured input call; a sink is the configured output call.
+The examples use `read_input()` and `send()` to illustrate those roles; the test setup supplies their implementations.
+A cutoff records why analysis could not finish. Read it before interpreting an empty trace.
+
 This is an illustration of that question:
 
 ```python
@@ -74,7 +80,7 @@ maintained utility libraries, not a representative sample of Python applications
 
 Each authored adapter imports the upstream identity helper through its real package. One entry
 passes the selected value through two helper calls to a sink. Another calls the helper, overwrites
-the value and sends zero through the helper to the same sink. Independent AST inspection checks
+the value and sends zero through the helper to the same sink. Independent inspection of the parsed syntax tree checks
 the actual runtime implementation; isolated CPython executions use source values 17 and 31.
 The alternate adapter renames its entry and import alias and moves into another package without
 changing upstream code or analysis rules. Unknown-call, one-step-budget and invalid-byte-budget
@@ -105,15 +111,15 @@ Pydash source first opened after coverage passed on the same collector revision.
 inspection failed because the harness treated type-only overload declarations as runtime
 implementations. General inspector and runtime-dependency corrections followed; the native
 analyzer never changed. The record preserves that first opening. Pydash cannot serve as a fresh
-held-out project for a later analyzer implementation.
+project kept unread during development for a later analyzer implementation.
 
 Collection also exposed two harness failures: an invalid requested call depth and an evidence
 directory restored by the compiler cache. Preflight validates public CLI budgets, and collection
 now writes to a unique `RUNNER_TEMP` directory. The exact failed report and snapshots remain
 historical evidence; a pre-download failure records its run and reason. Every timeout stays unchanged.
 
-The hosted retainer verifies archive digests, producer attempts and source bindings, replays
-runtime observations, and checks corruptions after rehashing the modified receipts. Snapshots
+The hosted retainer verifies archive digests, producer attempts and recorded input fingerprints, replays
+runtime observations, and checks altered records after rehashing the modified receipts. Snapshots
 retain full source inventories and upstream licenses. The
 [fixture guide](../tests/agent-eval/python-repository-flow/README.md) describes the collector.
 
@@ -123,7 +129,7 @@ arguments remain incomplete. The [current regression collection](../tests/agent-
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
-boundaries still prevent repository acceptance. The original baseline bytes remain intact;
+boundaries still prevent the real-project requirement. The original baseline bytes remain intact;
 its historical audit uses a pinned snapshot of the original source and collector.
 
 The expanded collector also checks Funcy's `inc` and `dec`, Pydash's `add` and Toolz's `return_none`.
@@ -131,10 +137,10 @@ Each helper runs through its original package and through an explicitly isolated
 The latter copies the exact runtime function and an uncalled variadic companion from the pinned source.
 It also adds the declared authored binding `probe_metadata = 0` to exercise inert scalar initialization.
 That binding is a control, not an upstream source fragment.
-Independent AST inspection checks the scalar operation, signature and both source fragments.
+Independent inspection of the parsed syntax tree checks the scalar operation, signature and both source fragments.
 Two runtime inputs, renamed/relocated adapters, unknown calls and budget controls cover both contexts.
 The collector keeps package outcomes separate from isolated declaration results. Isolated success cannot
-establish repository acceptance or erase unchecked initialization effects in the original packages.
+establish the real-project requirement or erase unchecked initialization effects in the original packages.
 
 | Expanded context | Cells | Complete | Incomplete | CLI refusals |
 | --- | ---: | ---: | ---: | ---: |

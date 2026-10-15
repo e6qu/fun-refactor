@@ -3,6 +3,12 @@
 When you open a pull request, GitHub divides the native and Python tests across runners and checks that none are missing.
 If a job times out, find what made it slow or stuck. Keep the existing deadline while fixing that cause.
 
+CI means continuous integration: GitHub runs checks for a proposed change.
+A workflow is a declared set of jobs. A shard is one assigned portion of the test suite.
+The final gate checks that all required portions ran and passed; a passing small portion is insufficient.
+Queue time is time waiting for a runner. Execution time starts when a runner begins work.
+For a slow PR, inspect those times separately before deciding which operation needs repair.
+
 ## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
@@ -113,8 +119,8 @@ run after checking every source hash. Update active test references and preserve
 If workstation resource admission stops local evidence handling, dispatch
 `refinement-evidence.yml` with `group=retain-python-contract` on the working branch. Supply the
 successful collection's `collection_run` ID and a new dated `prefix`. The hosted job verifies
-the archive digest, collection commit, producing job and attempt, current source bindings,
-CPython outcomes and corruption controls before committing the report, manifest,
+the archive digest, collection commit, producing job and attempt, current recorded input fingerprints,
+CPython outcomes and tests that reject altered records before committing the report, manifest,
 active test reference and generated roadmap files. It refuses failed collections and writes only
 to the selected working branch. It preserves old reports and leaves acceptance obligations unchanged.
 Its token-authenticated push does not start another workflow automatically; dispatch `ci.yml` on
@@ -141,7 +147,7 @@ content ID it records after pulling. Offline providers drive a complete command/
 including a synthetic executable that tests the fr mount. This fixture does not measure model quality
 or real fr effectiveness. Live runs must freeze their own image digest, binary and independent cases.
 The same attempt reads source before and after the isolated edit and verifies that the report keeps
-command-internal reads unknown. Offline cases cover UTF-8 paging, stale continuations, overlap across
+command-internal reads unknown. Offline cases cover UTF-8 (the text encoding used to count source bytes) paging, stale continuations, overlap across
 agents, retained failures and rejection of altered disclosure counters.
 The study job also prepares temporary systemd slices on its disposable Linux runner. It verifies
 shared command/grader accounting, CPU-budget termination of detached descendants, and kernel memory

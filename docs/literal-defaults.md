@@ -3,10 +3,16 @@
 If `choose(value=0)` returns its argument, `choose()` returns the default while `choose(user_input())` uses the supplied input.
 `fr` distinguishes those calls for supported literals and earlier local scalar defaults. A default that calls another function needs separate handling because Python evaluates it when defining the function.
 
+A default supplies a parameter when the caller omits its argument.
+A literal writes a value directly, such as `0`, `None` or `"ready"`.
+In Python parameters, `/` makes earlier slots positional-only; `*` makes later slots keyword-only.
+For `choose(value=0, /, *, spare=None)`, call the first slot by position and the second by `spare=...`.
+The examples use `source()` and `sink()` as configured external input/output calls.
+
 ## Commands, results and limits
 
 Opt-in Python scalar summaries admit immutable literal and captured local scalar defaults for positional-only,
-positional-or-keyword and keyword-only parameters. Explicit values retain their source-order effects
+positional-or-keyword and keyword-only parameters (slots that calls must supply by name). Explicit values retain their source-order effects
 and override defaults. After binding explicit values, omitted optional slots receive an empty origin
 set. A missing required slot still leaves analysis incomplete.
 
@@ -32,7 +38,7 @@ comprehensions, lambdas and formatted strings in default values. Function annota
 [future-annotation rule](python-contract.md#trace-a-helper-that-has-type-annotations). It also refuses an
 unsupported default when a call supplies an explicit argument: Python evaluates defaults during
 function definition, and overriding an argument does not remove those earlier effects.
-Referenced variadic values, extra variadic arguments, unpacking, dynamic dispatch and implicit
+Referenced variadic values, extra arguments through `*args` or `**kwargs`, unpacking, dynamic dispatch (choosing a callable from runtime values) and implicit
 exceptions remain outside this contract. Unused variadic declarations admit fixed-slot calls.
 
 An uncalled module function can read an earlier checked value without running its body.
@@ -62,12 +68,12 @@ The response budget includes signature metadata, and omitted results remain inco
 
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
-fresh-process resumption, independent patch replay and exact reversal. The
+resumption in a new process, independent patch replay and exact reversal. The
 [retained run](../tests/agent-eval/results/2026-10-15-shared-named-searches-literal-defaults/result.json) passes those
 checks and binds the current source. The baseline records the installed local binary separately from
 the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results
-with CPython, checks exact AST coordinates, and exercises invalidation and forged contract refusals.
+with CPython, checks exact syntax-tree source positions, and exercises invalidation and forged contract refusals.
 
 All compilation, full test gates and evidence regeneration run on GitHub. Actual implementation
 edits use guarded `fr` previews, saved plans and history applications recorded in the

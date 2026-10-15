@@ -3,6 +3,11 @@
 Install this skill when you want an agent to know how to find code, preview a change, run checks and undo a failed attempt.
 For example, an agent asked to fix checkout should load the relevant guide when it needs it, rather than read every command first.
 
+A skill is an instruction bundle an agent can read. It contains a short entry page and task-specific references.
+Installing the bundle makes instructions available; it does not run commands or grant write permission by itself.
+For a bug fix, the agent loads the editing reference when it reaches the edit, then the check reference before testing.
+Skill text counts toward what the agent reads; comparisons must count that text too.
+
 ## Commands, results and limits
 
 The portable [`fr` skill](../skills/fr/SKILL.md) routes an agent to small references for exploration,
@@ -40,8 +45,8 @@ is unknown. A `project batch` can combine bounded lookup, relationship, call, te
 against one revision.
 
 Targeted declaration rows and exact guide, disclosure and intent targets bind `location.name` and
-`location.definition` to both exact byte spans and 1-based, half-open line and column ranges.
-Request the `location` field explicitly on broad maps. Use the byte span for source edits and the
+`location.definition` to both exact source byte ranges and 1-based, half-open line and column ranges.
+Request the `location` field explicitly on broad maps. Use the source byte range for source edits and the
 range for display or editor navigation; both belong to the report's project revision.
 
 ```sh

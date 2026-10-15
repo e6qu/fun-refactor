@@ -3,6 +3,11 @@
 If the checkout fix already has a branch, open that branch in a new working folder.
 Review which branch and commit the folder will use. The command cannot attach a branch that another worktree already uses.
 
+A branch names a line of Git commits; a worktree is a separate folder checked out on one branch.
+This route uses a branch that already exists instead of creating a new one.
+For a paused checkout repair, select its exact branch and an unused destination, then review the proposed working folder.
+The operation must preserve the branch's existing commit and any other worktrees.
+
 ## Commands, results and limits
 
 `fr git worktree create PATH --existing-branch NAME` previews a fresh raw checkout of an unused local branch on Unix.
@@ -31,7 +36,7 @@ The destination must be fresh, with an existing parent outside Git repositories.
 Files come from the reviewed commit, including when the invoking worktree has staged, unstaged or untracked changes.
 Packed refs, SHA-256 repositories and invocation from another linked worktree are supported.
 Regular files and supported symbolic links use the same checkout rules as new-branch creation.
-Submodules remain unsupported. Repository worktree configuration uses the same lifecycle checks too.
+Submodules remain unsupported. Repository worktree configuration uses the same edit, reversal and delivery checks too.
 
 ## Review and reference preservation
 
@@ -74,5 +79,5 @@ See [removal](git-worktree-removal.md) and [removal resumption](git-worktree-rem
 The anchored branch-selection predicate requires an unused branch and presence matching the selected mode.
 Lean proves both requirements; shared Rust/Lean cases cover all eight boolean inputs.
 An abstract attachment model proves preservation of the reference map when attaching to the expected commit.
-Git registration, reference locking, branch configuration and filesystem behavior remain outside general correspondence proofs.
+Git registration, reference locking, branch configuration and filesystem behavior remain outside general correspondence (the stated connection between two descriptions) proofs.
 CLI tests supply host evidence for preservation, stale reviews, occupied branches, locks and interrupted creation.

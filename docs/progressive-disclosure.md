@@ -3,6 +3,12 @@
 Start with a small overview, then open the function or caller that answers your next question.
 For example, while fixing checkout, inspect `calculate` before asking for the source of every payment helper. The commands below return references that let you request the next piece.
 
+Disclosure means opening part of a report when you need it. A handle selects code already identified by a query.
+A continuation is the command for the next page. A hole marks a section whose contents have not yet been returned.
+A Merkle tree is a tree of content fingerprints: changing a child changes the fingerprints above it.
+It helps check that fetched pages belong to the expected report; it does not prove that the report's analysis is correct.
+For a retry fix, open the selected function's body before requesting unrelated source.
+
 ## Commands, results and limits
 
 `fr project disclose HANDLE` starts with a small report about one declaration.
@@ -14,7 +20,7 @@ Illustration: you need to change one retry limit. Open the function's structured
 the integer you intend to change. Read its source if the structure leaves the meaning unclear.
 If a response has a continuation, follow it before treating that section as fully read.
 
-Use `--view evidence --depth N` to commit a source-free project context instead. Its four stable
+Use `--view evidence --depth N` to commit a project context without source text instead. Its four stable
 domains are `code_map`, `call_traces`, `impact` and `sources_and_sinks`. The code map carries the
 selected declaration's ancestors and bounded descendants. Call traces carry both directions,
 cycles, confidence and depth omissions. Impact retains reference kind and confidence. Sources and
@@ -36,7 +42,7 @@ branches. The project view has no whole-source frontier; its facts retain narrow
 cases where the structured evidence or an explicit gap is insufficient.
 
 The initial `semantic_shortcuts` are a bounded abridged outline of named or kinded nodes in the
-committed model. Each shortcut has its semantic address, high-level labels, opaque hole, exact
+committed model. Each shortcut has its semantic address, high-level labels, unopened-section reference, exact
 action and `editable_scalars` and `editable_ir` descendant counts. The counts let an agent skip
 subtrees that cannot produce its requested scalar or structural capability. The semantic root remains available for complete ordered
 discovery; the shortcut budget reports how to obtain additional nodes.
@@ -47,7 +53,7 @@ expression relevant to its task. A response that cannot fit all children returns
 bound to the same view, hole, profile, limit and next offset. Source remains a separate explicit
 domain. Revealing it returns UTF-8-safe fragments and a next hole until the declaration is complete.
 Each fragment retains its declaration-relative page offset and carries a file-relative `location`
-with the exact byte span and 1-based line and column range of its returned text.
+with the exact source byte range and 1-based line and column range of its returned text.
 
 An authorable scalar carries a `fr-disclosed-edit-1` descriptor when revealed. Its exact preview
 template needs only a replacement value. Equal values at different typed locations receive distinct
@@ -65,7 +71,7 @@ counts; request the expanded profile before following a structural shortcut. See
 [disclosure-bound semantic editing](disclosed-editing.md#structural-capabilities).
 
 The complete response is bounded by `--token-limit`. `used_upper_bound` counts the compact JSON's
-UTF-8 bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count
+UTF-8 (the text encoding used to count source bytes) bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count
 cannot exceed that byte count. The bound is intentionally conservative and does not claim exact
 accounting for a particular model vocabulary. Compact mode accepts 1,024 through 4,096; expanded
 mode accepts up to 16,384 and is explicit in the response and every continuation.
@@ -124,7 +130,7 @@ response ceiling refuses; it is never silently dropped. The Python SDK verifies 
 object value or an advertised object commitment against such a path.
 
 SHA-256 collision resistance, the Rust SHA implementation, JSON serialization, object-store
-durability and authorization, parser correctness and the source-free IR reader remain trusted. Lean
+durability and authorization, parser correctness and the reader of structured records without source text remain trusted. Lean
 proves the numeric response ceilings, admitted
 offset and proof-step boundaries, evidence depth policy and complete-frontier replacement laws.
 Strict source anchors and 2,418 shared Rust/Lean cases connect those models to the implementation.

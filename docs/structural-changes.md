@@ -3,6 +3,11 @@
 When you add an argument to `subtotal`, the callers may need changes too. Review the proposed edits and the discovered callers together.
 This guide covers supported rename and argument changes. Run the relevant checks before delivering the patch.
 
+A signature is a function's name and parameter list. A caller invokes that function with arguments.
+A change scope lists the callers and tests found for the requested change.
+For `subtotal(price)`, adding a required `tax` slot means updating calls that previously supplied only `price`.
+Inspect missing relationships before promising every caller is updated; after applying the change, run the behavior test.
+
 ## Commands, results and limits
 
 `refactor` author operations reuse the native rename and signature planners through revision-bound
@@ -69,8 +74,8 @@ they do not authorize another write or automatically renew pre-change discovery.
 ## Evidence
 
 The pinned [task](../tests/agent-eval/structural-change/task.json) migrates a Rust function and 49
-call sites in two files. The deterministic evaluator compares a prescribed ordinary edit with a
-fresh-process native delivery. An independent Python oracle compiles the program and checks all
+call sites in two files. The scripted evaluator compares a prescribed ordinary edit with a
+new-process native delivery. An independent Python oracle compiles the program and checks all
 public outputs before and after. Receiver replay checks exact apply, reversal and reapplication.
 The [retained manifest](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) binds
 these artifacts. No model service runs and no token-saving or live-agent claim is made.

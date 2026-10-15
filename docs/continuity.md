@@ -1,101 +1,83 @@
 # Pick up the current work
 
-Read the [plan](../PLAN.md) for the goal and [current results](roadmap-status.md) for the checked requirements.
-This handoff tells the next contributor what to do now. Earlier failures belong in the
-[development history](evaluations.md#python-development-history).
+Start with the [plan](../PLAN.md) for the goal and [current results](roadmap-status.md) for the checked requirements.
+This page tells the next contributor what needs doing. It keeps current instructions separate from dated experiment history.
 
 ## What users can do now
 
-An agent can find functions and callers, read selected code, prepare a reviewed edit, run declared
-checks, and keep changes for undo or resumption. Small Python examples can also follow an input
-through a helper to an output.
+An agent can find functions and callers, read selected code, preview an edit and run project-declared checks.
+Saved changes can be inspected, reversed or continued after a pause.
+Small Python examples can also follow a configured input through a helper to an output.
 
-For example, you ask whether a customer-supplied value reaches `send(value)`. A supported helper
-can return a trace with its source locations. If importing the helper runs unsupported setup code,
-the result stays incomplete. An empty trace then leaves your question open.
+For example, “does customer input reach `send(value)`?” can return a possible connection with source locations.
+If importing the helper runs unsupported startup code, the question stays partly unanswered.
+An empty trace in that situation cannot establish that the input never reaches the output.
 
-Toolz, funcy and pydash still give incomplete full-package answers. Some copied helpers work in small
-isolated files. That helps test a language rule; it does not establish that the original package works.
-We also have not demonstrated that fr saves time or money on unfamiliar tasks.
+Toolz, funcy and pydash still give incomplete answers when used through their full packages.
+Some helpers work when copied into small isolated files. That tests a simpler question with different import behavior.
+We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
-## What to work on next
+## The current reader review
 
-Use the reported import and startup statements to choose the next Python language rule.
-The [Python guide](python-contract.md) owns current support and limits; avoid maintaining another
-support list here.
+The user requested a complete review of the documentation before further feature work.
+Every current guide, tutorial, agent instruction and tracker must explain its concepts without assuming knowledge of earlier development.
+The [writing guide](style.md) describes the review rules; the [measurement guide](benchmarks.md) names baselines, extra costs and missing measurements.
 
-| Observed problem | Why it matters to a user | Next investigation |
+For a rename lesson, supply the starting files and explain a preview, diff and saved transaction before asking the reader to use them.
+For a speed claim, explain what ran, its comparison, included setup and validation, and what the measurements leave unknown.
+For tracking, state the user outcome and next action before internal IDs or run history.
+
+The Python behavior guide is a recorded test input. Changing its wording requires a new hosted Python collection and audit.
+Agent instruction changes also require refreshing the derived text-size report.
+Do not change recorded fingerprints to disguise outdated results.
+
+## Return to Python after this review
+
+Importing a Python package can execute its startup code before exposing a helper.
+Use the reported unchecked statements to choose a general language rule; do not special-case library names or expected answers.
+The [Python guide](python-contract.md) owns supported behavior. The [library results](python-repository-flow.md) own detailed measurements.
+
+| User question still unanswered | What currently stops the answer | Next investigation |
 | --- | --- | --- |
-| Toolz builds and changes a signature registry, with unresolved imports and cycles elsewhere | Import setup can affect which helper the application calls | Inspect the remaining registry operations and the newly reached startup code |
-| Funcy now resolves `EMPTY` but reaches the 16-file limit | Asking whether input passes through `inc` still leaves some imported code unchecked | Investigate the remaining helper dependencies and startup statements within the existing bounds |
-| Pydash clears the repeated-search limit but reaches the 256 KiB source limit | An input-through-`add` question still leaves part of the package unchecked | Investigate checking the selected helper and the startup code that can affect it within the existing source bound |
+| Does input pass through Toolz's helper? | Startup code changes a signature registry; some imports and cycles remain unchecked | Inspect those registry writes and the startup statements reached by import |
+| Does input pass through Funcy's `inc`? | The search reaches its existing 16-file limit | Check which remaining imports and startup statements affect the selected helper within that bound |
+| Does input pass through Pydash's `add`? | The search reaches its existing 256 KiB source limit | Investigate checking the helper and relevant startup code within that bound |
 
-Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
-answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
-retain the complete attempts and limits.
+The most recent language change shares one provider search among names in the same `from` statement.
+For `from helpers import add, subtract`, it finds `helpers` once while retaining both names and their binding order.
+Child-module searches still count separately. No search or source limit increased.
 
-Wildcard exports share one search for their provider. Funcy's package initializer uses 14
-searches instead of 126. Sharing ordinary named imports within a statement now also reduces
-the representative `inc` case from 120 searches to 75. Its `EMPTY` imports
-now resolve, including the marker used by collection-helper defaults. The analyzer also reaches
-`funcmakers.py`, bringing the loaded files from 15 to the existing limit of 16.
+In the [audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38739064758), Funcy uses 75 searches instead of 120.
+Pydash uses 47, clears its former repeated-search obstacle, and reaches the separate source-size limit.
+Pydash has 420 unchecked startup statements instead of 510 across the same eight loaded files.
+Funcy still has 80 across 16 files; Toolz still has 92 across 14.
+All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-output-budget refusals.
+These counts describe analysis progress, not complete package support or lower agent cost.
 
-For example, `send(inc(read_input()))` still needs an incomplete answer when other imported code
-falls outside that limit. Resolving the marker fixes one obstacle; it does not settle the whole question.
-The earlier handoff mistook those unresolved defaults for a missing marker rule. Small imported-marker
-examples already worked; repeated provider searches had consumed the full-package lookup allowance.
+## Keep the next unfamiliar test useful
 
-The current familiar-library replay uses the same loaded files as the wildcard collection.
-Funcy stays at 80 unchecked startup statements across 16 files, and Toolz stays at 92 across 14.
-Pydash now uses 47 searches and reaches the separate 256 KiB source limit. It counts 420 unchecked
-startup statements instead of 510 across the same eight files. None of the 40 full-package cases becomes complete;
-32 remain incomplete and eight are refused. The
-[audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38739064758)
-keeps the source snapshots, outcomes and remaining limits together.
+Jaraco.functools remains unread. Keep it that way during development, then freeze the implementation before its first evaluation.
+Toolz, funcy and pydash are already familiar development examples.
+The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
-Toolz, funcy and pydash are familiar development examples. The
-[selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) explains the reserved project.
-
-Keep editing, undo, resumption and patch delivery working as the analysis expands.
-After useful real-project answers improve, compare complete unfamiliar tasks and count all reading,
-retries and failures. Do not infer savings from a smaller report or a passing scripted repair.
-
-## Keep the documentation useful
-
-Both broad documentation passes are merged. Keep detailed sections, examples and cross-links current.
-Start with the user's question, show the action, explain the result and say what still needs checking.
-Use the [writing guide](style.md) and [result meanings](understanding-results.md).
-
-For example, “the build passed” still needs the test that reproduces checkout's rounding error.
-A saved review becomes stale when another edit changes the files it covers.
-
-## Keep saved results trustworthy
-
-Keep one current analyzer, SDK and report format. Missing fields and older formats fail explicitly.
-Historical results use their archived original code.
-
-When code or a recorded input changes, collect the affected results on GitHub.
-Keep their file fingerprints and run identities. A wording edit to `docs/python-contract.md` also changes
-a recorded input. Finish such edits before collection; never edit a hash to make stale evidence pass.
-
-The [current collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json)
-identifies the active reports. Preserve failed attempts beside corrected ones; the
-[development history](evaluations.md#python-development-history) keeps their explanations and links.
+The [active collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json) identifies the current language-result family.
+A receipt records the run and its inputs; it does not establish general correctness by itself.
+Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
+Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.
 
 ## Studies that stay stopped
 
 The [client investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) is closed.
-The [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) stays stopped.
-Keep its failed and unstarted attempts. A new live comparison needs independent tasks, agreed resource
-and cost limits, and complete usage records. The [candidate review](candidate-review-status.md) lists remaining gaps.
+The [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) stays stopped, with its failed and unstarted attempts preserved.
+A later live comparison needs independent tasks, agreed resource and cost limits, and complete work records.
+See the [candidate review](candidate-review-status.md) for unresolved task-review questions.
 
 ## Before editing or merging
 
-- Follow the [workstation rules](development.md#working-on-a-shared-desktop). Use the local guard; full builds, full gates and large collections run on GitHub.
+- Follow the [workstation limits](development.md#working-on-a-shared-desktop). Use the local guard; builds, full test suites and large collections run on GitHub.
 - If the guard refuses, move the work to CI. Keep its limits.
 - Fix the cause of a failure or timeout. Keep the existing deadline.
-- Check recorded input fingerprints before describing a result as current.
+- Verify recorded input fingerprints before calling results current.
 - Use the configured GitHub login; leave credential files alone.
-- Keep each commit message to one line of at most 80 characters, with no body or trailers.
-- Wait for passing CI before a merge. When merging is authorized, squash with an explicit subject and an empty body.
+- Keep each commit message to one line of at most 80 characters, without a body or trailers.
+- Wait for passing CI before merging. When authorized, squash with an explicit subject and empty body.

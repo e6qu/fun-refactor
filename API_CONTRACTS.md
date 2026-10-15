@@ -3,6 +3,11 @@
 Suppose you move an endpoint from FastAPI to another framework. Clients still need the same URL, inputs and response.
 This guide explains which of those promises `fr` can read and carry across, and which you must test yourself.
 
+An API is the interface another program calls. For an HTTP API, that includes a request method and URL.
+A route connects that request to a handler, the function producing its response.
+A contract records promises such as “POST /checkout requires an amount and returns a receipt.”
+Before moving the route, test those promises against both implementations.
+
 ## Commands, results and limits
 
 A framework migration must preserve the behavior its callers rely on.
@@ -97,7 +102,7 @@ Source history supplies patch export, apply and undo/redo.
 See [verified feature migration](docs/feature-migration.md) for its current contract.
 
 Formal properties can cover supported URL mappings, schema transformations and selected handler lowerings.
-A proof about these models needs a correspondence argument before it establishes implementation behavior.
+A proof about these models needs a correspondence (the stated connection between two descriptions) argument before it establishes implementation behavior.
 Contract equality alone does not prove equivalent authentication, persistence or runtime effects.
 See [docs/lean-specs.md](docs/lean-specs.md) for the evidence levels.
 

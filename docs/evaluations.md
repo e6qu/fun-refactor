@@ -3,6 +3,12 @@
 Use this page to check the evidence behind a claim about `fr`. A scripted repair can test editing and recovery, while a live comparison asks whether an agent benefits.
 For example, fewer report bytes can help a conversation, but they do not measure the total cost of fixing the bug. Read each result with its stated limits.
 
+A fixture is a chosen test input. An evaluator runs a test procedure, and an oracle supplies an independent expected answer.
+An attempt records one run. An arm is one compared tool setup; a cohort is the chosen group of attempts.
+A manifest records input and output identities so another reader can verify which run a result describes.
+For “does fr make repairs cheaper?”, the baseline must solve the same task with ordinary tools.
+The [measurement guide](benchmarks.md) distinguishes that comparison from reply-size and tool-runtime measurements.
+
 ## Recorded experiments and their limits
 
 Evaluation artifacts answer narrow questions about fixed revisions and fixtures. They are retained
@@ -46,13 +52,13 @@ the retained models and proofs again. These are generated-model theorems, not so
 proofs, general translation correctness or a live-agent comparison.
 
 The [virtual workspace regressions](../tests/virtual_model_workspaces.rs) check byte limits,
-UTF-8 errors, scoped restoration and native/virtual snapshot equality. Private model regressions
+UTF-8 (the text encoding used to count source bytes) errors, scoped restoration and native/virtual agreement between saved file states. Private model regressions
 also reject forged models, stale source and altered generated context. Together with the VFS
 architectural checks, the focused runner executes 13 regressions. The
 [dogfood record](../tests/agent-eval/results/2026-09-28-virtual-dogfood/manifest.json) retains
 this task's fr authoring receipts and 15 syntax-only translation preview outcomes.
 
-Six source-bound reports are refreshed on GitHub: retained proofs, agent guidance, completion
+Six reports tied to recorded source inputs are refreshed on GitHub: retained proofs, agent guidance, completion
 workflows, intent actions, index resolution and host recovery. Their platform and timing fields
 identify the remote runner; they should not be read as new measurements of this Mac.
 The [dogfood record](../tests/agent-eval/results/2026-09-28-refinement-dogfood/manifest.json)
@@ -62,7 +68,7 @@ unused formal parameters and retained source anchors. Direct-edit boundaries are
 ## Consumer scope and delivery
 
 The [consumer-scope evaluation](../tests/agent-eval/results/2026-09-28-change-scope/manifest.json)
-pins a four-file Python caller chain. Independent AST inspection and native discovery agree on all
+pins a four-file Python caller chain. Independent inspection of the parsed syntax tree and native discovery agree on all
 three direct call sites. Both prescribed editing arms repair subtotal and add the API fee, then
 pass 147 public results plus the discovered test. Separate receivers apply, reverse and reapply
 each patch with exact source checks.
@@ -71,7 +77,7 @@ An incomplete scope refuses binding. A successful delivery cannot renew its stal
 prerequisite: the evaluator explicitly rediscovers before completing the outcome step. A fresh
 process restores the completed plan; an added consumer then invalidates discovery and outcome while
 preserving an independent observation. New consumers without check associations prevent readiness.
-These deterministic cases do not measure a live agent, token savings or runtime coverage.
+These scripted cases do not measure a live agent, token savings or runtime coverage.
 
 The [repository dogfood record](../tests/agent-eval/results/2026-09-28-change-scope-dogfood/manifest.json)
 retains 21 applied author batches on actual implementation, SDK, evaluator and test files.
@@ -84,7 +90,7 @@ the manifest distinguishes admitted edits from direct-edit boundaries.
 The [retained outcome evaluation](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json)
 pins a two-file Rust subtotal repair and fee requirement. An independent Python oracle compiles the
 public Rust API and checks 49 bounded inputs. The evaluator supplies each change, so these are
-deterministic protocol cases without a live-agent or token-saving claim.
+scripted protocol cases without a live-agent or token-saving claim.
 
 | Case | Lifecycle checks | Requested behavior | Patch | Plan completion |
 |---|---|---|---|---|
@@ -103,7 +109,7 @@ delivery cannot refresh a changed prerequisite to force plan completion. The sta
 acceptance checks only after application; shared Rust/Lean cases cover that finite policy.
 These checks establish the declared outcomes, not general behavioral correctness or source equivalence.
 
-Eleven source-bound evaluations also rerun for this change: package flow, retained proofs, host recovery,
+Eleven evaluations tied to recorded source inputs also rerun for this change: package flow, retained proofs, host recovery,
 resolution, flow cache, workflow context, task-change context, completion workflows, agent guides
 intent actions and SDK runtime context. Regression tests select the 2026-09-28 results.
 Earlier dated measurements remain unchanged as historical evidence. Host recovery now measures with
@@ -115,7 +121,7 @@ The [cohort](../tests/agent-eval/unknown-target/cohort.json) compares live disco
 unmodified pinned strsim and regex sources. Prompts supply a Unicode bug symptom or cross-crate API
 requirements, without edit paths. Each arm uses two fresh Codex processes, separated by an inert
 source edit that invalidates the first review. Both arms automate compiler checks, exact reversal,
-reapplication and independent receiver replay. The native plan retains an independent observation
+reapplication and independent patch application and checks in another checkout. The native plan retains an independent observation
 while invalidating its diagnosis; final delivery has a separate grader.
 
 | Task | Arm | Behavioral outcome | Calls | Visible bytes | Input tokens | Agent seconds |
@@ -128,8 +134,8 @@ while invalidating its diagnosis; final delivery has a separate grader.
 These runs use Codex CLI 0.157.1, `gpt-5.6-luna`, low effort and the default service tier.
 Input counts include cached tokens. Agent time sums both phases, including their tool work;
 controller preparation and independent scoring are outside that time. Sampled process-group peaks
-were 227–232 MiB. Sampling may miss peaks and descendants in other groups; it is not whole-tree RSS.
-The auditor prints cached/output/reasoning usage, requests, source reveals and refusals as well.
+were 227–232 MiB. Sampling may miss peaks and descendants in other groups; it is not whole-tree RSS (resident set size, the measured memory held by a process).
+The auditor prints cached/output/reasoning usage, requests, source reads and refusals as well.
 
 Both bug patches pass 67,081 independent string pairs. The feature oracle checks 1,060 byte and
 allocation cases across both crates. The ordinary feature trial completed the delivery protocol
@@ -159,21 +165,21 @@ keeps same-named package helpers separate and delivers both changes through revi
 An independent receiver replays both patches and executes the public API. Python AST positions check cross-file call origins.
 Restored plans invalidate dependent evidence after parent, helper and negative-candidate edits while preserving an independent step.
 
-The ordinary arm discovers targets with AST inspection and edits source directly. The fr arm uses summaries and import records.
+The ordinary arm discovers targets with inspection of the parsed syntax tree and edits source directly. The fr arm uses summaries and import records.
 On this tiny fixture, ordinary discovery and editing read 417 source bytes; fr discovery disclosed roughly 103 KiB of structured reports.
 The ordinary arm was faster in the retained run. These arms perform different operations and make no general performance claim.
 Both are deterministic scripts, with no live-agent or token-saving claim. Declared delivery checks admit valid before/after states for reversal;
-strict runtime checks enforce the repaired and feature postconditions after delivery and in the separate receiver.
+strict runtime checks enforce the repaired and feature required conditions after the edit after delivery and in the separate receiver.
 The [re-export task](../tests/agent-eval/package-reexports/task.json) extends this corpus to explicit function aliases in package initializers.
 Its [acceptance](../tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) repeats diagnosis, dependency invalidation, repair and feature delivery.
 The [baseline](../tests/agent-eval/package-reexports/baseline.json) records the existing local binary refusal and independent Python behavior.
 That binary predates the pinned source revision; its identity is retained explicitly.
 Package loading remains bounded to regular local packages with explicit local imports and inert declarations.
-The [module-alias task](../tests/agent-eval/module-aliases/task.json) adds child-module fallback and renamed module re-exports.
+The [module-alias task](../tests/agent-eval/module-aliases/task.json) adds child-module fallback and renamed module re-exports (making an imported name available from another module).
 Its baseline records CPython output and refusal by the existing local 0.35.0 binary. That binary
 was not built from the pinned task revision. The evaluator repeats discovered repair, feature
 delivery, dependency resumption and independent patch replay for the new import form.
-The [retained run](../tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json) passes both outcomes and independent receiver replay.
+The [retained run](../tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json) passes both outcomes and independent patch application and checks in another checkout.
 The ordinary arm reads 413 source bytes across six files. Native discovery returns 110,505 bytes
 across eight calls with no source-body reveals. These finite script measurements make no token-saving
 or general efficiency claim.
@@ -182,11 +188,16 @@ That corpus excludes dynamic imports, namespace packages and initialization effe
 
 ## Current matched results
 
+“Matched” means each comparison holds its declared task and required result fixed.
+It does not mean all the experiments below have the same baseline or count the same costs.
+The cache table compares two storage encodings on warm runs; later agent trials compare complete task attempts with different tools.
+Read their setup and units separately. The [measurement guide](benchmarks.md) collects those boundaries and known overheads.
+
 The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains 288 samples across six generated scalar workloads.
 Pipelines, imported fanout and mutual recursion each have two sizes. Three repetitions rotate the
 previous SDK cache and bounded report chunks through cold, warm and six single-edit scenarios.
-Every retained answer agrees with clean analysis. Independent Python execution, source digests and
-AST coordinates check the scenario; missing helpers and response-budget cutoffs remain incomplete.
+Every retained answer agrees with fresh analysis. Independent Python execution, source digests and
+syntax-tree source positions check the scenario; missing helpers and response-budget cutoffs remain incomplete.
 
 | Workload | Previous warm median | Report-chunk warm median |
 |---|---:|---:|
@@ -239,10 +250,10 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to eight executable deterministic cases and ten live trials for a pinned
+live matched cohorts to eight executable scripted cases and ten live trials for a pinned
 unfamiliar upstream workspace, Rust multi-file and structural delivery, TSX/React body changes,
 CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
-fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
+fixture revision, independent oracle and exact required conditions after the edit. Audit metadata and real execution
 remain separate: replay runs one worker and reports missing toolchains as infrastructure failures
 rather than product failures.
 
@@ -369,7 +380,7 @@ compiled behavioral and allocation boundary.
 
 The first accepted guided application migration uses a pinned Express route with validated path,
 query and JSON body inputs. A fresh Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort used
-five instrumented calls to select the source-free application IR route, preview a Go HTTP adapter,
+five instrumented calls to select the application IR route without source text, preview a Go HTTP adapter,
 review the complete creation patch and execute all eight delivery stages. The Express source stays
 unchanged for coexistence. A fresh receiver replayed the patch and passed seven real HTTP cases,
 including canonical accepted values and five validation refusals. The agent made no failed or
@@ -382,7 +393,7 @@ binds this result.
 
 The first accepted guided proof-authoring task uses a generated Lean 4.28 package with one
 source-anchored identity theorem and explicit proof debt. A fresh Codex CLI 0.155.1 agent on
-`gpt-5.6-luna` at low effort used seven instrumented calls to select the source-free proof route,
+`gpt-5.6-luna` at low effort used seven instrumented calls to select the proof route without source text,
 inspect the exact theorem and contract, author and check `rfl`, preview the proof-region patch,
 review it and execute all eight delivery stages. A fresh receiver replayed the patch and strict
 `fr spec verify` reported one fresh source anchor, zero obligations, zero debts and a successful
@@ -464,8 +475,8 @@ The [investigation contract](agent-investigations.md) states the analysis, persi
 
 The [flow corpus](../tests/agent-eval/flow-fixed-point/task.json) pins a source that reaches its sink
 only after several loop iterations. An independent Python execution checks that case, overwrites,
-breaks, continues and raises. Native tests also cover unbound names, shadowing, unsupported effects,
-budgets and tampered retained reports. SDK tests compare reused results with clean analysis after
+breaks, continues and raises. Native tests also cover unbound names, shadowing (a nearer declaration hiding an earlier name), unsupported effects,
+budgets and tampered retained reports. SDK tests compare reused results with fresh analysis after
 unrelated edits and force rebuilds after source, rule, configuration, budget or context changes.
 
 Run `python3 tools/flow-acceptance.py --output /tmp/flow-result.json`, then audit with
@@ -485,12 +496,12 @@ coordinates and executes finite behavior cases. Native and SDK tests cover norma
 bodies, absent origins, page truncation, stale cursors and cross-revision link refusal.
 
 `tools/semantic-evidence-acceptance.py` compares ordinary AST/source inspection, the existing semantic
-plus source-reveal workflow, and paged origin lookup. It records raw report bytes and local latency.
+plus source-reading workflow, and paged origin lookup. It records raw report bytes and local latency.
 The two native routes use the same current binary. This is a workflow comparison without a live agent.
 The result also retains passing and failing check reports, verified Merkle roots, completed plans
 and invalidation after a source edit. Executable hashes identify commands; their outputs retain
 explicit coverage. Neither implies complete compiler semantics or trusted execution attestation.
-Run with `--output FILE`, then use `--audit FILE` to validate its source bindings and retained records.
+Run with `--output FILE`, then use `--audit FILE` to validate its recorded input fingerprints and retained records.
 The [retained result](../tests/agent-eval/results/2026-09-23-semantic-evidence/result.json) binds the
 implementation, evaluator, fixture, independent coordinates and command outcomes to the recorded run.
 
@@ -503,7 +514,7 @@ all eight admitted cases. Unknown external calls and aliases remain incomplete. 
 return, sink and exceptional effects, input identities and exact witnesses with zero false claims
 within this finite corpus.
 
-Six isolated workers compare cold, warm, unrelated-edit and helper-edit results against clean analysis.
+Six isolated workers compare cold, warm, unrelated-edit and helper-edit results against fresh analysis.
 They record latency, response bytes, native work and peak child/worker RSS. Reuse validates the whole
 file; these measurements do not establish finer cache granularity or a general speed improvement.
 This is deterministic analysis evidence, not a live-agent investigation trial or a security proof.
@@ -512,7 +523,7 @@ This is deterministic analysis evidence, not a live-agent investigation trial or
 
 The [2026-09-24 fact acceptance](../tests/agent-eval/results/2026-09-24-flow-facts/result.json)
 retains two sink witnesses from a recursive Python fixture. An independent oracle executes nine
-cases and checks UTF-8 AST coordinates. Eleven followed semantic links match exact occurrences;
+cases and checks UTF-8 syntax-tree source positions. Eleven followed semantic links match exact occurrences;
 negative, normalized, unknown and stale cases retain their distinct outcomes.
 
 The first two fact headers use 5,421 bytes, compared with 56,565 bytes for the raw analysis.
@@ -527,7 +538,7 @@ implementation diagnostics. Native tests separately exercise semantic query and 
 
 The [2026-09-24 compiler acceptance](../tests/agent-eval/results/2026-09-24-compiler-evidence/result.json)
 retains real rustc and Cargo diagnostics for one Rust fixture. Default compilation passes; strict
-configuration reports E0308 at the independently checked byte span. Six executable cases check default
+configuration reports E0308 at the independently checked source byte range. Six executable cases check default
 behavior. The artifact preserves command outcomes, syntax acceptance, plan attachment and rejected
 reuse after source, environment, external identity and newly added Cargo configuration changes.
 
@@ -547,7 +558,7 @@ Explicit refresh clears stale evidence and actions; the old mutation review refu
 A fresh review delivers a checked edit, reversal and patch. An independent receiver applies the patch and checks three finite outputs.
 
 The evaluator records cold, warm and edited identity queries with latency, context bytes and isolated peak RSS.
-Warm and clean reports agree. Every query recomputes correspondence; this slice adds no finer analysis cache.
+Warm and clean reports agree. Every query recomputes correspondence (the stated connection between two descriptions); this slice adds no finer analysis cache.
 The ordinary AST baseline reads the whole tiny source and excludes a native process launch.
 These are deterministic fixture measurements, with no live-agent, token, semantic equivalence or general speed claim.
 Audit the retained result with `python3 tools/correspondence-acceptance.py --audit RESULT`.
@@ -556,7 +567,7 @@ Audit the retained result with `python3 tools/correspondence-acceptance.py --aud
 
 The [proof fixture](../tests/agent-eval/retained-proofs/task.json) pins an unchecked-module baseline and a finite Boolean source task.
 Run `python3 tools/proof-evidence-acceptance.py --output PATH` to retain current execution evidence.
-Run the same script with `--audit PATH` to check its source bindings, Merkle roots, invalidation outcomes and patch replay.
+Run the same script with `--audit PATH` to check its recorded input fingerprints, Merkle roots, invalidation outcomes and patch replay.
 The evaluator retains old and fresh model reports, seven input changes, independent observations and stale review refusals.
 A separate Python oracle checks both Boolean inputs after applying the retained patch in an independent directory.
 The [current result](../tests/agent-eval/results/2026-09-24-retained-proofs/result.json) records its fixture timing and context bytes.
@@ -569,13 +580,17 @@ Its independent runtime oracle executes ten source/sink cases in two sanitizer c
 The [evaluator](../tools/imported-flow-acceptance.py) records missing modules and members, package/stub conflicts, configuration changes and rule changes.
 Retained plans invalidate dependent conclusions while preserving independent observations. Paged facts link witnesses back to each helper's syntax.
 
-The [result](../tests/agent-eval/results/2026-09-25-imported-flow/result.json) includes cold, warm, unrelated-edit and helper-edit comparisons against clean analysis.
+The [result](../tests/agent-eval/results/2026-09-25-imported-flow/result.json) includes cold, warm, unrelated-edit and helper-edit comparisons against fresh analysis.
 Isolated workers record latency, context bytes, transfer work and peak child/worker RSS. Whole-module closure reuse remains deliberately conservative.
 The ordinary arm executes the runtime/AST oracle; it does not model an agent's search effort. Tokens and live-agent outcomes remain unavailable.
 A reviewed helper-body change passes checks, apply, undo, redo and patch delivery. An independent receiver replays the patch and repeats the runtime oracle.
-Run `python3 tools/imported-flow-acceptance.py --audit RESULT` to validate retained source bindings, outcomes and replay.
+Run `python3 tools/imported-flow-acceptance.py --audit RESULT` to validate retained recorded input fingerprints, outcomes and replay.
 
 ## Repeated consumer discovery
+
+A consumer is code that uses a declaration. Discovery searches for those uses before the declaration changes.
+For a renamed helper, compare the same expected callers and ordering with the earlier and revised search implementation.
+The timings in this section measure that operation and its indexing work, rather than an agent finding and repairing an unfamiliar bug.
 
 The [pinned workload](../tests/agent-eval/index-consumers/task.json) covers generated Python functions
 with repeated assignments and a fixed repository snapshot: 98,147 symbols and 592,962 references.
@@ -646,7 +661,7 @@ Each fault case reopens the journal and resumes pending work before checking the
 
 A separate Rust/Lean comparison checks 224 outputs for publication and recovery decisions.
 The [contract](host-recovery.md) distinguishes model theorems, tested agreement and trusted host operations.
-This is deterministic fault evidence. It does not measure agent tokens, task latency benefits or power-loss recovery.
+This is recorded deliberately interrupted operations. It does not measure agent tokens, task latency benefits or power-loss recovery.
 The retained baseline guide and disclosure use a one-file scan with 1,935 unresolved references;
 they support local discovery without establishing repository-wide absence claims.
 
@@ -673,14 +688,14 @@ Updated source-bound measurements use the `2026-09-28-structural-*` prefix; earl
 
 The signature subset admits primitive scalar parameters and literal call arguments. The compiler and
 public-output oracle check their executed cases. General source equivalence, external consumers,
-dynamic dispatch and inferred contracts remain open. The oracle records its rustc version separately;
+dynamic dispatch (choosing a callable from runtime values) and inferred contracts remain open. The oracle records its rustc version separately;
 its nested compiler process is outside the check runner's executable identity discovery.
 
 ## Expression control and checked delivery
 
 The [expression task](../tests/agent-eval/expression-control/task.json) pins a leaking helper behind
 short-circuit operators and a conditional expression. Its independent CPython oracle observes public
-outputs, sink calls and AST byte spans. The baseline uses the existing local 0.35.0 binary and records
+outputs, sink calls and AST source byte ranges. The baseline uses the existing local 0.35.0 binary and records
 both its hash and its age relative to the pinned source revision. It refuses the expression forms.
 
 The [retained evaluator](../tools/expression-control-acceptance.py) compares ordinary AST discovery
@@ -688,10 +703,10 @@ with native summary discovery, repairs the discovered helper, adds a sink-free p
 both patches in an independent receiver. It checks cache invalidation, interrupted plans and stale
 review refusal. [Focused runtime cases](../sdk/python/tests/test_expression_control.py) cover
 operand order, skipped calls, recursion, explicit raises and conservative comparison alternatives.
-These are finite deterministic cases, with no live-agent, token-saving or feasible-path claim.
+These are finite scripted cases, with no live-agent, token-saving or feasible-path claim.
 
 The [retained expression run](../tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
-passes both delivered outcomes and independent receiver replay. Ordinary discovery reads 471 source
+passes both delivered outcomes and independent patch application and checks in another checkout. Ordinary discovery reads 471 source
 bytes across six files. Native discovery returns 128,738 bytes across eight calls with no source-body
 reveals. All observed results remain scoped to this finite scripted fixture.
 
@@ -699,13 +714,13 @@ reveals. All observed results remain scoped to this finite scripted fixture.
 ## Required call binding and checked delivery
 
 The [binding task](../tests/agent-eval/call-binding/task.json) pins a leaking helper behind named
-arguments and required positional-only and keyword-only parameters. Independent CPython observations
-check public outputs, ordered effects and byte spans. The baseline records the existing local 0.35.0
+arguments and required positional-only and keyword-only parameters (slots that calls must supply by name). Independent CPython observations
+check public outputs, ordered effects and source byte ranges. The baseline records the existing local 0.35.0
 binary and its source-revision gap; that binary refuses the new parameter and keyword forms.
 
 The [retained run](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json) passes
-ordinary and native repair, a sink-free preview, fresh-process resumption, invalidation and independent
-receiver replay. Ordinary discovery reads 444 source bytes across six files. Native discovery returns
+ordinary and native repair, a sink-free preview, resumption in a new process, invalidation and independent
+patch application and checks in another checkout. Ordinary discovery reads 444 source bytes across six files. Native discovery returns
 117,022 response bytes across eight calls with no source-body reveals. This is a finite scripted
 comparison, with no live-agent, token-saving, feasible-path or general source-equivalence claim.
 
@@ -734,12 +749,12 @@ The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares omit
 arguments, positional-only and keyword-only slots, immutable literal forms, recursive calls and
 imported helpers. Python ASTs independently check parameter coordinates. Tests retain default syntax
 spans, compare cached and clean results after edits, renew occurrences after unrelated changes, and
-reject forged signature contracts. Evaluated and mutable defaults remain outside the admitted subset.
+reject forged signature contracts. Evaluated and mutable defaults remain outside the supported subset.
 
 The [retained run](../tests/agent-eval/results/2026-09-29-defaults-literal-defaults/result.json) passes
-discovered repair, sink-free preview delivery, fresh-process resumption and independent receiver
+discovered repair, sink-free preview delivery, resumption in a new process and independent receiver
 patch replay and reversal. Deterministic AST discovery exposes 442 source bytes across six reveals;
-`fr` discovery exposes 118,341 response bytes across eight process calls, with no source reveals.
+`fr` discovery exposes 118,341 response bytes across eight process calls, with no source reads.
 These are different disclosure measures, not a token-savings claim. The twelve refreshed
 `2026-09-29-defaults-*` report groups bind that implementation revision. These results cover a finite
 corpus and do not establish source equivalence, path feasibility or general efficiency.
@@ -761,9 +776,9 @@ stubs, helpers and missing paths change. Symlinks, ignored sources, module budge
 have explicit negative cases. Multi-root namespace merging and general runtime imports remain open.
 
 The [retained run](../tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/result.json)
-passes reviewed repair, a sink-free preview feature, fresh-process resumption and independent patch
+passes reviewed repair, a sink-free preview feature, resumption in a new process and independent patch
 replay and reversal. Ordinary AST discovery exposes 347 source bytes across four reveals; `fr`
-discovery exposes 116,687 response bytes across eight process calls, with no source reveals.
+discovery exposes 116,687 response bytes across eight process calls, with no source reads.
 These different disclosure measures do not establish token savings. Thirteen refreshed
 `2026-09-29-namespaces-*` report groups bind that implementation revision. The
 [dogfood manifest](../tests/agent-eval/results/2026-09-29-namespaces-dogfood/manifest.json) retains actual
@@ -775,12 +790,12 @@ on GitHub; local work uses the existing resource guard.
 The [pinned task](../tests/agent-eval/scalar-assignments/task.json) requires finding and repairing a
 leaking helper through unpacking, a swap and chained local assignments. Its installed-binary
 baseline reports explicit cutoffs. The independent CPython oracle checks the original leak and
-public behavior after repair, preview delivery, fresh-process resumption, receiver replay and reversal.
+public behavior after repair, preview delivery, resumption in a new process, patch application and checks in another checkout and reversal.
 
 The [runtime corpus](../sdk/python/tests/test_scalar_assignments.py) compares ordered scalar
 assignments with CPython. It covers repeated targets, nested shapes, RHS effects, explicit raises,
 lexical shadowing, exact definition spans, cache renewal and invalidation, and bounded refusal.
-Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
+Branch, loop and recursive summaries retain the existing rules describing possible value connections. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
 The [current retained run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
@@ -851,7 +866,7 @@ a source implementation proof, a live-agent efficiency claim, or complete roadma
 
 The [current repository acceptance](../tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json)
 passed on [GitHub run 37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730).
-Schema 2 ignores only the marked SDK release-version literal when comparing source bindings.
+Schema 2 ignores only the marked SDK release-version literal when comparing recorded input fingerprints.
 Other source changes still invalidate the evidence. The
 [original schema 1 receipts](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json)
 remain unchanged; use their recorded evaluator revision for historical replay.
@@ -870,6 +885,11 @@ have a separate scope from the current-source GitHub acceptance reports.
 
 Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).
 ## Python development history
+
+This is a dated engineering record. A run identifies one execution of a GitHub workflow.
+An artifact is a saved output; a fingerprint verifies which bytes it contains.
+Keep failures and corrected attempts together so readers can see what the fix establishes.
+For current limits, use the [Python guide](python-contract.md) and [contributor handoff](continuity.md).
 
 These notes describe problems found from 2026-10-12 through 2026-10-15.
 Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
@@ -895,7 +915,7 @@ The original failed reports, validators and CI logs remain unchanged.
 | Two named-default tests used an observer that only caught exceptions from calling the entry | Use the existing isolated observer that also records module-loading failures; retain both `NameError` expectations | [First named-default check](https://github.com/e6qu/fun-refactor/actions/runs/38595108328) |
 | One added scalar-default comment exceeded the fixed prose budget | Remove the redundant comment and keep the budget | [Scalar-default prose check](https://github.com/e6qu/fun-refactor/actions/runs/38666246115) |
 | The scalar-default capture map omitted its Rust path-type import | Import the path type and rerun the same native controls | [Scalar-default compiler check](https://github.com/e6qu/fun-refactor/actions/runs/38666372468) |
-| Longer scalar-default contract text exceeded existing report byte budgets | Shorten the repeated contract wording while retaining the rules and limits; recollect source-bound reports | [Scalar-default SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38666586639), [collection precheck](https://github.com/e6qu/fun-refactor/actions/runs/38667422037) |
+| Longer scalar-default contract text exceeded existing report byte budgets | Shorten the repeated contract wording while retaining the rules and limits; recollect reports tied to recorded source inputs | [Scalar-default SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38666586639), [collection precheck](https://github.com/e6qu/fun-refactor/actions/runs/38667422037) |
 | A name-based SDK assignment grouped a long report audit with several proof checks and hit the 15-minute deadline | Use measured case durations to balance the same four groups; preserve every test, execution order and deadline | [Scalar-default full CI timeout](https://github.com/e6qu/fun-refactor/actions/runs/38670183873/job/116211233691) |
 | Three main audit runners could not download the existing `actions/setup-go` commit and failed before tests started | Install the same Go 1.27.2 release from its official checksum-verified archive through the shared local action | [First setup failure](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708027), [round-trip setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256707969), [translation setup](https://github.com/e6qu/fun-refactor/actions/runs/38684678523/job/116256708093) |
 | A value-import test still treated an unused `object`-based class as unsupported | Keep the negative case with an unsupported `list` base; retain the positive built-in-base runtime comparisons | [First built-in-base SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38697413065) |

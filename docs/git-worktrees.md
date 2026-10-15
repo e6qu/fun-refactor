@@ -3,6 +3,11 @@
 Before starting another task, list the repository’s Git worktrees: separate folders that share the same Git history.
 The list shows their branches and commits. Use it to find the checkout you intend to inspect or change.
 
+A worktree is a separate working folder sharing one Git repository's history and objects.
+It lets you work on another branch without replacing the files in your current folder.
+For an urgent checkout repair during a larger refactor, list existing worktrees before choosing or creating one.
+Listing a folder establishes its recorded Git state; it does not reserve it against another process.
+
 ## Commands, results and limits
 
 `fr git worktree list` discovers registered workspaces before an agent chooses where to work.
@@ -23,7 +28,7 @@ Invocation from a subdirectory or a symlink resolves to that working tree.
 A linked checkout can report a bare primary repository. Direct invocation from a bare repository refuses.
 
 `locked` and `prunable` describe Git's registration metadata.
-Optional reasons occupy at most 512 UTF-8 bytes each, with separate truncation flags.
+Optional reasons occupy at most 512 UTF-8 (the text encoding used to count source bytes) bytes each, with separate truncation flags.
 Missing reasons are null; empty reasons remain empty strings.
 Paths and reasons preserve spaces and newlines through NUL-delimited parsing.
 Non-UTF-8 metadata, unknown attributes and incomplete or contradictory records refuse with a diagnostic.
@@ -58,7 +63,7 @@ It reads repository-local configuration but does not inspect file content or inv
 Git still reads all registrations to construct a page; output bounds do not imply constant memory use.
 
 Pagination reuses the source-anchored `page_length` kernel and its Lean bound and progress laws.
-The parser, Git subprocess and complete observation protocol have tests, without a general formal correspondence proof.
+The parser, Git subprocess and complete observation protocol have tests, without a general formal correspondence (the stated connection between two descriptions) proof.
 
 `fr git worktree create` previews and applies a raw checkout on a new or unused existing branch with a separate review basis.
 See [reviewed creation](git-worktree-creation.md) for supported destinations, checkout limits and partial-failure reporting.

@@ -11,6 +11,7 @@ The larger goal is to finish unfamiliar tasks with less reading, fewer retries a
 We have useful component tests, but have not demonstrated that broader benefit. Python value tracing
 works for supported examples; imports and other behavior in real libraries still often leave an unknown answer.
 Read [where we are going](PLAN.md) or the [current results](docs/roadmap-status.md) before relying on a stronger claim.
+The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
 
 ## Install
 
@@ -47,18 +48,24 @@ fr --version
 
 ## First use
 
-Run `fr` from a project root. Add `--json` for an agent or program. Mutating commands preview by
-default and write only through an explicit reviewed path.
+Start with the [small, complete tutorial](TUTORIAL.md). It creates its own example files and explains each new term.
+You need an installed `fr` binary and Python 3 to follow that lesson.
+
+A project root is the folder containing the project you want to inspect.
+Run `fr` there. Add `--json` to return structured data for another program.
+A preview shows proposed changes without applying them. Commands that edit source preview by default.
+For an existing project, these commands list files, check readable syntax and find functions:
 
 ```sh
 fr scan
 fr parse --stats
 fr symbols --kind function
 fr project map --depth 2 --limit 30
-fr rename old_name new_name
 ```
 
-Save an accepted preview to durable history, then apply, reverse or export it:
+A rename changes a declaration and the uses that `fr` can identify.
+Replace `old_name` and `new_name` below with your current and requested function names.
+Review the preview before saving it. A saved change forms a transaction; its ID identifies it in history.
 
 ```sh
 fr rename old_name new_name --save-plan
@@ -71,7 +78,7 @@ fr history redo '<TX>' --write
 fr history patch '<TX>' --output change.patch
 ```
 
-`<TX>` is the returned transaction ID. Continue with the [tutorial](TUTORIAL.md), or use the
+Replace `<TX>`, including its brackets, with the returned transaction ID. Continue with the [tutorial](TUTORIAL.md), or use the
 [CLI reference](CLI.md) for the complete command surface.
 
 ## Give `fr` to an agent
@@ -88,6 +95,9 @@ Other agents can load [`skills/fr/SKILL.md`](skills/fr/SKILL.md) with its adjace
 directory. The skill routes a task to a small relevant guide rather than loading the whole manual.
 
 Start with the live support summary and a structured goal:
+
+`audit` needs no input file. The second command needs a task description saved as `goal.json`;
+the [goal guide](docs/agent-workflow-guide.md) explains its fields and supplies an example.
 
 ```sh
 fr --json audit

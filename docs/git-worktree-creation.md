@@ -3,6 +3,11 @@
 Suppose another change is in progress and you want a separate checkout for a checkout bug. Create a Git worktree on a new branch.
 It shares repository history while keeping its working files separate. Review the destination and starting commit before creating it.
 
+A worktree is another working folder sharing the repository's history. A branch names a line of commits.
+The destination is the new folder. A receipt records the created worktree and who owns its recovery state.
+For an urgent repair, preview the branch and destination together before creating either.
+If creation stops partway through, use that ownership record to decide what can safely be completed.
+
 ## Commands, results and limits
 
 Create a separate workspace from a committed snapshot while retaining the source worktree's files and index.
@@ -72,7 +77,7 @@ This raw checkout bypasses line-ending conversion, encodings, ident expansion an
 Attribute-dependent Git commands may later report differences or refuse under their own filter policy.
 An LFS pointer remains a pointer. The command does not fetch remote content or initialize submodules.
 
-The raw checkout accepts UTF-8 paths plus regular and symlink blobs.
+The raw checkout accepts UTF-8 (the text encoding used to count source bytes) paths plus regular and symlink blobs.
 Symlink targets retain their raw bytes, may be dangling and must contain 1 through 1023 bytes without NUL.
 Submodules, unsafe `.git` path components and paths that collide under case folding refuse.
 `fr` accepts repositories with `extensions.worktreeConfig` enabled. Creation does not add a per-worktree configuration file; later Git commands may create `config.worktree` in the linked worktree's private metadata.
@@ -119,5 +124,5 @@ Lean proves these requirements, and shared Rust/Lean tests cover every boolean s
 Shared Rust/Lean cases exercise the limits and machine-size boundaries.
 Abstract fresh-destination laws prove refusal of occupied entries and preservation of unrelated entries.
 Those laws assume a disjoint namespace and an atomic installation step; the host workflow has multiple steps.
-Git subprocess behavior, filesystem races, blob identity and crash recovery remain outside complete correspondence proofs.
+Git subprocess behavior, filesystem races, blob identity and crash recovery remain outside complete correspondence (the stated connection between two descriptions) proofs.
 CLI tests cover stale bases, raw modes and bytes, linked worktrees, refusals and injected partial failures.

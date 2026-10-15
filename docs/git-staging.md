@@ -3,6 +3,11 @@
 Suppose you changed both checkout and an unrelated note. Preview staging only the checkout files, then write the reviewed selection.
 Staging changes the contents prepared for a commit. It does not undo or rewrite your working files.
 
+Git's index is the snapshot prepared for the next commit. Staging copies selected working-file states into it.
+A blob is Git's stored file contents; its object ID fingerprints those contents.
+A basis ties a proposed staging change to the states you reviewed.
+In the commands below, replace `TOKEN` with that returned basis, preserving the same selected paths.
+
 ## Commands, results and limits
 
 ```sh
@@ -39,7 +44,7 @@ Present flag objects report `assume_unchanged` and `skip_worktree`; additions de
 
 A path absent from both states causes refusal.
 Untracked regular text files can produce additions. Ignored untracked paths cause refusal; tracked paths remain eligible even when ignore patterns match them.
-Present working files must contain UTF-8 text without NUL bytes. Removal previews use index metadata. Applying a removal must read the old blob for staging history.
+Present working files must contain UTF-8 (the text encoding used to count source bytes) text without NUL bytes. Removal previews use index metadata. Applying a removal must read the old blob for staging history.
 Source bodies stay outside the output. `counts` contains `paths`, `add`, `update`, `remove` and `unchanged`; action counts partition the selected paths.
 The argument limit bounds rows, without bounding file sizes, path lengths or internal collection work.
 
@@ -128,5 +133,5 @@ Projected modes reuse the anchored Git mode model, with assumptions documented i
 Inventory interpretation, action classification, hash assumptions and snapshot consistency have regression evidence, without a general implementation proof.
 Staging history adds anchored transition and index-entry policy predicates plus abstract preservation laws.
 The index-entry model proves that stage zero and absence of intent-to-add are required while the two supported ordinary flags do not affect eligibility; all sixteen boolean states are compared with Rust.
-Index locking, journal durability, preparation and installation remain regression-tested, without a complete Lean correspondence or crash-consistency proof.
+Index locking, journal durability, preparation and installation remain regression-tested, without a complete Lean correspondence (the stated connection between two descriptions) or crash-consistency proof.
 Tests cover no-write behavior, dirty repositories, basis drift, ignored files, conflicts, source/index races, linked worktrees and SHA-256 identities.

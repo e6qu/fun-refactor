@@ -3,6 +3,12 @@
 These records compare attempts made with ordinary source tools and with `fr` available.
 For example, a successful repair counts as tool use only if the agent actually called `fr`. The records below keep failed attempts and incomplete cost information visible.
 
+OpenCode is the agent application used for these recorded attempts.
+An arm is a tool setup; a cell is one planned task attempt with a model and repetition.
+A terminal answer is the final submission. A grader checks that submission independently against stated requirements.
+For a retry explanation, compare the source the agent actually read with the factual claims it submitted.
+The records preserve failed and unstarted attempts; making `fr` available does not establish that it was used.
+
 ## Recorded attempts and tool setup
 
 These evaluation tools let configured OpenCode sessions use ordinary source tools and optional fr
@@ -87,7 +93,7 @@ provider is enabled, with empty configuration and data directories. No model cre
 The cases cover one answer, no answer, duplicate answers and a tool call alongside the answer.
 The positive case requires two provider requests: a source read and the answer. A third request fails.
 
-Each capture has a 120-second wall limit, 20 sampled CPU seconds, 768 MiB aggregate RSS,
+Each capture has a 120-second wall limit, 20 sampled CPU seconds, 768 MiB aggregate RSS (resident set size, the measured memory held by a process),
 16 MiB disk growth and a 1 MiB process transcript limit. Local use requires the resource guard.
 Move real-client checks to GitHub if the local client approaches those limits.
 
@@ -476,7 +482,7 @@ tool-call, time and memory limits. Earlier schemas and retained reports keep the
 The flag works with the two ordinary/fr arms or with `--guidance` and all three arms.
 
 A first `read_source` call can start at a known byte offset with an empty `sha256` because
-the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8
+the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8 (the text encoding used to count source bytes)
 boundaries, stale hashes, missing files and path escapes refuse. This rule applies to the
 native evaluation interface; the general study reader keeps its existing contract.
 

@@ -3,6 +3,11 @@
 A function can compile and still round a bill incorrectly. Name a behavior check for the requested fix as well as the usual build checks.
 This guide shows how to require those checks before delivering a saved change or marking a task complete.
 
+A behavior check tests the requested result, such as rounding a fractional price correctly.
+A build check asks whether code compiles; it can pass for the wrong calculation.
+A receipt is a saved check result tied to the source and settings it tested.
+For a repair, require the relevant behavior receipt after applying the change and recheck it if those inputs change.
+
 ## Commands, results and limits
 
 Compilation and reversible delivery can succeed while a requested behavior fails. The
@@ -24,7 +29,7 @@ result = client.execute(review)
 ```
 
 Both lists select existing names from `.fr/checks.json`. Ordinary `checks` run at the requested
-original, applied, restored and reapplied lifecycle stages. `acceptance_checks` run after the applied
+original, applied, restored and reapplied apply, check, reversal and delivery stages. `acceptance_checks` run after the applied
 checks and again after redo. They never run on the original or restored state. This permits a bug
 reproducer to fail before the repair while still checking exact reversal.
 
@@ -88,10 +93,10 @@ producer or prove source implementation equivalence.
 ## Evidence
 
 The [pinned task](../tests/agent-eval/checked-outcomes/task.json) uses a two-file Rust subtotal repair
-and fee requirement. The deterministic evaluator supplies the implementations; this is not a live
+and fee requirement. The scripted evaluator supplies the implementations; this is not a live
 agent comparison. Its independent Python oracle compiles the public Rust API and checks 49 outputs.
 It retains compiler-only acceptance of a wrong change, rejection under post-change checks, successful
-delivery, fresh-process completion, invalidation and independent patch replay with exact reversal.
+delivery, new-process completion, invalidation and independent patch replay with exact reversal.
 The [retained manifest](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json) binds its
 artifacts and source snapshots. Run `python3 tools/outcome-acceptance.py --audit DIRECTORY` to verify
 them and replay the compiled receiver checks without calling a model service.

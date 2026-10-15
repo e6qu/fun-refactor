@@ -1,6 +1,6 @@
 # Export a patch or inspect Git
 
-List changed files, inspect the relevant diffs, then export the reviewed patch. Check and test it in the receiving checkout.
+A diff compares file states; a patch carries changes to another checkout. Inspect the diff before exporting. `<TX>` identifies a saved source edit.
 
 ```sh
 fr git status --limit 8

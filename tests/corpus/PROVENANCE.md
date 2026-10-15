@@ -2,6 +2,11 @@
 
 When a user asks to translate a route, the tests need real routing code as well as small examples. These source files help reveal forms that our own examples might miss. The tables identify where each unchanged file came from; they do not establish general support for its framework.
 
+A corpus is a collection of source examples used for tests.
+Provenance identifies each example's upstream project, revision and license.
+For a route translation, use the named original file to understand what syntax the test covers.
+Passing that example does not establish every behavior of the framework.
+
 Unmodified source files from public repositories, kept here so the translation tests
 run against code somebody actually shipped and not against fixtures written to
 pass. They are **test data only**: nothing here is compiled, linted, packaged or
@@ -22,7 +27,7 @@ The sections below record each project’s license and its notices.
 | `models.py` | `1b7384d0dc779cca9ebc9d2b05ccd1864988c2043a3692384ff7a731819050f0` | `backend/app/models.py` |
 | `security.py` | `adb90882929ab33c238e2e9fa81b03fa0364c1a8cce0e9e70b98c68c321f468f` | `backend/app/core/security.py` |
 
-Chosen for what they contain: `crud.py` for keyword-only parameters (`def f(*, session, …)`),
+Chosen for what they contain: `crud.py` for keyword-only parameters (slots that calls must supply by name) (`def f(*, session, …)`),
 `models.py` for nineteen typed SQLModel records, `security.py` for typed helpers over
 foreign library types.
 

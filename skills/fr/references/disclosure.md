@@ -1,81 +1,59 @@
-# Progressive disclosure
+# Read one report section at a time
 
-Ask for an overview, then the caller or source section needed for the question.
-
-Start with the full handle from `project explore` or `project find`:
-
-```sh
-fr project disclose <HANDLE> --token-limit 4096
-```
+For a retry fix, inspect the selected function before asking for the whole project.
+A handle selects code returned by a query. A hole names an unopened report section.
+A continuation gives the exact command for its next page. Disclosure means opening those sections as needed.
 
 ```sh
-fr project disclose <HANDLE> --view evidence --depth 3 --token-limit 4096
+fr project disclose '<HANDLE>' --token-limit 4096
+fr project disclose '<HANDLE>' --view evidence --depth 3 --token-limit 4096
 ```
 
-Evidence catalogs `code_map`, `call_traces`, `impact` and `sources_and_sinks`. Follow an
-shortcut or root action. `object_digest` keys storage; the Python SDK restores it lazily.
-Use `--proofs` for protocol tests.
+The evidence view contains `code_map`, `call_traces`, `impact` and `sources_and_sinks`.
+Follow a returned shortcut or root action, then the child relevant to the question.
+Use `fr intent --from INTENT.json` when the needed sections are already known; see [intents](intents.md).
 
-Use `fr intent --from INTENT.json` for a complete request. It selects named subtrees from one
-snapshot and returns their object digests. Use reveals for choices, proof tests or later
-subtrees.
+## Follow returned commands
 
-The first response lists unopened semantic and source sections. Prefer a relevant
-`semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose
-`editable_ir` is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
-exactly; do not reconstruct the handle, cursor, profile or limit.
-Each reveal exposes one IR level. Follow the child matching the task.
-Run exact continuations to finish a child page.
+Run returned `reveal.arguments` unchanged. Do not invent a handle, cursor, profile or limit.
+Finish continuations before treating a section as complete. A changed project requires a fresh handle.
+Keep `view_basis` and `commitment.root` with findings derived from the report.
+A Merkle digest fingerprints a report tree; it does not prove program behavior.
 
-An editable scalar includes `edit` with an opaque ID and exact `preview_template.arguments`.
-Replace only `<NEW_VALUE>` and run that array after `fr`:
+`semantic_shortcuts` can lead to structured code. `editable_scalars` counts editable simple values;
+`editable_ir` counts editable statements or other structured nodes.
+For a retry integer, select its returned edit ID rather than another equal integer.
 
 ```sh
-fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE>
-fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE> --write --plan-basis <PLAN_CONTEXT_BASIS>
+fr author edit-body-disclosed '<HANDLE>' --edit '<EDIT_ID>' --to 7
 ```
 
-Equal values can have different IDs; select the intended address. Inspect the
-complete preview before writing. A large scalar appears as
-`from_commitment`; finish its page chain to obtain the edit without repeating its value. Stale,
-unknown, malformed and no-op capabilities refuse before mutation. The same request is
-`{"edit":"frde1:...","to":"..."}` under a batch/task `disclosed` field.
-
-Use `--profile expanded --token-limit 16384` before following `editable_ir`; compact reveals omit
-structural descriptors so scalar inspection stays within its smaller envelope. An `ir_edits` entry
-selects one structural operation without exposing its hidden path or index.
-Use `accepts` to construct the smallest typed node with the Python SDK or the category named by its
-`schema_action`, write that node as one JSON value, and run `preview_template.arguments` exactly:
+Review the complete diff, then copy its plan basis into the write:
 
 ```sh
-fr author edit-body-disclosed-ir <HANDLE> --edit <IR_EDIT_ID> --from ../node.json
-fr author edit-body-disclosed-ir <HANDLE> --edit <DELETE_EDIT_ID>
+fr author edit-body-disclosed '<HANDLE>' --edit '<EDIT_ID>' --to 7 --write --plan-basis '<PLAN_CONTEXT_BASIS>'
 ```
 
-Replacement accepts the bound category; insert and append accept a statement; delete takes no
-value. Batch and task manifests carry `disclosed_ir: {edit,value?}`. Reveal a fresh capability after
-any source change.
+Large values use `from_commitment`; finish their pages to obtain the edit reference.
+Changed, unknown, malformed or no-op edits refuse before writing.
 
-Use `exact-source` only when structure is insufficient. Follow exact `frontier` actions until empty.
-Page `offset` is declaration-relative; typed `location` is file-relative and matches target
-locations. Every response gives a conservative token bound over serialized UTF-8 bytes.
-`compact` accepts at most 4096. Use `--profile expanded --token-limit N` explicitly, up to 16384,
-when the compact envelope or a single child cannot fit.
+## Edit a statement or structured value
 
-Keep `view_basis` and `commitment.root` with derived decisions. A changed project invalidates the
-target and every hole. A changed profile, limit or cursor invalidates a continuation. An unrevealed section does not
-establish absence; a Merkle digest does not prove behavior.
+Use `--profile expanded --token-limit 16384` to obtain `ir_edits`; compact replies omit those descriptors.
+IR is the structured code record. Its categories distinguish statements, expressions and types.
+Read `accepts` and `schema_action` before writing a replacement node as JSON.
 
-Exact actions may be copied into a profiled batch. Batch argument arrays accept the leading
-`project` emitted by the action:
-
-```json
-{
-  "schema": "fr-project-batch-1",
-  "requests": [
-    {"id": "names", "arguments": ["explore", "greet"]},
-    {"id": "frontier", "arguments": ["disclose", {"request": "names", "pointer": "/rows/0/handle"}, "--token-limit", "4096"]},
-    {"id": "root", "arguments": ["disclose", {"request": "names", "pointer": "/rows/0/handle"}, "--reveal", {"request": "frontier", "pointer": "/frontier/0/id"}, "--token-limit", "4096"]}
-  ]
-}
+```sh
+fr author edit-body-disclosed-ir '<HANDLE>' --edit '<IR_EDIT_ID>' --from ../node.json
+fr author edit-body-disclosed-ir '<HANDLE>' --edit '<DELETE_EDIT_ID>'
 ```
+
+Replacement needs the accepted category; insertion needs a statement; deletion supplies no new value.
+Batch and task inputs use `disclosed_ir: {edit,value?}`; simple-value edits use `disclosed: {edit,to}`.
+Obtain a new descriptor after source changes. See [semantic edits](semantic-change.md).
+
+Read exact source when structure is insufficient. Follow `frontier` actions until that section completes.
+Page `offset` counts bytes within the declaration; `location` describes the complete file.
+Compact reports accept at most 4,096 token units; expanded reports accept at most 16,384.
+Those conservative output bounds do not measure billed model tokens.
+An unopened section cannot establish absence. Use `--proofs` for protocol verification when needed.

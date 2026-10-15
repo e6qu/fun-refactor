@@ -3,6 +3,11 @@
 Before reviewing a patch, list the changed files. Choose working edits, staged files, or changes since a commit.
 For example, list the paths changed by the last commit before asking for the diff of `src/main.rs`.
 
+A working tree contains your editable files. The index contains the file states prepared for the next commit.
+HEAD names the current commit. A comparison chooses which two of these states to inspect.
+For “what have I changed since the last commit?”, choose that baseline before interpreting the changed-file list.
+File counts describe the selected comparison; follow any continuation before treating the list as complete.
+
 ## Commands, results and limits
 
 ```sh
@@ -56,7 +61,7 @@ The commit identity is null for the default comparison and staged inspection on 
 
 Each entry contains:
 
-- `path`: a repository-relative UTF-8 path, preserving whitespace through JSON escaping.
+- `path`: a repository-relative UTF-8 (the text encoding used to count source bytes) path, preserving whitespace through JSON escaping.
 - `status`: `A`, `D`, `M` or `T` for addition, deletion, content/mode modification or type change.
 - `before_mode` and `after_mode`: Git octal strings, or null for an absent side.
 - `before_oid` and `after_oid`: raw Git object identities, converting all-zero IDs to null.
@@ -111,4 +116,4 @@ The report collects metadata for the complete comparison before paging, without 
 
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI regressions cover state/count joins, malformed data, cursors, scopes, filters, conflicts, worktrees and SHA-256 detail handoff.
-Git execution, metadata correspondence and aggregation remain outside the formal model.
+Git execution, metadata correspondence (the stated connection between two descriptions) and aggregation remain outside the formal model.

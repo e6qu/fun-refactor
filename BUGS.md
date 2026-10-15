@@ -20,6 +20,14 @@ Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 Open entries describe actionable defects. Boundary entries describe behavior that available static
 evidence cannot settle. The list does not establish the absence of other defects.
 
+A declaration defines a named piece of code; a reference uses that name.
+Resolution means deciding which declaration a reference names. A receiver is the object before a member call, such as `cart` in `cart.total()`.
+For an uncertain receiver, a list of possible targets helps inspection but does not establish which method runs.
+That distinction explains the remaining call-graph boundary below.
+
+The long “Fixed” section is an engineering history. Its numbered entries preserve specific failures and their repairs.
+Use the current symptom table above for next steps, rather than treating every historical implementation detail as required reading.
+
 A test pins every open entry and analysis boundary. A stale claim therefore fails a build.
 B11 said `@content` was a gap after it had stopped being one, and nothing noticed.
 `tests/known_grammar_gaps.rs` pins both sides of grammar limits. It covers the failing form and its
@@ -57,7 +65,7 @@ shows the patch additive. What remains below is a limit of the available source 
   admits. Four declarations each fan such a call out to every implementation:
 
   * a Rust `impl Trait for Type`, supertraits included.
-  * a Go interface whose method set a type covers by name and arity.
+  * a Go interface whose method set a type covers by name and argument count.
   * a TypeScript `implements`/`extends` clause.
   * a Python base class.
 
@@ -163,12 +171,12 @@ shows the patch additive. What remains below is a limit of the available source 
   workspace comparisons bind the current Python executor. Their outcomes and measured 89.3% and
   92.4% agent-visible byte reductions remain unchanged.
 
-- [x] B930: **two retained Python runtime comparisons had stale source bindings**. The native-intent
+- [x] B930: **two retained Python runtime comparisons had stale recorded input fingerprints**. The native-intent
   and reviewed-action audits now bind the current SDK runtime. Fresh runs preserve their exact
   outcome equality, process-call reductions and byte-accounting invariants.
 
 - [x] B929: **retained completion workflows referenced the previous guide implementation**. The
-  acceptance audit refused their stale source binding. A new deterministic run binds the current
+  acceptance audit refused their stale recorded input fingerprint. A new deterministic run binds the current
   binary and rechecks all seven guide families without source mutation or exploratory follow-up.
 
 - [x] B928: **the guided-intent skill route exceeded its disclosure ceiling**. New delivery guidance
@@ -241,7 +249,7 @@ shows the patch additive. What remains below is a limit of the available source 
   outside generated proof bodies and the reviewed semantic library. Model edits invalidate old goal
   selections; the Python SDK independently checks the inner context identity.
 
-- [x] B914: **admitted structural terms could exceed the proof-task ceiling**. Generated correspondence
+- [x] B914: **admitted structural terms could exceed the proof-task ceiling**. Generated correspondence (the stated connection between two descriptions)
   theorems now reference named term definitions. Large structural fixtures complete proof submission
   through a 4,096-byte task; evidence separately checks the exact named term definition.
 
@@ -298,7 +306,7 @@ shows the patch additive. What remains below is a limit of the available source 
 - [x] B902: **navigator schema identity bound catalog counts instead of complete variant contracts**.
   The guide basis now commits the catalog summary and every live section contract. A separately
   Merkle-addressed catalog digest allows an independent CLI corpus check. Scalar guidance includes
-  only its selected live operation/target/value contract, preserving source-free bounded disclosure.
+  only its selected live operation/target/value contract, preserving bounded disclosure without source text.
 
 - [x] B901: **a guide could return execution flags supplied as capability scalar parameters**.
   Native and Python goal validation now reject write/save-plan option values, including equals
@@ -349,7 +357,7 @@ shows the patch additive. What remains below is a limit of the available source 
   suite runs ty over every SDK source module.
 
 - [x] B891: **four retained agent evaluations still named the pre-upgrade Cargo lockfile**.
-  Their source bindings now carry the upgraded normalized lockfile digest, so the default gate
+  Their recorded input fingerprints now carry the upgraded normalized lockfile digest, so the default gate
   audits the retained measurements against the dependency graph they describe.
 
 - [x] B890: **the browser checkpoint test depended on the removed TypeScript 7 compiler API**.
@@ -443,7 +451,7 @@ shows the patch additive. What remains below is a limit of the available source 
 - [x] B873: **agents had to inspect lockfile text to learn captured package versions.**
 
   `project resolutions` now normalizes supported Cargo, npm, Go and Python lock entries into a
-  bounded source-free report. Lock snapshots participate in project identity and final verification.
+  bounded report without source text. Lock snapshots participate in project identity and final verification.
   The progressive project tree carries the same evidence in its package branch. A Lean-anchored
   policy caps lockfiles and combined evidence rows, with Rust correspondence at machine boundaries.
 
@@ -467,7 +475,7 @@ shows the patch additive. What remains below is a limit of the available source 
   Manifest discovery now includes `go.mod` and `pyproject.toml`. The bounded package and dependency
   views normalize Go requirements, replacements and exclusions plus PEP 621, dependency-group,
   build-system, Poetry and uv workspace declarations. Mixed-ecosystem tests pin the emitted fields,
-  gaps and source-free behavior. A Lean-anchored inventory limit bounds manifest and declaration counts.
+  gaps and behavior without returning source text. A Lean-anchored inventory limit bounds manifest and declaration counts.
 
 - [x] B869: **Git call impact required agents to guess every context file and stopped after one edge.**
 
@@ -545,7 +553,7 @@ shows the patch additive. What remains below is a limit of the available source 
   non-unit result receives the compile-preserving placeholder. The structural capability evaluator
   executes through the formerly empty branch after each edit.
 
-- [x] B859: **progressive disclosure refused a source-bearing semantic body before showing it.**
+- [x] B859: **progressive disclosure refused a semantic body containing source text before showing it.**
 
   Disclosure redacted unsupported IR source into commitments and then tried to deserialize that
   public representation as the private typed IR. The redacted fields are intentionally not part of
@@ -563,7 +571,7 @@ shows the patch additive. What remains below is a limit of the available source 
 
   Four context audits hashed `Cargo.lock` bytes, so the release automation changed their basis even
   though it left the resolved dependency graph intact. Evidence now canonicalizes versions of
-  source-free workspace packages while retaining registry versions, sources and checksums.
+  workspace packages without source text while retaining registry versions, sources and checksums.
   A regression proves release versions leave the basis intact. It also proves registry changes alter it.
 
 - [x] B856: **a hidden large scalar reappeared in its author preview.**
@@ -639,8 +647,8 @@ shows the patch additive. What remains below is a limit of the available source 
 - [x] B845: **framework migration policies disappeared from non-CLI builds.**
   The translation writers called pure policy helpers through the CLI-gated project module.
   WASM and playground builds disable default features, so both failed before compiling the
-  browser library. The policy kernel now lives at the feature-independent library boundary,
-  while the project module re-exports its established API when CLI support is enabled.
+  browser library. The policy kernel now lives at the feature-independent library boundary.
+  When CLI support is enabled, the project module also exposes the established API through its original path.
 
 - [x] B844: **a punctuated Java output filename produced an invalid wrapper class.**
   The writer derived its wrapper directly from an explicit destination stem.
@@ -764,7 +772,7 @@ shows the patch additive. What remains below is a limit of the available source 
   Lean takes `structure E where` on its own. Until it did, every translation of a
   field-less class refused at the reparse gate.
 
-- [x] B826: **a parameter shadowing a function invented a cycle.** The Lean writer
+- [x] B826: **a parameter hiding a function invented a cycle.** This is shadowing: a nearer declaration hides the earlier name. The Lean writer
   sorts declarations by what they name. `fn celsius(fahrenheit: f64)` reads
   `fahrenheit` meaning its own parameter. The ordering graph took it for the
   function beside it, so the two came out inside a `mutual` block claiming they
@@ -1399,7 +1407,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B764: **two Java shapes did not compile.** A lambda bound with `var` has
   no target type to take, which javac refuses. It now carries the functional
-  interface for its arity. And `xs.sort()` sorts by natural order in the source,
+  interface for its argument count. And `xs.sort()` sorts by natural order in the source,
   where Java's `List.sort` demands a comparator, so `Collections` names the
   ordering.
 
@@ -3367,7 +3375,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   something else entirely. The same module declares the record, so its field
   names are there to read, and a positional construction now maps onto them:
   `Point { x: 0, y: 0 }`, `Point{X: 0, Y: 0}`, `Point{ .x = 0, .y = 0 }`. An
-  arity mismatch stays a call, because mapping it would invent a default.
+  argument count mismatch stays a call, because mapping it would invent a default.
 
 - [x] B380: **TypeScript parameter properties never became fields.** Dropped.
   `constructor(public x: number)` declares the field and assigns it, in the

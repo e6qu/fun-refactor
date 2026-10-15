@@ -3,6 +3,11 @@
 Suppose you want to move a Next.js endpoint to FastAPI while keeping its URL and response. Inspect the route, preview the generated change and test the endpoint.
 This guide covers the supported route forms and the checks needed before applying the migration.
 
+A framework supplies conventions and libraries for an application, such as how an HTTP route is registered.
+A handler is the function answering a request. Migration moves supported behavior to another framework's form.
+For a checkout endpoint, compare the request method, URL, required fields, error responses and successful response before accepting the move.
+Generated code still needs the target framework's installation, registration and behavior tests.
+
 ## Commands, results and limits
 
 `fr migrate feature` turns one revision-bound framework feature into an inspectable source-history transaction.

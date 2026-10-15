@@ -3,6 +3,12 @@
 Before moving an HTTP service, you need to identify its routes, handlers, inputs and responses.
 For example, a checkout endpoint may require a JSON amount and return a receipt. This guide explains the shared application record that `fr` reads and writes for supported forms.
 
+HTTP is the request-and-response protocol used by web services. A route connects a method and URL to a handler function.
+A schema describes expected data, such as a required integer `amount` in a JSON request.
+Middleware is code that wraps request processing, for example to check authentication before the handler runs.
+The application IR is a shared structured record of these supported parts.
+For a checkout migration, inspect the route, input schema and handler together; a URL alone cannot establish the response behavior.
+
 ## Commands, results and limits
 
 `fr project application [TARGET] [--revision REV] [--feature ID]` returns the
@@ -25,7 +31,7 @@ omitted by a source reader. Narrow the scope when those omissions matter.
 Route nodes carry a portable `route` when their handler is exactly the admitted
 literal JSON, path-binding and selected validated-input subsets. The normalizer reads the shared semantic IR,
 then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
-standard HTTP. Equivalent admitted handlers produce the same response expression.
+standard HTTP. Equivalent supported handlers produce the same response expression.
 FastAPI additionally reads required `str`, `int` and `bool` parameters declared with `Query(...)`
 or `Body(..., embed=True)`. An omitted alias or one literal `alias` is admitted. Defaults,
 optionality, constraints, dynamic aliases, whole-body scalars and
@@ -244,7 +250,7 @@ fixture-name rules.
 ## Admission and evidence
 
 Bundles require 1..256 endpoints and at most 1 MiB of encoded JSON. A route admits at most 32
-request inputs. Query strings and string body fields admit at most 4096 UTF-8 bytes. Query integers
+request inputs. Query strings and string body fields admit at most 4096 UTF-8 (the text encoding used to count source bytes) bytes. Query integers
 use canonical decimal spelling; all integers stay in the exactly representable range shared by the
 adapters. JSON integers are mathematical integral numbers in that range. Boolean query values are
 exactly `true` or `false`; JSON values retain their JSON scalar type. Duplicate query keys refuse.

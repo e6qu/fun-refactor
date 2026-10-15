@@ -3,6 +3,11 @@
 In `False and send_email(user_input())`, Python skips both calls. A useful trace should preserve that order.
 `fr` handles some literal choices and keeps both possibilities when it cannot decide. The details below explain why a possible path can differ from one observed execution.
 
+An expression computes a value; an operand is one of its inputs.
+Short-circuit evaluation skips an operand when an earlier result already determines the choice.
+For `False and send_email(user_input())`, Python never evaluates the right operand, so neither call occurs.
+The examples use configured input/output calls named `source` and `sink`; those names have no special meaning to Python.
+
 ## Commands, results and limits
 
 Summary analysis follows `and`, `or`, `not`, conditional expressions and comparison chains in
@@ -28,15 +33,15 @@ Inspect the flag or run a behavior test before claiming that the reported email 
 A Boolean operator returns its selected operand's origins. A conditional expression returns the
 selected branches' origins, without adding the selector as an implicit flow. An unknown branch
 that raises or does not return cannot erase another branch's normal continuation. Explicit raise
-and sink effects join across admitted branches. A comparison retains the existing conservative
+and sink effects join across supported branches. A comparison retains the existing conservative
 operand-origin propagation and may stop after any completed comparison. Its first two operands are
-mandatory. Unavailable summary returns remain a fixed-point approximation, not a termination proof.
+mandatory. Unavailable summary returns remain a an approximation refined until repeated analysis adds no new facts, not a termination proof.
 
 The contract assumes scalar truth and comparison operations. Overloaded `__bool__`, `__len__`,
-comparison protocols, implicit exceptions, handlers, heap effects and general path feasibility are
+comparison protocols, implicit exceptions (errors an operation can raise without an explicit `raise`), handlers, changes to shared mutable objects and general path feasibility are
 outside it. An evaluated unsupported expression or exhausted budget reports incomplete analysis.
 An expression skipped by a known selector needs no execution contract. Lexical binding checks and
-module-closure checks still apply independently, including to source containing skipped expressions.
+checks of the imported files and directories still apply independently, including to source containing skipped expressions.
 
 Current reports use `python-scalar-summaries`
 with [call binding](call-binding.md) and [ordered assignments](scalar-assignments.md).
@@ -47,9 +52,9 @@ rejects changed contracts even with a recomputed retained-report digest. The Pyt
 Other formats fail explicitly; the SDK provides no compatibility adapter.
 
 The [pinned task](../tests/agent-eval/expression-control/task.json) exercises unknown-target repair,
-feature delivery, resumption, reversal and independent receiver replay. The [runtime corpus](../sdk/python/tests/test_expression_control.py)
+feature delivery, resumption, reversal and independent patch application and checks in another checkout. The [runtime corpus](../sdk/python/tests/test_expression_control.py)
 checks finite positive and negative cases against CPython. These observations establish their stated
-outcomes, not general source/model correspondence.
+outcomes, not general the connection between source and its model.
 
 [Retained acceptance](../tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
 binds the evaluator, implementation and fixture. Both delivered outcomes pass independent receiver

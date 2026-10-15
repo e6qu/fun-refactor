@@ -3,10 +3,15 @@
 Suppose a checkout button has the wrong color. Find the component, its quoted class name and the matching style definition.
 `fr` can connect some explicit names across these files. Generated class names and runtime styling can leave those links uncertain.
 
+A stack combines technologies, such as React components and CSS styles.
+A component describes part of a page; a selector names the elements a CSS rule styles.
+Here “surface” means one supported source form the tool can inspect or edit.
+For a button with class `checkout`, follow the literal class reference to its CSS rule before changing the color.
+
 ## Commands, results and limits
 
 `fr project technologies` identifies the thirteen requested host, framework, styling and embedded
-language surfaces. It always returns the complete taxonomy and attaches bounded source-free
+language surfaces. It always returns the complete taxonomy and attaches bounded
 evidence only to surfaces observed in the selected revision and scope.
 
 `fr project styles` builds a source-level relationship model. CSS selector declarations become
@@ -52,7 +57,7 @@ project revision, so any change invalidates old disclosure actions.
 
 Editable rows include a revision-bound `fr-surface-edit-1` capability. Its preview arguments call
 `fr author edit-surface EDIT --to VALUE`; the ID commits the project revision, surface kind, file,
-exact byte spans, current value and local scope. The command reconstructs the candidates from the
+exact source byte ranges, current value and local scope. The command reconstructs the candidates from the
 current project, requires exactly one ID match, checks every current occurrence, validates the new
 token, previews the exact diff and uses ordinary source history for write, undo, redo and Git patch
 delivery. Progressive project disclosure carries the same capability inside its style and document

@@ -2,6 +2,11 @@
 
 A user inspecting Zig `struct {}` should see an empty type. The original parser invented an empty field. The patches below fix such reading errors, so later commands start from the code the user wrote. Parsing correctly does not establish that every edit or analysis supports that code.
 
+A grammar describes the syntax a parser recognizes. tree-sitter is the parser library used here.
+Generated parser code turns that grammar into a tree of source locations and syntax kinds.
+For a Zig empty structure, a parser inventing a field gives later analysis the wrong starting facts.
+These patches fix particular reading errors; they do not establish complete language support.
+
 Grammars this project compiles itself. Most are here because the published parser cannot
 read code the language accepts. Lean is here because its crate links a different
 tree-sitter, and two crates cannot both claim `links = "tree-sitter"`.
