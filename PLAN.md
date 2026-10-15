@@ -149,9 +149,9 @@ hypothesis from facts established by the tool or a compiler.
   See [source-location tests](tests/semantic_evidence.rs).
 - [x] Explain analyzed facts with their inputs, assumptions and omitted information.
   See [Python fact reports](src/project/flow_facts.rs).
-- [x] Retain declared compiler invocations, build inputs, toolchain identity and disagreements.
+- [x] Save the compiler command, build inputs, tool versions and any disagreement with fr.
   See [compiler checks](docs/project-checks.md#retained-compiler-diagnostics).
-- [x] Save task requirements, hypotheses, observations, dependencies and required checks.
+- [x] Save the requested outcome, possible explanations, checked facts, their inputs and remaining tests.
   See [task plans](sdk/python/src/fr_ir/investigation.py).
 - [x] Run an initial bug and feature comparison without supplying edit locations to the agent.
   See the [original four trials](tests/agent-eval/unknown-target/cohort.json).
@@ -169,11 +169,11 @@ Check whether an earlier assignment overwrites it. Report possible paths separat
   examples and explicit unsupported cases.
 - [x] Represent assignments, branches, loops, returns and supported explicit exceptions.
   See [Python control flow](src/project/control_flow.rs) and [runtime comparisons](tests/flow_fixed_point.rs).
-- [x] Summarize supported argument, return and effect transfers across functions, including recursion.
+- [x] Record how supported functions pass arguments, return values and perform actions, including calls to themselves.
   See [function summaries](src/project/flow_summaries.rs).
-- [x] Allow explicit input, output and sanitizer rules; return paths with exact locations and limits.
+- [x] Let users name input, output and context-specific cleaning functions; report possible connections and their source locations.
   See [dataflow](src/project/dataflow.rs).
-- [x] Distinguish candidate call relationships, possible value transfers and proved statements.
+- [x] Separate possible callees, possible input-to-output connections and statements established by a proof.
   See the [analysis contract](docs/agent-investigations.md).
 
 Still needed: useful reaching-input and blocked-input answers across independently selected projects.
@@ -186,17 +186,17 @@ repository delivery tasks still report incomplete or refused flow analysis.
 Example: another agent changes a helper while work is paused. On resumption, discard conclusions
 that depended on that helper, keep unrelated findings, and require a fresh edit review.
 
-- [x] Distinguish current code handles, saved content identities and possible matches across revisions.
+- [x] Distinguish references to current code, fingerprints of saved contents and candidate matches after an edit.
   See [target sessions](sdk/python/src/fr_ir/investigation_session.py).
-- [x] Record supported source, import, configuration and analyzer dependencies, including missing names.
+- [x] Record which source files, imports, settings and analyzer code support an answer, including searches that found nothing.
   See [module dependencies](src/project/flow_modules.rs).
-- [x] Store and verify reusable analysis records, rebuilding when dependency coverage is insufficient.
+- [x] Save and verify analysis results; analyze again when the tool cannot fully check the inputs needed for reuse.
   See [flow caching](sdk/python/src/fr_ir/flow.py).
-- [x] Persist tasks and invalidate affected steps before resuming.
+- [x] Save tasks and discard outdated findings before continuing.
   See [resumption tests](tests/investigation.rs).
 - [x] Tie check and proof results to their inputs, rejecting old results after relevant changes.
   See [retained proofs](src/spec/retained.rs).
-- [x] Measure first-run, cached and edited analysis on a small synthetic corpus.
+- [x] Measure first analysis, reused results and rechecking after edits on a small generated set of programs.
   See [cache measurements](docs/evaluations.md#current-matched-results).
 
 Still needed: project-scale change tests and measurements of time, memory and disk on unfamiliar
@@ -210,15 +210,14 @@ a patch another checkout can apply. For a proof request, connect the theorem to 
 - [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
   [Caller discovery](docs/change-scopes.md) and [structural changes](docs/structural-changes.md) cover
   specific cases; dynamic dispatch (choosing a callable from runtime values) and inferred contracts remain incomplete.
-- [ ] Extend analysis and editing representations for reusable language features required by observed
-  tasks, with defined success, failure and side effects.
+- [ ] Add general language rules needed by observed tasks. Define what succeeds, what fails and what other actions the code performs.
 - [ ] Translate a function under explicit arithmetic, error and evaluation-order rules, independently
   checking its source and target behavior.
 - [ ] Connect a property and proof to an existing implementation, and write a new implementation
   together with its specification and proof.
 - [ ] Retain old and new proof inputs for changes and translations; reject outdated proof claims.
   [Model comparisons](docs/model-comparisons.md) cover small Boolean models; broader source proofs remain open.
-- [x] Check small decision models for edit admission, task transitions and interrupted recovery.
+- [x] Check small models deciding when edits may proceed, task steps may change state and interrupted writes may recover.
   See [Lean checks](docs/lean-specs.md) and [host recovery](docs/host-recovery.md).
 
 Still needed: broader structural changes, a useful numeric translation, and checked connections
@@ -228,7 +227,7 @@ between source implementations and proofs. Passing a theorem about a separate mo
 
 Use small reports with explicit follow-up reads, exact source references and stale-result rejection.
 Check behavior independently of the proposed patch. Preview edits, preserve unrelated work and
-retain undo and recovery. Dogfood `fr` where its public operations fit, and record concrete gaps.
+retain undo and recovery. Use `fr` on its own code when its public operations fit, and record concrete gaps.
 
 Keep agent scheduling and model access in evaluation hosts. The [study guide](docs/agent-study.md)
 defines independent task plans and parent/child accounting; the

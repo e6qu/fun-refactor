@@ -57,6 +57,7 @@ A **token** is a unit of text counted by a model's tokenizer.
 Input totals here include cached input: text the provider may already have processed.
 They are not dollar totals. Provider prices and cache discounts are not verified billing for these attempts.
 Agent seconds include tool work in the recorded phases, rather than isolating the tool's own CPU time.
+Bytes measure stored or transferred text size. KiB means 1,024 bytes; MiB means 1,048,576 bytes.
 
 ## Smaller messages, with their extra work visible
 

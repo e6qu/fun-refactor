@@ -16,6 +16,11 @@ refinement between its retained model and a newly captured model. Rust and Pytho
 explicit Boolean parameters and a Boolean result. The route admits at most eight parameters per
 function and the existing pure formalization subset. Calls, effects and integer arithmetic refuse.
 
+The first snippet continues an existing session: `client` is a `FrClient` for your project and `store` is its external object store.
+`ModelSnapshot` saves a supported calculation before editing. `ModelComparison` prepares the claim to check against the later function.
+The tuple `(1, 0)` maps the new function's first argument to the old second argument, and its second to the old first.
+Initialize the proof package with `fr spec init` before using this sequence; it is an integration fragment, not a standalone program.
+
 ```python
 from fr_ir.refinement import ModelSnapshot, ModelComparison
 

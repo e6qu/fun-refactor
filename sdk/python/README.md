@@ -27,6 +27,11 @@ print(client.compatibility().version)
 Python objects. It invokes the local `fr` binary without a shell and exposes selected report values
 without printing the surrounding JSON:
 
+For this example, your project must contain one function named `render`.
+For a small trial, create `app.py` with `def render(value): return value + 1`, then run the Python code from that folder.
+An object store keeps report data outside the conversation, addressed by content fingerprints.
+Use an empty store outside the project so writing the cache does not change the source being inspected.
+
 ```python
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.runtime import FrClient
@@ -93,7 +98,7 @@ session, validates every fragment against its source commitment and stops once t
 location is covered. `SourceFragment.location`, `span` and `source_span` remain file-relative, so
 `fragment.text_at(location)` accepts a covered AST location directly. Its `offset` remains relative
 to the committed declaration for exact protocol paging. The fragment and session verify line ranges
-and source byte ranges against revealed text and the target definition. syntax-tree source locations stay file-relative for capability authoring.
+and source byte ranges against revealed text and the target definition. Syntax-tree source locations stay file-relative for capability authoring.
 `ByteSpan` also serves as the optional range of `CapabilityOperation`, so an AST name or definition
 span can flow into a reviewed capability without rebuilding a raw mapping.
 Direct `project find`, `select`, `map`, `explore` and `show` reports expose typed definitions as

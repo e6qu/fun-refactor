@@ -273,7 +273,7 @@ def markdown(report):
         lines += [f"### {gate['id']}: {gate.get('title', gate['id'])}", '',
             f"User example: {examples[gate['id']]}", '',
             f"**State: {gate['state']}.** {gate['acceptance']}", '',
-            f"Recorded results or remaining work: {evidence_text}.", '', f"Next: {gate['next']}", '']
+            f"Recorded results or remaining work: {evidence_text.rstrip('.')}.", '', f"Next: {gate['next']}", '']
     lines += ['## Evidence ledger', '',
         'The entries below identify the stored test results. “Current” means their recorded source '
         'inputs still match; “stale” means at least one input changed; “historical” means they '
@@ -284,7 +284,14 @@ def markdown(report):
         fresh = item['freshness']
         if item['changed_sources']:
             fresh += f' ({len(item["changed_sources"])} changed inputs)'
-        lines.append(f"| [{item['id']}](../{item['path']}) / {item['kind']} | {item['integrity']} | "
+        kinds = {
+            'deterministic': 'scripted behavior checks', 'measurement': 'measured tool operations',
+            'compiler': 'compiler and execution comparisons', 'semantic-contract': 'Python rule comparisons',
+            'fault-injection': 'deliberately interrupted operations', 'model-proof': 'proofs of stated models',
+            'live-agent': 'recorded agent attempts', 'source-proof': 'proofs connected to source',
+        }
+        kind = kinds.get(item['kind'], item['kind'])
+        lines.append(f"| [{item['id']}](../{item['path']}) / {kind} | {item['integrity']} | "
                      f"{fresh} | {item['scope']} Audit: `{item['audit']}` |")
     lines += ['', 'Exact changed input paths are retained in [the JSON report](roadmap-status.json).', '',
         '## Limits and interpretation', '']

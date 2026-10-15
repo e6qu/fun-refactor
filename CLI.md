@@ -417,8 +417,8 @@ one through 32 named evidence projections:
 ```
 
 Each purpose admits only its declared sections. A pointer is relative to that section and follows
-RFC 6901. The result is one `fr-agent-context-1` packet without source text with selected values and their
-Merkle object digests. It also binds the exact manifest, project and view identities, and measured
+RFC 6901. The result is one `fr-agent-context-1` packet containing selected structured values and their content fingerprints, without source text.
+It also binds the exact manifest, project and view identities, and measured
 compact JSON bytes. It performs no progressive-disclosure subprocess calls. Missing pointers, stale
 handles, cross-purpose sections, unknown fields and packets beyond the requested 1–64 KiB limit
 refuse without returning a partial selection.
@@ -711,8 +711,8 @@ fr spec evidence [PATH...]
 ```
 
 `candidates`, `property-task`, `plan`, `goals`, `proof-task`, `proof-check` and `prove` form the agent workbench described in
-[docs/agent-formalization.md](docs/agent-formalization.md). Plans are without source text and
-content-addressed. A property task discloses the model signature and bounded proposition grammar;
+[docs/agent-formalization.md](docs/agent-formalization.md). Plans contain structured data without source text, identified by content fingerprints.
+A property task discloses the model signature and bounded proposition grammar;
 the agent authors a strict property IR and supplies it with `--property-from`. Formal scaffolding
 refuses stale or modified plans and requires Lean to elaborate the exact generated module. Goal
 catalogs and selected details fit their declared serialized-byte ceiling. Proof writes replace one

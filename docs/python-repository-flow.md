@@ -99,7 +99,7 @@ Runtime execution agrees with independent inspection. Renaming and relocation pr
 reported conclusions. The analyzer remains incomplete even for the positive and overwritten
 entries in these packages. An empty witness list therefore does not establish no path.
 Unknown calls and exhausted budgets stay incomplete; invalid response budgets refuse analysis.
-**B.repository-flow remains open**, and roadmap status remains 9/18 demonstrated acceptance items.
+**B.repository-flow remains open.** The [current status](roadmap-status.md) owns the overall requirement counts.
 These results establish neither general library support nor agent efficiency.
 
 Retained cutoffs include unchecked module effects, cyclic initialization, unsupported import
@@ -162,7 +162,7 @@ Toolz also clears its import-search cutoff. The current Pydash replay uses 47 se
 and reaches the separate 256 KiB source limit. Its unchecked startup statements fall from 510 to 420
 across the same eight files.
 The full-package outcomes in the table stay unchanged. The
-[handoff](continuity.md#what-to-work-on-next) describes the next investigation with these differences in view.
+[handoff](continuity.md#return-to-python-after-this-review) describes the next investigation with these differences in view.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
@@ -174,9 +174,10 @@ To inspect an incomplete answer, use the initialization locations described in t
 They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
 The list is bounded and counts omitted locations. It does not establish package success or explain
 code in modules the import search could not load.
-The familiar pydash result reaches the 128 import-lookup limit before its annotation directives
-are checked. The focused postponed-annotation examples pass; that package still needs a solution
-for the other imports and executed initialization. Literal package metadata such as
+Earlier Pydash records reached the 128-search limit before annotation directives could be checked.
+The current replay clears that obstacle and reaches the separate 256 KiB source limit instead.
+The focused postponed-annotation examples pass; the package still needs other imports and startup behavior checked.
+Literal package metadata such as
 `__version__ = "8.1.0"` can now stay inert without admitting import controls or global reads.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.
