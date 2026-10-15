@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-15-shared-star-searches-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-15-shared-star-searches-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-15-shared-named-searches-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -927,6 +927,8 @@ The [built-in type-map collection](../tests/agent-eval/results/2026-10-15-type-r
 preserves the results before classes could declare verified built-in bases.
 The [built-in-base collection](../tests/agent-eval/results/2026-10-15-builtin-bases-scalar-collection/manifest.json)
 preserves the results before wildcard exports shared their provider searches.
+The [shared wildcard collection](../tests/agent-eval/results/2026-10-15-shared-star-searches-scalar-collection/manifest.json)
+preserves the results before ordinary named imports shared searches within a statement.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,
