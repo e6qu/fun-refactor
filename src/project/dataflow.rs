@@ -10,7 +10,7 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 #[path = "flow_assignments.rs"]

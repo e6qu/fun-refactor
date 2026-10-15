@@ -6,7 +6,7 @@ Suppose `choose(left, right)` returns `left`. Passing user input as `right` shou
 ## Commands, results and limits
 
 Opt-in summary analysis binds explicit positional and named arguments to Python parameters
-with ASCII names, including the [immutable literal defaults](literal-defaults.md) subset. Unicode identifier normalization remains outside this contract.
+with ASCII names, including [literal and earlier local scalar defaults](literal-defaults.md). Unicode identifier normalization remains outside this contract.
 Function declarations and identifiers in analyzed bodies must already be in NFKC form.
 Names such as `café` remain supported; spellings that normalize to another name leave analysis
 incomplete. This prevents function and local bindings from silently shadowing another spelling.

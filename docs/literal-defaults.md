@@ -23,8 +23,8 @@ literals with one leading sign, and parentheses around admitted literals. Commen
 binding. Positional defaults must form a trailing suffix, including across `/`. Keyword-only
 parameters can mix required and defaulted slots.
 
-An earlier local scalar declaration also works: `LIMIT = 10; def choose(value=LIMIT): ...`
-captures the scalar when the function is defined. The [worked example](python-contract.md#call-a-helper-with-an-earlier-scalar-default)
+After an earlier `LIMIT = 10` assignment, `def choose(value=LIMIT): ...` also works.
+Python captures the scalar when it defines the function. The [worked example](python-contract.md#call-a-helper-with-an-earlier-scalar-default)
 shows omitted and explicit arguments, import support and the remaining binding limits.
 
 Analyzed calls refuse defaults containing calls, other names, operators other than the admitted numeric sign, containers,
