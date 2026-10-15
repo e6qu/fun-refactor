@@ -19,6 +19,7 @@ from python_contract_cases import EXAMPLES, RULES, cases
 from fr_ir.flow_summaries import FunctionSummaries
 from fr_ir.flow_dependencies import FlowDependencies
 from python_contract_oracle import execute
+from python_contract_allocations import audit_declaration
 from fr_ir.runtime import FrReport
 from evidence_basis import file_digest
 
@@ -45,6 +46,7 @@ def bindings():
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
+                 'sdk/python/tests/test_registry_initialization.py', 'tools/python_contract_allocations.py',
                  'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',
                  'sdk/python/tests/test_shared_star_imports.py', 'sdk/python/tests/test_shared_named_imports.py',
                  'sdk/python/tests/test_star_imports.py',
@@ -240,6 +242,8 @@ def audit_case(row, case):
                         'imported value differs from its assignment')
                 if binding['kind'] == 'literal':
                     ast.literal_eval(node.value)
+                elif binding['kind'] == 'allocation':
+                    require(audit_declaration(node, declarations), 'imported allocation evaluates unchecked code')
                 elif binding['kind'] == 'registry':
                     types = {'bool', 'bytes', 'complex', 'dict', 'float', 'frozenset',
                              'int', 'list', 'object', 'set', 'str', 'tuple', 'type'}
