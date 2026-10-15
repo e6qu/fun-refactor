@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import unittest
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
@@ -61,6 +62,22 @@ class CompilerProfile(unittest.TestCase):
         self.assertEqual(result['cases'], 18)
         self.assertEqual(result['features'], 11)
         self.assertEqual(result['renamed_relocated_cases'], 9)
+
+    def test_cancelled_collection_keeps_original_partial_bytes(self):
+        directory = ROOT / 'tests/agent-eval/results/2026-10-15-import-search-compiler-timeout'
+        manifest = json.loads((directory / 'manifest.json').read_text())
+        data = (directory / 'artifact.zip').read_bytes()
+        self.assertEqual(len(data), manifest['artifact_bytes'])
+        self.assertEqual('sha256:' + hashlib.sha256(data).hexdigest(), manifest['artifact_digest'])
+        with zipfile.ZipFile(directory / 'artifact.zip') as archive:
+            self.assertEqual(archive.namelist(), ['result.json'])
+            self.assertLess(archive.getinfo('result.json').file_size, 2 * 1024 * 1024)
+            report = json.loads(archive.read('result.json'))
+        self.assertEqual(report['source_commit'], manifest['source_commit'])
+        self.assertEqual(len(report['cases']), 18)
+        self.assertEqual(report['summary'], {'profile_complete': False})
+        self.assertNotIn('compiler', report)
+        self.assertNotIn('semantic', report)
 
     def test_missing_and_duplicate_cases(self):
         for duplicate in (False, True):
