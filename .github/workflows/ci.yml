@@ -48,7 +48,9 @@ jobs:
       - name: Install the pinned repository-oracle dependency
         run: |
           python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
-      - run: bash tools/check.sh study
+      - run: |
+          python3 tools/test-docker-grader-diagnostics.py
+          bash tools/check.sh study
       - name: Check pinned explanation behavior independently of the rubric
         run: python3 tools/check-explanation-repositories.py
       - name: Check code-change graders and retained submissions
@@ -87,11 +89,14 @@ jobs:
           --task-pack tests/agent-eval/opencode/candidates
           --task '${{ matrix.task }}' --controls-only --verify-upstream
           --output target/candidate-controls
+      - name: Preserve Docker host diagnostics after a control failure
+        if: failure()
+        run: python3 tools/docker-grader-diagnostics.py --output target/candidate-controls/docker-host.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: candidate-controls-${{ matrix.task }}
-          path: target/candidate-controls/controls.json
+          path: target/candidate-controls/
 
   # Browser feature checks run alongside the native shards.
   check:

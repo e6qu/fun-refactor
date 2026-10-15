@@ -136,6 +136,33 @@ class Grading(unittest.TestCase):
         self.assertIn("daemon unavailable", details["prior_failure"])
         self.assertEqual(details["cleanup"]["stderr"], "no such container")
 
+    def test_state_timeout_keeps_the_original_execution_and_inspection_details(self):
+        def fail(command, *args):
+            if command[3] == "inspect":
+                return {"exit_code": 124, "stop_reason": "wall_seconds", "elapsed_seconds": 5.01}, b"", b"inspect stalled"
+            return self.execute(command, *args)
+        result = grade(self.candidate, self.grader, self.sha, execute=fail)
+        case, = result["cases"]
+        self.assertEqual(result["outcome"], "failed")
+        self.assertEqual(case["execution"]["exit_code"], 0)
+        self.assertEqual(case["stdout_base64"], "NDIK")
+        self.assertIn("inspect stalled", case["failure"])
+        self.assertIn('"stop_reason": "wall_seconds"', case["failure"])
+
+    def test_inspection_and_cleanup_timeouts_keep_the_execution_failure(self):
+        def fail(command, data, directory, timeout, cap):
+            if command[3] in {"start", "inspect", "rm"}:
+                self.assertEqual(timeout, 2 if command[3] == "start" else 5)
+                return {"exit_code": 124, "process_exit_code": -9, "stop_reason": "wall_seconds"}, b"partial", command[3].encode()
+            return self.execute(command, data, directory, timeout, cap)
+        with self.assertRaisesRegex(ValueError, "cleanup failed; stop the worker") as caught:
+            grade(self.candidate, self.grader, self.sha, execute=fail)
+        details = json.loads(str(caught.exception).split("stop the worker: ", 1)[1])
+        self.assertEqual(details["execution"]["stop_reason"], "wall_seconds")
+        self.assertEqual(details["execution"]["stderr"], "start")
+        self.assertIn("inspect", details["prior_failure"])
+        self.assertEqual(details["cleanup"]["stderr"], "rm")
+
     def test_snapshot_binds_content_and_empty_directories(self):
         first = snapshot(self.candidate, self.root / "first", 1024)
         (self.candidate / "empty").mkdir()
