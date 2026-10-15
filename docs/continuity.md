@@ -27,15 +27,16 @@ support list here.
 | Observed problem | Why it matters to a user | Next investigation |
 | --- | --- | --- |
 | Toolz builds and changes a signature registry | Import setup can affect which helper the application calls | Inspect the remaining registry operations and their effects |
-| Funcy's exports consume 126 of 128 import lookups before most helper modules are visited | The later `EMPTY` import is not resolved, so its defaults stay incomplete even though small imported-marker examples already work | Investigate bounded import traversal for the selected helper while preserving package startup effects and the existing limit |
+| Funcy's exports consume 126 of 128 import lookups before most helper modules are visited | The later `EMPTY` import is not resolved, so its defaults stay incomplete even though small imported-marker examples already work | Work out how to spend the 128 lookups on the selected helper's dependencies without skipping package startup code |
 | Pydash exhausts 128 import lookups across distinct imported names | The search stops before it can answer the selected trace question | Investigate bounded answers for the selected helper while preserving import-time effects and the existing limit |
 
 Full-package answers remain incomplete. A smaller list of startup blockers is progress toward an
 answer, but it is not a successful package analysis. The [library results](python-repository-flow.md)
 retain the complete attempts and limits.
 
-The current library replay removes Funcy's built-in type map from the unchecked setup list:
-95 statements become 94. Toolz stays at 86 and pydash at 510. None of the 40 full-package
+The current library replay admits six more of Funcy's startup statements, including supported
+built-in-base class declarations: 94 unchecked statements become 88. Toolz stays at 86 and pydash
+at 510. None of the 40 full-package
 cases becomes complete; 32 remain incomplete and eight are refused.
 
 The earlier handoff mistook the unresolved `EMPTY` defaults for a missing marker rule. The retained
