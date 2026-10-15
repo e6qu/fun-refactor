@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-flow-facts/result.json",
-      "sha256": "57e66ebcbeb6529678d4b89bcce7cc8e2b2bf47f0ecf2f55db0a0948f1e004b7"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-facts/result.json",
+      "sha256": "28e9cb256e72ce1e100c712ad9cfe871ebbc08e36b20e604484fc27645d9a2a3"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-package-flow/result.json",
-      "sha256": "719cff20ef45828232930df32eacac144f366adff8818cc20fb78660ec57716d"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-package-flow/result.json",
+      "sha256": "c69b9c47545c5904ca24f1c2cfbb5a6afafa7e41206c829605417cadbcfea6d3"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-python-repositories",
-      "sha256": "c6764f112d5c90d5ade731226e028a8894fa791383ef601748f4d281b512db43"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-repositories",
+      "sha256": "742aaca066a9a2d1fc7c74545c5e660c70c3c0a595a33c0e6b90eea49b4714cb"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-14-named-defaults-flow-cache/result.json",
-      "sha256": "b6cce4743c27280c8317425f3167247778cd7c1399fac1884fce4658df3b81a1"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-cache/result.json",
+      "sha256": "f75e94a10a7e94e06126ef3100308746fdb6989333714fa5e28a426814d2b4ce"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-14-named-defaults-compiler-profile/result.json",
-      "sha256": "d610b7e73530967c6247866d38504f2f29f3e8cb104151479c4ecfe5bb49258e"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-compiler-profile/result.json",
+      "sha256": "137920746546460881f8bd3ddc53469e4421b0917331f4606eae85af80b1b3f1"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 297 authored programs and 594 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-14-named-defaults-python-contract/result.json",
-      "sha256": "71905fb1f680d9292778691ea36497af84f03da0f900d5132fa7d9d487d29bbe"
+      "scope": "14 declared Python rules; 305 authored programs and 610 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-contract/result.json",
+      "sha256": "04e4940d6df990d1889c36d086120c899ba9a5ec5ee5c45ccc0d06ae413316d5"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-14-named-defaults-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-14-named-defaults-index-resolution/result.json",
-      "sha256": "13f8f40a3e339bab787afdd53089c10c5938d20eb6f54177b154702a699d2bbe"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-15-scalar-named-defaults-index-resolution/result.json",
+      "sha256": "7251a9af0aa6c0886f40cf2ad026a64c27160f39735ca9a8077bba23c8a80d93"
     },
     {
       "id": "repository-flow",

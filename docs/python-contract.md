@@ -111,9 +111,36 @@ the function. Deleted, conflicting and unknown bindings remain unchecked. Unsupp
 the known bindings available to later defaults. A later declaration cannot repair an earlier read.
 
 Calling `unused()`, even with an explicit replacement argument, remains outside the literal-default
-call model. The rule defers an uncalled body; it does not model shared object defaults or global reads
+call model because `EMPTY` is an object marker. The rule defers an uncalled body; it does not model shared object defaults or global reads
 inside analyzed bodies. `key=EmptyType()`, attributes, subscripts and other computed defaults remain unchecked.
 Decorators, class-method defaults and unsupported annotation evaluation keep their separate boundaries.
+
+## Call a helper with an earlier scalar default
+
+You can ask whether supplied input reaches `send` through this helper:
+
+```python
+LIMIT = 10
+
+def choose(value=LIMIT):
+    return value
+
+def entry():
+    send(choose())              # the captured default has no input origin
+    return send(choose(read_input()))  # the supplied input reaches send
+```
+
+The analyzer accepts an earlier immutable scalar literal assigned in the function's own module.
+This includes `None`, Booleans, numbers, ordinary strings and bytes. Parentheses around the name are allowed.
+The function may itself be imported or reexported. Its default still belongs to the defining file.
+Omitted arguments have no source origins; explicit arguments keep their own origins and effects.
+
+Python captures `LIMIT` when it defines `choose`. Changing or deleting `LIMIT` afterward does not
+replace the captured default. Such module changes remain unchecked, so the overall answer stays incomplete.
+A forward reference, an earlier rebinding or unknown setup cannot establish a supported scalar capture.
+Imported scalar names, aliases of values, collections and object markers remain unsupported for calls,
+even when an explicit argument replaces the default. Ordinary global reads in the body also stay unchecked.
+The analysis does not specialize branches using the default's concrete value.
 
 ## Keep declarations separate from reads
 

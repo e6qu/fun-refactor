@@ -1,7 +1,6 @@
 """Partition the complete Cargo/pytest inventories and verify their collected evidence."""
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -13,15 +12,15 @@ COUNTS = {"native": 6, "sdk": 4}
 SDK_WRAPPER = "python_sdk_tests_pass_with_the_declared_test_extra"
 
 
-def partition(items, count, weights):
+def partition(items, count, weights, *, default_weight=10):
     if count < 1 or len(items) != len(set(items)):
         raise ValueError("invalid shard inventory")
     shards = [[] for _ in range(count)]
     loads = [0.0] * count
-    for item in sorted(items, key=lambda item: (-weights.get(item, 10), item)):
+    for item in sorted(items, key=lambda item: (-weights.get(item, default_weight), item)):
         index = min(range(count), key=lambda index: (loads[index], index))
         shards[index].append(item)
-        loads[index] += weights.get(item, 10)
+        loads[index] += weights.get(item, default_weight)
     return [sorted(shard) for shard in shards]
 
 
@@ -81,10 +80,11 @@ class SdkShard:
         self.inventory = [item.nodeid for item in items]
         if len(self.inventory) != len(set(self.inventory)):
             raise ValueError("duplicate pytest node IDs")
+        weights = json.loads((ROOT / "tools/ci-test-durations.json").read_text())["sdk_seconds"]
+        assigned = set(partition(self.inventory, COUNTS["sdk"], weights, default_weight=1)[self.index])
         selected, deselected = [], []
         for item in items:
-            bucket = int.from_bytes(hashlib.sha256(item.nodeid.encode()).digest(), "big")
-            (selected if bucket % COUNTS["sdk"] == self.index else deselected).append(item)
+            (selected if item.nodeid in assigned else deselected).append(item)
         config.hook.pytest_deselected(items=deselected)
         items[:] = selected
         self.selected = [item.nodeid for item in selected]

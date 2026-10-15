@@ -538,8 +538,9 @@ pub(super) fn parameters<'t>(
     function: Node<'t>,
     source: &str,
     postponed: bool,
+    scalars: &BTreeSet<String>,
 ) -> Option<Vec<Parameter<'t>>> {
-    parameter_contract(function, source, postponed, Phase::Call, &BTreeSet::new())
+    parameter_contract(function, source, postponed, Phase::Call, scalars)
 }
 
 pub(super) fn definition_is_inert(function: Node<'_>, source: &str, postponed: bool) -> bool {
@@ -556,24 +557,43 @@ pub(super) fn definition_is_inert_with_values(
 }
 
 fn prior_value_default(node: Node<'_>, source: &str, values: &BTreeSet<String>) -> bool {
+    default_name(node, source).is_some_and(|name| values.contains(name))
+}
+
+fn default_name<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
     let mut node = node;
     for _ in 0..128 {
         if node.kind() == "identifier" {
-            return values.contains(&source[node.byte_range()]);
+            return Some(&source[node.byte_range()]);
         }
         if node.kind() != "parenthesized_expression" {
-            return false;
+            return None;
         }
         let children: Vec<_> = node
             .named_children(&mut node.walk())
             .filter(|child| child.kind() != "comment")
             .collect();
         if children.len() != 1 {
-            return false;
+            return None;
         }
         node = children[0];
     }
-    false
+    None
+}
+
+pub(super) fn captured_scalar_defaults(
+    function: Node<'_>,
+    source: &str,
+    postponed: bool,
+    scalars: &BTreeSet<String>,
+) -> BTreeSet<String> {
+    parameters(function, source, postponed, scalars)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|parameter| parameter.default)
+        .filter_map(|node| default_name(node, source))
+        .map(str::to_owned)
+        .collect()
 }
 
 pub(super) fn generator_function(function: Node<'_>) -> bool {
@@ -639,8 +659,7 @@ fn parameter_contract<'t>(
                     let value = node.child_by_field_name("value")?;
                     if name.kind() != "identifier"
                         || !(literal_default(value, source)
-                            || phase == Phase::Declaration
-                                && prior_value_default(value, source, values))
+                            || prior_value_default(value, source, values))
                     {
                         return None;
                     }
@@ -744,12 +763,12 @@ fn variadic_parameter<'s>(
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
-        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; required or immutable literal defaults.",
+        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; required or immutable scalar defaults.",
         "evaluation":"Evaluate explicit values once in source order before binding.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-        "definitions":"ASCII module functions defer bodies with literal or prior known value defaults, including variadics. Calls require literal defaults. Annotations need a checked module-local future directive and at most 128 nodes; no await, yield, assignment or type unpacking.",
+        "definitions":"Module function bodies defer with literal or known prior defaults, including variadics. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
         "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Literal __doc__ writes to prior unchanged plain functions preserve scalar calls. Reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
@@ -757,6 +776,20 @@ pub(super) fn contract() -> Value {
 }
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
+    pub(super) fn function_parameters<'n>(
+        &self,
+        function: Node<'n>,
+        file: &Path,
+        source: &str,
+    ) -> Option<Vec<Parameter<'n>>> {
+        let empty = BTreeSet::new();
+        let scalars = self
+            .scalar_defaults
+            .get(&(file.to_path_buf(), function.start_byte()))
+            .unwrap_or(&empty);
+        parameters(function, source, self.annotations_postponed(file), scalars)
+    }
+
     pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
         self.modules
             .is_some_and(|modules| modules.annotations_postponed(file))
@@ -764,7 +797,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
 
     pub(super) fn parameter_nodes(&self, function: Node<'t>) -> Option<Vec<Node<'t>>> {
         if self.solver.enabled {
-            parameters(function, self.source, self.annotations_postponed(self.file))
+            self.function_parameters(function, self.file, self.source)
                 .map(|items| items.into_iter().map(|p| p.node).collect())
         } else {
             let list = function.child_by_field_name("parameters")?;
@@ -830,11 +863,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         names: &[Option<String>],
     ) -> Option<Vec<Flow>> {
         let source = self.contexts[name].1;
-        let Some(parameters) = parameters(
-            function,
-            source,
-            self.annotations_postponed(self.contexts[name].0),
-        ) else {
+        let Some(parameters) = self.function_parameters(function, self.contexts[name].0, source)
+        else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
@@ -907,7 +937,7 @@ pub(super) fn valid_call_syntax(node: Node<'_>, source: &str) -> bool {
 
 impl Analyzer<'_, '_, '_> {
     pub(super) fn parameter_signature(&self, function: Node<'_>) -> Vec<ParameterSignature> {
-        parameters(function, self.source, self.annotations_postponed(self.file))
+        self.function_parameters(function, self.file, self.source)
             .unwrap_or_default()
             .into_iter()
             .map(|parameter| ParameterSignature {
