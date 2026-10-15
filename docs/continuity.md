@@ -62,6 +62,16 @@ compares that setup with an evaluated default or an imported shared dictionary.
 Reading the table's contents, calling its stored functions and arbitrary package startup remain unfinished.
 Keep those limits visible when reviewing the fresh package replay; more supported syntax alone does not close the real-project requirement.
 
+The next change checks the order of imports that return to a file already loading.
+For example, a second file can import a function already defined by the first file.
+Moving that definition below the import makes Python raise `ImportError`; the analysis must remain incomplete.
+The [import-order lesson](python-contract.md#follow-imports-that-return-to-a-file-already-loading) introduces this case before showing the files.
+Native and SDK checks compare successful and failing orders with Python, including package parents and saved-answer invalidation.
+Keep arbitrary startup effects and exhausted limits incomplete. Recheck the familiar libraries before claiming a package improvement.
+
+Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
+Link detailed test inventories and failure history from the short description.
+
 ## Keep the next unfamiliar test useful
 
 Jaraco.functools remains unread. Keep it that way during development, then freeze the implementation before its first evaluation.

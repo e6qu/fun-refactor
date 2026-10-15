@@ -68,7 +68,7 @@ helper through a swap and chained assignment. Its independent CPython oracle che
 repair, a sink-free preview, resumption in a new process, patch application and checks in another checkout and reversal.
 The [runtime corpus](../sdk/python/tests/test_scalar_assignments.py) covers ordering,
 locations, refusals, budgets, contract tampering and agreement between fresh and reused analysis.
-The [retained acceptance](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-assignments/result.json)
+The [retained acceptance](../tests/agent-eval/results/2026-10-16-import-order-scalar-assignments/result.json)
 binds the fixture, implementation and delivery checks. The baseline distinguishes
 the installed local binary from the pinned source revision. These are finite
 scripted cases, with no live-agent or token-saving claim.
