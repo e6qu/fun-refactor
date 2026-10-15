@@ -25,6 +25,11 @@ plausible while violating the request. Review those cases before using the task 
 
 ## Packaging
 
+The proposed task concerns Python version constraints: for example, whether a collection of requirements accepts a candidate package version.
+A final version is a normal release; prerelease and postrelease labels carry additional ordering rules.
+An intersection asks which versions satisfy several constraints together.
+The rows record reviews of that behavior and its API details, not permission to restart the stopped trial.
+
 | Requirement family | Evidence | Remaining limit |
 | --- | --- | --- |
 | Intersection fallback, matching finals, bounds and exclusions | Both scoped model reviews completed; hosted behavior cases pass | Finite cases; the assessment rejects and preserves the repeated incorrect postrelease finding |
@@ -44,6 +49,9 @@ There is no submitted repair or matched efficiency comparison. Do not resume tha
 
 ## Other candidates
 
+Dotenv loads environment settings from files. Its task must distinguish a variable that is absent from one present with an empty value.
+Platformdirs chooses operating-system paths for application files. Its task must distinguish an absolute path from a relative one before creating directories.
+These concrete differences explain why a small passing example cannot close the broader review gaps below.
 | Requirement family | Completed review | Remaining gap |
 | --- | --- | --- |
 | Dotenv flat alternate words | Kimi found recursive expansion accepted by the old grader; GitHub verified and strengthened the check | Malformed and adjacent-expression behavior |

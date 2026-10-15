@@ -19,6 +19,10 @@ Each reference selects a particular location, so equal values elsewhere remain d
 An authorable scalar carries a `frde1:` descriptor when revealed. Run its preview template after
 replacing only `<NEW_VALUE>`:
 
+The command below illustrates a requested value of `7`.
+Replace `<FULL_HANDLE>` and the entire `frde1:<DIGEST>` placeholder with the returned handle and edit ID.
+Do not calculate an ID from the example text.
+
 ```sh
 fr author edit-body-disclosed '<FULL_HANDLE>' --edit 'frde1:<DIGEST>' --to 7
 ```
@@ -41,6 +45,10 @@ relevant schema action and exact preview arguments. It omits the internal path a
 the smallest replacement node when required.
 
 Replace a same-category node or insert a statement:
+
+Here `node.json` must already contain the replacement data in the returned accepted category.
+A statement performs a step, an expression computes a value, and a type describes a value's kind.
+Use the returned `schema_action` to inspect that category's exact fields before writing the file.
 
 ```sh
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' \

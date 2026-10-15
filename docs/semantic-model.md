@@ -1,6 +1,6 @@
 # Inspect and edit the structure of a function
 
-Suppose you need to change a retry limit from `3` to `5`. `fr` can describe supported statements and expressions as data so an agent can select that value.
+Suppose you need to change a retry limit from `1` to `7`. `fr` can describe supported statements and expressions as data so an agent can select that value.
 This structure is called a semantic model. It helps locate and prepare an edit; finding a pattern does not prove how every execution behaves.
 
 A semantic model is a structured record of supported code. A statement performs a step; an expression computes a value.
@@ -49,9 +49,9 @@ optional branches and loops, variant matches, failure propagation, deferred clea
 regions, suspension and higher-order functions. Each row says `behavior_proved: false`; it is a
 structural observation rather than a behavioral proof.
 
-For the retry example, two occurrences of `3` may mean different things: the retry count and a
+For the retry example, two occurrences of `1` may mean different things: the retry count and a
 delay. Select the returned pointer for the intended expression, then review the generated diff.
-Finding the integer establishes its location. A retry test checks whether changing it to `5`
+Finding the integer establishes its location. A retry test checks whether changing it to `7`
 produces the behavior you want.
 
 ## Typed body authoring

@@ -21,6 +21,12 @@ and expressions as structured data in the current format.
 The [semantic model contract](semantic-model.md) defines its source boundary, node budget, JSON form,
 writer checks and task-change integration. Both routes preserve the same bytes outside the selected body.
 
+The command sequence below is an integration example. It assumes a Rust project with a function in `src/lib.rs` and a replacement file already written.
+For a small trial, that source can contain `pub fn calculate(value: u32) -> u32 { value + 1 }`.
+Save `{ value * 2 }` as `/tmp/body.txt` before obtaining the handle.
+That illustrative change doubles the input; it is not a proposed rounding algorithm.
+Choose the `calculate` declaration's full handle from the map, and substitute the transaction ID returned by `--save-plan` for `<TX>`.
+
 ```sh
 fr project map src/lib.rs --fields handle,parent,kind,name,line --limit 12
 fr project show '<HANDLE>' --source --bytes 512
@@ -126,6 +132,10 @@ For a TSX component, the fragment may contain JSX:
 Use a handle from a `.tsx` or `.jsx` file for JSX bodies; a `.ts` target retains its TypeScript grammar.
 
 ## Declaration replacement
+
+A declaration includes the function's header as well as its body.
+Replacing it can change the signature, so callers may need coordinated edits.
+For example, adding a required `tax` parameter to `subtotal` needs the callers to supply that new argument.
 
 `fr author replace-declaration HANDLE --from FILE` replaces a complete Rust function, including its signature and body.
 It retains the exact function-name spelling and every byte outside the function item, including outer attributes and documentation.
