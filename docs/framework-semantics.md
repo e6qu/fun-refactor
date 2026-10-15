@@ -3,6 +3,11 @@
 When investigating checkout, you may need to find the route handler and the components around it. `fr` recognizes certain source patterns in supported frameworks.
 For example, it can identify a direct route registration. Middleware and runtime registration may still require reading or running the application.
 
+A route maps an HTTP method and URL to a handler function. A router prefix adds a common path to several routes.
+A component describes part of a user interface. Recognition means the tool found a supported written pattern.
+For `/api/items`, inspect both an `/api` prefix and the handler's `/items` path.
+Finding those declarations does not establish which middleware runs or what every request returns.
+
 ## Recognized source forms
 
 `fr project features` reports a bounded source model for Next.js, standalone React, Express.js and FastAPI.

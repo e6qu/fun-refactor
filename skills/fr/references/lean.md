@@ -2,6 +2,8 @@
 
 State a concrete property, such as the Boolean condition required for access. Check the proof and its link to the selected code.
 
+Lean checks a theorem under its definitions and assumptions. A model represents supported source behavior; a proof still needs a checked connection to that source.
+
 Ordinary use does not require Lean. `spec verify` requires Lean/Lake and an owning checked package.
 Preview `fr --json spec init`, then apply with `--write` or save with `--save-plan`.
 
@@ -35,7 +37,7 @@ drift, rerun it and review the generated-region diff; the handwritten region is 
 below `-- fr:debt NAME`, ratchet `spec check specs --strict --max-debt N`, generate CI with
 `spec ci --max-debt N`, and report assumptions and obligations with `spec evidence specs`.
 
-A manual source/model pair:
+A manual source and model pair:
 
 ```rust
 pub fn allowed(ok: bool) -> bool { ok }

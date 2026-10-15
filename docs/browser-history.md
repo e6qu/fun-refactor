@@ -3,6 +3,11 @@
 If a playground rename changes the wrong function, inspect the saved change and undo it. You can redo it if needed.
 The browser checks that the affected files still match the saved change. Edited files require another review before it can safely reverse the operation.
 
+WASM, or WebAssembly, lets the browser run the compiled tool.
+Its workspace is an in-memory set of files. A transaction records one edit's before and after contents.
+For a mistaken rename, inspect that transaction and request undo to restore those contents.
+Browser history is bounded and belongs to that workspace; export a patch when you need to take the change elsewhere.
+
 ## Commands, results and limits
 
 Every successful refactoring in the WASM `Workspace` records one in-memory transaction. The apply
@@ -52,7 +57,7 @@ failure. A failed write leaves the prior checkpoint in place.
 Rust mutations and browser storage replacement are synchronous. Only a fully completed transaction
 can produce a checkpoint, so reload recovery selects the previous or next complete state. There is no
 pending browser mutation to replay. Invalid saved state is removed and the ordinary loader continues.
-Browser snapshots remain UTF-8 regular files projected as mode `0644`; executable modes and symlinks
+Browser snapshots remain UTF-8 (the text encoding used to count source bytes) regular files projected as mode `0644`; executable modes and symlinks
 remain native-only concerns.
 
 [`FrKernels.MemoryHistory`](../kernels/FrKernels/MemoryHistory.lean) anchors the finite transition
@@ -62,4 +67,4 @@ apply/undo restores the selected snapshot list. Restoration theorems require val
 history and finite file and payload bounds. Compaction theorems cover the retention boundary and the
 zero and complete list cases. Executable comparisons include every transition input and machine-size
 restoration and compaction boundaries. Reindexing, SHA-256, browser storage, JavaScript, Git and full
-Rust/model correspondence remain tested or trusted boundaries.
+Rust/model correspondence (the stated connection between two descriptions) remain tested or trusted boundaries.

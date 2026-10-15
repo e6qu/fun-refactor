@@ -3,6 +3,11 @@
 Before comparing tools on a bug fix, check that the task and its tests can distinguish a correct repair from a plausible mistake.
 For example, a test that accepts an empty implementation cannot grade the requested feature. This page records which candidate tasks passed that review and what still blocks others.
 
+A candidate is a proposed task for an agent comparison. Its grader is the independent program checking submitted repairs.
+Admission means the task passed the stated review requirements; it does not authorize a new paid run.
+For example, a missing-variable fix needs separate tests for absent, empty and present values.
+A reviewer finding no contradiction in one case leaves the other cases unchecked.
+
 ## Review decisions and remaining work
 
 Packaging was admitted for one bounded change pilot. That pilot is now permanently stopped
@@ -20,12 +25,17 @@ plausible while violating the request. Review those cases before using the task 
 
 ## Packaging
 
+The proposed task concerns Python version constraints: for example, whether a collection of requirements accepts a candidate package version.
+A final version is a normal release; prerelease and postrelease labels carry additional ordering rules.
+An intersection asks which versions satisfy several constraints together.
+The rows record reviews of that behavior and its API details, not permission to restart the stopped trial.
+
 | Requirement family | Evidence | Remaining limit |
 | --- | --- | --- |
 | Intersection fallback, matching finals, bounds and exclusions | Both scoped model reviews completed; hosted behavior cases pass | Finite cases; the assessment rejects and preserves the repeated incorrect postrelease finding |
 | Constructor/call policies, inference and empty sets | One model review completed; independent hosted checks passed 324 policy combinations | GLM's policy review exhausted output and remains failed |
 | Object identity, order, duplicates and one-shot iterables | Both scoped reviews completed; GitHub verified a distinct-object counterexample and the strengthened identity check | No exhaustive iterator or object-behavior proof |
-| Existing `contains` and individual `Specifier` APIs | Both scoped reviews completed; existing API cases and unchanged-source checks pass | Only the admitted source and declared cases are covered |
+| Existing `contains` and individual `Specifier` APIs | Both scoped reviews completed; existing API cases and unchanged-source checks pass | Only the supported source and declared cases are covered |
 
 The [scoped review and assessment](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/README.md)
 records all eleven areas. Its [admission decision](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/admission.json)
@@ -39,6 +49,9 @@ There is no submitted repair or matched efficiency comparison. Do not resume tha
 
 ## Other candidates
 
+Dotenv loads environment settings from files. Its task must distinguish a variable that is absent from one present with an empty value.
+Platformdirs chooses operating-system paths for application files. Its task must distinguish an absolute path from a relative one before creating directories.
+These concrete differences explain why a small passing example cannot close the broader review gaps below.
 | Requirement family | Completed review | Remaining gap |
 | --- | --- | --- |
 | Dotenv flat alternate words | Kimi found recursive expansion accepted by the old grader; GitHub verified and strengthened the check | Malformed and adjacent-expression behavior |

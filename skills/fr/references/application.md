@@ -1,72 +1,55 @@
-# Application hierarchy and HTTP authoring
+# Inspect an application before moving it
 
-When moving an endpoint, first inspect its route, required inputs and response. The application record below describes supported parts of that endpoint.
+For a route migration, inspect its URL, required inputs, handler and response together.
+A route maps an HTTP method and URL to a handler function. A schema describes expected data.
+IR means the shared structured record used to describe supported application behavior.
 
-Use `project application [TARGET] [--feature ID]` to obtain an application IR.
-Nodes retain fact identity, source confidence, gaps and reader omissions. `children`
-expresses the hierarchy. Admitted literal JSON/path handlers from Next.js, FastAPI,
-Express and Go HTTP carry a portable `route`. Other route and component boundaries
-stay explicit and manual.
+Run `fr project application [TARGET] [--feature ID]` to read that record.
+`children` groups related facts. Read `omissions` and each adapter's `status` and `reason`.
+An unknown handler remains `manual`; recognizing its URL does not supply its implementation.
 
-For a smaller view, use a full map handle with
-`project disclose HANDLE --view application`. Follow `application_shortcuts`
-and reveal the needed children. The SDK accepts
-`client.context(handle, view="application")`; `ApplicationIr.from_data(...)` mirrors
-the hierarchy and independently computes its object digest. Source-reader omissions
-remain unknown.
+For a smaller section, obtain a full handle with `project map`, then run:
 
-For explicit JSON HTTP behavior, construct the IR with Python:
+Run `fr project disclose '<HANDLE>' --view application`.
+
+Follow returned `application_shortcuts` and continuations. The Python client uses
+`client.context(handle, view="application")`; `ApplicationIr.from_data(...)` checks typed records.
+
+## Describe a small HTTP response
+
+This Python example writes an input file for a GET endpoint whose response repeats its path argument.
+It requires the `fr_ir` Python package. `Object` builds a JSON object; `Path("id")` reads `{id}`.
 
 ```python
 from pathlib import Path as FilePath
-from fr_ir.application import HttpRoute, Literal, Object, Path, RouteBundle
+from fr_ir.application import HttpRoute, Object, Path, RouteBundle
 
 RouteBundle([
     HttpRoute("GET", "/records/{id}", 200, Object({"id": Path("id")})),
 ]).write(FilePath("application.json"))
 ```
 
-The constructors mirror `fr-http-application-1`: a bundle of `routes`, an optional
-`middleware` chain of dotted names with unique 1-based `request_order`, each route
-with `method`, `path`, `status`, `response` and optional `inputs`/`dependencies`.
-Expressions are `Literal(value)`, `Path(name)`, `Input(name)`, `Object(fields)`,
-`Array(items)` or `Service(method, path)` resolving to one sibling route.
-Capture the IR file in the project snapshot. The SDK refuses overwriting.
+The file must be part of the analyzed project before obtaining a review. Existing output refuses replacement.
+Preview generation with:
 
-Preview with `migrate application --ir application.json --to fastapi --out generated`.
-The input may also be the complete JSON output of `project application`; its model
-digest is rechecked and its normalized routes feed the same writers.
-Prefer `migrate application --project TARGET --to ADAPTER --out DIRECTORY` when no
-intermediate artifact is needed. Targets also include `nextjs`, `express` and
-`go-net-http`. React refuses HTTP authoring. Retain the exact plan basis before
-`--save-plan` or `--write`. Use the returned history transaction for declared checks,
-apply, patch export, undo and redo.
+Run `fr migrate application --ir application.json --to fastapi --out generated`.
 
-React and Next.js components share one smaller subset: intrinsic lowercase tags,
-literal string attributes, explicit text, and `useState` declarations with literal
-set or toggle `on*` events behind an explicit client boundary. Props, effects,
-computed handlers, styles, spreads and component calls stay manual. Select one
-feature branch before conversion when several components exist.
+Inspect the whole diff. Use its returned plan basis for `--save-plan` or `--write`.
+Use the resulting transaction with [checks](checks.md) and [history](history.md).
+Generation supports selected FastAPI, Next.js, Express and Go HTTP forms. React does not accept HTTP generation.
+`--project TARGET` can read the application directly instead of using an intermediate file.
 
-Generation requires new owned paths. FastAPI can add one explicit app mount and PEP
-621 dependency edit in the transaction. Express can add a recognized TypeScript
-app/router mount and exact npm dependency. Go can generate an owning-package mount
-for an explicit ServeMux beneath `go.mod`. Recognized Next.js `app` placement
-connects by convention. Existing source remains.
+## Keep unsupported behavior visible
 
-For an admitted navigator route, use the advertised `application-migration` tagged
-intent operation; the selected intent handle supplies `--project`. Use `cutover=True`
-only for one recognized wholly owned source feature after target integration and
-external-reference checks. Mixed application files refuse.
+Responses can use literals, path values, validated inputs, objects, arrays and supported sibling service calls.
+Middleware wraps request handling; dependencies supply values before a handler runs.
+Configured middleware, unknown providers and external services need separate source and behavior checks.
+Portable FastAPI generation refuses middleware chains.
 
-Inspect each adapter row's `status` and `reason`; sharing a host language does not imply support.
+Routes require literal ASCII segments and unique `{name}` parameters. Overlapping routes, HEAD,
+bodyless statuses, floating-point literals and integers outside ±(2^53−1) refuse.
+Bundles accept 1–256 routes and 1 MiB; expressions accept 1,024 nodes and depth 32.
 
-Paths use literal ASCII segments and unique `{name}` parameters. Overlapping routes,
-HEAD, bodyless statuses, floating-point literals and integers outside ±(2^53−1)
-refuse. Use object/array expressions for aggregates. Bundles admit 1..256 routes
-and 1 MiB; expressions admit 1024 nodes and depth 32.
-
-Lean proves policy admission and agreement. Runtime fixtures test generated behavior.
-Neither establishes general source equivalence, configured middleware, provider
-internals, external services or deployment correctness; preserve
-`runtime_proved: false` and every conversion boundary.
+Generated files require new owned paths. Framework registration and dependencies need explicit supported integration.
+`cutover=True` removes an original feature only after ownership, integration and external-reference checks.
+Mixed source files refuse. Keep `runtime_proved: false`: generation and model proofs do not establish deployment correctness.

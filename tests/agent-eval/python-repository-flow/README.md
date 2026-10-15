@@ -4,6 +4,11 @@ Suppose a user asks whether input reaches an output through a library helper. Th
 can look simple while importing its package executes other code. These tests compare those
 questions and keep an unfinished answer visible. See the [current library results](../../../docs/python-repository-flow.md).
 
+A source is the input call being traced; a sink is the output call selected by the test.
+A held-out project is kept unread while developing the analyzer, then inspected after the implementation is frozen.
+An adapter is test code that calls an upstream helper without changing that helper.
+For a library question, compare that real import with an isolated helper while keeping their different startup behavior explicit.
+
 ## Current development direction
 
 Toolz, funcy and pydash are already familiar test projects. Jaraco.functools remains unopened.

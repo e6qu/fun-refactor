@@ -1,5 +1,90 @@
 # Find, inspect and change code in a real project
 
+## Start with a small project you can run
+
+You need an installed `fr` command, Python 3 and a terminal.
+Follow [installation](README.md#install) first. This lesson uses a new folder so you can see every changed file.
+It assumes you can paste commands into a terminal; it introduces the tool's own concepts as they appear.
+
+Create a file named `app.py` with this content:
+
+```python
+def calculate(value):
+    return value + 1
+
+assert calculate(2) == 3
+```
+
+Create a second file named `test_app.py` beside it:
+
+```python
+from app import calculate
+
+assert calculate(0) == 1
+assert calculate(2) == 3
+```
+
+The function's declaration starts with `def`. The other occurrences of `calculate` use that function.
+The `assert` statements check the expected outputs. Python stops with an error if an assertion fails.
+Save both files in a new folder, open a terminal there, and run:
+
+```sh
+python3 test_app.py
+fr -C . parse --stats
+fr -C . refs calculate
+fr -C . rename calculate increment
+```
+
+`-C .` confines the commands to this folder, even if it sits inside a larger checkout.
+The first command should finish without an error. The second asks whether `fr` can read the files' syntax.
+Parsing means recognizing the written structure; it does not establish that the calculation is correct.
+`refs` lists the uses the tool identifies. Read any warnings about files or relationships it missed.
+
+The last command previews a rename. A preview prints a **diff**, a list of proposed source changes.
+In a diff, `-` marks an old line and `+` marks its proposed replacement.
+Check that both files change from `calculate` to `increment` and that the calculation stays the same.
+Your files still contain the old name until you apply the change.
+
+### Save and apply what you reviewed
+
+```sh
+fr -C . rename calculate increment --save-plan
+```
+
+This saves the proposed change as a **transaction**, a record of the before and after contents.
+It returns a transaction ID. Replace `<TX>` below, including the brackets, with that ID.
+
+```sh
+fr -C . history show '<TX>'
+fr -C . history apply '<TX>' --write
+python3 test_app.py
+```
+
+Read the saved diff before `apply`. `--write` authorizes that command to change the files.
+After applying it, both files should use `increment`. The test should still pass.
+If you edit an affected file between saving and applying, the old plan can refuse; prepare and review a new plan.
+
+### Undo and deliver the change
+
+```sh
+fr -C . history undo '<TX>'
+fr -C . history undo '<TX>' --write
+python3 test_app.py
+fr -C . history redo '<TX>' --write
+python3 test_app.py
+fr -C . history patch '<TX>' --output rename.patch
+```
+
+The first undo command previews the reversal. The next applies it and restores the old function name.
+`redo` reapplies the saved rename. A **patch** is a file containing changes that another checkout can apply.
+The last command creates `rename.patch`; it refuses an existing output path.
+
+These tests check only the inputs written above. A successful rename does not establish every behavior of a larger application.
+You have practiced finding uses, reviewing an edit, applying it, checking it and reversing it.
+The [CLI reference](CLI.md) explains other commands; the larger recorded walkthrough below shows why their limits matter.
+
+## Recorded walkthrough in Helm
+
 This walkthrough shows the decisions behind an edit: find the relevant function, inspect its
 uses, review a preview and check the result. Follow it when learning how to investigate a change
 without reading every file first. Its recorded outputs describe the pinned Helm snapshot below.
@@ -441,12 +526,12 @@ survives by construction.
 
 **The tool stores no tree.** Each one lives for the length of one file's extraction,
 and then the tool drops it. A much smaller set of *facts* survives: symbols,
-references, scopes and imports, each carrying a byte span. Keeping 16,000 syntax
+references, scopes and imports, each carrying a source byte range. Keeping 16,000 syntax
 trees in memory would cost more than re-parsing the handful of files any single
 command needs.
 
 The tool works in byte offsets everywhere except the command line, never in
-line/column pairs. Line and column serve display; an emoji in a comment of a UTF-8
+line/column pairs. Line and column serve display; an emoji in a comment of a UTF-8 (the text encoding used to count source bytes)
 file makes them ambiguous. A refactoring tool that miscounts a column corrupts a
 file.
 

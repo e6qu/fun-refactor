@@ -3,6 +3,11 @@
 Some Python packages use folders without an `__init__.py` file. For example, `space/pkg/leaf.py` can define a helper imported by your application.
 `fr` can follow supported imports inside one project root. Packages spread across several search locations still need separate investigation.
 
+A Python module is normally one `.py` file. A package groups modules under an import path.
+A regular package has `__init__.py`, whose code runs during import. A namespace package can omit that file.
+For `space.pkg.leaf`, inspect each directory and the final `leaf.py` rather than assuming every parent has startup code.
+These examples cover one source root; Python can combine other namespace locations outside this supported model.
+
 ## Commands, results and limits
 
 Opt-in Python imported summaries now admit namespace directories inside one workspace root.
@@ -22,7 +27,7 @@ def render():
 ```
 
 Analysis follows direct dotted imports, explicit aliases, relative imports and explicit child
-module lookups. Namespace aliases can pass through explicit re-exports. Function identities and occurrences
+module lookups. Namespace aliases can pass through explicit re-exports (making an imported name available from another module). Function identities and occurrences
 still refer to real source files. Importing a namespace does not load all its children;
 implicit child-attribute traversal remains outside this analysis contract.
 
@@ -51,7 +56,7 @@ checks closure coverage, module budgets, child module lookups, terminal identity
 The reader requires the current dependency schema and namespace metadata.
 
 Creating or deleting an initializer changes the next input identity. So do relevant missing-file,
-stub, competing-module and directory changes. Cached results agree with clean analysis after these
+stub, competing-module and directory changes. Cached results agree with fresh analysis after these
 mutations. Unrelated sources and unloaded siblings can retain the same analysis inputs; reuse renews
 all source occurrences against the current revision. The dependency also enters persisted task plans.
 
@@ -60,14 +65,14 @@ A saved trace must check that new file before reuse. Adding an unloaded sibling 
 the selected helper's inputs unchanged. The import report records those distinctions for resumption.
 
 The [pinned task](../tests/agent-eval/namespace-packages/task.json) starts from an unknown leaking helper
-inside a namespace package. Its independent CPython oracle checks public results and AST coordinates.
-The delivery evaluator requires discovered repair, a sink-free preview feature, fresh-process
+inside a namespace package. Its independent CPython oracle checks public results and syntax-tree source positions.
+The delivery evaluator requires discovered repair, a sink-free preview feature, new-process
 resumption, stale-review refusal, independent patch replay and exact reversal.
 The [retained run](../tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/result.json)
 passes these checks and records the implementation and fixture used for that run.
 The [runtime tests](../sdk/python/tests/test_namespace_packages.py) cover mixed package trees,
 namespace entries, aliases, filesystem boundaries, budgets and forged dependency metadata.
-These finite tests do not establish general import equivalence or source correspondence.
+These finite tests do not establish general import equivalence or the connection between source and its model.
 
 Implementation edits use reviewed `fr` previews, saved plans and history applications. The
 [dogfood manifest](../tests/agent-eval/results/2026-09-29-namespaces-dogfood/manifest.json) records those

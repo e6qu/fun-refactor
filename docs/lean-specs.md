@@ -3,6 +3,11 @@
 Suppose an access function accepts two Booleans, and you want to show that permission requires staff access or ownership.
 Lean can check a proof of that stated rule for the supported model. This guide explains how to link the proof to the code and which assumptions still need checking.
 
+Lean checks proofs written against definitions and assumptions. Lake manages a Lean project's files and dependencies.
+A theorem states a property; a kernel is a small set of definitions and rules used in these proofs.
+For “only staff or owners may enter,” inspect the access definition and assumptions before accepting the theorem.
+A proof about the tool's review rules is different from a proof about your checkout calculation.
+
 ## Commands, results and limits
 
 `fr` reads and writes Lean. It checks source anchors and explicit signature maps, renews reviewed
@@ -17,11 +22,11 @@ source hashes, builds the owning Lean packages and scaffolds proof work in other
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
 | `fr spec scaffold` | Manually select a Rust function and create an anchored, strictly mapped model obligation in that target |
 | `fr spec kernel` | Evaluate bounded shared terms with explicit checked arithmetic and partial failures |
-| `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit source-free, Merkle-addressed built-in or agent-authored property plans |
+| `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit built-in or agent-authored property plans with content fingerprints and without source text |
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
 | `fr spec goals` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
-| `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
+| `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence (the stated connection between two descriptions) and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor from a readable code language |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
@@ -82,7 +87,7 @@ Lean is an explicit dependency for verification, not for ordinary refactoring.
 A fresh anchor establishes that the named source bytes match the recorded identity.
 An accepted signature map establishes correspondence with the two declared signatures.
 A Lean theorem establishes its proposition under its definitions and assumptions.
-A shared execution test compares the implementation and model on the selected cases.
+A shared execution test compares the implementation and model on tested cases.
 
 Illustration: you prove that `allowed(staff, owner)` requires staff access or ownership in the Lean model.
 An unchanged source hash confirms which function you reviewed. A signature check confirms the declared
@@ -102,7 +107,7 @@ the typed pure subsets in the [formalization contract](agent-formalization.md#su
 
 ## Existing kernels
 
-`FrKernels.Edit` models byte-based edits, UTF-8 boundaries, ordering, overlap checks and splice application.
+`FrKernels.Edit` models byte-based edits, UTF-8 (the text encoding used to count source bytes) boundaries, ordering, overlap checks and splice application.
 It states properties of accepted and rejected plans and unchanged source prefixes.
 `FrKernels.Position` models line and column conversion and full-line spans.
 
@@ -117,8 +122,9 @@ The full self-audits run in `tools/check.sh deep`.
 The native, deep and exhaustive Lean-kernel gates default to one Rust case and one Lean worker.
 Set `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` to adjust those defaults.
 Generated edit proofs always use one worker and run one at a time within the checkout.
-`tools/lean-guard.py` terminates the proof process group above 1 GiB sampled RSS,
-after two minutes, or above 4 MiB of captured output. It refuses to run without memory monitoring.
+RSS, or resident set size, measures memory held by a process.
+`tools/lean-guard.py` stops the proof process group above 1 GiB sampled RSS, after two minutes, or above 4 MiB of captured output.
+It refuses to run without memory monitoring.
 RSS sampling can overshoot the threshold between checks; this is not an operating-system memory quota.
 Lean also receives a 1 GiB internal limit. Its internal limit alone did not contain the observed growth.
 Limit failures fail the audit. They do not establish that the edit plan is invalid.
@@ -162,7 +168,7 @@ The model's 24 theorems establish:
 - Snapshot projection fixes symlinks at `120000`, delegates regular entries to the executable projection and distinguishes both kinds.
 - Supported mode changes preserve all non-execute bits and either change nothing or toggle owner execute. Reversing a change preserves support.
 - Basis matching is reflexive, symmetric and transitive, preserves existence and entry kind, and requires identical content and owner-execute bits for present regular files.
-- Full snapshot equality implies patch-basis acceptance. Other permission differences can pass the patch check while failing full snapshot equality.
+- Full agreement between saved file states implies patch-basis acceptance. Other permission differences can pass the patch check while failing full agreement between saved file states.
 - The owner-execute setter changes the requested bit, preserves other bits, is idempotent and always produces a supported mode change.
 - The setter produces the requested Git mode and preserves the journal's maximum recorded permission value.
 
@@ -423,7 +429,9 @@ All eight Boolean inputs agree between Rust and Lean. The CLI uses the predicate
 source persistence; integration tests separately preserve source and history across mismatch refusals.
 The proofs have no custom axioms, compiler-trust tactic or `sorry` obligations.
 
-This model covers the acceptance conjunction. SHA-256 collision resistance, canonical JSON encoding,
+This model covers the acceptance conjunction.
+Canonical JSON is the normalized encoding used to compare records and compute their fingerprints.
+SHA-256 collision resistance, JSON encoding,
 source capture, diff completeness, report compaction, filesystem locking and persistence remain trusted
 or integration-tested components. Run `cargo test --test lean_kernels reviewed_plan_basis_` for the
 shared execution check.
@@ -481,7 +489,7 @@ A 32-bit host compares the 4,356 representable pairs while consuming all Lean ou
 Dedicated cases treat the byte boundaries around `é` and `🙂` as insertion, adjacency and overlap positions.
 
 These proofs characterize the numeric selection predicate for valid ranges.
-The parser supplies valid byte spans, and separate tests cover malformed manifests, actual duplicate and nested selections, Unicode splicing and refusal before history writes.
+The parser supplies valid source byte ranges, and separate tests cover malformed manifests, actual duplicate and nested selections, Unicode splicing and refusal before history writes.
 They do not prove that parser spans identify the intended declarations or that every batch operation is semantically independent.
 The edit kernel separately validates UTF-8 splice boundaries and applies the accepted, disjoint edit set.
 Run `cargo test --test lean_kernels author_selection_conflicts_` for the model comparison.
@@ -540,7 +548,7 @@ package file that differs from its template.
 
 Choose a typed pure declaration or structural snapshot whose domain and assumptions can be stated
 clearly. `fr spec candidates` reports generated targets and explicit refusals. Use `property-task`,
-`plan` and `scaffold --from` for a source-free agent-authored property, or use direct `spec scaffold`
+`plan` and `scaffold --from` for an agent-authored property without source text, or use direct `spec scaffold`
 when manually supplying the model boundary. Review the generated source anchor, signature map,
 definition and obligation, then write the proof tactics. Unsupported declarations still require a
 manual model and correspondence statement. Run `fr spec check --strict` afterward.
@@ -593,7 +601,7 @@ The model does not prove JSON nesting, outer-basis hashing or the reused task-ch
 
 Semantic project reports add two anchored policies. `semanticSectionFits` proves that an admitted
 model fits the complete node budget and rejects a short budget. `semanticBodyAdmitted` proves that
-typed authoring requires the declared schema, a supported target, source-free input and its size
+typed authoring requires the declared schema, a supported target, input without source text and its size
 bound. Rust and Lean share selected numeric boundaries, all sixteen Boolean admission states and
 the expanded task target matrix. Parser, serializer, hash and writer correspondence remain outside
 these models.
@@ -604,7 +612,7 @@ and expression `unsupported` entries and keeps category-tagged references distin
 execution compares Rust and Lean admission for five category values and 31 kind values. Python
 publishes the same admitted kind lists, checked through the native integration suite. These checks
 leave Python runtime behavior, Serde correctness and the writer implementations in the trusted base.
-An anchored source-free node policy admits exactly nodes without a `source` field or `unsupported`
+A source-connected policy for nodes without source text admits exactly nodes without a `source` field or `unsupported`
 kind whose children also pass. Lean proves each necessary condition, eight Boolean executions agree
 with Rust, and Rust tests the recursive JSON walk. JSON parsing and unbounded induction over the
 host value remain outside that correspondence claim.

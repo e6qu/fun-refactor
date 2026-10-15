@@ -3,6 +3,11 @@
 When updating a grammar, check the upstream query patterns and their licenses before changing our own patterns.
 This directory records where those reference files come from and how to verify their original contents.
 
+Vendored means copied into this repository from another project.
+Provenance records the original project, revision, file identity and license.
+For a query update, compare the retained upstream file with its recorded source before changing our derived version.
+Keep copied reference material distinct from the code compiled into `fr`.
+
 ## Build and reference details
 
 Third-party material copied into this repository, with the provenance needed to say

@@ -21,6 +21,28 @@ Optional project checks use `.fr/checks.json`.
 
 The portable [fr skill](skills/fr/SKILL.md) teaches an agent how to select bounded queries, review changes and use recovery evidence.
 
+## Read the examples
+
+Run commands from the project folder unless an example supplies `-C PATH`.
+The [tutorial](TUTORIAL.md) creates runnable sample files. This reference uses names such as `calculate` to illustrate a command.
+Substitute names and files from your project; most reference snippets depend on earlier query results.
+
+| Word or notation | Meaning in the examples |
+| --- | --- |
+| Declaration or symbol | A named piece of code, such as the function defined by `def calculate(value):` |
+| Caller or reference | Code that calls the function, or another use of its name |
+| Workspace or root | The project folder being inspected |
+| `<HANDLE>` | The full returned reference to selected code; copy it instead of inventing one |
+| `<TX>` | The returned ID of a saved source change, called a transaction |
+| Basis or `TOKEN` | A returned reference connecting an action to the result you reviewed; copy it unchanged |
+| Manifest | An input file describing the requested action and its parameters |
+| Schema or contract | The exact fields and values a command accepts or returns |
+| Omission or cutoff | Something the answer leaves unread or unchecked; inspect it before concluding the search finished |
+
+Replace bracketed placeholders, including their brackets. A basis for one operation cannot authorize a different operation.
+For example, a caller report's reference cannot replace the reference returned by an edit preview.
+Data field names stay exact below so you can find them in JSON output.
+
 Three conventions hold across the whole surface, and knowing them removes most
 of what you would otherwise have to look up.
 
@@ -395,8 +417,8 @@ one through 32 named evidence projections:
 ```
 
 Each purpose admits only its declared sections. A pointer is relative to that section and follows
-RFC 6901. The result is one source-free `fr-agent-context-1` packet with selected values and their
-Merkle object digests. It also binds the exact manifest, project and view identities, and measured
+RFC 6901. The result is one `fr-agent-context-1` packet containing selected structured values and their content fingerprints, without source text.
+It also binds the exact manifest, project and view identities, and measured
 compact JSON bytes. It performs no progressive-disclosure subprocess calls. Missing pointers, stale
 handles, cross-purpose sections, unknown fields and packets beyond the requested 1–64 KiB limit
 refuse without returning a partial selection.
@@ -458,7 +480,7 @@ Lean must accept agent tactics before history creation. Formal scaffolds and pro
 pass strict source/signature checks and a Lake build of their planned package in an isolated copy.
 Named scaffold obligations remain explicit build warnings. `fr spec verify` still treats warnings
 as errors. Proof receipts establish acceptance of the submitted theorem; implementation
-correspondence remains false; the report lists remaining obligations.
+correspondence (the stated connection between two descriptions) remains false; the report lists remaining obligations.
 
 ## Finding work
 
@@ -689,8 +711,8 @@ fr spec evidence [PATH...]
 ```
 
 `candidates`, `property-task`, `plan`, `goals`, `proof-task`, `proof-check` and `prove` form the agent workbench described in
-[docs/agent-formalization.md](docs/agent-formalization.md). Plans are source-free and
-content-addressed. A property task discloses the model signature and bounded proposition grammar;
+[docs/agent-formalization.md](docs/agent-formalization.md). Plans contain structured data without source text, identified by content fingerprints.
+A property task discloses the model signature and bounded proposition grammar;
 the agent authors a strict property IR and supplies it with `--property-from`. Formal scaffolding
 refuses stale or modified plans and requires Lean to elaborate the exact generated module. Goal
 catalogs and selected details fit their declared serialized-byte ceiling. Proof writes replace one
@@ -804,15 +826,16 @@ fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_
 ```
 
 `author guide` emits the bounded `fr-author-guide-1` JSON contract without scanning a
-project. It names every batch operation and required field, size limits, postconditions and
+project. It names every batch operation and required field, size limits, required conditions after the edit and
 the exact preview/save/apply/patch/undo/redo command sequence. This is a discovery surface;
 the individual preview and transition reports remain the evidence for a specific change.
 
 `author semantic-schema` exposes the `fr-semantic-catalog-1` index without scanning a project.
 Request one section or one `--kind` to bound contract context. A variant report includes its exact
-JSON value shape, author admission and Python SDK constructor. `author validate-semantic` reads one
-64 KiB input, rejects unknown or source-bearing structure, enforces statement and node limits, and
-returns its Rust-canonical SHA-256 identity. `--canonical` also returns the normalized payload.
+JSON value shape, author admission and Python SDK constructor.
+`author validate-semantic` reads one input of at most 64 KiB and rejects unknown structures or records containing source text.
+It enforces statement and node limits, then returns the normalized record's SHA-256 fingerprint.
+`--canonical` also returns the normalized payload.
 
 `author plan-semantic-intent` selects exactly one matching scalar from a complete semantic body and
 returns a checked `fr-semantic-edit-plan-1` report containing the generated
@@ -839,7 +862,7 @@ Java supports methods, constructors and default interface methods with bodies. A
 Python supports synchronous and asynchronous functions, decorated framework handlers and methods.
 Its fragment is a relative suite without the enclosing `def`. The command preserves nested indentation when it splices the suite into its destination.
 Use a current project handle; this command accepts structural identities directly.
-The input is a regular UTF-8 file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
+The input is a regular UTF-8 (the text encoding used to count source bytes) file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
 Both output modes return bounded JSON. The diff defaults to 4096 bytes and reports omitted bytes when clipped.
 `--save-plan` records the exact replacement for later application; `--write` records and applies it immediately.
@@ -887,7 +910,7 @@ fr task-change --from .fr/task-change.json
 fr task-change --from .fr/task-change.json --write --basis 'frtc1:<DIGEST>'
 ```
 
-This command joins project queries, exact authoring targets, concrete fragments, postconditions,
+This command joins project queries, exact authoring targets, concrete fragments, required conditions after the edit,
 declared checks, reversal and patch delivery under one reviewed basis. Its manifest uses this shape:
 
 ```json
@@ -917,7 +940,7 @@ revision-bound handle retained from earlier discovery. `edit-body-scalar` requir
 one real source change. The manifest and each fragment can contain at most 65,536 bytes.
 
 Preview writes no source, history, check output or patch. It resolves every reference from one
-verified snapshot, validates fragments, reparses the combined result and enforces all postconditions.
+verified snapshot, validates fragments, reparses the combined result and enforces all required conditions after the edit.
 Its report contains the complete diff, exact selected checks, planned workflow stages and an
 `frtc1:` `task_change_basis`. A clipped diff refuses because it cannot support complete review.
 
@@ -1175,7 +1198,7 @@ A clipped cell becomes `{text, omitted_bytes}` instead of a string.
 
 `--source` adds up to 2048 bytes by default and accepts budgets from 4 through 65536.
 Offsets count bytes from the selected symbol or file's start and must land on UTF-8 boundaries.
-The response includes the absolute byte span and `next_offset`; use that value for the next page.
+The response includes the absolute source byte range and `next_offset`; use that value for the next page.
 The final UTF-8 character may leave a page smaller than its budget.
 A directory has no source slice or reference page.
 
@@ -1209,7 +1232,7 @@ relationships avoid building the complete call graph; use `project calls` only w
 expansion or caller/callee graph analysis is required.
 
 `project disclose` starts from one full declaration handle and returns two Merkle-committed holes:
-the complete source-free semantic IR and the exact declaration source. It does not return either
+the complete semantic IR without source text and the exact declaration source. It does not return either
 payload initially. `semantic_shortcuts` lists bounded named/kinded nodes and their authorable scalar
 descendant counts from the committed model. An agent can jump directly to a likely declaration,
 body pattern or expression. Run a shortcut or
@@ -1223,13 +1246,13 @@ bound for byte-fallback tokenizers, not an exact count for one model vocabulary.
 accepts 1,024 through 4,096; `--profile expanded` explicitly raises the ceiling to 16,384. Returned
 actions bind the profile, limit, target, revision and cursor. Stale or reconstructed actions refuse.
 The semantic tree and exact source have separate roots under one combined commitment, so an
-agent can stay source-free until source is necessary. See
+agent can stay without source text until source is necessary. See
 [the progressive disclosure protocol](docs/progressive-disclosure.md) for verification details.
 `--view evidence` uses the same bounded traversal for code-map hierarchy, callers and callees,
 impact candidates, and local value origins and uses. Each subtree has a stable `object_digest`
 suited to local or remote object-storage keys. Ordinary agent responses omit inclusion paths;
 `--proofs` adds them for evaluators and cache audits and may require the expanded limit.
-`--view project` accepts a full directory, file or declaration handle. It commits four source-free
+`--view project` accepts a full directory, file or declaration handle. It commits four structured
 domains: technologies, applications, styles and documents/diagrams. A declaration scopes those
 domains to its containing file. The initial catalog always names all four; exact shortcut and root
 actions progressively reveal their versioned flat-report objects. Source stays behind handles held
@@ -1403,7 +1426,7 @@ Their route basis is `nextjs-app-variable-export`; local export aliases use `nex
 Matching uses the binding's name and position, including named function expressions whose inner name differs.
 Multiple bindings and duplicate declarations remain separate candidates. The reader does not follow rebinding, initializer aliases or wrapper calls.
 Parenthesized/asserted initializers, generators, destructuring and other unsupported initializers remain gaps.
-Unresolved local exports, cross-file HTTP re-exports, plain star exports and default exports also produce gaps.
+Unresolved local exports, cross-file HTTP re-exports (making an imported name available from another module), plain star exports and default exports also produce gaps.
 Files without supported HTTP exports report a gap. All Next.js diagnostics share the page limit.
 `analysis.nextjs_gaps` counts these diagnostics; `analysis.nextjs_limitations` records the scope.
 Pages Router and custom extensions remain outside this reader.
@@ -1425,7 +1448,7 @@ The `fastapi` reader recognizes top-level verb decorators on a direct `FastAPI()
 It joins valid plain literal constructor prefixes into literal decorator paths.
 Dynamic, relative or trailing-slash prefixes produce explicit gaps and suppress affected route facts.
 The file must contain the corresponding top-level `fastapi` import; constructor and module import aliases also match.
-Repeated direct assignments to a receiver exclude it from this subset. Conditional rebinding and general shadowing analysis remain unchecked.
+Repeated direct assignments to a receiver exclude it from this subset. Conditional rebinding and general shadowing (a nearer declaration hiding an earlier name) analysis remain unchecked.
 One plain absolute string supplies the path, either positionally or through `path=`.
 Escapes, concatenation, dynamic paths and method-list decorators produce `analysis-gap` rows for recognized receivers.
 FastAPI evidence replaces the older Flask interpretation of the same decorator, including when the FastAPI reader reports a gap.
@@ -1706,7 +1729,7 @@ Configuration analysis consumes captured source and checks its indexed content h
 Missing, mismatched or syntactically broken inputs produce analysis gaps and cannot supply declarations, reads or values-file candidates.
 Workspace-wide analysis and language gaps share the page; `analysis` includes workspace totals and selected relationship counts.
 Cursors bind the revision, scope and resulting rows. Final source and inventory verification still applies.
-Output limits do not bound workspace analysis work. The shared paging proofs do not verify configuration inference or source/model correspondence.
+Output limits do not bound workspace analysis work. The shared paging proofs do not verify configuration inference or the connection between source and its model.
 
 `tests` pages test-entry candidates in a directory, file or symbol scope, including nested definitions.
 It accepts full handles and short IDs with `--revision`, and defaults to the workspace root and 40 rows.

@@ -2,6 +2,8 @@
 
 Describe the change you want, such as replacing a retry limit, then inspect the returned preview. Apply only the unchanged reviewed operation.
 
+An intent describes a task and requested action. A packet holds selected report fields; a basis ties execution to the preview you reviewed.
+
 Import intents from `fr_ir.intent`, operations from `fr_ir.intent_actions`. Compile a bounded
 packet, inspect `/action/review`, then execute its unchanged identity.
 

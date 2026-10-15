@@ -3,6 +3,12 @@
 Suppose a cleanup needs three steps: rename a helper, move it, then update its imports. A recipe records the steps so you can preview them together.
 If a later step fails, `fr` keeps the earlier proposed edits out of your files. This guide describes the recipe format and its limits.
 
+The recipe language is a small set of instructions for editing code, often called a domain-specific language or DSL.
+A selector chooses code: `kind=function` chooses functions, and `name~"legacy_*"` narrows them by name.
+A step requests an edit to those selections. A refusal explains why an edit cannot proceed.
+An expectation checks a stated condition afterward. For a cleanup, an expectation about unused names still needs behavior tests.
+Recipe execution includes parsing and every underlying edit; its speed compared with separate commands is unmeasured.
+
 ## Commands, results and limits
 
 A recipe is a readable, repeatable multi-step refactoring. It declares what to select, what to do,
@@ -57,7 +63,7 @@ expectations; it does not extend the underlying mutation support.
 | | |
 | --- | --- |
 | Comments | `#` to end of line |
-| Identifiers | `[a-z][a-z0-9-]*`, kebab-case, matching the CLI (`remove-flag`, `on-refusal`) |
+| Identifiers | `[a-z][a-z0-9-]*`: start with a lowercase letter, then use lowercase letters, digits or hyphens (`remove-flag`, `on-refusal`) |
 | Strings | `"…"` with `\"` and `\\`; or `'…'` raw, with no escapes at all |
 | Numbers | non-negative integers |
 | Booleans | `true`, `false` |
@@ -80,6 +86,17 @@ delete where kind=function
 ```
 
 ## Grammar
+
+The reference below uses EBNF, a compact notation for describing allowed recipe text.
+Quoted words appear literally; names such as `recipe` refer to other rules.
+
+`|` means choose an alternative, `[x]` means optional, and `{x}` means repeat zero or more times.
+Parentheses group parts, commas join them in order, and semicolons end a rule.
+`INT`, `IDENT`, `STRING` and `BOOL` refer to the value kinds in the lexical table above.
+`(* ... *)` adds a comment to the grammar.
+
+For `step = operation, [selector], {modifier}`, write one operation, optionally select code, then add any modifiers.
+Use the recipe example above for a runnable input.
 
 ```ebnf
 file        = "schema" INT , { recipe } ;

@@ -1,6 +1,6 @@
 # Recover an interrupted source write
 
-After an interrupted write, inspect the operation and files. Recover it before editing those files again.
+A journal records a pending write. After interruption, inspect it before editing again. Recovery repairs pending work; undo reverses a completed edit.
 
 Use `fr history` and `fr history show ID` to inspect the state.
 Recover only pending operations with `fr history recover ID --write`.

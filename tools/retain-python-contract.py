@@ -119,7 +119,7 @@ def main():
                      audit=f'python3 tools/python-contract.py --audit {relative}/result.json',
                      scope=f"{result['rules']} declared Python rules; {result['examples']} authored programs and "
                            f"{result['cases']} original/renamed cases, including {result['refused_cases']} CLI refusals. "
-                           'Finite B.contract inventory; roadmap acceptance requires separate review.')
+                           'Checks this declared set of Python examples; broader real-project requirements need separate results.')
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     # The existing 120-second SDK wrapper deadline and all CI job deadlines stay
     # unchanged. Run corruption controls against the exact newly retained bytes.

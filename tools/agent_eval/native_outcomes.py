@@ -115,11 +115,18 @@ def cohort(root, grade_path=None):
 
 
 def markdown(reports):
-    lines = ["# Native code-change outcomes and observed costs", "",
+    lines = ["# Did the recorded agents complete their code changes?", "",
              "Use these records to ask whether an agent completed the requested change and used fr.",
              "For example, a passing repair with zero fr calls cannot establish a benefit from fr.", "",
              "Failed attempts remain in the time and work totals. Missing measurements stay unknown.",
-             "These reviewed tasks do not establish general time or cost savings on unfamiliar projects.", ""]
+             "These reviewed tasks do not establish general time or cost savings on unfamiliar projects.", "",
+             "The baseline offers ordinary file tools. The compared setup offers those tools plus fr.",
+             "An attempt is one model trying one task. A behavior pass means the submitted code passed its declared tests.",
+             "A collection failure means the attempt stopped before producing a complete record; it still contributes its observed work.", "",
+             "Host calls count requests received by the experiment launcher. Result bytes count produced tool replies, not all text the model read.",
+             "Collection seconds cover monitored attempt processes and exclude remote grading, provider work and global cache costs.",
+             "CLI steps complete means the recorded command-line usage covers the submitted attempt; it does not mean billing is verified.",
+             "See [baselines and overhead](benchmarks.md) before interpreting differences as tool savings.", ""]
     for report in reports:
         lines += ["## " + report["cohort"], "", "Plan: `" + report["plan_sha256"] + "`.", "",
                   "| Configured model | Tools available | Outcome | Host calls | fr calls | Result bytes | Collection seconds | CLI steps complete |",
@@ -140,6 +147,9 @@ def markdown(reports):
             tools = "ordinary files + fr" if group["arm"] == "fr" else "ordinary files"
             lines.append("| " + " | ".join([group["model"], tools, counts, f"{rate:.1f}" if rate is not None else "undefined"]) + " |")
         lines += ["", "Collection time includes failed attempts; it excludes remote grading time.",
+                  "Seconds per behavior pass divides all observed attempt time by the number of passing submissions in that group.",
+                  "For example, a 120-second failure followed by a 60-second pass contributes 180 seconds per pass.",
+                  "With no passes the ratio is undefined; unstarted or unresolved attempts do not become zero-cost successes.",
                   "Host bytes are produced results, not complete model context. See JSON for native stream confirmations,",
                   "partial usage, resource samples, tool schemas and paired outcomes. Provider billing remains unverified.", ""]
     return "\n".join(lines)

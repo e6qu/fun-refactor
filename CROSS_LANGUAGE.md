@@ -3,6 +3,11 @@
 A web page may call a Python endpoint that reads a YAML setting. When you change that setting, you need to find each affected use.
 `fr` can follow some explicit links between these files. A matching name alone does not establish which code runs.
 
+A declaration defines a name; a reference uses it. In `send(amount)`, `send` refers to a callable declaration.
+Resolving a reference means determining which declaration that use names.
+Across languages, `fr` follows supported written relationships, such as a literal URL matching a declared route.
+For a checkout change, inspect the route and its caller before assuming that a matching URL preserves request behavior.
+
 ## Commands, results and limits
 
 `fr` follows declared relationships across supported language boundaries.
@@ -96,4 +101,4 @@ outside the current bounded transformation contract.
 - [CLI.md](CLI.md): command options and write guarantees.
 - [RECIPES.md](RECIPES.md): composing existing operations.
 - [IR.md](IR.md): supported representation and fidelity reports.
-- [docs/lean-specs.md](docs/lean-specs.md): formal models and implementation correspondence.
+- [docs/lean-specs.md](docs/lean-specs.md): formal models and implementation correspondence (the stated connection between two descriptions).

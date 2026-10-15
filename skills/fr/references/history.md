@@ -1,6 +1,6 @@
 # Apply or reverse source history
 
-If an edit is wrong, inspect its saved change before undoing it. Check which files the operation will restore.
+To reverse an edit, inspect its transaction, the saved before/after files identified by `<TX>`. Preview undo before writing.
 
 ```sh
 fr history show '<TX>'

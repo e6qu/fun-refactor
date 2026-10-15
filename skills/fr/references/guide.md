@@ -2,6 +2,8 @@
 
 Turn the user’s task into a structured goal when the next command is unclear. For a rename, specify the old function and requested new name.
 
+A goal is a structured task description. A selector identifies code; an operation describes the requested action. A ready action has complete input fields.
+
 Run `fr guide --from GOAL` or `FrClient.guide(AgentGoal(...))`. Supply a purpose, exact `target` or
 one-name/path `selector`, and tagged `operation`; `automatic` selects the purpose's route. Read
 `state`, refusals, uncertainty and `author_fields`. Never select ambiguous candidates by row order.
@@ -36,5 +38,5 @@ reveal. Keep the six verification levels separate. An agent writes every propert
 generated Rust model theorems do not establish implementation correspondence. Full wire contracts:
 `docs/agent-workflow-guide.md`.
 
-Read `intent_action` for admitted operations and review/basis pointers, and [Intents](intents.md)
+Read `intent_action` for supported operations and review/basis pointers, and [Intents](intents.md)
 for typed operations. Native compilation revalidates the original goal, target and basis.

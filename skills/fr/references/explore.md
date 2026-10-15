@@ -1,6 +1,8 @@
 # Explore only the needed structure
 
-Start a checkout investigation by finding its route and likely helpers. Read their signatures before requesting larger source excerpts.
+Find the relevant route and helpers before reading larger source excerpts.
+
+A signature lists arguments. Copy each returned code handle unchanged.
 
 ```sh
 fr project explore greet --in app.py
@@ -40,7 +42,7 @@ status before claiming absence. Handles may be `outside-scope`, `not-a-declarati
 stale handles refuse instead of becoming names.
 Use maps for hierarchy. Choose `<HANDLE>` from a declaration row; full handles include the revision.
 Short IDs require the returned `--revision`. Targeted rows and `show` expose `location.name` and
-`location.definition`: exact byte spans and 1-based, half-open line/column ranges. Add `location`
+`location.definition`: exact source byte ranges and 1-based, half-open line/column ranges. Add `location`
 to broad map fields when needed. Syntax headers do not establish complete semantic contracts.
 
 Request `--source` only when needed. Offsets count bytes from the selected node's start. For another
@@ -51,7 +53,7 @@ Source, manifest, scan or scope changes can invalidate handles and cursors. Repe
 Call results preserve confidence and unresolved or dispatch-candidate rows; candidates do not establish runtime dispatch.
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages` and `dependencies` for Cargo, npm, Go module and Python project declarations.
-Use `project resolutions` for source-free captured lock entries. Filter with `--manifest` or
+Use `project resolutions` for captured lock entries. Filter with `--manifest` or
 `--lockfile`; the result reports observed versions and integrity metadata without running a solver.
 Dependency rows match the nearest ancestor lock, retaining bounded candidates and package aliases.
 Use `project package-features --manifest Cargo.toml` for Cargo feature and dependency activation.

@@ -68,12 +68,18 @@ def cohort(root):
 
 
 def markdown(reports):
-    lines = ["# Native source-reading outcomes and observed costs", "",
+    lines = ["# Did the recorded agents explain the code correctly?", "",
              "Use these records to check whether an agent answered the code question correctly and used fr.",
              "For example, finding a source line only helps if the explanation based on it is correct.", "",
              "The totals include failed attempts. The recorded time does not include every grading or provider cost.",
              "Source-page counts also miss code carried in other report fields. Total reading and billing remain unknown.",
-             "Having fr available does not establish that the agent used it or saved work.", ""]
+             "Having fr available does not establish that the agent used it or saved work.", "",
+             "The baseline is ordinary file listing, search and source reads. The compared setup also offers fr.",
+             "An attempt is one model answering one task. Its grader checks the declared facts and supporting source references.",
+             "A pair is comparable here only when both attempts pass for the same task, model and repetition.", "",
+             "Calls count requests received by the launcher. Result bytes count produced replies; source bytes count explicit source pages only.",
+             "Seconds cover monitored collection processes, excluding grading and unmeasured provider, host and cache work.",
+             "These counters do not isolate fr execution overhead or provide a complete bill. See [measurement meanings](benchmarks.md).", ""]
     for report in reports:
         lines.extend(["## " + report["cohort"], "",
                       "| Model | Tools | Outcome | Calls | fr calls | Result bytes | Source bytes | Seconds |",

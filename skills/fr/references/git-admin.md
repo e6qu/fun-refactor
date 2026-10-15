@@ -2,6 +2,8 @@
 
 Use a separate working folder when another change is in progress. Inspect staged files before creating a commit.
 
+The index holds files staged for a commit. A worktree is another working folder sharing Git history. Their recovery records differ from source-edit history.
+
 ## Staging and commits
 
 Use `fr git stage PATH...` for explicit paths, inspect the returned basis and index changes, then use the same selection with `--basis TOKEN --write`.

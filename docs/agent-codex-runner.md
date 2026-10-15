@@ -3,6 +3,12 @@
 Use this evaluation runner to compare how an agent solves the same task with ordinary tools and with `fr`.
 For example, both attempts should fix the same bug and face the same independent tests. These optional runs need explicit cost and resource approval; current stopped studies stay stopped.
 
+An attempt is one agent trying one task with one tool setup.
+The baseline setup uses ordinary search, file reads and edit tools; the compared setup also offers `fr`.
+A grader checks the submitted answer or code against requirements selected before the attempt.
+For a rounding repair, give both setups the same bug and test their submitted code with the same independent rounding cases.
+The runner itself adds setup and recording work; include that boundary when interpreting its time totals.
+
 ## Commands, results and limits
 
 The Codex evaluators run prepared agent tasks through `codex exec`. They are opt-in, never run in

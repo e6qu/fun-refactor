@@ -1,9 +1,11 @@
 # How to write here
 
-This project writes comments, messages and documents in a controlled style. The style
-comes from ASD-STE100, Simplified Technical English. Aerospace maintenance manuals use
-that standard so that a reader with limited English can follow a procedure without a
-mistake. The same rules make a codebase readable to someone who arrives at it today.
+Write for someone who has not followed the project's development.
+They need to understand the task, the words used to explain it, the action to take and the result to expect.
+For example, a reader should understand how to review a rename without already knowing what a handle or transaction is.
+
+The sentence rules draw on Simplified Technical English, used to make technical procedures easier to follow.
+Passing the automated writing check does not establish that a page teaches its subject clearly.
 
 `tools/check-prose.py` counts the habits listed below. `tools/check.sh` runs it.
 
@@ -52,6 +54,19 @@ how" or "this is what makes".
 **Use a list** for three or more items, for conditions, and for steps in order.
 
 ## Tutorials
+
+A tutorial must supply a complete starting point: required tools, files, setup and expected output.
+Say whether a snippet can run by itself, continues an earlier snippet or only illustrates a concept.
+Name the file to create and the folder from which to run a command.
+Define placeholders and explain where each returned ID comes from before asking the reader to reuse it.
+
+Teach the concept before its notation. Introduce a parameter as a named function slot before explaining positional-only syntax.
+Explain a JSON pointer with `/body/0`, the first item in `body`, before presenting a long structured edit.
+A link to a glossary supplements a local explanation; it does not replace one.
+
+After the example, explain what should change, what should remain unchanged and how the reader checks it.
+Show a relevant failure and next action when it affects the user's decision.
+For example, a failed test after application can leave source edited; tell the reader to inspect history before retrying.
 
 A tutorial is a lesson, and the reader is the student. The reader acts; the types are
 what the reader changes; the checker is the tool that enforces the result. Do not cast
@@ -156,6 +171,20 @@ Explain a term the first time a document uses it. Pair important technical detai
 user example. A glossary link supplies more detail; it cannot replace the explanation.
 
 ## Review before publishing
+
+Read the page without assuming knowledge of earlier PRs or reports.
+Check every new concept at its first use, including tables, examples and tracking notes.
+Keep exact command names, fields and stored outputs so readers can connect explanations to the tool.
+
+For measurements, name the baseline and operation before giving a percentage.
+Report both raw amounts, units, included setup and validation, repetitions, cache state and unknown costs.
+Distinguish program execution overhead, tool runtime, text sent to an agent and complete-task cost.
+The [measurement guide](benchmarks.md) shows the existing comparisons and their limits.
+
+For tracking pages, state the user outcome, present status, evidence and next action.
+Explain IDs through their user question and label historical observations with their date or run.
+Update generated wording in its renderer so regeneration preserves these explanations.
+Preserve original experiment outputs and failures; add context around them instead of rewriting their observations.
 
 Ask whether the opening answers “When would I use this?” Read the example and check that
 its commands exist and its interpretation matches the tool’s limits. Separate an unknown answer

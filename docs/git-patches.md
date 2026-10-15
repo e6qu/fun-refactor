@@ -3,6 +3,11 @@
 Suppose you need to apply a reviewed repair in a clean checkout. Export its saved patch, then check that Git can apply it there.
 Test the receiving checkout as well. Successful patch application establishes that the text fits, not that the repair behaves correctly.
 
+A patch is a file containing proposed changes. The receiver is the checkout where you want to apply it.
+A dry run checks application without writing files. A conflict means the receiver no longer matches the patch's assumptions.
+For a checkout repair, verify the patch against the receiving source, apply it, then run that project's rounding test.
+Successful application establishes that the text changes fit, not that the repair is correct.
+
 ## Commands, results and limits
 
 Export a saved transaction from the workspace root:
@@ -57,7 +62,7 @@ fr history patch 1 --check --against /path/to/receiving/workspace --reverse
 ```
 
 `--check` prints a JSON report in both output modes, with no patch or stored source text.
-It compares every affected entry's complete UTF-8 content or link target, existence, kind and Git mode with the starting snapshots.
+It compares every affected entry's complete UTF-8 (the text encoding used to count source bytes) content or link target, existence, kind and Git mode with the starting snapshots.
 The exit code is zero when all files match that basis, and one when any file differs.
 Each sorted file row reports content and Git mode matches, expected/actual existence and kinds, and recorded/observed Unix permission modes.
 `matches_recorded_snapshot` also requires all recorded permission bits to match.
@@ -81,7 +86,7 @@ Use `git apply --check` for Git application rules, or history apply for transact
 The full-permission comparison reuses the anchored history snapshot predicate.
 Patch-basis equality and Git mode projection now use separate anchored helpers with Lean models and shared execution cases.
 See [patch verification evidence](lean-specs.md#existing-kernels) for the model laws and compiler-trust assumptions.
-Filesystem observation and report aggregation remain outside the model; general Rust correspondence remains unproved.
+Filesystem observation and report aggregation remain outside the model; general Rust correspondence (the stated connection between two descriptions) remains unproved.
 
 ## Ask Git to check application
 
@@ -123,7 +128,7 @@ Other filter drivers on unrelated paths do not prevent a check.
 Affected regular files and UTF-8 symlinks are supported. Directories remain unsupported.
 
 Checks observe current state and do not freeze files or configuration against concurrent changes.
-A successful Git verdict does not establish exact snapshot equality, write permissions or project validation.
+A successful Git verdict does not establish exact agreement between saved file states, write permissions or project validation.
 Use the snapshot check when complete starting content or link targets, entry kinds and Git modes must match.
 Git execution and attribute handling have regression tests, without a Lean correspondence proof.
 

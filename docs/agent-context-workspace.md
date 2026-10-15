@@ -3,6 +3,12 @@
 An agent investigating checkout may need the callers of `calculate`, without needing every function in the project.
 The Python client stores the larger report and returns the requested section. It checks the stored contents before reusing them.
 
+The Python client, or SDK, is a library that calls `fr` for another program.
+A report is structured data; a packet is the selected part sent to the agent.
+Materializing a section means fetching all its needed pages and assembling their values.
+For a caller question, keep the full report in Python and send only that caller list.
+This can reduce conversation text while still using Python memory, validation and subprocess work.
+
 ## Commands, results and limits
 
 `ContextSession` reads the report pages needed for a selected section and keeps them in Python.
@@ -35,7 +41,7 @@ If the source changes while pages are loading, start a new session from a fresh 
 
 The evidence view exposes `code_map`, `call_traces`, `impact` and `sources_and_sinks` through the
 same method. Semantic and project views use the same `materialize(pointer)` primitive. `packet`
-accepts up to 32 named RFC 6901 pointers and returns `fr-agent-context-1` with the revision, view,
+accepts up to 32 named JSON paths such as `/body/0`, called RFC 6901 pointers, and returns `fr-agent-context-1` with the revision, view,
 commitment, target, call count, selected values and cached object identities. It rejects a packet
 outside its explicit 1–64 KiB serialized bound.
 
@@ -56,10 +62,10 @@ budget before returning it. The default is 192 calls and an 8 KiB packet.
 `fr intent --from` and `FrClient.compile` provide the native route for ordinary use. They construct
 the same evidence model once and select the requested values without progressive subprocess calls.
 `FrClient.prepare` remains the independently tested traversal route. Native results include a
-Merkle object digest per selection; a supplied Python object store verifies and persists those
+content fingerprint of a report subtree (its Merkle object digest) per selection; a supplied Python object store verifies and persists those
 subtrees using the same record format.
 
-Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8
+Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8 (the text encoding used to count source bytes)
 strings split at byte offsets. It requires stable node identity across pages, unique object keys,
 contiguous array indices, gap-free string coverage and a final digest equal to the advertised
 object digest. The returned value is detached from the retained report.
@@ -70,7 +76,7 @@ correctly makes that handle stale.
 
 ## Object storage
 
-`MemoryObjectStore` is process-local. `DirectoryObjectStore` shards canonical JSON records by their
+`MemoryObjectStore` is process-local. `DirectoryObjectStore` shards canonical JSON, the normalized encoding used to compare records and compute their fingerprints, records by their
 lowercase SHA-256 digest and publishes immutable files atomically. `store_merkle_value` uses the
 same `fr-merkle-object-1` shape as the CLI. It limits a pack to 65,536 objects and 64 MiB, writes the
 root last, reads every object back and compares canonical bytes. `restore_stored_value` fetches only
@@ -107,7 +113,7 @@ Rust agree on the same 576-case corpus. Unit and integration tests cover paginat
 pages, empty arrays, duplicate/conflicting storage, session drift, pointer validation, exact call
 bounds and a real `fr` traversal followed by a reviewed write. These proofs cover admission
 predicates. Python execution, SHA-256 collision resistance, JSON and filesystem implementations,
-the subprocess boundary and general correspondence of the traversal algorithm remain trusted or
+the subprocess boundary and general correspondence (the stated connection between two descriptions) of the traversal algorithm remain trusted or
 integration-tested components.
 
 `FrKernels.AgentIntent` models the complete intent admission conjunction. It proves that every
@@ -124,6 +130,11 @@ history and filesystems remain integration-tested boundaries.
 
 ## Controlled comparison
 
+The baseline sends every requested page and reply through the agent's conversation.
+The compared approach fetches the same pages inside Python, then returns only the selected section.
+Both do the same internal page work. The byte difference includes the complete Python program and result.
+Python memory, validation and elapsed execution overhead are unmeasured in this comparison.
+
 The retained generic fixture materializes the same code map in both arms with 16 internal `fr`
 calls. Exposing every progressive request and response costs 59,825 bytes across 16 agent-visible
 exchanges. The complete 686-byte Python program request and its 3,864-byte selected packet cost 4,550 bytes
@@ -137,4 +148,4 @@ python3 tools/agent-context-workspace.py \
 ```
 
 This fixed protocol measurement does not run a model or measure tokens, hidden reasoning, billed
-quota or population behavior.
+quota or results across a wider range of tasks.

@@ -3,6 +3,11 @@
 Before starting work, check which files have edits, which are staged and which Git does not track.
 For example, an agent should inspect a pre-existing checkout change before preparing another edit to the same file.
 
+Git compares your working files, the staged index and the current commit, named HEAD.
+Staged means prepared for the next commit; unstaged means the working file differs from its staged state.
+Untracked means Git has no tracked entry for that file.
+For a checkout fix, inspect both staged and unstaged changes before deciding what to deliver.
+
 ## Commands, results and limits
 
 ```sh
@@ -19,7 +24,7 @@ Status inspection does not load transaction history, so an invalid journal does 
 ## Rows and counts
 
 `--kind` selects `all`, `staged`, `unstaged`, `untracked` or `conflicted`; the default is `all`.
-Rows sort by repository-relative UTF-8 path. Unsupported encodings and malformed Git records cause refusal.
+Rows sort by repository-relative UTF-8 (the text encoding used to count source bytes) path. Unsupported encodings and malformed Git records cause refusal.
 The parser follows Git's [porcelain v2 format](https://git-scm.com/docs/git-status).
 Each row includes `path`, raw `xy`, `index_status`, `worktree_status`, `untracked`, `conflicted` and `submodule`.
 Named states include modified, added, deleted, type-changed, renamed and copied; an unchanged side is null.
@@ -81,7 +86,7 @@ Status does not report ahead/behind counts or structural impact, or perform stag
 
 Page sizing reuses the existing Lean-anchored pagination helper.
 Parser and Git regression tests cover status classes, malformed records, cursors, conflicts, linked worktrees and preservation of index bytes.
-These checks do not prove correspondence between Git execution, the parser and a Lean status model.
+These checks do not prove correspondence (the stated connection between two descriptions) between Git execution, the parser and a Lean status model.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 

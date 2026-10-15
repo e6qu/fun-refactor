@@ -3,6 +3,12 @@
 Suppose your application imports a utility library and sends a value through one of its helpers.
 You want to know whether user input can reach the output, including what the import does.
 
+A library import can execute a package's `__init__.py` before making its helper available.
+That startup code can change names or shared objects, so reading only the helper's body can miss relevant behavior.
+A source is the configured input call; a sink is the configured output call.
+The examples use `read_input()` and `send()` to illustrate those roles; the test setup supplies their implementations.
+A cutoff records why analysis could not finish. Read it before interpreting an empty trace.
+
 This is an illustration of that question:
 
 ```python
@@ -74,7 +80,7 @@ maintained utility libraries, not a representative sample of Python applications
 
 Each authored adapter imports the upstream identity helper through its real package. One entry
 passes the selected value through two helper calls to a sink. Another calls the helper, overwrites
-the value and sends zero through the helper to the same sink. Independent AST inspection checks
+the value and sends zero through the helper to the same sink. Independent inspection of the parsed syntax tree checks
 the actual runtime implementation; isolated CPython executions use source values 17 and 31.
 The alternate adapter renames its entry and import alias and moves into another package without
 changing upstream code or analysis rules. Unknown-call, one-step-budget and invalid-byte-budget
@@ -93,7 +99,7 @@ Runtime execution agrees with independent inspection. Renaming and relocation pr
 reported conclusions. The analyzer remains incomplete even for the positive and overwritten
 entries in these packages. An empty witness list therefore does not establish no path.
 Unknown calls and exhausted budgets stay incomplete; invalid response budgets refuse analysis.
-**B.repository-flow remains open**, and roadmap status remains 9/18 demonstrated acceptance items.
+**B.repository-flow remains open.** The [current status](roadmap-status.md) owns the overall requirement counts.
 These results establish neither general library support nor agent efficiency.
 
 Retained cutoffs include unchecked module effects, cyclic initialization, unsupported import
@@ -105,15 +111,15 @@ Pydash source first opened after coverage passed on the same collector revision.
 inspection failed because the harness treated type-only overload declarations as runtime
 implementations. General inspector and runtime-dependency corrections followed; the native
 analyzer never changed. The record preserves that first opening. Pydash cannot serve as a fresh
-held-out project for a later analyzer implementation.
+project kept unread during development for a later analyzer implementation.
 
 Collection also exposed two harness failures: an invalid requested call depth and an evidence
 directory restored by the compiler cache. Preflight validates public CLI budgets, and collection
 now writes to a unique `RUNNER_TEMP` directory. The exact failed report and snapshots remain
 historical evidence; a pre-download failure records its run and reason. Every timeout stays unchanged.
 
-The hosted retainer verifies archive digests, producer attempts and source bindings, replays
-runtime observations, and checks corruptions after rehashing the modified receipts. Snapshots
+The hosted retainer verifies archive digests, producer attempts and recorded input fingerprints, replays
+runtime observations, and checks altered records after rehashing the modified receipts. Snapshots
 retain full source inventories and upstream licenses. The
 [fixture guide](../tests/agent-eval/python-repository-flow/README.md) describes the collector.
 
@@ -123,7 +129,7 @@ arguments remain incomplete. The [current regression collection](../tests/agent-
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
-boundaries still prevent repository acceptance. The original baseline bytes remain intact;
+boundaries still prevent the real-project requirement. The original baseline bytes remain intact;
 its historical audit uses a pinned snapshot of the original source and collector.
 
 The expanded collector also checks Funcy's `inc` and `dec`, Pydash's `add` and Toolz's `return_none`.
@@ -131,10 +137,10 @@ Each helper runs through its original package and through an explicitly isolated
 The latter copies the exact runtime function and an uncalled variadic companion from the pinned source.
 It also adds the declared authored binding `probe_metadata = 0` to exercise inert scalar initialization.
 That binding is a control, not an upstream source fragment.
-Independent AST inspection checks the scalar operation, signature and both source fragments.
+Independent inspection of the parsed syntax tree checks the scalar operation, signature and both source fragments.
 Two runtime inputs, renamed/relocated adapters, unknown calls and budget controls cover both contexts.
 The collector keeps package outcomes separate from isolated declaration results. Isolated success cannot
-establish repository acceptance or erase unchecked initialization effects in the original packages.
+establish the real-project requirement or erase unchecked initialization effects in the original packages.
 
 | Expanded context | Cells | Complete | Incomplete | CLI refusals |
 | --- | ---: | ---: | ---: | ---: |
@@ -156,7 +162,7 @@ Toolz also clears its import-search cutoff. The current Pydash replay uses 47 se
 and reaches the separate 256 KiB source limit. Its unchecked startup statements fall from 510 to 420
 across the same eight files.
 The full-package outcomes in the table stay unchanged. The
-[handoff](continuity.md#what-to-work-on-next) describes the next investigation with these differences in view.
+[handoff](continuity.md#return-to-python-after-this-review) describes the next investigation with these differences in view.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
@@ -168,9 +174,10 @@ To inspect an incomplete answer, use the initialization locations described in t
 They point to loaded source statements, such as an evaluated assignment or unsupported class declaration.
 The list is bounded and counts omitted locations. It does not establish package success or explain
 code in modules the import search could not load.
-The familiar pydash result reaches the 128 import-lookup limit before its annotation directives
-are checked. The focused postponed-annotation examples pass; that package still needs a solution
-for the other imports and executed initialization. Literal package metadata such as
+Earlier Pydash records reached the 128-search limit before annotation directives could be checked.
+The current replay clears that obstacle and reaches the separate 256 KiB source limit instead.
+The focused postponed-annotation examples pass; the package still needs other imports and startup behavior checked.
+Literal package metadata such as
 `__version__ = "8.1.0"` can now stay inert without admitting import controls or global reads.
 The withdrawn Boltons reservation overlooked earlier repository-delivery coverage; preserve that
 mistake rather than treating Boltons as new. Keep unknown effects and exhausted budgets incomplete.

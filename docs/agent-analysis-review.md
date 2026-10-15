@@ -1,220 +1,160 @@
 # Earlier review of code understanding and task planning
 
-This review asks whether an agent can find the cause of a bug and keep track of what it still needs to check.
-For example, finding a caller is useful only if the agent can connect it to the reported failure. The dated assessment below informs the current plan; it is not a current support list.
+Use this dated review to understand why the project moved from applying known edits toward helping agents investigate unfamiliar problems.
+The [current plan](../PLAN.md) owns priorities. The [status report](roadmap-status.md) owns current results and unfinished requirements.
 
 ## Dated assessment and proposed work
 
-Review date: 2026-09-23. Baseline: `c22ba827`, including merged PR #355.
-The [roadmap](../PLAN.md) owns priorities and acceptance gates. This review records the reasoning
-and implementation evidence behind that direction. Proposed contracts below describe future work.
+The original review took place on 2026-09-23 at `c22ba827`, including PR #355.
+The observations and proposed work below describe that point in development. They are not today's support list or new measurements.
 
 ## Assessment
 
-`fr` has a substantial foundation for agent discovery, constrained authoring and reviewed delivery.
-Its strongest property is evidence discipline: bounded reports, explicit uncertainty, exact review
-bases and distinct verification claims. Preserve that property as analysis grows.
+The tool could already find code, prepare edits, require review and deliver checked patches in selected examples.
+The missing larger outcome was helping an agent discover the right repair in a project it had never seen.
 
-The representative guided delivery milestone is complete for its pinned corpus. General agent
-investigation remains an open product outcome. Current acceptance establishes specific read,
-change, migration and proof routes. It does not establish broad bug diagnosis, interprocedural
-dataflow, security analysis or durable planning across changing revisions.
-
-The next investment should connect analysis to task decisions. An agent needs to locate relevant
-code, explain a relationship, identify missing evidence, choose a change and verify the result.
-Adding another wrapper around an existing edit contributes less until an observed task needs it.
+For example, “fix checkout rounding” needs more than a command that replaces a supplied function body.
+The agent must find the calculation, explain the mistake, inspect its callers and choose tests that catch the requested error.
+The review recommended connecting analysis to those decisions while preserving review, undo and explicit unanswered questions.
 
 ## What exists
 
-| Area | Current evidence | Boundary |
-|---|---|---|
-| Parsing and indexing | Nineteen parser identities; declarations, scopes, references, imports and receiver evidence | Parser support does not establish complete semantic analysis |
-| Code map | Directory and lexical containment, relationships, packages, entry points, framework facts and test associations | The map explicitly says architecture is not inferred |
-| Exact source navigation | Revision-bound declaration handles, name and definition locations, typed Python targets and verified source fragments | Occurrence locations and semantic-node origins need a common public contract |
-| Progressive discovery | Semantic, evidence and project views; bounded pages, continuations, omissions and exact follow actions | A bounded answer may leave relevant code unexplored |
-| Merkle storage | Canonical object records, subtree deduplication, optional inclusion proofs and verified local or HTTP stores | Content identity alone establishes neither semantic truth nor applicability to another revision |
-| Calls and impact | Incoming/outgoing traces, dispatch candidates, cycles, confidence and bounded caller impact | Candidate calls do not establish runtime dispatch or value transfer |
-| Value flow | Local initializer origins and reference uses, plus configuration provenance and stitching | Function boundaries stop imperative value tracing; security semantics need additional models |
-| Agent routing | Structured purposes, deterministic guides, native intent packets and typed SDK operations | Route selection does not manage a continuing investigation |
-| Changes | Refactors, recipes, semantic edits, authored bodies, surface edits and application migrations | Support varies by language, construct and effects |
-| Delivery | Immutable reviews, checks, recoverable history, reversal and Git patch delivery | Behavioral correctness requires suitable oracles |
-| Lean | Anchors, signature maps, model obligations, proof authoring, executable kernels and finite correspondence cases | General source implementation equivalence remains an explicit obligation |
-| Evaluations | Pinned deterministic cases and accepted guided live trials with independent oracles | Task breadth, repeated trials and unknown-target investigations need expansion |
+A declaration defines a named piece of code; a reference uses that name.
+A handle selects a declaration in a particular source state. A fingerprint identifies saved contents.
+A model describes the parts of code the tool supports. These concepts serve different purposes.
 
-The live audit is the authority for support counts. Its capability cells are admission predicates,
-not accuracy measurements. The [evaluation guide](evaluations.md) identifies accepted manifests
-and separates deterministic evidence from live trials.
+| Area at the review date | What it helped the user do | What it did not establish |
+| --- | --- | --- |
+| Parsing and indexing | Recognize syntax, functions, uses and imports | Complete understanding of a language's behavior |
+| Project maps and source locations | Find a declaration and open relevant source | That the code is correct or every related use is known |
+| Calls and affected-code reports | List possible callers and related changes | Which runtime target executes or which argument reaches the result |
+| Selected report pages and content storage | Read needed sections and verify saved bytes | That a saved conclusion still applies after another file changes |
+| Guides and reviewed changes | Choose a supported command and inspect an edit before applying it | That the agent discovered the right solution |
+| History, checks and patch delivery | Test, reverse and transfer a known change | Behavior outside the chosen tests |
+| Lean proof support | Check a stated rule about a supported model | An automatic proof of the original source implementation |
+
+Use the installed `fr audit` for current support. Historical counts in this review cannot replace it.
 
 ## Gaps that affect agent work
 
 ### Exact occurrences and analysis provenance
 
-Declaration locations now connect AST identities to editable text. `src/span.rs` defines byte spans
-and line ranges; `src/project.rs` exposes them in targeted declaration reports. Python verifies
-the selected targets and revealed text.
+An occurrence is one written use, with a file and range of source positions.
+If `send(first()); send(second())` appears on one line, the explanation must identify the particular call it means.
+A declaration's location alone cannot distinguish those uses.
 
-Relationship endpoints still expose a line, and call sites expose a starting position.
-`src/project/evidence.rs` also emits starting positions for flow and impact evidence. These reports
-need occurrence ranges for the specific reference or expression, distinct from the owning declaration.
-An agent investigating two calls on one line needs both identities.
+The review proposed recording each use's source state, path, byte range, line range and role.
+Generated model nodes can have missing or multiple source locations; the tool must report those cases rather than invent a location.
 
-Adopt one reusable occurrence record: snapshot, path, exact span, derived line range, role and
-enclosing declaration when available. Keep the existing Unicode column and EOF conventions explicit.
-Semantic nodes need origin mappings with explicit absent or multiple origins for generated or
-combined constructs. Avoid inventing a source span for a synthetic node.
-
-Analysis facts also need their rule, inputs, confidence, scope and omissions. Allow the agent to
-ask why an edge exists and which assumption limits it. Expose full locations and derivations through
-bounded detail actions so overview packets stay small.
-
-Build configuration belongs in that evidence scope. Record the selected feature flags, generated
-inputs and dependency universe when they affect an answer. Keep inferred test associations separate
-from observed test coverage. Optional compiler facts can improve resolution where a pinned task
-requires them; retain their toolchain identity, provenance and disagreements with syntax evidence.
-Ordinary structural discovery should retain its current configuration-free path.
+Provenance means where a finding comes from. A useful explanation includes the rule, inputs, assumptions and unexamined parts behind it.
+For a compiler finding, retain its build settings and tool version too.
+A source search suggesting a related test differs from evidence that the test exercised the requested behavior.
 
 ### Control flow and value flow
 
-`src/analysis/flow.rs` walks initializer dependencies and uses. `StopReason::CrossesFunctionBoundary`
-explicitly stops at parameters and resolved call results. The evidence view names its sources and
-sinks as local origins and uses. These are useful foundations for investigation.
+Control flow describes which steps can follow which others. Value flow describes where an input can contribute to a later value.
+A call list only says which functions may be invoked; it cannot establish which argument a helper returns.
 
-The next layer needs an analysis IR with explicit control-flow edges and value definitions.
-Begin with supported functions in one language. Model assignment order, branches, loops, returns
-and exceptional exits where admitted. Report unsupported effects at the affected boundary.
+For example, `choose(left, right)` returning `left` should treat the two input slots differently.
+Overwriting a value before `send` should also differ from forwarding it unchanged.
+The proposed work was to represent evaluation order, assignments, branches, loops, returns and supported exceptions explicitly.
 
-Then add bounded function summaries for argument-to-parameter and return-to-result transfer.
-Declare context sensitivity, recursion handling, alias assumptions and termination budgets.
-External calls require explicit summaries or unknown effects. A call graph path alone cannot
-answer whether a particular value reaches a use.
+A function summary records those supported relationships across calls, including recursive calls.
+Unknown calls and shared mutable objects need explicit limits.
+Repeating analysis until no new facts appear does not prove that the program terminates.
 
-State whether an analysis overapproximates possible behavior, proves a condition, or offers a
-heuristic candidate. Confidence labels alone cannot establish a soundness guarantee. Prioritize
-correctness and measured precision in a declared subset before widening language coverage.
-
-Security queries need versioned source, sink, propagation and sanitizer rules. A sanitizer has
-specific input, output and context semantics. A matching function name cannot establish safety.
-Return a witness with exact occurrences, assumptions, rule identities and cutoffs. Distinguish
-potential paths from feasible paths. An exhausted search cannot establish absence.
+For input/output questions, users name external source, sink and cleaning rules.
+A source supplies the tracked value; a sink consumes it. Cleaning is specific to a context, such as HTML output.
+A matching function name alone cannot establish safety.
+Return possible connections with their exact locations and assumptions. An unfinished search must leave absence unanswered.
 
 ### Task planning
 
-`src/project/agent_guide.rs` selects a route from a structured goal. `src/project/task.rs` combines
-bounded requests, authored targets, checks and delivery. Those are useful primitives for a task plan.
+A task plan keeps the requested outcome, questions, possible explanations, observations and remaining checks.
+For checkout, keep “the caller passes cents” as an observation and “the conversion is wrong” as a hypothesis until checked.
 
-A continuing task also needs acceptance criteria, hypotheses, evidence dependencies, unresolved
-questions and progress. Add a typed task plan above the existing guide and review lifecycle.
-Keep natural-language interpretation and proposed hypotheses with the agent. Let `fr` validate
-references, prerequisites, budgets, transitions and completion evidence.
+Each proposed step needed:
 
-A proposed task step contains:
+- A question or intended outcome and a local ID.
+- The source and settings its findings depend on.
+- The read, proposed edit, test or proof needed next.
+- Its state, such as pending, running, satisfied or outdated.
+- The evidence satisfying the requirement and anything still unknown.
 
-- A question or intended outcome, with a task-local identity.
-- Dependencies and required facts, each tied to a snapshot and analysis version.
-- A bounded discovery action, authored change, check or proof obligation.
-- Explicit states: pending, ready, running, satisfied, blocked or stale.
-- Evidence that satisfies the step, plus remaining uncertainty and acceptance criteria.
-
-Hypotheses remain distinct from tool facts. A successful command cannot by itself satisfy an
-acceptance criterion. Mutation steps continue through complete immutable reviews. Investigation
-steps can refine the plan without granting permission to execute a changed preview.
-
-Start with a local serializable plan. Test interruption, reopening and revision changes before
-adding scheduling or concurrent execution. Existing history remains the authority for mutations.
+Saving a plan should not give it permission to apply an unreviewed edit.
+The recommendation was to test saving, interruption, reopening and source changes before adding scheduling or concurrent work.
 
 ### Merkle reuse across revisions
 
-The current Merkle implementation already addresses disclosure and cache integrity.
-`docs/progressive-disclosure.md` specifies both tree commitments and deduplicated object records.
-`src/cache.rs` also caches extracted facts, resolution snapshots and analyses.
-`src/index.rs` derives resolution keys from the workspace fact set.
+A Merkle tree organizes content fingerprints so a changed child changes the fingerprints above it.
+That can verify stored report bytes. It cannot by itself establish that an earlier answer applies to today's code.
 
-Incremental analysis requires dependency records in addition to content hashes. An unchanged
-function can acquire a different meaning when imports, build options or a called function change.
-Record dependencies on those inputs, including negative lookups and external summary versions.
+For example, an unchanged helper can behave differently if its import now selects another function.
+Reuse must check imports, relevant build settings, called functions and previously missing names as well as the helper's own contents.
 
-Keep three identities explicit:
+| Reference | What it identifies | What to do after an edit |
+| --- | --- | --- |
+| Current handle | Selected code in a particular source state | Obtain a fresh one before acting |
+| Object digest | Saved contents with a particular fingerprint | Verify the contents before reading them |
+| Candidate match across revisions | Code that might correspond to an earlier declaration | Review ambiguous or missing matches; never renew edit permission automatically |
 
-| Identity | Purpose | Reuse rule |
-|---|---|---|
-| Revision-bound handle | Address a current declaration and admit an action | Refresh before acting on another revision |
-| Object digest | Deduplicate and verify immutable content | Reuse identical content after digest verification |
-| Correspondence between revisions | Relate a prior entity to current candidates | Report matched, ambiguous or missing; validate before rebinding |
-
-Treat the code model as a graph with shared dependencies and cycles. Merkle objects can encode
-acyclic snapshots and component summaries; graph references need an explicit canonical representation.
-Avoid recursively hashing cyclic call edges as a tree.
-
-Reuse a task step only when its recorded dependencies and analysis assumptions still hold.
-Rebuild when that dependency set is incomplete. Compare incremental answers with clean rebuilds.
-Measure cold, warm and single-edit costs before choosing finer cache granularity or a daemon.
+Compare reused answers with fresh analysis. Measure initial work, reuse, rechecking after an edit, storage and memory.
+The [measurement guide](benchmarks.md) explains these baselines and costs.
 
 ### Changes, translation and proofs
 
-Use separate representations with explicit bridges: source syntax, project relationships,
-control/value analysis, portable authoring IR, application IR and formal kernels.
-The existing authoring IR serves code generation. New analysis semantics should preserve
-language-specific behavior and origin mappings where portable authoring cannot express them.
+Different questions need different descriptions of code.
+The written syntax supports source edits; call relationships help find affected code; value rules help answer input questions.
+IR, the shared structured code record, supports selected generation and translation.
+A proof model supplies the definitions and assumptions checked by Lean.
 
-Feature work needs contracts, consumers, configuration and tests in the impact set. Bug work needs
-a reproducer, competing explanations and regression evidence. Refactoring needs preservation claims
-and affected call sites. Translation needs an explicit equivalence domain and unsupported constructs.
-Numeric overflow, exceptions, evaluation order, mutation and effects belong in those contracts.
+For a bug, require a reproducing example and an independent behavior test.
+For a signature change, inspect affected callers. For translation, state which inputs, arithmetic, errors and effects must agree.
 
-For existing code, prove a selected model property and state the source correspondence obligation.
-For new code, author a specification and implementation together, with a checked bridge where feasible.
-For refactoring or translation, retain the old and new models and state preservation or refinement.
-Source changes must invalidate dependent proof evidence; renewing a hash cannot re-establish a theorem's applicability.
-
-Lean work belongs in every relevant outcome. Use small executable kernels for edit admission,
-invalidation and plan transitions. Keep parser, compiler, filesystem and subprocess assumptions
-visible. A verified-generation path or source correspondence proof needs its own acceptance gate.
+A proof establishes its stated property under its assumptions.
+Check its connection to the source implementation separately, and discard dependent proof results after relevant source changes.
+Changing a fingerprint cannot re-establish that connection.
+Small proofs about the tool's review or recovery rules remain useful, with parser and filesystem assumptions visible.
 
 ## Task acceptance matrix
 
-These are proposed additions to the existing corpus. Pin independent oracles before implementation.
+These were proposed tests, not completed experiments. Choose the independent reference checks before implementing the feature.
 
-| Task | Required evidence | Acceptance example |
-|---|---|---|
-| Understand a subsystem | Relevant declarations, relationships, explanations and coverage | Answer an architectural question with exact evidence and explicit unknowns |
-| Trace code flow | Call sites, branch conditions and dispatch candidates | Explain two paths with different behavior and preserve unresolved edges |
-| Trace dataflow | Definitions, uses, call summaries and effects | Follow a value through a helper and distinguish a later overwrite |
-| Sources and sinks | Rule identities, propagation, sanitizers and witness paths | Find an unsafe path and distinguish a sanitizer that applies in another context |
-| Fix a bug | Failing reproducer, hypothesis evidence and affected consumers | Discover the target from a symptom, repair it and pass a separate regression oracle |
-| Write a feature | Acceptance criteria, insertion points, contracts and callers | Add behavior across modules without supplying the edit target in advance |
-| Refactor or restructure | Complete target set, ambiguity handling and preservation evidence | Move or change a declaration and update its consumers through one reviewed delivery |
-| Translate code | Source/target semantics, fidelity gaps and correspondence evidence | Compare both implementations on declared cases and report unmodeled behavior |
-| Prove old or new code | Property, assumptions, anchors and source/model relationship | Check a property, change a dependency and reject the stale evidence |
-| Resume a task | Retained evidence, dependency changes and invalidated steps | Continue after a relevant edit while retaining independently valid work |
+| User task | Example result the test should require |
+| --- | --- |
+| Understand a subsystem | Explain an architecture question using the relevant code and explicit unknowns |
+| Follow execution | Explain two branches with different behavior and keep unresolved call targets visible |
+| Follow a value | Trace input through a helper and distinguish an overwrite |
+| Investigate unsafe output | Distinguish HTML cleaning from cleaning intended for another context |
+| Fix a bug | Find the responsible code from a symptom and pass an independent regression test |
+| Add a feature | Meet its requirements across modules without being handed the edit location |
+| Refactor | Update the promised declaration and callers through one reviewed change |
+| Translate | Compare source and generated behavior for stated inputs and report unsupported behavior |
+| Prove a property | State assumptions, check the proof and establish its connection to the selected code |
+| Resume work | Recheck affected findings after a helper changes while preserving unrelated observations |
 
-Use positive, negative, ambiguous and truncated cases. Measure useful task completion, false claims,
-diagnostic precision, context bytes, source reveal, latency and recomputation. Record tokens and
-cache usage only when the runner exposes them. Compare against ordinary search plus source editing
-and against the current `fr` workflow on the same task and revision.
-
-Allow bounded follow-up discovery during investigation. The old requirement for zero exploratory
-calls after guidance favors preselected tasks. Keep it as a historical cohort condition, while new
-investigation trials measure whether each discovery contributes useful evidence.
+Include reaching-input, blocked-input, ambiguous and truncated cases.
+Measure correctness and all work spent, including failures and follow-up reads.
+Compare with ordinary search and editing on the same task and revision, and report missing time or cost information as unknown.
 
 ## Changes in understanding
 
-- Representative delivery is a completed milestone within a continuing analysis product.
-- Declaration spans solve target navigation; occurrence and semantic origin maps complete the text/AST connection.
-- Call reachability, value propagation and security taint need separate claims and models.
-- Merkle storage supplies integrity and reuse of content; dependency validation supplies reuse of conclusions.
-- Structured routing and immutable reviews provide the base for a persistent investigation plan.
-- Proofs of model properties, finite agreement and source implementation proofs remain separate evidence classes.
-- Runtime type validation belongs at JSON and tool boundaries. Prioritize typed internal contracts over counting `isinstance` calls.
+The review separated several claims that earlier summaries could blur.
+Applying a prescribed patch differs from discovering a solution.
+Finding a possible caller differs from tracing a particular value.
+Verifying saved bytes differs from rechecking a conclusion after an import changes.
+A proof of a separate model differs from a proof connected to the implementation.
+These distinctions still guide how current results should be explained.
 
 ## Review scope and evidence
 
-This review reads the implementation, protocol guides, roadmap, handoff and retained acceptance registry.
-It runs the live audit, workflow audit, proof audit and capability report from the existing local binary.
-A small Rust fixture confirms exact declaration locations and the explicit parameter-flow boundary.
-These checks assess contracts; they do not replay compiler, behavioral or Lean acceptance suites.
-The retained representative registry audit passes: six deterministic cases, ten live trials and
-two matched cohorts. The ten capability-matrix tests, local documentation links, prose budget and
-diff whitespace checks pass for this documentation update.
+At the original review, the author inspected source, protocol guides, planning pages and the saved acceptance registry.
+The local audit commands and a small Rust example checked support reports and declaration locations.
+They did not replay the compiler, behavior or Lean acceptance suites.
+
+The original registry audit reported six scripted cases, ten live trials and two matched groups of attempts.
+Ten capability-report tests, local links, writing counts and whitespace checks passed for that earlier documentation update.
+Those historical observations remain separate from validation of this rewrite and from today's larger product goals.
 
 Key implementation entry points:
 

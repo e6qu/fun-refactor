@@ -3,6 +3,11 @@
 Suppose you want to move a small Python helper to Go. `fr` first records the supported parts of the helper, then writes Go from that record.
 That shared record is the intermediate representation, or IR. Review anything the tool cannot translate and test the generated function before using it.
 
+A statement performs a step, such as assigning `amount = 3`. An expression computes a value, such as `amount + 1`.
+A type describes the kind of value, such as an integer or a string.
+For `return amount + 1`, the shared record contains a return statement holding an addition expression.
+The tables use Rust notation: `Vec<T>` means a list of items of kind `T`; `Option<T>` means a value that can be absent.
+
 ## Commands, results and limits
 
 `fr translate` reads supported code into a shared record, then writes the target language from

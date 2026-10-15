@@ -3,6 +3,11 @@
 Before asking an agent to trace Python input or migrate a route, check whether the installed tool supports the required operation.
 `fr audit` lists its support and limits. A supported operation can still refuse a particular input; read that reason before choosing the next step.
 
+A capability is an operation the installed tool advertises. A boundary describes a limit on what it can establish.
+`audit` reports those capabilities; it does not run your project's tests.
+For an imported Python helper, check import support before requesting a trace, then inspect the actual trace's unfinished parts.
+“Supported” describes a route that may accept suitable input, not a guarantee that your whole project fits it.
+
 ## Commands, results and limits
 
 `fr audit` gives an agent a compact support and trust summary before it chooses a workflow. The

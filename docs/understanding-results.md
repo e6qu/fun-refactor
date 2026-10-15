@@ -4,6 +4,9 @@ Suppose you ask an agent to fix checkout. A useful answer should tell you where 
 what the tool checked, what remains uncertain and how to check the proposed repair.
 
 The examples here explain result meanings. They are illustrations, not new measured runs.
+A declaration defines a function; a caller invokes it. A handle is a returned reference selecting that code.
+A model is the tool's description of supported behavior; execution is what happens when the actual program runs.
+The examples distinguish those two kinds of answer.
 
 ## “I found the function”
 
@@ -95,3 +98,10 @@ Read [proof support](lean-specs.md) for the supported forms and remaining assump
 For project progress, use the [current results](roadmap-status.md). A scripted patch replay
 tests delivery; a comparison where an agent discovers the solution tests a different question.
 The [product review](product-review.md) explains why we still cannot claim general savings.
+
+## “The benchmark improved”
+
+Ask which operation was measured and what it was compared with.
+A smaller reply can save conversation text while still requiring indexing, validation and Python execution.
+For example, calling `fr` five times inside Python can send one short result to the agent; the five calls still run.
+Read the [comparison and overhead guide](benchmarks.md) before treating a text-size reduction as lower time or cost.

@@ -1,8 +1,8 @@
 # Compose related refactorings
 
-Use a recipe when a repeated cleanup needs several related edits. Review the combined preview before writing any of them.
+A recipe orders edits. Its selector chooses code; its expectation checks a declared result. Preview the combined cleanup before writing.
 
-Load the vocabulary when authoring:
+Inspect supported steps:
 
 ```sh
 fr --json recipe --vocabulary
@@ -23,8 +23,6 @@ recipe rename-greeting {
 }
 ```
 
-Preview this alternative before the single rename changes the source.
-Set expectations for the actual task; the example touches two files.
-Save a recipe with `--save-plan` and apply its returned transaction through history.
-All steps see the preceding virtual result, and failed expectations prevent source writes.
-A recipe composes existing operations; it cannot authorize an unsupported transformation.
+Preview before the single rename changes source. Set expectations for your task; this example changes two files.
+`--save-plan` saves a transaction for history. Each step sees earlier proposed edits; failed expectations prevent writing.
+A recipe uses existing operations and retains their support limits.

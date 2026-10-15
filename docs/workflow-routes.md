@@ -3,6 +3,12 @@
 You can ask for a task guide or use individual commands to inspect, preview and apply the same change.
 For example, compare those routes for a small helper repair. The measurements below count scripted tool work; they do not tell us which route helps a live agent finish faster.
 
+A route here means a sequence of tool commands, not an HTTP endpoint.
+A guide helps choose an operation; an intent describes the requested operation and report sections.
+A task change combines known targets, replacement code and checks. Direct authoring previews edits before a separate workflow delivers them.
+For a known rounding repair, compare routes using the same replacement and tests.
+The byte totals include requests and replies; they do not measure time spent inventing the replacement.
+
 ## Measured routes and their limits
 
 This comparison measures the cost of reaching the same checked edit through four public
@@ -38,12 +44,12 @@ joins. Do not duplicate all four manifests in the entry guide.
 Collected on GitHub, with a 15-minute job ceiling and no OpenCode or provider calls:
 
 - Compare a Rust scalar edit, a Python body replacement and two coordinated Rust bodies.
-- Use identical starting files, authored changes, postconditions, named checks, reversal and patch
+- Use identical starting files, authored changes, required conditions after the edit, named checks, reversal and patch
   delivery in each route. Retain the commands, input payloads, response objects and refusals.
-- Check exact final source and patch bytes, all eight lifecycle stages, and independent behavior.
+- Check exact final source and patch bytes, all eight apply, check, reversal and delivery stages, and independent behavior.
   Report the direct-author transaction's different check binding rather than hiding it.
 - Compare guided execution before and after consolidation using the exact former execution
-  function. Keep its source and origin with the report. Count actual calls and canonical JSON
+  function. Keep its source and origin with the report. Count actual calls and canonical JSON, the normalized encoding used to compare records and compute their fingerprints,
   request/response bytes; do not infer time or token savings from those counts.
 - Exercise stale source, changed check declarations, changed fragment inputs, a failed original
   check and mutation of a retained guide goal/review. A refused execution must not modify source
@@ -62,14 +68,20 @@ oracle processes are outside the fr traffic count.
 
 ## Results
 
+Read each column as a different command sequence for the same prescribed edit.
+The baseline for “Guide after” is “Guide before”; the other route columns are alternatives, not time measurements.
+Byte totals include serialized requests and replies, including input-file contents.
+They exclude the agent's work to discover the repair, common fixture setup and independent checking processes.
+Process counts reveal some extra work, but this report does not measure its execution time or memory overhead.
+
 [Run 37973505951, attempt 2](https://github.com/e6qu/fun-refactor/actions/runs/37973505951)
 passed all 38 cells: 15 successful edits and 23 refusals. The
 [retained report](../tests/agent-eval/results/2026-10-09-workflow-routes/result.json) contains
 every command and response; its manifest records the source commit, binary digest and original
-GitHub artifact digest. Seven offline regression tests check completeness and corruptions.
+GitHub artifact digest. Seven offline regression tests check completeness and altered records.
 
 Each successful arm produced identical final source and patch bytes and passed all eight
-lifecycle stages plus an independent behavior check. Cells with changed source, checks or
+apply, check, reversal and delivery stages plus an independent behavior check. Cells with changed source, checks or
 fragment inputs refused. Failed original checks retained an unapplied plan. Changed goal/review
 objects refused inside the SDK. None of those 23 cases changed source or delivered a patch.
 An author plan already owns its fragment, so changing that external file is not a stale-input
@@ -90,7 +102,7 @@ processes and 11,315 internal bytes, versus three and 21,030 for guided delivery
 The two harnesses count different request envelopes; compare arms within each harness.
 
 Keep all public routes. Use task change when concrete targets, changes and checks are already
-known; use the guide when selecting an admitted operation. The body-input comparison below removes
+known; use the guide when selecting an supported operation. The body-input comparison below removes
 repeated caller fields within the guide route.
 
 Two development runs failed: the first expected the wrong scalar formatting; the second compared
@@ -112,7 +124,7 @@ Tests and the report-refresh workflow read that path from the catalog instead of
 
 `AgentGuide.source_body_action` accepts caller-authored source keyed by every exact guided handle.
 It copies the bodies into the existing typed task operation and reuses retained checks, delivery
-and targets. It derives exact file/edit postconditions. It performs no discovery or subprocess work;
+and targets. It derives exact file/edit required conditions after the edit. It performs no discovery or subprocess work;
 the existing guide, review and execution calls remain. Names and positions cannot substitute for handles.
 
 [Run 37995201079](https://github.com/e6qu/fun-refactor/actions/runs/37995201079) passed the SDK type
@@ -131,15 +143,15 @@ the roadmap remains at 7/18 demonstrated items and 0/4 completed milestones.
 | Two Rust bodies | 1,766 | 1,171 | 22,156 |
 | Two Python files, same function name | 1,782 | 1,187 | 23,003 |
 
-The middle columns count complete program UTF-8 bytes plus the canonical submission. The helper
+The middle columns count complete program UTF-8 (the text encoding used to count source bytes) bytes plus the canonical submission. The helper
 removes 595 bytes in each fixture. Both arms make three fr calls with equal internal byte counts,
-produce identical patches and pass all eight lifecycle stages and independent behavior checks.
+produce identical patches and pass all eight apply, check, reversal and delivery stages and independent behavior checks.
 These are prescribed edits with known replacement bodies. No tokenizer, model, billing, time or
 general autonomous-efficiency comparison ran.
 
 The remaining 32 cells cover changed source/check declarations, a failed applied-state check and
 a later conflicting edit. Applied failures return a nonzero exit with the structured transaction
-report: source stays changed, later lifecycle stages remain pending and no patch is delivered.
+report: source stays changed, later apply, check, reversal and delivery stages remain pending and no patch is delivered.
 A reopened client inspects and previews undo of that transaction. Undo restores the exact original
 source and the declared check passes; a conflicting later edit instead makes undo refuse without
 overwriting it. This establishes undo recovery, not repaired delivery or automatic rollback.
@@ -150,6 +162,6 @@ also cover a clipped diff, ambiguous selection and missing source permission bef
 We kept every public route and left frozen runner snapshots unchanged.
 
 The later [recovery comparison](workflow-recovery.md#retained-results) extends applied-state
-failure through checked delivery and receiver replay. It compares explicit resume with
+failure through checked delivery and patch application and checks in another checkout. It compares explicit resume with
 undo-and-retry after repairing an external check prerequisite. Source changes still require
 a new reviewed transaction; the comparison does not establish combined source-repair delivery.

@@ -3,6 +3,11 @@
 After a separate Git working folder is fully removed, you may want to discard its larger recovery archive. Preview compaction first.
 This keeps a small record of the removal and deletes the full recovery data. Use it only after the removal is complete.
 
+A removed worktree can leave a recovery archive, the saved data used to restore it.
+Compaction deletes eligible recovery payload while keeping a durable summary of what happened.
+This trades storage for recoverability; read the stated eligibility and reversal limits before proceeding.
+For a completed repair, first confirm which old workspace record the preview will compact.
+
 ## Commands, results and limits
 
 `fr git worktree compact-removal RECORD` previews compaction of one completed removal archive on Unix.
@@ -104,4 +109,4 @@ The summary-before-deletion ordering does not establish an atomic filesystem tra
 The anchored compaction guard requires completion, absent checkout and metadata paths, and an available archive lease.
 Lean proves all four conditions are necessary. Shared Rust/Lean cases cover all sixteen boolean inputs.
 A separate abstract archive model proves audit preservation and compaction idempotence.
-Those model results do not prove correspondence for JSON validation, Git observations, filesystem operations or crash durability.
+Those model results do not prove correspondence (the stated connection between two descriptions) for JSON validation, Git observations, filesystem operations or crash durability.

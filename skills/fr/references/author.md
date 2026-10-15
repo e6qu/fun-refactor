@@ -1,6 +1,6 @@
 # Author selected code
 
-For a bug in one function, preview a body replacement while keeping its interface. Review the diff and run the relevant behavior check.
+For a bug in one function, preview a replacement body, its implementation. A handle selects the function; a batch groups edits. Check the behavior afterward.
 
 `fr author` edits bodies, semantic deltas, scalar plans, Rust declarations and imports.
 Batches accept 32 disjoint operations. Coordinate callers after signature changes.
@@ -28,7 +28,7 @@ project bases (`frcb1`) cannot save plans.
 Rust insertion preserves bytes and docs; only traits allow bodyless functions. Replace bodies in
 Rust, Go, Java, Python and supported JavaScript/TypeScript/TSX bindings; arrows may change form.
 Python fragments are relative suites, including decorated sync/async handlers.
-For source-free replacements and smaller checked changes, see [Semantic](semantic.md).
+For replacements using structured records and smaller checked changes, see [Semantic](semantic.md).
 
 ```rust
 /// Calls increment twice.

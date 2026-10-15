@@ -3,16 +3,21 @@
 Suppose `choose(left, right)` returns `left`. Passing user input as `right` should not make that input reach the result.
 `fr` checks how positional and named arguments match parameters in supported Python functions. The examples below show what it can answer and when it must leave the answer incomplete.
 
+A parameter is a named slot in a function definition. An argument is the value supplied by a call.
+Binding matches arguments to those slots: `choose(right=7, left=0)` supplies zero to `left` despite writing it second.
+A summary records which slots can contribute to the function's result.
+The examples use `source()` and `sink()` as configured external input and output calls, not built-in Python functions.
+
 ## Commands, results and limits
 
 Opt-in summary analysis binds explicit positional and named arguments to Python parameters
 with ASCII names, including [literal and earlier local scalar defaults](literal-defaults.md). Unicode identifier normalization remains outside this contract.
 Function declarations and identifiers in analyzed bodies must already be in NFKC form.
 Names such as `café` remain supported; spellings that normalize to another name leave analysis
-incomplete. This prevents function and local bindings from silently shadowing another spelling.
-It supports positional-only parameters before `/`, positional-or-keyword parameters, and
-keyword-only parameters after a bare `*`. Calls can reach same-file helpers, recursive summaries,
-static package functions, re-exports and module aliases.
+incomplete. This prevents function and local bindings from silently shadowing (a nearer declaration hiding an earlier name) another spelling.
+It supports positional-only parameters (slots that calls must supply by position) before `/`, positional-or-keyword parameters, and
+keyword-only parameters (slots that calls must supply by name) after a bare `*`. Calls can reach same-file helpers, recursive summaries,
+static package functions, re-exports (making an imported name available from another module) and module aliases.
 
 ```python
 def choose(left, /, *, right):
@@ -43,12 +48,12 @@ supported call contract. Annotations require the documented
 Other annotation evaluation remains unchecked. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
 those rules report `keyword-rule-contract-unchecked`. A caller can use an admitted local wrapper
-with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions and
-heap effects remain outside scalar summary analysis.
+with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions (errors an operation can raise without an explicit `raise`) and
+changes to shared mutable objects remain outside scalar summary analysis.
 
 The binding order follows the [Python call reference](https://docs.python.org/3/reference/expressions.html#calls).
 The finite runtime corpus compares independent CPython observations with origin propagation,
-argument effects, parameter kinds and invalid binding. It does not prove source correspondence or
+argument effects, parameter kinds and invalid binding. It does not prove the connection between source and its model or
 general path feasibility.
 
 Current reports use `python-scalar-summaries` and retain `fr-call-binding` in both canonical inputs and
@@ -88,7 +93,7 @@ yield expressions in nested defaults still belong to the enclosing scope.
 
 The [pinned task](../tests/agent-eval/call-binding/task.json) discovers a leaking helper through
 keyword calls and parameter separators. It requires a reviewed repair, a sink-free preview feature,
-fresh-process resumption and independent receiver patch replay and reversal. Its baseline records
+resumption in a new process and independent receiver patch replay and reversal. Its baseline records
 the installed 0.35.0 binary separately from the pinned source revision; no local rebuild was used.
 
 The [runtime tests](../sdk/python/tests/test_call_binding.py) also compare retained and clean results

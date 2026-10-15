@@ -29,6 +29,23 @@ Exact field names stay unchanged so you can find them in command output.
 | Correspondence | A checked or proposed connection between two descriptions | A matching function candidate after a rename still needs a fresh edit review. |
 | Receipt | A saved result tied to the inputs it checked | A passing checkout test receipt becomes stale after the relevant source changes. |
 | Admission predicate | A rule deciding whether an operation may proceed | A stale preview fails the rule for applying a reviewed change. |
+| Benchmark | A repeatable measurement of a specified operation | Time the same caller query with a fresh analysis and with a saved result. |
+| Baseline | The alternative used for comparison | Compare an agent with ordinary file tools against the same setup plus fr. |
+| Overhead | Additional work introduced by the tested approach | Count indexing, validation, instructions and Python execution when they are required. |
+| Cold and warm | Whether the relevant saved result is absent or available | A warm query still checks that its saved inputs match. |
+| Arm | One tool setup in an experiment | Ordinary tools form one arm; ordinary tools plus fr form the other. |
+| Cell | One planned comparison case or attempt | Run a chosen task with one model, one tool setup and one repetition. |
+| Oracle | An independent reference check or expected answer | Compare the analyzer with Python execution for the declared input. |
+| Grader | A program checking a submitted answer or repair | Test a checkout repair on independently chosen rounding cases. |
+| Token | A model-specific unit of text | Cached input tokens and new input tokens can have different billing rules. |
+| Manifest | An input or record file describing a task or experiment | Record source revisions and tool setups before comparing attempts. |
+| Merkle tree | A tree whose content fingerprints include its children's fingerprints | Verify that a fetched report section belongs to the expected saved report. |
+| JSON pointer | A path selecting a field or array item in structured data | `/body/0` selects the first item in the `body` array. |
+| Function summary | The supported relationship between a function's inputs, result and actions | `choose(left, right)` returning `left` propagates the first argument's origin. |
+| Startup code | Statements run while a module or package is imported | `__init__.py` can change a helper's name before your code calls it. |
+
+Read the [measurement guide](benchmarks.md) for baseline and overhead examples.
+Each tutorial must introduce its own terms before using them; this table is a reference for words encountered in output.
 
 The detailed definitions below describe implementation terms for contributors. Use exact identifiers
 when referring to a command or field. In user explanations, explain the effect on the task first.

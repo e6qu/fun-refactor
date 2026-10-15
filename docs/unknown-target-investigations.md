@@ -3,6 +3,11 @@
 Give an agent a symptom such as “these two Unicode strings should match” and let it find the relevant function.
 These trials record whether the agent finds and fixes the problem, resumes its work, and passes independent checks. Read the costs alongside the outcomes.
 
+Unknown-target means the agent receives the problem without being told which file or function to edit.
+An arm is a tool setup. The baseline uses ordinary file tools; the comparison also offers `fr`.
+A grader checks the resulting repair against the same task requirements.
+For a Unicode bug, finding the responsible comparison is part of the attempt and its measured work.
+
 ## Tasks and recorded attempts
 
 The [task contract](../tests/agent-eval/unknown-target/task.json) pins a Unicode similarity bug in
@@ -67,7 +72,7 @@ python3 tools/investigation-agent.py record /tmp/fr-investigation-bug-fr \
 
 Use `--arm files` for ordinary discovery and `--task regex-escape-len` for the feature. Live execution
 requires the quota acknowledgement. Run one worker at a time. Each phase has a 20-minute timeout,
-a 16 MiB transcript budget and a sampled 3 GiB process-group RSS limit. A trial admits 80 tool calls
+a 16 MiB transcript budget and a sampled 3 GiB process-group RSS (resident set size, the measured memory held by a process) limit. A trial admits 80 tool calls
 and 1 MiB of visible reports. Cleanup targets only the runner's owned process group.
 
 `record --diagnostic` retains an unsuccessful or interrupted session. A phase cannot be retried in
@@ -101,7 +106,7 @@ under the same corrected protocol. The eight-attempt ceiling includes these diag
 Once a trial completes the protocol, a failed behavioral oracle remains a comparison outcome.
 The cohort does not replace such a trial with another attempt until the behavior passes.
 
-Report complete and failed trials, disclosed bytes, source reveals, tool calls, elapsed time and
+Report complete and failed trials, disclosed bytes, source reads, tool calls, elapsed time and
 available Codex usage. Usage is not billed quota. Sampled group RSS can miss peaks and measures the
 agent process and its same-group children, not every possible descendant.
 Narrative diagnoses remain available for review; the scorer does not grade every natural-language claim.

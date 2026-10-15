@@ -2,6 +2,14 @@
 
 Try a change before touching your checkout. For example, load a public project, rename a function, inspect the diff and export a patch. The browser keeps those edits in memory; applying the patch to your checkout is a separate step.
 
+The playground uses WASM, a compiled format the browser can execute.
+Its virtual workspace holds editable files in browser memory; it is separate from your local Git checkout.
+A diff shows proposed changes, and a patch carries those changes to another checkout.
+For a trial rename, inspect the diff in the browser before exporting and testing the patch locally.
+
+The built-in Signals project is sample source for trying the tool across languages.
+Its project notes and runbook illustrate documentation you might inspect in an application; use the setup below to run this playground itself.
+
 On the shared workstation, follow the [local work limits](../docs/development.md#working-on-a-shared-desktop). Full browser builds run on GitHub.
 
 The playground loads a public GitHub repository into the browser and runs the WASM build of `fr`

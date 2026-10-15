@@ -2,6 +2,8 @@
 
 If several names may explain a bug, inspect them in one request. Select only the views needed to decide where to read next.
 
+A manifest is an input file listing requests. A JSON pointer such as `/rows/0/0` selects the first field of the first returned row.
+
 Save this manifest outside the source tree, substituting paths and exact names needed by the task:
 
 ```json

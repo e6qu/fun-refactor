@@ -3,6 +3,11 @@
 Suppose an agent explains when a cache entry expires. Check its answer against the source it inspected, including the helper that decides expiry.
 The comparison below records those source reads and grades the answer separately from how many tool calls the agent made.
 
+A source citation points to code supporting a factual claim. A rubric lists the claims the grader checks.
+Disclosure counts the source or results delivered to the agent, not everything the computer read internally.
+For “when does this retry?”, a correct answer must explain the relevant condition and cite the code the agent received.
+Compare ordinary file tools with the same tools plus `fr`; text counts alone do not measure correctness or billing.
+
 ## Questions, source reads and recorded answers
 
 The OpenCode explanation comparison asks four factual questions in each of three pinned Python
@@ -82,5 +87,5 @@ file limit also blocked OpenCode's existing SQLite checkpoint, so the export cap
 the export file. The diagnostic refusal and the successful corrected capture remain available.
 
 Explanation grading is one step toward the original goal. Repeatable unfamiliar-project changes,
-source-connected proofs, useful delegation and complete cost/context measurements remain open.
+proofs connected to the actual source, useful delegation and complete cost/context measurements remain open.
 The [current status](roadmap-status.md) owns the acceptance counts. These explanation attempts do not establish a general benefit from fr.

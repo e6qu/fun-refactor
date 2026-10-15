@@ -3,6 +3,11 @@
 Suppose a function contains several copies of the number `3`, but only one is a retry limit. Select that exact occurrence from the inspected report.
 The returned edit reference lets you preview a change to that occurrence without guessing its position. A changed file makes the old reference unusable.
 
+Disclosure means opening a selected part of a larger report.
+A descriptor is the returned edit reference for one item, such as the retry count rather than another equal integer.
+A scalar is one simple value, such as a number, string or Boolean.
+Copy the item-specific reference into its preview command and supply the replacement; do not construct the reference yourself.
+
 ## Commands, results and limits
 
 `project disclose` returns edit references beside supported values and statements in the structured body.
@@ -13,6 +18,10 @@ Each reference selects a particular location, so equal values elsewhere remain d
 
 An authorable scalar carries a `frde1:` descriptor when revealed. Run its preview template after
 replacing only `<NEW_VALUE>`:
+
+The command below illustrates a requested value of `7`.
+Replace `<FULL_HANDLE>` and the entire `frde1:<DIGEST>` placeholder with the returned handle and edit ID.
+Do not calculate an ID from the example text.
 
 ```sh
 fr author edit-body-disclosed '<FULL_HANDLE>' --edit 'frde1:<DIGEST>' --to 7
@@ -37,6 +46,10 @@ the smallest replacement node when required.
 
 Replace a same-category node or insert a statement:
 
+Here `node.json` must already contain the replacement data in the returned accepted category.
+A statement performs a step, an expression computes a value, and a type describes a value's kind.
+Use the returned `schema_action` to inspect that category's exact fields before writing the file.
+
 ```sh
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' \
   --edit 'frdi1:<DIGEST>' --from node.json
@@ -48,7 +61,7 @@ Delete a statement:
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' --edit 'frdi1:<DIGEST>'
 ```
 
-`replace` accepts one source-free node in the descriptor's `accepts` category. `insert-statement`
+`replace` accepts one node without source text in the descriptor's `accepts` category. `insert-statement`
 accepts one statement at its bound `before` or `append` position, including an empty list.
 `delete-statement` accepts no value. The existing semantic-change validator remains the execution
 authority for node categories, source freedom, pointer and index bounds, result size and strict IR
@@ -83,7 +96,7 @@ accepts exactly one matching identity with the same current node or statement li
 the operation's value shape, the bound node category and a real replacement. Source, declaration,
 body, node/list, operation, category or position drift therefore refuses before history creation.
 
-For large values, descriptors and receipts use the same tagged canonical JSON tree as progressive
+For large values, descriptors and receipts use the same tagged canonical JSON, the normalized encoding used to compare records and compute their fingerprints, tree as progressive
 disclosure. `serialized_bytes` measures compact JSON bytes. A commitment does not reveal its value
 or prove program behavior.
 

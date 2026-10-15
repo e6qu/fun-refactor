@@ -204,6 +204,9 @@ def markdown(report):
         f'**{done} of {total} specific test requirements have matching recorded results; '
         f'{total - done} remain open. {report["milestones_complete"]} of 4 larger goals are complete.** '
         'These counts do not measure product readiness or savings for an agent.', '',
+        'A requirement is one specific behavior we promise to check. A recorded result describes '
+        'a chosen program, inputs and tool revision. “Demonstrated” means that result meets its '
+        'stated requirement; “open” means required work or matching results are missing.', '',
         '## What works and what still gets in the way', '',
         '| User task | What we have now | What remains |', '|---|---|---|',
         '| Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |',
@@ -211,9 +214,10 @@ def markdown(report):
         '| Continue after a failed attempt | Saved changes, undo, checks and recovery tests | Useful resumed work and handoffs at project scale |',
         '| Deliver a repair or check a property | Reviewed edits, behavior checks and small supported proofs | Independent task success and a checked connection between proofs and actual code |', '',
         '**We have not demonstrated general time or cost savings.** The older two-task comparison '
-        'used more calls, reading and time with fr. The recent Python repository scripts apply '
+        'used more calls, reading and time with fr than with ordinary file tools. The recent Python repository scripts apply '
         'known repairs; they test editing and recovery. They do not measure an agent discovering '
-        'the repair. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
+        'the repair. The [measurement guide](benchmarks.md) explains baselines, included costs and '
+        'unmeasured overhead. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
         '## What happens next', '',
         'Keep the guides understandable from the user’s task. Next, improve Python tracing from '
         'the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects '
@@ -231,9 +235,21 @@ def markdown(report):
         lines.append(f"| {name}. {names[name]} | {engineering['done']}/{engineering['total']} | "
                      f"{item['demonstrated']}/{item['total']} | {item['state']} |")
     lines += ['', '## Finite acceptance obligations', '',
-        'Each item states what must be checked and what happens next. IDs are stable references for '
-        'tests and reports. “Demonstrated” applies only to the described cases. It does not mean the '
-        'tool handles every project or saves agent tokens.', '']
+        'These are the specific requirements, checked one by one. Each item gives a user example, '
+        'what must be established, its recorded results and the next action. IDs such as '
+        '`B.contract` let tests refer to the same requirement; readers can follow the accompanying question.', '',
+        'An oracle is an independent reference check, such as Python execution. A source binding '
+        'records fingerprints of inputs behind a saved result. Changed inputs require renewed checks. '
+        'A held-out project stays unread while developing the tool, then tests whether the rules '
+        'work beyond familiar examples.', '']
+    lines += [
+        'A source supplies a tracked input; a sink consumes it. A sanitizer is a user-declared '
+        'cleaning function for a particular output context, such as HTML. An effect is another '
+        'action the code performs, such as writing a file.', '',
+        'A cache saves earlier results for possible reuse. Reuse must check their recorded inputs '
+        'before trusting them. Latency means elapsed request time; aggregate memory measures the '
+        'combined memory held by the measured processes.', '',
+    ]
     examples = {
         'A.exact': 'An agent explains a bug and links the exact call and source lines it inspected.',
         'A.repositories': 'Replay the two prescribed repository repairs and check their behavior, saved changes and delivery.',
@@ -254,22 +270,36 @@ def markdown(report):
         'D.new-proof': 'Write a new access function together with its required rule and a checked proof of that rule.',
         'D.host': 'Resume or undo an interrupted edit without overwriting someone else’s newer work.',
     }
+    by_id = {item['id']: item for item in report['evidence']}
     for gate in report['obligations']:
-        evidence_text = '; '.join(gate['blockers']) or ', '.join(r['evidence'] for r in gate['requires'])
+        if gate['blockers']:
+            evidence_text = ' '.join(explain_blocker(blocker) for blocker in gate['blockers'])
+        else:
+            evidence_text = ', '.join(
+                f"[{item['evidence']}](../{by_id[item['evidence']]['path']})"
+                for item in gate['requires'])
         lines += [f"### {gate['id']}: {gate.get('title', gate['id'])}", '',
-            f"**State: {gate['state']}.** {gate['acceptance']}", '',
             f"User example: {examples[gate['id']]}", '',
-            f"Recorded results or remaining work: {evidence_text}.", '', f"Next: {gate['next']}", '']
+            f"**State: {gate['state']}.** {gate['acceptance']}", '',
+            f"Recorded results or remaining work: {evidence_text.rstrip('.')}.", '', f"Next: {gate['next']}", '']
     lines += ['## Evidence ledger', '',
         'The entries below identify the stored test results. “Current” means their recorded source '
-        'inputs still match; “historical” means they cannot close a current item. The report checks '
+        'inputs still match; “stale” means at least one input changed; “historical” means they '
+        'cannot close a current item. “Checked” means saved files match their recorded fingerprints. The report checks '
         'hashes and assertions. Independent behavior tests still need to run in CI.', '',
-        '| Result / test kind | Files verified | Input freshness | Scope and audit command |', '|---|---|---|---|']
+        '| Saved result / kind of test | File fingerprints | Do recorded inputs still match? | What it checked and how to check it again |', '|---|---|---|---|']
     for item in report['evidence']:
         fresh = item['freshness']
         if item['changed_sources']:
             fresh += f' ({len(item["changed_sources"])} changed inputs)'
-        lines.append(f"| [{item['id']}](../{item['path']}) / {item['kind']} | {item['integrity']} | "
+        kinds = {
+            'deterministic': 'scripted behavior checks', 'measurement': 'measured tool operations',
+            'compiler': 'compiler and execution comparisons', 'semantic-contract': 'Python rule comparisons',
+            'fault-injection': 'deliberately interrupted operations', 'model-proof': 'proofs of stated models',
+            'live-agent': 'recorded agent attempts', 'source-proof': 'proofs connected to source',
+        }
+        kind = kinds.get(item['kind'], item['kind'])
+        lines.append(f"| [{item['id']}](../{item['path']}) / {kind} | {item['integrity']} | "
                      f"{fresh} | {item['scope']} Audit: `{item['audit']}` |")
     lines += ['', 'Exact changed input paths are retained in [the JSON report](roadmap-status.json).', '',
         '## Limits and interpretation', '']
@@ -279,6 +309,26 @@ def markdown(report):
         'both reports after reviewing changes, or `--require-complete` to require all milestone tests '
         'and implementation items. On this workstation, use the local resource guard.', '']
     return '\n'.join(lines)
+
+
+def explain_blocker(blocker):
+    if blocker == 'No qualifying retained evidence yet':
+        return 'No saved result yet meets this requirement.'
+    labels = {
+        'missing evidence': 'the saved result is missing',
+        'stale source binding': 'recorded source inputs changed; collect and check a new result',
+        'historical source binding': 'this historical result cannot establish current behavior',
+    }
+    for suffix, explanation in labels.items():
+        if blocker.endswith(': ' + suffix):
+            return blocker[:-len(suffix)] + explanation + '.'
+    if ': unmet ' in blocker:
+        name, field = blocker.split(': unmet ', 1)
+        return f'{name}: the recorded value at `{field}` differs from this requirement; review the inventory and result.'
+    if ': missing ' in blocker:
+        name, field = blocker.split(': missing ', 1)
+        return f'{name}: the result lacks required field `{field}`.'
+    return blocker
 
 
 def main():

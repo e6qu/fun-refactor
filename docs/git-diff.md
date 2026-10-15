@@ -3,6 +3,11 @@
 After listing changed paths, inspect the diff of the file you need to review.
 For example, check whether `src/main.rs` contains only the intended rounding change. Large diffs have more pages; read them before treating the review as complete.
 
+A diff compares two file states. Lines beginning with `-` show removals; lines beginning with `+` show additions.
+A hunk is a nearby group of changed lines with some surrounding context.
+For a rounding repair, first choose whether to compare working files, staged files or a commit.
+Then inspect the affected calculation and callers. A textual diff alone does not establish behavioral correctness.
+
 ## Commands, results and limits
 
 ```sh
@@ -15,7 +20,7 @@ fr git diff src/main.rs --since HEAD~1
 
 Use [repository change pages](git-changes.md) to discover paths for the same comparison before requesting detail.
 The native command requires Git and prints JSON in both output modes.
-It inspects one literal UTF-8 file path relative to the repository root, even when `-C` selects a nested directory.
+It inspects one literal UTF-8 (the text encoding used to count source bytes) file path relative to the repository root, even when `-C` selects a nested directory.
 Paths containing whitespace, glob characters or Git pathspec magic retain their literal meaning.
 Use `--` before a path beginning with a dash. Linked worktrees select their own files and index.
 Inspection does not load transaction history or write source, history or index data.
@@ -30,7 +35,7 @@ Inspection does not load transaction history or write source, history or index d
 
 `--staged` and `--since` cannot combine. `--since` uses one commit directly, without computing a merge base.
 These comparisons follow [Git diff semantics](https://git-scm.com/docs/git-diff), including tracked membership, attributes and built-in content conversion.
-They do not establish raw filesystem snapshot equality or provide an edit precondition.
+They do not establish raw filesystem agreement between saved file states or provide an edit precondition.
 
 For example, after staging a checkout fix and editing the file again, the default diff shows only
 the later working edit. `--staged` shows the contents proposed for the commit.
@@ -99,7 +104,7 @@ Successful inspection exits zero even when changes exist. Setup, unsupported inp
 
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
-They do not prove parser or Git execution correspondence with Lean.
+They do not prove parser or Git execution correspondence (the stated connection between two descriptions) with Lean.
 Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
 Call pages can include explicitly selected files for each comparison. This command does not compute transitive impact.
 

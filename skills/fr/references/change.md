@@ -2,6 +2,8 @@
 
 Before renaming a function or changing its arguments, find the declaration and affected callers. Preview every intended edit before applying it.
 
+A declaration defines a function; callers invoke it. A signature is its name and argument list, so a signature edit can require caller edits.
+
 Check the relevant operation in the installed binary. A supported language cell still permits input-specific refusals.
 For a rename, `<TARGET>` is a unique name or the file and `position` from `project show`, such as `app.py:1:5`.
 A rename does not accept a project handle.

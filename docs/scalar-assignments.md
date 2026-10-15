@@ -3,6 +3,11 @@
 Suppose user input enters `value`, then the code replaces `value` with zero before sending it onward. The original input no longer reaches that use.
 This guide shows how `fr` handles supported overwrites, swaps and unpacking, and where its answer remains incomplete.
 
+A scalar is one simple value, such as an integer. An assignment binds a name to a value.
+Unpacking distributes values to several names, as in `a, b = 1, 2`.
+Python evaluates the right-hand side before writing the left-hand targets, which makes `a, b = b, a` a swap.
+`RHS` below means right-hand side. The example's `source()` supplies a configured input and `sink()` consumes a configured output.
+
 ## Commands, results and limits
 
 Python summary analysis supports local assignments, chained assignments and matching literal tuple/list unpacking.
@@ -24,11 +29,11 @@ An empty trace after that overwrite is useful only when the whole analysis compl
 
 Nested literal sequences can match nested tuple or list targets. Parentheses around
 one name do not introduce unpacking unless they contain a comma. Empty literal
-sequences can match empty targets. This follows the admitted portion of
+sequences can match empty targets. This follows the supported portion of
 [Python assignment semantics](https://docs.python.org/3/reference/simple_stmts.html#assignment-statements).
 
 The analysis keeps sequence structure only while binding an assignment. It does not
-introduce container-valued variables, heap aliases or arbitrary iteration. Starred
+introduce container-valued variables, multiple names for the same mutable object or arbitrary iteration. Starred
 unpacking, mismatched shapes, attributes, subscripts and annotations remain explicit
 cutoffs. Unsupported shapes do not establish absence of propagation. Implicit
 unpacking exceptions and overloaded protocols remain outside the contract.
@@ -55,18 +60,18 @@ the current contract and every capability field.
 The analyzer identity includes the assignment implementation. Changes to assignment
 sources invalidate cached results; unrelated edits renew exact occurrences. Native
 reuse refuses altered assignment metadata even when a caller recomputes the report
-digest. Existing join and overwrite kernels remain applicable. Parsing, lowering,
-shape matching and source correspondence remain trusted implementation boundaries.
+digest. Existing join and overwrite kernels remain applicable. Parsing, lowering (converting source into the structured code model),
+shape matching and the connection between source and its model remain trusted implementation boundaries.
 
 The [pinned task](../tests/agent-eval/scalar-assignments/task.json) finds a leaking
 helper through a swap and chained assignment. Its independent CPython oracle checks
-repair, a sink-free preview, fresh-process resumption, receiver replay and reversal.
+repair, a sink-free preview, resumption in a new process, patch application and checks in another checkout and reversal.
 The [runtime corpus](../sdk/python/tests/test_scalar_assignments.py) covers ordering,
-locations, refusals, budgets, contract tampering and clean/cache agreement.
+locations, refusals, budgets, contract tampering and agreement between fresh and reused analysis.
 The [retained acceptance](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
 binds the fixture, implementation and delivery checks. The baseline distinguishes
 the installed local binary from the pinned source revision. These are finite
-deterministic cases, with no live-agent or token-saving claim.
+scripted cases, with no live-agent or token-saving claim.
 
 Existing function edits use guarded `fr` previews, saved plans and history applications
 in the [dogfood record](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json).

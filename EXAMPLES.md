@@ -4,6 +4,11 @@ Use these examples to choose a command for a concrete task: find a helper’s ca
 rename, or discover why an operation refuses. The outputs below come from the stated historical runs.
 Check `fr audit` and the [current guide](docs/README.md) for today’s support and instructions.
 
+A pinned commit identifies the source revision used for a recorded example.
+A symbol is a named declaration, such as a function. A caller invokes that function; a reference can be another kind of use.
+Examples with `path:line:column` select a written occurrence, counting from one.
+Read each printed result as historical output, then check today's support before repeating the operation.
+
 Read each example as an account of that command on the recorded revision.
 For example, a caller list tells you which known uses to inspect before editing a helper.
 An empty list needs the report's omissions and resolution limits before you conclude that nobody calls it.
@@ -351,7 +356,7 @@ language brings into scope invisibly. Python `__future__` imports and dotted
 registration imports, TypeScript type-only imports and JSX pragmas, Go blank imports.
 `fr inline` reverses `fr extract --variable`, and `--call` reverses it where the binding
 became a one-expression function. It refuses a callee of several statements, whose
-evaluation order and shadowing it cannot preserve. So `fr extract --function`, which
+evaluation order and shadowing (a nearer declaration hiding an earlier name) it cannot preserve. So `fr extract --function`, which
 writes several statements by construction, has no inverse here. `fr remove-flag`
 retires a feature flag and the branch that only served it. `fr stitch` links a
 configuration key to the code that reads it: an environment variable declared in a
