@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
+const POLICY: &str = "Single-root static modules/packages; wildcard names share module searches and retain per-name bindings. Checked annotations directives require absent local __future__ candidates. Dynamic initialization/imports, merged namespaces, implicit children and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -183,7 +184,7 @@ fn candidate(project: &Project<'_>, path: &Path) -> Result<Value> {
     )
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct Resolution {
     module: String,
     candidates: BTreeMap<PathBuf, Value>,
@@ -414,11 +415,104 @@ fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<
 
 type MemberValue = (&'static str, Vec<(PathBuf, String)>, Option<PathBuf>);
 
+fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
+    if modules["policy"] != POLICY
+        || modules["limits"]
+            != json!({"modules":MODULE_LIMIT,
+        "source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT})
+    {
+        return None;
+    }
+    let records = modules["lookups"].as_array()?;
+    if records.len() > IMPORT_LIMIT {
+        return None;
+    }
+    let fields = [
+        "module",
+        "candidates",
+        "packages",
+        "namespaces",
+        "target",
+        "admitted",
+        "importer",
+        "alias",
+        "member",
+        "prefix",
+        "exports",
+        "future",
+        "submodule",
+        "resolution",
+        "binding_chain",
+        "terminal_module",
+        "members",
+    ];
+    let member_fields = [
+        "name",
+        "resolution",
+        "binding_chain",
+        "submodule",
+        "terminal_module",
+    ];
+    let mut expanded = Vec::new();
+    let mut count = records.len();
+    for record in records {
+        let object = record.as_object()?;
+        if object.len() != fields.len() || fields.iter().any(|field| !object.contains_key(*field)) {
+            return None;
+        }
+        let members = record["members"].as_array()?;
+        if members.len() > IMPORT_LIMIT
+            || record["alias"] != "*" && (!members.is_empty() || !record["exports"].is_null())
+        {
+            return None;
+        }
+        let exports = record["exports"].as_array();
+        if record["alias"] == "*"
+            && (members.len() != exports.map_or(0, Vec::len)
+                || exports.is_none() && !record["exports"].is_null())
+        {
+            return None;
+        }
+        let index = expanded.len();
+        let mut anchor = record.clone();
+        anchor.as_object_mut()?.remove("members");
+        anchor["star"] = Value::Null;
+        expanded.push(anchor.clone());
+        for (offset, member) in members.iter().enumerate() {
+            let object = member.as_object()?;
+            let name = member["name"].as_str()?;
+            if object.len() != member_fields.len()
+                || member_fields
+                    .iter()
+                    .any(|field| !object.contains_key(*field))
+                || !identifier(name)
+                || exports?[offset] != name
+            {
+                return None;
+            }
+            if !member["submodule"].is_null() {
+                count += 1;
+            }
+            let mut binding = anchor.clone();
+            for field in member_fields.iter().skip(1) {
+                binding[*field] = member[*field].clone();
+            }
+            binding["alias"] = json!(name);
+            binding["member"] = json!(name);
+            binding["prefix"] = json!(name);
+            binding["exports"] = Value::Null;
+            binding["star"] = json!(index);
+            expanded.push(binding);
+        }
+    }
+    (count <= IMPORT_LIMIT).then_some(expanded)
+}
+
 pub(super) fn value_bindings_valid(modules: &Value) -> bool {
     let Some(values) = modules["value_bindings"].as_array() else {
         return false;
     };
-    let Some(lookups) = modules["lookups"].as_array() else {
+    let Some(lookups) = expanded_lookups(modules) else {
         return false;
     };
     if values.len() > IMPORT_LIMIT {
@@ -453,7 +547,7 @@ pub(super) fn value_bindings_valid(modules: &Value) -> bool {
         previous = Some((path, offset));
     }
     let mut referenced = BTreeSet::new();
-    for lookup in lookups {
+    for lookup in &lookups {
         if !matches!(lookup["resolution"].as_str(), Some("function" | "value")) {
             continue;
         }
@@ -650,6 +744,7 @@ impl Modules {
         let mut queued = BTreeSet::from([entry.to_owned()]);
         let mut files = BTreeMap::new();
         let mut lookups = Vec::new();
+        let mut star_resolutions: BTreeMap<usize, Resolution> = BTreeMap::new();
         let mut edges: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
         for path in &entry_resolution.packages {
             let path = project.root.join(path);
@@ -808,10 +903,12 @@ impl Modules {
                     .map(|(alias, binding)| (alias, binding, None))
                     .collect();
                 while let Some((alias, mut binding, star)) = imports.pop_front() {
-                    import_count += 1;
-                    if import_count > IMPORT_LIMIT {
-                        result.cutoffs.insert("import-lookup-budget".into());
-                        break;
+                    if star.is_none() {
+                        if import_count >= IMPORT_LIMIT {
+                            result.cutoffs.insert("import-lookup-budget".into());
+                            break;
+                        }
+                        import_count += 1;
                     }
                     if alias != "*" && !names.insert(alias.clone()) {
                         values.remove(&alias);
@@ -824,7 +921,11 @@ impl Modules {
                     {
                         result.cutoffs.insert("special-module-attributes".into());
                     }
-                    let resolution = resolve_module(project, &binding.module)?;
+                    let resolution = if let Some(index) = star {
+                        star_resolutions[&index].clone()
+                    } else {
+                        resolve_module(project, &binding.module)?
+                    };
                     binding.future = future_nodes.contains(&node.start_byte())
                         && resolution
                             .candidates
@@ -849,15 +950,9 @@ impl Modules {
                         } else {
                             None
                         };
-                        if declared.as_ref().is_some_and(|names| {
-                            names.len() + import_count + imports.len() > IMPORT_LIMIT
-                        }) {
-                            result.cutoffs.insert("import-lookup-budget".into());
-                        }
-                        if let Some(selected) = declared.filter(|names| {
-                            names.len() + import_count + imports.len() <= IMPORT_LIMIT
-                        }) {
+                        if let Some(selected) = declared {
                             let index = lookups.len();
+                            star_resolutions.insert(index, resolution.clone());
                             for name in selected.iter().rev() {
                                 imports.push_front((
                                     name.clone(),
@@ -885,6 +980,7 @@ impl Modules {
                     lookup["star"] = json!(star);
                     lookup["exports"] = json!(exports);
                     lookup["future"] = json!(binding.future);
+                    let mut exhausted_child = false;
                     let submodule = if let (Some(target), Some(member)) =
                         (&resolution.target, &binding.member)
                     {
@@ -901,7 +997,16 @@ impl Modules {
                         {
                             let child = format!("{}.{}", binding.module, member);
                             if module_name(&child) {
-                                Some(resolve_module(project, &child)?)
+                                if star.is_some() && import_count >= IMPORT_LIMIT {
+                                    result.cutoffs.insert("import-lookup-budget".into());
+                                    exhausted_child = true;
+                                    None
+                                } else {
+                                    if star.is_some() {
+                                        import_count += 1;
+                                    }
+                                    Some(resolve_module(project, &child)?)
+                                }
                             } else {
                                 result.cutoffs.insert("import-component-budget".into());
                                 None
@@ -913,6 +1018,7 @@ impl Modules {
                         None
                     };
                     lookup["submodule"] = serde_json::to_value(&submodule)?;
+                    lookup["exhausted_child"] = json!(exhausted_child);
                     let selected = submodule.as_ref().unwrap_or(&resolution);
                     for dependency in std::iter::once(&resolution).chain(submodule.iter()) {
                         if dependency.admitted {
@@ -936,12 +1042,12 @@ impl Modules {
                             }
                         }
                     }
-                    if selected.admitted {
+                    if selected.admitted && !exhausted_child {
                         binding.target = selected.target.clone();
                         if submodule.is_some() {
                             binding.member = None;
                         }
-                    } else if !binding.future {
+                    } else if !binding.future && !exhausted_child {
                         result
                             .cutoffs
                             .insert(format!("unresolved-local-import:{}", selected.module));
@@ -1010,7 +1116,10 @@ impl Modules {
                 .as_str()
                 .map(|path| project.root.join(path));
             let fallback = lookup["submodule"]["target"].as_str().map(PathBuf::from);
-            let (status, chain, module) = if lookup["future"] == true {
+            let exhausted_child = lookup.as_object_mut().unwrap().remove("exhausted_child");
+            let (status, chain, module) = if exhausted_child == Some(json!(true)) {
+                ("budget", Vec::new(), None)
+            } else if lookup["future"] == true {
                 ("future", Vec::new(), None)
             } else if !lookup["submodule"].is_null() {
                 if let Some(path) =
@@ -1065,6 +1174,10 @@ impl Modules {
             );
         }
         let value_bindings: Vec<_> = referenced_values.into_values().collect();
+        ensure!(
+            value_bindings.len() <= IMPORT_LIMIT,
+            "import value declaration budget exceeds 128"
+        );
         let aliases: Vec<_> = result
             .function_aliases
             .iter()
@@ -1077,11 +1190,29 @@ impl Modules {
                 })
             })
             .collect();
-        result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
+        let mut compact: Vec<Value> = Vec::new();
+        let mut anchors: BTreeMap<usize, usize> = BTreeMap::new();
+        for (index, mut lookup) in lookups.into_iter().enumerate() {
+            let star = lookup.as_object_mut().unwrap().remove("star").unwrap();
+            if let Some(star) = star.as_u64() {
+                let anchor = anchors[&(star as usize)];
+                let members = compact[anchor]["members"].as_array_mut().unwrap();
+                members.push(
+                    json!({"name":lookup["alias"], "resolution":lookup["resolution"],
+                    "binding_chain":lookup["binding_chain"], "submodule":lookup["submodule"],
+                    "terminal_module":lookup["terminal_module"]}),
+                );
+            } else {
+                anchors.insert(index, compact.len());
+                lookup["members"] = json!([]);
+                compact.push(lookup);
+            }
+        }
+        result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
             "function_aliases":aliases,
             "value_bindings":value_bindings,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
-            "policy":"static single-root packages and .py modules; acyclic re-exports, literal __all__ star imports and package child lookup. Correctly placed annotations directives use standard CPython __future__ only when all local candidates are missing. No arbitrary initialization, merged namespaces, default star exports, implicit child traversal, other native modules, search paths or import hooks",
+            "policy":POLICY,
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
         Ok(result)
     }

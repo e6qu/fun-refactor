@@ -245,6 +245,14 @@ jobs:
           EVIDENCE_RUNS: ${{ inputs.evidence_runs }}
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
         run: python3 -B tools/retain-scalar-evidence.py --runs "$EVIDENCE_RUNS" --prefix "$EVIDENCE_PREFIX"
+      - name: Compare familiar-library outcomes and visited source files
+        if: inputs.group == 'retain-scalar'
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B tools/compare-python-library-probes.py \
+            tests/agent-eval/results/2026-10-15-builtin-bases-fixed-arity-probes/result.json \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-fixed-arity-probes/result.json"
       - name: Preserve the failed authored collection with its original source
         if: inputs.group == 'retain-contract-failure'
         env:
@@ -410,7 +418,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_builtin_class_bases.py sdk/python/tests/test_class_initialization.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_type_registries.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_builtin_initialization.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_package_flow.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
@@ -783,7 +791,9 @@ jobs:
       - name: Preserve supported source and semantic authoring
         run: cargo test --locked --test author_cli -- --test-threads 1
       - name: Compare declared Rust and Python explanation features
-        run: python3 -B tools/compiler-profile.py --output target/compiler-profile/result.json
+        run: |
+          python3 -B tools/profile-check-hashing.py
+          python3 -u -B tools/compiler-profile.py --output target/compiler-profile/result.json
       - name: Reject corrupted compiler and source observations
         env:
           FR_COMPILER_PROFILE_REPORT: target/compiler-profile/result.json

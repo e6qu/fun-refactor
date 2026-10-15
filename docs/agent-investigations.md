@@ -161,6 +161,9 @@ The [Python examples](python-contract.md) explain class-body effects and unknown
 A single literal `__all__` list or tuple declares names for `from helpers import *`.
 For example, `__all__ = ['forward']` lets a caller use `forward(value)` after that import.
 Empty export lists retain the imported file while importing no names.
+Exported names share their provider search and retain separate binding chains. Package-child
+searches still consume the import budget. The [Python behavior guide](python-contract.md)
+shows the grouped records and their limits.
 Computed or mutated export lists and missing declarations keep the answer incomplete.
 
 Package initializers also admit explicit local imports. Interpolated strings retain effect cutoffs.

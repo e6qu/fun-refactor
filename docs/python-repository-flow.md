@@ -119,7 +119,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-15-builtin-bases-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-15-shared-star-searches-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -146,6 +146,14 @@ These one hundred cells add 200 runtime executions to the original thirty cells 
 All contexts preserve renamed/relocated conclusions. Isolated declarations and the standalone primitive module yield some complete answers.
 Unknown calls, exhausted budgets and full package initialization still prevent complete answers.
 The package boundaries and the unopened holdout keep B.repository-flow open.
+
+Sharing wildcard provider searches lets the current replay reach later imports without raising a limit.
+Funcy's package initializer now needs 14 searches instead of 126. Its imported `EMPTY` marker resolves,
+and `funcmakers.py` enters the loaded code. The representative `inc` case uses 120 searches and
+reaches the separate 16-file limit. Toolz also reaches three more files and no longer exhausts
+the import-search budget. Pydash still reaches that budget through ordinary named imports.
+The full-package outcomes in the table stay unchanged. The
+[handoff](continuity.md#what-to-work-on-next) describes the next investigation with these differences in view.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
