@@ -95,11 +95,11 @@
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-15-shared-named-searches-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-reader-review-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 347 authored programs and 694 original/renamed cases, including 18 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-shared-named-searches-python-contract/result.json",
-      "sha256": "87cf4984292f8252c31b7a3db2a48d7608d2f80d4a397031ec2ee603285195c9"
+      "scope": "14 declared Python rules; 347 authored programs and 694 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-reader-review-python-contract/result.json",
+      "sha256": "547a186079ea61151e501107bc985cfee539056a859082cf427e1a058e33e0e3"
     },
     {
       "id": "index-resolution",
