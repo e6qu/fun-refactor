@@ -539,11 +539,41 @@ pub(super) fn parameters<'t>(
     source: &str,
     postponed: bool,
 ) -> Option<Vec<Parameter<'t>>> {
-    parameter_contract(function, source, postponed, Phase::Call)
+    parameter_contract(function, source, postponed, Phase::Call, &BTreeSet::new())
 }
 
 pub(super) fn definition_is_inert(function: Node<'_>, source: &str, postponed: bool) -> bool {
-    parameter_contract(function, source, postponed, Phase::Declaration).is_some()
+    definition_is_inert_with_values(function, source, postponed, &BTreeSet::new())
+}
+
+pub(super) fn definition_is_inert_with_values(
+    function: Node<'_>,
+    source: &str,
+    postponed: bool,
+    values: &BTreeSet<String>,
+) -> bool {
+    parameter_contract(function, source, postponed, Phase::Declaration, values).is_some()
+}
+
+fn prior_value_default(node: Node<'_>, source: &str, values: &BTreeSet<String>) -> bool {
+    let mut node = node;
+    for _ in 0..128 {
+        if node.kind() == "identifier" {
+            return values.contains(&source[node.byte_range()]);
+        }
+        if node.kind() != "parenthesized_expression" {
+            return false;
+        }
+        let children: Vec<_> = node
+            .named_children(&mut node.walk())
+            .filter(|child| child.kind() != "comment")
+            .collect();
+        if children.len() != 1 {
+            return false;
+        }
+        node = children[0];
+    }
+    false
 }
 
 pub(super) fn generator_function(function: Node<'_>) -> bool {
@@ -573,6 +603,7 @@ fn parameter_contract<'t>(
     source: &str,
     postponed: bool,
     phase: Phase,
+    values: &BTreeSet<String>,
 ) -> Option<Vec<Parameter<'t>>> {
     if function.child_by_field_name("type_parameters").is_some()
         || function
@@ -606,7 +637,11 @@ fn parameter_contract<'t>(
                 let (name, default) = if node.kind() != "identifier" {
                     let name = node.child_by_field_name("name")?;
                     let value = node.child_by_field_name("value")?;
-                    if name.kind() != "identifier" || !literal_default(value, source) {
+                    if name.kind() != "identifier"
+                        || !(literal_default(value, source)
+                            || phase == Phase::Declaration
+                                && prior_value_default(value, source, values))
+                    {
                         return None;
                     }
                     (name, Some(value))
@@ -714,7 +749,7 @@ pub(super) fn contract() -> Value {
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-        "definitions":"ASCII signatures and literal defaults defer bodies, including variadics. Annotations need a checked module-local future directive and at most 128 nodes. No annotation await, yield, assignment or type unpacking.",
+        "definitions":"ASCII module functions defer bodies with literal or prior known value defaults, including variadics. Calls require literal defaults. Annotations need a checked module-local future directive and at most 128 nodes; no await, yield, assignment or type unpacking.",
         "initialization":"Literals, aliases, built-in references, exports and plain classes/instances are inert. Literal __doc__ writes to prior unchanged plain functions preserve scalar calls. Reads, collisions and other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",

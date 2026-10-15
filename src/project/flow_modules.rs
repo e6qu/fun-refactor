@@ -22,6 +22,7 @@ pub(super) struct Modules {
     namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     pub function_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
+    import_names: BTreeMap<PathBuf, BTreeMap<usize, BTreeSet<String>>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
     values: BTreeMap<PathBuf, BTreeMap<String, (usize, &'static str)>>,
@@ -632,6 +633,7 @@ impl Modules {
             namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
             function_aliases: BTreeMap::new(),
+            import_names: BTreeMap::new(),
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
             values: BTreeMap::new(),
@@ -933,6 +935,13 @@ impl Modules {
                     }
                     lookups.push(lookup);
                     if alias != "*" {
+                        result
+                            .import_names
+                            .entry(file.clone())
+                            .or_default()
+                            .entry(node.start_byte())
+                            .or_default()
+                            .insert(alias.clone());
                         bindings.insert(alias, binding);
                     }
                 }
@@ -1124,6 +1133,19 @@ impl Modules {
 
     pub fn is_value(&self, file: &Path, name: &str) -> bool {
         self.member_chain(file, name).0 == "value"
+    }
+
+    pub fn names_imported_at<'a>(
+        &'a self,
+        file: &'a Path,
+        start: usize,
+    ) -> impl Iterator<Item = &'a str> + 'a {
+        self.import_names
+            .get(file)
+            .and_then(|statements| statements.get(&start))
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
     }
 
     pub fn function_name(&self, file: &Path, name: &str) -> String {

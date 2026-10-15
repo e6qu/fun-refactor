@@ -23,13 +23,18 @@ literals with one leading sign, and parentheses around admitted literals. Commen
 binding. Positional defaults must form a trailing suffix, including across `/`. Keyword-only
 parameters can mix required and defaulted slots.
 
-Analysis refuses calls, names, operators other than the admitted numeric sign, containers,
+Analyzed calls refuse defaults containing calls, names, operators other than the admitted numeric sign, containers,
 comprehensions, lambdas and formatted strings in default values. Function annotations require the documented
 [future-annotation rule](python-contract.md#trace-a-helper-that-has-type-annotations). It also refuses an
 unsupported default when a call supplies an explicit argument: Python evaluates defaults during
 function definition, and overriding an argument does not remove those earlier effects.
 Referenced variadic values, extra variadic arguments, unpacking, dynamic dispatch and implicit
 exceptions remain outside this contract. Unused variadic declarations admit fixed-slot calls.
+
+An uncalled module function can read an earlier checked value without running its body.
+For example, after `EMPTY = EmptyType()`, `def unused(key=EMPTY): ...` reads the existing marker during definition.
+The [declaration rule](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks binding order and static value imports.
+Calling that function still remains outside the literal-default call contract.
 
 An analyzed entry function still represents all explicit inputs through symbolic parameter origins.
 Its default does not force the analysis to represent only a zero-argument invocation. Literal defaults
@@ -54,7 +59,7 @@ The response budget includes signature metadata, and omitted results remain inco
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
 fresh-process resumption, independent patch replay and exact reversal. The
-[retained run](../tests/agent-eval/results/2026-10-14-value-imports-literal-defaults/result.json) passes those
+[retained run](../tests/agent-eval/results/2026-10-14-named-defaults-literal-defaults/result.json) passes those
 checks and binds the current source. The baseline records the installed local binary separately from
 the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results
