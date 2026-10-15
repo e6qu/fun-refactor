@@ -909,6 +909,10 @@ and 0.021 seconds after it. Both digests matched Python's independent SHA-256 re
 Collecting compiler identities, diagnostics and changed-input refusals then took about 13 seconds.
 The complete job passed in 9 minutes 55 seconds, within its unchanged 15-minute deadline.
 
+The [latest Pages deployment](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/2)
+passed after retrying only the cancelled deploy job. It reused the successful build for the latest
+merged revision and kept every deployment deadline.
+
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
 The [function-documentation collection](../tests/agent-eval/results/2026-10-14-function-docs-scalar-collection/manifest.json)
