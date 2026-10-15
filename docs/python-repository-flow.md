@@ -149,9 +149,12 @@ The package boundaries and the unopened holdout keep B.repository-flow open.
 
 Sharing wildcard provider searches lets the current replay reach later imports without raising a limit.
 Funcy's package initializer now needs 14 searches instead of 126. Its imported `EMPTY` marker resolves,
-and `funcmakers.py` enters the loaded code. The representative `inc` case uses 120 searches and
-reaches the separate 16-file limit. Toolz also reaches three more files and no longer exhausts
-the import-search budget. Pydash still reaches that budget through ordinary named imports.
+and `funcmakers.py` enters the loaded code. Sharing names in an ordinary `from` statement then
+reduces the representative `inc` case from 120 searches to 75; the 16-file limit still applies.
+For example, `from helpers import add, subtract` searches for `helpers` once and retains both bindings.
+Toolz also clears its import-search cutoff. The latest completed Pydash replay uses 47 searches
+and reaches the separate 256 KiB source limit. Its unchecked startup statements fall from 510 to 420
+across the same eight files.
 The full-package outcomes in the table stay unchanged. The
 [handoff](continuity.md#what-to-work-on-next) describes the next investigation with these differences in view.
 
