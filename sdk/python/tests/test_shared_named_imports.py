@@ -10,7 +10,7 @@ import pytest
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
-from fr_ir.runtime import FrReport, FrRuntimeError
+from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 from test_flow_summaries import analyze, evidence, workspace
 from test_postponed_annotations import observe
 
@@ -63,9 +63,10 @@ def test_named_lists_share_provider_searches_and_keep_each_binding(tmp_path, cou
 
 def test_wide_named_import_fits_the_existing_response_byte_limit(tmp_path):
     client, rules = install(tmp_path)
+    client = FrClient(tmp_path, executable=client.executable, max_output_bytes=65536)
     result = analyze(client, rules, "entry", imports=True, max_bytes=65536)
     assert result.report.at("/complete") and result.dependencies.lookup_count == 1
-    assert len(json.dumps(result.report.to_data()).encode()) < 65536
+    assert len(json.dumps(result.report.to_data(), ensure_ascii=False, separators=(",", ":")).encode()) < 65536
 
 
 @pytest.mark.parametrize("route", ["direct", "alias", "reexport", "package"])
