@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-facts/result.json",
-      "sha256": "28e9cb256e72ce1e100c712ad9cfe871ebbc08e36b20e604484fc27645d9a2a3"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-15-type-registries-flow-facts/result.json",
+      "sha256": "fe112496cf320180c0d68cbae1bc675630f5c3987654084316b3bc6a0867d2cb"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-package-flow/result.json",
-      "sha256": "c69b9c47545c5904ca24f1c2cfbb5a6afafa7e41206c829605417cadbcfea6d3"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-15-type-registries-package-flow/result.json",
+      "sha256": "6752719a1b6ffc44caded38a97bb07e17e91bb4fc63f5c75dbbabc5299b271c9"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-repositories",
-      "sha256": "742aaca066a9a2d1fc7c74545c5e660c70c3c0a595a33c0e6b90eea49b4714cb"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-15-type-registries-python-repositories",
+      "sha256": "a901d15426a60bf05ae98f5f9b307915075c4f5a6eb21a6bcd0bba0f260872ee"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-flow-cache/result.json",
-      "sha256": "f75e94a10a7e94e06126ef3100308746fdb6989333714fa5e28a426814d2b4ce"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-15-type-registries-flow-cache/result.json",
+      "sha256": "467f2a48ecd48c48a6f53c0e43df2173b718414821475cfa9ab9030ffafec8d1"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-compiler-profile/result.json",
-      "sha256": "137920746546460881f8bd3ddc53469e4421b0917331f4606eae85af80b1b3f1"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-15-type-registries-compiler-profile/result.json",
+      "sha256": "b3b2e7067858ce2bfd97f6e85e32e26341095677a1f948cf463a0edacda7131e"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 305 authored programs and 610 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-scalar-named-defaults-python-contract/result.json",
-      "sha256": "04e4940d6df990d1889c36d086120c899ba9a5ec5ee5c45ccc0d06ae413316d5"
+      "scope": "14 declared Python rules; 319 authored programs and 638 original/renamed cases, including 14 CLI refusals. Finite B.contract inventory; roadmap acceptance requires separate review.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-type-registries-python-contract/result.json",
+      "sha256": "58f56025864c915a0ef58caf472324f5a405177e07716e6f9d86ab4353fb7a20"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-15-scalar-named-defaults-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-15-type-registries-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-15-scalar-named-defaults-index-resolution/result.json",
-      "sha256": "7251a9af0aa6c0886f40cf2ad026a64c27160f39735ca9a8077bba23c8a80d93"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-15-type-registries-index-resolution/result.json",
+      "sha256": "bbe463a7e589e5a9d7ca788c744a688e41f394309ea22363edb0c54ecb6d2bd0"
     },
     {
       "id": "repository-flow",
