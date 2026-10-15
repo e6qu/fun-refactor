@@ -69,13 +69,6 @@ reject missing or old data without adding compatibility readers or migration fal
 
 ## Next large chunk
 
-Finish the reader review before extending Python support.
-Revise current guides, agent instructions and project trackers, including the generators that recreate reports.
-Check examples against actual commands and refresh measurements whose input text changes.
-Preserve original experiment outputs, failures and unstarted attempts.
-
-Then return to the Python work below.
-
 Continue the Python work from the actual library failures. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
 answer, then improve the language rule needed to handle it.

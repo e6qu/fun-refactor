@@ -924,6 +924,10 @@ The original failed reports, validators and CI logs remain unchanged.
 | A named-import byte test added JSON whitespace before measuring the compact response | Enforce the same 65,536-byte limit on the client's actual output and measure compact encoding | [First named-import gate](https://github.com/e6qu/fun-refactor/actions/runs/38727247627) |
 | Review found that an over-limit named-import fixture expected its unvisited provider among the loaded files | Expect only the entry file; supersede collection before authored report generation and keep the 128-name limit | [Superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38730391730) |
 
+The 2026-10-15 reader review found another tracking mismatch: its Python requirement still expected 524 cases while the saved report already contained 694.
+The [refreshed examples](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) keep the same 347 programs, 14 rules, incomplete answers and refusals.
+The tracker now checks that declared inventory. This changes the count of matching recorded requirements, not the supported Python behavior or real-package outcomes.
+
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
 and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.

@@ -19,8 +19,8 @@ We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
 ## The current reader review
 
-The user requested a complete review of the documentation before further feature work.
-Every current guide, tutorial, agent instruction and tracker must explain its concepts without assuming knowledge of earlier development.
+The reader review covers all 119 current guides and references, including tutorials, agent instructions and project trackers.
+Keep concepts explained where readers first need them, without assuming knowledge of earlier development.
 The [writing guide](style.md) describes the review rules; the [measurement guide](benchmarks.md) names baselines, extra costs and missing measurements.
 
 For a rename lesson, supply the starting files and explain a preview, diff and saved transaction before asking the reader to use them.
@@ -60,7 +60,9 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [active collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json) identifies the current language-result family.
+The [language-change collection receipt](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-collection/manifest.json) identifies the results from the last analyzer change.
+The reader review refreshes the [Python example receipt](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) separately because its guide text changed.
+Its 347 programs and 694 original or renamed cases are unchanged; the other runtime sources are unchanged.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.
