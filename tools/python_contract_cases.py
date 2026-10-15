@@ -14,7 +14,7 @@ RULES = {
     'defaults': 'Omitted immutable literals and captured prior local scalar defaults carry no source origins; explicit arguments override them. Uncalled module functions may read earlier known values during definition.',
     'returns': 'Substitute scalar helper summaries; return and explicit raise terminate their paths.',
     'recursion': 'Recursive scalar summaries grow to a fixed point; each call substitutes its own origins.',
-    'imports': 'Resolve static local modules within one root; preserve defining-file identities and lookup evidence.',
+    'imports': 'Resolve static local modules within one root; check names in cyclic initialization order and preserve defining-file identities and lookup evidence.',
     'rules': 'Sources, sinks, sanitizers and propagators are caller-supplied contracts.',
     'names': 'Local bindings and shadowing prevent guessed external calls or unbound value claims.',
     'locations': 'Witnesses retain source revisions, UTF-8 byte spans and one-based Unicode columns.',
@@ -415,7 +415,7 @@ EXAMPLES.extend([
             witness=True, complete=False, cutoff='module-effects-unchecked', source_index=1),
     example('import-cycle', 'imports boundaries', 'return sink(helper.relay(source()))', [S, T], 17,
             prelude='import helper\n', files={'helper.py': 'import subject\ndef relay(value):\n    return value\n'},
-            witness=True, complete=False, cutoff='cyclic-module-initialization'),
+            witness=True),
     example('import-missing', 'imports boundaries', 'return sink(helper.relay(source()))', raised='ModuleNotFoundError',
             prelude='import helper\n', files={}, phase='definition', complete=False, cutoff='unresolved-local-import',
             witness=True, difference='Unresolved calls retain argument origins in an incomplete report; Python fails during import.'),
@@ -912,6 +912,50 @@ EXAMPLES.extend([
             [S, T], 17, prelude="table = {'send': lambda value: value}\n",
             complete=False, cutoff='dynamic-or-attribute-call'),
 ])
+
+for arrangement, contents in [
+    ('module-handles', {'helper.py': 'import neighbor\ndef relay(value):\n    return ANSWER\n',
+                        'neighbor.py': 'import helper\n'}),
+    ('earlier-function', {'helper.py': 'def relay(value):\n    return ANSWER\nfrom neighbor import flag\n',
+                          'neighbor.py': 'from helper import relay\nflag = 0\n'}),
+    ('earlier-exports', {'helper.py': "__all__ = ['relay']\ndef relay(value):\n    return ANSWER\nfrom neighbor import flag\n",
+                         'neighbor.py': 'from helper import *\nflag = 0\n'}),
+    ('earlier-default', {'helper.py': 'LIMIT = 0\nfrom neighbor import unused\ndef relay(value):\n    return ANSWER\n',
+                         'neighbor.py': 'from helper import LIMIT\ndef unused(value=LIMIT):\n    return value\n'}),
+    ('self-member', {'helper.py': 'def relay(value):\n    return ANSWER\nfrom helper import relay as public\n'}),
+    ('parent-member', {'helper.py': 'from pack import relay\n',
+                        'pack/__init__.py': 'def relay(value):\n    return ANSWER\nfrom . import inner\n',
+                        'pack/inner.py': 'from pack import relay\n'}),
+]:
+    for selected in (False, True):
+        EXAMPLES.append(example('import-order-' + arrangement + ('-selected' if selected else '-discarded'),
+            'imports names returns boundaries', 'return sink(relay(source()))', [S, T if selected else ZERO],
+            17 if selected else 0, witness=selected, prelude='from helper import relay\n',
+            files={path: text.replace('ANSWER', 'value' if selected else '0') for path, text in contents.items()}))
+
+for arrangement, contents, error in [
+    ('late-function', {'helper.py': 'from neighbor import flag\ndef relay(value):\n    return value\n',
+                       'neighbor.py': 'from helper import relay\nflag = 0\n'}, 'ImportError'),
+    ('late-default', {'helper.py': 'from neighbor import unused\nLIMIT = 0\ndef relay(value):\n    return value\n',
+                      'neighbor.py': 'from helper import LIMIT\ndef unused(value=LIMIT):\n    return value\n'}, 'ImportError'),
+    ('late-export', {'helper.py': "__all__ = ['relay']\nfrom neighbor import flag\ndef relay(value):\n    return value\n",
+                     'neighbor.py': 'from helper import *\nflag = 0\n'}, 'AttributeError'),
+    ('late-self-member', {'helper.py': 'from helper import relay as public\ndef relay(value):\n    return value\n'}, 'ImportError'),
+]:
+    EXAMPLES.append(example('import-order-' + arrangement, 'imports names boundaries', 'return sink(0)',
+        raised=error, phase='definition', prelude='from helper import relay\n', files=contents,
+        complete=False, cutoff='cyclic-module-initialization',
+        difference='Python cannot read a name that has not been created yet; the model keeps the import incomplete.'))
+
+for selected in (False, True):
+    EXAMPLES.append(example('import-order-package-entry' + ('-selected' if selected else '-discarded'),
+        'imports names returns boundaries', 'return sink(relay(source()))', [S, T if selected else ZERO],
+        17 if selected else 0, witness=selected, path='pack/inner.py', prelude='from pack import relay\n',
+        files={'pack/__init__.py': 'def relay(value):\n    return ' + ('value' if selected else '0') + '\nfrom . import inner\n'}))
+EXAMPLES.append(example('import-order-unknown-effects', 'imports names boundaries', 'return sink(relay(source()))',
+    [S, T], 17, witness=True, prelude='from helper import relay\n',
+    files={'helper.py': 'import neighbor\ndef relay(value):\n    return value\n',
+           'neighbor.py': 'import helper\nstate = 1 + 2\n'}, complete=False, cutoff='module-effects-unchecked'))
 
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',

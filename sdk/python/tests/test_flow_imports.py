@@ -137,7 +137,7 @@ def test_negative_module_and_member_lookups_change_when_definitions_appear(tmp_p
     ("import leaf\ndef forward(leaf):\n    return leaf.identity(0)\n", "ambiguous-call:leaf.identity"),
     ("import leaf\ndef forward(value):\n    result = leaf.identity(value)\n    leaf = 0\n    return result\n", "ambiguous-call:leaf.identity"),
     ("import leaf\nleaf = 0\ndef forward(value):\n    return leaf.identity(value)\n", "module-effects-unchecked"),
-    ("import app\ndef forward(value):\n    return value\n", "cyclic-module-initialization"),
+    ("from app import positive\ndef forward(value):\n    return value\n", "cyclic-module-initialization"),
     ("import leaf as forward\ndef forward(value):\n    return value\n", "ambiguous-module-binding"),
 ])
 def test_unsupported_import_execution_stays_incomplete(tmp_path, source, cutoff):

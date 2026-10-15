@@ -11,9 +11,10 @@ from typing import Any
 from .investigation import Dependency, DependencyKind
 from .runtime import FrReport, FrRuntimeError
 
-MODULE_POLICY = ("Single-root static modules/packages; names in one from-import share a provider search and retain every binding. "
-                 "Child searches consume the same budget. Annotations directives require absent local __future__ candidates. "
-                 "Dynamic setup/imports, merged namespaces and search paths stay unchecked.")
+MODULE_POLICY = ("Single-root modules/packages; from-import names share a provider search. "
+                 "Child searches use the same budget. Cycles require available names in execution order. "
+                 "Annotation directives need absent local __future__ candidates. "
+                 "Dynamic imports, merged namespaces and search paths stay unchecked.")
 
 
 def _expanded_lookups(modules: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:

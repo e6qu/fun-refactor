@@ -2,10 +2,13 @@ use super::*;
 use crate::parse::Parsed;
 use std::path::{Path, PathBuf};
 
+#[path = "flow_import_order.rs"]
+mod order;
+
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
-const POLICY: &str = "Single-root static modules/packages; names in one from-import share a provider search and retain every binding. Child searches consume the same budget. Annotations directives require absent local __future__ candidates. Dynamic setup/imports, merged namespaces and search paths stay unchecked.";
+const POLICY: &str = "Single-root modules/packages; from-import names share a provider search. Child searches use the same budget. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -795,6 +798,13 @@ impl Modules {
         let mut named_members = BTreeMap::new();
         let mut named_declarations = BTreeMap::new();
         let mut edges: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
+        let roots: Vec<_> = entry_resolution
+            .packages
+            .iter()
+            .map(|path| project.root.join(path))
+            .chain(std::iter::once(entry.to_owned()))
+            .collect();
+        let mut order = order::Order::default();
         for path in &entry_resolution.packages {
             let path = project.root.join(path);
             if queued.insert(path.clone()) {
@@ -830,7 +840,20 @@ impl Modules {
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
             let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
             let mut allocations = initializers::Allocations::default();
+            let mut startup = Vec::new();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                let declared = if node.kind() == "function_definition" {
+                    node.child_by_field_name("name")
+                        .map(|name| vec![&source[name.byte_range()]])
+                        .unwrap_or_default()
+                } else {
+                    opaque_names(node, source)
+                };
+                if !declared.is_empty() {
+                    startup.push(order::Step::Bind(
+                        declared.into_iter().map(str::to_owned).collect(),
+                    ));
+                }
                 let allocation = allocations.statement(node, source, |name| {
                     explicit_builtins || names.contains(name)
                 });
@@ -1096,6 +1119,7 @@ impl Modules {
                     lookup["submodule"] = serde_json::to_value(&submodule)?;
                     lookup["exhausted_child"] = json!(exhausted_child);
                     let selected = submodule.as_ref().unwrap_or(&resolution);
+                    let mut dependencies = Vec::new();
                     for dependency in std::iter::once(&resolution).chain(submodule.iter()) {
                         if dependency.admitted {
                             result.retain_namespaces(&project.root, &dependency.namespaces);
@@ -1104,14 +1128,11 @@ impl Modules {
                                     continue;
                                 }
                                 let absolute = project.root.join(path);
-                                if dependency.target.as_ref() == Some(path)
-                                    && !(submodule.is_some() && absolute == file)
-                                {
-                                    edges
-                                        .entry(file.clone())
-                                        .or_default()
-                                        .insert(absolute.clone());
-                                }
+                                edges
+                                    .entry(file.clone())
+                                    .or_default()
+                                    .insert(absolute.clone());
+                                dependencies.push(absolute.clone());
                                 if queued.insert(absolute.clone()) {
                                     pending.push_back(absolute);
                                 }
@@ -1127,6 +1148,18 @@ impl Modules {
                         result
                             .cutoffs
                             .insert(format!("unresolved-local-import:{}", selected.module));
+                    }
+                    if !binding.future {
+                        startup.push(order::Step::Import {
+                            dependencies,
+                            target: binding.target.as_ref().map(|path| project.root.join(path)),
+                            member: if alias == "*" {
+                                Some("__all__".to_owned())
+                            } else {
+                                binding.member.clone()
+                            },
+                            alias: (alias != "*").then(|| alias.clone()),
+                        });
                     }
                     lookups.push(lookup);
                     if alias != "*" {
@@ -1154,6 +1187,7 @@ impl Modules {
             result.literals.insert(file.clone(), literals);
             result.values.insert(file.clone(), values);
             result.opaque_bindings.insert(file.clone(), opaque_bindings);
+            order.steps.insert(file.clone(), startup);
             result.parsed.insert(file, parsed);
         }
         let mut visited = BTreeSet::new();
@@ -1161,6 +1195,7 @@ impl Modules {
             .parsed
             .keys()
             .any(|file| cyclic(file, &edges, &mut BTreeSet::new(), &mut visited))
+            && !order.valid(&roots)
         {
             result.cutoffs.insert("cyclic-module-initialization".into());
         }

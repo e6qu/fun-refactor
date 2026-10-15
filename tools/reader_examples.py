@@ -122,19 +122,59 @@ def registry_trace(binary, folder):
     return len(variants)
 
 
+def import_order_trace(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Follow imports that return to a file already loading\n', 1)[1].split('\n## ', 1)[0]
+    source, = blocks(lesson, 'python')
+    helper, rest = source.removeprefix('# helpers.py\n').split('# neighbor.py\n', 1)
+    neighbor, app = rest.split('# app.py\n', 1)
+    (folder / 'neighbor.py').write_text(neighbor)
+    (folder / 'app.py').write_text(app)
+    (folder / 'rules.json').write_text(blocks(page, 'json')[0])
+    import_line = 'from neighbor import ready\n'
+    variants = [
+        (helper, True, 17),
+        (helper.replace('return value', 'return 0'), True, 0),
+        (import_line + helper.replace(import_line, ''), False, None),
+    ]
+    assert len({source for source, _, _ in variants}) == 3
+    script = ('import json\ntry:\n import app\n app.read_input=lambda:17\n app.send=lambda value:value\n'
+              ' print(json.dumps({"returned":app.entry()}))\n'
+              'except Exception as error:\n print(json.dumps({"raised":type(error).__name__}))\n')
+    for source, complete, returned in variants:
+        (folder / 'helpers.py').write_text(source)
+        observed = json.loads(subprocess.check_output([sys.executable, '-B', '-c', script], cwd=folder,
+                                                     text=True, timeout=10))
+        assert observed == ({'returned': returned} if complete else {'raised': 'ImportError'})
+        found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
+        assert len(found['rows']) == 1 and found['page']['remaining'] == 0
+        target = dict(zip(found['columns'], found['rows'][0]))['handle']
+        result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
+                                     '--summaries', '--imports', '--rules', 'rules.json'])
+        assert result['complete'] is complete, result.get('cutoffs')
+        if complete:
+            assert bool(result['witnesses']) is (returned == 17)
+        else:
+            assert 'cyclic-module-initialization' in result['cutoffs']
+    return len(variants)
+
+
 def check(binary):
     measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
         root = Path(directory)
-        change, trace, registry = root / 'change', root / 'trace', root / 'registry'
+        change, trace, registry, order = (root / name for name in ('change', 'trace', 'registry', 'order'))
         change.mkdir()
         trace.mkdir()
         registry.mkdir()
+        order.mkdir()
         commands = first_change(binary, change)
         traces = first_trace(binary, trace)
         setups = registry_trace(binary, registry)
+        cycles = import_order_trace(binary, order)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
             'registry_setup_examples': setups,
+            'import_order_examples': cycles,
             'verified_measurement_rows': measurements}
 
 

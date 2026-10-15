@@ -177,13 +177,14 @@ Function re-exports (making an imported name available from another module) foll
 retains its ordered `binding_chain` of source paths and names; aliases never invent a new function identity.
 `from . import forward` selects a declared binding or an unambiguous child module.
 Parent initialization dependencies bind source without creating an artificial import cycle.
-Explicit import cycles, duplicate bindings and package names that conflict with loaded child modules remain incomplete.
+Import cycles require names to exist when Python reads them; see the [import-order example](python-contract.md#follow-imports-that-return-to-a-file-already-loading).
+Duplicate bindings and package names that conflict with loaded child modules remain incomplete.
 Combining namespace packages from several roots and other import-time effects remain outside the contract.
 Module aliases retain a terminal module and each explicit re-export binding. When a package lacks
 a declared member, a from-import retains a separate child resolution and all competing candidates.
 Qualified calls follow explicit module bindings to a defining function, within the same 16-component
-and 16-binding budgets. An initializer may import a local module; its closure must still be inert
-and acyclic. A child binding that selects that same module is admitted. Conflicting child bindings
+and 16-binding budgets. An initializer may import a local module; its startup must remain supported
+and its imported names available in execution order. A child binding that selects that same module is admitted. Conflicting child bindings
 refuse. Special bindings outside the documented metadata and future-annotation rules remain incomplete.
 Special child-module components also refuse, including direct entry selection.
 This excludes import controls and hooks such as `__getattr__`, whether declared, imported or installed
