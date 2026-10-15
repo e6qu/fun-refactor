@@ -170,3 +170,17 @@ def test_obsolete_import_policy_cannot_validate_current_answers(tmp_path):
     value['inputs']['modules']['policy'] = 'accept every import cycle'
     with pytest.raises(FrRuntimeError):
         FlowDependencies.from_report(FrReport(value, ()))
+
+
+@pytest.mark.parametrize('import_line', ['import external\n', 'from external import missing\n'])
+def test_unresolved_imports_do_not_invent_an_unavailable_cycle_member(tmp_path, import_line):
+    client, rules = install(tmp_path, {
+        'app.py': APP,
+        'alpha.py': import_line + 'import beta\ndef relay(value):\n    return value\n',
+        'beta.py': 'import alpha\n',
+    })
+    result = analyze(client, rules)
+    assert not result.report.at('/complete') and not result.dependencies.complete
+    assert 'unresolved-local-import:external' in result.report.at('/cutoffs')
+    assert 'cyclic-module-initialization' not in result.report.at('/cutoffs')
+    assert runtime(tmp_path) == {'raised': 'ModuleNotFoundError'}

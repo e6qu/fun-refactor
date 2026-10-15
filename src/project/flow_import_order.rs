@@ -16,6 +16,13 @@ pub(super) struct Order {
     pub steps: BTreeMap<PathBuf, Vec<Step>>,
 }
 
+#[derive(PartialEq, Eq)]
+pub(super) enum Check {
+    Complete,
+    UnavailableCycleMember,
+    Unknown,
+}
+
 #[derive(Default)]
 struct State {
     active: BTreeSet<PathBuf>,
@@ -24,17 +31,23 @@ struct State {
 }
 
 impl Order {
-    pub fn valid(&self, roots: &[PathBuf]) -> bool {
+    pub fn check(&self, roots: &[PathBuf]) -> Check {
         let mut state = State::default();
-        roots.iter().all(|file| self.execute(file, &mut state))
+        for file in roots {
+            let result = self.execute(file, &mut state);
+            if result != Check::Complete {
+                return result;
+            }
+        }
+        Check::Complete
     }
 
-    fn execute(&self, file: &Path, state: &mut State) -> bool {
+    fn execute(&self, file: &Path, state: &mut State) -> Check {
         if state.finished.contains(file) || state.active.contains(file) {
-            return true;
+            return Check::Complete;
         }
         let Some(steps) = self.steps.get(file) else {
-            return false;
+            return Check::Unknown;
         };
         state.active.insert(file.to_owned());
         for step in steps {
@@ -52,16 +65,26 @@ impl Order {
                     member,
                     alias,
                 } => {
-                    if !dependencies.iter().all(|path| self.execute(path, state)) {
-                        return false;
+                    for path in dependencies {
+                        let result = self.execute(path, state);
+                        if result != Check::Complete {
+                            return result;
+                        }
                     }
+                    let Some(target) = target else {
+                        return Check::Unknown;
+                    };
                     if let Some(member) = member {
-                        if !target
-                            .as_ref()
-                            .and_then(|path| state.names.get(path))
+                        if !state
+                            .names
+                            .get(target)
                             .is_some_and(|names| names.contains(member))
                         {
-                            return false;
+                            return if state.active.contains(target) {
+                                Check::UnavailableCycleMember
+                            } else {
+                                Check::Unknown
+                            };
                         }
                     }
                     if let Some(alias) = alias {
@@ -76,6 +99,6 @@ impl Order {
         }
         state.active.remove(file);
         state.finished.insert(file.to_owned());
-        true
+        Check::Complete
     }
 }

@@ -1195,7 +1195,7 @@ impl Modules {
             .parsed
             .keys()
             .any(|file| cyclic(file, &edges, &mut BTreeSet::new(), &mut visited))
-            && !order.valid(&roots)
+            && order.check(&roots) == order::Check::UnavailableCycleMember
         {
             result.cutoffs.insert("cyclic-module-initialization".into());
         }
