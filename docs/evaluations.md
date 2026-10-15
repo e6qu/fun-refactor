@@ -895,6 +895,7 @@ The original failed reports, validators and CI logs remain unchanged.
 | Two named-default tests used an observer that only caught exceptions from calling the entry | Use the existing isolated observer that also records module-loading failures; retain both `NameError` expectations | [First named-default check](https://github.com/e6qu/fun-refactor/actions/runs/38595108328) |
 | One added scalar-default comment exceeded the fixed prose budget | Remove the redundant comment and keep the budget | [Scalar-default prose check](https://github.com/e6qu/fun-refactor/actions/runs/38666246115) |
 | The scalar-default capture map omitted its Rust path-type import | Import the path type and rerun the same native controls | [Scalar-default compiler check](https://github.com/e6qu/fun-refactor/actions/runs/38666372468) |
+| Longer scalar-default contract text exceeded existing report byte budgets | Shorten the repeated contract wording while retaining the rules and limits; recollect source-bound reports | [Scalar-default SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38666586639), [collection precheck](https://github.com/e6qu/fun-refactor/actions/runs/38667422037) |
 
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
