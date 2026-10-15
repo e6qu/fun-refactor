@@ -410,7 +410,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_type_registries.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_builtin_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_package_flow.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_builtin_class_bases.py sdk/python/tests/test_class_initialization.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_type_registries.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_builtin_initialization.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_package_flow.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'

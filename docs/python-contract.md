@@ -241,14 +241,39 @@ def relay(value):
 ```
 
 This plain declaration and default empty construction do not prevent an otherwise supported answer.
-The method body stays deferred. The supported class has no bases, decorators or type parameters.
+The method body stays deferred. The supported class has no base or one direct, unshadowed built-in
+base: `object`, `dict` or `Exception`. Parentheses and comments around that base are allowed.
+Decorators, type parameters, multiple bases, unpacking and explicit metaclasses remain unchecked.
 Its body contains comments, literal strings, `pass`, scalar attributes or supported method declarations with inert defaults.
-The call must name an unchanged class defined earlier in the same file and pass no arguments.
+Default instance construction requires no base or `object`; constructing a `dict` or `Exception`
+subclass stays unchecked. The call must name an unchanged class defined earlier in the same file
+and pass no arguments.
+
+For example, a helper module can declare an exception and a cache type before the function you need:
+
+```python
+class SkipMemory(Exception):
+    pass
+
+class CacheMemory(dict):
+    def __init__(self, timeout):
+        self.timeout = timeout
+
+def relay(value):
+    return value
+```
+
+The declarations no longer block a supported `send(relay(read_input()))` trace. Neither constructor
+runs merely because its class is defined. An imported class value keeps its defining file and
+declaration position. Required base names must be unshadowed in that module; explicit `__builtins__`
+access disables this base allowance. A custom base can run `__init_subclass__`, so
+`class CacheMemory(CustomBase): ...` remains unchecked even when it looks similar.
 
 For example, adding `def __init__(self): read_input()` makes `EMPTY = Marker()` execute custom code.
-That initialization remains unchecked, as do custom `__new__` or `__del__` methods, descriptors and other evaluated class-body statements.
+That initialization remains unchecked, as do instances with custom `__new__` or `__del__` methods,
+descriptors and other evaluated class-body statements.
 Python's [class creation and construction rules](https://docs.python.org/3.14/reference/datamodel.html#creating-the-class-object)
-explain these calls. Imported classes, special class metadata and rebinding remain incomplete.
+explain these calls. Constructing imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
 
 ## Follow a helper through another function name

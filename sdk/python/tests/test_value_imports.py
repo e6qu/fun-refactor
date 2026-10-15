@@ -77,7 +77,7 @@ def test_value_reads_and_calls_remain_unfinished(tmp_path, body):
 @pytest.mark.parametrize("declaration", [
     "marker = source()\n", "marker: object = 0\n", "marker = other = 0\n",
     "marker = lambda: 0\n", "@decorate\nclass marker:\n    pass\n",
-    "class marker(object):\n    pass\n", "class marker:\n    value = source()\n",
+    "class marker(list):\n    pass\n", "class marker:\n    value = source()\n",
     "class Token:\n    def __init__(self):\n        sink(source())\nmarker = Token()\n",
     "marker = 0\nmarker = 1\n", "marker = 0\nmarker = source()\n",
 ])

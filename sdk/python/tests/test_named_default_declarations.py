@@ -132,6 +132,23 @@ def test_class_method_defaults_keep_their_separate_namespace_unchecked(tmp_path)
     assert observe(tmp_path)["result"] == 17
 
 
+@pytest.mark.parametrize("prior_imports,complete", [(127, True), (128, False)])
+def test_import_budget_can_leave_an_otherwise_supported_marker_unavailable(tmp_path, prior_imports, complete):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "values.py").write_text("".join(f"v{index} = 0\n" for index in range(prior_imports)))
+    (tmp_path / "markers.py").write_text("class Token:\n    pass\nmarker = Token()\n")
+    imports = "from values import " + ", ".join(f"v{index}" for index in range(prior_imports)) + "\n"
+    (tmp_path / "subject.py").write_text(imports + "from markers import marker\n"
+                                       "def unused(key=marker):\n    return key\n"
+                                       "def entry():\n    return sink(source())\n")
+    result = analyze(client, rules, "entry", imports=True)
+    assert result.report.at("/complete") is complete
+    assert result.report.at("/inputs/modules/limits/imports") == 128
+    assert ("import-lookup-budget" in result.report.at("/inputs/modules/cutoffs")) is (not complete)
+    assert any("definition-time-code" in site.reasons for site in result.initialization.sites) is (not complete)
+    assert observe(tmp_path) == {"result": 17, "raised": None, "events": [["source", 17], ["sink", 17]]}
+
+
 @pytest.mark.parametrize("edit", ["del marker\n", "marker = source()\n", "marker = 1\n"])
 def test_changed_availability_invalidates_reuse_and_matches_fresh_analysis(tmp_path, edit):
     client, rules = install(tmp_path)

@@ -310,7 +310,7 @@ fn retained_semantic_evidence_is_source_bound_and_internally_verified() {
         .args([
             "tools/compiler-profile.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-type-registries-compiler-profile/result.json",
+            "tests/agent-eval/results/2026-10-15-builtin-bases-compiler-profile/result.json",
         ])
         .output()
         .unwrap();

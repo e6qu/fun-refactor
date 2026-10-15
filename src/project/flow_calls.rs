@@ -494,6 +494,7 @@ pub(super) fn module_class<'s>(
     node: Node<'_>,
     source: &'s str,
     postponed: bool,
+    shadowed: impl Fn(&str) -> bool,
 ) -> Option<(&'s str, bool)> {
     if node.kind() != "class_definition" {
         return None;
@@ -504,19 +505,34 @@ pub(super) fn module_class<'s>(
     if !name.is_ascii() || name.starts_with("__") && name.ends_with("__") {
         return None;
     }
+    let mut constructible = true;
     for child in node.named_children(&mut node.walk()) {
         if child == name_node || child == body || child.kind() == "comment" {
             continue;
         }
-        if child.kind() != "argument_list"
-            || child
-                .named_children(&mut child.walk())
-                .any(|n| n.kind() != "comment")
+        if child.kind() != "argument_list" {
+            return None;
+        }
+        let bases: Vec<_> = child
+            .named_children(&mut child.walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if bases.is_empty() {
+            continue;
+        }
+        if bases.len() != 1 {
+            return None;
+        }
+        let base = unparenthesized(bases[0])?;
+        let name = &source[base.byte_range()];
+        if base.kind() != "identifier"
+            || !matches!(name, "object" | "dict" | "Exception")
+            || shadowed(name)
         {
             return None;
         }
+        constructible &= name == "object";
     }
-    let mut constructible = true;
     for child in body.named_children(&mut body.walk()) {
         if matches!(child.kind(), "comment" | "pass_statement")
             || module_literal(child, source).is_some()
@@ -934,7 +950,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"Module function bodies defer with literal or known prior defaults, including variadics. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
-        "initialization":"Literals, aliases, built-in references/type maps, exports and plain classes/instances are inert. Prior plain-function __doc__ writes preserve calls. Reads, collisions and other effects stay unchecked.",
+        "initialization":"Literals, aliases, builtin refs/maps and exports are inert. Bases: none or unshadowed object/dict/Exception. Plain instances and prior function __doc__ writes are inert. Other effects stay unchecked.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

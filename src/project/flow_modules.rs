@@ -707,7 +707,12 @@ impl Modules {
                     }
                     continue;
                 }
-                let class = calls::module_class(node, source, result.annotations_postponed(&file));
+                let class = calls::module_class(
+                    node,
+                    source,
+                    result.annotations_postponed(&file),
+                    |name| explicit_builtins || names.contains(name),
+                );
                 let registry = (!explicit_builtins)
                     .then(|| calls::module_type_registry(node, source, |name| names.contains(name)))
                     .flatten();

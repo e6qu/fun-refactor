@@ -153,7 +153,7 @@ A literal package member prevents selection of a same-named child module.
 
 Plain class declarations can also leave a helper answer complete.
 For example, an unused `class Marker: pass` and `EMPTY = Marker()` add no custom constructor call.
-The supported declaration has no bases or decorators and an inert body; method bodies stay deferred.
+This example has no bases or decorators and an inert body; method bodies stay deferred.
 Construction must name an unchanged class defined earlier in that file and pass no arguments.
 Custom `__new__`, `__init__` or `__del__` methods keep construction unchecked.
 The [Python examples](python-contract.md) explain class-body effects and unknown global object values.
