@@ -51,6 +51,38 @@ class ShardTests(unittest.TestCase):
             assigned.extend(plugin.selected)
         self.assertEqual(sorted(assigned), sorted(inventory))
 
+    def test_sdk_collection_balances_slow_cases_and_keeps_execution_order(self):
+        inventory = [f"tests/sample.py::test_case[{index}]" for index in range(40)]
+        weights = {nodeid: 100 for nodeid in inventory[:4]}
+        config = SimpleNamespace(hook=SimpleNamespace(pytest_deselected=lambda **kwargs: None))
+        assignments = []
+        with tempfile.TemporaryDirectory() as temp, patch.object(shards, "ROOT", Path(temp)):
+            tools = Path(temp) / "tools"
+            tools.mkdir()
+            (tools / "ci-test-durations.json").write_text(json.dumps({"sdk_seconds": weights}))
+            for index in range(shards.COUNTS["sdk"]):
+                plugin = shards.SdkShard(index, Path("unused"))
+                items = [SimpleNamespace(nodeid=nodeid) for nodeid in inventory]
+                plugin.pytest_collection_modifyitems(None, config, items)
+                self.assertEqual(len(set(plugin.selected) & weights.keys()), 1)
+                self.assertEqual(plugin.selected, [nodeid for nodeid in inventory if nodeid in plugin.selected])
+                shuffled = [SimpleNamespace(nodeid=nodeid) for nodeid in reversed(inventory)]
+                reverse = shards.SdkShard(index, Path("unused"))
+                reverse.pytest_collection_modifyitems(None, config, shuffled)
+                self.assertEqual(set(plugin.selected), set(reverse.selected))
+                assignments.extend(plugin.selected)
+        self.assertEqual(sorted(assignments), sorted(inventory))
+
+    def test_recorded_sdk_weights_use_pytest_node_ids(self):
+        data = json.loads((shards.ROOT / "tools/ci-test-durations.json").read_text())
+        self.assertIsInstance(data["sdk_source_run"], int)
+        self.assertGreater(data["sdk_source_run"], 0)
+        self.assertTrue(data["sdk_seconds"])
+        for nodeid, seconds in data["sdk_seconds"].items():
+            self.assertTrue(nodeid.startswith("tests/") and "::test_" in nodeid)
+            self.assertTrue((shards.ROOT / "sdk/python" / nodeid.split("::")[0]).is_file())
+            self.assertGreater(seconds, 0)
+
     def test_failed_native_tests_do_not_publish_a_passing_inventory(self):
         inventory = {f"test:case{index}": ["--test", f"case{index}"] for index in range(12)}
         failure = subprocess.CalledProcessError(101, ["cargo", "test"])

@@ -896,6 +896,7 @@ The original failed reports, validators and CI logs remain unchanged.
 | One added scalar-default comment exceeded the fixed prose budget | Remove the redundant comment and keep the budget | [Scalar-default prose check](https://github.com/e6qu/fun-refactor/actions/runs/38666246115) |
 | The scalar-default capture map omitted its Rust path-type import | Import the path type and rerun the same native controls | [Scalar-default compiler check](https://github.com/e6qu/fun-refactor/actions/runs/38666372468) |
 | Longer scalar-default contract text exceeded existing report byte budgets | Shorten the repeated contract wording while retaining the rules and limits; recollect source-bound reports | [Scalar-default SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38666586639), [collection precheck](https://github.com/e6qu/fun-refactor/actions/runs/38667422037) |
+| A name-based SDK assignment grouped a long report audit with several proof checks and hit the 15-minute deadline | Use measured case durations to balance the same four groups; preserve every test, execution order and deadline | [Scalar-default full CI timeout](https://github.com/e6qu/fun-refactor/actions/runs/38670183873/job/116211233691) |
 
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.

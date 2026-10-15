@@ -25,8 +25,12 @@ a conservative ten-second estimate and enter the partition automatically.
 library, binary, integration, example and benchmark targets. The native Python
 SDK wrapper delegates its pytest invocation to the four SDK jobs; all its other
 Rust tests still run. Pytest collects the entire suite in each job and assigns
-complete node IDs, including parameters, by a stable hash. New cases enter the
-partition automatically.
+complete node IDs, including parameters, by longest estimated duration first.
+The recorded SDK timings come from [run 38670183873](https://github.com/e6qu/fun-refactor/actions/runs/38670183873).
+Its name-based hash assignment put a report audit and several proof checks together, and one job
+hit the deadline while other SDK groups finished much sooner. Measured slow cases now spread across
+the same four runners. New cases receive a one-second estimate and enter the partition automatically.
+Each group keeps pytest's collected execution order. All job deadlines remain unchanged.
 
 Every successful shard uploads its complete inventory, assignments, capability
 log and advertised matrix. The final `check (default)` gate requires all shards,
