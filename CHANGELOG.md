@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.63.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.63.0...fun-refactor-v0.63.1) (2026-10-15)
+
+
+### Fixes
+
+* allow unused imports of known Python values ([#496](https://github.com/e6qu/fun-refactor/issues/496)) ([1b99753](https://github.com/e6qu/fun-refactor/commit/1b99753c841b64c6d2cbe020510c5f6070a57618))
+* bind scalar defaults and balance SDK checks ([#499](https://github.com/e6qu/fun-refactor/issues/499)) ([ac3b9a8](https://github.com/e6qu/fun-refactor/commit/ac3b9a838e7cf009d7c9abf875c159791ffce42d))
+* defer unused Python functions with known named defaults ([#498](https://github.com/e6qu/fun-refactor/issues/498)) ([f077b9d](https://github.com/e6qu/fun-refactor/commit/f077b9d61e321eef15a228165e7de2d5fad76c9d))
+* keep builtin type maps from blocking Python helper traces ([#500](https://github.com/e6qu/fun-refactor/issues/500)) ([b4d832f](https://github.com/e6qu/fun-refactor/commit/b4d832fe165578deb509d888268c64574b402f57))
+* keep unused builtin subclasses from blocking Python traces ([#501](https://github.com/e6qu/fun-refactor/issues/501)) ([057e8fe](https://github.com/e6qu/fun-refactor/commit/057e8fee41eaf36736970c129b29e8ca9d85df37))
+
 ## [0.63.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.62.0...fun-refactor-v0.63.0) (2026-10-14)
 
 
