@@ -63,7 +63,7 @@ expectations; it does not extend the underlying mutation support.
 | | |
 | --- | --- |
 | Comments | `#` to end of line |
-| Identifiers | `[a-z][a-z0-9-]*`, kebab-case, matching the CLI (`remove-flag`, `on-refusal`) |
+| Identifiers | `[a-z][a-z0-9-]*`: start with a lowercase letter, then use lowercase letters, digits or hyphens (`remove-flag`, `on-refusal`) |
 | Strings | `"…"` with `\"` and `\\`; or `'…'` raw, with no escapes at all |
 | Numbers | non-negative integers |
 | Booleans | `true`, `false` |
@@ -86,6 +86,17 @@ delete where kind=function
 ```
 
 ## Grammar
+
+The reference below uses EBNF, a compact notation for describing allowed recipe text.
+Quoted words appear literally; names such as `recipe` refer to other rules.
+
+`|` means choose an alternative, `[x]` means optional, and `{x}` means repeat zero or more times.
+Parentheses group parts, commas join them in order, and semicolons end a rule.
+`INT`, `IDENT`, `STRING` and `BOOL` refer to the value kinds in the lexical table above.
+`(* ... *)` adds a comment to the grammar.
+
+For `step = operation, [selector], {modifier}`, write one operation, optionally select code, then add any modifiers.
+Use the recipe example above for a runnable input.
 
 ```ebnf
 file        = "schema" INT , { recipe } ;
