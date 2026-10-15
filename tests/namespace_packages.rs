@@ -90,7 +90,7 @@ fn namespace_packages_acceptance_replays_checked_delivery() {
         .args([
             "tools/namespace-packages-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-scalar-named-defaults-namespace-packages/result.json",
+            "tests/agent-eval/results/2026-10-15-type-registries-namespace-packages/result.json",
         ])
         .output()
         .unwrap();

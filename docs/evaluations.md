@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-15-scalar-named-defaults-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-15-type-registries-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-15-type-registries-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -906,6 +906,8 @@ The [value-import collection](../tests/agent-eval/results/2026-10-14-value-impor
 preserves the results before known prior values could defer unused module function defaults.
 The [named-default declaration collection](../tests/agent-eval/results/2026-10-14-named-defaults-scalar-collection/manifest.json)
 preserves the results before calls could use captured local scalar defaults.
+The [scalar-default call collection](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-collection/manifest.json)
+preserves the results before bounded built-in type maps could coexist with supported traces.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,
