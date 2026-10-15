@@ -1195,9 +1195,18 @@ impl Modules {
             .parsed
             .keys()
             .any(|file| cyclic(file, &edges, &mut BTreeSet::new(), &mut visited))
-            && order.check(&roots) == order::Check::UnavailableCycleMember
         {
-            result.cutoffs.insert("cyclic-module-initialization".into());
+            match order.check(&roots) {
+                order::Check::Complete => (),
+                order::Check::UnavailableCycleMember => {
+                    result.cutoffs.insert("cyclic-module-initialization".into());
+                }
+                order::Check::Unknown => {
+                    result
+                        .cutoffs
+                        .insert("import-initialization-order-unchecked".into());
+                }
+            }
         }
         if result.package_binding_conflicts() {
             result

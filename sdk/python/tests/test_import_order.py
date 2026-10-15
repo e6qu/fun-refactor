@@ -182,5 +182,6 @@ def test_unresolved_imports_do_not_invent_an_unavailable_cycle_member(tmp_path, 
     result = analyze(client, rules)
     assert not result.report.at('/complete') and not result.dependencies.complete
     assert 'unresolved-local-import:external' in result.report.at('/cutoffs')
+    assert 'import-initialization-order-unchecked' in result.report.at('/cutoffs')
     assert 'cyclic-module-initialization' not in result.report.at('/cutoffs')
     assert runtime(tmp_path) == {'raised': 'ModuleNotFoundError'}

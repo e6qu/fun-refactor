@@ -149,6 +149,7 @@ A package's `__init__.py` runs before a child module. Importing a module without
 Reading a member still requires that name to exist at that point.
 
 All existing file, source-size and import-search limits apply. Unknown startup operations remain unchecked even when the import order works.
+If a dependency prevents this order check, `import-initialization-order-unchecked` keeps the answer incomplete without claiming a known cycle failure.
 This supports some cycles; it does not establish complete behavior for a package or for arbitrary import hooks.
 
 ## Read a known name in an unused function's default
