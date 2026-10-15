@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-type-registries-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-15-builtin-bases-python-contract/result.json'
 
 
 class PythonContract(unittest.TestCase):

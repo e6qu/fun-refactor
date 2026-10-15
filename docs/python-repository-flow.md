@@ -60,7 +60,9 @@ the full libraries still contain other initialization and import boundaries.
 The class correction covers a familiar marker declaration in `funcy.primitives`:
 `EmptyType` has a deferred `__repr__` method, followed by `EMPTY = EmptyType()`.
 Plain declarations and default empty construction can stay inert while scalar helpers run.
-Custom constructors, finalizers, bases, decorators and other executed class-body code remain unchecked.
+Custom bases, instances with custom constructors or finalizers, decorators and other executed class-body code remain unchecked.
+Unused classes can now declare a single unshadowed `object`, `dict` or `Exception` base. The
+[Python guide](python-contract.md) shows why defining a cache type differs from running its constructor.
 The collector now also copies the complete original primitive module unchanged and tests `inc` and `dec` through it.
 This removes package parents from that separate test context. It cannot establish full-package support.
 
@@ -117,7 +119,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-15-type-registries-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-15-builtin-bases-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
