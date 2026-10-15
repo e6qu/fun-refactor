@@ -45,14 +45,13 @@ falls outside that limit. Resolving the marker fixes one obstacle; it does not s
 The earlier handoff mistook those unresolved defaults for a missing marker rule. Small imported-marker
 examples already worked; repeated provider searches had consumed the full-package lookup allowance.
 
-The latest completed familiar-library replay uses the same loaded files as the wildcard collection.
+The current familiar-library replay uses the same loaded files as the wildcard collection.
 Funcy stays at 80 unchecked startup statements across 16 files, and Toolz stays at 92 across 14.
 Pydash now uses 47 searches and reaches the separate 256 KiB source limit. It counts 420 unchecked
 startup statements instead of 510 across the same eight files. None of the 40 full-package cases becomes complete;
 32 remain incomplete and eight are refused. The
-[completed replay](https://github.com/e6qu/fun-refactor/actions/runs/38730413744)
-keeps the source snapshots and outcomes together. The matching current collection also checks the
-corrected authored fixture inventory; it does not change this library replay's inputs.
+[audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38739064758)
+keeps the source snapshots, outcomes and remaining limits together.
 
 Keep jaraco.functools unread during development. Freeze the implementation before its first evaluation.
 Toolz, funcy and pydash are familiar development examples. The
