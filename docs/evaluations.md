@@ -901,6 +901,12 @@ The original failed reports, validators and CI logs remain unchanged.
 | A value-import test still treated an unused `object`-based class as unsupported | Keep the negative case with an unsupported `list` base; retain the positive built-in-base runtime comparisons | [First built-in-base SDK check](https://github.com/e6qu/fun-refactor/actions/runs/38697413065) |
 | Compiler evidence repeatedly hashed large driver files with an unoptimized SHA-256 dependency and reached the 15-minute job deadline | Optimize that dependency in development builds, compare digest bytes independently and keep every check and deadline | [Partial original artifact](../tests/agent-eval/results/2026-10-15-import-search-compiler-timeout/manifest.json), [timed-out run](https://github.com/e6qu/fun-refactor/actions/runs/38713751219) |
 
+The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
+measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
+and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.
+Collecting compiler identities, diagnostics and changed-input refusals then took about 13 seconds.
+The complete job passed in 9 minutes 55 seconds, within its unchanged 15-minute deadline.
+
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
 The [function-documentation collection](../tests/agent-eval/results/2026-10-14-function-docs-scalar-collection/manifest.json)
