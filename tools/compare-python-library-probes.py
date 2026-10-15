@@ -3,6 +3,11 @@
 import argparse
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'sdk/python/src'))
+from fr_ir.flow_dependencies import FlowDependencies
+from fr_ir.runtime import FrReport
 
 
 def main():
@@ -31,10 +36,12 @@ def main():
               '; dependency cutoffs:', old['inputs']['modules']['cutoffs'], new['inputs']['modules']['cutoffs'])
         if helper == 'funcy-inc':
             lookups = new['inputs']['modules']['lookups']
-            print('Funcy searches:', len(lookups) + sum(lookup['submodule'] is not None for lookup in lookups) + sum(member['submodule'] is not None
-                  for lookup in lookups for member in lookup['members']))
+            dependencies = FlowDependencies.from_report(FrReport(new, ()))
+            print('Funcy searches:', dependencies.lookup_count)
             print('Funcy initializer searches:', sum(row['importer'] == 'funcy/__init__.py' for row in lookups))
-            print('Funcy EMPTY records:', [row for row in lookups if row['member'] == 'EMPTY'])
+            print('Funcy EMPTY bindings:', [{'importer': row.importer, 'alias': row.alias,
+                  'resolution': row.resolution, 'declarations': [(hop.path, hop.name) for hop in row.binding_chain]}
+                  for row in dependencies.lookups if row.member == 'EMPTY'])
             def sites(data):
                 return {(site['occurrence']['path'], site['occurrence']['location']['range']['start']['line'],
                          tuple(site['reasons'])) for site in data['initialization']['sites']}
