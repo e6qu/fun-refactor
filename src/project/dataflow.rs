@@ -958,7 +958,6 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
-                    // Python captures defaults before binding the function's own name.
                     scalar_defaults.insert(
                         (file.to_path_buf(), node.start_byte()),
                         calls::captured_scalar_defaults(node, text, postponed, &default_scalars),
