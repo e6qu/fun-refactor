@@ -84,7 +84,7 @@ def test_shared_members_cannot_bypass_the_module_search_budget(tmp_path, prior_i
     client, rules = install(tmp_path)
     (tmp_path / "values.py").write_text("".join(f"v{index} = 0\n" for index in range(prior_imports)))
     path = tmp_path / "subject.py"
-    path.write_text("from values import " + ", ".join(f"v{index}" for index in range(prior_imports)) + "\n" + path.read_text())
+    path.write_text("".join(f"from values import v{index}\n" for index in range(prior_imports)) + path.read_text())
     result = analyze(client, rules, "entry", imports=True)
     assert result.report.at("/complete") is complete
     assert result.dependencies.lookup_count == 128

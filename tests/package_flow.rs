@@ -766,6 +766,111 @@ fn wildcard_child_searches_cannot_escape_the_import_limit() {
 }
 
 #[test]
+fn named_imports_share_one_provider_and_keep_alias_order() {
+    let root = tempfile::tempdir().unwrap();
+    let mut helper = "def relay(value):\n    return value\n".to_owned();
+    let mut names = vec!["relay as selected".to_owned()];
+    for index in 0..127 {
+        names.push(format!("helper{index} as picked{index}"));
+        helper.push_str(&format!("def helper{index}(value):\n    return value\n"));
+    }
+    write(root.path(), "helpers.py", &helper);
+    write(
+        root.path(),
+        "app.py",
+        &format!(
+            "from helpers import ({})\ndef entry():\n    return sink(selected(source()))\n",
+            names.join(", ")
+        ),
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{report}");
+    let lookups = report["inputs"]["modules"]["lookups"].as_array().unwrap();
+    assert_eq!(lookups.len(), 1);
+    assert_eq!(lookups[0]["names"].as_array().unwrap().len(), 128);
+    assert_eq!(lookups[0]["names"][0], json!(["selected", "relay"]));
+    let members = lookups[0]["members"].as_array().unwrap();
+    assert_eq!(members.len(), 127);
+    for (index, member) in members.iter().enumerate() {
+        assert_eq!(member.as_object().unwrap().len(), 7);
+        assert_eq!(member["alias"], format!("picked{index}"));
+        assert_eq!(member["member"], format!("helper{index}"));
+        assert_eq!(
+            member["binding_chain"],
+            json!([{"path":"helpers.py", "name":format!("helper{index}")}])
+        );
+    }
+}
+
+#[test]
+fn named_package_children_share_the_fixed_search_budget() {
+    let root = tempfile::tempdir().unwrap();
+    let names: Vec<_> = (0..128).map(|index| format!("child{index:03}")).collect();
+    write(root.path(), "pkg/__init__.py", "pass\n");
+    for name in &names {
+        write(root.path(), &format!("pkg/{name}.py"), "pass\n");
+    }
+    write(
+        root.path(),
+        "app.py",
+        &format!(
+            "from pkg import {}\ndef entry():\n    return sink(0)\n",
+            names.join(", ")
+        ),
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    let lookup = &report["inputs"]["modules"]["lookups"][0];
+    assert!(!lookup["submodule"].is_null());
+    let members = lookup["members"].as_array().unwrap();
+    assert_eq!(members.len(), 127);
+    assert_eq!(
+        members
+            .iter()
+            .filter(|member| !member["submodule"].is_null())
+            .count(),
+        126
+    );
+    assert_eq!(members.last().unwrap()["resolution"], "budget");
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("import-lookup-budget")));
+}
+
+#[test]
+fn named_import_lists_have_a_bounded_binding_inventory() {
+    let root = tempfile::tempdir().unwrap();
+    let names: Vec<_> = (0..129).map(|index| format!("helper{index}")).collect();
+    write(
+        root.path(),
+        "helpers.py",
+        &names
+            .iter()
+            .map(|name| format!("def {name}(value):\n    return value\n"))
+            .collect::<String>(),
+    );
+    write(
+        root.path(),
+        "app.py",
+        &format!(
+            "from helpers import {}\ndef entry():\n    return sink(source())\n",
+            names.join(", ")
+        ),
+    );
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("import-binding-budget")));
+    assert_eq!(
+        report["inputs"]["modules"]["limits"]["names_per_import"],
+        128
+    );
+}
+
+#[test]
 fn sharing_star_searches_keeps_provider_startup_effects_unchecked() {
     let root = tempfile::tempdir().unwrap();
     write(

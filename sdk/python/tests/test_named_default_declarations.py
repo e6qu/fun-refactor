@@ -137,7 +137,7 @@ def test_import_budget_can_leave_an_otherwise_supported_marker_unavailable(tmp_p
     client, rules = workspace(tmp_path)
     (tmp_path / "values.py").write_text("".join(f"v{index} = 0\n" for index in range(prior_imports)))
     (tmp_path / "markers.py").write_text("class Token:\n    pass\nmarker = Token()\n")
-    imports = "from values import " + ", ".join(f"v{index}" for index in range(prior_imports)) + "\n"
+    imports = "".join(f"from values import v{index}\n" for index in range(prior_imports))
     (tmp_path / "subject.py").write_text(imports + "from markers import marker\n"
                                        "def unused(key=marker):\n    return key\n"
                                        "def entry():\n    return sink(source())\n")

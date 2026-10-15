@@ -31,7 +31,7 @@ def main():
               '; dependency cutoffs:', old['inputs']['modules']['cutoffs'], new['inputs']['modules']['cutoffs'])
         if helper == 'funcy-inc':
             lookups = new['inputs']['modules']['lookups']
-            print('Funcy searches:', len(lookups) + sum(member['submodule'] is not None
+            print('Funcy searches:', len(lookups) + sum(lookup['submodule'] is not None for lookup in lookups) + sum(member['submodule'] is not None
                   for lookup in lookups for member in lookup['members']))
             print('Funcy initializer searches:', sum(row['importer'] == 'funcy/__init__.py' for row in lookups))
             print('Funcy EMPTY records:', [row for row in lookups if row['member'] == 'EMPTY'])

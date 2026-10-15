@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
-const POLICY: &str = "Single-root static modules/packages; wildcard names share module searches and retain per-name bindings. Checked annotations directives require absent local __future__ candidates. Dynamic initialization/imports, merged namespaces, implicit children and search paths stay unchecked.";
+const POLICY: &str = "Single-root static modules/packages; names in one from-import share a provider search and retain every binding. Child searches consume the same budget. Annotations directives require absent local __future__ candidates. Dynamic setup/imports, merged namespaces and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -419,7 +419,7 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
     if modules["policy"] != POLICY
         || modules["limits"]
             != json!({"modules":MODULE_LIMIT,
-        "source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT})
+        "source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"names_per_import":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT})
     {
         return None;
     }
@@ -445,9 +445,19 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
         "binding_chain",
         "terminal_module",
         "members",
+        "names",
     ];
     let member_fields = [
         "name",
+        "resolution",
+        "binding_chain",
+        "submodule",
+        "terminal_module",
+    ];
+    let named_fields = [
+        "alias",
+        "member",
+        "prefix",
         "resolution",
         "binding_chain",
         "submodule",
@@ -461,13 +471,35 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
             return None;
         }
         let members = record["members"].as_array()?;
-        if members.len() > IMPORT_LIMIT
-            || record["alias"] != "*" && (!members.is_empty() || !record["exports"].is_null())
-        {
+        let wildcard = record["alias"] == "*";
+        let named = !wildcard && !record["member"].is_null();
+        if members.len() > IMPORT_LIMIT || !wildcard && !record["exports"].is_null() {
+            return None;
+        }
+        let names = record["names"].as_array();
+        if named {
+            let names = names?;
+            if names.is_empty()
+                || names.len() > IMPORT_LIMIT
+                || members.len() + 1 != names.len()
+                || names[0] != json!([record["alias"], record["member"]])
+                || record["prefix"] != record["alias"]
+                || names.iter().any(|pair| {
+                    pair.as_array().is_none_or(|pair| {
+                        pair.len() != 2
+                            || pair
+                                .iter()
+                                .any(|name| name.as_str().is_none_or(|name| !identifier(name)))
+                    })
+                })
+            {
+                return None;
+            }
+        } else if !record["names"].is_null() || !wildcard && !members.is_empty() {
             return None;
         }
         let exports = record["exports"].as_array();
-        if record["alias"] == "*"
+        if wildcard
             && (members.len() != exports.map_or(0, Vec::len)
                 || exports.is_none() && !record["exports"].is_null())
         {
@@ -476,17 +508,19 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
         let index = expanded.len();
         let mut anchor = record.clone();
         anchor.as_object_mut()?.remove("members");
+        anchor.as_object_mut()?.remove("names");
         anchor["star"] = Value::Null;
+        count += usize::from(!anchor["submodule"].is_null());
         expanded.push(anchor.clone());
         for (offset, member) in members.iter().enumerate() {
             let object = member.as_object()?;
-            let name = member["name"].as_str()?;
-            if object.len() != member_fields.len()
-                || member_fields
-                    .iter()
-                    .any(|field| !object.contains_key(*field))
-                || !identifier(name)
-                || exports?[offset] != name
+            let fields = if wildcard {
+                member_fields.as_slice()
+            } else {
+                named_fields.as_slice()
+            };
+            if object.len() != fields.len()
+                || fields.iter().any(|field| !object.contains_key(*field))
             {
                 return None;
             }
@@ -494,14 +528,27 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
                 count += 1;
             }
             let mut binding = anchor.clone();
-            for field in member_fields.iter().skip(1) {
+            for field in fields {
+                if *field == "name" {
+                    continue;
+                }
                 binding[*field] = member[*field].clone();
             }
-            binding["alias"] = json!(name);
-            binding["member"] = json!(name);
-            binding["prefix"] = json!(name);
+            if wildcard {
+                let name = member["name"].as_str()?;
+                if !identifier(name) || exports?[offset] != name {
+                    return None;
+                }
+                binding["alias"] = json!(name);
+                binding["member"] = json!(name);
+                binding["prefix"] = json!(name);
+                binding["star"] = json!(index);
+            } else if names?[offset + 1] != json!([member["alias"], member["member"]])
+                || member["prefix"] != member["alias"]
+            {
+                return None;
+            }
             binding["exports"] = Value::Null;
-            binding["star"] = json!(index);
             expanded.push(binding);
         }
     }
@@ -745,6 +792,8 @@ impl Modules {
         let mut files = BTreeMap::new();
         let mut lookups = Vec::new();
         let mut star_resolutions: BTreeMap<usize, Resolution> = BTreeMap::new();
+        let mut named_members = BTreeMap::new();
+        let mut named_declarations = BTreeMap::new();
         let mut edges: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
         for path in &entry_resolution.packages {
             let path = project.root.join(path);
@@ -898,12 +947,22 @@ impl Modules {
                     result.cutoffs.insert("unsupported-import-form".into());
                     continue;
                 };
+                let named_import = imports.iter().all(|(_, binding)| binding.member.is_some());
+                if named_import && imports.len() > IMPORT_LIMIT {
+                    result.cutoffs.insert("import-binding-budget".into());
+                    continue;
+                }
+                let requested = json!(imports
+                    .iter()
+                    .map(|(alias, binding)| (alias, &binding.member))
+                    .collect::<Vec<_>>());
+                let mut named_provider: Option<(usize, Resolution)> = None;
                 let mut imports: VecDeque<_> = imports
                     .into_iter()
                     .map(|(alias, binding)| (alias, binding, None))
                     .collect();
                 while let Some((alias, mut binding, star)) = imports.pop_front() {
-                    if star.is_none() {
+                    if star.is_none() && named_provider.is_none() {
                         if import_count >= IMPORT_LIMIT {
                             result.cutoffs.insert("import-lookup-budget".into());
                             break;
@@ -923,9 +982,16 @@ impl Modules {
                     }
                     let resolution = if let Some(index) = star {
                         star_resolutions[&index].clone()
+                    } else if let Some((index, resolution)) = &named_provider {
+                        named_members.insert(lookups.len(), *index);
+                        resolution.clone()
                     } else {
                         resolve_module(project, &binding.module)?
                     };
+                    if named_import && named_provider.is_none() {
+                        named_provider = Some((lookups.len(), resolution.clone()));
+                        named_declarations.insert(lookups.len(), requested.clone());
+                    }
                     binding.future = future_nodes.contains(&node.start_byte())
                         && resolution
                             .candidates
@@ -997,14 +1063,12 @@ impl Modules {
                         {
                             let child = format!("{}.{}", binding.module, member);
                             if module_name(&child) {
-                                if star.is_some() && import_count >= IMPORT_LIMIT {
+                                if import_count >= IMPORT_LIMIT {
                                     result.cutoffs.insert("import-lookup-budget".into());
                                     exhausted_child = true;
                                     None
                                 } else {
-                                    if star.is_some() {
-                                        import_count += 1;
-                                    }
+                                    import_count += 1;
                                     Some(resolve_module(project, &child)?)
                                 }
                             } else {
@@ -1202,9 +1266,22 @@ impl Modules {
                     "binding_chain":lookup["binding_chain"], "submodule":lookup["submodule"],
                     "terminal_module":lookup["terminal_module"]}),
                 );
+            } else if let Some(parent) = named_members.get(&index) {
+                let anchor = anchors[parent];
+                compact[anchor]["members"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({
+                    "alias":lookup["alias"], "member":lookup["member"], "prefix":lookup["prefix"],
+                    "resolution":lookup["resolution"], "binding_chain":lookup["binding_chain"],
+                    "submodule":lookup["submodule"], "terminal_module":lookup["terminal_module"]}));
             } else {
                 anchors.insert(index, compact.len());
                 lookup["members"] = json!([]);
+                lookup["names"] = named_declarations
+                    .get(&index)
+                    .cloned()
+                    .unwrap_or(Value::Null);
                 compact.push(lookup);
             }
         }
@@ -1213,7 +1290,7 @@ impl Modules {
             "value_bindings":value_bindings,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
             "policy":POLICY,
-            "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
+            "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"names_per_import":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
         Ok(result)
     }
 
