@@ -910,7 +910,7 @@ EXAMPLES.extend([
             complete=False, cutoff='unknown-binding:table'),
     example('startup-registry-called-callback', 'names calls boundaries', "return sink(table['send'](source()))",
             [S, T], 17, prelude="table = {'send': lambda value: value}\n",
-            complete=False, cutoff='unsupported-call-syntax'),
+            complete=False, cutoff='dynamic-or-attribute-call'),
 ])
 
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',

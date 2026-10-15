@@ -287,24 +287,28 @@ pub(super) fn collection_value(node: Node<'_>, source: &str, hashable: bool) -> 
     }
 }
 
-pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
-    let (name, value) = literal_assignment(node, source)?;
-    if name.starts_with("__") && name.ends_with("__") {
-        return None;
-    }
-    let mut pending = vec![value];
+pub(super) fn initialization_fits(node: Node<'_>) -> bool {
+    let mut pending = vec![node];
     let mut count = 0;
     while let Some(node) = pending.pop() {
         count += 1;
         if count > 128 {
-            return None;
+            return false;
         }
         for child in node.named_children(&mut node.walk()) {
             if count + pending.len() >= 128 {
-                return None;
+                return false;
             }
             pending.push(child);
         }
+    }
+    true
+}
+
+pub(super) fn module_collection<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
+    let (name, value) = literal_assignment(node, source)?;
+    if name.starts_with("__") && name.ends_with("__") || !initialization_fits(value) {
+        return None;
     }
     let mut root = value;
     while root.kind() == "parenthesized_expression" {
@@ -455,22 +459,8 @@ pub(super) fn module_type_registry<'s>(
     shadowed: impl Fn(&str) -> bool,
 ) -> Option<&'s str> {
     let (name, value) = literal_assignment(node, source)?;
-    if name.starts_with("__") && name.ends_with("__") {
+    if name.starts_with("__") && name.ends_with("__") || !initialization_fits(value) {
         return None;
-    }
-    let mut pending = vec![value];
-    let mut count = 0;
-    while let Some(node) = pending.pop() {
-        count += 1;
-        if count > 128 {
-            return None;
-        }
-        for child in node.named_children(&mut node.walk()) {
-            if count + pending.len() >= 128 {
-                return None;
-            }
-            pending.push(child);
-        }
     }
     let value = unparenthesized(value)?;
     if value.kind() != "dictionary" {

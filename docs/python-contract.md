@@ -268,13 +268,15 @@ The checked construction forms are literal lists, tuples and dictionaries contai
 or deferred callbacks, plus unshadowed built-in `dict` calls.
 For example, `dict({'send': lambda value: value}, label='example')` combines a literal dictionary
 with named entries. Dictionaries can nest, and callbacks may have immutable scalar defaults.
-Imported allocations retain their defining file, declaration position and `allocation` value kind.
+For an imported value created this way, the report uses the `allocation` kind and retains
+its defining file and declaration position.
 Importing that value still does not permit reading its contents or calling it in a scalar trace.
 
 Item assignment and `update` are checked only for a dictionary created earlier in the same module.
 Keys must be hashable literals: ordinary strings, numbers, booleans, `None` or tuples of those values.
 Values must use the checked allocation forms. Replacing one such value cannot run a user finalizer.
-An allocation has the existing 128-node syntax allowance; a population operation counts its whole statement.
+A syntax node is one part of the parsed expression, such as a call or string.
+Each initializer has the existing 128-node syntax allowance; a write counts its whole statement.
 Comments and wrappers count. The callback's body also counts toward the syntax limit even though it is deferred.
 
 These similar-looking changes leave the answer incomplete:

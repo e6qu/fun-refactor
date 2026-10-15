@@ -92,7 +92,7 @@ def test_aliases_of_imported_functions_and_reexports(tmp_path, statement, call, 
     "def relay(value):\n    return value\npublic = (relay)\n",
     "def relay(value):\n    return value\npublic = relay(0)\n",
     "def relay(value):\n    return value\npublic = other = relay\n",
-    "public = lambda value: value\n",
+    "public = (lambda value: value)(0)\n",
 ])
 def test_unchecked_alias_sources_and_assignment_forms_remain_incomplete(tmp_path, imports, initialization):
     client, rules = install(tmp_path, initialization, imports, "source()")

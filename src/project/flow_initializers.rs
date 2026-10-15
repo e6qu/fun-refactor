@@ -10,24 +10,6 @@ pub(super) enum Statement<'s> {
     Population,
 }
 
-fn bounded(node: Node<'_>) -> bool {
-    let mut pending = vec![node];
-    let mut count = 0;
-    while let Some(node) = pending.pop() {
-        count += 1;
-        if count > 128 {
-            return false;
-        }
-        for child in node.named_children(&mut node.walk()) {
-            if count + pending.len() >= 128 {
-                return false;
-            }
-            pending.push(child);
-        }
-    }
-    true
-}
-
 fn children(node: Node<'_>) -> Vec<Node<'_>> {
     node.named_children(&mut node.walk())
         .filter(|node| node.kind() != "comment")
@@ -114,7 +96,7 @@ impl<'s> Allocations<'s> {
         if let Some((name, right)) = calls::literal_assignment(node, source) {
             self.dictionaries.remove(name);
             let ordinary = !(name.starts_with("__") && name.ends_with("__"));
-            if ordinary && bounded(right) && value(right, source, &shadowed) {
+            if ordinary && calls::initialization_fits(right) && value(right, source, &shadowed) {
                 if !shadowed(name) && dictionary(right, source, &shadowed) {
                     self.dictionaries.insert(name);
                 }
@@ -126,7 +108,7 @@ impl<'s> Allocations<'s> {
                 return None;
             }
         }
-        if bounded(node) && self.population(node, source, &shadowed) {
+        if calls::initialization_fits(node) && self.population(node, source, &shadowed) {
             return Some(Statement::Population);
         }
         if matches!(node.kind(), "comment" | "pass_statement")
