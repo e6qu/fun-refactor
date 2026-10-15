@@ -20,8 +20,9 @@ fn main() {
     let started = std::time::Instant::now();
     let mut digest = Sha256::new();
     for _ in 0..8 { digest.update(&data); }
-    let digest = digest.finalize();
-    println!("{} {:x}", started.elapsed().as_nanos(), digest);
+    let nanos = started.elapsed().as_nanos();
+    let digest: String = digest.finalize().iter().map(|byte| format!("{byte:02x}")).collect();
+    println!("{} {}", nanos, digest);
 }
 ''')
         expected = hashlib.sha256(b'x' * (32 * 1024 * 1024)).hexdigest()
