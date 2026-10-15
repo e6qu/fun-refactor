@@ -185,6 +185,7 @@ struct Analyzer<'a, 'p, 't> {
     source: &'a str,
     functions: BTreeMap<String, Node<'t>>,
     function_aliases: BTreeMap<String, (String, usize)>,
+    scalar_defaults: BTreeMap<(PathBuf, usize), BTreeSet<String>>,
     ambiguous: BTreeSet<String>,
     modules: Option<&'a modules::Modules>,
     contexts: BTreeMap<String, (&'a Path, &'a str)>,
@@ -775,6 +776,7 @@ impl Project<'_> {
             .transpose()?;
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
+        let mut scalar_defaults = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
         let mut inert_bindings = BTreeSet::new();
@@ -796,6 +798,7 @@ impl Project<'_> {
             let mut classes = BTreeSet::new();
             let mut documentable = BTreeSet::new();
             let mut default_values = BTreeSet::new();
+            let mut default_scalars = BTreeSet::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
@@ -823,6 +826,7 @@ impl Project<'_> {
                         classes.remove(name);
                         documentable.remove(name);
                         default_values.remove(name);
+                        default_scalars.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         }
@@ -858,6 +862,7 @@ impl Project<'_> {
                             classes.remove(name);
                             documentable.remove(name);
                             default_values.remove(name);
+                            default_scalars.remove(name);
                             if !bound_names.insert(name) {
                                 initialization.record(
                                     self,
@@ -880,6 +885,7 @@ impl Project<'_> {
                     {
                         classes.remove(name);
                         documentable.remove(name);
+                        default_scalars.remove(name);
                         if !bound_names.insert(name) {
                             default_values.remove(name);
                             initialization.record(self, file, node, vec!["binding-collision"])?;
@@ -905,11 +911,15 @@ impl Project<'_> {
                     {
                         classes.remove(name);
                         documentable.remove(name);
+                        default_scalars.remove(name);
                         if !bound_names.insert(name) {
                             default_values.remove(name);
                             initialization.record(self, file, node, vec!["binding-collision"])?;
                         } else if !(name.starts_with("__") && name.ends_with("__")) {
                             default_values.insert(name.to_owned());
+                            if calls::module_literal(node, text).is_some() {
+                                default_scalars.insert(name.to_owned());
+                            }
                         }
                         let binding = if let Some(modules) = &modules {
                             modules.function_name(file, name)
@@ -948,9 +958,15 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
+                    // Python captures defaults before binding the function's own name.
+                    scalar_defaults.insert(
+                        (file.to_path_buf(), node.start_byte()),
+                        calls::captured_scalar_defaults(node, text, postponed, &default_scalars),
+                    );
                     classes.remove(short);
                     documentable.remove(short);
                     default_values.remove(short);
+                    default_scalars.remove(short);
                     if !bound_names.insert(short) {
                         reasons.push("binding-collision");
                     }
@@ -962,6 +978,7 @@ impl Project<'_> {
                     } else {
                         documentable.clear();
                         default_values.clear();
+                        default_scalars.clear();
                     }
                     initialization.record(self, file, node, reasons)?;
                     let name = if let Some(modules) = &modules {
@@ -990,12 +1007,14 @@ impl Project<'_> {
                 {
                     documentable.clear();
                     default_values.clear();
+                    default_scalars.clear();
                     initialization.record(self, file, node, vec!["module-statement"])?;
                 } else if matches!(node.kind(), "import_statement" | "import_from_statement") {
                     documentable.clear();
                     if let Some(modules) = &modules {
                         for name in modules.names_imported_at(file, node.start_byte()) {
                             default_values.remove(name);
+                            default_scalars.remove(name);
                             if modules.is_value(file, name)
                                 && !(name.starts_with("__") && name.ends_with("__"))
                             {
@@ -1138,6 +1157,7 @@ impl Project<'_> {
             source,
             functions,
             function_aliases,
+            scalar_defaults,
             ambiguous,
             modules: modules.as_ref(),
             contexts,

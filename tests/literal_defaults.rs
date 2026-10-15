@@ -125,14 +125,14 @@ fn known_prior_defaults_defer_uncalled_module_bodies() {
 }
 
 #[test]
-fn named_defaults_preserve_definition_order_and_keep_calls_unchecked() {
+fn named_defaults_preserve_definition_order_and_keep_shared_values_unchecked() {
     let root = tempfile::tempdir().unwrap();
     for (before, after, call) in [
         ("", "marker = 0\n", "sink(source())"),
         ("marker = 0\ndel marker\n", "", "sink(source())"),
         ("marker = source()\n", "", "sink(source())"),
-        ("marker = 0\n", "", "unused()"),
-        ("marker = 0\n", "", "unused(source())"),
+        ("marker = []\n", "", "unused()"),
+        ("marker = []\n", "", "unused(source())"),
     ] {
         let report = analyze_program(root.path(), &format!("{before}def unused(key=marker):\n    return key\n{after}def entry():\n    return {call}\n"), false);
         assert_eq!(report["complete"], false);
@@ -148,6 +148,50 @@ fn named_defaults_preserve_definition_order_and_keep_calls_unchecked() {
                 .any(|cutoff| cutoff == "unsupported-parameter-contract:unused"));
         }
     }
+}
+
+#[test]
+fn local_scalar_defaults_bind_calls_and_preserve_definition_time_capture() {
+    let root = tempfile::tempdir().unwrap();
+    for (literal, call, witness) in [
+        ("0", "choose()", false),
+        ("None", "choose(source())", true),
+        ("b'bytes'", "choose()", false),
+        ("1j", "choose()", false),
+        ("'café'", "choose(value=source())", true),
+    ] {
+        let report = analyze_program(root.path(), &format!("marker = {literal}\ndef choose(value=((marker))):\n    return value\ndef entry():\n    return sink({call})\n"), false);
+        assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
+    }
+    let report = analyze_program(root.path(), "marker = 0\ndef choose(value=marker):\n    return value\nmarker = []\ndef entry():\n    return sink(choose())\n", false);
+    assert_eq!(report["complete"], false);
+    assert!(report["cutoffs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|value| value != "unsupported-parameter-contract:choose"));
+}
+
+#[test]
+fn imported_function_uses_its_own_local_scalar_default() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("helpers.py"),
+        "marker = 0\ndef choose(value=marker):\n    return value\n",
+    )
+    .unwrap();
+    let report = analyze_program(
+        root.path(),
+        "from helpers import choose\ndef entry():\n    return sink(choose())\n",
+        true,
+    );
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(
+        report["function_summaries"]["functions"]["helpers.py::choose"]["signature"][0]["default"]
+            ["path"],
+        "helpers.py"
+    );
 }
 
 #[test]

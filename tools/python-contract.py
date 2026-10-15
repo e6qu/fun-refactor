@@ -43,6 +43,7 @@ def bindings():
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_named_default_declarations.py',
+                 'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)

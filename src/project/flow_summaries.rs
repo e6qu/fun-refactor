@@ -47,7 +47,7 @@ impl Solver {
         json!({"schema":"fr-function-summaries", "enabled":self.enabled,
             "converged":self.converged,"rounds":self.rounds,"functions":self.table,
             "function_limit":FUNCTION_LIMIT,
-            "context":"symbolic explicit parameters; bind each call independently and fill omitted literal defaults.",
+            "context":"symbolic explicit parameters; bind each call independently and fill omitted immutable scalar defaults.",
             "recursion":"monotone least fixed point over finite origin and effect sets.",
             "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
             "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
@@ -120,12 +120,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         arguments: Vec<Flow>,
         call: Node<'t>,
     ) -> Flow {
-        let valid = calls::parameters(
-            function,
-            self.contexts[name].1,
-            self.annotations_postponed(self.contexts[name].0),
-        )
-        .is_some_and(|parameters| parameters.len() == arguments.len());
+        let valid = self
+            .function_parameters(function, self.contexts[name].0, self.contexts[name].1)
+            .is_some_and(|parameters| parameters.len() == arguments.len());
         if !valid {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();

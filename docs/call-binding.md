@@ -65,7 +65,8 @@ including referenced variadics. An uncalled declaration therefore does not intro
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
 The [named-default example](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks whether a value exists before the declaration.
-Named defaults still prevent scalar calls, even with explicit replacement arguments.
+Calls can use [earlier local scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default).
+Imported values, collections and object markers still prevent calls, even with explicit replacement arguments.
 Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
 
 The required `CallBinding.initialization` field describes which declarations may coexist with a trace.

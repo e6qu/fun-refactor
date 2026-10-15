@@ -92,7 +92,7 @@ def test_a_later_binding_cannot_supply_an_earlier_default(tmp_path, route):
 
 
 @pytest.mark.parametrize("call", ["unused()", "unused(source())"])
-@pytest.mark.parametrize("declaration", [VALUES[0], VALUES[1], VALUES[-1]])
+@pytest.mark.parametrize("declaration", [VALUES[1], VALUES[2], VALUES[-2], VALUES[-1]])
 def test_calling_a_named_default_stays_unfinished_even_when_overridden(tmp_path, call, declaration):
     client, rules = install(tmp_path, declaration)
     path = tmp_path / "subject.py"

@@ -1,11 +1,11 @@
 # Trace Python calls with default arguments
 
 If `choose(value=0)` returns its argument, `choose()` returns the default while `choose(user_input())` uses the supplied input.
-`fr` distinguishes those calls for supported literal defaults. A default that calls another function needs separate handling because Python evaluates it when defining the function.
+`fr` distinguishes those calls for supported literals and earlier local scalar defaults. A default that calls another function needs separate handling because Python evaluates it when defining the function.
 
 ## Commands, results and limits
 
-Opt-in Python scalar summaries admit immutable literal defaults for positional-only,
+Opt-in Python scalar summaries admit immutable literal and captured local scalar defaults for positional-only,
 positional-or-keyword and keyword-only parameters. Explicit values retain their source-order effects
 and override defaults. After binding explicit values, omitted optional slots receive an empty origin
 set. A missing required slot still leaves analysis incomplete.
@@ -23,7 +23,11 @@ literals with one leading sign, and parentheses around admitted literals. Commen
 binding. Positional defaults must form a trailing suffix, including across `/`. Keyword-only
 parameters can mix required and defaulted slots.
 
-Analyzed calls refuse defaults containing calls, names, operators other than the admitted numeric sign, containers,
+An earlier local scalar declaration also works: `LIMIT = 10; def choose(value=LIMIT): ...`
+captures the scalar when the function is defined. The [worked example](python-contract.md#call-a-helper-with-an-earlier-scalar-default)
+shows omitted and explicit arguments, import support and the remaining binding limits.
+
+Analyzed calls refuse defaults containing calls, other names, operators other than the admitted numeric sign, containers,
 comprehensions, lambdas and formatted strings in default values. Function annotations require the documented
 [future-annotation rule](python-contract.md#trace-a-helper-that-has-type-annotations). It also refuses an
 unsupported default when a call supplies an explicit argument: Python evaluates defaults during
@@ -34,7 +38,7 @@ exceptions remain outside this contract. Unused variadic declarations admit fixe
 An uncalled module function can read an earlier checked value without running its body.
 For example, after `EMPTY = EmptyType()`, `def unused(key=EMPTY): ...` reads the existing marker during definition.
 The [declaration rule](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks binding order and static value imports.
-Calling that function still remains outside the literal-default call contract.
+Calling a helper with an object or collection default still remains outside this call contract.
 
 An analyzed entry function still represents all explicit inputs through symbolic parameter origins.
 Its default does not force the analysis to represent only a zero-argument invocation. Literal defaults
@@ -51,7 +55,7 @@ The SDK exposes `FunctionSummary.signature` as typed `SummaryParameter` entries,
 These are bounded syntax locations, not a proof that arbitrary Python behavior matches the model.
 
 Current reports use `python-scalar-summaries` and `fr-call-binding` in public and canonical input records.
-The reader requires signatures and literal-default contracts. Other formats fail explicitly.
+The reader requires signatures and the current default contract. Other formats fail explicitly.
 Native reuse requires current analysis identities. A change to a default, parameter kind,
 required slot or helper invalidates affected analysis; unrelated edits renew every signature origin.
 The response budget includes signature metadata, and omitted results remain incomplete.
