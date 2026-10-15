@@ -164,6 +164,12 @@ across the same eight files.
 The full-package outcomes in the table stay unchanged. The
 [handoff](continuity.md#return-to-python-after-this-review) describes the next investigation with these differences in view.
 
+The callback-table change was also replayed against these same familiar libraries.
+The [registry replay](../tests/agent-eval/results/2026-10-15-registry-startup-fixed-arity-probes/result.json)
+keeps the full-package totals at 32 incomplete cases and eight deliberate budget refusals.
+Unchecked startup counts stay at 92 for Toolz, 80 for Funcy and 420 for Pydash, across the same loaded files.
+Small callback tables now work, but this change has not removed the libraries' remaining blockers.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The
