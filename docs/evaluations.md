@@ -783,8 +783,8 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-14-named-defaults-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-14-named-defaults-*` scalar groups bind the current implementation.
+The [current retained run](../tests/agent-eval/results/2026-10-15-scalar-named-defaults-scalar-assignments/result.json)
+and thirteen refreshed `2026-10-15-scalar-named-defaults-*` scalar groups bind the current implementation.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -871,7 +871,7 @@ have a separate scope from the current-source GitHub acceptance reports.
 Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).
 ## Python development history
 
-These notes describe problems found from 2026-10-12 through 2026-10-14.
+These notes describe problems found from 2026-10-12 through 2026-10-15.
 Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
 The original failed reports, validators and CI logs remain unchanged.
 
@@ -893,6 +893,8 @@ The original failed reports, validators and CI logs remain unchanged.
 | Five import examples counted calls inside unused methods or kept an old dotted name after renaming | Select the calls in the entry function and rename each part of the dotted name; preserve the failed collection and its unchanged runtime outcomes | [Value-import collection failure](../tests/agent-eval/results/2026-10-14-value-imports-history-python-contract-failure/manifest.json), [original run](https://github.com/e6qu/fun-refactor/actions/runs/38558837376) |
 | Corruption tests exceeded their 120-second deadline while copying all 570 cases for each changed row | Copy only the changed row and report metadata; keep auditing every case and check that the original report stays untouched | [Value-import retention timeout](https://github.com/e6qu/fun-refactor/actions/runs/38574356001) |
 | Two named-default tests used an observer that only caught exceptions from calling the entry | Use the existing isolated observer that also records module-loading failures; retain both `NameError` expectations | [First named-default check](https://github.com/e6qu/fun-refactor/actions/runs/38595108328) |
+| One added scalar-default comment exceeded the fixed prose budget | Remove the redundant comment and keep the budget | [Scalar-default prose check](https://github.com/e6qu/fun-refactor/actions/runs/38666246115) |
+| The scalar-default capture map omitted its Rust path-type import | Import the path type and rerun the same native controls | [Scalar-default compiler check](https://github.com/e6qu/fun-refactor/actions/runs/38666372468) |
 
 The [earlier built-in-reference collection](../tests/agent-eval/results/2026-10-13-builtin-bindings-scalar-collection/manifest.json)
 preserves the results before literal function documentation writes were admitted.
@@ -900,6 +902,8 @@ The [function-documentation collection](../tests/agent-eval/results/2026-10-14-f
 preserves the results before declared value imports were admitted.
 The [value-import collection](../tests/agent-eval/results/2026-10-14-value-imports-scalar-collection/manifest.json)
 preserves the results before known prior values could defer unused module function defaults.
+The [named-default declaration collection](../tests/agent-eval/results/2026-10-14-named-defaults-scalar-collection/manifest.json)
+preserves the results before calls could use captured local scalar defaults.
 
 For example, saving a report inside a sample project can change what the next code query sees.
 The report itself may still contain correct bytes. The selected project's inputs have changed,

@@ -20,7 +20,7 @@ flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
 # Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = '76ffd5feced78015ec2c06042f307d8f601bb402'
+flow.COHORT['analyzer_revision'] = '43a52498e90e48594b05d5c43f3c73e1153789e9'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'

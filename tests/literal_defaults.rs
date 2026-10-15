@@ -299,7 +299,7 @@ fn literal_defaults_acceptance_replays_checked_delivery() {
         .args([
             "tools/literal-defaults-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-14-named-defaults-literal-defaults/result.json",
+            "tests/agent-eval/results/2026-10-15-scalar-named-defaults-literal-defaults/result.json",
         ])
         .output()
         .unwrap();
