@@ -956,6 +956,12 @@ EXAMPLES.append(example('import-order-unknown-effects', 'imports names boundarie
     [S, T], 17, witness=True, prelude='from helper import relay\n',
     files={'helper.py': 'import neighbor\ndef relay(value):\n    return value\n',
            'neighbor.py': 'import helper\nstate = 1 + 2\n'}, complete=False, cutoff='module-effects-unchecked'))
+for form, statement in [('module', 'import absent_dependency\n'), ('member', 'from absent_dependency import missing\n')]:
+    EXAMPLES.append(example('import-order-unresolved-' + form, 'imports names boundaries', 'return sink(0)',
+        raised='ModuleNotFoundError', phase='definition', prelude='from helper import relay\n',
+        files={'helper.py': statement + 'import neighbor\ndef relay(value):\n    return value\n',
+               'neighbor.py': 'import helper\n'}, complete=False, cutoff='unresolved-local-import:absent_dependency',
+        difference='Python stops at the missing import; the incomplete analysis must not claim an unavailable cycle member.'))
 
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',

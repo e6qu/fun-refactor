@@ -97,7 +97,7 @@
       "id": "python-contract",
       "path": "tests/agent-eval/results/2026-10-15-registry-startup-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 386 authored programs and 772 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "scope": "14 declared Python rules; 388 authored programs and 776 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-15-registry-startup-python-contract/result.json",
       "sha256": "b4b3be1f2cf6b2e3349edea154e140bf9739e48c85978f2d60e3a247cc93bf71"
     },
@@ -254,19 +254,19 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 386
+              "equals": 388
             },
             {
               "pointer": "/summary/cases",
-              "equals": 772
+              "equals": 776
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 386
+              "equals": 388
             },
             {
               "pointer": "/summary/incomplete_cases",
-              "equals": 296
+              "equals": 300
             },
             {
               "pointer": "/summary/refused_cases",
@@ -274,7 +274,7 @@
             },
             {
               "pointer": "/summary/documented_difference_cases",
-              "equals": 100
+              "equals": 104
             }
           ]
         }
