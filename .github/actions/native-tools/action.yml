@@ -51,10 +51,7 @@ runs:
       with:
         node-version: 26
         package-manager-cache: false
-    - uses: actions/setup-go@v7
-      with:
-        go-version: "1.27"
-        cache: false
+    - uses: ./.github/actions/go-toolchain
     - uses: actions/setup-java@v6
       with:
         distribution: temurin

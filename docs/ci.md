@@ -9,6 +9,13 @@ PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
 the Python SDK runs on four more. Each runner executes tests serially with one
 Lean worker. Local builds and resource limits do not change.
 
+Go validation installs Go 1.27.2 from its official Linux archive and checks its
+[published SHA-256 digest](https://go.dev/dl/?mode=json) before extraction.
+This is the same release used by the successful audit jobs. Three other jobs could not start
+because GitHub returned 404 for the `actions/setup-go` archive, despite the tag and commit existing.
+The shared local action now installs Go directly. Both native checks and deep audits use it.
+The installer has one source, verifies the archive before running it, and keeps the job deadlines.
+
 Grading jobs use the public Docker registry mirror with an empty, job-local Docker
 client configuration. This avoids the shared Hub pull limit and inherited login
 path observed in failed runs. Original image digests and isolation checks remain
