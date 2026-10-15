@@ -798,8 +798,10 @@ lexical shadowing, exact definition spans, cache renewal and invalidation, and b
 Branch, loop and recursive summaries retain the existing rules describing possible value connections. Typed readers reject
 forged assignment contracts and require the complete current summary metadata.
 
-The [current retained run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
-and thirteen refreshed `2026-10-15-shared-named-searches-*` scalar groups bind the current implementation.
+The [import-search run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
+and its thirteen `2026-10-15-shared-named-searches-*` scalar groups record that implementation.
+The [registry-startup receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json)
+identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
@@ -923,10 +925,20 @@ The original failed reports, validators and CI logs remain unchanged.
 | An older Pages build finished after the newer build and cancelled its deployment | Cancel older Pages workflows when a newer push arrives; retry the latest deployment with its original artifact and deadlines | [Newer revision, cancelled deploy](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/1), [older build that finished later](https://github.com/e6qu/fun-refactor/actions/runs/38725757264) |
 | A named-import byte test added JSON whitespace before measuring the compact response | Enforce the same 65,536-byte limit on the client's actual output and measure compact encoding | [First named-import gate](https://github.com/e6qu/fun-refactor/actions/runs/38727247627) |
 | Review found that an over-limit named-import fixture expected its unvisited provider among the loaded files | Expect only the entry file; supersede collection before authored report generation and keep the 128-name limit | [Superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38730391730) |
+| Two older tests classified an uncalled callback in a list as executed startup code | Move deferred callbacks into the positive cases; keep evaluated callbacks in the negative cases | [Registry startup checks](https://github.com/e6qu/fun-refactor/actions/runs/38776615039) |
+| The writing checker joined embedded lambda test programs into a long prose sentence | Recognize Python lambda syntax as code, keeping the same writing limits | [Writing check](https://github.com/e6qu/fun-refactor/actions/runs/38777666719) |
 
 The 2026-10-15 reader review found another tracking mismatch: its Python requirement still expected 524 cases while the saved report already contained 694.
 The [refreshed examples](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) keep the same 347 programs, 14 rules, incomplete answers and refusals.
 The tracker now checks that declared inventory. This changes the count of matching recorded requirements, not the supported Python behavior or real-package outcomes.
+
+The registry-startup change adds 20 programs, each also checked after renaming and relocation.
+They distinguish creating a callback table from executing a callback, a default or a dictionary value during import.
+The [new Python collection](../tests/agent-eval/results/2026-10-15-registry-startup-python-contract/manifest.json)
+covers 367 programs and 734 cases under the same fourteen rules.
+Local dictionary writes need a previously created, unexposed dictionary and checked keys and values.
+Imports, unknown calls and aliases end that allowance. Shared heap reads and calls through a stored callback remain unsupported.
+The familiar full-package replay remains a separate result; these small examples cannot establish general package support or agent savings.
 
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
