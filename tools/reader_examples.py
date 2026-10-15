@@ -1,4 +1,5 @@
 """Execute the introductory lessons from their actual Markdown snippets."""
+import gzip
 import json
 from pathlib import Path
 import re
@@ -8,6 +9,29 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_measurements():
+    source = ROOT / 'tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz'
+    with gzip.open(source, 'rt') as stream:
+        report = json.load(stream)
+    assert report['repetitions'] == 3
+    labels = {
+        'pipeline-8': 'Pipeline, 8 helpers', 'pipeline-16': 'Pipeline, 16 helpers',
+        'fanout-8': 'Imported calls, 8 helpers', 'fanout-24': 'Imported calls, 24 helpers',
+        'recursive-8': 'Recursive calls, 8 helpers', 'recursive-12': 'Recursive calls, 12 helpers',
+    }
+    assert set(report['summary']) == set(labels)
+    page = (ROOT / 'docs/benchmarks.md').read_text()
+    for name, summary in report['summary'].items():
+        cold = summary['cold']['chunks']['elapsed_seconds']
+        warm = summary['warm']['chunks']['elapsed_seconds']
+        row = f'| {labels[name]} | {cold:.3f} | {warm:.3f} | {(warm / cold - 1) * 100:.1f}% |'
+        assert row in page, f'Cache comparison must use the recorded medians: {row}'
+    ratios = [value['warm']['chunks']['stored_bytes'] / value['warm']['legacy']['stored_bytes']
+              for value in report['summary'].values()]
+    assert f'{min(ratios):.2f}–{max(ratios):.2f} times' in page
+    return len(labels)
 
 
 def blocks(text, language):
@@ -74,6 +98,7 @@ def first_trace(binary, folder):
 
 
 def check(binary):
+    measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
         root = Path(directory)
         change, trace = root / 'change', root / 'trace'
@@ -81,7 +106,8 @@ def check(binary):
         trace.mkdir()
         commands = first_change(binary, change)
         traces = first_trace(binary, trace)
-    return {'first_change_commands': commands, 'complete_trace_examples': traces}
+    return {'first_change_commands': commands, 'complete_trace_examples': traces,
+            'verified_measurement_rows': measurements}
 
 
 if __name__ == '__main__':

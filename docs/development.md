@@ -101,6 +101,10 @@ regenerates current report pages and reading-size measurements, and runs their r
 It commits checked generated files back to that branch. Keep the original trial records unchanged.
 Pick up that commit before preparing the final change and requesting full CI.
 
+The review covers current manuals, agent references, SDK instructions and our build and provenance notes.
+Historical experiment outputs and source fixtures retain their original contents.
+For a browser parser build failure, see the [bundled parser build notes](../crates/tree-sitter-language/README.md).
+
 Some guides are also recorded inputs to tests. For example, changing `docs/python-contract.md`
 changes the Python report's input fingerprint even when the edit only changes wording.
 Finish those edits before collecting fresh results. Use the hosted collectors to refresh affected

@@ -68,6 +68,7 @@ Replace `old_name` and `new_name` below with your current and requested function
 Review the preview before saving it. A saved change forms a transaction; its ID identifies it in history.
 
 ```sh
+fr rename old_name new_name
 fr rename old_name new_name --save-plan
 fr history show '<TX>'
 

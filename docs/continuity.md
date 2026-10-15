@@ -19,7 +19,7 @@ We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
 ## The current reader review
 
-The reader review covers all 119 current guides and references, including tutorials, agent instructions and project trackers.
+The reader review covers all 120 current guides and references, including tutorials, agent instructions and project trackers.
 Keep concepts explained where readers first need them, without assuming knowledge of earlier development.
 The [writing guide](style.md) describes the review rules; the [measurement guide](benchmarks.md) names baselines, extra costs and missing measurements.
 

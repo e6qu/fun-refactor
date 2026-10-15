@@ -83,6 +83,28 @@ Read each report's actual baseline before interpreting a warm-run improvement.
 An edited run also measures checking which earlier results still apply.
 A faster warm run must repay the initial work and added storage before it benefits the whole task.
 
+The [saved cache report](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains three repetitions on one host.
+The table below derives warm-versus-cold differences from its unrounded median elapsed times for the newer report-chunk format.
+The baseline here is fresh analysis using that format, not the older cache format.
+
+| Workload | Fresh analysis, seconds | Warm reuse, seconds | Extra elapsed time relative to fresh analysis |
+| --- | ---: | ---: | ---: |
+| Pipeline, 8 helpers | 0.451 | 0.482 | 6.8% |
+| Pipeline, 16 helpers | 0.574 | 0.709 | 23.5% |
+| Imported calls, 8 helpers | 0.410 | 0.413 | 0.7% |
+| Imported calls, 24 helpers | 0.480 | 0.504 | 5.1% |
+| Recursive calls, 8 helpers | 0.470 | 0.496 | 5.6% |
+| Recursive calls, 12 helpers | 0.542 | 0.599 | 10.4% |
+
+A pipeline passes values through successive helpers; imported calls use helpers in other modules; recursive calls can call themselves again.
+Times include the worker's measured request and storage work. They are not model response times or whole-task costs.
+Operating-system caches were uncontrolled, so these small differences do not establish a production speed distribution.
+They also do not isolate how much extra time belongs to validation, storage or another component.
+
+The newer warm stores use about 1.34–2.90 times the older format's stored bytes, calculated from the recorded warm medians.
+That is a storage comparison between formats, with a different baseline from the timing table above.
+The evidence supports a faster representation of saved reports; it does not show that enabling reuse made these requests faster than fresh analysis.
+
 The [compiler investigation](evaluations.md#python-development-history) measured hashing the same 32 MiB on one runner.
 Optimizing the development build changed that operation from 0.830 s to 0.021 s.
 That measures hashing, not a 39-fold improvement in all analysis or agent work.

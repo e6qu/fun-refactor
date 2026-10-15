@@ -265,10 +265,12 @@ Its baseline is the earlier SDK's per-node storage, already warm from a previous
 The compared storage uses chunks of a complete report, also warm.
 This percentage compares two cache representations, not cached analysis against fresh analysis.
 Both still parse, index and validate dependencies. The saved stores also occupy more disk space, as quantified below.
-Report chunks reduced warm median latency 24–68% on that host. Warmed stores used 1.35–2.91 times
+Report chunks reduced warm median latency 24–68% on that host. Warmed stores used about 1.34–2.90 times
 the bytes of per-node records because repeated subtrees no longer deduplicate at every field.
 The native call count and disclosed context are unchanged. This tradeoff does not justify partial-summary reuse or a general speed claim.
 Warm medians still exceed cold medians in that corpus, so caching remains an explicit choice.
+The [baseline and overhead guide](benchmarks.md#faster-parts-can-still-make-the-whole-operation-slower) shows fresh and warm times together.
+The storage ratio above divides each format's recorded warm stored-byte median; it is independent of the timing percentage.
 The [measurement tool](../tools/flow-acceptance.py) records cold, warm, unrelated-edit and relevant-edit
 latency, child/worker peak RSS (resident set size, the measured memory held by a process), report bytes and transfer steps in isolated workers. Tokens are unavailable.
 

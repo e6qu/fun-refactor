@@ -23,7 +23,8 @@ def guides():
                                        'tests/corpus/PROVENANCE.md',
                                        'tests/framework-corpus/PROVENANCE.md',
                                        'tests/agent-eval/python-repository-flow/README.md',
-                                       'tests/agent-eval/opencode/repositories/README.md')])
+                                       'tests/agent-eval/opencode/repositories/README.md',
+                                       'crates/tree-sitter-language/README.md')])
 
 
 def prose(text):
@@ -100,6 +101,8 @@ def check_links():
             failures.append(f'{page.relative_to(ROOT)}: no link path from README.md')
     if failures:
         raise ValueError('\n'.join(failures))
+    from reader_examples import check_measurements
+    check_measurements()
     print(f'Checked local links and headings in {len(pages)} current guides.')
 
 
