@@ -1170,6 +1170,9 @@ impl Project<'_> {
                                 && !(name.starts_with("__") && name.ends_with("__"))
                             {
                                 default_values.insert(name.to_owned());
+                                if modules.is_scalar_value(file, name) {
+                                    default_scalars.insert(name.to_owned());
+                                }
                             }
                         }
                     }

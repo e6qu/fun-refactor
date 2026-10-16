@@ -239,6 +239,41 @@ def parallel_binding_trace(binary, folder):
     return len(variants)
 
 
+def imported_default_trace(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Share a default value between files\n', 1)[1].split('\n## ', 1)[0]
+    source, = blocks(lesson, 'python')
+    settings, rest = source.removeprefix('# settings.py\n').split('# helpers.py\n', 1)
+    helper, app = rest.split('# app.py\n', 1)
+    explicit = app.replace('choose()', 'choose(read_input())')
+    late = helper.replace('from settings import LIMIT\n', '') + '\nfrom settings import LIMIT\n'
+    variants = [(settings, helper, app, True, {'returned': 0}),
+                (settings, helper, explicit, True, {'returned': 17}),
+                (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, app, False, {'returned': []}),
+                (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, explicit, False, {'returned': 17}),
+                (settings, late, app, False, {'raised': 'NameError'})]
+    (folder / 'rules.json').write_text(blocks(lesson, 'json')[0])
+    script = ('import json\ntry:\n import app\n app.read_input=lambda:17\n app.send=lambda value:value\n'
+              ' print(json.dumps({"returned":app.entry()}))\n'
+              'except Exception as error:\n print(json.dumps({"raised":type(error).__name__}))\n')
+    for constants, functions, entry, complete, expected in variants:
+        for name, text in [('settings.py', constants), ('helpers.py', functions), ('app.py', entry)]:
+            (folder / name).write_text(text)
+        observed = json.loads(subprocess.check_output([sys.executable, '-B', '-c', script], cwd=folder,
+                                                     text=True, timeout=10))
+        assert observed == expected
+        found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
+        target = dict(zip(found['columns'], found['rows'][0]))['handle']
+        result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
+                                     '--summaries', '--imports', '--rules', 'rules.json'])
+        assert result['complete'] is complete, result.get('cutoffs')
+        if complete:
+            assert bool(result['witnesses']) is (expected['returned'] == 17)
+        else:
+            assert result['cutoffs']
+    return len(variants)
+
+
 def check(binary):
     measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
@@ -260,12 +295,16 @@ def check(binary):
         parallel = root / 'parallel'
         parallel.mkdir()
         bindings = parallel_binding_trace(binary, parallel)
+        shared = root / 'shared'
+        shared.mkdir()
+        imported = imported_default_trace(binary, shared)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
             'registry_setup_examples': setups,
             'import_order_examples': cycles,
             'startup_diagnostic_examples': disclosures,
             'function_default_examples': captures,
             'parallel_binding_examples': bindings,
+            'imported_default_examples': imported,
             'verified_measurement_rows': measurements}
 
 
