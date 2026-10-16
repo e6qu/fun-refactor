@@ -233,7 +233,7 @@ fn retained_flow_acceptance_is_source_bound_and_consistent() {
         .args([
             "tools/flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-startup-diagnostics-flow-fixed-point/result.json",
+            "tests/agent-eval/results/2026-10-16-function-defaults-flow-fixed-point/result.json",
         ])
         .output()
         .unwrap();

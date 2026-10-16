@@ -1435,6 +1435,10 @@ impl Modules {
         self.member_chain(file, name).0 == "value"
     }
 
+    pub fn is_function(&self, file: &Path, name: &str) -> bool {
+        self.member_chain(file, name).0 == "function"
+    }
+
     pub fn names_imported_at<'a>(
         &'a self,
         file: &'a Path,

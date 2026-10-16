@@ -194,6 +194,50 @@ call model because `EMPTY` is an object marker. The rule defers an uncalled body
 inside analyzed bodies. `key=EmptyType()`, attributes, subscripts and other computed defaults remain unchecked.
 Decorators, class-method defaults and unsupported annotation evaluation keep their separate boundaries.
 
+## Store a function as a default without calling it
+
+Suppose a module offers an optional callback: a function to use later when its caller asks.
+A default argument stores the chosen object when Python defines the function.
+Looking up `selected` stores that function; `selected(0)` calls it immediately.
+
+```python
+# helpers.py
+def selected(value):
+    return unknown_operation(value)
+
+def unused(value, follow=selected, factory=dict):
+    return follow(factory(value))
+
+def relay(value):
+    return value
+
+# app.py
+from helpers import relay
+
+def entry():
+    return send(relay(read_input()))
+```
+
+Save these as `helpers.py` and `app.py`. Use the `rules.json` from the first lesson,
+which names `read_input` as the input and `send` as the output. Then find the entry function:
+
+```sh
+fr --json -C . project find entry
+fr --json -C . project dataflow <HANDLE> --summaries --imports --rules rules.json
+```
+
+Replace `<HANDLE>` with the handle returned by `find`. This trace can finish and show the
+input reaching `send`: neither `selected` nor `unused` is called during import.
+The built-in name `dict` refers to Python's dictionary constructor; storing it does not create a dictionary.
+Earlier plain function definitions, their checked aliases and static imports can supply a default.
+Built-in names must be unshadowed: an earlier assignment can replace what a name such as `dict` means.
+
+Change `follow=selected` to `follow=selected(0)` and the definition now calls unsupported code.
+The answer stays incomplete and reports `definition-time-code` at `unused`.
+Moving `selected` below `unused` makes Python raise `NameError` before the entry can run.
+Calling `unused`, even with replacement arguments, remains outside the supported call model.
+This rule checks creation of an unused function; it does not add calls through callback parameters.
+
 ## Call a helper with an earlier scalar default
 
 You can ask whether supplied input reaches `send` through this helper:

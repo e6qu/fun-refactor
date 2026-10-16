@@ -819,6 +819,7 @@ impl Project<'_> {
             let mut default_values = BTreeSet::new();
             let mut default_scalars = BTreeSet::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
+            let mut builtin_defaults = !explicit_builtins;
             let mut allocations = initializers::Allocations::default();
             let module_aliases: BTreeSet<_> = modules
                 .as_ref()
@@ -864,6 +865,8 @@ impl Project<'_> {
                         default_scalars.remove(name);
                         if !bound_names.insert(name) {
                             initialization.record(self, file, node, vec!["binding-collision"])?;
+                        } else {
+                            default_values.insert(name.to_owned());
                         }
                         let binding = if let Some(modules) = &modules {
                             modules.function_name(file, name)
@@ -885,9 +888,7 @@ impl Project<'_> {
                             function_aliases.get(target).cloned().or_else(|| {
                                 functions
                                     .get(target)
-                                    .filter(|node| {
-                                        calls::definition_is_inert(**node, text, postponed)
-                                    })
+                                    .filter(|_| documentable.contains(target))
                                     .map(|_| (target.to_owned(), 0))
                             })
                         };
@@ -905,6 +906,8 @@ impl Project<'_> {
                                     node,
                                     vec!["binding-collision"],
                                 )?;
+                            } else {
+                                default_values.insert(name.to_owned());
                             }
                             let binding = if let Some(modules) = &modules {
                                 modules.function_name(file, name)
@@ -983,12 +986,18 @@ impl Project<'_> {
                 }
                 if node.kind() == "function_definition" {
                     let mut reasons = Vec::new();
+                    let mut definition_values = default_values.clone();
+                    definition_values.extend(calls::unshadowed_builtin_defaults(
+                        node,
+                        text,
+                        |name| !builtin_defaults || bound_names.contains(name),
+                    ));
                     if if options.summaries {
                         !calls::definition_is_inert_with_values(
                             node,
                             text,
                             postponed,
-                            &default_values,
+                            &definition_values,
                         )
                     } else {
                         node.child_by_field_name("return_type").is_some()
@@ -1022,10 +1031,14 @@ impl Project<'_> {
                     }
                     if reasons.is_empty() {
                         documentable.insert(short);
+                        if short.is_ascii() && !(short.starts_with("__") && short.ends_with("__")) {
+                            default_values.insert(short.to_owned());
+                        }
                     } else {
                         documentable.clear();
                         default_values.clear();
                         default_scalars.clear();
+                        builtin_defaults = false;
                     }
                     initialization.record(self, file, node, reasons)?;
                     let name = if let Some(modules) = &modules {
@@ -1055,6 +1068,7 @@ impl Project<'_> {
                     documentable.clear();
                     default_values.clear();
                     default_scalars.clear();
+                    builtin_defaults = false;
                     initialization.record(
                         self,
                         file,
@@ -1067,7 +1081,7 @@ impl Project<'_> {
                         for name in modules.names_imported_at(file, node.start_byte()) {
                             default_values.remove(name);
                             default_scalars.remove(name);
-                            if modules.is_value(file, name)
+                            if (modules.is_value(file, name) || modules.is_function(file, name))
                                 && !(name.starts_with("__") && name.ends_with("__"))
                             {
                                 default_values.insert(name.to_owned());
