@@ -987,9 +987,11 @@ impl Project<'_> {
                 if node.kind() == "function_definition" {
                     let mut reasons = Vec::new();
                     let mut definition_values = default_values.clone();
-                    definition_values.extend(calls::unshadowed_builtin_defaults(node, text, |name| {
-                        !builtin_defaults || bound_names.contains(name)
-                    }));
+                    definition_values.extend(calls::unshadowed_builtin_defaults(
+                        node,
+                        text,
+                        |name| !builtin_defaults || bound_names.contains(name),
+                    ));
                     if if options.summaries {
                         !calls::definition_is_inert_with_values(
                             node,
