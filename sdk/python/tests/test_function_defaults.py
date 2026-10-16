@@ -169,3 +169,26 @@ def test_previous_default_rules_are_rejected_before_reuse(tmp_path):
             client.project("dataflow", handle, "--summaries", "--rules", str(rules), "--steps", "4096",
                            "--bytes", "1048576", "--reuse", str(retained),
                            "--reuse-digest", hashlib.sha256(encoded.encode()).hexdigest())
+
+
+@pytest.mark.parametrize("edit", ["def selected(value):\n    return value\n", "selected = source()\n", ""])
+def test_changed_imported_function_invalidates_its_capture_evidence(tmp_path, edit):
+    client, rules = install(tmp_path, route="reexport")
+    cache = FlowCache(MemoryObjectStore())
+    assert analyze(client, rules, "entry", cache, imports=True).report.at("/complete")
+    assert analyze(client, rules, "entry", cache, imports=True).reused
+    (tmp_path / "helpers.py").write_text(edit + RELAY)
+    changed = analyze(client, rules, "entry", cache, imports=True)
+    assert not changed.reused
+    assert changed.report.at("/complete") is edit.startswith("def ")
+    assert evidence(changed) == evidence(analyze(client, rules, "entry", imports=True))
+
+
+def test_an_alias_can_capture_a_prior_function_that_itself_has_a_function_default(tmp_path):
+    client, rules = install(tmp_path, route="local-alias")
+    path = tmp_path / "subject.py"
+    path.write_text(path.read_text().replace("selected(value)", "selected(value, factory=dict)"))
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert not result.initialization.sites
+    assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]

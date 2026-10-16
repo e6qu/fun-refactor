@@ -888,9 +888,7 @@ impl Project<'_> {
                             function_aliases.get(target).cloned().or_else(|| {
                                 functions
                                     .get(target)
-                                    .filter(|node| {
-                                        calls::definition_is_inert(**node, text, postponed)
-                                    })
+                                    .filter(|_| documentable.contains(target))
                                     .map(|_| (target.to_owned(), 0))
                             })
                         };
