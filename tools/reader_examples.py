@@ -159,22 +159,48 @@ def import_order_trace(binary, folder):
     return len(variants)
 
 
+def startup_disclosure(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Find the statement that prevents an answer\n', 1)[1].split('\n## ', 1)[0]
+    helper, = blocks(lesson, 'python')
+    helper = helper.removeprefix('# helpers.py\n')
+    (folder / 'app.py').write_text('from helpers import relay\ndef entry():\n    return send(relay(0))\n')
+    (folder / 'rules.json').write_text(blocks(page, 'json')[0])
+    variants = [(helper, 1), (helper.replace('read_input()', '0'), 0),
+                ('read_input()\n' * 20 + helper.replace('read_input()', '0'), 20)]
+    for source, count in variants:
+        (folder / 'helpers.py').write_text(source)
+        found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
+        target = dict(zip(found['columns'], found['rows'][0]))['handle']
+        result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
+                                     '--summaries', '--imports', '--rules', 'rules.json'])
+        assert result['complete'] is (count == 0), result.get('cutoffs')
+        disclosure = result['initialization']
+        assert len(disclosure['sites']) + disclosure['omitted'] == count
+        assert disclosure['by_file'] == ({'helpers.py': {
+            'statements': count, 'reasons': {'startup-call': count}}} if count else {})
+    return len(variants)
+
+
 def check(binary):
     measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
         root = Path(directory)
-        change, trace, registry, order = (root / name for name in ('change', 'trace', 'registry', 'order'))
+        change, trace, registry, order, startup = (root / name for name in ('change', 'trace', 'registry', 'order', 'startup'))
         change.mkdir()
         trace.mkdir()
         registry.mkdir()
         order.mkdir()
+        startup.mkdir()
         commands = first_change(binary, change)
         traces = first_trace(binary, trace)
         setups = registry_trace(binary, registry)
         cycles = import_order_trace(binary, order)
+        disclosures = startup_disclosure(binary, startup)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
             'registry_setup_examples': setups,
             'import_order_examples': cycles,
+            'startup_diagnostic_examples': disclosures,
             'verified_measurement_rows': measurements}
 
 

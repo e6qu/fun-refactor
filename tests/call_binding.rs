@@ -249,7 +249,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-import-order-call-binding/result.json",
+            "tests/agent-eval/results/2026-10-16-startup-diagnostics-call-binding/result.json",
         ])
         .output()
         .unwrap();
