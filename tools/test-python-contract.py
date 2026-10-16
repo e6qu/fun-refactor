@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
@@ -64,6 +65,19 @@ class PythonContract(unittest.TestCase):
             if (manifest['collection']['source_commit'] != cls.report['source_commit']
                     or manifest['binary_sha256'] != cls.report['binary_sha256']):
                 raise ValueError('contract collection identity changed')
+        cls.authored_cases = staticmethod(contract.cases)
+        encoded = json.dumps(contract.cases(), ensure_ascii=False)
+        snapshots = patch.object(contract, 'cases', side_effect=lambda: json.loads(encoded))
+        snapshots.start()
+        cls.addClassCleanup(snapshots.stop)
+
+    def test_authored_case_snapshots_match_source_and_do_not_share_mutable_data(self):
+        first = contract.cases()
+        expected = contract.profile.compiler.digest(self.authored_cases())
+        self.assertEqual(contract.profile.compiler.digest(first), expected)
+        first[0]['expected_runtime']['events'].clear()
+        first[0]['files'].clear()
+        self.assertEqual(contract.profile.compiler.digest(contract.cases()), expected)
 
     def changed(self, name='unicode-local/moved'):
         value = copy.deepcopy({key: item for key, item in self.report.items() if key != 'cases'})
