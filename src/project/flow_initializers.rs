@@ -1,5 +1,41 @@
 use super::*;
 
+// Classify only the unchecked top-level operation. Never inspect a deferred body
+// as though it executed, or claim that a syntactic call actually ran.
+pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
+    match node.kind() {
+        "class_definition" => "class-definition",
+        "decorated_definition" => "decorated-definition",
+        "import_statement" | "import_from_statement" | "future_import_statement" => "startup-import",
+        "if_statement" | "for_statement" | "while_statement" | "try_statement"
+        | "with_statement" | "match_statement" => "startup-control-flow",
+        "expression_statement" if node.named_child_count() == 1 => {
+            let expression = node.named_child(0).unwrap();
+            let value = expression.child_by_field_name("right").unwrap_or(expression);
+            let bounded = if expression.kind() == "assignment"
+                && expression.child_by_field_name("left").is_some_and(|n| n.kind() == "identifier") {
+                value
+            } else {
+                node
+            };
+            if !calls::initialization_fits(bounded) {
+                "initializer-node-budget"
+            } else if matches!(expression.kind(), "assignment" | "augmented_assignment")
+                && expression.child_by_field_name("left").is_some_and(|n| matches!(n.kind(), "attribute" | "subscript")) {
+                "startup-write"
+            } else if calls::unparenthesized(value).is_some_and(|n| n.kind() == "call") {
+                "startup-call"
+            } else if expression.kind() == "assignment" {
+                "startup-assignment"
+            } else {
+                "module-statement"
+            }
+        }
+        "delete_statement" => "startup-write",
+        _ => "module-statement",
+    }
+}
+
 #[derive(Default)]
 pub(super) struct Allocations<'s> {
     dictionaries: BTreeSet<&'s str>,

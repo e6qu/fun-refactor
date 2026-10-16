@@ -44,6 +44,7 @@ def bindings():
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_import_order.py',
+                 'sdk/python/tests/test_startup_diagnostics.py', 'sdk/python/tests/test_initialization_locations.py',
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',

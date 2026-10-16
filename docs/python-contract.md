@@ -562,7 +562,9 @@ def relay(value):
 
 Your selected function may only call `send(relay(0))`. An empty trace for that function does not
 check the earlier `read_input()` call. The report stays incomplete and points to
-`metadata = read_input()` in `helpers.py` as unsupported initialization.
+`metadata = read_input()` in `helpers.py` with the reason `startup-call`.
+That means the statement contains a call during import that the model cannot check.
+It does not mean the call failed or that Python necessarily reached it.
 
 The Python SDK exposes these locations through `analysis.initialization.sites`.
 Each site has an exact source occurrence, reasons and plain-language explanations.
@@ -570,8 +572,28 @@ For example, use `site.occurrence.path` and `site.occurrence.location.range.star
 to find the file and line. `site.occurrence.text(source, revision=analysis.report.at('/revision'))`
 reads the corresponding statement from that file's source.
 
+The same result exposes `analysis.initialization.by_file`, a sequence of file summaries.
+Each has a `path`, a count of unchecked `statements`, and `reasons` as pairs of reason names and counts.
+For the helper above, the summary names `helpers.py`, one statement and one `startup-call`.
+Counts include statements beyond the displayed locations. A statement with two reasons counts once
+in `statements` and once under each reason, so reason counts can add up to more than the statement count.
+
+| Reported reason | What to inspect in your code |
+| --- | --- |
+| `startup-call` | A call such as `metadata = read_input()` or `prepare()`. Its effects remain unknown. |
+| `startup-assignment` | An unsupported assigned value, such as `metadata = other_value`. |
+| `startup-write` | A write to an object or shared table, such as `shared['name'] = value`. |
+| `class-definition` or `decorated-definition` | Class setup or a decorator that runs while defining a function or class. |
+| `startup-control-flow` | A branch, loop or handler at module level. The model has not decided which startup statements it executes. |
+| `initializer-node-budget` | An initializer exceeding the existing 128-node syntax limit. A node is one element of parsed syntax; this is not a line count. |
+
+For example, a long table of callbacks can exceed that syntax limit even though Python only stores the functions.
+This reason identifies a checking limit; it does not establish that all the table's other operations are supported.
+The detailed locations still point to the whole original statement.
+
 The report shows at most sixteen blocking statements in file and source order.
 `analysis.initialization.omitted` counts additional statements or locations omitted to fit the response budget.
+Per-file counts survive that omission. They cover only loaded files; a file or source-size limit can leave further files unexamined.
 An omitted location does not mean the statement was checked. Import resolution errors remain in
 the dependency records and cutoffs; this list describes initialization in files the analyzer loaded.
 These locations explain a model limitation and do not assert that the statement executed.

@@ -18,16 +18,16 @@ from test_flow_summaries import analyze, evidence, workspace
 
 @pytest.mark.parametrize("imports", [False, True])
 @pytest.mark.parametrize("definition,instance,reason,fragment", [
-    ("class Token(list):\n    pass", "", "module-statement", "class Token(list):\n    pass"),
+    ("class Token(list):\n    pass", "", "class-definition", "class Token(list):\n    pass"),
     ("class Token:\n    def __init__(self):\n        sink(source())", "marker = Token()",
-     "module-statement", "marker = Token()"),
+     "startup-call", "marker = Token()"),
     ("def unused(value=source()):\n    return value", "", "definition-time-code",
      "def unused(value=source()):\n    return value"),
     ("metadata = 0\nmetadata = 1", "", "binding-collision", "metadata = 1"),
     ("def K(value):\n    return value", "", "non-normalized-identifier",
      "def K(value):\n    return value"),
     ("def decorate(fn):\n    return fn\n@decorate\ndef unused():\n    pass", "",
-     "module-statement", "@decorate\ndef unused():\n    pass"),
+     "decorated-definition", "@decorate\ndef unused():\n    pass"),
 ])
 def test_blocking_statements_have_exact_locations_and_runtime_remains_separate(tmp_path, imports, definition, instance, reason, fragment):
     client, rules = install(tmp_path, definition, instance, imports, value="0")

@@ -297,6 +297,17 @@ def check(value):
     return value['summary']
 
 
+def startup_counts(value):
+    # Print one declared full-package example per familiar project. The reports
+    # themselves retain every case; this is an investigation aid, not acceptance.
+    result = {}
+    for row in value['cases']:
+        if row['variant'] == 'original' and row['case'] == 'positive':
+            report = row['invocations'][1]['report']
+            result[row['project']] = report['initialization']['by_file']
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fr', type=Path, default=ROOT / 'target/debug/fr')
@@ -315,6 +326,7 @@ def main():
         declarations(value, args.output, args.fr.resolve())
     check(value)
     print(json.dumps({'identity': value['summary'], 'declarations': value['declaration_summary']}, sort_keys=True))
+    print('Unchecked startup statements by loaded file: ' + json.dumps(startup_counts(value), sort_keys=True))
 
 
 if __name__ == '__main__':

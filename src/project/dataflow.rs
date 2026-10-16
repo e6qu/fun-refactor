@@ -46,6 +46,13 @@ mod summaries;
 struct Initialization {
     sites: Vec<InitializationSite>,
     omitted: usize,
+    by_file: BTreeMap<String, InitializationCounts>,
+}
+
+#[derive(Default, Serialize)]
+struct InitializationCounts {
+    statements: usize,
+    reasons: BTreeMap<&'static str, usize>,
 }
 
 #[derive(Serialize)]
@@ -64,6 +71,12 @@ impl Initialization {
     ) -> Result<()> {
         if reasons.is_empty() {
             return Ok(());
+        }
+        let path = file.strip_prefix(&project.root)?.to_string_lossy().into_owned();
+        let counts = self.by_file.entry(path).or_default();
+        counts.statements += 1;
+        for reason in &reasons {
+            *counts.reasons.entry(reason).or_default() += 1;
         }
         if self.sites.len() == 16 {
             self.omitted += 1;
@@ -1039,7 +1052,7 @@ impl Project<'_> {
                     documentable.clear();
                     default_values.clear();
                     default_scalars.clear();
-                    initialization.record(self, file, node, vec!["module-statement"])?;
+                    initialization.record(self, file, node, vec![initializers::unchecked_reason(node)])?;
                 } else if matches!(node.kind(), "import_statement" | "import_from_statement") {
                     documentable.clear();
                     if let Some(modules) = &modules {
@@ -1317,7 +1330,8 @@ impl Project<'_> {
             }
             omitted.insert(field.into(), json!(count));
             report[field] = if field == "initialization" {
-                json!({"sites":[],"omitted":report[field]["omitted"].as_u64().unwrap() + count as u64})
+                json!({"sites":[],"omitted":report[field]["omitted"].as_u64().unwrap() + count as u64,
+                    "by_file":report[field]["by_file"]})
             } else if matches!(
                 field,
                 "returns"

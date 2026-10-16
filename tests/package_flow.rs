@@ -414,7 +414,8 @@ fn unchecked_initialization_points_to_the_original_statement_and_clears_after_re
     assert_eq!(report["initialization"]["omitted"], 0);
     let sites = report["initialization"]["sites"].as_array().unwrap();
     assert_eq!(sites.len(), 1);
-    assert_eq!(sites[0]["reasons"], json!(["module-statement"]));
+    assert_eq!(sites[0]["reasons"], json!(["startup-call"]));
+    assert_eq!(report["initialization"]["by_file"], json!({"helpers.py":{"statements":1,"reasons":{"startup-call":1}}}));
     let occurrence = &sites[0]["occurrence"];
     assert_eq!(occurrence["path"], "helpers.py");
     assert_eq!(occurrence["revision"], report["revision"]);
@@ -426,7 +427,7 @@ fn unchecked_initialization_points_to_the_original_statement_and_clears_after_re
     write(root.path(), "helpers.py", &helper.replace("source()", "0"));
     let repaired = analyze(root.path(), "entry");
     assert_eq!(repaired["complete"], true);
-    assert_eq!(repaired["initialization"], json!({"sites":[],"omitted":0}));
+    assert_eq!(repaired["initialization"], json!({"sites":[],"omitted":0,"by_file":{}}));
 }
 
 #[test]
