@@ -2,6 +2,7 @@
 """Compare a declared scalar Python contract with CPython and retained fr reports."""
 import argparse
 import ast
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -397,6 +398,40 @@ def save(value, path):
         path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
 
+@contextmanager
+def collecting_report(value, path):
+    """Keep a readable, incomplete report while writing each completed row once."""
+    require(not value['cases'] and value['summary']['contract_complete'] is False,
+            'collection must start with an empty, incomplete report')
+    if path is None:
+        yield lambda row: None
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    header = {key: item for key, item in value.items() if key != 'cases'}
+    prefix = (json.dumps(header, ensure_ascii=False, indent=2)[:-2] + ',\n  "cases": [').encode('utf-8')
+    suffix = b'\n  ]\n}\n'
+    with path.open('wb') as output:
+        output.write(prefix + suffix)
+        output.flush()
+        position = len(prefix)
+        first = True
+
+        def append(row):
+            nonlocal position, first
+            # Encode before touching the previous checkpoint. File offsets count
+            # bytes, so non-ASCII source and diagnostics cannot shift the suffix.
+            encoded = json.dumps(row, ensure_ascii=False, indent=2)
+            payload = (('\n' if first else ',\n')
+                       + '\n'.join('    ' + line for line in encoded.split('\n'))).encode('utf-8')
+            output.seek(position)
+            output.write(payload + suffix)
+            output.flush()
+            position += len(payload)
+            first = False
+
+        yield append
+
+
 def measure(binary, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'collect only on GitHub runners')
     binary = binary.resolve()
@@ -406,7 +441,8 @@ def measure(binary, output):
                                                           'sha256': file_digest(sys.executable)},
              'cases': [], 'summary': {'contract_complete': False}}
     errors = []
-    with tempfile.TemporaryDirectory(prefix='fr-python-contract-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='fr-python-contract-') as temporary, \
+            collecting_report(value, output) as append:
         for index, case in enumerate(cases()):
             root = Path(temporary) / str(index)
             for name, source in case['files'].items():
@@ -432,7 +468,7 @@ def measure(binary, output):
                    'invocations': invocations, 'flow': None if refused else result,
                    'error': result if refused else None}
             value['cases'].append(row)
-            save(value, output)
+            append(row)
             try:
                 audit_case(row, case)
             except Exception as error:
