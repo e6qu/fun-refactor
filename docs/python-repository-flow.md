@@ -125,7 +125,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-function-defaults-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-parallel-bindings-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -192,16 +192,30 @@ Toolz has nine such `factory=dict` declarations in `dicttoolz.py` and one `map=m
 Those ten declarations no longer count as unchecked startup code. This does not execute their bodies or admit calls through their callback arguments.
 All full-package outcomes stay unchanged: 32 incomplete cases and eight deliberate invalid-budget refusals.
 
+The [parallel-assignment replay](../tests/agent-eval/results/2026-10-16-parallel-bindings-fixed-arity-probes/result.json)
+checks these familiar libraries after allowing several existing functions to be saved in one assignment.
+For example, `_map, _filter = map, filter` stores Python's built-in functions without calling them.
+All values on the right are read before any new name on the left is written.
+The [two-file lesson](python-contract.md#save-several-helper-names-in-one-assignment) explains the rule and shows why swapping the stored helpers can change an input trace.
+
 An identity helper returns its input unchanged. For the three original identity-helper questions,
-the current function-default reports expose these larger groups of unchecked statements:
+the current reports expose these groups of unchecked statements:
 
 | Library | Total unchecked statements in loaded files | Example loaded file | Unchecked statements in that file |
 | --- | ---: | --- | ---: |
 | Toolz | 82 | `toolz/curried/__init__.py` | 45 |
-| Funcy | 98 | `funcy/seqs.py` | 22 |
+| Funcy | 94 | `funcy/seqs.py` | 18 |
 | Pydash | 461 | `pydash/collections.py` | 159 |
 
-These are separate queries from the expanded `inc` and `add` questions, whose earlier totals are 80 and 420.
+Compared with the function-default replay, Funcy's total falls from 98 to 94, with all four removed statements in `seqs.py`.
+Toolz and Pydash keep their previous totals. This reduces one source of uncertainty; it does not finish any full-package answer.
+The expanded 40 full-package cases still contain 32 incomplete analyses and eight deliberate invalid-budget refusals.
+The isolated declarations and standalone primitive module keep the same results in the table above.
+
+The identity-helper queries are separate from the expanded `inc` and `add` questions.
+The new `inc` replay reduces Funcy's unchecked count from 80 to 76 across the same sixteen files and 75 import searches.
+It still reaches the sixteen-file limit. Pydash's `add` stays at 420 across eight files and 47 searches, with the separate 256 KiB source limit still reached.
+Toolz's `return_none` stays at 82 across fourteen files. These limits are unchanged.
 Keep the selected helper and loaded-file list fixed when comparing counts.
 Toolz falls from 92 to 82 across the same loaded source files; Funcy and Pydash stay at 98 and 461.
 A decorator is code applied while Python defines a function or class.

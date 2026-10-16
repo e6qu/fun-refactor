@@ -49,6 +49,8 @@ def bindings():
                  'sdk/python/tests/test_startup_diagnostics.py', 'sdk/python/tests/test_initialization_locations.py',
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_function_defaults.py',
+                 'sdk/python/tests/test_parallel_bindings.py',
+                 'sdk/python/tests/test_module_literals.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_registry_initialization.py', 'tools/python_contract_allocations.py',
@@ -114,6 +116,20 @@ def flow_command(case, handle, root):
     return ['project', 'dataflow', handle, '--summaries', *(['--imports'] if case['imports'] else []),
             '--rules', root + '/rules.json', '--context', 'html', '--steps', str(case['steps']),
             '--depth', str(case['depth']), '--bytes', str(case['bytes'])]
+
+
+def assignment_parts(node):
+    if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+        return []
+    left, right = node.targets[0], node.value
+    if isinstance(left, ast.Name):
+        return [(left, right)]
+    if (isinstance(left, (ast.Tuple, ast.List)) and isinstance(right, (ast.Tuple, ast.List))
+            and len(left.elts) == len(right.elts) and left.elts
+            and all(isinstance(name, ast.Name) for name in left.elts)
+            and len({name.id for name in left.elts}) == len(left.elts)):
+        return list(zip(left.elts, right.elts))
+    return []
 
 
 def audit_signature(function, definition, path, source, revision):
@@ -231,22 +247,25 @@ def audit_case(row, case):
             text = case['files'][binding['path']]
             lines = text.splitlines(keepends=True)
             declarations = ast.parse(text).body
-            matches = [node for node in declarations
-                       if len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == binding['offset']]
-            require(len(matches) == 1, 'imported value lacks its declaration position')
-            node = matches[0]
             if binding['kind'] == 'class':
+                matches = [node for node in declarations
+                           if len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == binding['offset']]
+                require(len(matches) == 1, 'imported value lacks its declaration position')
+                node = matches[0]
                 require(isinstance(node, ast.ClassDef) and node.name == binding['name']
                         and (not node.bases or len(node.bases) == 1 and isinstance(node.bases[0], ast.Name)
                              and node.bases[0].id in {'object', 'dict', 'Exception'})
                         and not node.keywords and not node.decorator_list,
                         'imported class differs from its plain declaration')
             else:
-                require(isinstance(node, ast.Assign) and len(node.targets) == 1
-                        and isinstance(node.targets[0], ast.Name) and node.targets[0].id == binding['name'],
+                matches = [(node, value) for node in declarations for name, value in assignment_parts(node)
+                           if name.id == binding['name']
+                           and len(''.join(lines[:name.lineno - 1]).encode()) + name.col_offset == binding['offset']]
+                require(len(matches) == 1,
                         'imported value differs from its assignment')
+                node, value = matches[0]
                 if binding['kind'] == 'literal':
-                    ast.literal_eval(node.value)
+                    ast.literal_eval(value)
                 elif binding['kind'] == 'allocation':
                     require(audit_declaration(node, declarations), 'imported allocation evaluates unchecked code')
                 elif binding['kind'] == 'registry':
@@ -267,11 +286,10 @@ def audit_case(row, case):
             text = case['files'][alias['path']]
             lines = text.splitlines(keepends=True)
             statements = ast.parse(text).body
-            matches = [node for node in statements if isinstance(node, ast.Assign)
-                       and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-                       and node.targets[0].id == alias['name'] and isinstance(node.value, ast.Name)
-                       and node.value.id == alias['target']
-                       and len(''.join(lines[:node.lineno - 1]).encode()) + node.col_offset == alias['offset']]
+            matches = [node for node in statements for name, value in assignment_parts(node)
+                       if name.id == alias['name'] and isinstance(value, ast.Name)
+                       and value.id == alias['target']
+                       and len(''.join(lines[:name.lineno - 1]).encode()) + name.col_offset == alias['offset']]
             require(len(matches) == 1, 'function alias differs from its source assignment')
         for lookup in modules['lookups']:
             if lookup['names'] is not None:

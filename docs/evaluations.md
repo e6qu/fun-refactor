@@ -807,6 +807,8 @@ preserves the collection before startup reasons and per-file counts were added.
 The [startup-diagnostics receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-collection/manifest.json)
 preserves the collection before unused function defaults were checked.
 The [function-default receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json)
+preserves the collection before flat module assignments were admitted.
+The [parallel-assignment receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -1028,6 +1030,52 @@ The resulting files have identical bytes. Process writes fell from 19,344,364,65
 Read those saving-only timings separately from total job time: builds, analysis, runtime observations and audits have their own costs.
 The environment-recording update superseded the [initial queued comparison request](https://github.com/e6qu/fun-refactor/actions/runs/38899322597) before its job ran.
 That request produced no timing samples.
+
+The parallel-assignment change reads every right-hand value before creating any destination name.
+For example, `_map, _filter = map, filter` stores existing built-in functions without calling them.
+Local function aliases, imports and reexports can preserve their defining functions in a trace.
+Literal exports retain separate source positions for each destination.
+The [corrected focused run](https://github.com/e6qu/fun-refactor/actions/runs/38926590392)
+passed 68 native regressions and 1,560 Python interface tests, including 85 new cases.
+It also checked 848 authored Python executions under the same fourteen declared rules.
+The [lesson](python-contract.md#save-several-helper-names-in-one-assignment) supplies both files, the input/output rules and commands before showing the results.
+
+The [first executed focused run](https://github.com/e6qu/fun-refactor/actions/runs/38924909991)
+passed the native and new language tests, then failed an existing 8 KiB report test.
+The expanded policy description appeared twice in the report and exceeded its metadata allowance.
+The corrected description is 197 characters, shorter than the earlier 199-character text, while still identifying the new assignment rule.
+The 8 KiB limit, omitted-location totals and every test assertion stayed unchanged.
+The corrected run passed that test and the rest of the focused checks.
+The [initial queued request](https://github.com/e6qu/fun-refactor/actions/runs/38924564547)
+was superseded before execution when alias-budget coverage was added; it produced no test samples.
+
+The [first broader Python run](https://github.com/e6qu/fun-refactor/actions/runs/38928709867)
+passed 618 interface tests but found one earlier expectation that a flat literal assignment must remain incomplete.
+The new rule intentionally supports `metadata, other = 0, 1`.
+That case now has positive coverage for tuple/list spelling, local/imported helpers and helpers that pass on or discard the input.
+The negative cases still check evaluated values, mismatched lengths, special metadata and rebinding.
+The failed run stopped before collecting any analyzer reports; the complete evidence family is recollected from the corrected source.
+
+The [corrected Python collection](https://github.com/e6qu/fun-refactor/actions/runs/38932167099)
+passed 768 interface tests, all three parallel-assignment lesson variants and 56 corruption controls.
+Those controls took 96.626 seconds within the unchanged 120-second limit.
+The [retained Python results](../tests/agent-eval/results/2026-10-16-parallel-bindings-python-contract/result.json)
+check 424 programs in 848 original or renamed cases under the same fourteen rules.
+They preserve 330 incomplete cases, 18 refusals and 120 documented differences between model and runtime observations.
+An incomplete case can pass this comparison because the declared expectation is that the tool leaves that question unanswered.
+The complete collection passed within its existing fifteen-minute deadline.
+
+The [fresh familiar-library replay](../tests/agent-eval/results/2026-10-16-parallel-bindings-fixed-arity-probes/result.json)
+reduces unchecked startup statements for Funcy's original identity-helper question from 98 to 94.
+The `seqs.py` count falls from 22 to 18; Toolz stays at 82 and Pydash at 461 for their separate identity-helper questions.
+The original thirty cases still have 24 incomplete reports and six deliberate CLI refusals.
+The one hundred expanded cases still include zero complete full-package answers, sixteen complete isolated-declaration answers and eight complete standalone-module answers.
+These counts measure coverage of those selected questions, not general readiness, analysis speed or savings on an agent's complete task.
+The separate expanded `inc` query falls from 80 to 76 unchecked statements across the same sixteen files and 75 import searches.
+Toolz's `return_none` stays at 82 across fourteen files, and Pydash's `add` stays at 420 across eight files.
+Funcy's sixteen-file cutoff and Pydash's 256 KiB source cutoff remain in place.
+The [retention audit](https://github.com/e6qu/fun-refactor/actions/runs/38935883405)
+rechecked the collected bytes and all 56 corruption controls; those controls took 83.917 seconds under the unchanged 120-second wrapper limit.
 
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.

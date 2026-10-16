@@ -61,6 +61,12 @@ struct InitializationSite {
     reasons: Vec<&'static str>,
 }
 
+enum ParallelValue {
+    Literal(bool),
+    Builtin,
+    Function(String, usize),
+}
+
 impl Initialization {
     fn record(
         &mut self,
@@ -851,6 +857,85 @@ impl Project<'_> {
                     _ => None,
                 };
                 if options.summaries {
+                    if let Some(pairs) = calls::parallel_assignment(node, text) {
+                        let values: Option<Vec<_>> = pairs
+                            .iter()
+                            .map(|(name, value)| {
+                                let offset = name.start_byte();
+                                let name = &text[name.byte_range()];
+                                if bound_names.contains(name) {
+                                    return None;
+                                }
+                                if calls::collection_value(*value, text, false) {
+                                    return Some(ParallelValue::Literal(calls::literal_default(
+                                        *value, text,
+                                    )));
+                                }
+                                if value.kind() != "identifier" {
+                                    return None;
+                                }
+                                let target = &text[value.byte_range()];
+                                if builtin_defaults
+                                    && !bound_names.contains(target)
+                                    && calls::builtin_reference(target)
+                                {
+                                    return Some(ParallelValue::Builtin);
+                                }
+                                let alias = if let Some(modules) = &modules {
+                                    modules
+                                        .function_aliases
+                                        .get(file)
+                                        .and_then(|aliases| aliases.get(&offset))
+                                        .map(|_| (modules.resolve(file, name), 0))
+                                } else {
+                                    function_aliases.get(target).cloned().or_else(|| {
+                                        functions
+                                            .get(target)
+                                            .filter(|_| documentable.contains(target))
+                                            .map(|_| (target.to_owned(), 0))
+                                    })
+                                };
+                                alias
+                                    .filter(|(_, depth)| *depth < 15)
+                                    .map(|(target, depth)| {
+                                        ParallelValue::Function(target, depth + 1)
+                                    })
+                            })
+                            .collect();
+                        if let Some(values) = values.filter(|values| {
+                            modules.is_some()
+                                || function_aliases.len()
+                                    + values
+                                        .iter()
+                                        .filter(|value| {
+                                            matches!(value, ParallelValue::Function(..))
+                                        })
+                                        .count()
+                                    <= 128
+                        }) {
+                            for ((name, _), value) in pairs.into_iter().zip(values) {
+                                let name = &text[name.byte_range()];
+                                bound_names.insert(name);
+                                default_values.insert(name.to_owned());
+                                let binding = modules.as_ref().map_or_else(
+                                    || name.to_owned(),
+                                    |modules| modules.function_name(file, name),
+                                );
+                                if let ParallelValue::Function(target, depth) = value {
+                                    if modules.is_none() {
+                                        function_aliases.insert(name.to_owned(), (target, depth));
+                                    }
+                                } else {
+                                    literal_bindings.insert(binding.clone());
+                                    if matches!(value, ParallelValue::Literal(true)) {
+                                        default_scalars.insert(name.to_owned());
+                                    }
+                                }
+                                inert_bindings.insert(binding);
+                            }
+                            continue;
+                        }
+                    }
                     if calls::module_function_doc(node, text)
                         .is_some_and(|name| documentable.contains(name))
                     {

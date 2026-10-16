@@ -97,6 +97,23 @@ For the original identity-helper question, Toolz falls from 92 to 82 unchecked s
 Funcy stays at 98 and Pydash at 461 for their separate identity-helper questions.
 The full-package answers remain unfinished; the [library results](python-repository-flow.md) keep those counts separate from `inc` and `add`.
 
+Flat assignments can now give several existing functions new names without calling them.
+For example, `_map, _filter = map, filter` stores Python's built-in functions while a module loads.
+All values on the right must be available before any new destination is written.
+This prevents a newly created name from supplying another value in that same assignment.
+The [two-file lesson](python-contract.md#save-several-helper-names-in-one-assignment)
+shows a complete trace, a helper swap that removes the input connection and a mismatched assignment that fails in Python.
+Each destination must be a new name using ordinary ASCII characters, such as `forwarded`.
+The names and values must form fixed, flat pairs, such as `forwarded, stopped = relay, discard`.
+The existing limits stay in place: 128 parsed syntax elements per assignment and 128 function aliases per analysis.
+Syntax elements include names, strings and surrounding expression structure; this is not a line count.
+Reusing an existing destination, nesting a pattern or unpacking an arbitrary iterable remains unchecked.
+The fresh replay reduces Funcy's original identity-helper query from 98 unchecked startup statements to 94.
+In `funcy/seqs.py`, the count falls from 22 to 18. Toolz stays at 82 and Pydash at 461 for their original identity-helper questions.
+The full-package answers still cannot finish; see the [library results](python-repository-flow.md) for the separate helper questions and remaining limits.
+Continue from the remaining assignments in `seqs.py` and Toolz's calls that execute while modules load.
+Their behavior needs separate investigation; this rule only stores already checked functions and values.
+
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
 
@@ -106,12 +123,15 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json) identifies the unchanged native analysis results.
-The separately refreshed [Python example receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
-covers 409 programs and 818 original or renamed cases, including function defaults and import order.
-The collector now saves each new result without repeatedly rewriting all earlier cases.
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-python-contract/manifest.json)
+covers 424 programs and 848 original or renamed cases, including flat module assignments, function defaults and import order.
+It preserves 330 incomplete cases, 18 refusals and 120 documented differences between model and runtime observations.
+These counts describe the checked examples; they do not mean every example has a complete analysis.
+The earlier [collector receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
+preserves the 818-case comparison after saving each new result without repeatedly rewriting earlier cases.
 The [CI guide](ci.md#save-python-test-progress-without-repeating-earlier-work) explains saved progress and the unchanged final checks.
-Use the [measurement guide](benchmarks.md#saving-python-test-results) for the saving-only comparison; Python language support remains unchanged by this collector fix.
+Use the [measurement guide](benchmarks.md#saving-python-test-results) for that saving-only comparison; it does not measure the later language-support change.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.

@@ -868,6 +868,70 @@ impl Modules {
                     Some(initializers::Statement::Declaration(name)) => Some(name),
                     _ => None,
                 };
+                if let Some(pairs) = calls::parallel_assignment(node, source).filter(|pairs| {
+                    pairs.iter().all(|(_, value)| {
+                        calls::collection_value(*value, source, false)
+                            || value.kind() == "identifier"
+                                && (names.contains(&source[value.byte_range()])
+                                    || !explicit_builtins
+                                        && calls::builtin_reference(&source[value.byte_range()]))
+                    }) && alias_count
+                        + pairs
+                            .iter()
+                            .filter(|(_, value)| {
+                                value.kind() == "identifier"
+                                    && names.contains(&source[value.byte_range()])
+                            })
+                            .count()
+                        <= IMPORT_LIMIT
+                        && pairs
+                            .iter()
+                            .all(|(name, _)| !names.contains(&source[name.byte_range()]))
+                }) {
+                    let prior: Vec<_> = pairs
+                        .iter()
+                        .map(|(_, value)| {
+                            value.kind() == "identifier"
+                                && names.contains(&source[value.byte_range()])
+                        })
+                        .collect();
+                    for ((name, value), prior) in pairs.into_iter().zip(prior) {
+                        let offset = name.start_byte();
+                        let name = &source[name.byte_range()];
+                        names.insert(name.to_owned());
+                        if calls::collection_value(value, source, false) {
+                            literals.insert(name.to_owned());
+                            values.insert(name.to_owned(), (offset, "literal"));
+                        } else {
+                            let target = &source[value.byte_range()];
+                            if prior {
+                                alias_count += 1;
+                                bindings.insert(
+                                    name.to_owned(),
+                                    Binding {
+                                        module: entry_name(file.strip_prefix(&project.root)?)
+                                            .context(
+                                                "function alias requires a root-local module",
+                                            )?,
+                                        member: Some(target.to_owned()),
+                                        future: false,
+                                        prefix: name.to_owned(),
+                                        target: Some(file.strip_prefix(&project.root)?.to_owned()),
+                                        ambiguous: false,
+                                    },
+                                );
+                                result
+                                    .function_aliases
+                                    .entry(file.clone())
+                                    .or_default()
+                                    .insert(offset, name.to_owned());
+                            } else {
+                                opaque_bindings.insert(name.to_owned());
+                            }
+                        }
+                    }
+                    continue;
+                }
                 if calls::module_export_list(node, source).is_some() {
                     literals.insert("__all__".to_owned());
                     if !names.insert("__all__".to_owned()) {

@@ -238,6 +238,73 @@ Moving `selected` below `unused` makes Python raise `NameError` before the entry
 Calling `unused`, even with replacement arguments, remains outside the supported call model.
 This rule checks creation of an unused function; it does not add calls through callback parameters.
 
+## Save several helper names in one assignment
+
+Suppose a module offers two helpers: one returns its input and the other replaces it with zero.
+An alias is another name for an existing object, such as one of these functions.
+Python can assign several aliases at once. Unpacking matches each value on the right with a name on the left.
+It reads all the values before writing any of those names.
+
+Create a new folder and save these two files:
+
+```python
+# helpers.py
+def relay(value):
+    return value
+
+def discard(value):
+    return 0
+
+forwarded, stopped = relay, discard
+_map, _filter = map, filter
+
+# app.py
+from helpers import forwarded
+
+def entry():
+    return send(forwarded(read_input()))
+```
+
+The assignment stores the functions without calling them.
+Likewise, `_map` and `_filter` store Python's existing built-in functions; the underscore is part of each new name.
+`read_input` supplies the tracked input and `send` receives the output.
+Save their roles as `rules.json` beside the Python files:
+
+```json
+{
+  "version": "tutorial",
+  "sources": ["read_input"],
+  "sinks": ["send"],
+  "sanitizers": {},
+  "propagators": []
+}
+```
+
+This rule set adds no external cleaning or forwarding assumptions.
+With `fr` installed, run these commands from that folder:
+
+```sh
+fr --json -C . project find entry
+fr --json -C . project dataflow '<HANDLE>' --summaries --imports --rules rules.json
+```
+
+Replace `<HANDLE>`, including its brackets, with the full reference returned by `find`.
+The trace can finish and show the input reaching `send` through `relay`.
+Swap `relay, discard` to `discard, relay`: the new `forwarded` returns zero, so the complete trace has no input connection.
+
+Flat tuple and list patterns can hold literal values, earlier checked functions and unshadowed built-in references.
+Each destination must be a new ASCII name, such as `forwarded`; accented names such as `données` remain unchecked here.
+The whole assignment must fit the existing 128-node syntax limit.
+A syntax node is one parsed element, such as a name or literal; surrounding structure and comments count too.
+This limit counts syntax elements rather than lines.
+Function aliases can be imported or reexported. Literal bindings retain their distinct source positions.
+Each function alias uses one of the existing 128 alias slots per analysis, even when several are assigned together.
+Stored built-in references remain limited to unused setup and defaults; importing or calling those aliases is not added here.
+Nested patterns, starred targets, repeated destinations, rebinding, evaluated calls and arbitrary iterables remain unchecked.
+For example, `forwarded, stopped = (relay,)` has too few values: Python raises `ValueError` and the analysis stays incomplete.
+With no earlier `first`, `first, second = relay, first` raises `NameError` before writing either name.
+Reading ordinary global values inside a function still needs more support.
+
 ## Call a helper with an earlier scalar default
 
 You can ask whether supplied input reaches `send` through this helper:
