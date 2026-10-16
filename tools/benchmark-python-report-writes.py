@@ -6,7 +6,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import platform
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -78,6 +80,12 @@ def main():
                         + '/actions/runs/' + os.environ['GITHUB_RUN_ID'],
              'source_bindings': {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in (
                  'tools/python-contract.py', 'tools/benchmark-python-report-writes.py')},
+             'environment': {'python': sys.version, 'platform': platform.platform(),
+                             'runner_image': os.environ['ImageOS'],
+                             'runner_image_version': os.environ['ImageVersion'],
+                             'cpu': next(line.split(': ', 1)[1] for line in
+                                         Path('/proc/cpuinfo').read_text().splitlines()
+                                         if line.startswith('model name'))},
              'input': {'path': args.input.as_posix(), 'sha256': digest, 'cases': len(report['cases']),
                        'source_commit': report['source_commit']},
              'measurement': 'One sample per method on the same Linux runner, baseline first. '
