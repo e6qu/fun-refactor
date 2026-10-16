@@ -809,6 +809,8 @@ preserves the collection before unused function defaults were checked.
 The [function-default receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json)
 preserves the collection before flat module assignments were admitted.
 The [parallel-assignment receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-scalar-collection/manifest.json)
+preserves the collection before calls could use imported scalar defaults.
+The [shared-default receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -1076,6 +1078,33 @@ Toolz's `return_none` stays at 82 across fourteen files, and Pydash's `add` stay
 Funcy's sixteen-file cutoff and Pydash's 256 KiB source cutoff remain in place.
 The [retention audit](https://github.com/e6qu/fun-refactor/actions/runs/38935883405)
 rechecked the collected bytes and all 56 corruption controls; those controls took 83.917 seconds under the unchanged 120-second wrapper limit.
+
+The imported-default change lets a function capture a scalar from another checked file.
+For example, `settings.py` defines `LIMIT = 0`, and `helpers.py` imports it before defining `choose(value=LIMIT)`.
+An omitted argument uses that stored zero; an explicit input keeps its own connection to the output.
+The [three-file lesson](python-contract.md#share-a-default-value-between-files) supplies the setup before comparing those calls with lists and late imports.
+Lists, object and function defaults, attribute expressions and ordinary global reads remain outside this call support.
+
+The [focused hosted run](https://github.com/e6qu/fun-refactor/actions/runs/38949131554)
+passed 69 native regressions, 1,763 Python interface tests and 872 authored Python runtime checks.
+Before the broader collection, review corrected two model expectations for unsupported list defaults.
+Those calls remain incomplete even with an explicit argument; an empty trace in an incomplete answer cannot establish that input is absent.
+The corresponding runtime expectations and unsupported-case checks stayed in place.
+
+The [broader Python run](https://github.com/e6qu/fun-refactor/actions/runs/38953427505)
+passed 971 interface tests and all five new lesson variants against both Python and the analyzer.
+The [retained results](../tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/result.json)
+check 436 programs in 872 original or renamed cases under the same fourteen rules.
+They include 338 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
+The 56 altered-report checks passed in 108.815 seconds inside the unchanged 120-second audit limit.
+The collection passed within its existing fifteen-minute deadline.
+The [combined retention audit](https://github.com/e6qu/fun-refactor/actions/runs/38956879242)
+rechecked the complete collected family and passed the same 56 altered-report checks in 111.797 seconds under that limit.
+
+The [new familiar-library replay](../tests/agent-eval/results/2026-10-16-shared-defaults-fixed-arity-probes/result.json)
+keeps the original thirty cases at 24 incomplete reports and six deliberate CLI refusals.
+Its one hundred expanded cases still have zero complete full-package answers, sixteen complete isolated-declaration answers and eight complete standalone-module answers.
+The new small-program support does not finish the libraries' remaining initialization and import behavior.
 
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.

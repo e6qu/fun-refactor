@@ -10,11 +10,13 @@ The examples use `source()` and `sink()` as configured external input and output
 
 ## Commands, results and limits
 
-Opt-in summary analysis binds explicit positional and named arguments to Python parameters
-with ASCII names, including [literal and earlier local scalar defaults](literal-defaults.md). Unicode identifier normalization remains outside this contract.
-Function declarations and identifiers in analyzed bodies must already be in NFKC form.
-Names such as `café` remain supported; spellings that normalize to another name leave analysis
-incomplete. This prevents function and local bindings from silently shadowing (a nearer declaration hiding an earlier name) another spelling.
+With `--summaries`, the analysis matches supplied arguments to supported parameters,
+including [literal and earlier local or imported scalar defaults](literal-defaults.md).
+Parameters use ordinary ASCII letters, digits and underscores.
+Function and body-variable names must already use Python's standardized Unicode spelling, called NFKC.
+For example, Python treats the Kelvin sign `K` as `K`; this tool leaves the unconverted spelling incomplete.
+`café` already has the required spelling and can name a function or body variable here.
+These checks prevent two spellings from silently hiding the same binding.
 It supports positional-only parameters (slots that calls must supply by position) before `/`, positional-or-keyword parameters, and
 keyword-only parameters (slots that calls must supply by name) after a bare `*`. Calls can reach same-file helpers, recursive summaries,
 static package functions, re-exports (making an imported name available from another module) and module aliases.
@@ -24,26 +26,33 @@ def choose(left, /, *, right):
     return left
 
 choose(source(), right=0)
+choose(0, right=source())
 ```
 
-Argument values are evaluated in source order, once per expression transfer. Binding then places
-those flows in declaration order for independent summary substitution. Keyword order does not
-change which parameter receives an origin. Comments and parameter separators create no origins.
-An entry function gives each actual parameter a symbolic origin, including keyword-only parameters.
+Python evaluates explicit arguments in the order they appear in the call.
+In `choose(0, right=source())`, the input call still runs, but the returned `left` argument is zero.
+The analysis keeps that evaluation order and matches each value to its parameter.
+Comments and separators such as `/` add no input connection.
+Selecting a function itself as the entry asks about an independent possible input for each parameter.
+For complete runnable files and input/output rules, use the [Python trace walkthrough](python-contract.md).
 
-An explicit raise in an argument stops evaluation of later arguments and the callee. Unknown
-short-circuit alternatives still join their normal continuations. Arguments of an invalid call can
-have effects before binding fails. Missing, excess, duplicate and unknown arguments produce an
+If an argument's helper raises an error, later arguments and the called helper do not run.
+When the model cannot decide a Boolean condition, it keeps both possible paths.
+Arguments can have effects before Python rejects a call.
+For example, `choose(source())` runs `source()` before Python reports the missing `right` argument.
+Missing, excess, duplicate and unknown arguments produce an
 `invalid-call-binding` cutoff. Passing a positional-only parameter by keyword or a keyword-only
 parameter positionally also produces that cutoff. The report is incomplete; it does not model the
 implicit `TypeError` or establish absence of later behavior.
 
-Lexical checks reject repeated keyword names and invalid argument ordering before expression
-transfer, including skipped branches and arguments that never return. Generator argument syntax
-is outside this contract. These checks are bounded subset validation, not a general Python compiler.
+The call checker rejects repeated keyword names and invalid argument ordering before following argument expressions.
+It applies this check even in skipped branches and arguments that never return.
+Generator argument syntax stays outside this contract. These limited checks do not replace Python's compiler.
 
-Evaluated defaults, referenced variadic values and argument unpacking remain outside the
-supported call contract. Annotations require the documented
+Defaults that execute a call remain outside this call support.
+A function can declare unused extra-argument slots, such as `*items` and `**options`, while calls still fit its ordinary fixed parameters.
+Reading those slots, passing extra arguments, or unpacking values into a call with `*items` or `**options` remains unsupported.
+Annotations require the documented
 [future-annotation directive](python-contract.md#trace-a-helper-that-has-type-annotations).
 Other annotation evaluation remains unchecked. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
@@ -56,9 +65,10 @@ The finite runtime corpus compares independent CPython observations with origin 
 argument effects, parameter kinds and invalid binding. It does not prove the connection between source and its model or
 general path feasibility.
 
-Current reports use `python-scalar-summaries` and retain `fr-call-binding` in both canonical inputs and
-the public report. Native reuse validates both identities, even if a modified report has a freshly
-computed digest. Analyzer identities include the binding implementation.
+Reports label this mode `python-scalar-summaries` and store the call rules under `fr-call-binding`.
+The rules appear in both the public report and the input details used to verify a saved answer.
+Before reuse, `fr` checks both copies against its current rules and implementation.
+It rejects missing or obsolete rules.
 The response budget includes both contract copies. If even metadata cannot fit, the command refuses;
 omitting analysis sections yields an incomplete report, never a complete absence claim. The SDK exposes
 `FunctionSummaries.call_binding` and validates its complete required contract. Other report formats
@@ -70,8 +80,8 @@ including referenced variadics. An uncalled declaration therefore does not intro
 cutoff solely because its body or call binding lies outside the scalar model. Calling that function
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
 The [named-default example](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks whether a value exists before the declaration.
-Calls can use [earlier local scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default).
-Imported values, collections and object markers still prevent calls, even with explicit replacement arguments.
+Calls can use [earlier scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default), including [values imported from checked local files](python-contract.md#share-a-default-value-between-files).
+Collections, object markers and function objects still prevent calls, even with explicit replacement arguments.
 Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
 
 The required `CallBinding.initialization` field describes which declarations may coexist with a trace.
@@ -86,10 +96,10 @@ Python's existing built-in with that name does not count as a module binding.
 For example, `sorted = sorted` can coexist with a supported helper, while calling that stored function
 still leaves the answer unfinished.
 
-Coroutine and generator calls do not execute their bodies as ordinary scalar calls. The analyzer
-refuses those executions before transferring body effects. A yield inside a skipped expression still
-makes its enclosing function a generator. A nested function's deferred body belongs to its own scope;
-yield expressions in nested defaults still belong to the enclosing scope.
+Coroutine functions use `async def`; generator functions contain `yield`.
+Their execution rules need separate handling, so these calls leave the analysis incomplete.
+Even `if False: yield value` makes the enclosing function a generator.
+A nested function's body belongs to that nested function; its defaults still belong to the function that defines it.
 
 The [pinned task](../tests/agent-eval/call-binding/task.json) discovers a leaking helper through
 keyword calls and parameter separators. It requires a reviewed repair, a sink-free preview feature,
@@ -98,13 +108,17 @@ the installed 0.35.0 binary separately from the pinned source revision; no local
 
 The [runtime tests](../sdk/python/tests/test_call_binding.py) also compare retained and clean results
 after keyword, parameter-order, separator and helper changes. Unrelated source edits renew
-occurrences without invalidating the defining-file analysis. Whole-analysis invalidation remains
-conservative; finer summary reuse is a separate remaining gate.
+source references without invalidating the defining-file analysis.
+The current cache can recheck more functions than an individual edit requires.
+Reusing each unaffected helper separately remains open work.
 
 
 The earlier required-parameter [retained acceptance](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json)
-passes the repair, preview and independent receiver outcomes. Ordinary discovery reads 444 source
-bytes across six files; native discovery returns 117,022 bytes across eight calls with no source-body
-reveals. These scripted measurements establish no general efficiency or token-saving benefit.
+passes the repair, preview and independent receiver outcomes.
+Its Python comparison script reads and parses the six known fixture files, totaling 444 source bytes.
+Fr's discovery commands produce 117,022 bytes of serialized JSON report data across eight calls and reveal no source bodies.
+Those counters measure different payloads; internal response bytes also do not establish what an agent reads or pays for.
+The timers cover different work too: the Python arm includes edits and two runtime checks, while the fr discovery timer stops before those stages.
+This record therefore supplies no overall time-overhead percentage or general efficiency claim.
 The [authoring record](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json)
 retains 100 receipts from guarded `fr` edits on the required-parameter implementation.

@@ -123,9 +123,9 @@ runtime observations, and checks altered records after rehashing the modified re
 retain full source inventories and upstream licenses. The
 [fixture guide](../tests/agent-eval/python-repository-flow/README.md) describes the collector.
 
-The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
+The fixed-slot correction uses `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-parallel-bindings-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-shared-defaults-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -217,12 +217,18 @@ The new `inc` replay reduces Funcy's unchecked count from 80 to 76 across the sa
 It still reaches the sixteen-file limit. Pydash's `add` stays at 420 across eight files and 47 searches, with the separate 256 KiB source limit still reached.
 Toolz's `return_none` stays at 82 across fourteen files. These limits are unchanged.
 Keep the selected helper and loaded-file list fixed when comparing counts.
-Toolz falls from 92 to 82 across the same loaded source files; Funcy and Pydash stay at 98 and 461.
 A decorator is code applied while Python defines a function or class.
 Pydash's example file has 155 unchecked decorated declarations and four startup calls.
 Toolz's example file has 43 startup calls and two writes.
-Funcy's has eighteen unchecked function declarations, three assignments and one statement that controls which code runs.
+Funcy's has fifteen unchecked function declarations, two assignments and one statement that controls which code runs.
 These counts describe unchecked syntax, not observed executions or complete package support.
+
+The [shared-default replay](../tests/agent-eval/results/2026-10-16-shared-defaults-fixed-arity-probes/result.json)
+checks the same libraries after allowing calls to use scalar defaults imported from checked local files.
+For example, a helper can import `LIMIT = 0` from a settings file and store it in `value=LIMIT`.
+The [three-file lesson](python-contract.md#share-a-default-value-between-files) explains that capture and its limits before showing the commands.
+The replay keeps the same completion totals in both tables above.
+This general rule helps the new small programs; it does not finish these libraries' remaining startup operations and imports.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
