@@ -65,6 +65,9 @@ def test_omitted_locations_keep_the_total_and_never_establish_absence(tmp_path, 
     disclosure = result.initialization
     assert len(disclosure.sites) + disclosure.omitted == 24
     assert len(disclosure.sites) <= 16 and disclosure.omitted >= 8
+    summary, = disclosure.by_file
+    assert summary.path == 'subject.py' and summary.statements == 24
+    assert dict(summary.reasons) == {'startup-call': 24}
     assert not result.report.at("/complete")
     assert "module-effects-unchecked" in result.report.at("/cutoffs")
     if max_bytes == 1_048_576:

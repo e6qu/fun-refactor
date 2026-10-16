@@ -72,6 +72,10 @@ def test_totals_cover_files_beyond_the_sixteen_shown_locations(tmp_path, max_byt
     client, rules = install(tmp_path, '\n'.join('opaque()' for _ in range(20)), True)
     (tmp_path / 'subject.py').write_text('from helpers import relay\n' +
         '\n'.join('metadata' for _ in range(7)) + '\ndef entry():\n    return sink(relay(0))\n')
+    if max_bytes == 8192:
+        with pytest.raises(FrRuntimeError, match='response metadata exceeds byte budget'):
+            analyze(client, rules, 'entry', imports=True, max_bytes=max_bytes)
+        return
     result = analyze(client, rules, 'entry', imports=True, max_bytes=max_bytes)
     disclosure = result.initialization
     assert len(disclosure.sites) + disclosure.omitted == 27
