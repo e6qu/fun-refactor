@@ -168,6 +168,23 @@ def test_parallel_literal_exports_keep_distinct_source_positions(tmp_path):
     assert observe(tmp_path)['result'] == 17
 
 
+@pytest.mark.parametrize('available', [False, True])
+def test_a_cyclic_import_sees_aliases_only_after_the_assignment(tmp_path, available):
+    client, rules = workspace(tmp_path)
+    assignment = 'public, discarded = relay, relay\n'
+    revisit = 'from bridge import ready\n'
+    (tmp_path / 'helpers.py').write_text('def relay(value):\n    return value\n'
+        + (assignment + revisit if available else revisit + assignment))
+    (tmp_path / 'bridge.py').write_text('from helpers import public\nready = 0\n')
+    (tmp_path / 'subject.py').write_text('from helpers import public\n'
+                                       'def entry():\n    return sink(public(source()))\n')
+    result = analyze(client, rules, 'entry', imports=True)
+    assert result.report.at('/complete') is available, result.report.at('/cutoffs')
+    runtime = observe(tmp_path)
+    assert runtime['raised'] == (None if available else 'ImportError')
+    assert runtime['result'] == (17 if available else None)
+
+
 def test_changed_parallel_targets_and_values_invalidate_saved_answers(tmp_path):
     client, rules = install(tmp_path, route='direct')
     cache = FlowCache(MemoryObjectStore())
