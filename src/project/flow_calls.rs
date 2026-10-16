@@ -605,6 +605,10 @@ pub(super) fn module_instance<'s>(
 }
 
 pub(super) fn module_export_list(node: Node<'_>, source: &str) -> Option<BTreeSet<String>> {
+    module_export_sequence(node, source).map(|names| names.into_iter().collect())
+}
+
+fn module_export_sequence(node: Node<'_>, source: &str) -> Option<Vec<String>> {
     if node.kind() != "expression_statement" || node.named_child_count() != 1 {
         return None;
     }
@@ -619,7 +623,7 @@ pub(super) fn module_export_list(node: Node<'_>, source: &str) -> Option<BTreeSe
     {
         return None;
     }
-    let mut names = BTreeSet::new();
+    let mut names = Vec::new();
     for (index, child) in right
         .named_children(&mut right.walk())
         .filter(|n| n.kind() != "comment")
@@ -639,16 +643,20 @@ pub(super) fn module_export_list(node: Node<'_>, source: &str) -> Option<BTreeSe
         {
             return None;
         }
-        names.insert(name.to_owned());
+        names.push(name.to_owned());
     }
     Some(names)
 }
 
 pub(super) fn declared_exports(root: Node<'_>, source: &str) -> Option<BTreeSet<String>> {
+    declared_export_sequence(root, source).map(|names| names.into_iter().collect())
+}
+
+pub(super) fn declared_export_sequence(root: Node<'_>, source: &str) -> Option<Vec<String>> {
     let mut exports = None;
     let mut pending = Vec::new();
     for node in root.named_children(&mut root.walk()) {
-        if let Some(names) = module_export_list(node, source) {
+        if let Some(names) = module_export_sequence(node, source) {
             if exports.replace(names).is_some() {
                 return None;
             }

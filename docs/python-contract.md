@@ -145,8 +145,15 @@ Python then raises `ImportError`; the analysis keeps `cyclic-module-initializati
 An empty trace in that result cannot establish that input never reaches the output.
 
 The check follows imports in statement order, including aliases, re-exports and the supported literal export lists.
-A package's `__init__.py` runs before a child module. Importing a module without reading a member can return its partly loaded module object.
+A package is a folder of modules; its `__init__.py` supplies startup code. A child module is a file inside that folder.
+The startup file runs before a child module. Importing a module without reading a member can return its partly loaded module object.
 Reading a member still requires that name to exist at that point.
+
+For `from pkg import marker, child`, Python loads the requested child module before binding either name in the caller.
+The child cannot read `marker` back from that caller yet, even though `marker` appears first.
+An ordinary statement such as `import first, second` binds `first` before loading `second`.
+An export list, written as `__all__`, names values for `from pkg import *`.
+Requested child modules load in the list's written order; sorting that list can change whether an import succeeds.
 
 All existing file, source-size and import-search limits apply. Unknown startup operations remain unchecked even when the import order works.
 If a dependency prevents this order check, `import-initialization-order-unchecked` keeps the answer incomplete without claiming a known cycle failure.

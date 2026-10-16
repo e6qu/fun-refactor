@@ -185,3 +185,68 @@ def test_unresolved_imports_do_not_invent_an_unavailable_cycle_member(tmp_path, 
     assert 'import-initialization-order-unchecked' in result.report.at('/cutoffs')
     assert 'cyclic-module-initialization' not in result.report.at('/cutoffs')
     assert runtime(tmp_path) == {'raised': 'ModuleNotFoundError'}
+
+
+@pytest.mark.parametrize('names', ['marker, child', 'child, marker'])
+def test_from_import_preloads_children_before_binding_any_name(tmp_path, names):
+    client, rules = install(tmp_path, {
+        'app.py': f'from pkg import {names}\ndef positive():\n    return sink(child.relay(source()))\n',
+        'pkg/__init__.py': 'marker = 0\n',
+        'pkg/child.py': 'from app import marker\ndef relay(value):\n    return value\n',
+    })
+    result = analyze(client, rules)
+    assert runtime(tmp_path) == {'raised': 'ImportError'}
+    assert not result.report.at('/complete') and not result.dependencies.complete
+    assert 'cyclic-module-initialization' in result.report.at('/cutoffs')
+
+
+@pytest.mark.parametrize('answer', ['value', '0'])
+def test_ordinary_import_binds_each_module_before_loading_the_next(tmp_path, answer):
+    client, rules = install(tmp_path, {
+        'app.py': 'import shared as marker, pkg.child as child\ndef positive():\n    return sink(child.relay(source()))\n',
+        'shared.py': 'flag = 0\n', 'pkg/__init__.py': '',
+        'pkg/child.py': f'from app import marker\ndef relay(value):\n    return {answer}\n',
+    })
+    result = analyze(client, rules)
+    assert result.report.at('/complete'), result.report.at('/cutoffs')
+    assert bool(result.witnesses) == (answer == 'value')
+    assert runtime(tmp_path) == {'returned': 17 if answer == 'value' else 0}
+
+
+def exported_children(tmp_path, exports, answer='value'):
+    return install(tmp_path, {
+        'app.py': 'from pkg import *\ndef positive():\n    return sink(a.relay(source()))\n',
+        'pkg/__init__.py': '__all__ = ' + repr(exports) + '\n',
+        'pkg/a.py': f'def relay(value):\n    return {answer}\nfrom .z import ready\n',
+        'pkg/z.py': 'from .a import relay\nready = 0\n',
+    })
+
+
+@pytest.mark.parametrize('exports', [['a', 'z'], ['z', 'a'], ['a', 'z', 'a'], ['z', 'a', 'z']])
+@pytest.mark.parametrize('answer', ['value', '0'])
+def test_star_children_load_in_written_export_order(tmp_path, exports, answer):
+    client, rules = exported_children(tmp_path, exports, answer)
+    result = analyze(client, rules)
+    works = exports[0] == 'a'
+    assert result.report.at('/complete') == works
+    assert runtime(tmp_path) == ({'returned': 17 if answer == 'value' else 0} if works else {'raised': 'ImportError'})
+    if works:
+        assert bool(result.witnesses) == (answer == 'value')
+    else:
+        assert 'cyclic-module-initialization' in result.report.at('/cutoffs')
+    outer = next(lookup for lookup in result.dependencies.lookups if lookup.importer == 'app.py')
+    assert outer.exports == ('a', 'z')
+
+
+def test_reordering_exports_invalidates_a_saved_answer_with_the_same_name_inventory(tmp_path):
+    client, rules = exported_children(tmp_path, ['a', 'z'])
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, cache=cache)
+    assert first.report.at('/complete') and first.witnesses
+    assert analyze(client, rules, cache=cache).reused
+    (tmp_path / 'pkg/__init__.py').write_text("__all__ = ['z', 'a']\n")
+    changed = analyze(client, rules, cache=cache)
+    assert not changed.reused and not changed.report.at('/complete')
+    assert first.report.at('/input_digest') != changed.report.at('/input_digest')
+    assert evidence(changed) == evidence(analyze(client, rules))
+    assert runtime(tmp_path) == {'raised': 'ImportError'}

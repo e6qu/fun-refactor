@@ -403,6 +403,10 @@ fn declares_member(
 }
 
 fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<String>>> {
+    Ok(export_sequence(project, target)?.map(|names| names.into_iter().collect()))
+}
+
+fn export_sequence(project: &Project<'_>, target: &Path) -> Result<Option<Vec<String>>> {
     let Some(source) = project
         .sources
         .get(&project.root.join(target))
@@ -412,7 +416,7 @@ fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<
     };
     let parsed = Parsers::new().parse(Language::Python, source)?;
     Ok((!parsed.has_errors())
-        .then(|| calls::declared_exports(parsed.root(), source))
+        .then(|| calls::declared_export_sequence(parsed.root(), source))
         .flatten())
 }
 
@@ -992,6 +996,8 @@ impl Modules {
                     .map(|(alias, binding)| (alias, &binding.member))
                     .collect::<Vec<_>>());
                 let mut named_provider: Option<(usize, Resolution)> = None;
+                let mut startup_imports = Vec::new();
+                let mut startup_exports = None;
                 let mut imports: VecDeque<_> = imports
                     .into_iter()
                     .map(|(alias, binding)| (alias, binding, None))
@@ -1045,13 +1051,15 @@ impl Modules {
                             resolution
                                 .target
                                 .as_ref()
-                                .map(|target| export_names(project, target))
+                                .map(|target| export_sequence(project, target))
                                 .transpose()?
                                 .flatten()
                         } else {
                             None
                         };
-                        if let Some(selected) = declared {
+                        if let Some(sequence) = declared {
+                            let selected: BTreeSet<_> = sequence.iter().cloned().collect();
+                            startup_exports = Some(sequence);
                             let index = lookups.len();
                             star_resolutions.insert(index, resolution.clone());
                             for name in selected.iter().rev() {
@@ -1150,7 +1158,7 @@ impl Modules {
                             .insert(format!("unresolved-local-import:{}", selected.module));
                     }
                     if !binding.future {
-                        startup.push(order::Step::Import {
+                        startup_imports.push(order::Import {
                             dependencies,
                             target: binding.target.as_ref().map(|path| project.root.join(path)),
                             member: if alias == "*" {
@@ -1173,6 +1181,21 @@ impl Modules {
                         bindings.insert(alias, binding);
                     }
                 }
+                if let Some(exports) = startup_exports {
+                    startup_imports.sort_by_key(|item| {
+                        item.alias.as_ref().map_or(0, |alias| {
+                            exports
+                                .iter()
+                                .position(|name| name == alias)
+                                .expect("wildcard expansion retains its declared name")
+                                + 1
+                        })
+                    });
+                }
+                startup.push(order::Step::Imports {
+                    items: startup_imports,
+                    from_import: node.kind() != "import_statement",
+                });
             }
             if names.iter().map(String::as_str).any(|name| {
                 special_attribute(name)

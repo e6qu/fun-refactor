@@ -963,6 +963,33 @@ for form, statement in [('module', 'import absent_dependency\n'), ('member', 'fr
                'neighbor.py': 'import helper\n'}, complete=False, cutoff='unresolved-local-import:absent_dependency',
         difference='Python stops at the missing import; the incomplete analysis must not claim an unavailable cycle member.'))
 
+for names in ('marker, inner', 'inner, marker'):
+    EXAMPLES.append(example('import-order-preload-' + names.split(',')[0], 'imports names boundaries',
+        'return sink(0)', raised='ImportError', phase='definition', prelude='from pack import ' + names + '\n',
+        files={'pack/__init__.py': 'marker = 0\n',
+               'pack/inner.py': 'from subject import marker\ndef relay(value):\n    return value\n'},
+        complete=False, cutoff='cyclic-module-initialization',
+        difference='Python loads the requested child before binding either imported name in the caller.'))
+for selected in (False, True):
+    EXAMPLES.append(example('import-order-ordinary-sequence-' + str(selected), 'imports names returns boundaries',
+        'return sink(inner.relay(source()))', [S, T if selected else ZERO], 17 if selected else 0, witness=selected,
+        prelude='import helper as marker, pack.inner as inner\n', files={'helper.py': 'flag = 0\n', 'pack/__init__.py': '',
+            'pack/inner.py': 'from subject import marker\ndef relay(value):\n    return ' + ('value' if selected else '0') + '\n'}))
+    EXAMPLES.append(example('import-order-written-exports-' + str(selected), 'imports names returns boundaries',
+        'return sink(a.relay(source()))', [S, T if selected else ZERO], 17 if selected else 0, witness=selected,
+        prelude='from pack import *\n', files={'pack/__init__.py': "__all__ = ['a', 'z']\n",
+            'pack/a.py': 'def relay(value):\n    return ' + ('value' if selected else '0') + '\nfrom .z import ready\n',
+            'pack/z.py': 'from .a import relay\nready = 0\n'}))
+for exports, works in [(['z', 'a'], False), (['a', 'z', 'a'], True), (['z', 'a', 'z'], False)]:
+    EXAMPLES.append(example('import-order-written-exports-' + ''.join(exports), 'imports names boundaries',
+        'return sink(a.relay(source()))' if works else 'return sink(0)', [S, T] if works else [], 17 if works else None,
+        witness=works, raised=None if works else 'ImportError', phase='entry' if works else 'definition',
+        prelude='from pack import *\n', files={'pack/__init__.py': '__all__ = ' + repr(exports) + '\n',
+            'pack/a.py': 'def relay(value):\n    return value\nfrom .z import ready\n',
+            'pack/z.py': 'from .a import relay\nready = 0\n'}, complete=works,
+        cutoff=None if works else 'cyclic-module-initialization',
+        difference=None if works else 'Changing the written export order starts the failing side of the same cycle first.'))
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',

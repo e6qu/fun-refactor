@@ -681,6 +681,39 @@ fn import_cycle_checks_initialize_parent_packages_before_child_entries() {
 }
 
 #[test]
+fn from_imports_preload_children_while_ordinary_imports_bind_in_sequence() {
+    for (statement, complete) in [
+        ("from pkg import marker, child\n", false),
+        ("from pkg import child, marker\n", false),
+        ("import shared as marker, pkg.child as child\n", true),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        write(root.path(), "shared.py", "flag = 0\n");
+        write(root.path(), "pkg/__init__.py", "marker = 0\n");
+        write(
+            root.path(),
+            "pkg/child.py",
+            "from app import marker\ndef relay(value):\n    return value\n",
+        );
+        write(
+            root.path(),
+            "app.py",
+            &format!("{statement}def entry():\n    return sink(child.relay(source()))\n"),
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], complete, "{statement}: {report}");
+        if complete {
+            assert!(!report["witnesses"].as_array().unwrap().is_empty());
+        } else {
+            assert!(report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("cyclic-module-initialization")));
+        }
+    }
+}
+
+#[test]
 fn unsupported_package_bindings_cannot_select_same_named_child_files() {
     for initializer in [
         "class core:\n    pass\n",
