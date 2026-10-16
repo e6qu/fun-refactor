@@ -1,7 +1,6 @@
 use super::*;
 
-// Classify only the unchecked top-level operation. Never inspect a deferred body
-// as though it executed, or claim that a syntactic call actually ran.
+// Classify top-level operations; deferred bodies do not establish execution.
 pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
     match node.kind() {
         "class_definition" => "class-definition",
