@@ -893,7 +893,7 @@ An artifact is a saved output; a fingerprint verifies which bytes it contains.
 Keep failures and corrected attempts together so readers can see what the fix establishes.
 For current limits, use the [Python guide](python-contract.md) and [contributor handoff](continuity.md).
 
-These notes describe problems found from 2026-10-12 through 2026-10-15.
+These notes describe problems found from 2026-10-12 through 2026-10-16.
 Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
 The original failed reports, validators and CI logs remain unchanged.
 
@@ -931,6 +931,7 @@ The original failed reports, validators and CI logs remain unchanged.
 | Docker inspection failed and forced cleanup exceeded five seconds; the error discarded the original process result | Preserve process and inspection failures, collect bounded Docker service and host diagnostics, and rerun the same controls on a fresh worker with unchanged limits | [Dotenv control failure](https://github.com/e6qu/fun-refactor/actions/runs/38782595333/job/116586355773) |
 | The native link checker read a callback-table example as a link to a document named `read_input(` | Ignore text between matching backticks and inside fenced examples; keep checking real links, including those beside code or unmatched backticks. Run both link readers in the hosted documentation review | [Native link-check failure](https://github.com/e6qu/fun-refactor/actions/runs/38786708443/job/116600749772) |
 | Review of the import-order change found that an unresolved dependency could inherit a cycle-failure label | Distinguish a known unavailable cycle member from an unchecked dependency. Both leave the answer incomplete. Supersede the initial collection before retaining a new matching family | [First passing focused check](https://github.com/e6qu/fun-refactor/actions/runs/38823694034), [superseded Python collection](https://github.com/e6qu/fun-refactor/actions/runs/38824543553), [initial familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/38824562716) |
+| Further runtime checks found that child loading precedes binding names from a from-import, and that written export order can decide which side of a cycle starts first | Check child loading before local bindings and retain the written export order for startup checks. Keep the public sorted name inventory separate. Supersede the earlier collection before retention | [Independent runtime controls](https://github.com/e6qu/fun-refactor/blob/038e2e3137aeb40aa9194317f02cb309c7890123/sdk/python/tests/test_import_order.py), [superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38825548634) |
 
 The 2026-10-15 reader review found another tracking mismatch: its Python requirement still expected 524 cases while the saved report already contained 694.
 The [refreshed examples](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) keep the same 347 programs, 14 rules, incomplete answers and refusals.
