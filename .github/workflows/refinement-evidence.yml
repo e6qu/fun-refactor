@@ -426,7 +426,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_shared_named_imports.py sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
 
@@ -806,7 +806,7 @@ jobs:
         run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
       - name: Collect successful reports and CLI refusals
         run: |
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py
           python3 -B tools/reader_examples.py --fr target/debug/fr
           python3 -B tools/python-contract.py --output target/python-contract/result.json
       - name: Reject corrupted contract observations

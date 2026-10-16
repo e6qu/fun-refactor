@@ -72,6 +72,55 @@ pub(super) fn literal_assignment<'s, 't>(
     (left.kind() == "identifier" && name.is_ascii()).then_some((name, right))
 }
 
+pub(super) fn parallel_assignment<'t>(
+    node: Node<'t>,
+    source: &str,
+) -> Option<Vec<(Node<'t>, Node<'t>)>> {
+    if node.kind() != "expression_statement"
+        || node.named_child_count() != 1
+        || !initialization_fits(node)
+    {
+        return None;
+    }
+    let assignment = node.named_child(0)?;
+    if assignment.kind() != "assignment" || assignment.child_by_field_name("type").is_some() {
+        return None;
+    }
+    let left = assignment.child_by_field_name("left")?;
+    let right = unparenthesized(assignment.child_by_field_name("right")?)?;
+    if !matches!(left.kind(), "pattern_list" | "tuple_pattern" | "list_pattern")
+        || !matches!(right.kind(), "expression_list" | "tuple" | "list")
+    {
+        return None;
+    }
+    let names: Vec<_> = left
+        .named_children(&mut left.walk())
+        .filter(|node| node.kind() != "comment")
+        .collect();
+    let values: Vec<_> = right
+        .named_children(&mut right.walk())
+        .filter(|node| node.kind() != "comment")
+        .collect();
+    let mut seen = BTreeSet::new();
+    if names.is_empty()
+        || names.len() != values.len()
+        || !names.iter().all(|name| {
+            let text = &source[name.byte_range()];
+            name.kind() == "identifier"
+                && text.is_ascii()
+                && !(text.starts_with("__") && text.ends_with("__"))
+                && seen.insert(text)
+        })
+    {
+        return None;
+    }
+    names
+        .into_iter()
+        .zip(values)
+        .map(|(name, value)| Some((name, unparenthesized(value)?)))
+        .collect()
+}
+
 fn scalar_assignment<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
     literal_assignment(node, source)
         .filter(|(_, value)| literal_default(*value, source))
@@ -137,7 +186,7 @@ pub(super) fn module_builtin_reference<'s>(
     module_function_alias(node, source).filter(|(_, target)| builtin_reference(target))
 }
 
-fn builtin_reference(name: &str) -> bool {
+pub(super) fn builtin_reference(name: &str) -> bool {
     matches!(
         name,
         "abs"
@@ -973,7 +1022,7 @@ pub(super) fn contract() -> Value {
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
         "definitions":"Module functions defer bodies with literals, prior values/functions or unshadowed builtin defaults. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
-        "initialization":"Inert: literals/aliases, builtin refs/maps, exports, plain instances, prior function __doc__. Bases: none/unshadowed object/dict/Exception. Lambda/dict setup/item/update <=128 nodes; own writes only.",
+        "initialization":"Inert: literals/aliases, builtin refs/maps, exports, plain instances, prior function __doc__. Bases: none/unshadowed object/dict/Exception. Lambda/dict setup/item/update <=128 nodes; own writes only. Flat unpacking <=128 nodes: fresh ASCII names, fixed literal tuples/lists, prior functions/builtin refs; RHS before writes.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
         "implicit_exceptions":false})

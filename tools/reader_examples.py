@@ -210,6 +210,35 @@ def function_default_trace(binary, folder):
     return len(variants)
 
 
+def parallel_binding_trace(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Save several helper names in one assignment\n', 1)[1].split('\n## ', 1)[0]
+    source, = blocks(lesson, 'python')
+    helper, app = source.removeprefix('# helpers.py\n').split('# app.py\n', 1)
+    (folder / 'app.py').write_text(app)
+    (folder / 'rules.json').write_text(blocks(lesson, 'json')[0])
+    variants = [(helper, True, 17), (helper.replace('= relay, discard', '= discard, relay'), True, 0),
+                (helper.replace('= relay, discard', '= (relay,)'), False, None)]
+    script = ('import json\ntry:\n import app\n app.read_input=lambda:17\n app.send=lambda value:value\n'
+              ' print(json.dumps({"returned":app.entry()}))\n'
+              'except Exception as error:\n print(json.dumps({"raised":type(error).__name__}))\n')
+    for source, complete, returned in variants:
+        (folder / 'helpers.py').write_text(source)
+        observed = json.loads(subprocess.check_output([sys.executable, '-B', '-c', script], cwd=folder,
+                                                     text=True, timeout=10))
+        assert observed == ({'returned': returned} if complete else {'raised': 'ValueError'})
+        found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
+        target = dict(zip(found['columns'], found['rows'][0]))['handle']
+        result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
+                                     '--summaries', '--imports', '--rules', 'rules.json'])
+        assert result['complete'] is complete, result.get('cutoffs')
+        if complete:
+            assert bool(result['witnesses']) is (returned == 17)
+        else:
+            assert result['initialization']['sites']
+    return len(variants)
+
+
 def check(binary):
     measurements = check_measurements()
     with tempfile.TemporaryDirectory(prefix='fr-reader-examples-') as directory:
@@ -228,11 +257,15 @@ def check(binary):
         defaults = root / 'defaults'
         defaults.mkdir()
         captures = function_default_trace(binary, defaults)
+        parallel = root / 'parallel'
+        parallel.mkdir()
+        bindings = parallel_binding_trace(binary, parallel)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
             'registry_setup_examples': setups,
             'import_order_examples': cycles,
             'startup_diagnostic_examples': disclosures,
             'function_default_examples': captures,
+            'parallel_binding_examples': bindings,
             'verified_measurement_rows': measurements}
 
 

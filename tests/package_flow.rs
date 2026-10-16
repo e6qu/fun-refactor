@@ -1325,7 +1325,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-function-defaults-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-16-parallel-bindings-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -1387,7 +1387,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-function-defaults-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-16-parallel-bindings-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -1444,7 +1444,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-function-defaults-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-16-parallel-bindings-module-aliases/result.json",
         ])
         .output()
         .unwrap();
@@ -1466,5 +1466,32 @@ fn special_module_bindings_refuse_even_when_the_function_body_is_inert() {
             .as_array()
             .unwrap()
             .contains(&json!("special-module-attributes")));
+    }
+}
+
+#[test]
+fn parallel_aliases_keep_distinct_functions_and_source_bindings() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "app.py", "from helpers import public\ndef entry():\n    return sink(public(source()))\n");
+    for (values, connected) in [("relay, stop", true), ("stop, relay", false)] {
+        write(root.path(), "helpers.py", &format!("# café 🦀\ndef relay(value):\n    return value\ndef stop(value):\n    return 0\npublic, discarded = {values}\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{report}");
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), connected);
+        let aliases = report["inputs"]["modules"]["function_aliases"].as_array().unwrap();
+        assert_eq!(aliases.len(), 2);
+        assert_ne!(aliases[0]["offset"], aliases[1]["offset"]);
+    }
+}
+
+#[test]
+fn incomplete_parallel_initializers_cannot_establish_an_absence() {
+    for assignment in ["public, other = relay, public", "public, other = (relay,)", "public, other = relay, setup()"] {
+        let root = tempfile::tempdir().unwrap();
+        write(root.path(), "app.py", "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n");
+        write(root.path(), "helpers.py", &format!("def relay(value):\n    return value\n{assignment}\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false, "{report}");
+        assert!(!report["initialization"]["sites"].as_array().unwrap().is_empty());
     }
 }
