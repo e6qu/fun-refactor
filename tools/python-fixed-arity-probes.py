@@ -20,7 +20,14 @@ flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
 # Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = '038e2e3137aeb40aa9194317f02cb309c7890123'
+flow.COHORT['analyzer_revision'] = '3f960025498eca1b4ff2968d50779dba2ae41f3c'
+flow.COHORT['analyzer_trees'] = {
+    'src': '412a40bcab709f2e9088813d5d2cf253618d4a3e',
+    'grammars': 'f3bc30118f80a7162d6dbf18f5d465c4d8ae0fab',
+    'sdk/python/src': '4cbd171fd2e46f81dfcbaa725278b804023287b5',
+    'Cargo.toml': '543d5bfbfb1516b316912ae02fbe9a77c2e1014d',
+    'Cargo.lock': '112dc55eabd812b55627780f870404259db58103',
+}
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
@@ -273,6 +280,7 @@ def bindings():
     value['tools/python-fixed-arity-probes.py'] = flow.sha(Path(__file__).read_bytes())
     value['sdk/python/src/fr_ir/flow_summaries.py'] = flow.sha((ROOT / 'sdk/python/src/fr_ir/flow_summaries.py').read_bytes())
     value['sdk/python/src/fr_ir/flow_initialization.py'] = flow.sha((ROOT / 'sdk/python/src/fr_ir/flow_initialization.py').read_bytes())
+    value['tools/test-frozen-analyzer.py'] = flow.sha((ROOT / 'tools/test-frozen-analyzer.py').read_bytes())
     return value
 
 

@@ -2,6 +2,13 @@
   "schema": "fr-python-repository-flow-cohort-1",
   "selected_at": "2026-10-12",
   "analyzer_revision": "aad6dc34cb48ff27c01ad964a425c94167053347",
+  "analyzer_trees": {
+    "src": "0334535bf715c19e018240ecca08e2111fd5b838",
+    "grammars": "49638fcebe715b25420c3a9b59e0c88ea2747b37",
+    "sdk/python/src": "2ba34bfe3790066b15913ddd4e926146c74c1ef3",
+    "Cargo.toml": "bbf37d57d8aa426c0388bb73899fbe2912ab57a7",
+    "Cargo.lock": "721f5e3051b2fd32a3c06da32626634044dc6df1"
+  },
   "selection": "Three separately maintained, permissively licensed pure-Python utility libraries, absent from the existing repository-delivery fixtures. Pin the complete repository snapshots before collection. This is a narrow utility-library cohort, not a representative population of Python applications.",
   "holdout": "Pydash implementation first opened in run 38180649071 after coverage passed on revision 12844dee0. The independent inspector rejected type-only overloads before native analysis or runtime execution. Generic inspector and pinned runtime-dependency corrections followed; retain that first attempt. The native analyzer remains frozen throughout. Pydash is no longer eligible as a fresh held-out project after any future analyzer change.",
   "rules": {"version": "repository-flow-1", "sources": ["emit_value"], "sinks": ["record_value"], "sanitizers": {}, "propagators": []},
