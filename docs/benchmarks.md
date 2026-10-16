@@ -4,7 +4,7 @@ You want to know whether using `fr` makes a correct repair cheaper or faster.
 That requires comparing the same task with and without `fr`, including the work needed to use the tool.
 A smaller report is one possible saving. Starting the tool, reading instructions and reviewing extra metadata are possible costs.
 
-This page explains existing measurements. It does not start a new study or report a new timed run.
+This page explains recorded measurements. It does not start a new study.
 
 ## First choose the question
 
@@ -113,6 +113,38 @@ The corrected complete job took 9 minutes 55 seconds under its existing 15-minut
 CI duration compares jobs or tests on GitHub runners.
 Runner queue time, compilation time and test execution are separate costs.
 See [CI measurements](ci.md) for the named baseline runs and retained failures.
+
+## Saving Python test results
+
+You want the Python test job to finish without spending its deadline rewriting results it already saved.
+The baseline saves the entire growing report after each case.
+The new method writes the new case during collection and saves the full report once after the final audit.
+A case is one program with its chosen names and file locations.
+
+The [recorded comparison](../tests/agent-eval/results/2026-10-16-incremental-reports-python-report-writes/result.json)
+replays the same 818 retained observations through both saving methods on one GitHub Ubuntu 24 runner.
+It uses CPython 3.14.8 and image `20261012.334.1`; the record identifies the processor and exact source inputs.
+Each method has one sample, with the baseline first. Filesystem caching and other runner activity remain uncontrolled.
+
+The timer includes JSON encoding, file writes, flushes, adding rows to the list and the final full save.
+JSON is the text format holding the structured results; flushing sends buffered text to the file.
+Both methods run inside Python, so their serialization and loop overhead appears in these times.
+Input loading, result comparison, builds, execution of the example programs, analysis and audits fall outside the timer.
+
+| Saving method | Elapsed seconds | CPU seconds | Bytes written by the process |
+| --- | ---: | ---: | ---: |
+| Rewrite all earlier cases after each case | 115.694 | 78.373 | 19,344,364,657 |
+| Write each new case, then save the full report once | 0.609 | 0.496 | 97,882,761 |
+
+CPU seconds count the process's work; elapsed seconds include time waiting for the operating system.
+Both final files contain the same observations and have identical bytes: 48,938,610 bytes each.
+The byte counter includes overwritten data. It measures application writes, with filesystem caching and no forced durable-disk synchronization.
+It does not measure physical device traffic or storage wear.
+
+The [fresh complete job](https://github.com/e6qu/fun-refactor/actions/runs/38899354891)
+passed in 12 minutes 2 seconds under its unchanged 15-minute deadline, including the separate build, execution and audit work.
+That job ran separately from this comparison. The saving-only timings establish a cheaper collection step, without measuring faster analysis or cheaper complete agent tasks.
+The [CI guide](ci.md#save-python-test-progress-without-repeating-earlier-work) explains readable progress after interruptions and how to rerun the comparison.
 
 ## What every new measurement must explain
 

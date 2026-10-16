@@ -9,6 +9,44 @@ The final gate checks that all required portions ran and passed; a passing small
 Queue time is time waiting for a runner. Execution time starts when a runner begins work.
 For a slow PR, inspect those times separately before deciding which operation needs repair.
 
+## Save Python test progress without repeating earlier work
+
+The Python collector runs small programs through Python itself and through `fr`, then saves both observations for comparison.
+A case is one program with its chosen names and file locations.
+The current collection has 818 cases, including renamed copies and requests that the command deliberately refuses.
+
+Previously, saving case 800 also encoded and rewrote the preceding 799 results.
+The collector now appends the new result in JSON, a text format for structured data.
+It closes the list again, leaving the completed cases readable after each append.
+It writes and flushes each new row during collection, then saves the full report once after the final audit.
+Flushing sends buffered text to the file. The final audit checks all observations and their recorded inputs.
+The report's structure and checks stay the same.
+
+For example, if a command times out while collecting case 801, the saved file still contains the first 800 completed results.
+Its summary says the collection is incomplete, so a partial file cannot stand in for a passing audit.
+If a result fails its check, collection continues and the final failed report records that error beside the observations.
+The [writer tests](../tools/test-python-contract-writer.py) check these cases, Unicode text and interruption between completed appends.
+These checks also run in the regular Python test gate.
+
+Use the `python-report-writes` group in `refinement-evidence.yml` to compare saving methods on a GitHub runner.
+It writes the same retained observations using the previous and current methods and requires identical final reports.
+The comparison includes JSON encoding, writing, flushing and the final save.
+Builds, execution of example programs, analysis and audits fall outside the timer.
+Read its recorded environment and timings before making a speed claim about collecting results.
+The collection and audit deadlines stay unchanged.
+
+To rerun it, use an authenticated GitHub CLI from the repository root.
+Replace `YOUR_BRANCH` with your working branch and `YOUR_NEW_NAME` with an unused dated name for the saved result.
+The successful job commits its measurement to that branch.
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=python-report-writes -f prefix=YOUR_NEW_NAME
+```
+
+This replays the same retained observations as a fixed input for saving.
+Use the `python-contract` group when you also need fresh analysis results.
+
 ## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;

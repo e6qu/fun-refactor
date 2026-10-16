@@ -1,0 +1,38 @@
+{
+  "source_commit": "e8439a96ad733706f8b1118ab582cbdfb1f024e0",
+  "run_url": "https://github.com/e6qu/fun-refactor/actions/runs/38899750427",
+  "source_bindings": {
+    "tools/python-contract.py": "25e94fda93ca5244e706d3ba86cc9ea87c90d9d47df95dd95f274a21b19f9016",
+    "tools/benchmark-python-report-writes.py": "4773cc90346d1a6939ee820455c5967348220aff3dc9357459a1bc66e88da455"
+  },
+  "environment": {
+    "python": "3.14.8 (main, Oct  1 2026, 02:38:33) [GCC 13.3.0]",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "runner_image": "ubuntu24",
+    "runner_image_version": "20261012.334.1",
+    "cpu": "AMD EPYC 9V45 96-Core Processor"
+  },
+  "input": {
+    "path": "tests/agent-eval/results/2026-10-16-function-defaults-python-contract/result.json",
+    "sha256": "835a6df1d4142454e419838d83b1503a8ffb6275b4099639e337035d2fa10e15",
+    "cases": 818,
+    "source_commit": "b48af4a41b41c04a749fde93b4f66361af28f6a6"
+  },
+  "measurement": "One sample per method on the same Linux runner, baseline first. Includes JSON encoding, file writes, flushes, row-list appends and the final save. Excludes input loading, result comparison, analysis, Python execution, builds and audits. No fsync; bytes count application writes, not physical disk traffic. Timings include filesystem caching and Python overhead; this does not measure the fr language, application speed or complete agent tasks.",
+  "measurements": {
+    "rewrite_all_previous_rows": {
+      "wall_seconds": 115.693788399,
+      "cpu_seconds": 78.372817061,
+      "application_bytes_written": 19344364657,
+      "final_bytes": 48938610,
+      "final_sha256": "1555711526275468b8dc1ebc7c26065286eb8c8789e4e174b9637cce47f3b811"
+    },
+    "append_new_row": {
+      "wall_seconds": 0.6094464180000045,
+      "cpu_seconds": 0.4963534299999992,
+      "application_bytes_written": 97882761,
+      "final_bytes": 48938610,
+      "final_sha256": "1555711526275468b8dc1ebc7c26065286eb8c8789e4e174b9637cce47f3b811"
+    }
+  }
+}

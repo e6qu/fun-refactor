@@ -106,9 +106,12 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json) identifies the analyzer collection.
-The [Python example receipt](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/manifest.json)
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json) identifies the unchanged native analysis results.
+The separately refreshed [Python example receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
 covers 409 programs and 818 original or renamed cases, including function defaults and import order.
+The collector now saves each new result without repeatedly rewriting all earlier cases.
+The [CI guide](ci.md#save-python-test-progress-without-repeating-earlier-work) explains saved progress and the unchanged final checks.
+Use the [measurement guide](benchmarks.md#saving-python-test-results) for the saving-only comparison; Python language support remains unchanged by this collector fix.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.
