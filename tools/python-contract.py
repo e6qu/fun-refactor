@@ -41,6 +41,7 @@ def require(condition, message):
 def bindings():
     result = profile.bindings()
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
+                 'tools/reader_examples.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_import_order.py',

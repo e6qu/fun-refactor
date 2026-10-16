@@ -192,3 +192,12 @@ def test_an_alias_can_capture_a_prior_function_that_itself_has_a_function_defaul
     assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert not result.initialization.sites
     assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]
+
+
+@pytest.mark.parametrize("setup", ["def dict(value):\n    return source()\n", ""])
+def test_function_or_builtin_lookup_respects_the_definition_point(tmp_path, setup):
+    client, rules = install(tmp_path, parameters="callback=dict", before=setup,
+                            after="def dict(value):\n    return source()\n" if not setup else "")
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert observe(tmp_path)["events"] == [["source", 17], ["sink", 17]]

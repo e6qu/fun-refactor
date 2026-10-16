@@ -761,6 +761,7 @@ jobs:
         run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
       - name: Collect successful reports and CLI refusals
         run: |
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py
           python3 -B tools/reader_examples.py --fr target/debug/fr
           python3 -B tools/python-contract.py --output target/python-contract/result.json
       - name: Reject corrupted contract observations

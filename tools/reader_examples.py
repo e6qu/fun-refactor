@@ -191,8 +191,14 @@ def function_default_trace(binary, folder):
     (folder / 'rules.json').write_text(blocks(page, 'json')[0])
     variants = [(helper, True, True), (helper.replace('return value', 'return 0'), True, False),
                 (helper.replace('follow=selected', 'follow=selected(0)'), False, True)]
+    script = ('import json\ntry:\n import app\n app.read_input=lambda:17\n app.send=lambda value:value\n'
+              ' print(json.dumps({"returned":app.entry()}))\n'
+              'except Exception as error:\n print(json.dumps({"raised":type(error).__name__}))\n')
     for source, complete, reaches in variants:
         (folder / 'helpers.py').write_text(source)
+        observed = json.loads(subprocess.check_output([sys.executable, '-B', '-c', script], cwd=folder,
+                                                     text=True, timeout=10))
+        assert observed == ({'returned': 17 if reaches else 0} if complete else {'raised': 'NameError'})
         found = run(binary, folder, ['-C', '.', 'project', 'find', 'entry'])
         target = dict(zip(found['columns'], found['rows'][0]))['handle']
         result = run(binary, folder, ['-C', '.', 'project', 'dataflow', target,
