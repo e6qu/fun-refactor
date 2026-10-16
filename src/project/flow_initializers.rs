@@ -4,14 +4,21 @@ pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
     match node.kind() {
         "class_definition" => "class-definition",
         "decorated_definition" => "decorated-definition",
-        "import_statement" | "import_from_statement" | "future_import_statement" => "startup-import",
+        "import_statement" | "import_from_statement" | "future_import_statement" => {
+            "startup-import"
+        }
         "if_statement" | "for_statement" | "while_statement" | "try_statement"
         | "with_statement" | "match_statement" => "startup-control-flow",
         "expression_statement" if node.named_child_count() == 1 => {
             let expression = node.named_child(0).unwrap();
-            let value = expression.child_by_field_name("right").unwrap_or(expression);
+            let value = expression
+                .child_by_field_name("right")
+                .unwrap_or(expression);
             let bounded = if expression.kind() == "assignment"
-                && expression.child_by_field_name("left").is_some_and(|n| n.kind() == "identifier") {
+                && expression
+                    .child_by_field_name("left")
+                    .is_some_and(|n| n.kind() == "identifier")
+            {
                 value
             } else {
                 node
@@ -19,7 +26,10 @@ pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
             if !calls::initialization_fits(bounded) {
                 "initializer-node-budget"
             } else if matches!(expression.kind(), "assignment" | "augmented_assignment")
-                && expression.child_by_field_name("left").is_some_and(|n| matches!(n.kind(), "attribute" | "subscript")) {
+                && expression
+                    .child_by_field_name("left")
+                    .is_some_and(|n| matches!(n.kind(), "attribute" | "subscript"))
+            {
                 "startup-write"
             } else if calls::unparenthesized(value).is_some_and(|n| n.kind() == "call") {
                 "startup-call"

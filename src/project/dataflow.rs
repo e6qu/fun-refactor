@@ -72,7 +72,10 @@ impl Initialization {
         if reasons.is_empty() {
             return Ok(());
         }
-        let path = file.strip_prefix(&project.root)?.to_string_lossy().into_owned();
+        let path = file
+            .strip_prefix(&project.root)?
+            .to_string_lossy()
+            .into_owned();
         let counts = self.by_file.entry(path).or_default();
         counts.statements += 1;
         for reason in &reasons {
@@ -1052,7 +1055,12 @@ impl Project<'_> {
                     documentable.clear();
                     default_values.clear();
                     default_scalars.clear();
-                    initialization.record(self, file, node, vec![initializers::unchecked_reason(node)])?;
+                    initialization.record(
+                        self,
+                        file,
+                        node,
+                        vec![initializers::unchecked_reason(node)],
+                    )?;
                 } else if matches!(node.kind(), "import_statement" | "import_from_statement") {
                     documentable.clear();
                     if let Some(modules) = &modules {
