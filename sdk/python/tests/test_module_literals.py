@@ -130,10 +130,29 @@ def test_unused_distinct_scalar_bindings_do_not_poison_initialization(tmp_path, 
                                     "events": [["source", 17], ["sink", 17]] if reaches else [["sink", 0]]}
 
 
+@pytest.mark.parametrize("binding", ["metadata, other = 0, 1", "[metadata, other] = [0, 1]"])
+@pytest.mark.parametrize("imports", [False, True])
+@pytest.mark.parametrize("forwards", [False, True])
+def test_unused_flat_literal_assignments_preserve_helper_flow(tmp_path, binding, imports, forwards):
+    client, rules = workspace(tmp_path)
+    helper = binding + "\ndef relay(value):\n    return " + ("value" if forwards else "0") + "\n"
+    if imports:
+        (tmp_path / "helper.py").write_text(helper)
+        helper = "from helper import relay\n"
+    (tmp_path / "subject.py").write_text(helper + "def entry():\n    return sink(relay(source()))\n")
+    result = analyze(client, rules, "entry", imports=imports)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert bool(result.witnesses) is forwards
+    assert not result.initialization.sites
+    assert observe(tmp_path) == {"result": 17 if forwards else 0, "raised": None,
+                                "events": [["source", 17], ["sink", 17 if forwards else 0]]}
+
+
 @pytest.mark.parametrize("binding", [
     "metadata = 1 + 2",
     "metadata = f'constant'", "metadata = f'{source()}'", "metadata = source()",
-    "metadata: int = 0", "metadata = other = 0", "metadata, other = 0, 1",
+    "metadata: int = 0", "metadata = other = 0", "metadata, other = 0, source()",
+    "metadata, other = (0,)", "__version__, other = 0, 1",
     "metadata = 0\nmetadata = 1", "__path__ = 'elsewhere'", "méta = 0",
 ])
 def test_evaluated_special_or_repeated_bindings_stay_incomplete(tmp_path, binding):

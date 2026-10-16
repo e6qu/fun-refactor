@@ -293,8 +293,12 @@ The trace can finish and show the input reaching `send` through `relay`.
 Swap `relay, discard` to `discard, relay`: the new `forwarded` returns zero, so the complete trace has no input connection.
 
 Flat tuple and list patterns can hold literal values, earlier checked functions and unshadowed built-in references.
-Each destination must be a fresh ASCII name, and the whole assignment must fit the existing 128-node syntax limit.
+Each destination must be a new ASCII name, such as `forwarded`; accented names such as `données` remain unchecked here.
+The whole assignment must fit the existing 128-node syntax limit.
+A syntax node is one parsed element, such as a name or literal; surrounding structure and comments count too.
+This limit counts syntax elements rather than lines.
 Function aliases can be imported or reexported. Literal bindings retain their distinct source positions.
+Each function alias uses one of the existing 128 alias slots per analysis, even when several are assigned together.
 Stored built-in references remain limited to unused setup and defaults; importing or calling those aliases is not added here.
 Nested patterns, starred targets, repeated destinations, rebinding, evaluated calls and arbitrary iterables remain unchecked.
 For example, `forwarded, stopped = (relay,)` has too few values: Python raises `ValueError` and the analysis stays incomplete.
