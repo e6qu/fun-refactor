@@ -1,6 +1,5 @@
 use super::*;
 
-// Classify top-level operations; deferred bodies do not establish execution.
 pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
     match node.kind() {
         "class_definition" => "class-definition",
