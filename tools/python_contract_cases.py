@@ -1092,8 +1092,9 @@ EXAMPLES.extend([
             witness=True, prelude='from helper import marker\ndef relay(*, value=marker):\n    return value\n',
             files={'helper.py': 'marker = 0\n'}),
     example('shared-default-mutable', 'imports defaults calls boundaries', 'return sink(relay(source()))', [S, T], 17,
-            witness=True, prelude='from helper import marker\ndef relay(value=marker):\n    return value\n',
-            files={'helper.py': 'marker = []\n'}, complete=False, cutoff='unsupported-parameter-contract:'),
+            prelude='from helper import marker\ndef relay(value=marker):\n    return value\n',
+            files={'helper.py': 'marker = []\n'}, complete=False, cutoff='unsupported-parameter-contract:',
+            difference='Python uses the explicit argument, but the model leaves calls with collection defaults incomplete and cannot establish absence.'),
     example('shared-default-attribute', 'imports defaults calls boundaries', 'return sink(relay())', [ZERO], 0,
             prelude='import helper\ndef relay(value=helper.marker):\n    return value\n',
             files={'helper.py': 'marker = 0\n'}, complete=False, cutoff='module-effects-unchecked'),
@@ -1106,8 +1107,9 @@ EXAMPLES.extend([
             prelude='from helper import marker\ndef relay(value=marker):\n    return marker\n',
             files={'helper.py': 'marker = 0\n'}, complete=False, cutoff='unknown-binding:'),
     example('shared-default-collection-sibling', 'imports defaults assignments boundaries', 'return sink(relay(source()))', [S, T], 17,
-            witness=True, prelude='from helper import other\ndef relay(value=other):\n    return value\n',
-            files={'helper.py': 'marker, other = 0, []\n'}, complete=False, cutoff='unsupported-parameter-contract:'),
+            prelude='from helper import other\ndef relay(value=other):\n    return value\n',
+            files={'helper.py': 'marker, other = 0, []\n'}, complete=False, cutoff='unsupported-parameter-contract:',
+            difference='The other export is a collection, even beside a scalar; its incomplete call result does not establish absence.'),
 ])
 
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',

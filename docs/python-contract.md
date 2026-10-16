@@ -374,6 +374,8 @@ Save their roles as `rules.json` beside the Python files:
 ```
 
 This rule set adds no external cleaning or forwarding assumptions.
+`find` returns a reference to `entry`; `dataflow` asks for its input-to-output trace.
+`--summaries` follows the supported helper calls, and `--imports` follows the checked local files.
 With `fr` installed, run these commands from that folder:
 
 ```sh
@@ -398,6 +400,8 @@ In a wildcard import, `from settings import *` requests the names selected by th
 Saved answers depend on that declaring file; changing the scalar into a list invalidates reuse.
 The analysis can load at most sixteen files and follow at most sixteen links through imports or aliases for one name.
 The existing import-search limits still apply.
+Use plain letters, digits and underscores for imported names and parameters, as in the example.
+Names with accented letters remain unchecked here.
 Only checked literal declarations supply these defaults. Calls, object defaults, assignments that overwrite a name and attribute expressions such as `settings.LIMIT` remain outside this call support.
 Returning `LIMIT` inside the function would read a global value each time; that remains unchecked too.
 This analysis tracks whether input can reach output. It does not use the default's concrete value to choose branches.
