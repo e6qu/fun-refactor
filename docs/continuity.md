@@ -76,6 +76,13 @@ Copying selected library functions into smaller files gives 16 complete answers.
 A separate test file of simple comparison functions gives eight.
 Those smaller successes do not establish support for the original packages. Next, investigate their remaining startup operations and imports within the existing limits.
 
+Startup reports now distinguish calls, assigned values, writes, class setup, decorators and control flow.
+For example, `metadata = read_input()` reports an unchecked startup call instead of the generic module-statement reason.
+Per-file counts include statements beyond the sixteen displayed locations, so later loaded files remain visible.
+The [guide](python-contract.md#find-the-statement-that-prevents-an-answer) explains these reasons and their limits.
+These reports improve the investigation; they do not add supported Python behavior or check files that the import search could not load.
+Use the counts to choose the next general language rule, then compare runtime behavior before changing completeness.
+
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
 
@@ -85,8 +92,8 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [language-change collection receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json) identifies the current analyzer collection.
-The [Python example receipt](../tests/agent-eval/results/2026-10-16-import-order-python-contract/manifest.json)
+The [current collection receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-collection/manifest.json) identifies the analyzer collection.
+The [Python example receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-python-contract/manifest.json)
 covers 397 programs and 794 original or renamed cases, including the import-order comparisons.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
