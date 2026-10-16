@@ -72,7 +72,7 @@ behavior and keep a model result separate from a safety claim.
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
 | “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and evaluated defaults execute during definition. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
-| “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, import cycles and unsupported initialization keep the answer incomplete. |
+| “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, names read too early in a cycle and unsupported startup code keep the answer incomplete. |
 | “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions (errors an operation can raise without an explicit `raise`) and handlers exceed this model. |
 
 ## Import an unused value beside a helper
@@ -105,10 +105,59 @@ Importing a value does not add a model for reading or calling it. For example,
 `send(LIMIT)` and `LIMIT(read_input())` still leave the answer incomplete.
 An unused module function such as `def unused(key=LIMIT): ...` can read a previously available value
 without running its body. The [default-name example](#read-a-known-name-in-an-unused-functions-default)
-explains this declaration rule. Calling a function with a named default remains unfinished.
+explains this declaration rule. Calls can use the supported earlier local scalar defaults described below.
 Computed setup, missing imports, conflicting bindings
-and package cycles also remain unfinished. A declared package value takes precedence over
+and cycle reads of unavailable names remain unfinished. A declared package value takes precedence over
 a same-named child file; it cannot be treated as that child to obtain a callable helper.
+
+## Follow imports that return to a file already loading
+
+An import cycle happens when files import each other, directly or through other files.
+Python pauses the first file while it loads the next one. A return import can use names the first file has already created.
+It cannot read a function that Python has not yet defined.
+
+This illustration extends the configured input/output question above. The comments identify three files to create:
+
+```python
+# helpers.py
+def relay(value):
+    return value
+
+from neighbor import ready
+
+# neighbor.py
+from helpers import relay
+ready = 0
+
+# app.py
+from helpers import relay
+
+def entry():
+    return send(relay(read_input()))
+```
+
+Find `entry` and request its trace with `--summaries --imports`, using the input/output rules above.
+Python defines `relay` before loading `neighbor`. The return import therefore finds an available function, and the analyzer can finish this trace.
+Changing `relay` to return `0` removes the modeled input connection while keeping the same imports.
+
+Move `from neighbor import ready` above the definition of `relay` to create a failing import.
+Python then raises `ImportError`; the analysis keeps `cyclic-module-initialization` and an incomplete answer.
+An empty trace in that result cannot establish that input never reaches the output.
+
+The check follows imports in statement order, including aliases, re-exports and the supported literal export lists.
+A package is a folder of modules; its `__init__.py` supplies startup code. A child module is a file inside that folder.
+The startup file runs before a child module. Importing a module without reading a member can return its partly loaded module object.
+Reading a member still requires that name to exist at that point.
+
+For `from pkg import marker, child`, Python loads the requested child module before binding either name in the caller.
+The child cannot read `marker` back from that caller yet, even though `marker` appears first.
+An ordinary statement such as `import first, second` binds `first` before loading `second`.
+An export list, written as `__all__`, names values for `from pkg import *`.
+Requested child modules load in the list's written order; sorting that list can change whether an import succeeds.
+
+All existing file, source-size and import-search limits apply. Unknown startup operations remain unchecked even when the import order works.
+If a dependency prevents this order check, `import-initialization-order-unchecked` keeps the answer incomplete without claiming a known cycle failure.
+This supports some cycles; it does not establish complete behavior for a package or for arbitrary import hooks.
 
 ## Read a known name in an unused function's default
 
@@ -546,7 +595,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
-| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations and special attribute writes, cycles and unresolved imports stay incomplete. |
+| Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Check cyclic imports in execution order. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations, special attribute writes, unavailable cycle members and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
 | Locations | Source revisions and exact UTF-8 (the text encoding used to count source bytes) source byte ranges accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |

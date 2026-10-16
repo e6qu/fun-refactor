@@ -801,6 +801,8 @@ forged assignment contracts and require the complete current summary metadata.
 The [import-search run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
 and its thirteen `2026-10-15-shared-named-searches-*` scalar groups record that implementation.
 The [registry-startup receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json)
+preserves the collection before import order was checked.
+The [import-order receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -893,7 +895,7 @@ An artifact is a saved output; a fingerprint verifies which bytes it contains.
 Keep failures and corrected attempts together so readers can see what the fix establishes.
 For current limits, use the [Python guide](python-contract.md) and [contributor handoff](continuity.md).
 
-These notes describe problems found from 2026-10-12 through 2026-10-15.
+These notes describe problems found from 2026-10-12 through 2026-10-16.
 Read the [current Python guide](python-contract.md) and [current results](roadmap-status.md) for today's support and counts.
 The original failed reports, validators and CI logs remain unchanged.
 
@@ -930,6 +932,8 @@ The original failed reports, validators and CI logs remain unchanged.
 | The longer registry contract description exceeded a fixed 8 KiB response allowance | Shorten the repeated metadata to the earlier byte count, preserving the rules and response limit; collect new results for the corrected source | [Registry contract precheck](https://github.com/e6qu/fun-refactor/actions/runs/38778457682) |
 | Docker inspection failed and forced cleanup exceeded five seconds; the error discarded the original process result | Preserve process and inspection failures, collect bounded Docker service and host diagnostics, and rerun the same controls on a fresh worker with unchanged limits | [Dotenv control failure](https://github.com/e6qu/fun-refactor/actions/runs/38782595333/job/116586355773) |
 | The native link checker read a callback-table example as a link to a document named `read_input(` | Ignore text between matching backticks and inside fenced examples; keep checking real links, including those beside code or unmatched backticks. Run both link readers in the hosted documentation review | [Native link-check failure](https://github.com/e6qu/fun-refactor/actions/runs/38786708443/job/116600749772) |
+| Review of the import-order change found that an unresolved dependency could inherit a cycle-failure label | Distinguish a known unavailable cycle member from an unchecked dependency. Both leave the answer incomplete. Supersede the initial collection before retaining a new matching family | [First passing focused check](https://github.com/e6qu/fun-refactor/actions/runs/38823694034), [superseded Python collection](https://github.com/e6qu/fun-refactor/actions/runs/38824543553), [initial familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/38824562716) |
+| Further runtime checks found that child loading precedes binding names from a from-import, and that written export order can decide which side of a cycle starts first | Check child loading before local bindings and retain the written export order for startup checks. Keep the public sorted name inventory separate. Supersede the earlier collection before retention | [Independent runtime controls](https://github.com/e6qu/fun-refactor/blob/038e2e3137aeb40aa9194317f02cb309c7890123/sdk/python/tests/test_import_order.py), [superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38825548634) |
 
 The 2026-10-15 reader review found another tracking mismatch: its Python requirement still expected 524 cases while the saved report already contained 694.
 The [refreshed examples](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) keep the same 347 programs, 14 rules, incomplete answers and refusals.
@@ -942,6 +946,21 @@ covers 367 programs and 734 cases under the same fourteen rules.
 Local dictionary writes need a previously created, unexposed dictionary and checked keys and values.
 Imports, unknown calls and aliases end that allowance. Shared heap reads and calls through a stored callback remain unsupported.
 The familiar full-package replay remains a separate result; these small examples cannot establish general package support or agent savings.
+
+The import-order change adds 30 programs, each also checked after renaming and relocation.
+For example, two files can import each other when the requested function already exists.
+Moving its definition below the import makes Python raise `ImportError`; that answer must remain incomplete.
+The checks follow Python's order: load the requested files first, then make the imported names available to the caller.
+
+The [import-order examples](../tests/agent-eval/results/2026-10-16-import-order-python-contract/manifest.json)
+cover 397 programs and 794 cases under the same fourteen rules.
+They retain 308 incomplete cases, 18 refusals and 112 documented differences between the model and runtime observations.
+The [focused check](https://github.com/e6qu/fun-refactor/actions/runs/38827471103) passed 63 command-line tests and 1,328 Python interface tests.
+The [complete example collection](https://github.com/e6qu/fun-refactor/actions/runs/38828460880) passed all 794 cases and 55 checks rejecting altered reports.
+The actual guide snippets also ran: 14 rename commands, two introductory traces, three callback-table examples and three import-order examples.
+
+The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
+The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
 
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization

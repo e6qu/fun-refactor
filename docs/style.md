@@ -172,6 +172,18 @@ user example. A glossary link supplies more detail; it cannot replace the explan
 
 ## Review before publishing
 
+### Pull request descriptions
+
+Explain the user's problem, the resulting behavior, one example, remaining limits and relevant checks.
+Introduce the example's concepts before its code. Use plain words even when the implementation has precise internal names.
+For example, describe a function importing another file before discussing dependency records.
+
+Keep the description short enough to review without opening a report. Link to detailed test inventories and experiment history.
+A small example's success cannot establish full library support or savings on complete agent tasks.
+For older PRs, describe what that change established at the time. Later work can support more behavior.
+
+### Guides and reports
+
 Read the page without assuming knowledge of earlier PRs or reports.
 Check every new concept at its first use, including tables, examples and tracking notes.
 Keep exact command names, fields and stored outputs so readers can connect explanations to the tool.

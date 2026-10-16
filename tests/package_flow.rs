@@ -596,7 +596,7 @@ fn initializer_changes_invalidate_but_unrelated_sources_do_not() {
 #[test]
 fn unsupported_import_forms_cycles_and_shadowed_module_calls_stay_incomplete() {
     for source in [
-        "import app\ndef entry():\n    return sink(source())\n",
+        "from app import entry\ndef entry():\n    return sink(source())\n",
         "from .leaf import identity\ndef entry():\n    return sink(source())\n",
         "from portal import missing\ndef entry():\n    return sink(missing.send(source()))\n",
         "import portal.api\ndef entry(portal):\n    return portal.api.send(source())\n",
@@ -606,6 +606,110 @@ fn unsupported_import_forms_cycles_and_shadowed_module_calls_stay_incomplete() {
         write(root.path(), "app.py", source);
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], false, "{source}: {report}");
+    }
+}
+
+#[test]
+fn import_cycles_use_names_already_created_in_source_order() {
+    for returned in ["value", "0"] {
+        let root = tempfile::tempdir().unwrap();
+        write(
+            root.path(),
+            "app.py",
+            "from alpha import relay\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        write(
+            root.path(),
+            "alpha.py",
+            &format!("def relay(value):\n    return {returned}\nfrom beta import other\n"),
+        );
+        write(
+            root.path(),
+            "beta.py",
+            "from alpha import relay\ndef other():\n    return 0\n",
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{report}");
+        assert_eq!(
+            report["witnesses"].as_array().unwrap().is_empty(),
+            returned == "0"
+        );
+        write(
+            root.path(),
+            "alpha.py",
+            &format!("from beta import other\ndef relay(value):\n    return {returned}\n"),
+        );
+        let changed = analyze(root.path(), "entry");
+        assert_eq!(changed["complete"], false, "{changed}");
+        assert!(changed["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("cyclic-module-initialization")));
+        assert_ne!(report["input_digest"], changed["input_digest"]);
+    }
+}
+
+#[test]
+fn import_cycle_checks_initialize_parent_packages_before_child_entries() {
+    for early in [true, false] {
+        let root = tempfile::tempdir().unwrap();
+        let definition = "def relay(value):\n    return value\n";
+        let import = "from . import child\n";
+        write(
+            root.path(),
+            "pkg/__init__.py",
+            &if early {
+                format!("{definition}{import}")
+            } else {
+                format!("{import}{definition}")
+            },
+        );
+        write(
+            root.path(),
+            "pkg/child.py",
+            "from pkg import relay\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], early, "{report}");
+        if !early {
+            assert!(report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("cyclic-module-initialization")));
+        }
+    }
+}
+
+#[test]
+fn from_imports_preload_children_while_ordinary_imports_bind_in_sequence() {
+    for (statement, complete) in [
+        ("from pkg import marker, child\n", false),
+        ("from pkg import child, marker\n", false),
+        ("import shared as marker, pkg.child as child\n", true),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        write(root.path(), "shared.py", "flag = 0\n");
+        write(root.path(), "pkg/__init__.py", "marker = 0\n");
+        write(
+            root.path(),
+            "pkg/child.py",
+            "from app import marker\ndef relay(value):\n    return value\n",
+        );
+        write(
+            root.path(),
+            "app.py",
+            &format!("{statement}def entry():\n    return sink(child.relay(source()))\n"),
+        );
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], complete, "{statement}: {report}");
+        if complete {
+            assert!(!report["witnesses"].as_array().unwrap().is_empty());
+        } else {
+            assert!(report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("cyclic-module-initialization")));
+        }
     }
 }
 
@@ -1108,7 +1212,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-registry-startup-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-16-import-order-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -1170,7 +1274,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-registry-startup-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-16-import-order-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -1227,7 +1331,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-15-registry-startup-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-16-import-order-module-aliases/result.json",
         ])
         .output()
         .unwrap();

@@ -70,13 +70,8 @@ def test_matching_child_binding_and_plain_initializer_imports(tmp_path, initiali
     (tmp_path / 'pkg/__init__.py').write_text(initializer)
     (tmp_path / 'app.py').write_text('from pkg import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
     result = analyze(client, rules)
-    # Reading another member back from the initializing package is deliberately cyclic.
-    expected = 'from pkg' not in initializer
-    assert result.report.at('/complete') == expected
-    if expected:
-        assert result.witnesses and runtime(tmp_path) == '17'
-    else:
-        assert 'cyclic-module-initialization' in result.report.at('/cutoffs')
+    assert result.report.at('/complete'), result.report.at('/cutoffs')
+    assert result.witnesses and runtime(tmp_path) == '17'
 
 
 def test_bare_relative_child_and_nested_package_alias(tmp_path):

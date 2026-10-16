@@ -43,6 +43,7 @@ def bindings():
     for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'sdk/python/tests/test_value_imports.py',
+                 'sdk/python/tests/test_import_order.py',
                  'sdk/python/tests/test_named_default_declarations.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
