@@ -956,7 +956,9 @@ impl Modules {
                     } else if !special_attribute(name) {
                         values.insert(name.to_owned(), (node.start_byte(), "literal"));
                         if calls::module_literal(node, source).is_some() {
-                            result.scalar_values.insert((file.clone(), node.start_byte()));
+                            result
+                                .scalar_values
+                                .insert((file.clone(), node.start_byte()));
                         }
                     }
                     continue;

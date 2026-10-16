@@ -1503,7 +1503,10 @@ fn imported_scalar_defaults_bind_omitted_and_explicit_arguments() {
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], true, "{report}");
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), reaches);
-        assert_eq!(report["inputs"]["modules"]["value_bindings"][0]["path"], "settings.py");
+        assert_eq!(
+            report["inputs"]["modules"]["value_bindings"][0]["path"],
+            "settings.py"
+        );
     }
 }
 
