@@ -101,6 +101,7 @@ def test_an_edit_removes_a_blocker_and_later_unrelated_edits_reuse_the_complete_
     fixed = analyze(client, rules, "entry", cache, imports=True)
     assert fixed.report.at("/complete") and not fixed.reused
     assert not fixed.initialization.sites and fixed.initialization.omitted == 0
+    assert not fixed.initialization.by_file
     (tmp_path / "unrelated.py").write_text('def unrelated():\n    return 0\n')
     reused = analyze(client, rules, "entry", cache, imports=True)
     assert reused.reused

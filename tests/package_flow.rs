@@ -431,6 +431,22 @@ fn unchecked_initialization_points_to_the_original_statement_and_clears_after_re
 }
 
 #[test]
+fn startup_counts_cover_unshown_files_and_count_each_statement_once() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "alpha.py", &format!("{}def spare(value):\n    return value\n", "opaque()\n".repeat(20)));
+    write(root.path(), "zeta.py", "marker = 0\ndef marker(value=source()):\n    return value\ndef relay(value):\n    return value\n");
+    write(root.path(), "app.py", "from alpha import spare\nfrom zeta import relay\ndef entry():\n    return sink(relay(0))\n");
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert_eq!(report["initialization"]["sites"].as_array().unwrap().len(), 16);
+    assert_eq!(report["initialization"]["omitted"], 5);
+    assert_eq!(report["initialization"]["by_file"], json!({
+        "alpha.py":{"statements":20,"reasons":{"startup-call":20}},
+        "zeta.py":{"statements":1,"reasons":{"definition-time-code":1,"binding-collision":1}}
+    }));
+}
+
+#[test]
 fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     let root = fixture();
     let positive = analyze(root.path(), "render");

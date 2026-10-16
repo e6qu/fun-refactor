@@ -9,7 +9,7 @@ from .runtime import FrReport, FrRuntimeError, Occurrence
 
 _EXPLANATIONS = {
     "binding-collision": "This statement repeats a module binding; its effects remain unchecked.",
-    "definition-time-code": "This function declaration exceeds the supported rules; defaults must be literal and annotations need a supported future directive.",
+    "definition-time-code": "Creating this function exceeds the supported rules for defaults, annotations or parameters.",
     "non-normalized-identifier": "Python normalizes this identifier; the model cannot resolve it reliably.",
     "module-statement": "This module-level statement is outside the supported initialization rules.",
     "class-definition": "Creating this class exceeds the supported rules for bases, methods or class-body statements.",
