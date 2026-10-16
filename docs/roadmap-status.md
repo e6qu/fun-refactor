@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**8 of 18 specific test requirements have matching recorded results; 10 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**9 of 18 specific test requirements have matching recorded results; 9 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -34,7 +34,7 @@ The implementation column counts completed code changes. The test column counts 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
-| B. Explain how values move through code | 4/5 | 1/4 | open |
+| B. Explain how values move through code | 4/5 | 2/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
 
@@ -102,9 +102,9 @@ Next: Keep the small examples as regression tests while testing more varied prog
 
 User example: A helper returns its left argument; check selected, ignored and overwritten input cases against Python.
 
-**State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
+**State: demonstrated.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
-Recorded results or remaining work: python-contract: the recorded value at `/summary/examples` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/renamed_relocated_cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/incomplete_cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/documented_difference_cases` differs from this requirement; review the inventory and result.
+Recorded results or remaining work: [python-contract](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/result.json).
 
 Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.
 
