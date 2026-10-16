@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,11 +51,7 @@ def collect(group, run_id, repository):
     require(len(candidates) == 1, 'need one current artifact for the requested group')
     artifact = candidates[0]
     require(artifact['size_in_bytes'] <= 16 * 1024 * 1024, 'artifact exceeds download admission')
-    with tempfile.TemporaryFile() as output:
-        retain.command(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'], stdout=output)
-        output.seek(0)
-        archive = output.read(16 * 1024 * 1024 + 1)
-    require(len(archive) <= 16 * 1024 * 1024, 'artifact exceeds download admission')
+    archive = retain.download_artifact(repository, artifact['id'])
     reports = retain.checked_reports(archive, artifact['digest'], list(GROUPS[group]['reports']))
     jobs = retain.api(f'repos/{repository}/actions/runs/{run_id}/jobs?filter=all&per_page=100')['jobs']
     primary = json.loads(reports['result.json'])
