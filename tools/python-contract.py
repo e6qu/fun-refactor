@@ -46,6 +46,7 @@ def bindings():
                  'sdk/python/tests/test_import_order.py',
                  'sdk/python/tests/test_startup_diagnostics.py', 'sdk/python/tests/test_initialization_locations.py',
                  'sdk/python/tests/test_named_default_declarations.py',
+                 'sdk/python/tests/test_function_defaults.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_registry_initialization.py', 'tools/python_contract_allocations.py',

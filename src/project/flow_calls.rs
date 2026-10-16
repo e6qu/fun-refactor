@@ -134,9 +134,12 @@ pub(super) fn module_builtin_reference<'s>(
     node: Node<'_>,
     source: &'s str,
 ) -> Option<(&'s str, &'s str)> {
-    module_function_alias(node, source).filter(|(_, target)| {
+    module_function_alias(node, source).filter(|(_, target)| builtin_reference(target))
+}
+
+fn builtin_reference(name: &str) -> bool {
         matches!(
-            *target,
+            name,
             "abs"
                 | "aiter"
                 | "all"
@@ -208,7 +211,6 @@ pub(super) fn module_builtin_reference<'s>(
                 | "zip"
                 | "__import__"
         )
-    })
 }
 
 pub(super) fn explicit_builtins(root: Node<'_>, source: &str) -> bool {
@@ -763,6 +765,26 @@ fn default_name<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
     None
 }
 
+pub(super) fn unshadowed_builtin_defaults(
+    function: Node<'_>,
+    source: &str,
+    shadowed: impl Fn(&str) -> bool,
+) -> BTreeSet<String> {
+    function
+        .child_by_field_name("parameters")
+        .into_iter()
+        .flat_map(|parameters| {
+            parameters
+                .named_children(&mut parameters.walk())
+                .filter_map(|parameter| parameter.child_by_field_name("value"))
+                .filter_map(|value| default_name(value, source))
+                .filter(|name| builtin_reference(name) && !shadowed(name))
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
 pub(super) fn captured_scalar_defaults(
     function: Node<'_>,
     source: &str,
@@ -950,7 +972,7 @@ pub(super) fn contract() -> Value {
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
         "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-        "definitions":"Module function bodies defer with literal or known prior defaults, including variadics. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
+        "definitions":"Module bodies defer with literal, prior value/function or unshadowed builtin defaults, including variadics. Names must be available before definition. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
         "initialization":"Inert: literals/aliases, builtin refs/maps, exports, plain instances, prior function __doc__. Bases: none/unshadowed object/dict/Exception. Lambda/dict setup/item/update <=128 nodes; own writes only.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",

@@ -68,6 +68,46 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn function_reference_defaults_preserve_imported_helpers_without_calling_callbacks() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "callbacks.py", "def callback(value):\n    return unknown(value)\n");
+    write(root.path(), "bridge.py", "from callbacks import callback as selected\n");
+    write(
+        root.path(),
+        "helpers.py",
+        "from bridge import selected\ndef unused(value, factory=dict, follow=selected):\n    return follow(value)\ndef relay(value):\n    return value\n",
+    );
+    write(root.path(), "app.py", "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n");
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+    assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
+    assert_eq!(report["initialization"]["by_file"], json!({}));
+    assert!(report["inputs"]["modules"]["files"].get("callbacks.py").is_some());
+    write(root.path(), "helpers.py", "from bridge import selected\ndef unused(follow=selected(0)):\n    return follow\ndef relay(value):\n    return value\n");
+    let called = analyze(root.path(), "entry");
+    assert_eq!(called["complete"], false);
+    assert!(called["initialization"]["sites"].as_array().unwrap().iter().any(|site|
+        site["reasons"].as_array().unwrap().contains(&json!("definition-time-code"))));
+}
+
+#[test]
+fn builtin_defaults_do_not_guess_missing_local_imports_or_earlier_definitions() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "helpers.py", "def selected(value):\n    return value\n");
+    for setup in [
+        "def unused(follow=selected):\n    pass\nfrom helpers import selected\n",
+        "from helpers import absent as selected\ndef unused(follow=selected):\n    pass\n",
+        "del dict\ndef unused(factory=dict):\n    pass\n",
+    ] {
+        write(root.path(), "app.py", &format!("{setup}def entry():\n    return sink(source())\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], false, "{setup}");
+        assert!(report["initialization"]["sites"].as_array().unwrap().iter().any(|site|
+            site["reasons"].as_array().unwrap().contains(&json!("definition-time-code"))), "{setup}");
+    }
+}
+
+#[test]
 fn registry_allocations_defer_callbacks_but_not_computed_population_values() {
     let root = tempfile::tempdir().unwrap();
     write(
