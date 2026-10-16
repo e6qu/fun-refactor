@@ -108,7 +108,7 @@ _CALL_BINDING = {
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
     "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
     "boundary": "No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-    "definitions": "Module bodies defer with literal, prior value/function or unshadowed builtin defaults, including variadics. Names must be available before definition. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
+    "definitions": "Module functions defer bodies with literals, prior values/functions or unshadowed builtin defaults. Calls accept literals or captured local scalars. Annotations: checked module-local future, <=128 nodes, no await/yield/assignment/type unpacking.",
     "initialization": "Inert: literals/aliases, builtin refs/maps, exports, plain instances, prior function __doc__. Bases: none/unshadowed object/dict/Exception. Lambda/dict setup/item/update <=128 nodes; own writes only.",
     "implicit_exceptions": False,
     "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
