@@ -143,6 +143,19 @@ def test_flat_assignments_keep_the_128_node_budget(tmp_path, route, count, compl
     assert observe(tmp_path)['result'] == 17
 
 
+@pytest.mark.parametrize('route', ['local', 'direct'])
+@pytest.mark.parametrize('count,complete', [(128, True), (130, False)])
+def test_each_function_alias_uses_one_existing_budget_slot(tmp_path, route, count, complete):
+    statements = []
+    for index in range(0, count, 2):
+        left = 'public' if index == count - 2 else f'alias{index}'
+        statements.append(f'{left}, alias{index + 1} = relay, relay')
+    client, rules = install(tmp_path, '\n'.join(statements), route)
+    result = analyze(client, rules, 'entry', imports=route != 'local')
+    assert result.report.at('/complete') is complete, result.report.at('/cutoffs')
+    assert observe(tmp_path)['result'] == 17
+
+
 def test_parallel_literal_exports_keep_distinct_source_positions(tmp_path):
     client, rules = workspace(tmp_path)
     (tmp_path / 'helpers.py').write_text('left, right = 0, 1\n' + FUNCTIONS)
