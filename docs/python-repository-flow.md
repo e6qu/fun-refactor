@@ -125,7 +125,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-startup-diagnostics-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-function-defaults-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -162,7 +162,7 @@ Toolz also clears its import-search cutoff. The current Pydash replay uses 47 se
 and reaches the separate 256 KiB source limit. Its unchecked startup statements fall from 510 to 420
 across the same eight files.
 The full-package outcomes in the table stay unchanged. The
-[handoff](continuity.md#return-to-python-after-this-review) describes the next investigation with these differences in view.
+[handoff](continuity.md#continue-python-work-from-actual-library-failures) describes the next investigation with these differences in view.
 
 The callback-table change was also replayed against these same familiar libraries.
 The [registry replay](../tests/agent-eval/results/2026-10-15-registry-startup-fixed-arity-probes/result.json)
@@ -185,17 +185,25 @@ The [startup-diagnostics replay](../tests/agent-eval/results/2026-10-16-startup-
 keeps the same 100 expanded cases and 200 runtime executions, with the same outcomes in the table above.
 Its reports also count unchecked statements in each loaded file, including statements beyond the sixteen displayed locations.
 
+The [function-default replay](../tests/agent-eval/results/2026-10-16-function-defaults-fixed-arity-probes/result.json)
+checks the same libraries after allowing unused functions to store earlier functions or built-in objects as defaults.
+For example, `factory=dict` stores Python's dictionary type; `factory=dict()` would create a dictionary during definition.
+Toolz has nine such `factory=dict` declarations in `dicttoolz.py` and one `map=map` declaration in `sandbox/parallel.py`.
+Those ten declarations no longer count as unchecked startup code. This does not execute their bodies or admit calls through their callback arguments.
+All full-package outcomes stay unchanged: 32 incomplete cases and eight deliberate invalid-budget refusals.
+
 An identity helper returns its input unchanged. For the three original identity-helper questions,
-the reports expose these larger groups of unchecked statements:
+the current function-default reports expose these larger groups of unchecked statements:
 
 | Library | Total unchecked statements in loaded files | Example loaded file | Unchecked statements in that file |
 | --- | ---: | --- | ---: |
-| Toolz | 92 | `toolz/curried/__init__.py` | 45 |
+| Toolz | 82 | `toolz/curried/__init__.py` | 45 |
 | Funcy | 98 | `funcy/seqs.py` | 22 |
 | Pydash | 461 | `pydash/collections.py` | 159 |
 
 These are separate queries from the expanded `inc` and `add` questions, whose earlier totals are 80 and 420.
 Keep the selected helper and loaded-file list fixed when comparing counts.
+Toolz falls from 92 to 82 across the same loaded source files; Funcy and Pydash stay at 98 and 461.
 A decorator is code applied while Python defines a function or class.
 Pydash's example file has 155 unchecked decorated declarations and four startup calls.
 Toolz's example file has 43 startup calls and two writes.

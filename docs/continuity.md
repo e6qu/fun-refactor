@@ -31,7 +31,7 @@ The Python behavior guide is a recorded test input. Changing its wording require
 Agent instruction changes also require refreshing the derived text-size report.
 Do not change recorded fingerprints to disguise outdated results.
 
-## Return to Python after this review
+## Continue Python work from actual library failures
 
 Importing a Python package can execute its startup code before exposing a helper.
 Use the reported unchecked statements to choose a general language rule; do not special-case library names or expected answers.
@@ -62,7 +62,7 @@ compares that setup with an evaluated default or an imported shared dictionary.
 Reading the table's contents, calling its stored functions and arbitrary package startup remain unfinished.
 Keep those limits visible when reviewing the fresh package replay; more supported syntax alone does not close the real-project requirement.
 
-The current change checks the order of imports that return to a file already loading.
+The import-order change checks imports that return to a file already loading.
 For example, a second file can import a function already defined by the first file.
 Moving that definition below the import makes Python raise `ImportError`; the analysis must remain incomplete.
 The [import-order lesson](python-contract.md#follow-imports-that-return-to-a-file-already-loading) introduces this case before showing the files.
@@ -83,6 +83,20 @@ The [guide](python-contract.md#find-the-statement-that-prevents-an-answer) expla
 These reports improve the investigation; they do not add supported Python behavior or check files that the import search could not load.
 Use the counts to choose the next general language rule, then compare runtime behavior before changing completeness.
 
+An unused function can now store an earlier function or a built-in object as a default.
+A default supplies an argument when the caller leaves it out.
+For example, `def unused(value, factory=dict): ...` stores the dictionary constructor without calling it.
+Likewise, `follow=selected` stores an earlier function; `follow=selected(0)` calls it during definition and remains unchecked.
+An alias gives an existing function another name. Checked aliases and ordinary function imports can supply the reference; later or missing names cannot.
+Built-in names must still refer to their original objects or an earlier checked local declaration.
+The [default example](python-contract.md#store-a-function-as-a-default-without-calling-it) introduces the two-file case and its commands.
+Calling a function with these function or object defaults remains unfinished, including calls with replacement arguments.
+Replay full packages after further changes; fewer unchecked statements alone do not establish complete package support.
+The new replay removes ten unchecked Toolz declarations, including nine `factory=dict` defaults.
+For the original identity-helper question, Toolz falls from 92 to 82 unchecked statements across the same loaded source files.
+Funcy stays at 98 and Pydash at 461 for their separate identity-helper questions.
+The full-package answers remain unfinished; the [library results](python-repository-flow.md) keep those counts separate from `inc` and `add`.
+
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
 
@@ -92,9 +106,9 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [current collection receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-collection/manifest.json) identifies the analyzer collection.
-The [Python example receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-python-contract/manifest.json)
-covers 397 programs and 794 original or renamed cases, including the import-order comparisons.
+The [current collection receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json) identifies the analyzer collection.
+The [Python example receipt](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/manifest.json)
+covers 409 programs and 818 original or renamed cases, including function defaults and import order.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.

@@ -805,6 +805,8 @@ preserves the collection before import order was checked.
 The [import-order receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json)
 preserves the collection before startup reasons and per-file counts were added.
 The [startup-diagnostics receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-collection/manifest.json)
+preserves the collection before unused function defaults were checked.
+The [function-default receipt](../tests/agent-eval/results/2026-10-16-function-defaults-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -970,7 +972,7 @@ For example, a startup call and an initializer exceeding the syntax limit receiv
 Counts for each loaded file include statements beyond the sixteen displayed locations.
 The [targeted runner check](https://github.com/e6qu/fun-refactor/actions/runs/38867284098)
 passed 64 command-line tests and 1,421 Python interface tests, including inconsistent-count refusals and the unchanged 8 KiB response checks.
-The [current Python collection](../tests/agent-eval/results/2026-10-16-startup-diagnostics-python-contract/manifest.json)
+The [startup-diagnostics collection](../tests/agent-eval/results/2026-10-16-startup-diagnostics-python-contract/manifest.json)
 keeps 397 programs and 794 cases: 308 incomplete cases, 18 refusals and 112 documented model/runtime differences.
 The guide's actual snippets include three startup-diagnostic examples alongside the earlier lessons.
 The [combined audit](https://github.com/e6qu/fun-refactor/actions/runs/38873415835)
@@ -984,6 +986,31 @@ Changing the checked source still prevents collection. The [regression tests](..
 also check an independent history with identical source and no original commit object.
 All four freeze-check tests passed before compilation in the same targeted run.
 
+The function-default change checks object lookups while Python creates an unused function.
+For example, `factory=dict` stores Python's dictionary type; `factory=dict()` creates a dictionary immediately and remains unchecked.
+Earlier function definitions, checked aliases, named function imports and unchanged built-in names can supply defaults.
+The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/38883873798)
+passed 66 command-line regressions and 1,473 Python interface tests.
+The [current Python collection](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/manifest.json)
+checks 409 programs in 818 original or renamed cases under the same fourteen rules.
+It retains 318 incomplete cases, 18 refusals and 116 documented differences between the model and runtime observations.
+All 54 new default-capture interface tests passed, including changed imports and reused answers after edits.
+The guide's three new default examples ran against both the analyzer and Python execution.
+
+The [familiar-library replay](https://github.com/e6qu/fun-refactor/actions/runs/38885840574)
+removes ten unchecked Toolz declarations: nine `factory=dict` defaults and one `map=map` default.
+The original identity-helper question has 82 unchecked statements instead of 92 across the same loaded files.
+Funcy and Pydash's identity-helper counts stay at 98 and 461. Full-package outcomes remain incomplete or deliberately refused.
+These declaration checks do not add calls through callback arguments or establish general package support.
+
+The Python collection's 55 altered-report checks took 122.642 seconds, beyond the combined audit's existing 120-second wrapper.
+Their test setup repeatedly rebuilt and tokenized the same example list before checking each corrupted report.
+The setup now builds that list once and supplies fresh copies; every recorded row still goes through the unchanged auditor.
+A new test checks that changing a copied example cannot alter the expected answers for later checks.
+The [combined audit](https://github.com/e6qu/fun-refactor/actions/runs/38890887619)
+passed all 56 checks against the retained result in 81.249 seconds, inside the unchanged 120-second wrapper.
+These timings describe separate hosted runs. The complete checks fit the existing deadline without omitting report validation.
+
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
 
@@ -993,7 +1020,7 @@ and 0.021 seconds after it. Both digests matched Python's independent SHA-256 re
 Collecting compiler identities, diagnostics and changed-input refusals then took about 13 seconds.
 The complete job passed in 9 minutes 55 seconds, within its unchanged 15-minute deadline.
 
-The [latest Pages deployment](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/2)
+That change's [Pages deployment](https://github.com/e6qu/fun-refactor/actions/runs/38725791903/attempts/2)
 passed after retrying only the cancelled deploy job. It reused the successful build for the latest
 merged revision and kept every deployment deadline.
 
