@@ -1472,13 +1472,22 @@ fn special_module_bindings_refuse_even_when_the_function_body_is_inert() {
 #[test]
 fn parallel_aliases_keep_distinct_functions_and_source_bindings() {
     let root = tempfile::tempdir().unwrap();
-    write(root.path(), "app.py", "from helpers import public\ndef entry():\n    return sink(public(source()))\n");
+    write(
+        root.path(),
+        "app.py",
+        "from helpers import public\ndef entry():\n    return sink(public(source()))\n",
+    );
     for (values, connected) in [("relay, stop", true), ("stop, relay", false)] {
         write(root.path(), "helpers.py", &format!("# café 🦀\ndef relay(value):\n    return value\ndef stop(value):\n    return 0\npublic, discarded = {values}\n"));
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], true, "{report}");
-        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), connected);
-        let aliases = report["inputs"]["modules"]["function_aliases"].as_array().unwrap();
+        assert_eq!(
+            !report["witnesses"].as_array().unwrap().is_empty(),
+            connected
+        );
+        let aliases = report["inputs"]["modules"]["function_aliases"]
+            .as_array()
+            .unwrap();
         assert_eq!(aliases.len(), 2);
         assert_ne!(aliases[0]["offset"], aliases[1]["offset"]);
     }
@@ -1486,12 +1495,27 @@ fn parallel_aliases_keep_distinct_functions_and_source_bindings() {
 
 #[test]
 fn incomplete_parallel_initializers_cannot_establish_an_absence() {
-    for assignment in ["public, other = relay, public", "public, other = (relay,)", "public, other = relay, setup()"] {
+    for assignment in [
+        "public, other = relay, public",
+        "public, other = (relay,)",
+        "public, other = relay, setup()",
+    ] {
         let root = tempfile::tempdir().unwrap();
-        write(root.path(), "app.py", "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n");
-        write(root.path(), "helpers.py", &format!("def relay(value):\n    return value\n{assignment}\n"));
+        write(
+            root.path(),
+            "app.py",
+            "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n",
+        );
+        write(
+            root.path(),
+            "helpers.py",
+            &format!("def relay(value):\n    return value\n{assignment}\n"),
+        );
         let report = analyze(root.path(), "entry");
         assert_eq!(report["complete"], false, "{report}");
-        assert!(!report["initialization"]["sites"].as_array().unwrap().is_empty());
+        assert!(!report["initialization"]["sites"]
+            .as_array()
+            .unwrap()
+            .is_empty());
     }
 }

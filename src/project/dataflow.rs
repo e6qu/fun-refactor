@@ -897,7 +897,9 @@ impl Project<'_> {
                                 };
                                 alias
                                     .filter(|(_, depth)| *depth < 15)
-                                    .map(|(target, depth)| ParallelValue::Function(target, depth + 1))
+                                    .map(|(target, depth)| {
+                                        ParallelValue::Function(target, depth + 1)
+                                    })
                             })
                             .collect();
                         if let Some(values) = values.filter(|values| {
@@ -905,9 +907,11 @@ impl Project<'_> {
                                 || function_aliases.len()
                                     + values
                                         .iter()
-                                        .filter(|value| matches!(value, ParallelValue::Function(..)))
+                                        .filter(|value| {
+                                            matches!(value, ParallelValue::Function(..))
+                                        })
                                         .count()
-                                        <= 128
+                                    <= 128
                         }) {
                             for ((name, _), value) in pairs.into_iter().zip(values) {
                                 let name = &text[name.byte_range()];

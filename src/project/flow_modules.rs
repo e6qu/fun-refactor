@@ -910,7 +910,9 @@ impl Modules {
                                     name.to_owned(),
                                     Binding {
                                         module: entry_name(file.strip_prefix(&project.root)?)
-                                            .context("function alias requires a root-local module")?,
+                                            .context(
+                                                "function alias requires a root-local module",
+                                            )?,
                                         member: Some(target.to_owned()),
                                         future: false,
                                         prefix: name.to_owned(),

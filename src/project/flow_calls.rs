@@ -88,8 +88,10 @@ pub(super) fn parallel_assignment<'t>(
     }
     let left = assignment.child_by_field_name("left")?;
     let right = unparenthesized(assignment.child_by_field_name("right")?)?;
-    if !matches!(left.kind(), "pattern_list" | "tuple_pattern" | "list_pattern")
-        || !matches!(right.kind(), "expression_list" | "tuple" | "list")
+    if !matches!(
+        left.kind(),
+        "pattern_list" | "tuple_pattern" | "list_pattern"
+    ) || !matches!(right.kind(), "expression_list" | "tuple" | "list")
     {
         return None;
     }
