@@ -414,7 +414,11 @@ fn unchecked_initialization_points_to_the_original_statement_and_clears_after_re
     assert_eq!(report["initialization"]["omitted"], 0);
     let sites = report["initialization"]["sites"].as_array().unwrap();
     assert_eq!(sites.len(), 1);
-    assert_eq!(sites[0]["reasons"], json!(["module-statement"]));
+    assert_eq!(sites[0]["reasons"], json!(["startup-call"]));
+    assert_eq!(
+        report["initialization"]["by_file"],
+        json!({"helpers.py":{"statements":1,"reasons":{"startup-call":1}}})
+    );
     let occurrence = &sites[0]["occurrence"];
     assert_eq!(occurrence["path"], "helpers.py");
     assert_eq!(occurrence["revision"], report["revision"]);
@@ -426,7 +430,39 @@ fn unchecked_initialization_points_to_the_original_statement_and_clears_after_re
     write(root.path(), "helpers.py", &helper.replace("source()", "0"));
     let repaired = analyze(root.path(), "entry");
     assert_eq!(repaired["complete"], true);
-    assert_eq!(repaired["initialization"], json!({"sites":[],"omitted":0}));
+    assert_eq!(
+        repaired["initialization"],
+        json!({"sites":[],"omitted":0,"by_file":{}})
+    );
+}
+
+#[test]
+fn startup_counts_cover_unshown_files_and_count_each_statement_once() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "alpha.py",
+        &format!(
+            "{}def spare(value):\n    return value\n",
+            "opaque()\n".repeat(20)
+        ),
+    );
+    write(root.path(), "zeta.py", "marker = 0\ndef marker(value=source()):\n    return value\ndef relay(value):\n    return value\n");
+    write(root.path(), "app.py", "from alpha import spare\nfrom zeta import relay\ndef entry():\n    return sink(relay(0))\n");
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], false);
+    assert_eq!(
+        report["initialization"]["sites"].as_array().unwrap().len(),
+        16
+    );
+    assert_eq!(report["initialization"]["omitted"], 5);
+    assert_eq!(
+        report["initialization"]["by_file"],
+        json!({
+            "alpha.py":{"statements":20,"reasons":{"startup-call":20}},
+            "zeta.py":{"statements":1,"reasons":{"definition-time-code":1,"binding-collision":1}}
+        })
+    );
 }
 
 #[test]
@@ -1212,7 +1248,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-import-order-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-16-startup-diagnostics-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -1274,7 +1310,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-import-order-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-16-startup-diagnostics-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -1331,7 +1367,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-import-order-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-16-startup-diagnostics-module-aliases/result.json",
         ])
         .output()
         .unwrap();

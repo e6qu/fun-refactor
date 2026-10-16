@@ -9,7 +9,6 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
-import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,11 +57,7 @@ def collect(run_id, artifact_name, producer, repository):
     require(len(matching) == 1 and matching[0]['size_in_bytes'] <= 16 * 1024 * 1024,
             'need one bounded current artifact')
     artifact = matching[0]
-    with tempfile.TemporaryFile() as output:
-        retain.command(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'], stdout=output)
-        output.seek(0)
-        archive = output.read(16 * 1024 * 1024 + 1)
-    require(len(archive) <= 16 * 1024 * 1024, 'artifact exceeds download admission')
+    archive = retain.download_artifact(repository, artifact['id'])
     jobs = retain.api(f'repos/{repository}/actions/runs/{run_id}/jobs?filter=all&per_page=100')['jobs']
     identity = retain.collection(run, artifact, {'source_commit': run['head_sha']}, repository, jobs,
                                  artifact_name, producer)

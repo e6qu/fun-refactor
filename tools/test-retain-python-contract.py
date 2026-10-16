@@ -5,7 +5,9 @@ import hashlib
 import importlib.util
 import io
 from pathlib import Path
+import subprocess
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,6 +137,77 @@ class ArtifactIdentity(unittest.TestCase):
                 artifact['created_at'] = '2026-10-11T08:03:00Z'
             with self.assertRaises(ValueError):
                 retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs)
+
+
+class ArtifactDownloads(unittest.TestCase):
+    def test_reset_discards_partial_bytes_and_reuses_only_the_remaining_time(self):
+        artifact, digest = ArtifactIdentity().archive()
+        requests = []
+
+        def download(arguments, **kwargs):
+            requests.append((arguments, kwargs['timeout']))
+            self.assertEqual(kwargs['stdout'].tell(), 0)
+            if len(requests) == 1:
+                kwargs['stdout'].write(b'partial archive')
+                raise subprocess.CalledProcessError(1, arguments, stderr='read: connection reset by peer')
+            kwargs['stdout'].write(artifact)
+
+        with patch.object(retain, 'monotonic', side_effect=[100, 100, 125]), \
+                patch.object(retain.subprocess, 'run', side_effect=download):
+            result = retain.download_artifact('owner/repo', 42)
+        self.assertEqual(retain.checked_report(result, digest), b'{"contract_complete":false}')
+        self.assertEqual([timeout for _, timeout in requests], [60, 35])
+        self.assertEqual(requests[0][0], requests[1][0])
+        self.assertEqual(requests[0][0][-1], 'repos/owner/repo/actions/artifacts/42/zip')
+
+    def test_repeated_resets_stop_after_two_attempts(self):
+        failure = subprocess.CalledProcessError(1, ['gh'], stderr='connection reset by peer')
+        with patch.object(retain, 'monotonic', side_effect=[0, 0, 10]), \
+                patch.object(retain.subprocess, 'run', side_effect=failure) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                retain.download_artifact('owner/repo', 42)
+        self.assertEqual(run.call_count, 2)
+
+    def test_a_reset_cannot_start_another_attempt_after_the_deadline(self):
+        failure = subprocess.CalledProcessError(1, ['gh'], stderr='connection reset by peer')
+        with patch.object(retain, 'monotonic', side_effect=[0, 0, 61]), \
+                patch.object(retain.subprocess, 'run', side_effect=failure) as run:
+            with self.assertRaisesRegex(ValueError, '60-second deadline'):
+                retain.download_artifact('owner/repo', 42)
+        self.assertEqual(run.call_count, 1)
+
+    def test_authentication_errors_and_process_timeouts_are_not_retried(self):
+        for failure in (subprocess.CalledProcessError(1, ['gh'], stderr='HTTP 403: Forbidden'),
+                        subprocess.TimeoutExpired(['gh'], 60)):
+            with self.subTest(error=type(failure).__name__), \
+                    patch.object(retain, 'monotonic', side_effect=[0, 0]), \
+                    patch.object(retain.subprocess, 'run', side_effect=failure) as run:
+                with self.assertRaises(type(failure)):
+                    retain.download_artifact('owner/repo', 42)
+                self.assertEqual(run.call_count, 1)
+
+    def test_corrupt_downloads_still_fail_digest_validation_without_a_retry(self):
+        artifact, digest = ArtifactIdentity().archive()
+
+        def download(arguments, **kwargs):
+            kwargs['stdout'].write(artifact + b'changed')
+
+        with patch.object(retain, 'monotonic', side_effect=[0, 0]), \
+                patch.object(retain.subprocess, 'run', side_effect=download) as run:
+            result = retain.download_artifact('owner/repo', 42)
+            with self.assertRaisesRegex(ValueError, 'digest changed'):
+                retain.checked_report(result, digest)
+        self.assertEqual(run.call_count, 1)
+
+    def test_oversized_downloads_keep_the_existing_admission_limit(self):
+        def download(arguments, **kwargs):
+            kwargs['stdout'].write(b'x' * (16 * 1024 * 1024 + 1))
+
+        with patch.object(retain, 'monotonic', side_effect=[0, 0]), \
+                patch.object(retain.subprocess, 'run', side_effect=download) as run:
+            with self.assertRaisesRegex(ValueError, 'download admission'):
+                retain.download_artifact('owner/repo', 42)
+        self.assertEqual(run.call_count, 1)
 
 
 if __name__ == '__main__':

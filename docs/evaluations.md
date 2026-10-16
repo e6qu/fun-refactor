@@ -803,6 +803,8 @@ and its thirteen `2026-10-15-shared-named-searches-*` scalar groups record that 
 The [registry-startup receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json)
 preserves the collection before import order was checked.
 The [import-order receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json)
+preserves the collection before startup reasons and per-file counts were added.
+The [startup-diagnostics receipt](../tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -934,6 +936,10 @@ The original failed reports, validators and CI logs remain unchanged.
 | The native link checker read a callback-table example as a link to a document named `read_input(` | Ignore text between matching backticks and inside fenced examples; keep checking real links, including those beside code or unmatched backticks. Run both link readers in the hosted documentation review | [Native link-check failure](https://github.com/e6qu/fun-refactor/actions/runs/38786708443/job/116600749772) |
 | Review of the import-order change found that an unresolved dependency could inherit a cycle-failure label | Distinguish a known unavailable cycle member from an unchecked dependency. Both leave the answer incomplete. Supersede the initial collection before retaining a new matching family | [First passing focused check](https://github.com/e6qu/fun-refactor/actions/runs/38823694034), [superseded Python collection](https://github.com/e6qu/fun-refactor/actions/runs/38824543553), [initial familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/38824562716) |
 | Further runtime checks found that child loading precedes binding names from a from-import, and that written export order can decide which side of a cycle starts first | Check child loading before local bindings and retain the written export order for startup checks. Keep the public sorted name inventory separate. Supersede the earlier collection before retention | [Independent runtime controls](https://github.com/e6qu/fun-refactor/blob/038e2e3137aeb40aa9194317f02cb309c7890123/sdk/python/tests/test_import_order.py), [superseded collection](https://github.com/e6qu/fun-refactor/actions/runs/38825548634) |
+| Startup diagnostics stopped at the writing check, leaving formatting and fresh result collection unfinished | Remove the redundant comment and filler, format on the runner, and generate matching results before the full audit | [Initial focused failure](https://github.com/e6qu/fun-refactor/actions/runs/38857468026) |
+| A new test expected a two-file import report to fit in 8 KiB even though required metadata exceeded the cap | Check that refusal and verify preserved counts with the existing single-file 8 KiB omission case. Keep the same byte limits | [Original SDK failure](https://github.com/e6qu/fun-refactor/actions/runs/38857521254/job/116832209122) |
+| The familiar-library collector still named the previous analyzer commit, which was absent from the runner's checkout after a squash merge | Pin the current source fingerprints, check both committed and uncommitted changes, and test identical code in a separate history without the original commit. Recollect one matching family | [Collector failure before replay](https://github.com/e6qu/fun-refactor/actions/runs/38861980286) |
+| GitHub storage reset an artifact connection after the analysis and Python audits had passed | Retry the same artifact once into a clean file, sharing the existing 60-second deadline. Keep byte limits and digest checks, and test exhausted budgets and discarded partial bytes | [Interrupted download](https://github.com/e6qu/fun-refactor/actions/runs/38871928585) |
 
 The 2026-10-15 reader review found another tracking mismatch: its Python requirement still expected 524 cases while the saved report already contained 694.
 The [refreshed examples](../tests/agent-eval/results/2026-10-15-reader-review-python-contract/manifest.json) keep the same 347 programs, 14 rules, incomplete answers and refusals.
@@ -958,6 +964,25 @@ They retain 308 incomplete cases, 18 refusals and 112 documented differences bet
 The [focused check](https://github.com/e6qu/fun-refactor/actions/runs/38827471103) passed 63 command-line tests and 1,328 Python interface tests.
 The [complete example collection](https://github.com/e6qu/fun-refactor/actions/runs/38828460880) passed all 794 cases and 55 checks rejecting altered reports.
 The actual guide snippets also ran: 14 rename commands, two introductory traces, three callback-table examples and three import-order examples.
+
+The startup-diagnostics change keeps those language rules and explains the remaining unchecked statements more precisely.
+For example, a startup call and an initializer exceeding the syntax limit receive different reasons.
+Counts for each loaded file include statements beyond the sixteen displayed locations.
+The [targeted runner check](https://github.com/e6qu/fun-refactor/actions/runs/38867284098)
+passed 64 command-line tests and 1,421 Python interface tests, including inconsistent-count refusals and the unchanged 8 KiB response checks.
+The [current Python collection](../tests/agent-eval/results/2026-10-16-startup-diagnostics-python-contract/manifest.json)
+keeps 397 programs and 794 cases: 308 incomplete cases, 18 refusals and 112 documented model/runtime differences.
+The guide's actual snippets include three startup-diagnostic examples alongside the earlier lessons.
+The [combined audit](https://github.com/e6qu/fun-refactor/actions/runs/38873415835)
+checked the fresh results and all 55 altered-report controls, with the existing deadlines unchanged.
+
+A squash merge combines a branch's development commits into one final commit.
+The library replay must keep the analyzer code unchanged while checking the selected libraries.
+A source fingerprint is an identifier computed from files and their names, used to detect changes.
+The collector now compares those identifiers for its chosen source directories and build files without needing the development commits locally.
+Changing the checked source still prevents collection. The [regression tests](../tools/test-frozen-analyzer.py)
+also check an independent history with identical source and no original commit object.
+All four freeze-check tests passed before compilation in the same targeted run.
 
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.

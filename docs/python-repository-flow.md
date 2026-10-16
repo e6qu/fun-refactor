@@ -125,7 +125,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-import-order-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-startup-diagnostics-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -180,6 +180,27 @@ The [guide's example](python-contract.md#follow-imports-that-return-to-a-file-al
 All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-budget refusals.
 The isolated declarations still have 16 complete answers and the standalone module has eight, across the same 100 cases and 200 runtime executions.
 Import-order support improves small programs; it does not remove the packages' other startup and import boundaries.
+
+The [startup-diagnostics replay](../tests/agent-eval/results/2026-10-16-startup-diagnostics-fixed-arity-probes/result.json)
+keeps the same 100 expanded cases and 200 runtime executions, with the same outcomes in the table above.
+Its reports also count unchecked statements in each loaded file, including statements beyond the sixteen displayed locations.
+
+An identity helper returns its input unchanged. For the three original identity-helper questions,
+the reports expose these larger groups of unchecked statements:
+
+| Library | Total unchecked statements in loaded files | Example loaded file | Unchecked statements in that file |
+| --- | ---: | --- | ---: |
+| Toolz | 92 | `toolz/curried/__init__.py` | 45 |
+| Funcy | 98 | `funcy/seqs.py` | 22 |
+| Pydash | 461 | `pydash/collections.py` | 159 |
+
+These are separate queries from the expanded `inc` and `add` questions, whose earlier totals are 80 and 420.
+Keep the selected helper and loaded-file list fixed when comparing counts.
+A decorator is code applied while Python defines a function or class.
+Pydash's example file has 155 unchecked decorated declarations and four startup calls.
+Toolz's example file has 43 startup calls and two writes.
+Funcy's has eighteen unchecked function declarations, three assignments and one statement that controls which code runs.
+These counts describe unchecked syntax, not observed executions or complete package support.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and

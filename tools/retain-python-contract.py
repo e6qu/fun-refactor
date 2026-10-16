@@ -10,7 +10,9 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
+from time import monotonic
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +27,30 @@ def command(args, **kwargs):
 
 def api(path):
     return json.loads(command(['gh', 'api', path], capture_output=True, text=True).stdout)
+
+
+def download_artifact(repository, artifact_id):
+    deadline = monotonic() + 60
+    for attempt in range(2):
+        remaining = deadline - monotonic()
+        contract.require(remaining > 0, 'artifact download exceeded its 60-second deadline')
+        with tempfile.TemporaryFile() as output:
+            try:
+                subprocess.run(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact_id}/zip'],
+                               cwd=ROOT, check=True, stdout=output, stderr=subprocess.PIPE,
+                               text=True, timeout=remaining)
+            except subprocess.CalledProcessError as error:
+                if attempt == 0 and 'connection reset by peer' in (error.stderr or '').lower():
+                    print('Artifact connection reset; retrying within the same 60-second deadline.', flush=True)
+                    continue
+                if error.stderr:
+                    print(error.stderr, file=sys.stderr)
+                raise
+            output.seek(0)
+            archive = output.read(16 * 1024 * 1024 + 1)
+        contract.require(len(archive) <= 16 * 1024 * 1024, 'artifact exceeds download admission')
+        return archive
+    raise AssertionError('artifact download did not complete')
 
 
 def checked_reports(archive, digest, names):
@@ -87,11 +113,7 @@ def main():
     contract.require(artifact['size_in_bytes'] <= 16 * 1024 * 1024, 'artifact exceeds download admission')
     # Download through gh, which handles the authenticated redirect. Never extract
     # paths from the archive or trust a successful run in place of the offline audit.
-    with tempfile.TemporaryFile() as output:
-        command(['gh', 'api', f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'], stdout=output)
-        output.seek(0)
-        archive = output.read(16 * 1024 * 1024 + 1)
-    contract.require(len(archive) <= 16 * 1024 * 1024, 'artifact exceeds download admission')
+    archive = download_artifact(repository, artifact['id'])
     data = checked_report(archive, artifact['digest'])
     value = json.loads(data)
     jobs = api(f'repos/{repository}/actions/runs/{args.run}/jobs?filter=all&per_page=100')['jobs']

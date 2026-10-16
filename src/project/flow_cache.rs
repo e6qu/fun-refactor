@@ -210,7 +210,7 @@ impl Project<'_> {
             "retained flow has inconsistent assignment control."
         );
         ensure!(
-            report["initialization"] == json!({"sites":[],"omitted":0}),
+            report["initialization"] == json!({"sites":[],"omitted":0,"by_file":{}}),
             "complete retained flow has unchecked initialization."
         );
         let revision = report["revision"].as_str().unwrap_or_default().to_owned();

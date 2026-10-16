@@ -18,16 +18,16 @@ from test_flow_summaries import analyze, evidence, workspace
 
 @pytest.mark.parametrize("imports", [False, True])
 @pytest.mark.parametrize("definition,instance,reason,fragment", [
-    ("class Token(list):\n    pass", "", "module-statement", "class Token(list):\n    pass"),
+    ("class Token(list):\n    pass", "", "class-definition", "class Token(list):\n    pass"),
     ("class Token:\n    def __init__(self):\n        sink(source())", "marker = Token()",
-     "module-statement", "marker = Token()"),
+     "startup-call", "marker = Token()"),
     ("def unused(value=source()):\n    return value", "", "definition-time-code",
      "def unused(value=source()):\n    return value"),
     ("metadata = 0\nmetadata = 1", "", "binding-collision", "metadata = 1"),
     ("def K(value):\n    return value", "", "non-normalized-identifier",
      "def K(value):\n    return value"),
     ("def decorate(fn):\n    return fn\n@decorate\ndef unused():\n    pass", "",
-     "module-statement", "@decorate\ndef unused():\n    pass"),
+     "decorated-definition", "@decorate\ndef unused():\n    pass"),
 ])
 def test_blocking_statements_have_exact_locations_and_runtime_remains_separate(tmp_path, imports, definition, instance, reason, fragment):
     client, rules = install(tmp_path, definition, instance, imports, value="0")
@@ -65,6 +65,9 @@ def test_omitted_locations_keep_the_total_and_never_establish_absence(tmp_path, 
     disclosure = result.initialization
     assert len(disclosure.sites) + disclosure.omitted == 24
     assert len(disclosure.sites) <= 16 and disclosure.omitted >= 8
+    summary, = disclosure.by_file
+    assert summary.path == 'subject.py' and summary.statements == 24
+    assert dict(summary.reasons) == {'startup-call': 24}
     assert not result.report.at("/complete")
     assert "module-effects-unchecked" in result.report.at("/cutoffs")
     if max_bytes == 1_048_576:
@@ -101,6 +104,7 @@ def test_an_edit_removes_a_blocker_and_later_unrelated_edits_reuse_the_complete_
     fixed = analyze(client, rules, "entry", cache, imports=True)
     assert fixed.report.at("/complete") and not fixed.reused
     assert not fixed.initialization.sites and fixed.initialization.omitted == 0
+    assert not fixed.initialization.by_file
     (tmp_path / "unrelated.py").write_text('def unrelated():\n    return 0\n')
     reused = analyze(client, rules, "entry", cache, imports=True)
     assert reused.reused

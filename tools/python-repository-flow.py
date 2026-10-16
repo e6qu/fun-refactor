@@ -22,6 +22,7 @@ spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-repository-flow-1'
+ANALYZER_PATHS = ('src', 'grammars', 'sdk/python/src', 'Cargo.toml', 'Cargo.lock')
 BODIES = {
     'positive': 'return record_value(relay(relay(emit_value())))',
     'overwritten': 'value = relay(emit_value())\nvalue = 0\nreturn record_value(relay(value))',
@@ -327,11 +328,22 @@ def audit(value, directory):
     return value['summary']
 
 
+def verify_analyzer(root, cohort):
+    expected = cohort['analyzer_trees']
+    require(isinstance(expected, dict) and set(expected) == set(ANALYZER_PATHS)
+            and all(isinstance(value, str) and len(value) == 40
+                    and all(char in '0123456789abcdef' for char in value)
+                    for value in expected.values()), 'declare exact frozen analyzer source fingerprints')
+    command(['git', 'diff', '--exit-code', 'HEAD', '--', *ANALYZER_PATHS], cwd=root)
+    actual = {path: command(['git', 'rev-parse', 'HEAD:' + path], cwd=root).stdout.strip()
+              for path in ANALYZER_PATHS}
+    require(actual == expected, 'frozen analyzer source fingerprints changed')
+
+
 def measure(args):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'collect only on GitHub runners')
     validate_cohort(COHORT)
-    command(['git', 'diff', '--exit-code', COHORT['analyzer_revision'], '--',
-             'src', 'grammars', 'sdk/python/src', 'Cargo.toml', 'Cargo.lock'], cwd=ROOT)
+    verify_analyzer(ROOT, COHORT)
     source_commit = command(['git', 'rev-parse', 'HEAD'], cwd=ROOT).stdout.strip()
     coverage = None
     if args.phase == 'held-out':
