@@ -95,11 +95,11 @@
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-16-function-defaults-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/result.json",
       "kind": "semantic-contract",
       "scope": "14 declared Python rules; 409 authored programs and 818 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-16-function-defaults-python-contract/result.json",
-      "sha256": "835a6df1d4142454e419838d83b1503a8ffb6275b4099639e337035d2fa10e15"
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/result.json",
+      "sha256": "c840e1c99c6be22cb10087d02dd8b87152830a049bc843f1ad4bf2337ab28fbf"
     },
     {
       "id": "index-resolution",
