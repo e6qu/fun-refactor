@@ -991,7 +991,7 @@ For example, `factory=dict` stores Python's dictionary type; `factory=dict()` cr
 Earlier function definitions, checked aliases, named function imports and unchanged built-in names can supply defaults.
 The [focused checks](https://github.com/e6qu/fun-refactor/actions/runs/38883873798)
 passed 66 command-line regressions and 1,473 Python interface tests.
-The [current Python collection](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/manifest.json)
+The [function-default collection](../tests/agent-eval/results/2026-10-16-function-defaults-python-contract/manifest.json)
 checks 409 programs in 818 original or renamed cases under the same fourteen rules.
 It retains 318 incomplete cases, 18 refusals and 116 documented differences between the model and runtime observations.
 All 54 new default-capture interface tests passed, including changed imports and reused answers after edits.
@@ -1010,6 +1010,24 @@ A new test checks that changing a copied example cannot alter the expected answe
 The [combined audit](https://github.com/e6qu/fun-refactor/actions/runs/38890887619)
 passed all 56 checks against the retained result in 81.249 seconds, inside the unchanged 120-second wrapper.
 These timings describe separate hosted runs. The complete checks fit the existing deadline without omitting report validation.
+
+The collector also rewrote its growing JSON file after every completed case.
+Saving the 800th case encoded and rewrote the preceding 799 results, repeating work as the collection grew.
+It now writes each new row during collection and performs one full save after the final audit.
+Each completed append leaves readable, incomplete progress; command timeouts preserve earlier completed rows.
+The [fresh collection](https://github.com/e6qu/fun-refactor/actions/runs/38899354891)
+passed in 12 minutes 2 seconds under the unchanged 15-minute deadline.
+It checked the same 409 programs and 818 cases, including 318 incomplete answers, 18 refusals and 116 documented differences.
+All 56 altered-report checks passed in 110.057 seconds. Ten new writer checks cover progress, Unicode, refusals, failed audits and interruption between appends.
+The [new receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
+records the fresh producer and inputs; the earlier collection remains available for its original claims.
+Python behavior and report validation did not change.
+The [saving comparison](benchmarks.md#saving-python-test-results) replays both methods on the same 818 observations on one hosted runner.
+Report encoding and saving took 115.694 seconds before and 0.609 seconds after, including the final save.
+The resulting files have identical bytes. Process writes fell from 19,344,364,657 to 97,882,761 bytes, counting overwritten data.
+Read those saving-only timings separately from total job time: builds, analysis, runtime observations and audits have their own costs.
+The environment-recording update superseded the [initial queued comparison request](https://github.com/e6qu/fun-refactor/actions/runs/38899322597) before its job ran.
+That request produced no timing samples.
 
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
