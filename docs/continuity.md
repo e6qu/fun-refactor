@@ -39,11 +39,11 @@ The [Python guide](python-contract.md) owns supported behavior. The [library res
 
 | User question still unanswered | What currently stops the answer | Next investigation |
 | --- | --- | --- |
-| Does input pass through Toolz's helper? | Startup code changes a signature registry; some imports and cycles remain unchecked | Inspect those registry writes and the startup statements reached by import |
+| Does input pass through Toolz's helper? | Startup calls and imported code remain unchecked | Inspect the startup call that records function arguments, and imports needed by the helper |
 | Does input pass through Funcy's `inc`? | The search reaches its existing 16-file limit | Check which remaining imports and startup statements affect the selected helper within that bound |
 | Does input pass through Pydash's `add`? | The search reaches its existing 256 KiB source limit | Investigate checking the helper and relevant startup code within that bound |
 
-The previous import-search change shares one provider search among names in the same `from` statement.
+The earlier import-search change shares one provider search among names in the same `from` statement.
 For `from helpers import add, subtract`, it finds `helpers` once while retaining both names and their binding order.
 Child-module searches still count separately. No search or source limit increased.
 
@@ -52,9 +52,9 @@ Pydash uses 47, clears its former repeated-search obstacle, and reaches the sepa
 Pydash has 420 unchecked startup statements instead of 510 across the same eight loaded files.
 Funcy still has 80 across 16 files; Toolz still has 92 across 14.
 All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-output-budget refusals.
-These counts describe analysis progress, not complete package support or lower agent cost.
+These earlier counts describe analysis progress, not complete package support or lower agent cost.
 
-The current language change checks harmless registry construction and local dictionary writes.
+The callback-table change checks harmless registry construction and local dictionary writes.
 A registry is a table holding values or functions for later use.
 For example, `handlers = dict(send=lambda value: value)` creates a function without calling it.
 The [callback-table example](python-contract.md#prepare-a-callback-table-without-calling-its-entries)
@@ -62,12 +62,19 @@ compares that setup with an evaluated default or an imported shared dictionary.
 Reading the table's contents, calling its stored functions and arbitrary package startup remain unfinished.
 Keep those limits visible when reviewing the fresh package replay; more supported syntax alone does not close the real-project requirement.
 
-The next change checks the order of imports that return to a file already loading.
+The current change checks the order of imports that return to a file already loading.
 For example, a second file can import a function already defined by the first file.
 Moving that definition below the import makes Python raise `ImportError`; the analysis must remain incomplete.
 The [import-order lesson](python-contract.md#follow-imports-that-return-to-a-file-already-loading) introduces this case before showing the files.
-Native and SDK checks compare successful and failing orders with Python, including package parents and saved-answer invalidation.
-Keep arbitrary startup effects and exhausted limits incomplete. Recheck the familiar libraries before claiming a package improvement.
+The command-line and Python interface tests compare successful and failing orders with Python execution.
+They include package startup, requested child files, written export order and saved answers after a change.
+For `from helpers import *`, the file's `__all__` list names what to import.
+Reordering that list can change whether Python loads the package successfully.
+
+The fresh familiar-library replay still has no complete full-package answers: 32 analyses remain incomplete and eight deliberately invalid requests are refused.
+Copying selected library functions into smaller files gives 16 complete answers.
+A separate test file of simple comparison functions gives eight.
+Those smaller successes do not establish support for the original packages. Next, investigate their remaining startup operations and imports within the existing limits.
 
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
@@ -78,9 +85,9 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [language-change collection receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json) identifies the current analyzer collection.
-The [Python example receipt](../tests/agent-eval/results/2026-10-15-registry-startup-python-contract/manifest.json)
-covers 367 programs and 734 original or renamed cases, including the new callback-table comparisons.
+The [language-change collection receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json) identifies the current analyzer collection.
+The [Python example receipt](../tests/agent-eval/results/2026-10-16-import-order-python-contract/manifest.json)
+covers 397 programs and 794 original or renamed cases, including the import-order comparisons.
 A receipt records the run and its inputs; it does not establish general correctness by itself.
 Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
 Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.

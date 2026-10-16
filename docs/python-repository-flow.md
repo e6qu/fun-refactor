@@ -125,7 +125,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction introduces `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-15-registry-startup-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-import-order-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -169,6 +169,17 @@ The [registry replay](../tests/agent-eval/results/2026-10-15-registry-startup-fi
 keeps the full-package totals at 32 incomplete cases and eight deliberate budget refusals.
 Unchecked startup counts stay at 92 for Toolz, 80 for Funcy and 420 for Pydash, across the same loaded files.
 Small callback tables now work, but this change has not removed the libraries' remaining blockers.
+
+The [import-order replay](../tests/agent-eval/results/2026-10-16-import-order-fixed-arity-probes/result.json)
+checks the same familiar source snapshots after allowing imports to return to a file already loading.
+A second file can use a function the first file has already defined. Reading that function before its definition remains incomplete.
+The tests check that requested files load before imported names become available in the caller.
+For `from helpers import *`, the `__all__` list supplies the names and their order. The tests preserve that order.
+The [guide's example](python-contract.md#follow-imports-that-return-to-a-file-already-loading) shows why changing the order can make Python raise `ImportError`.
+
+All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-budget refusals.
+The isolated declarations still have 16 complete answers and the standalone module has eight, across the same 100 cases and 200 runtime executions.
+Import-order support improves small programs; it does not remove the packages' other startup and import boundaries.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and

@@ -801,6 +801,8 @@ forged assignment contracts and require the complete current summary metadata.
 The [import-search run](../tests/agent-eval/results/2026-10-15-shared-named-searches-scalar-assignments/result.json)
 and its thirteen `2026-10-15-shared-named-searches-*` scalar groups record that implementation.
 The [registry-startup receipt](../tests/agent-eval/results/2026-10-15-registry-startup-scalar-collection/manifest.json)
+preserves the collection before import order was checked.
+The [import-order receipt](../tests/agent-eval/results/2026-10-16-import-order-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -944,6 +946,21 @@ covers 367 programs and 734 cases under the same fourteen rules.
 Local dictionary writes need a previously created, unexposed dictionary and checked keys and values.
 Imports, unknown calls and aliases end that allowance. Shared heap reads and calls through a stored callback remain unsupported.
 The familiar full-package replay remains a separate result; these small examples cannot establish general package support or agent savings.
+
+The import-order change adds 30 programs, each also checked after renaming and relocation.
+For example, two files can import each other when the requested function already exists.
+Moving its definition below the import makes Python raise `ImportError`; that answer must remain incomplete.
+The checks follow Python's order: load the requested files first, then make the imported names available to the caller.
+
+The [import-order examples](../tests/agent-eval/results/2026-10-16-import-order-python-contract/manifest.json)
+cover 397 programs and 794 cases under the same fourteen rules.
+They retain 308 incomplete cases, 18 refusals and 112 documented differences between the model and runtime observations.
+The [focused check](https://github.com/e6qu/fun-refactor/actions/runs/38827471103) passed 63 command-line tests and 1,328 Python interface tests.
+The [complete example collection](https://github.com/e6qu/fun-refactor/actions/runs/38828460880) passed all 794 cases and 55 checks rejecting altered reports.
+The actual guide snippets also ran: 14 rename commands, two introductory traces, three callback-table examples and three import-order examples.
+
+The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
+The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
 
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
