@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-flow-facts/result.json",
-      "sha256": "ff0a550416b3f58d5eaff129e0bb56c0b68edc37bd1f1fe82883449cbe1a7f34"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-flow-facts/result.json",
+      "sha256": "2b17e5c13a54511748bb259a3cc55c44ac4c8b29d3feb54a29cc4558deaf8e1b"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-package-flow/result.json",
-      "sha256": "2f79f83046fe8766590d773d8d9b727d465ad27392ef8d246bcca66d75bd7c5f"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
+      "sha256": "73f0b14f803723befa4db94b95471f236f2b8887e691643fc3a118ed3db5f202"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-python-repositories",
-      "sha256": "d85bfb326d5a8bea7cd2cd3039e4742b01fddd16ff2ea9de12cce571fdfb0ade"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-python-repositories",
+      "sha256": "6db8c183f3262db4e2a4834e9a5e058fcb4ad4c98ee6e9bdef606b0ce7f4b2ca"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-flow-cache/result.json",
-      "sha256": "8e8d198b6e5384bedfd4f7c0b294b3e96b42f5036fabc79328368fe1a1d4c87d"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-flow-cache/result.json",
+      "sha256": "f4b8d861730d9993453a06653cd11d6ccf7085dddc5543ac91bc2db7665e74f4"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-compiler-profile/result.json",
-      "sha256": "33b7b0d79cb0a7be678c03203e71462958608005a021bad76154901c162acc00"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-compiler-profile/result.json",
+      "sha256": "c0b4d93c35bb89167e57e3f35334ae1d168a4d5d6f18da542b3da4c7d0e891ad"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 424 authored programs and 848 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-16-parallel-bindings-python-contract/result.json",
-      "sha256": "c0f148672a3b818d76972423b4b9813c13fd5eb1308c7eacecb466dbff6472d9"
+      "scope": "14 declared Python rules; 436 authored programs and 872 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/result.json",
+      "sha256": "651f9fcc75c9d3bcd506c4a42ced8353bc56d0468e5bdb5f895e0b7fc1a18bff"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-16-parallel-bindings-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-16-parallel-bindings-index-resolution/result.json",
-      "sha256": "0be9fdd3f0d90623b0ea7c53f572f6d9f4040bab6b87d65714a79e2446c83e04"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-16-shared-defaults-index-resolution/result.json",
+      "sha256": "e5287d082015d8c2f3bbf690caa4fe34d9c323dd8dbcf0c54311b72708e46977"
     },
     {
       "id": "repository-flow",
