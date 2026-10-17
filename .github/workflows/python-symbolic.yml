@@ -17,7 +17,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: python-symbolic-${{ github.ref }}
+  group: python-symbolic-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   investigate:

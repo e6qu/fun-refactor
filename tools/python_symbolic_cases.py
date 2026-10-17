@@ -64,6 +64,7 @@ def upper_only(x: int, upper: int) -> int:
 def counterexample(output, case):
     """Read only a call with literal integer arguments; never execute tool text."""
     marker = "when calling " + case + "("
+    require(output.count(marker) == 1, "expected one explicit counterexample call")
     calls = [line.split(marker, 1)[1] for line in output.splitlines() if marker in line]
     require(len(calls) == 1, "expected one explicit counterexample call")
     require(len(calls[0]) <= 4096 and ")" in calls[0], "counterexample call exceeds its limit")
@@ -83,3 +84,15 @@ def counterexample(output, case):
     require(all(type(value) is int for value in result.values()), "counterexample needs integer literals")
     require(admitted(case, result), "counterexample violates the input requirement")
     return result
+
+
+def symbolic_observation(observation, case):
+    """Keep process stops, missing checks and impossible preconditions unfinished."""
+    require(not observation["stop_reason"], "symbolic check stopped")
+    require(observation["exit_code"] in (0, 1), "CrossHair failed to run")
+    if observation["exit_code"] == 1:
+        return counterexample(observation["stdout"], case)
+    lines = [line for line in observation["stdout"].splitlines() if line.strip()]
+    require(len(lines) == 1 and ": info:" in lines[0], "CrossHair returned no single check result")
+    require("Unable to meet precondition" not in lines[0], "no input met the requirement")
+    return None

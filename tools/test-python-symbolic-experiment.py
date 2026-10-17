@@ -2,7 +2,7 @@
 """Reject invented, malformed or inadmissible failing inputs before replay."""
 import unittest
 
-from python_symbolic_cases import admitted, counterexample, inputs, satisfies
+from python_symbolic_cases import admitted, counterexample, inputs, satisfies, symbolic_observation
 
 
 class CounterexampleTests(unittest.TestCase):
@@ -43,6 +43,22 @@ class CounterexampleTests(unittest.TestCase):
         arguments = {"x": -10, "upper": 5}
         self.assertTrue(satisfies("upper_only", arguments, -10))
         self.assertFalse(satisfies("upper_only", arguments, 5))
+
+    def test_a_stop_cannot_become_a_success_even_with_success_text(self):
+        for reason in ("wall_seconds", "cpu_seconds", "rss_bytes", "monitor_error"):
+            with self.subTest(reason=reason), self.assertRaisesRegex(ValueError, "stopped"):
+                symbolic_observation({"exit_code": 0, "stop_reason": reason,
+                                      "stdout": "checks.py:6: info: Confirmed over all paths."}, "ordered")
+
+    def test_missing_checks_and_impossible_preconditions_remain_unfinished(self):
+        for output in ("", "checks.py:6: info: Unable to meet precondition.",
+                       "checks.py:6: info: Confirmed over all paths.\nchecks.py:7: error: other failure"):
+            with self.subTest(output=output), self.assertRaises(ValueError):
+                symbolic_observation({"exit_code": 0, "stop_reason": None, "stdout": output}, "ordered")
+
+    def test_no_counterexample_is_only_a_limited_observation(self):
+        self.assertIsNone(symbolic_observation({"exit_code": 0, "stop_reason": None,
+                                               "stdout": "checks.py:6: info: Not confirmed."}, "ordered"))
 
 
 if __name__ == "__main__":

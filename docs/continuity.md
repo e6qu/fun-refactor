@@ -33,6 +33,10 @@ Do not change recorded fingerprints to disguise outdated results.
 
 ## Continue Python work from actual library failures
 
+Start with the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
+It compares tests and symbolic execution for Pydash's quantity limits, retaining full imports separately from a copied function.
+The experiment adds no analyzer support and cannot establish agent savings.
+
 Importing a Python package can execute its startup code before exposing a helper.
 Use the reported unchecked statements to choose a general language rule; do not special-case library names or expected answers.
 The [Python guide](python-contract.md) owns supported behavior. The [library results](python-repository-flow.md) own detailed measurements.

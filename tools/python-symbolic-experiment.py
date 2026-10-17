@@ -16,7 +16,7 @@ import time
 import urllib.request
 
 from agent_eval.bounded_host import run
-from python_symbolic_cases import CASES, counterexample, require, wrappers
+from python_symbolic_cases import CASES, require, symbolic_observation, wrappers
 
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "24ae1aad60dec4d9d5a0e88b8d8d692ee85f232e"
@@ -154,9 +154,8 @@ def collect(args):
         try:
             require(not observation["stop_reason"], "measurement stopped: " + str(observation["stop_reason"]))
             if method == "crosshair":
-                require(observation["exit_code"] in (0, 1), "CrossHair failed to run")
-                if observation["exit_code"] == 1:
-                    arguments = counterexample(observation["stdout"], case)
+                arguments = symbolic_observation(observation, case)
+                if arguments is not None:
                     replay = execute([sys.executable, "-B", str(ROOT / "tools/python-symbolic-worker.py"), "replay",
                                       str(scope), case, "--arguments", json.dumps(arguments)], directory, "replay", env, cwd=scope)
                     row["replay"] = replay
@@ -167,7 +166,6 @@ def collect(args):
                             "reported counterexample did not reproduce")
                     row["status"] = "reproduced-counterexample"
                 else:
-                    require("info:" in observation["stdout"], "CrossHair returned no check result")
                     row["status"] = "no-counterexample-reported"
             else:
                 require(observation["exit_code"] == 0, "concrete checks failed to run")
