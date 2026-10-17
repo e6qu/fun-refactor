@@ -12,43 +12,43 @@
   ],
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-flow-facts/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-package-flow/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-python-repositories",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-flow-cache/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
@@ -92,33 +92,33 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-17-value-aliases-compiler-profile/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/result.json",
-      "scope": "14 declared Python rules; 436 authored programs and 872 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json",
+      "scope": "14 declared Python rules; 448 authored programs and 896 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-16-shared-defaults-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-17-value-aliases-index-resolution/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-16-shared-defaults-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-17-value-aliases-index-resolution/result.json",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
     },
     {
@@ -161,13 +161,14 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.contract",
         "B.repository-flow",
         "B.effects"
       ],
@@ -337,7 +338,13 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [],
+      "blockers": [
+        "python-contract: unmet /summary/examples",
+        "python-contract: unmet /summary/cases",
+        "python-contract: unmet /summary/renamed_relocated_cases",
+        "python-contract: unmet /summary/incomplete_cases",
+        "python-contract: unmet /summary/documented_difference_cases"
+      ],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
@@ -380,7 +387,7 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Specify reusable Python behavior"
     },
     {
