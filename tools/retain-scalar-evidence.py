@@ -27,6 +27,23 @@ SCRIPTS = {'flow-fixed-point': 'flow-acceptance', 'compiler-profile': 'compiler-
            'fixed-arity-probes': 'python-fixed-arity-probes'}
 SCRIPTS.update({group: group + '-acceptance' for groups in FLOW.values() for group in groups
                 if group != 'flow-fixed-point'})
+ANALYZER_PATHS = ('src', 'grammars', 'crates', 'queries', 'sdk/python/src',
+                  'build.rs', 'Cargo.toml', 'Cargo.lock')
+
+
+def verify_sources(root, revisions):
+    require(revisions and all(isinstance(revision, str) and re.fullmatch(r'[0-9a-f]{40}', revision)
+                              for revision in revisions), 'need recorded collection commits')
+    dirty = subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all',
+                                     '--', *ANALYZER_PATHS], cwd=root, text=True, timeout=5)
+    require(not dirty, 'current analyzer source must be clean')
+    def trees(revision):
+        return subprocess.check_output(['git', 'rev-parse', *[
+            f'{revision}:{path}' for path in ANALYZER_PATHS]], cwd=root, text=True,
+            stderr=subprocess.STDOUT, timeout=5).splitlines()
+    expected = trees('HEAD')
+    for revision in sorted(revisions):
+        require(trees(revision) == expected, 'collection analyzer source differs from current code')
 
 
 def audit_arguments(group, path):
@@ -131,13 +148,17 @@ def main():
         elif key == 'compiler':
             require(set(data) == {'result.json'}, 'compiler report inventory changed')
         collected.append((group, data, identity))
-    require(len({identity['source_commit'] for _, _, identity in collected}) == 1,
-            'collect all reports from one frozen source revision')
-    source_commit = collected[0][2]['source_commit']
+    source_commits = {identity['source_commit'] for _, _, identity in collected}
     for key in ('python', 'routes', 'repair'):
         run = retain.api(f'repos/{repository}/actions/runs/{runs[key]}')
-        require(run['status'] == 'completed' and run['conclusion'] == 'success'
-                and run['head_sha'] == source_commit, 'collect the entire family from one frozen revision')
+        require(run['status'] == 'completed' and run['conclusion'] == 'success',
+                'wait for the complete successful collection family')
+        source_commits.add(run['head_sha'])
+    for revision in sorted(source_commits):
+        require(isinstance(revision, str) and re.fullmatch(r'[0-9a-f]{40}', revision),
+                'need recorded collection commits')
+        retain.command(['git', 'fetch', '--no-tags', '--depth=1', 'origin', revision], capture_output=True)
+    verify_sources(ROOT, source_commits)
     receipts = {}
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())

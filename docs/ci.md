@@ -67,6 +67,13 @@ A cancelled job cannot qualify as a successful collection, even when its report 
 
 This changes the order of CI work. Analysis speed and complete agent costs need separate measurements.
 
+Keeping a capture also requires checking which code produced it.
+A documentation edit creates a different commit while leaving the analyzer unchanged.
+Retention compares the analyzer's source folders, local dependencies, parsing queries, Python client, build script and dependency manifests with the current checkout.
+Each capture keeps its actual collection commit. Every recorded input still receives its existing report audit.
+Changed analyzer code, changed recorded inputs and uncommitted analyzer files stop retention.
+This lets unrelated captures remain useful after a CI-only edit without changing their contents or fingerprints.
+
 ## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;

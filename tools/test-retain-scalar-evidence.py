@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -50,6 +51,17 @@ class ScalarRetention(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'source changed'):
                 scalar.keep('compiler-profile', data, identity, 'never-written')
 
+    def test_matching_collection_identity_still_requires_the_current_report_audit(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(scalar, 'ROOT', Path(directory)):
+            (Path(directory) / 'tests/agent-eval/results').mkdir(parents=True)
+            identity = {'source_commit': 'a' * 40}
+            data = {'result.json': json.dumps({'source_commit': 'a' * 40}).encode()}
+            failed = subprocess.CompletedProcess([], 1, stdout='', stderr='stale recorded input')
+            with patch.object(scalar.subprocess, 'run', return_value=failed) as audit:
+                with self.assertRaisesRegex(ValueError, 'audit failed: stale recorded input'):
+                    scalar.keep('compiler-profile', data, identity, 'checked')
+            self.assertIn('tools/compiler-profile.py', audit.call_args.args[0])
+
     def compiler_receipt(self, root):
         path = root / 'current-compiler-profile/result.json'
         path.parent.mkdir()
@@ -88,6 +100,77 @@ class ScalarRetention(unittest.TestCase):
             (path.parent / 'manifest.json').write_text(json.dumps(value['groups']['compiler-profile']))
             with self.assertRaises(FileNotFoundError):
                 profile_controls.retained_report(path)
+
+
+class CollectionSources(unittest.TestCase):
+    def git(self, root, *arguments):
+        return subprocess.check_output(['git', *arguments], cwd=root, text=True,
+                                       stderr=subprocess.STDOUT, timeout=5).strip()
+
+    def repository(self, root):
+        self.git(root, 'init', '-q', '-b', 'main')
+        self.git(root, 'config', 'user.name', 'Source Test')
+        self.git(root, 'config', 'user.email', 'source@example.test')
+        for name in scalar.ANALYZER_PATHS:
+            path = root / name
+            if '.' not in path.name:
+                path /= 'source.txt'
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('original source\n')
+        return self.commit(root, 'original source')
+
+    def commit(self, root, message):
+        self.git(root, 'add', '.')
+        self.git(root, 'commit', '-qm', message)
+        return self.git(root, 'rev-parse', 'HEAD')
+
+    def test_non_analyzer_edits_preserve_exact_source_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = self.repository(root)
+            (root / 'README.md').write_text('Explain the same code.\n')
+            later = self.commit(root, 'explain the source')
+            self.assertNotEqual(original, later)
+            scalar.verify_sources(root, {original, later})
+
+    def test_committed_changes_in_every_analyzer_path_refuse(self):
+        for name in scalar.ANALYZER_PATHS:
+            with self.subTest(path=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                original = self.repository(root)
+                path = root / name
+                if path.is_dir():
+                    path /= 'source.txt'
+                path.write_text('changed source\n')
+                changed = self.commit(root, 'change the source')
+                with self.assertRaisesRegex(ValueError, 'differs from current code'):
+                    scalar.verify_sources(root, {original, changed})
+
+    def test_a_common_old_commit_cannot_hide_changed_current_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = self.repository(root)
+            (root / 'src/source.txt').write_text('changed current source\n')
+            self.commit(root, 'change current code')
+            with self.assertRaisesRegex(ValueError, 'differs from current code'):
+                scalar.verify_sources(root, {original})
+
+    def test_dirty_and_untracked_analyzer_inputs_refuse(self):
+        for name in ('src/source.txt', 'sdk/python/src/new.py'):
+            with self.subTest(path=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                original = self.repository(root)
+                (root / name).write_text('unchecked source\n')
+                with self.assertRaisesRegex(ValueError, 'must be clean'):
+                    scalar.verify_sources(root, {original})
+
+    def test_missing_and_malformed_collection_commits_refuse(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.repository(root)
+            for revisions in (set(), {'HEAD'}, {'--help'}, {'not a commit'}, {True}):
+                with self.subTest(revisions=revisions), self.assertRaisesRegex(ValueError, 'recorded collection commits'):
+                    scalar.verify_sources(root, revisions)
 
 
 if __name__ == '__main__':
