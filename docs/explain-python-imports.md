@@ -65,6 +65,9 @@ The client below sends commands to the installed executable.
 It finds the selected function and receives a handle: an identifier for that function in the current source.
 The cache keeps the answer in memory; this example does not create a persistent cache.
 `summaries=True` follows supported helper calls, and `imports=True` includes supported local imports.
+`steps` limits the amount of analysis work.
+The first `max_bytes` caps the original structured answer; the second caps the explanation text.
+These separate text budgets do not change the limits on source files, imports or elapsed execution time.
 
 Save this as `explain.py`:
 
@@ -116,6 +119,8 @@ Whole details that do not fit remain omitted; the final lines state how many gro
 They also distinguish source locations omitted by the original analyzer from the smaller sample shown in the explanation.
 The structured `gaps`, `conditions` and `initialization` fields keep the recorded details available to a Python caller.
 One import group can contain several requested names sharing the same importing file, provider and unresolved condition.
+An import request names one wanted value or represents an import using `*`, also called a wildcard import.
+The group counts refer to those recorded requests, rather than distinct lines of Python.
 
 ## Read the real-package example carefully
 
