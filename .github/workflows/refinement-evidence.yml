@@ -792,7 +792,9 @@ jobs:
         with:
           python-version: '3.14'
       - name: Check authored CPython expectations
-        run: python3 -B tools/python-contract.py --check-runtime
+        run: |
+          python3 -B tools/test-python-contract-runner.py
+          python3 -B tools/python-contract.py --check-runtime
       - name: Reject swapped and corrupted hosted artifacts
         run: |
           python3 -B tools/test-retain-python-contract.py
@@ -805,22 +807,22 @@ jobs:
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check documentation examples before collecting reports
         run: python3 -B tools/reader_examples.py --fr target/debug/fr
-      - name: Check expression evaluation and source locations
-        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
-      - name: Collect successful reports and CLI refusals
-        run: |
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
-          python3 -B tools/python-contract.py --output target/python-contract/result.json
-      - name: Reject corrupted contract observations
-        env:
-          FR_PYTHON_CONTRACT_REPORT: target/python-contract/result.json
-        run: python3 -B tools/test-python-contract.py
+      - name: Collect reports alongside interface checks, then reject altered records
+        run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: python-contract
           path: target/python-contract
           if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-contract-sdk-checks
+          path: ${{ runner.temp }}/python-contract-sdk.log
+          if-no-files-found: warn
           retention-days: 7
 
   compiler-profile:
