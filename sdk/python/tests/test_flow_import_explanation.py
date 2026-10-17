@@ -150,8 +150,8 @@ def test_saved_report_command_does_not_read_the_original_workspace(tmp_path):
 def test_complete_reader_example_and_fresh_analysis_after_edit(tmp_path):
     guide = (ROOT / "docs/explain-python-imports.md").read_text()
     programs = re.findall(r"```python\n(.*?)```", guide, re.S)
-    assert len(programs) == 3
-    for name, source in zip(("helpers.py", "app.py", "explain.py"), programs):
+    assert len(programs) == 4
+    for name, source in zip(("helpers.py", "app.py", "explain.py", "run_example.py"), programs):
         (tmp_path / name).write_text(source)
     (tmp_path / "rules.json").write_text(re.findall(r"```json\n(.*?)```", guide, re.S)[0])
     environment = dict(os.environ, PATH=str(ROOT / "target/debug") + os.pathsep + os.environ["PATH"])
@@ -163,7 +163,7 @@ def test_complete_reader_example_and_fresh_analysis_after_edit(tmp_path):
     before = run("explain.py")
     assert "1 import-time statement unchecked" in before and "line 4" in before
     assert "unfinished" in before
-    runtime = subprocess.run([sys.executable, "-c", "import app; print(app.entry())"], cwd=tmp_path,
+    runtime = subprocess.run([sys.executable, "run_example.py"], cwd=tmp_path,
                              capture_output=True, text=True, timeout=10)
     assert runtime.returncode == 0 and runtime.stdout.strip() == "17"
     (tmp_path / "helpers.py").write_text(programs[0].replace("metadata = start()", "metadata = 0"))

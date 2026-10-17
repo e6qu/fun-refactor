@@ -32,16 +32,12 @@ def relay(value):
 ```
 
 Save this as `app.py`. `read_input` supplies the chosen input and `send` represents the output.
-They are ordinary functions here, so the example also runs in Python.
+These external functions come from the code that launches the program.
+The rules below describe their roles; a separate launcher supplies actual Python implementations.
+Keep those implementations outside `app.py` and its imports: a rule cannot also name a local definition.
 
 ```python
 from helpers import relay
-
-def read_input():
-    return 17
-
-def send(value):
-    return value
 
 def entry():
     return send(relay(read_input()))
@@ -97,7 +93,26 @@ print(explanation.render(max_bytes=2048), end="")
 Run `python3 explain.py`. The explanation says the recorded import check is unfinished.
 It counts one unchecked import-time statement and points to line 4 of `helpers.py`.
 The overall value trace remains unfinished even if it contains a possible input-to-output connection.
-This does not mean the program crashes: `python3 -c 'import app; print(app.entry())'` prints 17.
+
+Save this as `run_example.py` to supply the external functions and run the same program.
+Assigning `app.read_input` and `app.send` makes those names available when `entry()` executes.
+The analyzer follows `app.py` and `helpers.py`; neither imports this launcher.
+
+```python
+import app
+
+def read_input():
+    return 17
+
+def send(value):
+    return value
+
+app.read_input = read_input
+app.send = send
+print(app.entry())
+```
+
+Run `python3 run_example.py`. It prints 17 even though the analysis remains unfinished.
 
 For this example, replace `metadata = start()` with `metadata = 0`, then run `python3 explain.py` again.
 The new analysis can finish under its stated rules.
