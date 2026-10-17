@@ -152,8 +152,8 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-17-default-replacements-python-contract/manifest.json)
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json)
 covers 458 programs and 916 original or renamed cases, including explicit replacements of checked object defaults.
 It preserves 344 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
 These counts describe the checked examples; they do not mean every example has a complete analysis.

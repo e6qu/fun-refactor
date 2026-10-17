@@ -1255,7 +1255,7 @@ The earlier cancelled run checked 1,155 interface cases on another runner; these
 
 The [retention audit](https://github.com/e6qu/fun-refactor/actions/runs/39057204807) kept the original reports and verified their recorded inputs against current files.
 It passed the same 56 altered-record controls in 108.915 seconds under the unchanged 120-second limit.
-The [current receipt](../tests/agent-eval/results/2026-10-17-default-replacements-python-contract/manifest.json)
+That [collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-python-contract/manifest.json)
 retains 344 incomplete answers, eighteen refusals and 126 documented differences between model and runtime observations.
 The familiar-library replay keeps its previous full-package outcomes. No full-package answer becomes complete through this call rule.
 
@@ -1273,3 +1273,11 @@ The first helper check caught a checksum encoding type error; it was corrected t
 That attempt produced no compiler report, and its now-stale Python collection was cancelled.
 The edited test files are recorded inputs, so the compiler, Python and familiar-library reports require fresh hosted collections.
 Unchanged captures retain their original names and bytes when assembled into the new current collection.
+
+The [fresh compiler collection](https://github.com/e6qu/fun-refactor/actions/runs/39066090634) passed all four selection controls, 88 editing tests and 27 altered-result checks.
+The [fresh Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39066103722) passed 1,246 client cases, checked 916 examples and passed 56 altered-result checks in 108.586 seconds.
+The [fresh library replay](https://github.com/e6qu/fun-refactor/actions/runs/39066248827) preserves the same unfinished full-package outcomes.
+The [complete collection audit](https://github.com/e6qu/fun-refactor/actions/runs/39066978333) passed fourteen admission controls and the existing audits for all seventeen native report groups.
+It also repeated the 56 Python controls in 108.699 seconds, within the unchanged 120-second audit limit.
+The [current receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json) keeps the same 344 incomplete cases, eighteen refusals and 126 documented differences.
+These checks establish consistency with recorded inputs. They do not establish complete library support or a performance improvement.

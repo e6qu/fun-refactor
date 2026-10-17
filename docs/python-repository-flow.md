@@ -237,7 +237,7 @@ The [complete lesson](python-contract.md#give-a-shared-setting-another-name) int
 The remaining `concat = chain` in Funcy reads an imported native object whose behavior is still unresolved here.
 `cat = chain.from_iterable` also needs attribute access checked. Those operations remain separate work.
 
-The [default-replacement replay](../tests/agent-eval/results/2026-10-17-default-replacements-fixed-arity-probes/result.json)
+The [default-replacement replay](../tests/agent-eval/results/2026-10-17-default-replacements-ci-fixed-arity-probes/result.json)
 checks the same familiar libraries after allowing explicit arguments to replace checked object defaults.
 Its 100 cases and 200 Python executions keep the preceding completion totals.
 All 40 full-package cases remain unfinished: 32 incomplete answers and eight deliberate budget refusals.
