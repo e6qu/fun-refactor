@@ -97,19 +97,23 @@ def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
         ImportExplanation.from_report(report)
 
 
-@pytest.mark.parametrize("kind", ["missing", "external", "unchecked-startup", "ordinary"])
+@pytest.mark.parametrize("kind", ["missing", "aliased", "external", "unchecked-startup", "ordinary"])
 def test_fresh_analysis_explains_different_gaps_without_guessing_runtime(tmp_path, kind):
     client, rules = workspace(tmp_path)
-    if kind == "missing":
+    if kind in {"missing", "aliased"}:
         (tmp_path / "leaf.py").write_text("def other(value):\n    return value\n")
+        if kind == "aliased":
+            (tmp_path / "relay.py").write_text("from leaf import identity as forwarded\ndef forward(value):\n    return forwarded(value)\n")
     elif kind == "external":
         (tmp_path / "leaf.py").write_text("import math\ndef identity(value):\n    return value\n")
     elif kind == "unchecked-startup":
         (tmp_path / "leaf.py").write_text("metadata = opaque()\ndef identity(value):\n    return value\n")
     result = ImportExplanation.from_report(analyze(client, rules).report)
-    if kind == "missing":
+    if kind in {"missing", "aliased"}:
         assert any(gap.kind == "missing-binding" for gap in result.gaps)
         assert not result.import_check_complete
+        if kind == "aliased":
+            assert '"identity" as "forwarded"' in result.render()
     elif kind == "external":
         assert any(gap.kind == "local-module" and gap.module == "math" for gap in result.gaps)
         assert not result.import_check_complete

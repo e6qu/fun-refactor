@@ -55,8 +55,12 @@ class ImportGap:
     kind: str
     importer: str
     module: str
-    names: tuple[str, ...]
+    bindings: tuple[tuple[str, str | None], ...]
     unread_paths: tuple[str, ...]
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        return tuple(alias for alias, _ in self.bindings)
 
     @property
     def explanation(self) -> str:
@@ -109,7 +113,7 @@ class ImportExplanation:
 
     @property
     def unresolved_requests(self) -> int:
-        return sum(len(gap.names) for gap in self.gaps)
+        return sum(len(gap.bindings) for gap in self.gaps)
 
     @property
     def import_check_complete(self) -> bool:
@@ -136,14 +140,15 @@ class ImportExplanation:
                       if candidate.status == "source"}
         candidates.update(candidate.path for lookup in dependencies.lookups if lookup.submodule is not None
                           for candidate in lookup.submodule.candidates if candidate.status == "source")
-        grouped: dict[tuple[str, str, str, tuple[str, ...]], list[str]] = {}
+        grouped: dict[tuple[str, str, str, tuple[str, ...]], list[tuple[str, str | None]]] = {}
         for lookup in dependencies.lookups:
             gap = _gap(lookup, files, namespaces, candidates)
             if gap is not None:
                 kind, paths = gap
-                grouped.setdefault((kind, lookup.importer, lookup.module, paths), []).append(lookup.alias)
-        gaps = tuple(ImportGap(kind, importer, module, tuple(sorted(names)), paths)
-                     for (kind, importer, module, paths), names in sorted(
+                grouped.setdefault((kind, lookup.importer, lookup.module, paths), []).append((lookup.alias, lookup.member))
+        gaps = tuple(ImportGap(kind, importer, module, tuple(sorted(bindings,
+                         key=lambda binding: (binding[0], "" if binding[1] is None else binding[1]))), paths)
+                     for (kind, importer, module, paths), bindings in sorted(
                          grouped.items(), key=lambda pair: (_PRIORITY[pair[0][0]], pair[0][1:])))
         families = {reason.split(":", 1)[0] for reason in dependencies.cutoffs}
         if not families <= _LIMITS.keys() | _CONDITIONS.keys():
@@ -178,8 +183,8 @@ class ImportExplanation:
             return (f"Shown {groups}/{len(self.gaps)} import groups and "
                     f"{files}/{len(self.initialization.by_file)} startup file summaries; "
                     f"{conditions}/{len(self.conditions)} other import conditions.\n"
-                    f"Recorded startup sample: {len(self.initialization.sites)} locations; "
-                    f"{self.initialization.omitted} additional locations omitted by the analyzer.\n"
+                    f"Recorded startup sample: {_count(len(self.initialization.sites), 'location')}; "
+                    f"{_count(self.initialization.omitted, 'additional location')} omitted by the analyzer.\n"
                     "Each shown file summary includes at most one recorded location.\n")
 
         if len(("\n".join(lines) + "\n" + footer(0, 0, 0)).encode()) > max_bytes:
@@ -187,7 +192,9 @@ class ImportExplanation:
         group_items = []
         for gap in self.gaps:
             source = ", ".join(json.dumps(path, ensure_ascii=False) for path in gap.unread_paths)
-            names = ", ".join(json.dumps(name, ensure_ascii=False) for name in gap.names[:3])
+            names = ", ".join(
+                (json.dumps(member, ensure_ascii=False) + " as " if member is not None and member != alias else "")
+                + json.dumps(alias, ensure_ascii=False) for alias, member in gap.bindings[:3])
             if len(gap.names) > 3:
                 names += f" and {len(gap.names) - 3} more"
             line = (f"Import in {json.dumps(gap.importer, ensure_ascii=False)} from "
