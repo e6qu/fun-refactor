@@ -25,6 +25,13 @@ Do not use their internal call durations as measurements of the helper alone.
 The corrected collector starts the call timer after copying file names at import completion.
 It also stops after saving the first failed process, preserving upload time within the unchanged job deadline.
 
+The [corrected capture](https://github.com/e6qu/fun-refactor/actions/runs/39074486759) passed sixteen controls, including separate timing and first-failure preservation.
+All sixteen real processes and forty-eight integer calls completed without resource stops or collection errors.
+The package file counts and source sizes agree with both earlier captures.
+Its [raw artifact](../tests/agent-eval/python-startup/2026-10-18-corrected-timing.zip) and [current receipt](../tests/agent-eval/python-startup/current-run.json) preserve the corrected measurements.
+That runner used an Intel Xeon Platinum 8370C processor.
+The timing table still describes the first capture; results from different processors do not establish a timing improvement.
+
 | Selected helper | Files read by the saved analyzer answer | Package source files observed in Python | Whole-file source bytes observed |
 | --- | ---: | ---: | ---: |
 | Toolz `return_none` | 14 | 13 | 103,897 |
