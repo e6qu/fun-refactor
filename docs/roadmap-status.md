@@ -64,7 +64,7 @@ User example: Replay the two prescribed repository repairs and check their behav
 
 **State: demonstrated.** The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.
 
-Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-value-aliases-python-repositories/result.json).
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-import-explanations-python-repositories/result.json).
 
 Next: Keep these delivery regression tests; evaluate unscripted problem solving separately.
 
@@ -134,7 +134,7 @@ User example: After another agent edits the helper, recheck the finding that dep
 
 **State: demonstrated.** In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.
 
-Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-value-aliases-python-repositories/result.json).
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-import-explanations-python-repositories/result.json).
 
 Next: Keep the saved-plan and delivery regression tests reproducible.
 
@@ -174,7 +174,7 @@ User example: Apply a reviewed repair, run its required checks and verify the ex
 
 **State: demonstrated.** The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.
 
-Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-value-aliases-python-repositories/result.json).
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-17-import-explanations-python-repositories/result.json).
 
 Next: Keep these behavior and patch-replay tests passing.
 
@@ -236,7 +236,7 @@ The entries below identify the stored test results. “Current” means their re
 |---|---|---|---|
 | [exact-facts](../tests/agent-eval/results/2026-10-17-value-aliases-flow-facts/result.json) / scripted behavior checks | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-flow-facts/result.json` |
 | [package-flow](../tests/agent-eval/results/2026-10-17-value-aliases-package-flow/result.json) / scripted behavior checks | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-17-value-aliases-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-python-repositories` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-17-import-explanations-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-17-import-explanations-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-17-value-aliases-flow-cache/result.json) / measured tool operations | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-17-value-aliases-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / scripted behavior checks | checked | historical | Rust rename/signature migration with 49 calls; frozen recorded input fingerprints. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |

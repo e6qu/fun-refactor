@@ -108,6 +108,17 @@ def take(n, iterable):
             acceptance.save(destination, {'unexpected': 'large report'})
         self.assertFalse(destination.exists())
 
+    def test_task_timeout_keeps_diagnostics_without_publishing_a_success(self):
+        record = {'seconds': 181, 'original_upstream': {'exit_code': 0, 'stdout': 'all cases passed'}}
+        with self.assertRaisesRegex(AssertionError, 'task budget is 180s'):
+            acceptance.save_task_record('slow-task', self.root, record)
+        diagnostic = json.loads((self.root / 'budget-failure.json').read_text())
+        self.assertFalse(diagnostic['passed'])
+        self.assertEqual(diagnostic['seconds'], 181)
+        self.assertEqual(diagnostic['limit_seconds'], 180)
+        self.assertEqual(diagnostic['original_upstream'], record['original_upstream'])
+        self.assertFalse((self.root / 'result.json').exists())
+
     def test_pinned_original_behavior_fails_without_modifying_archives(self):
         for name, task in acceptance.TASKS['tasks'].items():
             root = self.root / name

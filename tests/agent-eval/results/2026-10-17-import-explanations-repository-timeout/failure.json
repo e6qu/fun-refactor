@@ -1,0 +1,20 @@
+{
+  "scope": "Failed collection, retained for diagnosis. This is not qualifying acceptance evidence.",
+  "run_id": 39045269109,
+  "job_id": 117432634322,
+  "url": "https://github.com/e6qu/fun-refactor/actions/runs/39045269109",
+  "source_commit": "e4a65ebc2a7c773cb516e2b921257f80f1f695cc",
+  "conclusion": "failure",
+  "failure": "take-tail-counts exceeded the unchanged 180-second task budget.",
+  "missing_detail": "The original collector refused before saving the second task summary, so its exact elapsed time is unavailable.",
+  "observed_upstream_check_ms": [
+    42306,
+    39455
+  ],
+  "artifact_id": 12105459850,
+  "artifact_name": "roadmap-evidence",
+  "files": {
+    "capture.zip": "2a17c45aa2d890e7ca1544d6dacc22073082a1c7b307c17fc1ac616f23e3312a",
+    "failure.log": "afa4240523f4dbaf1ea46f41ff57fe87cd02618d32662f3f520a63b34a0ff080"
+  }
+}

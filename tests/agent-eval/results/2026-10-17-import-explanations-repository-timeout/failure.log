@@ -1,0 +1,11 @@
+2026-10-17T15:46:36.0927842Z Traceback (most recent call last):
+2026-10-17T15:46:36.0939430Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-repository-acceptance.py", line 443, in <module>
+2026-10-17T15:46:36.0940145Z     main()
+2026-10-17T15:46:36.0940359Z     ~~~~^^
+2026-10-17T15:46:36.0940937Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-repository-acceptance.py", line 426, in main
+2026-10-17T15:46:36.0941723Z     records = {name: measure_task(args.fr.resolve(), name, task, args.output / name)
+2026-10-17T15:46:36.0942251Z                      ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-17T15:46:36.0943304Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-repository-acceptance.py", line 324, in measure_task
+2026-10-17T15:46:36.0944068Z     assert record['seconds'] <= TASKS['budgets']['task_seconds']
+2026-10-17T15:46:36.0944484Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-17T15:46:36.0944815Z AssertionError

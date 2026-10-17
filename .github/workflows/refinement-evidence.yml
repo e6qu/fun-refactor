@@ -1028,12 +1028,56 @@ jobs:
           key: default
           cache-on-failure: true
       - run: cargo build --locked
+      - name: Check archive, behavior and task-budget refusals
+        run: python3 tests/agent-eval/test_python_repository_acceptance.py
       - name: Execute pinned upstream tasks and independent replay
         run: python3 tools/python-repository-acceptance.py --output "$RUNNER_TEMP/roadmap-evidence"
+      - name: Prepare fresh repository records and tracking pages together
+        env:
+          FR_EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import subprocess
+          prefix = os.environ['FR_EVIDENCE_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix), 'supply a plain dated prefix'
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          relative = Path('tests/agent-eval/results') / (prefix + '-python-repositories')
+          assert not relative.exists(), 'preserve previous records; choose a new prefix'
+          shutil.copytree(temporary / 'roadmap-evidence', relative)
+          catalog_path = Path('tests/agent-eval/roadmap.json')
+          catalog = json.loads(catalog_path.read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'repository-tasks']
+          report = relative / 'result.json'
+          entry.update(path=report.as_posix(), sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
+                       audit=f'python3 tools/python-repository-acceptance.py --audit {relative.as_posix()}')
+          catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+          subprocess.run(['python3', 'tools/python-repository-acceptance.py', '--audit', str(relative)], check=True)
+          for flag in ('--write', '--check'):
+              subprocess.run(['python3', 'tools/roadmap-status.py', flag], check=True)
+          subprocess.run(['python3', 'tests/agent-eval/test_roadmap_status.py'], check=True)
+          bundle = temporary / 'python-repository-update'
+          shutil.copytree(relative, bundle / relative)
+          for path in (catalog_path, Path('docs/roadmap-status.json'), Path('docs/roadmap-status.md')):
+              destination = bundle / path
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(path, destination)
+          PY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: roadmap-evidence
           path: ${{ runner.temp }}/roadmap-evidence
           if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-repository-update
+          path: ${{ runner.temp }}/python-repository-update
+          if-no-files-found: error
           retention-days: 7

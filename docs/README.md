@@ -7,6 +7,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | --- | --- |
 | Find the code behind a bug | [Tutorial](../TUTORIAL.md), then [finding and checking an explanation](agent-investigations.md) |
 | Ask whether Python input reaches an output | [Python examples and limits](python-contract.md) |
+| Understand why a Python import trace cannot finish | [Explain the recorded gaps](explain-python-imports.md) |
 | Fix one function | [Change its implementation](body-authoring.md), then [test the requested behavior](checked-outcomes.md) |
 | Rename a function or change its arguments | [Find affected callers](change-scopes.md) and [review the related changes](structural-changes.md) |
 | Undo a mistake or continue interrupted work | [Recovery](host-recovery.md) and [correcting a failed edit](source-repair.md) |

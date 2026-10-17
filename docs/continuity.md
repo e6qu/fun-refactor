@@ -19,7 +19,8 @@ We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
 ## The current reader review
 
-The reader review covers all 120 current guides and references, including tutorials, agent instructions and project trackers.
+The reader review covered 120 guides and references, including tutorials, agent instructions and project trackers.
+New guides follow the same rules and receive link and example checks.
 Keep concepts explained where readers first need them, without assuming knowledge of earlier development.
 The [writing guide](style.md) describes the review rules; the [measurement guide](benchmarks.md) names baselines, extra costs and missing measurements.
 
@@ -34,6 +35,10 @@ Do not change recorded fingerprints to disguise outdated results.
 ## Continue Python work from actual library failures
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
+The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
+It also shows names the checker cannot resolve and code left unchecked during import.
+It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.
+
 Ordinary tests and symbolic execution found the same missing input assumption for Pydash's quantity limits.
 Its original-package trace still reaches the source limit and leaves startup operations unchecked; the copied-function trace finishes.
 Use the simpler tests for this question. The experiment adds no analyzer support and cannot establish agent savings.
