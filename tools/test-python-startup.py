@@ -82,6 +82,32 @@ class StartupChecks(unittest.TestCase):
             self.assertIn('example/later.py', observed['files'])
             self.assertEqual([row['phase'] for row in observed['execution'] if row['path'] == 'example/later.py'], ['call'])
 
+    def test_call_time_metadata_changes_do_not_rewrite_the_import_time_inventory(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            package = root / 'example'
+            package.mkdir()
+            (package / '__init__.py').write_text('')
+            (package / 'helpers.py').write_text('import sys\ndef relay(value):\n'
+                '    sys.modules[__name__].__file__ = "/outside/changed.py"\n    return value\n')
+            for traced in (False, True):
+                with self.subTest(traced=traced):
+                    observed = self.execute(root, traced=traced)
+                    self.assertEqual(observed['modules']['example.helpers'], 'example/helpers.py')
+                    self.assertIn('example/helpers.py', observed['files'])
+
+    def test_call_timer_starts_after_the_import_time_inventory_snapshot(self):
+        def relay(value):
+            return value
+        selected = types.SimpleNamespace(relay=relay)
+        with patch.object(worker.importlib, 'import_module', return_value=selected), \
+             patch.object(worker.time, 'perf_counter', side_effect=[1.0, 3.0, 5.0, 8.0]):
+            observed = worker.observe(Path(__file__).resolve().parent, 'unloaded_example.helpers',
+                                      'relay', [[17]], False)
+        self.assertEqual(observed['returned'], [17])
+        self.assertEqual(observed['import_seconds'], 2.0)
+        self.assertEqual(observed['call_seconds'], 3.0)
+
     def test_tracing_limit_fails_instead_of_returning_a_shortened_success(self):
         recorder = worker.Recorder(Path('/tmp'), event_limit=1)
         frame = types.SimpleNamespace(f_code=types.SimpleNamespace(co_filename='/tmp/example.py', co_name='<module>'), f_lineno=1)

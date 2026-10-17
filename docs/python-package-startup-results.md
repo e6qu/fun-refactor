@@ -19,6 +19,11 @@ It repeats the package file counts, source sizes and forty-eight expected intege
 Its separate audit also checks producer metadata, raw-output fingerprints, transcript sizes and sampled measurements against the unchanged limits.
 The [second raw artifact](../tests/agent-eval/python-startup/2026-10-18-checked-run.zip) and [receipt](../tests/agent-eval/python-startup/checked-run.json) preserve that capture.
 It used an AMD EPYC 7763 processor; the timing table continues to describe the first runner only.
+Review then found that both captures' internal helper-call timer included copying the module inventory.
+Their outer elapsed measurements include that work as declared, so the table below remains valid for those complete observed processes.
+Do not use their internal call durations as measurements of the helper alone.
+The corrected collector starts the call timer after copying file names at import completion.
+It also stops after saving the first failed process, preserving upload time within the unchanged job deadline.
 
 | Selected helper | Files read by the saved analyzer answer | Package source files observed in Python | Whole-file source bytes observed |
 | --- | ---: | ---: | ---: |

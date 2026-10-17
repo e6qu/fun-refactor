@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import time
+from types import ModuleType
 
 
 class Recorder:
@@ -71,8 +72,10 @@ def observe(root, module, function, arguments, traced):
         loaded = importlib.import_module(module)
         selected = getattr(loaded, function)
         imported = time.perf_counter()
-        imported_modules = tuple(sys.modules.items())
+        imported_modules = {name: vars(item).get('__file__') for name, item in tuple(sys.modules.items())
+                            if isinstance(item, ModuleType)}
         recorder.phase = 'call'
+        calls_started = time.perf_counter()
         returned = [selected(*items) for items in arguments]
         finished = time.perf_counter()
     finally:
@@ -81,8 +84,7 @@ def observe(root, module, function, arguments, traced):
     if not defining.is_relative_to(root):
         raise ValueError('selected helper came from outside the pinned source')
     modules = {}
-    for name, item in imported_modules:
-        filename = getattr(item, '__file__', None)
+    for name, filename in imported_modules.items():
         if isinstance(filename, str):
             path = Path(filename).resolve()
             if path.is_relative_to(root) and path.suffix == '.py':
@@ -92,7 +94,7 @@ def observe(root, module, function, arguments, traced):
                     'sha256': hashlib.sha256((root / path).read_bytes()).hexdigest()} for path in paths}
     return {'module': module, 'function': function, 'arguments': arguments, 'returned': returned,
             'defining_path': defining.relative_to(root).as_posix(), 'traced': traced,
-            'import_seconds': imported - started, 'call_seconds': finished - imported,
+            'import_seconds': imported - started, 'call_seconds': finished - calls_started,
             'modules': dict(sorted(modules.items())), 'files': files,
             'events': recorder.events, 'event_limit': recorder.event_limit, 'execution': recorder.records()}
 
