@@ -1112,7 +1112,7 @@ EXAMPLES.extend([
 
 EXAMPLES.extend([
     example('replacement-function', 'defaults calls names', 'return sink(relay(source()))', [S, T], 17,
-            witness=True, prelude='def marker(value):\n    return source()\ndef relay(value=marker):\n    return value\n'),
+            witness=True, source_index=1, prelude='def marker(value):\n    return source()\ndef relay(value=marker):\n    return value\n'),
     example('replacement-function-clean', 'defaults calls names', 'return sink(relay(0))', [ZERO], 0,
             prelude='def marker(value):\n    return source()\ndef relay(value=marker):\n    return value\n'),
     example('replacement-builtin', 'defaults calls names', 'return sink(relay(value=source()))', [S, T], 17,
