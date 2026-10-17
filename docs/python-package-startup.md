@@ -8,6 +8,7 @@ The current Toolz, Funcy and Pydash package answers remain incomplete.
 This investigation observes ordinary Python execution to choose the next analysis change.
 It adds no supported language behavior and establishes no agent time or money saving.
 The reserved unfamiliar project, Jaraco.functools, remains unread.
+Read the [recorded findings](python-package-startup-results.md) for the observed files, costs and next implementation question.
 
 ## Try a package that changes its helper
 

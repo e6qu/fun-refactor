@@ -1,0 +1,94 @@
+# What package startup prevents us from answering
+
+The [startup investigation](python-package-startup.md) asks why simple helpers still produce incomplete package answers.
+Ordinary Python ran all four selected helpers successfully through their original package imports.
+The observation does not complete the analyzer's answers.
+It shows different obstacles that another small change to function defaults would leave unresolved.
+
+## What the first capture observed
+
+The [first hosted run](https://github.com/e6qu/fun-refactor/actions/runs/39073655766) passed thirteen control tests and completed all sixteen planned processes.
+All forty-eight helper calls matched their independently stated integer results.
+Ordinary and instrumented runs loaded the same package modules and returned the same results for these inputs.
+There were no resource stops or collection errors.
+The [raw artifact](../tests/agent-eval/python-startup/2026-10-18-first-run.zip) and [receipt](../tests/agent-eval/python-startup/first-run.json) preserve that first capture.
+The receipt identifies its original collector; later audit improvements require a fresh capture rather than rewriting this one.
+
+| Selected helper | Files read by the saved analyzer answer | Package source files observed in Python | Whole-file source bytes observed |
+| --- | ---: | ---: | ---: |
+| Toolz `return_none` | 14 | 13 | 103,897 |
+| Funcy `inc` | 16 | 16 | 74,739 |
+| Funcy `dec` | 16 | 16 | 74,739 |
+| Pydash `add` | 8 | 15 | 430,220 |
+
+The analyzer column includes one small calling script, `repository_probe.py`, outside the original package.
+The Python column counts distinct source files inside the pinned package, including its startup file.
+These counts exclude standard-library and separately installed dependency files.
+Bytes count each observed source file's entire contents, including function bodies that never ran.
+They do not measure the minimum code necessary to answer the question.
+
+The saved analyzer answers still report 82 unchecked startup statements for Toolz, 76 for each Funcy question and 420 for Pydash.
+The new observation leaves those answers unchanged.
+They remain subject to unsupported imports, startup behavior and the existing search limits.
+
+## Why the remaining work differs
+
+**Toolz needs startup effects understood.** The analyzer already read every package source file observed in this run, plus the calling script.
+Python still called `create_signature_registry` during package import.
+That function builds a table describing which arguments other functions accept.
+Its `expand_sig` helper ran 237 times before the selected `return_none` call.
+Only `toolz/functoolz.py` ran package code during the later helper-call phase.
+The difference explains where to investigate; it does not prove the earlier setup cannot affect the helper.
+
+For example, the [complete small-package lesson](python-package-startup.md#try-a-package-that-changes-its-helper) replaces a helper during import.
+Skipping apparently unrelated startup code would miss that change.
+Toolz's table builder also calls imported introspection functions, which examine other functions' arguments.
+Those calls need checked behavior before the analyzer can declare startup understood.
+
+**Funcy needs work split without losing dependencies.** Python observed sixteen package source files.
+The separate calling script makes seventeen files for this complete observed execution, above the existing sixteen-file limit.
+The analyzer read fifteen of those package files and left `funcy/_inspect.py` unread.
+Both later integer helpers ran only `funcy/primitives.py` in the package.
+The small helper body does not remove the package startup that preceded it.
+
+**Pydash needs more than a repeated-search fix.** Python observed fifteen package source files totaling 430,220 bytes, about 420 KiB.
+KiB means 1,024 bytes. The existing source limit is 256 KiB, or 262,144 bytes.
+Eight observed package files were absent from the analyzer's loaded files, including `pydash/helpers.py` and `pydash/types.py`.
+The selected integer calls later ran only `pydash/numerical.py` in the package.
+Reducing duplicate searches alone cannot fit all this observed source into the existing single-analysis source budget.
+
+## What to implement next
+
+The next useful question is: can the checker understand a package's startup once and safely reuse that result for a helper question?
+A reusable result would need to record the source and imports it depends on, which names or objects startup changes, and what remains unknown.
+Changing any of those inputs must invalidate the saved result.
+The result must preserve unknown calls and writes instead of assuming they have no effect.
+
+Start with a small import-time registration function and a test that changes it to replace the selected helper.
+A registration function records values or functions for later use, like Toolz's argument table.
+Check both outcomes against ordinary Python before using the result to make any answer complete.
+Keep existing file, source, search and execution limits throughout that work.
+Splitting a large question into smaller checked steps requires an explicit dependency connection between those steps.
+Running more unchecked source elsewhere would not solve the correctness problem.
+
+These observations identify a design question, not an implemented package-summary capability.
+They do not establish a safe minimal dependency set or general support for Toolz, Funcy or Pydash.
+Jaraco.functools remains unread until an implementation freezes before its first evaluation.
+
+## What the timings mean
+
+The first runner used Python 3.14.8 on an AMD EPYC 9V45 processor.
+Outer elapsed times included a fresh interpreter, the package import, three helper calls, source inspection, output and monitoring.
+
+| Helper | Ordinary Python elapsed range, seconds | Instrumented Python elapsed range, seconds |
+| --- | ---: | ---: |
+| Toolz `return_none` | 0.069500–0.120129 | 0.072614–0.130088 |
+| Funcy `inc` | 0.072975–0.125304 | 0.078976–0.131090 |
+| Funcy `dec` | 0.070721–0.081507 | 0.079910–0.084375 |
+| Pydash `add` | 0.124876–0.127654 | 0.134245–0.136398 |
+
+Each range contains only two observations.
+The baseline performs the same imports and calls without the tracing callback.
+Both methods perform the later source inspection and output.
+The [method](python-package-startup.md#understand-the-comparison-costs) explains included costs, excluded setup, sampled-resource limits and uncontrolled caches.
+This small capture cannot establish a stable tracing slowdown, analyzer overhead or agent savings.

@@ -35,6 +35,13 @@ Do not change recorded fingerprints to disguise outdated results.
 ## Continue Python work from actual library failures
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
+Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.
+Python observed sixteen Funcy package files plus the caller, and about 420 KiB of Pydash package source.
+Those complete observed executions exceed the existing single-analysis budgets.
+Toolz fits the observed local file set but still runs its argument-table builder and imported introspection code.
+Investigate checking startup once and reusing its result with explicit dependencies, changed-source invalidation and unknown effects preserved.
+The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
+This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
 It also shows names the checker cannot resolve and code left unchecked during import.
 It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.

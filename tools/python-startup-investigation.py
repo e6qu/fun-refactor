@@ -23,6 +23,10 @@ SOURCES = ('tools/python-startup-investigation.py', 'tools/python-startup-worker
            'tools/test-python-startup.py', 'tools/agent_eval/bounded_host.py',
            'tools/agent_eval/study.py', '.github/workflows/python-startup.yml',
            'tests/agent-eval/python-startup/plan.json', 'docs/python-package-startup.md')
+MEASUREMENT_SCOPE = ('Fresh Python process per import and three-call batch. Host elapsed includes startup, '
+                     'observation, output and monitoring. Import/call timers exclude inventory and serialization. '
+                     'Sampled CPU/RSS exclude the monitor. Checkout, dependency installation and source admission '
+                     'are outside these timers.')
 spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/python-repository-flow.py')
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
@@ -178,8 +182,15 @@ def audit(directory):
     result = json.loads((directory / 'result.json').read_bytes())
     require(set(result) == {'source_commit', 'source_files', 'plan', 'python', 'platform', 'cpu_model',
             'logical_cpus', 'limits', 'measurement_scope', 'attempts', 'finished'}, 'collection fields changed')
-    require(result['source_files'] == bindings() and result['plan'] == PLAN and result['limits'] == LIMITS,
+    require(result['source_files'] == bindings()
+            and json.dumps(result['plan'], sort_keys=True) == json.dumps(PLAN, sort_keys=True)
+            and result['limits'] == LIMITS and result['measurement_scope'] == MEASUREMENT_SCOPE,
             'collection inputs changed')
+    require(isinstance(result['source_commit'], str) and len(result['source_commit']) == 40
+            and all(char in '0123456789abcdef' for char in result['source_commit'])
+            and type(result['logical_cpus']) is int and result['logical_cpus'] > 0
+            and all(isinstance(result[key], str) and result[key] for key in ('python', 'platform', 'cpu_model')),
+            'missing producer or runner identity')
     require(result['finished'] is True and len(result['attempts']) == len(schedule()), 'collection did not finish')
     observations = {}
     with tempfile.TemporaryDirectory(prefix='fr-startup-audit-') as temporary:
@@ -189,12 +200,15 @@ def audit(directory):
             helper = next(item for item in PLAN['helpers'] if item['id'] == helper_id)
             require(set(row) == {'helper', 'traced', 'repetition', 'measurement', 'comparison', 'error',
                                 'stdout_sha256', 'stderr_sha256'}
-                    and (row['helper'], row['traced'], row['repetition']) == cell and row['error'] is None,
+                    and (row['helper'], row['traced'], row['repetition']) == cell and row['error'] is None
+                    and row['traced'] is traced and type(row['repetition']) is int,
                     'missing, reordered or failed observation')
             stdout_path = directory / f'attempt-{index:02d}.stdout'
             stderr_path = directory / f'attempt-{index:02d}.stderr'
             require(digest(stdout_path) == row['stdout_sha256'] and digest(stderr_path) == row['stderr_sha256'],
                     'raw observation output changed')
+            require(stdout_path.stat().st_size + stderr_path.stat().st_size == row['measurement']['transcript_bytes'],
+                    'raw observation size disagrees with the host measurement')
             raw = stdout_path.read_text()
             observation = checked_observation(checked_process(row['measurement'], raw), helper, traced,
                                               scopes[helper['project']])
@@ -214,7 +228,7 @@ def collect(output):
               'source_files': bindings(), 'plan': PLAN, 'python': sys.version, 'platform': platform.platform(),
               'cpu_model': next(line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()
                                 if line.startswith('model name')), 'logical_cpus': os.cpu_count(), 'limits': LIMITS,
-              'measurement_scope': 'Fresh Python process per import and three-call batch. Host elapsed includes startup, observation, output and monitoring. Import/call timers exclude inventory and serialization. Sampled CPU/RSS exclude the monitor. Checkout, dependency installation and source admission are outside these timers.',
+              'measurement_scope': MEASUREMENT_SCOPE,
               'attempts': [], 'finished': False}
     save(output / 'result.json', result)
     for index, (helper_id, traced, repetition) in enumerate(schedule()):

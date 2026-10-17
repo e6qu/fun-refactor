@@ -217,14 +217,16 @@ class StartupChecks(unittest.TestCase):
                  patch.object(study, 'prepare', return_value=({'example': root}, {'example': report})):
                 result = {'source_commit': '1' * 40, 'source_files': {}, 'plan': plan, 'python': sys.version,
                           'platform': 'control', 'cpu_model': 'control', 'logical_cpus': 1,
-                          'limits': study.LIMITS, 'measurement_scope': 'control', 'attempts': [], 'finished': True}
+                          'limits': study.LIMITS, 'measurement_scope': study.MEASUREMENT_SCOPE,
+                          'attempts': [], 'finished': True}
                 for index, (helper_id, traced, repetition) in enumerate(study.schedule()):
                     stdout = root / f'attempt-{index:02d}.stdout'
                     stderr = root / f'attempt-{index:02d}.stderr'
                     stdout.write_text(json.dumps(observations[traced]))
                     stderr.write_text('')
+                    measured = dict(measurement, transcript_bytes=stdout.stat().st_size)
                     result['attempts'].append({'helper': helper_id, 'traced': traced, 'repetition': repetition,
-                        'measurement': measurement, 'comparison': study.comparison(observations[traced], report),
+                        'measurement': measured, 'comparison': study.comparison(observations[traced], report),
                         'error': None, 'stdout_sha256': study.digest(stdout), 'stderr_sha256': study.digest(stderr)})
                 study.save(root / 'result.json', result)
                 study.audit(root)
