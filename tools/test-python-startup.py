@@ -1,6 +1,5 @@
 """Challenge startup observations with import-time changes and altered records."""
 import copy
-import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -132,7 +131,9 @@ class StartupChecks(unittest.TestCase):
         with self.assertRaises(KeyError):
             study.checked_process({'stop_reason': None, 'exit_code': 0}, '{}')
         good = {'stop_reason': None, 'exit_code': 0, 'process_exit_code': 0, 'monitor_error': None,
-                'launch_error': None, 'timed_out': False, 'limits': dict(study.LIMITS)}
+                'launch_error': None, 'timed_out': False, 'limits': dict(study.LIMITS),
+                'elapsed_seconds': 0.1, 'sampled_aggregate_rss_bytes': 123,
+                'sampled_disk_growth_bytes': 0, 'sampled_cpu_seconds': 0, 'transcript_bytes': 2}
         good['limits']['cpu_seconds'] = good['limits'].pop('cpu_limit_seconds')
         for output in ('', 'not json'):
             with self.subTest(output=output), self.assertRaises(ValueError):
@@ -140,6 +141,21 @@ class StartupChecks(unittest.TestCase):
         good['limits']['wall_seconds'] += 1
         with self.assertRaisesRegex(ValueError, 'limits changed'):
             study.checked_process(good, '{}')
+
+    def test_invalid_or_excessive_resource_measurements_cannot_pass(self):
+        value = {'stop_reason': None, 'exit_code': 0, 'process_exit_code': 0, 'monitor_error': None,
+                 'launch_error': None, 'timed_out': False,
+                 'limits': {'wall_seconds': 20, 'rss_bytes': 512 * 1024**2, 'disk_bytes': 16 * 1024**2,
+                            'cpu_seconds': 10, 'transcript_bytes': 1024**2},
+                 'elapsed_seconds': 0.1, 'sampled_aggregate_rss_bytes': 1,
+                 'sampled_disk_growth_bytes': 0, 'sampled_cpu_seconds': 0, 'transcript_bytes': 2}
+        for field in ('elapsed_seconds', 'sampled_aggregate_rss_bytes', 'sampled_disk_growth_bytes',
+                      'sampled_cpu_seconds', 'transcript_bytes'):
+            for number in (-1, float('nan'), float('inf'), True, 10**12):
+                with self.subTest(field=field, number=number), self.assertRaisesRegex(ValueError, 'resource limits'):
+                    altered = copy.deepcopy(value)
+                    altered[field] = number
+                    study.checked_process(altered, '{}')
 
     def test_unobserved_startup_and_unread_source_stay_unfinished(self):
         report = {'complete': False, 'cutoffs': ['module-effects-unchecked'],
@@ -160,6 +176,22 @@ class StartupChecks(unittest.TestCase):
         self.assertEqual(len(cells), 16)
         self.assertEqual(len(cells), len(set(cells)))
         self.assertEqual(cells, study.schedule())
+
+    def test_the_complete_reader_example_changes_the_result_after_the_startup_edit(self):
+        text = (Path(__file__).resolve().parents[1] / 'docs/python-package-startup.md').read_text()
+        blocks = [part.split('```', 1)[0] for part in text.split('```python\n')[1:]]
+        self.assertEqual(len(blocks), 3)
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / 'example').mkdir()
+            for filename, source in zip(('helpers.py', 'setup.py', '__init__.py'), blocks, strict=True):
+                (root / 'example' / filename).write_text(source)
+            self.assertEqual(self.execute(root, traced=False)['returned'], [0, 0, 0])
+            self.assertEqual(self.execute(root)['returned'], [0, 0, 0])
+            path = root / 'example/__init__.py'
+            path.write_text(path.read_text().replace('from . import setup\n', ''))
+            self.assertEqual(self.execute(root, traced=False)['returned'], [-4, 0, 17])
+            self.assertEqual(self.execute(root)['returned'], [-4, 0, 17])
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -21,7 +22,7 @@ LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
 SOURCES = ('tools/python-startup-investigation.py', 'tools/python-startup-worker.py',
            'tools/test-python-startup.py', 'tools/agent_eval/bounded_host.py',
            'tools/agent_eval/study.py', '.github/workflows/python-startup.yml',
-           'tests/agent-eval/python-startup/plan.json')
+           'tests/agent-eval/python-startup/plan.json', 'docs/python-package-startup.md')
 spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/python-repository-flow.py')
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
@@ -69,7 +70,8 @@ def checked_observation(observation, helper, traced, scope):
             'import_seconds', 'call_seconds', 'modules', 'files', 'events', 'event_limit', 'execution'},
             'observation fields changed')
     require(observation['module'] == helper['module'] and observation['function'] == helper['function']
-            and observation['arguments'] == helper['arguments'] and observation['returned'] == helper['expected']
+            and observation['arguments'] == helper['arguments']
+            and json.dumps(observation['returned']) == json.dumps(helper['expected'])
             and observation['defining_path'] == helper['path'] and observation['traced'] is traced,
             'helper identity or ordinary Python result changed')
     require(type(observation['events']) is int and observation['event_limit'] == 200000
@@ -140,6 +142,12 @@ def checked_process(measurement, stdout):
     require(measurement['limits'] == {'wall_seconds': LIMITS['wall_seconds'], 'rss_bytes': LIMITS['rss_bytes'],
             'disk_bytes': LIMITS['disk_bytes'], 'cpu_seconds': LIMITS['cpu_limit_seconds'],
             'transcript_bytes': LIMITS['transcript_bytes']}, 'host observation limits changed')
+    for field, limit in (('elapsed_seconds', 'wall_seconds'), ('sampled_aggregate_rss_bytes', 'rss_bytes'),
+                         ('sampled_disk_growth_bytes', 'disk_bytes'), ('sampled_cpu_seconds', 'cpu_limit_seconds'),
+                         ('transcript_bytes', 'transcript_bytes')):
+        number = measurement[field]
+        require(type(number) in (int, float) and math.isfinite(number) and 0 <= number <= LIMITS[limit],
+                'measurement exceeds its unchanged resource limits')
     return json.loads(stdout)
 
 
