@@ -39,7 +39,11 @@ Read the [package startup findings](python-package-startup-results.md) before an
 Python observed sixteen Funcy package files plus the caller, and about 420 KiB of Pydash package source.
 Those complete observed executions exceed the existing single-analysis budgets.
 Toolz fits the observed local file set but still runs its argument-table builder and imported introspection code.
-Investigate checking startup once and reusing its result with explicit dependencies, changed-source invalidation and unknown effects preserved.
+The [small startup-call lesson](check-python-startup.md) checks a first bounded case: a no-argument function filling its own file's dictionaries.
+Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
+Changing its source invalidates a saved answer through the existing source and import dependencies.
+This does not yet store startup checks separately or divide a large package import into smaller analyses.
+Continue toward that separation with explicit dependencies, changed-source invalidation and unknown effects preserved.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.

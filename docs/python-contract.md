@@ -550,6 +550,10 @@ ASCII module names; class attributes, function defaults and special metadata kee
 
 ## Prepare a callback table without calling its entries
 
+The [startup-call lesson](check-python-startup.md) also fills such a table through a small no-argument function called during import.
+It supplies all files, compares the result with Python, and changes startup to replace the helper as an unfinished control.
+The whole registration function must fit the existing 128-node syntax bound; unknown calls, shared writes and control flow remain unchecked.
+
 A dictionary stores values under keys. A callback is a function stored for a later call;
 `lambda value: value` creates a function that returns its argument when called.
 Creating that function does not execute its body. Its defaults, however, are evaluated immediately.

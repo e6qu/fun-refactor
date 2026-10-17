@@ -148,6 +148,24 @@ fn builtin_defaults_do_not_guess_missing_local_imports_or_earlier_definitions() 
 }
 
 #[test]
+fn startup_registration_checks_writes_and_rejects_helper_replacement() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "app.py", "from helpers import relay\ndef entry():\n    return sink(relay(source()))\n");
+    for (body, complete) in [
+        ("table.update(send=lambda: missing())", true),
+        ("table['label'] = 0\n    return None", true),
+        ("table['label'] = source()", false),
+        ("global relay\n    relay = stopped", false),
+        ("register()", false),
+    ] {
+        write(root.path(), "helpers.py", &format!("table = {{}}\ndef relay(value):\n    return value\ndef stopped(value):\n    return 0\ndef register():\n    {body}\nregister()\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], complete, "{body}: {report}");
+        assert_eq!(report["initialization"]["by_file"].as_object().unwrap().is_empty(), complete);
+    }
+}
+
+#[test]
 fn registry_allocations_defer_callbacks_but_not_computed_population_values() {
     let root = tempfile::tempdir().unwrap();
     write(

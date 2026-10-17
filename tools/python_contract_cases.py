@@ -1168,12 +1168,44 @@ EXAMPLES.extend([
             complete=False, cutoff='module-effects-unchecked'),
 ])
 
+for returned in ('value', '0'):
+    EXAMPLES.append(example('registration-call-' + ('forward' if returned == 'value' else 'discard'),
+        'imports calls names returns boundaries', 'return sink(relay(source()))',
+        [S, T if returned == 'value' else ZERO], 17 if returned == 'value' else 0,
+        witness=returned == 'value', prelude='from helper import table, relay\n', files={
+            'helper.py': "table = {}\ndef register():\n    table.update(send=lambda: missing())\n"
+                         "    table['label'] = 'ready'\n    return None\nregister()\n"
+                         'def relay(value):\n    return ' + returned + '\n'}))
+
+EXAMPLES.extend([
+    example('registration-call-evaluated-value', 'calls names boundaries', 'return sink(source())',
+            [S, S, T], 17, witness=True, source_index=1,
+            prelude="table = {}\ndef register():\n    table['label'] = source()\nregister()\n",
+            complete=False, cutoff='module-effects-unchecked'),
+    example('registration-call-replaces-helper', 'calls names returns boundaries',
+            'return sink(relay(source()))', [S, ZERO], 0, witness=True,
+            prelude='table = {}\ndef relay(value):\n    return value\ndef register():\n'
+                    '    global relay\n    relay = lambda value: 0\nregister()\n',
+            complete=False, cutoff='module-effects-unchecked',
+            difference='Python uses the replacement helper; the model retains a possible original connection while explicitly leaving startup unchecked.'),
+    example('registration-call-shared-table', 'imports calls names boundaries', 'return sink(source())',
+            [S, T], 17, witness=True, files={'helper.py': 'table = {}\n'},
+            prelude="from helper import table\ndef register():\n    table['label'] = 0\nregister()\n",
+            complete=False, cutoff='module-effects-unchecked'),
+    example('registration-call-unbound-table', 'calls names boundaries', 'return sink(source())',
+            [], None, 'NameError', phase='definition', witness=True,
+            prelude="def register():\n    table['label'] = 0\nregister()\ntable = {}\n",
+            complete=False, cutoff='module-effects-unchecked',
+            difference='Python raises before entering the application; the unchecked startup call keeps the model incomplete.'),
+])
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
            'bounce': 'recur', 'helper': 'engine', 'pack': 'parcel', 'inner': 'inside', 'bridge': 'gateway',
            'alpha': 'cedar', 'beta': 'maple', 'subject': 'renamed', 'Token': 'Tag', 'marker': 'sentinel',
-           'Descriptor': 'Notifier', 'Owner': 'Receiver', 'descriptor': 'notifier', 'public': 'exported'}
+           'Descriptor': 'Notifier', 'Owner': 'Receiver', 'descriptor': 'notifier', 'public': 'exported',
+           'register': 'prepare'}
 for prefix, count in [('unit', 17), ('alias', 129), ('link', 21), ('level', 17), ('hop', 65)]:
     RENAMES.update({f'{prefix}{number}': f'renamed_{prefix}{number}' for number in range(count)})
 

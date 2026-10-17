@@ -46,6 +46,7 @@ def bindings():
                  'tools/python-contract-runner.py', 'tools/test-python-contract-runner.py',
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'docs/replace-python-defaults.md', 'sdk/python/tests/test_default_replacements.py',
+                 'docs/check-python-startup.md', 'sdk/python/tests/test_startup_registration.py',
                  'sdk/python/tests/test_value_imports.py',
                  'sdk/python/tests/test_import_order.py',
                  'sdk/python/tests/test_startup_diagnostics.py', 'sdk/python/tests/test_initialization_locations.py',
