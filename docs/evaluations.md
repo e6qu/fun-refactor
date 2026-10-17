@@ -1169,6 +1169,15 @@ The behavior and runtime assertions passed. The fixture imported only the helper
 The corrected test keeps that case, then imports the alias and checks the original kind and full declaration chain.
 Production code and collected example inputs remain unchanged.
 
+The [scripted client job](https://github.com/e6qu/fun-refactor/actions/runs/39031180016/job/117391774611)
+then found an unrelated memory stop during its intentionally unsuccessful review control.
+The sampled process group reached 805,642,240 bytes against its unchanged 805,306,368-byte limit.
+Only one response had completed, so the two-response assertion correctly failed.
+The [original artifact and diagnosis](../tests/agent-eval/opencode/memory/2026-10-17-scripted-limit/README.md)
+retain that failure and its partial work.
+The corrected CI job supplies the existing small catalog and preserves its path in the scripted environment.
+Catalog verification runs before the client. Memory, time and complete-work requirements stay unchanged.
+
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
 and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.
