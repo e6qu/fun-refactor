@@ -81,13 +81,25 @@ cutoff solely because its body or call binding lies outside the scalar model. Ca
 still requires the fixed-slot contract. An unsupported selected entry remains incomplete.
 The [named-default example](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks whether a value exists before the declaration.
 Calls can use [earlier scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default), including [values imported from checked local files](python-contract.md#share-a-default-value-between-files).
+Giving a checked scalar another name, such as `LIMIT = BASE`, also preserves that default.
+The [alias lesson](python-contract.md#give-a-shared-setting-another-name) explains the files, call results and remaining limits.
 Collections, object markers and function objects still prevent calls, even with explicit replacement arguments.
 Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
+
+To find where a shared default came from, the Python interface exposes `FlowDependencies.value_aliases` when imports are enabled.
+Each `ValueAlias` records `path`, `name`, `target` and `offset`.
+For `LIMIT = BASE` in `settings.py`, `name` is `LIMIT` and `target` is the earlier name `BASE`.
+`offset` counts UTF-8 bytes from the start of that file, rather than Python string characters.
+For example, `café` has four characters but occupies five bytes in UTF-8.
+The import's `binding_chain` follows those names back to the original declaration.
+Aliasing a list does not make it a scalar.
+The reader requires the current inventory, including an empty list when there are no value aliases.
+It rejects missing or contradictory records before using saved answers.
 
 The required `CallBinding.initialization` field describes which declarations may coexist with a trace.
 It includes [bounded maps of built-in types](python-contract.md#keep-a-built-in-type-map-during-import).
 The [current Python examples](python-contract.md) cover unused literals, collections, metadata, plain classes,
-function aliases and built-in references. They also state the collision and evaluation limits.
+function and value aliases, and built-in references. They also state the collision and evaluation limits.
 For example, `registry = {}` can initialize without blocking a helper, but reading that global registry
 still leaves the answer unfinished. A literal package member cannot select a same-named child module.
 
