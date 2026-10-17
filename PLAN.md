@@ -69,6 +69,12 @@ reject missing or old data without adding compatibility readers or migration fal
 
 ## Next large chunk
 
+Choose a useful question that we can answer from beginning to end before adding more Python rules.
+The [numeric investigation](docs/python-symbolic-investigation.md) asks whether Pydash can safely keep a quantity between user-supplied limits.
+Compare ordinary tests, generated inputs and an existing symbolic execution tool, which searches for inputs satisfying conditions in the code.
+Keep original package imports separate from copied-function results, count setup and checking costs, and reproduce reported failing inputs in Python.
+This experiment adds no analyzer support and does not restart the stopped agent studies.
+
 Continue the Python work from the actual library failures. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
 answer, then improve the language rule needed to handle it.
