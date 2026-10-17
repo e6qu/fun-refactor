@@ -1271,5 +1271,5 @@ Native tests now select the current collection through the tracker, check its re
 Four controls cover changed bytes, missing current receipts, a different collection and the complete set of current report groups.
 The first helper check caught a checksum encoding type error; it was corrected to use the repository's existing encoding API.
 That attempt produced no compiler report, and its now-stale Python collection was cancelled.
-The edited test files are recorded inputs, so both the compiler and Python reports require fresh hosted collections.
+The edited test files are recorded inputs, so the compiler, Python and familiar-library reports require fresh hosted collections.
 Unchanged captures retain their original names and bytes when assembled into the new current collection.
