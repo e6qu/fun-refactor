@@ -1161,6 +1161,14 @@ The scalar counterpart and a checked import use the same rule.
 A separate unknown native import keeps the answer incomplete, even when its name matches a built-in function.
 These test corrections leave the collected analyzer, guide and example inputs unchanged.
 
+The [next full Python check](https://github.com/e6qu/fun-refactor/actions/runs/39029039323/job/117385681317)
+passed 826 selected cases but found a mistaken assertion in the new declaration check.
+The [other Python job](https://github.com/e6qu/fun-refactor/actions/runs/39029039323/job/117385681445)
+passed 824 cases and found the same assertion for the scalar setting.
+The behavior and runtime assertions passed. The fixture imported only the helper, so its report needed no imported value record.
+The corrected test keeps that case, then imports the alias and checks the original kind and full declaration chain.
+Production code and collected example inputs remain unchanged.
+
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
 and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.

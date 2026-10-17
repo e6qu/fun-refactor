@@ -79,8 +79,19 @@ def test_unused_aliases_preserve_values_named_like_builtins(tmp_path, imports, p
         assert not result.dependencies.function_aliases
         alias, = result.dependencies.value_aliases
         assert (alias.path, alias.name, alias.target) == ("helpers.py", "stored", "sorted")
+        assert not result.dependencies.value_bindings
+        subject = tmp_path / "subject.py"
+        subject.write_text("from helpers import stored\n" + subject.read_text())
+        result = analyze(client, rules, "entry", imports=True)
+        assert result.report.at("/complete"), result.report.at("/cutoffs")
+        assert result.witnesses and not result.initialization.sites
         original, = result.dependencies.value_bindings
         assert (original.path, original.name, original.kind) == ("helpers.py", "sorted", kind)
+        lookup = next(item for item in result.dependencies.lookups if item.alias == "stored")
+        assert lookup.resolution == "value"
+        assert [(hop.path, hop.name) for hop in lookup.binding_chain] == [
+            ("helpers.py", "stored"), ("helpers.py", "sorted")]
+        assert observe(tmp_path)["result"] == 17
 
 
 @pytest.mark.parametrize("imports", [False, True])
