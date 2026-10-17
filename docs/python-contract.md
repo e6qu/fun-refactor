@@ -392,7 +392,8 @@ Now change `choose()` in `app.py` to `choose(read_input())`.
 That explicit argument replaces the default, so the complete trace shows the input reaching `send`.
 
 Changing `LIMIT = 0` to `LIMIT = []` stores a list instead.
-Python still accepts an explicit argument, but this analysis leaves both omitted and explicit calls incomplete because the declared default is not scalar.
+Python accepts an explicit argument, and the analysis can follow that replacement.
+Calls that consume the stored collection remain unfinished; see the [replacement lesson](replace-python-defaults.md).
 Moving the import below the definition raises `NameError` in Python and leaves the analysis incomplete.
 Import cycles also require the value to exist before another file requests it.
 
@@ -468,8 +469,9 @@ Change `choose()` to `choose(read_input())` in `app.py` to see supplied input re
 
 Now change `BASE = 0` to `BASE = []`.
 Both `BASE` and `LIMIT` refer to the same list. The alias keeps its original kind; it does not turn the list into a scalar.
-This analysis therefore leaves calls using that declared default incomplete, including calls with an explicit replacement argument.
-An unused function may store the checked list or object without calling it, but calls and global reads need separate support.
+Calls that consume that list remain unfinished. Supplying an explicit replacement can finish under the stated rules.
+The [replacement lesson](replace-python-defaults.md) supplies both forms and their Python outcomes.
+Global reads and operations on shared objects remain unchecked.
 
 Use earlier checked names and fresh destinations. `LIMIT = BASE` before `BASE` exists raises `NameError` in Python.
 Overwriting or deleting either name leaves the analysis incomplete, even when Python could still use a previously captured value.

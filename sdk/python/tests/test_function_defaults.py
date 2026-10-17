@@ -72,7 +72,7 @@ def test_default_consumption_and_calls_through_parameters_stay_unfinished(tmp_pa
     path.write_text(path.read_text().replace("sink(relay(source()))", call))
     result = analyze(client, rules, "entry", imports=route != "local")
     assert not result.report.at("/complete") and not result.initialization.sites
-    reason = "unsupported-default-value:" if call == "unused()" else "unknown-external-call:callback"
+    reason = "unsupported-default-value:" if call == "unused()" else "ambiguous-call:callback"
     assert any(item.startswith(reason) for item in result.report.at("/cutoffs"))
 
 

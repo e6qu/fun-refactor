@@ -2,6 +2,11 @@
 import copy
 import hashlib
 import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
 
 import pytest
 
@@ -132,3 +137,27 @@ def test_saved_reports_require_the_current_replacement_rules(tmp_path):
         ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     with pytest.raises(FrRuntimeError, match='unsupported call binding'):
         FunctionSummaries.from_report(FrReport(value, ()))
+
+
+def test_the_complete_tutorial_runs_before_and_after_removing_the_argument(tmp_path):
+    root = Path(__file__).resolve().parents[3]
+    guide = (root / 'docs/replace-python-defaults.md').read_text()
+    programs = re.findall(r'```python\n(.*?)```', guide, re.S)
+    assert len(programs) == 4
+    for name, source in zip(('helpers.py', 'app.py', 'check_example.py', 'run_example.py'), programs):
+        (tmp_path / name).write_text(source)
+    (tmp_path / 'rules.json').write_text(re.findall(r'```json\n(.*?)```', guide, re.S)[0])
+    environment = dict(os.environ, PATH=str(root / 'target/debug') + os.pathsep + os.environ['PATH'],
+                       PYTHONPATH=str(root / 'sdk/python/src'))
+    def run(name):
+        result = subprocess.run([sys.executable, name], cwd=tmp_path, env=environment,
+                                capture_output=True, text=True, timeout=20)
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+    assert run('check_example.py') == 'Finished: True\nInput reaches output: True\nUnfinished reasons: []\n'
+    assert run('run_example.py') == '17\n'
+    app = tmp_path / 'app.py'
+    app.write_text(app.read_text().replace('choose(read_input())', 'choose()'))
+    after = run('check_example.py')
+    assert 'Finished: False' in after and 'unsupported-default-value:helpers.py::choose' in after
+    assert run('run_example.py') == '[]\n'

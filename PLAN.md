@@ -74,6 +74,11 @@ For an unfinished Python trace, first [explain the recorded import gaps](docs/ex
 The explanation separates a helper file found but left unread from names the checker could not resolve.
 It also shows code left unchecked during import. Use those details to choose the next language change.
 
+Calls can now [replace checked Python defaults](docs/replace-python-defaults.md) without consuming the stored object.
+For example, `choose(value=stored_list)` can receive submitted input through `choose(read_input())`.
+Calling `choose()` still needs object behavior the analyzer does not check.
+This improves a general call rule; it does not finish the familiar libraries' package imports.
+
 The [numeric investigation](docs/python-symbolic-investigation.md) checked whether Pydash keeps a quantity between user-supplied limits.
 Ordinary tests and an existing symbolic execution tool found the same missing assumption: the caller must order the limits.
 

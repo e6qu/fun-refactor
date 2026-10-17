@@ -38,7 +38,7 @@ def entry():
     return send(choose(read_input()))
 ```
 
-Save this as `rules.json`. An empty sanitizer list makes no assumptions about calls removing the input connection.
+Save this as `rules.json`. The empty sanitizer rules make no assumptions about calls removing the input connection.
 An empty propagator list adds no assumptions about other calls passing input into their results.
 The rule label identifies this configuration.
 
