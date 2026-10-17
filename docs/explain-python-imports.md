@@ -2,6 +2,7 @@
 
 You want to know whether a submitted value reaches an output through an imported helper.
 Here, a value trace describes where supplied data may pass through supported code.
+A model is the analyzer's limited description of what the code can do.
 The trace finds a possible connection, but says it could not finish checking.
 This guide shows how to explain that answer before changing code or increasing any limit.
 
@@ -118,7 +119,7 @@ The output budget counts UTF-8 bytes, the encoding used to store this text.
 Whole details that do not fit remain omitted; the final lines state how many groups and file summaries appear.
 They also distinguish source locations omitted by the original analyzer from the smaller sample shown in the explanation.
 The structured `gaps`, `conditions` and `initialization` fields keep the recorded details available to a Python caller.
-One import group can contain several requested names sharing the same importing file, provider and unresolved condition.
+One import group can contain several requested names sharing the same importing file, imported module and unresolved condition.
 An import request names one wanted value or represents an import using `*`, also called a wildcard import.
 The group counts refer to those recorded requests, rather than distinct lines of Python.
 
@@ -127,11 +128,12 @@ The group counts refer to those recorded requests, rather than distinct lines of
 The retained [Pydash capture](../tests/agent-eval/python-symbolic/frozen-run.json) read eight source files,
 reached its existing 256 KiB source limit and left 420 import-time statements unchecked.
 KiB means 1,024 bytes. Those unchecked statements include calls, decorators and writes performed while importing.
-The new explanation separates selected source files that were not analyzed from bindings the analyzer could not resolve in loaded files.
+A decorator is code applied when Python creates a function or class, so it can run during import too.
+The new explanation separates selected source files that were not analyzed from names the analyzer could not resolve in loaded files.
 It does not turn either condition into a claim that Python lacks that name.
 It also keeps missing local source separate from installed or standard-library modules outside the checked project root.
 
 This view explains an existing answer; it adds no Python language rules and leaves package tracing unfinished.
 Its checking and grouping take additional work, including reading and validating the original report.
-That CPU and memory overhead has not been measured here.
+That extra processing and memory use have not been measured here.
 A shorter explanation alone does not establish faster analysis or a cheaper agent task.
