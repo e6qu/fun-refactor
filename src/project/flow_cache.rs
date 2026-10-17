@@ -145,10 +145,6 @@ impl Project<'_> {
         );
         if let Some(modules) = report["inputs"].get("modules") {
             ensure!(
-                super::dataflow::value_bindings_valid(modules),
-                "retained flow has malformed imported value declarations."
-            );
-            ensure!(
                 modules["function_aliases"]
                     .as_array()
                     .is_some_and(|aliases| {
@@ -173,6 +169,10 @@ impl Project<'_> {
                             })
                     }),
                 "retained flow has malformed function aliases."
+            );
+            ensure!(
+                super::dataflow::value_bindings_valid(modules),
+                "retained flow has malformed imported value declarations or aliases."
             );
             ensure!(
                 modules["lookups"].as_array().is_some_and(|lookups| {

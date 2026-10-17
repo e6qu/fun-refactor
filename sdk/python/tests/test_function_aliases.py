@@ -86,8 +86,6 @@ def test_aliases_of_imported_functions_and_reexports(tmp_path, statement, call, 
 @pytest.mark.parametrize("initialization", [
     "public = missing\n", "public = source\n", "public = help\n",
     "public = relay\ndef relay(value):\n    return value\n",
-    "value = 0\npublic = value\n", "value = []\npublic = value\n",
-    "class Marker:\n    pass\npublic = Marker\n",
     "def relay(value):\n    return value\npublic: Callable = relay\n",
     "def relay(value):\n    return value\npublic = (relay)\n",
     "def relay(value):\n    return value\npublic = relay(0)\n",

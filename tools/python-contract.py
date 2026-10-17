@@ -29,7 +29,7 @@ profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-contract-3'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
-          'Implicit exceptions, aliases and dynamic dispatch remain outside this model. '
+          'Implicit exceptions, mutable-object operations during calls and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
           'No live-agent, token-efficiency or repository-generalization claim.')
 
@@ -53,6 +53,7 @@ def bindings():
                  'sdk/python/tests/test_module_literals.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
                  'sdk/python/tests/test_imported_scalar_defaults.py',
+                 'sdk/python/tests/test_value_aliases.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_registry_initialization.py', 'tools/python_contract_allocations.py',
                  'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',
@@ -283,7 +284,7 @@ def audit_case(row, case):
                     require(binding['kind'] == 'instance' and isinstance(node.value, ast.Call)
                             and isinstance(node.value.func, ast.Name) and not node.value.args and not node.value.keywords,
                             'imported instance differs from its constructor')
-        for alias in modules['function_aliases']:
+        for alias in [*modules['function_aliases'], *modules['value_aliases']]:
             text = case['files'][alias['path']]
             lines = text.splitlines(keepends=True)
             statements = ast.parse(text).body
@@ -291,7 +292,7 @@ def audit_case(row, case):
                        if name.id == alias['name'] and isinstance(value, ast.Name)
                        and value.id == alias['target']
                        and len(''.join(lines[:name.lineno - 1]).encode()) + name.col_offset == alias['offset']]
-            require(len(matches) == 1, 'function alias differs from its source assignment')
+            require(len(matches) == 1, 'module alias differs from its source assignment')
         for lookup in modules['lookups']:
             if lookup['names'] is not None:
                 statements = ast.parse(case['files'][lookup['importer']]).body

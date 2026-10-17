@@ -65,6 +65,7 @@ enum ParallelValue {
     Literal(bool),
     Builtin,
     Function(String, usize),
+    Value(bool, usize),
 }
 
 impl Initialization {
@@ -801,6 +802,7 @@ impl Project<'_> {
             .transpose()?;
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
+        let mut value_alias_count = 0;
         let mut scalar_defaults = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
@@ -824,6 +826,7 @@ impl Project<'_> {
             let mut documentable = BTreeSet::new();
             let mut default_values = BTreeSet::new();
             let mut default_scalars = BTreeSet::new();
+            let mut value_alias_depths = BTreeMap::new();
             let explicit_builtins = calls::explicit_builtins(parsed.root(), text);
             let mut builtin_defaults = !explicit_builtins;
             let mut allocations = initializers::Allocations::default();
@@ -832,6 +835,13 @@ impl Project<'_> {
                 .and_then(|modules| modules.function_aliases.get(file))
                 .into_iter()
                 .flat_map(|aliases| aliases.values().map(String::as_str))
+                .chain(
+                    modules
+                        .as_ref()
+                        .and_then(|modules| modules.value_aliases.get(file))
+                        .into_iter()
+                        .flat_map(|aliases| aliases.values().map(String::as_str)),
+                )
                 .collect();
             let mut bound_names: BTreeSet<_> = modules
                 .as_ref()
@@ -900,6 +910,30 @@ impl Project<'_> {
                                     .map(|(target, depth)| {
                                         ParallelValue::Function(target, depth + 1)
                                     })
+                                    .or_else(|| {
+                                        if let Some(modules) = &modules {
+                                            modules
+                                                .value_aliases
+                                                .get(file)?
+                                                .get(&offset)?;
+                                            Some(ParallelValue::Value(
+                                                modules.is_scalar_value(file, name),
+                                                0,
+                                            ))
+                                        } else {
+                                            let depth = value_alias_depths
+                                                .get(target)
+                                                .copied()
+                                                .unwrap_or(0);
+                                            (default_values.contains(target)
+                                                && !functions.contains_key(target)
+                                                && !function_aliases.contains_key(target)
+                                                && depth < 15)
+                                                .then(|| ParallelValue::Value(
+                                                    default_scalars.contains(target), depth + 1,
+                                                ))
+                                        }
+                                    })
                             })
                             .collect();
                         if let Some(values) = values.filter(|values| {
@@ -908,9 +942,10 @@ impl Project<'_> {
                                     + values
                                         .iter()
                                         .filter(|value| {
-                                            matches!(value, ParallelValue::Function(..))
+                                            matches!(value, ParallelValue::Function(..) | ParallelValue::Value(..))
                                         })
                                         .count()
+                                    + value_alias_count
                                     <= 128
                         }) {
                             for ((name, _), value) in pairs.into_iter().zip(values) {
@@ -927,8 +962,14 @@ impl Project<'_> {
                                     }
                                 } else {
                                     literal_bindings.insert(binding.clone());
-                                    if matches!(value, ParallelValue::Literal(true)) {
+                                    if matches!(value, ParallelValue::Literal(true) | ParallelValue::Value(true, _)) {
                                         default_scalars.insert(name.to_owned());
+                                    }
+                                    if let ParallelValue::Value(_, depth) = value {
+                                        value_alias_depths.insert(name, depth);
+                                        if modules.is_none() {
+                                            value_alias_count += 1;
+                                        }
                                     }
                                 }
                                 inert_bindings.insert(binding);
@@ -978,7 +1019,7 @@ impl Project<'_> {
                             })
                         };
                         if let Some((target, depth)) = alias.filter(|(_, depth)| {
-                            *depth < 15 && (modules.is_some() || function_aliases.len() < 128)
+                            *depth < 15 && (modules.is_some() || function_aliases.len() + value_alias_count < 128)
                         }) {
                             classes.remove(name);
                             documentable.remove(name);
@@ -1000,6 +1041,44 @@ impl Project<'_> {
                                 function_aliases.insert(name.to_owned(), (target, depth + 1));
                                 name.to_owned()
                             };
+                            inert_bindings.insert(binding);
+                            continue;
+                        }
+                        let depth = value_alias_depths.get(target).copied().unwrap_or(0);
+                        let value = modules.as_ref().map_or_else(
+                            || default_values.contains(target)
+                                && !functions.contains_key(target)
+                                && !function_aliases.contains_key(target)
+                                && depth < 15
+                                && function_aliases.len() + value_alias_count < 128,
+                            |modules| modules.value_aliases.get(file)
+                                .is_some_and(|aliases| aliases.contains_key(&node.start_byte())),
+                        );
+                        if value {
+                            let scalar = modules.as_ref().map_or_else(
+                                || default_scalars.contains(target),
+                                |modules| modules.is_scalar_value(file, name),
+                            );
+                            classes.remove(name);
+                            documentable.remove(name);
+                            default_values.remove(name);
+                            default_scalars.remove(name);
+                            if !bound_names.insert(name) {
+                                initialization.record(self, file, node, vec!["binding-collision"])?;
+                            } else {
+                                default_values.insert(name.to_owned());
+                                if scalar {
+                                    default_scalars.insert(name.to_owned());
+                                }
+                                value_alias_depths.insert(name, depth + 1);
+                                if modules.is_none() {
+                                    value_alias_count += 1;
+                                }
+                            }
+                            let binding = modules.as_ref().map_or_else(
+                                || name.to_owned(), |modules| modules.function_name(file, name),
+                            );
+                            literal_bindings.insert(binding.clone());
                             inert_bindings.insert(binding);
                             continue;
                         }
