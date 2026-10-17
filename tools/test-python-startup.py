@@ -8,6 +8,7 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest.mock import patch
 
 
 def load(name, filename):
@@ -103,6 +104,8 @@ class StartupChecks(unittest.TestCase):
             original = self.execute(root)
             def change_output(value):
                 value['returned'][0] = 123
+            def change_zero_to_false(value):
+                value['returned'][1] = False
             def change_path(value):
                 value['files']['../escape.py'] = {'bytes': 0, 'sha256': '0' * 64}
             def change_hash(value):
@@ -113,7 +116,8 @@ class StartupChecks(unittest.TestCase):
                 value['execution'].append(value['execution'][0])
             def invent_line(value):
                 value['execution'][0]['lines'] = [999]
-            for mutation in (change_output, change_path, change_hash, omit_trace, duplicate_file, invent_line):
+            for mutation in (change_output, change_zero_to_false, change_path, change_hash,
+                             omit_trace, duplicate_file, invent_line):
                 with self.subTest(mutation=mutation.__name__), self.assertRaises(ValueError):
                     value = copy.deepcopy(original)
                     mutation(value)
@@ -192,6 +196,69 @@ class StartupChecks(unittest.TestCase):
             path.write_text(path.read_text().replace('from . import setup\n', ''))
             self.assertEqual(self.execute(root, traced=False)['returned'], [-4, 0, 17])
             self.assertEqual(self.execute(root)['returned'], [-4, 0, 17])
+
+    def test_saved_collection_audit_rejects_changed_raw_data_claims_inputs_and_missing_cells(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            self.fixture(root)
+            helper = dict(self.helper(), id='example', project='example')
+            plan = {'helpers': [helper], 'repetitions': 2, 'seed': 1729}
+            report = {'complete': False, 'cutoffs': ['module-effects-unchecked'],
+                      'inputs': {'modules': {'files': {}}},
+                      'initialization': {'sites': [], 'by_file': {}, 'omitted': 0}}
+            observations = {traced: self.execute(root, traced=traced) for traced in (False, True)}
+            measurement = {'stop_reason': None, 'exit_code': 0, 'process_exit_code': 0,
+                           'monitor_error': None, 'launch_error': None, 'timed_out': False,
+                           'limits': {'wall_seconds': 20, 'rss_bytes': 512 * 1024**2,
+                                      'disk_bytes': 16 * 1024**2, 'cpu_seconds': 10, 'transcript_bytes': 1024**2},
+                           'elapsed_seconds': 0.1, 'sampled_aggregate_rss_bytes': 1,
+                           'sampled_disk_growth_bytes': 0, 'sampled_cpu_seconds': 0, 'transcript_bytes': 2}
+            with patch.object(study, 'PLAN', plan), patch.object(study, 'bindings', return_value={}), \
+                 patch.object(study, 'prepare', return_value=({'example': root}, {'example': report})):
+                result = {'source_commit': '1' * 40, 'source_files': {}, 'plan': plan, 'python': sys.version,
+                          'platform': 'control', 'cpu_model': 'control', 'logical_cpus': 1,
+                          'limits': study.LIMITS, 'measurement_scope': 'control', 'attempts': [], 'finished': True}
+                for index, (helper_id, traced, repetition) in enumerate(study.schedule()):
+                    stdout = root / f'attempt-{index:02d}.stdout'
+                    stderr = root / f'attempt-{index:02d}.stderr'
+                    stdout.write_text(json.dumps(observations[traced]))
+                    stderr.write_text('')
+                    result['attempts'].append({'helper': helper_id, 'traced': traced, 'repetition': repetition,
+                        'measurement': measurement, 'comparison': study.comparison(observations[traced], report),
+                        'error': None, 'stdout_sha256': study.digest(stdout), 'stderr_sha256': study.digest(stderr)})
+                study.save(root / 'result.json', result)
+                study.audit(root)
+                def remove_cell(value):
+                    value['attempts'].pop()
+                def duplicate_cell(value):
+                    value['attempts'][1] = value['attempts'][0]
+                def change_claim(value):
+                    value['attempts'][0]['comparison']['analysis_complete'] = True
+                def mark_unfinished(value):
+                    value['finished'] = False
+                def change_inputs(value):
+                    value['source_files']['invented.py'] = '0' * 64
+                def hide_error(value):
+                    value['attempts'][0]['error'] = 'source collection failed'
+                def remove_current_field(value):
+                    del value['attempts'][0]['stdout_sha256']
+                for mutation in (remove_cell, duplicate_cell, change_claim, mark_unfinished,
+                                 change_inputs, hide_error, remove_current_field):
+                    with self.subTest(mutation=mutation.__name__), self.assertRaises(ValueError):
+                        altered = copy.deepcopy(result)
+                        mutation(altered)
+                        study.save(root / 'result.json', altered)
+                        study.audit(root)
+                study.save(root / 'result.json', result)
+                path = root / 'attempt-00.stdout'
+                original = path.read_text()
+                path.write_text(original + '\n')
+                with self.assertRaisesRegex(ValueError, 'raw observation'):
+                    study.audit(root)
+                path.write_text(original)
+                (root / 'attempt-00.stderr').unlink()
+                with self.assertRaises(FileNotFoundError):
+                    study.audit(root)
 
 
 if __name__ == '__main__':

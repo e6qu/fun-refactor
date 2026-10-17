@@ -187,10 +187,15 @@ def audit(directory):
         for index, (row, cell) in enumerate(zip(result['attempts'], schedule(), strict=True)):
             helper_id, traced, repetition = cell
             helper = next(item for item in PLAN['helpers'] if item['id'] == helper_id)
-            require(set(row) == {'helper', 'traced', 'repetition', 'measurement', 'comparison', 'error'}
+            require(set(row) == {'helper', 'traced', 'repetition', 'measurement', 'comparison', 'error',
+                                'stdout_sha256', 'stderr_sha256'}
                     and (row['helper'], row['traced'], row['repetition']) == cell and row['error'] is None,
                     'missing, reordered or failed observation')
-            raw = (directory / f'attempt-{index:02d}.stdout').read_text()
+            stdout_path = directory / f'attempt-{index:02d}.stdout'
+            stderr_path = directory / f'attempt-{index:02d}.stderr'
+            require(digest(stdout_path) == row['stdout_sha256'] and digest(stderr_path) == row['stderr_sha256'],
+                    'raw observation output changed')
+            raw = stdout_path.read_text()
             observation = checked_observation(checked_process(row['measurement'], raw), helper, traced,
                                               scopes[helper['project']])
             require(row['comparison'] == comparison(observation, reports[helper_id]), 'comparison changed')
@@ -224,7 +229,8 @@ def collect(output):
         with stdout_path.open('wb') as stdout, stderr_path.open('wb') as stderr:
             measurement = run(command, b'', stdout, stderr, output, env=env, cwd=scope, **LIMITS)
         row = {'helper': helper_id, 'traced': traced, 'repetition': repetition,
-               'measurement': measurement, 'comparison': None, 'error': None}
+               'measurement': measurement, 'comparison': None, 'error': None,
+               'stdout_sha256': digest(stdout_path), 'stderr_sha256': digest(stderr_path)}
         result['attempts'].append(row)
         save(output / 'result.json', result)
         try:
