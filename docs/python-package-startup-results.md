@@ -42,6 +42,8 @@ The timing table still describes the first capture; results from different proce
 The analyzer column includes one small calling script, `repository_probe.py`, outside the original package.
 The Python column counts distinct source files inside the pinned package, including its startup file.
 These counts exclude standard-library and separately installed dependency files.
+The observer calls each helper directly on the listed integers; it does not run the saved analyzer report's input/output calling script.
+The comparison concerns package startup and selected helper behavior, rather than identical complete application executions.
 Bytes count each observed source file's entire contents, including function bodies that never ran.
 They do not measure the minimum code necessary to answer the question.
 
