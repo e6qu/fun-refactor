@@ -1,10 +1,12 @@
 # Why is this Python trace unfinished?
 
 You want to know whether a submitted value reaches an output through an imported helper.
+Here, a value trace describes where supplied data may pass through supported code.
 The trace finds a possible connection, but says it could not finish checking.
 This guide shows how to explain that answer before changing code or increasing any limit.
 
 An import can run code before making a helper available.
+A module is a Python source file. A package groups modules and can run its `__init__.py` file during import.
 The analyzer may find the helper while leaving that earlier code unchecked.
 It can also find a source file without having enough checking budget to analyze it.
 Neither situation establishes that the imported name is missing at runtime.

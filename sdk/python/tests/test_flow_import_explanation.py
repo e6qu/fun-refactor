@@ -77,7 +77,7 @@ def test_invalid_disclosure_limits_refuse(option, value):
 
 
 @pytest.mark.parametrize("mutation", ["old-alias-format", "false-complete", "missing-cutoffs",
-                                     "false-startup-count", "false-digest", "nontext-cutoff"])
+                                     "false-startup-count", "false-digest", "nontext-cutoff", "unknown-module-reason"])
 def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
     value = archived_report().to_data()
     if mutation == "old-alias-format":
@@ -90,6 +90,9 @@ def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
         value["initialization"]["by_file"]["pydash/numerical.py"]["statements"] = 1
     elif mutation == "false-digest":
         value["input_digest"] = "0" * 64
+    elif mutation == "unknown-module-reason":
+        value["inputs"]["modules"]["cutoffs"].append("unrecognized-module-condition")
+        value["cutoffs"] = sorted([*value["cutoffs"], "unrecognized-module-condition"])
     else:
         value["cutoffs"].append(17)
     report = FrReport(value, ()) if mutation == "false-digest" else rehash(value)
@@ -97,7 +100,7 @@ def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
         ImportExplanation.from_report(report)
 
 
-@pytest.mark.parametrize("kind", ["missing", "aliased", "external", "unchecked-startup", "ordinary"])
+@pytest.mark.parametrize("kind", ["missing", "aliased", "external", "unchecked-startup", "ordinary", "unknown-call"])
 def test_fresh_analysis_explains_different_gaps_without_guessing_runtime(tmp_path, kind):
     client, rules = workspace(tmp_path)
     if kind in {"missing", "aliased"}:
@@ -108,6 +111,8 @@ def test_fresh_analysis_explains_different_gaps_without_guessing_runtime(tmp_pat
         (tmp_path / "leaf.py").write_text("import math\ndef identity(value):\n    return value\n")
     elif kind == "unchecked-startup":
         (tmp_path / "leaf.py").write_text("metadata = opaque()\ndef identity(value):\n    return value\n")
+    elif kind == "unknown-call":
+        (tmp_path / "app.py").write_text("def positive():\n    return sink(opaque(source()))\n")
     result = ImportExplanation.from_report(analyze(client, rules).report)
     if kind in {"missing", "aliased"}:
         assert any(gap.kind == "missing-binding" for gap in result.gaps)
@@ -121,6 +126,10 @@ def test_fresh_analysis_explains_different_gaps_without_guessing_runtime(tmp_pat
         assert result.module_search_complete and not result.import_check_complete
         assert result.unchecked_statements == 1 and not result.gaps
         assert "leaf.py" in result.render()
+    elif kind == "unknown-call":
+        assert result.import_check_complete and not result.analysis_complete
+        assert result.render().startswith("Recorded Python value trace: unfinished.")
+        assert "Other operations still prevent" in result.render()
     else:
         assert result.import_check_complete and result.analysis_complete
 

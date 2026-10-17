@@ -14,33 +14,33 @@ from .runtime import FrReport, FrRuntimeError
 
 
 _LIMITS = {
-    "import-module-budget": "The search reached the existing limit of 16 files and namespace directories.",
-    "import-source-byte-budget": "The search reached the existing limit of 256 KiB of source text.",
+    "import-module-budget": "The search reached the existing limit of 16 source files and package directories.",
+    "import-source-byte-budget": "The search reached the existing limit of 256 KiB (262,144 bytes) of source text.",
     "import-lookup-budget": "The search reached the existing limit of 128 module searches.",
     "import-binding-budget": "An import exceeded the existing limit of 128 names.",
-    "import-component-budget": "An import exceeded the existing limit of 16 module-name components.",
+    "import-component-budget": "An import exceeded the existing limit of 16 dotted name parts. For example, 'a.b' has two parts.",
 }
 _MESSAGES = {
     "unread-source": "Selected source exists but was not analyzed. This does not establish a missing name.",
-    "local-module": "No unambiguous supported local module was selected. Installed and standard-library modules remain unchecked.",
-    "missing-binding": "No supported binding was found in the loaded source. Unchecked startup code can still affect runtime names.",
-    "ambiguous": "The recorded bindings do not select one meaning for this name.",
-    "cyclic": "Following the imported names repeats a binding; this record does not resolve its meaning.",
+    "local-module": "The analyzer could not select one supported local source file or package. An installed or standard-library module may still exist.",
+    "missing-binding": "No supported definition for this name was found in the loaded source. Unchecked import-time code can still affect its runtime meaning.",
+    "ambiguous": "This name has more than one possible definition in the recorded source.",
+    "cyclic": "Following imported names returns to a name already visited; its meaning remains unchecked.",
     "budget": "Following the imported names reached a checking limit.",
-    "unavailable": "The imported binding's meaning remains unchecked.",
+    "unavailable": "The imported name's meaning remains unchecked.",
     "wildcard": "The names supplied by this wildcard import remain unchecked.",
 }
 _CONDITIONS = {
     "import-syntax-errors": "Some imported source contains syntax the parser could not accept.",
     "unsupported-import-form": "Some import statements are outside the supported syntax.",
-    "ambiguous-module-binding": "Repeated or conflicting module bindings prevent choosing one supported meaning.",
-    "special-module-attributes": "Special module names or attributes need import behavior that remains unchecked.",
+    "ambiguous-module-binding": "Repeated or conflicting definitions prevent choosing what a name refers to.",
+    "special-module-attributes": "Special module names or settings require behavior the analyzer does not check.",
     "star-exports-unchecked": "A wildcard import has no checked list of exported names.",
     "cyclic-module-initialization": "An import returns to a module before a required name is available in the model.",
     "import-initialization-order-unchecked": "The order of import-time operations has not been fully checked.",
-    "package-child-binding-conflict": "Importing a child file can replace a package binding; that interaction remains unchecked.",
+    "package-child-binding-conflict": "Importing a child file can replace an existing name on its package; that interaction remains unchecked.",
     "unresolved-local-import": "Some imports have no unambiguous supported module under the checked project root.",
-    "missing-or-ambiguous-import-member": "Some requested names remain unresolved; the import groups separate unread source from unchecked bindings.",
+    "missing-or-ambiguous-import-member": "Some requested names remain unresolved; the import groups separate unread source from unchecked definitions.",
 }
 _PRIORITY = {"unread-source": 0, "budget": 1, "local-module": 2, "ambiguous": 3,
              "wildcard": 4, "cyclic": 5, "missing-binding": 6, "unavailable": 7}
@@ -166,7 +166,8 @@ class ImportExplanation:
         if type(max_items) is not int or not 1 <= max_items <= 32:
             raise FrRuntimeError("explanation item limit must be 1 to 32")
         status = "finished within its stated rules" if self.import_check_complete else "unfinished"
-        lines = [f"Recorded Python import check: {status}.",
+        overall = "finished within its declared model" if self.analysis_complete else "unfinished"
+        lines = [f"Recorded Python value trace: {overall}.", f"Import checking: {status}.",
                  f"{_count(self.files_read, 'source file')} read; "
                  f"{_count(self.module_searches, 'module search', 'module searches')}; "
                  f"{_count(self.unchecked_statements, 'import-time statement')} unchecked.",
@@ -174,6 +175,8 @@ class ImportExplanation:
                  *self.limit_explanations]
         if not self.analysis_complete:
             lines.append("The overall value trace is unfinished. An empty trace does not establish that input cannot reach output.")
+            if self.import_check_complete:
+                lines.append("Other operations still prevent a complete trace. This view explains imports; inspect the original analysis for those operations.")
         else:
             lines.append("The value trace finished within the declared model; it is not a proof of runtime behavior.")
         lines.append("This describes the saved report; it does not check whether the workspace has changed.")
