@@ -66,6 +66,7 @@ if [ "$slice" = study ]; then
     python3 -B tools/test-retain-scalar-evidence.py
     python3 -B tools/test-repository-declarations.py
     python3 -B tools/test-python-symbolic-experiment.py
+    python3 -B tools/test-python-startup.py
     python3 -B tools/test-frozen-analyzer.py
     python3 tools/agent_eval/test_codex_runner.py
     python3 tests/agent-eval/test_python_repository_basis.py
