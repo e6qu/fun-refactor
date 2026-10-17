@@ -160,9 +160,7 @@ impl<'s, 't> Allocations<'s, 't> {
         {
             return Some(Statement::Population);
         }
-        if node.kind() == "function_definition"
-            && calls::definition_is_inert(node, source, false)
-        {
+        if node.kind() == "function_definition" && calls::definition_is_inert(node, source, false) {
             if let Some(name) = node.child_by_field_name("name") {
                 let name = &source[name.byte_range()];
                 self.dictionaries.remove(name);
@@ -171,9 +169,12 @@ impl<'s, 't> Allocations<'s, 't> {
                     && !(name.starts_with("__") && name.ends_with("__"))
                     && !shadowed(name)
                     && calls::initialization_fits(node)
-                    && node.child_by_field_name("parameters")
+                    && node
+                        .child_by_field_name("parameters")
                         .is_some_and(|parameters| children(parameters).is_empty())
-                    && !node.children(&mut node.walk()).any(|child| child.kind() == "async")
+                    && !node
+                        .children(&mut node.walk())
+                        .any(|child| child.kind() == "async")
                 {
                     self.registrations.insert(name, node);
                 }
@@ -191,24 +192,37 @@ impl<'s, 't> Allocations<'s, 't> {
         None
     }
 
-    fn registration_call(&self, node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool) -> bool {
+    fn registration_call(
+        &self,
+        node: Node<'_>,
+        source: &str,
+        shadowed: &impl Fn(&str) -> bool,
+    ) -> bool {
         if node.kind() != "expression_statement" || node.named_child_count() != 1 {
             return false;
         }
         let Some(call) = node.named_child(0).and_then(calls::unparenthesized) else {
             return false;
         };
-        let Some(function) = call.child_by_field_name("function").and_then(calls::unparenthesized) else {
+        let Some(function) = call
+            .child_by_field_name("function")
+            .and_then(calls::unparenthesized)
+        else {
             return false;
         };
         if call.kind() != "call"
             || function.kind() != "identifier"
-            || !call.child_by_field_name("arguments").is_some_and(|args| children(args).is_empty())
+            || !call
+                .child_by_field_name("arguments")
+                .is_some_and(|args| children(args).is_empty())
         {
             return false;
         }
-        let Some(body) = self.registrations.get(&source[function.byte_range()])
-            .and_then(|function| function.child_by_field_name("body")) else {
+        let Some(body) = self
+            .registrations
+            .get(&source[function.byte_range()])
+            .and_then(|function| function.child_by_field_name("body"))
+        else {
             return false;
         };
         let statements = children(body);
@@ -217,7 +231,9 @@ impl<'s, 't> Allocations<'s, 't> {
             statement.kind() == "pass_statement"
                 || statement.kind() == "return_statement"
                     && index + 1 == statements.len()
-                    && children(*statement).iter().all(|value| value.kind() == "none")
+                    && children(*statement)
+                        .iter()
+                        .all(|value| value.kind() == "none")
                 || if self.population(*statement, source, shadowed) {
                     writes += 1;
                     true
