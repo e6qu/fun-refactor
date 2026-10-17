@@ -35,8 +35,9 @@ Do not change recorded fingerprints to disguise outdated results.
 ## Continue Python work from actual library failures
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
-Use the [import explanation](explain-python-imports.md) to separate selected unread source from unresolved bindings and unchecked import-time code.
-It explains existing reports and preserves their unknown answers; it does not add supported Python behavior.
+The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
+It also shows names the checker cannot resolve and code left unchecked during import.
+It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.
 Ordinary tests and symbolic execution found the same missing input assumption for Pydash's quantity limits.
 Its original-package trace still reaches the source limit and leaves startup operations unchecked; the copied-function trace finishes.
 Use the simpler tests for this question. The experiment adds no analyzer support and cannot establish agent savings.
