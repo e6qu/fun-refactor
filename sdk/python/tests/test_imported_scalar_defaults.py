@@ -84,11 +84,15 @@ def test_imported_defaults_preserve_parameter_kinds_and_shadowing(tmp_path, para
 
 @pytest.mark.parametrize('value', ['[]', '{}', '(0,)', '[0]', 'lambda: 0'])
 @pytest.mark.parametrize('explicit', [False, True])
-def test_non_scalar_imports_still_refuse_calls_even_when_overridden(tmp_path, value, explicit):
+def test_non_scalar_imports_require_explicit_replacements(tmp_path, value, explicit):
     client, rules = install(tmp_path, value, call='choose(source())' if explicit else 'choose()')
     result = analyze(client, rules, 'entry', imports=True)
-    assert not result.report.at('/complete')
-    assert 'unsupported-parameter-contract:subject.py::choose' in result.report.at('/cutoffs')
+    assert result.report.at('/complete') is explicit
+    assert bool(result.witnesses) is explicit
+    if not explicit:
+        assert 'unsupported-default-value:subject.py::choose' in result.report.at('/cutoffs')
+    else:
+        assert observe(tmp_path)['result'] == 17
 
 
 def test_parallel_scalar_exports_keep_each_literal_kind(tmp_path):
@@ -99,7 +103,7 @@ def test_parallel_scalar_exports_keep_each_literal_kind(tmp_path):
     subject.write_text(subject.read_text().replace('import marker', 'import other as marker'))
     result = analyze(client, rules, 'entry', imports=True)
     assert not result.report.at('/complete')
-    assert 'unsupported-parameter-contract:subject.py::choose' in result.report.at('/cutoffs')
+    assert 'unsupported-default-value:subject.py::choose' in result.report.at('/cutoffs')
 
 
 @pytest.mark.parametrize('edit', ['marker = 0\nmarker = 1\n', 'marker = opaque()\n',

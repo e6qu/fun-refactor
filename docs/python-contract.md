@@ -189,9 +189,11 @@ Moving `EMPTY = EmptyType()` below the definition is different: Python raises `N
 the function. Deleted, conflicting and unknown bindings remain unchecked. Unsupported setup clears
 the known bindings available to later defaults. A later declaration cannot repair an earlier read.
 
-Calling `unused()`, even with an explicit replacement argument, remains outside the literal-default
-call model because `EMPTY` is an object marker. The rule defers an uncalled body; it does not model shared object defaults or global reads
-inside analyzed bodies. `key=EmptyType()`, attributes, subscripts and other computed defaults remain unchecked.
+Calling `unused()` consumes an object default and remains unfinished.
+An explicit replacement such as `unused(17)` can bind the parameter; its body still needs supported behavior.
+The [complete replacement lesson](replace-python-defaults.md) supplies files, commands and a comparison with Python execution.
+Shared object defaults and global reads inside analyzed bodies remain unchecked.
+`key=EmptyType()`, attributes, subscripts and other computed defaults remain unchecked.
 Decorators, class-method defaults and unsupported annotation evaluation keep their separate boundaries.
 
 ## Store a function as a default without calling it
@@ -235,8 +237,8 @@ Built-in names must be unshadowed: an earlier assignment can replace what a name
 Change `follow=selected` to `follow=selected(0)` and the definition now calls unsupported code.
 The answer stays incomplete and reports `definition-time-code` at `unused`.
 Moving `selected` below `unused` makes Python raise `NameError` before the entry can run.
-Calling `unused`, even with replacement arguments, remains outside the supported call model.
-This rule checks creation of an unused function; it does not add calls through callback parameters.
+Explicit replacements can bind these parameters. This example's calls through `follow` and `factory` still remain unchecked.
+The [replacement lesson](replace-python-defaults.md) contrasts a supported scalar replacement with consuming the stored object.
 
 ## Save several helper names in one assignment
 
@@ -403,7 +405,9 @@ The analysis can load at most sixteen files and follow at most sixteen links thr
 The existing import-search limits still apply.
 Use plain letters, digits and underscores for imported names and parameters, as in the example.
 Names with accented letters remain unchecked here.
-Only checked literal declarations supply these defaults. Calls, object defaults, assignments that overwrite a name and attribute expressions such as `settings.LIMIT` remain outside this call support.
+Only checked scalar declarations supply omitted defaults.
+Stored objects require [explicit replacements](replace-python-defaults.md).
+Calls, overwritten names and attribute expressions such as `settings.LIMIT` remain unchecked during definition.
 Returning `LIMIT` inside the function would read a global value each time; that remains unchecked too.
 This analysis tracks whether input can reach output. It does not use the default's concrete value to choose branches.
 
@@ -873,7 +877,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
 | Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
-| Defaults | Immutable literal defaults have no source origins; explicit arguments replace them. | Definition-time effects and mutable defaults are refused. |
+| Defaults | Omitted checked scalars have no source origins; explicit arguments replace checked scalar or object defaults. | Consuming object defaults and unchecked definition-time effects remain unfinished. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
 | Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Check cyclic imports in execution order. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations, special attribute writes, unavailable cycle members and unresolved imports stay incomplete. |

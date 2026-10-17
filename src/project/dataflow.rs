@@ -211,7 +211,7 @@ struct Analyzer<'a, 'p, 't> {
     source: &'a str,
     functions: BTreeMap<String, Node<'t>>,
     function_aliases: BTreeMap<String, (String, usize)>,
-    scalar_defaults: BTreeMap<(PathBuf, usize), BTreeSet<String>>,
+    captured_defaults: BTreeMap<(PathBuf, usize), calls::CapturedDefaults>,
     ambiguous: BTreeSet<String>,
     modules: Option<&'a modules::Modules>,
     contexts: BTreeMap<String, (&'a Path, &'a str)>,
@@ -803,7 +803,7 @@ impl Project<'_> {
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
         let mut value_alias_count = 0;
-        let mut scalar_defaults = BTreeMap::new();
+        let mut captured_defaults = BTreeMap::new();
         let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
         let mut inert_bindings = BTreeSet::new();
@@ -1201,9 +1201,9 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
-                    scalar_defaults.insert(
+                    captured_defaults.insert(
                         (file.to_path_buf(), node.start_byte()),
-                        calls::captured_scalar_defaults(node, text, postponed, &default_scalars),
+                        calls::captured_defaults(node, text, postponed, &definition_values, &default_scalars),
                     );
                     classes.remove(short);
                     documentable.remove(short);
@@ -1412,7 +1412,7 @@ impl Project<'_> {
             source,
             functions,
             function_aliases,
-            scalar_defaults,
+            captured_defaults,
             ambiguous,
             modules: modules.as_ref(),
             contexts,
