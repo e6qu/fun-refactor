@@ -21,6 +21,22 @@ profile_spec.loader.exec_module(profile_controls)
 
 
 class ScalarRetention(unittest.TestCase):
+    def test_capture_names_do_not_choose_the_destination_collection(self):
+        paths = {'facts': 'refinement-evidence/original-facts/result.json',
+                 'calls': 'refinement-evidence/original-calls/result.json'}
+        data = dict.fromkeys([*paths.values(), 'refinement-refresh-logs/original.log'], b'{}')
+        self.assertEqual(scalar.report_paths(data, ['facts', 'calls']), paths)
+
+    def test_mixed_missing_and_extra_capture_reports_refuse(self):
+        facts = 'refinement-evidence/original-facts/result.json'
+        calls = 'refinement-evidence/original-calls/result.json'
+        for names in ([facts], [facts, 'refinement-evidence/other-calls/result.json'],
+                      [facts, calls, 'refinement-evidence/original-extra/result.json'],
+                      [facts, calls, 'unexpected.json'],
+                      [facts, calls, 'refinement-evidence/other-facts/result.json']):
+            with self.subTest(names=names), self.assertRaises(ValueError):
+                scalar.report_paths(dict.fromkeys(names, b'{}'), ['facts', 'calls'])
+
     def archive(self, names):
         output = io.BytesIO()
         with zipfile.ZipFile(output, 'w') as archive:
