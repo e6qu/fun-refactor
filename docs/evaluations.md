@@ -11,6 +11,15 @@ The [measurement guide](benchmarks.md) distinguishes that comparison from reply-
 
 ## Recorded experiments and their limits
 
+The [Python package startup investigation](python-package-startup-results.md) observes what runs before four simple library helpers become available.
+Three hosted captures each completed sixteen fresh processes and forty-eight integer calls, with ordinary and instrumented results agreeing.
+The existing package answers remain incomplete: Toolz still runs an unchecked table builder, while the observed Funcy and Pydash source exceeds current single-analysis budgets.
+The [method and runnable example](python-package-startup.md) explain import-time replacement, observation limits and the ordinary-Python timing baseline.
+The first two captures included module-list copying in their internal helper-call timers.
+The final capture fixes that measurement and preserves import-time file names before the calls can change them.
+Sixteen controls also check first-failure preservation and strict saved-record validation.
+All three raw captures remain saved. This work adds no analyzer behavior and establishes no agent savings.
+
 Evaluation artifacts answer narrow questions about fixed revisions and fixtures. They are retained
 evidence, not timeless product documentation. Live support comes from `fr audit`, `fr capabilities`
 and the command schemas.

@@ -90,6 +90,9 @@ The experiment adds no analyzer support and does not restart the stopped agent s
 Continue the Python work from the actual library failures. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
 answer, then improve the language rule needed to handle it.
+The [startup investigation](docs/python-package-startup-results.md) shows why another declaration rule alone cannot finish these package questions.
+Funcy and Pydash exceed the current file or source budgets in their complete observed Python executions.
+Investigate checking startup in smaller steps and safely reusing the checked results, with source dependencies and unknown effects explicit.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 

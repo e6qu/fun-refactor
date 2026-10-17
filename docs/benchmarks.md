@@ -114,6 +114,12 @@ CI duration compares jobs or tests on GitHub runners.
 Runner queue time, compilation time and test execution are separate costs.
 See [CI measurements](ci.md) for the named baseline runs and retained failures.
 
+## Observing Python package startup
+
+The [package startup investigation](python-package-startup-results.md) compares ordinary Python imports and integer calls with the same work under line tracing.
+Its timers include the costs described in the [method](python-package-startup.md#understand-the-comparison-costs).
+That comparison measures observation costs. It does not measure `fr` overhead against Python or complete agent-task cost.
+
 ## Saving Python test results
 
 You want the Python test job to finish without spending its deadline rewriting results it already saved.
