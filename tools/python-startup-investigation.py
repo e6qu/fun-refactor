@@ -74,7 +74,7 @@ def checked_observation(observation, helper, traced, scope):
             'import_seconds', 'call_seconds', 'modules', 'files', 'events', 'event_limit', 'execution'},
             'observation fields changed')
     require(observation['module'] == helper['module'] and observation['function'] == helper['function']
-            and observation['arguments'] == helper['arguments']
+            and json.dumps(observation['arguments']) == json.dumps(helper['arguments'])
             and json.dumps(observation['returned']) == json.dumps(helper['expected'])
             and observation['defining_path'] == helper['path'] and observation['traced'] is traced,
             'helper identity or ordinary Python result changed')
@@ -87,7 +87,8 @@ def checked_observation(observation, helper, traced, scope):
         require(not candidate.is_absolute() and '..' not in candidate.parts and candidate.suffix == '.py',
                 'observed path escapes the pinned source')
         file = scope / candidate
-        require(identity == {'bytes': file.stat().st_size, 'sha256': digest(file)}, 'observed source identity changed')
+        require(isinstance(identity, dict) and type(identity['bytes']) is int
+                and identity == {'bytes': file.stat().st_size, 'sha256': digest(file)}, 'observed source identity changed')
     require(set(observation['modules'].values()) <= set(observation['files'])
             and observation['modules'].get(helper['module']) == helper['path'], 'imported module selection changed')
     require(type(observation['execution']) is list, 'execution inventory must be a list')
@@ -139,7 +140,8 @@ def comparison(observation, report):
 
 
 def checked_process(measurement, stdout):
-    require(measurement['stop_reason'] is None and measurement['exit_code'] == 0
+    require(measurement['stop_reason'] is None and type(measurement['exit_code']) is int
+            and measurement['exit_code'] == 0 and type(measurement['process_exit_code']) is int
             and measurement['process_exit_code'] == 0 and measurement['monitor_error'] is None
             and measurement['launch_error'] is None and measurement['timed_out'] is False,
             'observation stopped or failed; retain the attempt and investigate')

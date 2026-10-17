@@ -133,6 +133,8 @@ class StartupChecks(unittest.TestCase):
                 value['returned'][0] = 123
             def change_zero_to_false(value):
                 value['returned'][1] = False
+            def change_argument_zero_to_false(value):
+                value['arguments'][1][0] = False
             def change_path(value):
                 value['files']['../escape.py'] = {'bytes': 0, 'sha256': '0' * 64}
             def change_hash(value):
@@ -143,7 +145,7 @@ class StartupChecks(unittest.TestCase):
                 value['execution'].append(value['execution'][0])
             def invent_line(value):
                 value['execution'][0]['lines'] = [999]
-            for mutation in (change_output, change_zero_to_false, change_path, change_hash,
+            for mutation in (change_output, change_zero_to_false, change_argument_zero_to_false, change_path, change_hash,
                              omit_trace, duplicate_file, invent_line):
                 with self.subTest(mutation=mutation.__name__), self.assertRaises(ValueError):
                     value = copy.deepcopy(original)
