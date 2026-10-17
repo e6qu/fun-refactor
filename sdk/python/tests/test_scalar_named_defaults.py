@@ -118,7 +118,9 @@ def test_same_named_defaults_in_different_files_keep_their_own_capture(tmp_path)
     (tmp_path / "subject.py").write_text("from helpers import choose\nfrom other import choose as shared\ndef entry():\n    sink(choose())\n    return shared(source())\n")
     result = analyze(client, rules, "entry", imports=True)
     assert result.report.at("/complete"), result.report.at('/cutoffs')
-    assert result.witnesses
+    assert not result.witnesses
+    assert observe(tmp_path) == {'result': 17, 'raised': None,
+                                'events': [['sink', 0], ['source', 17]]}
     assert "unsupported-parameter-contract:helpers.py::choose" not in result.report.at("/cutoffs")
 
 

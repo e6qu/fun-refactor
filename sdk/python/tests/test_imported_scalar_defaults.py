@@ -191,10 +191,15 @@ def test_imported_capture_keeps_the_sixteen_file_and_binding_limits(tmp_path, br
 @pytest.mark.parametrize('provider', ['class marker:\n    pass\n',
                                      'def marker():\n    return 0\n',
                                      'class Token:\n    pass\nmarker = Token()\n'])
-def test_an_explicit_override_does_not_make_object_defaults_scalar(tmp_path, provider):
+def test_imported_classes_functions_and_instances_can_be_replaced(tmp_path, provider):
     client, rules = install(tmp_path, call='choose(source())')
     (tmp_path / 'settings.py').write_text(provider)
     result = analyze(client, rules, 'entry', imports=True)
-    assert not result.report.at('/complete')
-    assert 'unsupported-parameter-contract:subject.py::choose' in result.report.at('/cutoffs')
+    assert result.report.at('/complete'), result.report.at('/cutoffs')
+    assert result.witnesses
     assert observe(tmp_path)['result'] == 17
+    subject = tmp_path / 'subject.py'
+    subject.write_text(subject.read_text().replace('choose(source())', 'choose()'))
+    omitted = analyze(client, rules, 'entry', imports=True)
+    assert not omitted.report.at('/complete')
+    assert 'unsupported-default-value:subject.py::choose' in omitted.report.at('/cutoffs')
