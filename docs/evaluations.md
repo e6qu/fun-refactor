@@ -1153,6 +1153,14 @@ These timings describe individual hosted checks, rather than analysis overhead o
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
 
+The [first full PR check](https://github.com/e6qu/fun-refactor/actions/runs/39027802949/job/117382130062)
+passed 824 selected Python interface cases but found two older list and class alias expectations.
+Those tests still required an incomplete answer when a local declaration shadows a built-in name.
+The corrected cases keep the same programs and check complete setup, Python execution and the original value's recorded kind.
+The scalar counterpart and a checked import use the same rule.
+A separate unknown native import keeps the answer incomplete, even when its name matches a built-in function.
+These test corrections leave the collected analyzer, guide and example inputs unchanged.
+
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization
 and 0.021 seconds after it. Both digests matched Python's independent SHA-256 result.
