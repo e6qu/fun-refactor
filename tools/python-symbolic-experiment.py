@@ -32,7 +32,8 @@ def save(path, value):
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def prepare(output):
@@ -80,8 +81,11 @@ def prepare(output):
 
 
 def execute(command, directory, name, env, *, cwd=None):
+    temporary = directory / "tmp"
+    temporary.mkdir(exist_ok=True)
+    env = dict(env, TMPDIR=str(temporary))
     with (directory / (name + ".stdout")).open("wb") as stdout, (directory / (name + ".stderr")).open("wb") as stderr:
-        result = run(command, b"", stdout, stderr, directory, env=env, cwd=cwd, **LIMITS)
+        result = run(command, b"", stdout, stderr, directory.parent, env=env, cwd=cwd, **LIMITS)
     result["command"] = command
     result["stdout"] = (directory / (name + ".stdout")).read_text()
     result["stderr"] = (directory / (name + ".stderr")).read_text()
@@ -118,7 +122,9 @@ def collect(args):
               "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_files": {str(path.relative_to(ROOT)): digest(path) for path in
                                (Path(__file__).resolve(), ROOT / "tools/python_symbolic_cases.py",
-                                ROOT / "tools/python-symbolic-worker.py")},
+                                ROOT / "tools/python-symbolic-worker.py", ROOT / "tools/agent_eval/bounded_host.py",
+                                ROOT / ".github/workflows/python-symbolic.yml")},
+              "analyzer_sha256": digest(args.fr.resolve()),
               "python": sys.version, "platform": platform.platform(),
               "packages": sorted((item.metadata["Name"], item.version) for item in importlib.metadata.distributions()),
               "upstream": upstream, "limits": LIMITS, "seed": 731, "repetitions": 2,
@@ -152,7 +158,7 @@ def collect(args):
                 if observation["exit_code"] == 1:
                     arguments = counterexample(observation["stdout"], case)
                     replay = execute([sys.executable, "-B", str(ROOT / "tools/python-symbolic-worker.py"), "replay",
-                                      str(scope), case, "--arguments", json.dumps(arguments)], directory, "replay", env)
+                                      str(scope), case, "--arguments", json.dumps(arguments)], directory, "replay", env, cwd=scope)
                     row["replay"] = replay
                     require(not replay["stop_reason"] and replay["exit_code"] == 0,
                             "counterexample replay did not finish")
