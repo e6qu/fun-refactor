@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -310,7 +313,7 @@ fn retained_semantic_evidence_is_source_bound_and_internally_verified() {
         .args([
             "tools/compiler-profile.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-compiler-profile/result.json",
+            &retained::report("compiler-profile"),
         ])
         .output()
         .unwrap();

@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -217,7 +220,7 @@ fn retained_recursive_acceptance_matches_its_implementation_and_oracles() {
         .args([
             "tools/recursive-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-recursive-flow/result.json",
+            &retained::report("recursive-flow"),
         ])
         .output()
         .unwrap();

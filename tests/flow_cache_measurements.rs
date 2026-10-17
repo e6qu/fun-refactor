@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use std::process::Command;
 
 #[test]
@@ -19,7 +22,7 @@ fn retained_cache_comparison_matches_sources_oracles_and_measurements() {
         .args([
             "tools/flow-cache-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-flow-cache/result.json",
+            &retained::report("flow-cache"),
         ])
         .output()
         .unwrap();

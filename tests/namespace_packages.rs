@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -90,7 +93,7 @@ fn namespace_packages_acceptance_replays_checked_delivery() {
         .args([
             "tools/namespace-packages-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-namespace-packages/result.json",
+            &retained::report("namespace-packages"),
         ])
         .output()
         .unwrap();

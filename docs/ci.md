@@ -74,6 +74,11 @@ Each capture keeps its actual collection commit. Every recorded input still rece
 Changed analyzer code, changed recorded inputs and uncommitted analyzer files stop retention.
 This lets unrelated captures remain useful after a CI-only edit without changing their contents or fingerprints.
 
+Native tests select the current collection through the compiler report listed in the project tracker.
+They require its collection receipt and check each requested report's checksum before running the existing audit.
+For example, saving new call examples changes the current collection once; tests no longer keep separate dated links to older reports.
+A missing receipt, changed report or disagreement with the tracker fails the check.
+
 ## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
