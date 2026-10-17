@@ -115,6 +115,7 @@ def trace(binary, scope, directory, env):
 
 
 def collect(args):
+    require(sys.platform == "linux", "this experiment requires its declared Linux runner")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     contexts, upstream = prepare(output)
@@ -123,9 +124,13 @@ def collect(args):
               "source_files": {str(path.relative_to(ROOT)): digest(path) for path in
                                (Path(__file__).resolve(), ROOT / "tools/python_symbolic_cases.py",
                                 ROOT / "tools/python-symbolic-worker.py", ROOT / "tools/agent_eval/bounded_host.py",
-                                ROOT / ".github/workflows/python-symbolic.yml")},
+                                ROOT / ".github/workflows/python-symbolic.yml",
+                                ROOT / "tests/agent-eval/python-symbolic/requirements.txt")},
               "analyzer_sha256": digest(args.fr.resolve()),
               "python": sys.version, "platform": platform.platform(),
+              "cpu_model": next(line.split(":", 1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines()
+                                if line.startswith("model name")),
+              "logical_cpus": os.cpu_count(),
               "packages": sorted((item.metadata["Name"], item.version) for item in importlib.metadata.distributions()),
               "upstream": upstream, "limits": LIMITS, "seed": 731, "repetitions": 2,
               "measurement_scope": "Elapsed includes fresh startup, imports, analysis, output and host monitoring. Sampled CPU/RSS cover the child process group, excluding the monitor. Installation, archive setup, build and replay are recorded separately.",

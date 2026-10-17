@@ -8,12 +8,14 @@ on:
       - 'tools/python_symbolic_cases.py'
       - 'tools/test-python-symbolic-experiment.py'
       - '.github/workflows/python-symbolic.yml'
+      - 'tests/agent-eval/python-symbolic/requirements.txt'
   pull_request:
     paths:
       - 'tools/python-symbolic-*'
       - 'tools/python_symbolic_cases.py'
       - 'tools/test-python-symbolic-experiment.py'
       - '.github/workflows/python-symbolic.yml'
+      - 'tests/agent-eval/python-symbolic/requirements.txt'
 permissions:
   contents: read
 concurrency:
@@ -35,11 +37,12 @@ jobs:
           python-version: '3.14'
       - name: Prepare measured setup records
         run: mkdir -p "$RUNNER_TEMP/numeric-setup"
-      - name: Install the selected checker and record resolved dependencies
+      - name: Install the frozen checker dependencies and record setup cost
         run: |
           /usr/bin/time -v -o "$RUNNER_TEMP/numeric-setup/install-time.txt" \
-            python3 -m pip install --report "$RUNNER_TEMP/numeric-setup/install.json" \
-            'crosshair-tool==0.0.111' 'typing_extensions==4.15.0'
+            python3 -m pip install --only-binary=:all: --require-hashes \
+            --report "$RUNNER_TEMP/numeric-setup/install.json" \
+            -r tests/agent-eval/python-symbolic/requirements.txt
           python3 -m pip freeze --all > "$RUNNER_TEMP/numeric-setup/packages.txt"
       - name: Check rejection of malformed and inadmissible failing inputs
         run: python3 -B tools/test-python-symbolic-experiment.py
