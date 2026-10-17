@@ -1,0 +1,822 @@
+﻿2026-10-17T17:07:44.2520449Z Current runner version: '2.337.0'
+2026-10-17T17:07:44.2544436Z ##[group]Runner Image Provisioner
+2026-10-17T17:07:44.2545447Z Hosted Compute Agent
+2026-10-17T17:07:44.2546075Z Version: 20261012.601
+2026-10-17T17:07:44.2546655Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-17T17:07:44.2547454Z Build Date: 2026-10-12T17:48:21Z
+2026-10-17T17:07:44.2548102Z Worker ID: {8af724b6-8cd3-4485-bacc-776c3f0e5146}
+2026-10-17T17:07:44.2548747Z Region: westus3
+2026-10-17T17:07:44.2549227Z Cloud: Azure
+2026-10-17T17:07:44.2549742Z ##[endgroup]
+2026-10-17T17:07:44.2551249Z ##[group]Operating System
+2026-10-17T17:07:44.2551844Z Ubuntu
+2026-10-17T17:07:44.2552323Z 24.04.5
+2026-10-17T17:07:44.2552804Z LTS
+2026-10-17T17:07:44.2553295Z ##[endgroup]
+2026-10-17T17:07:44.2553805Z ##[group]Runner Image
+2026-10-17T17:07:44.2554346Z Image: ubuntu-24.04
+2026-10-17T17:07:44.2554868Z Version: 20261012.334.1
+2026-10-17T17:07:44.2556022Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-17T17:07:44.2557586Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-17T17:07:44.2558509Z ##[endgroup]
+2026-10-17T17:07:44.2559522Z ##[group]GITHUB_TOKEN Permissions
+2026-10-17T17:07:44.2561887Z Contents: read
+2026-10-17T17:07:44.2562484Z Metadata: read
+2026-10-17T17:07:44.2562978Z ##[endgroup]
+2026-10-17T17:07:44.2565040Z Secret source: Actions
+2026-10-17T17:07:44.2565891Z Cache mode: write
+2026-10-17T17:07:44.2566557Z Prepare workflow directory
+2026-10-17T17:07:44.2987217Z Prepare all required actions
+2026-10-17T17:07:44.3035702Z Getting action download info
+2026-10-17T17:07:44.6122589Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-17T17:07:44.7189248Z Download action repository 'actions/setup-python@v7' (SHA:5fda3b95a4ea91299a34e894583c3862153e4b97)
+2026-10-17T17:07:44.7856277Z Download action repository 'Swatinem/rust-cache@v2' (SHA:6323deb102c322ba6fcbdcafc7e3dddab59af2b6)
+2026-10-17T17:07:45.7132968Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+2026-10-17T17:07:46.6291558Z Complete job name: python-contract
+2026-10-17T17:07:46.7292505Z ##[group]Run actions/checkout@v7
+2026-10-17T17:07:46.7293843Z with:
+2026-10-17T17:07:46.7294638Z   repository: e6qu/fun-refactor
+2026-10-17T17:07:46.7302678Z   token: ***
+2026-10-17T17:07:46.7303469Z   ssh-strict: true
+2026-10-17T17:07:46.7304296Z   ssh-user: git
+2026-10-17T17:07:46.7305129Z   persist-credentials: true
+2026-10-17T17:07:46.7306036Z   clean: true
+2026-10-17T17:07:46.7306872Z   sparse-checkout-cone-mode: true
+2026-10-17T17:07:46.7308065Z   fetch-depth: 1
+2026-10-17T17:07:46.7308885Z   fetch-tags: false
+2026-10-17T17:07:46.7309735Z   show-progress: true
+2026-10-17T17:07:46.7310603Z   lfs: false
+2026-10-17T17:07:46.7311384Z   submodules: false
+2026-10-17T17:07:46.7312237Z   set-safe-directory: true
+2026-10-17T17:07:46.7313191Z   allow-unsafe-pr-checkout: false
+2026-10-17T17:07:46.7314515Z env:
+2026-10-17T17:07:46.7315265Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:07:46.7316124Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:07:46.7317007Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:07:46.7318296Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:07:46.7319292Z   RUSTFLAGS: -D warnings
+2026-10-17T17:07:46.7320167Z ##[endgroup]
+2026-10-17T17:07:46.8321135Z Syncing repository: e6qu/fun-refactor
+2026-10-17T17:07:46.8325253Z ##[group]Getting Git version info
+2026-10-17T17:07:46.8326820Z Working directory is '/home/runner/work/fun-refactor/fun-refactor'
+2026-10-17T17:07:46.8329878Z [command]/usr/bin/git version
+2026-10-17T17:07:46.8413213Z git version 2.55.0
+2026-10-17T17:07:46.8447649Z ##[endgroup]
+2026-10-17T17:07:46.8456491Z Temporarily overriding HOME='/home/runner/work/_temp/95c54293-a334-4047-bb95-56f9d3917f4c' before making global git config changes
+2026-10-17T17:07:46.8459141Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T17:07:46.8464130Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:07:46.8511704Z Deleting the contents of '/home/runner/work/fun-refactor/fun-refactor'
+2026-10-17T17:07:46.8515331Z ##[group]Determining repository object format
+2026-10-17T17:07:46.8518016Z ##[endgroup]
+2026-10-17T17:07:46.8519507Z ##[group]Initializing the repository
+2026-10-17T17:07:46.8522592Z [command]/usr/bin/git init /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:07:46.8626311Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-17T17:07:46.8629505Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-17T17:07:46.8631911Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-17T17:07:46.8634238Z hint: call:
+2026-10-17T17:07:46.8635064Z hint:
+2026-10-17T17:07:46.8636564Z hint: 	git config --global init.defaultBranch <name>
+2026-10-17T17:07:46.8638594Z hint:
+2026-10-17T17:07:46.8639773Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-17T17:07:46.8641472Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-17T17:07:46.8642830Z hint:
+2026-10-17T17:07:46.8643631Z hint: 	git branch -m <name>
+2026-10-17T17:07:46.8645122Z hint:
+2026-10-17T17:07:46.8646778Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-17T17:07:46.8650118Z Initialized empty Git repository in /home/runner/work/fun-refactor/fun-refactor/.git/
+2026-10-17T17:07:46.8655442Z [command]/usr/bin/git remote add origin https://github.com/e6qu/fun-refactor
+2026-10-17T17:07:46.8687008Z ##[endgroup]
+2026-10-17T17:07:46.8688730Z ##[group]Disabling automatic garbage collection
+2026-10-17T17:07:46.8690483Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-17T17:07:46.8721899Z ##[endgroup]
+2026-10-17T17:07:46.8724799Z ##[group]Setting up auth
+2026-10-17T17:07:46.8726325Z Removing SSH command configuration
+2026-10-17T17:07:46.8729001Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T17:07:46.8763458Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T17:07:46.9083648Z Removing HTTP extra header
+2026-10-17T17:07:46.9088773Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T17:07:46.9117155Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T17:07:46.9308125Z Removing includeIf entries pointing to credentials config files
+2026-10-17T17:07:46.9314418Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T17:07:46.9347227Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T17:07:46.9537276Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-17T17:07:46.9571454Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path /home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:07:46.9597924Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:07:46.9626435Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:07:46.9655298Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:07:46.9680665Z ##[endgroup]
+2026-10-17T17:07:46.9682999Z ##[group]Fetching the repository
+2026-10-17T17:07:46.9690900Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +801bfda5c3403aef1cc589eb6f47249ec42f442e:refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:08:06.9502521Z From https://github.com/e6qu/fun-refactor
+2026-10-17T17:08:06.9503708Z  * [new ref]           801bfda5c3403aef1cc589eb6f47249ec42f442e -> origin/feat/check-python-startup-registrations
+2026-10-17T17:08:06.9511231Z [command]/usr/bin/git branch --list --remote origin/feat/check-python-startup-registrations
+2026-10-17T17:08:06.9536868Z   origin/feat/check-python-startup-registrations
+2026-10-17T17:08:06.9545408Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:08:06.9566666Z 801bfda5c3403aef1cc589eb6f47249ec42f442e
+2026-10-17T17:08:06.9569548Z ##[endgroup]
+2026-10-17T17:08:06.9569990Z ##[group]Determining the checkout info
+2026-10-17T17:08:06.9570807Z ##[endgroup]
+2026-10-17T17:08:06.9574920Z [command]/usr/bin/git sparse-checkout disable
+2026-10-17T17:08:06.9619604Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-17T17:08:06.9645079Z ##[group]Checking out the ref
+2026-10-17T17:08:06.9649650Z [command]/usr/bin/git checkout --progress --force -B feat/check-python-startup-registrations refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:08:08.0419419Z Updating files:  24% (7651/30936)
+2026-10-17T17:08:08.0538837Z Updating files:  25% (7734/30936)
+2026-10-17T17:08:08.0643197Z Updating files:  26% (8044/30936)
+2026-10-17T17:08:08.0737149Z Updating files:  27% (8353/30936)
+2026-10-17T17:08:08.0853183Z Updating files:  28% (8663/30936)
+2026-10-17T17:08:08.0974275Z Updating files:  29% (8972/30936)
+2026-10-17T17:08:08.1070083Z Updating files:  30% (9281/30936)
+2026-10-17T17:08:08.1181033Z Updating files:  31% (9591/30936)
+2026-10-17T17:08:08.1274497Z Updating files:  32% (9900/30936)
+2026-10-17T17:08:08.1375883Z Updating files:  33% (10209/30936)
+2026-10-17T17:08:08.1478812Z Updating files:  34% (10519/30936)
+2026-10-17T17:08:08.1575259Z Updating files:  35% (10828/30936)
+2026-10-17T17:08:08.1913031Z Updating files:  36% (11137/30936)
+2026-10-17T17:08:08.2008612Z Updating files:  37% (11447/30936)
+2026-10-17T17:08:08.2114928Z Updating files:  38% (11756/30936)
+2026-10-17T17:08:08.2267690Z Updating files:  39% (12066/30936)
+2026-10-17T17:08:08.2362218Z Updating files:  40% (12375/30936)
+2026-10-17T17:08:08.3653898Z Updating files:  41% (12684/30936)
+2026-10-17T17:08:08.3759674Z Updating files:  42% (12994/30936)
+2026-10-17T17:08:08.4833275Z Updating files:  43% (13303/30936)
+2026-10-17T17:08:08.4950885Z Updating files:  44% (13612/30936)
+2026-10-17T17:08:08.6536396Z Updating files:  45% (13922/30936)
+2026-10-17T17:08:08.8181366Z Updating files:  46% (14231/30936)
+2026-10-17T17:08:08.8284247Z Updating files:  47% (14540/30936)
+2026-10-17T17:08:08.9618061Z Updating files:  48% (14850/30936)
+2026-10-17T17:08:08.9721776Z Updating files:  49% (15159/30936)
+2026-10-17T17:08:09.0438991Z Updating files:  50% (15468/30936)
+2026-10-17T17:08:09.0865905Z Updating files:  50% (15531/30936)
+2026-10-17T17:08:09.2285698Z Updating files:  51% (15778/30936)
+2026-10-17T17:08:09.2400432Z Updating files:  52% (16087/30936)
+2026-10-17T17:08:09.6498252Z Updating files:  53% (16397/30936)
+2026-10-17T17:08:09.6606626Z Updating files:  54% (16706/30936)
+2026-10-17T17:08:10.0427793Z Updating files:  55% (17015/30936)
+2026-10-17T17:08:10.0909140Z Updating files:  55% (17139/30936)
+2026-10-17T17:08:10.1114210Z Updating files:  56% (17325/30936)
+2026-10-17T17:08:10.7803513Z Updating files:  57% (17634/30936)
+2026-10-17T17:08:11.0219771Z Updating files:  58% (17943/30936)
+2026-10-17T17:08:11.3293762Z Updating files:  58% (18198/30936)
+2026-10-17T17:08:11.3502963Z Updating files:  59% (18253/30936)
+2026-10-17T17:08:12.0103217Z Updating files:  60% (18562/30936)
+2026-10-17T17:08:12.0131562Z Updating files:  61% (18871/30936)
+2026-10-17T17:08:12.0212672Z Updating files:  61% (18963/30936)
+2026-10-17T17:08:12.5062292Z Updating files:  62% (19181/30936)
+2026-10-17T17:08:13.0746148Z Updating files:  63% (19490/30936)
+2026-10-17T17:08:13.1237758Z Updating files:  63% (19796/30936)
+2026-10-17T17:08:13.2012596Z Updating files:  64% (19800/30936)
+2026-10-17T17:08:13.8800249Z Updating files:  65% (20109/30936)
+2026-10-17T17:08:13.8912260Z Updating files:  66% (20418/30936)
+2026-10-17T17:08:14.0566000Z Updating files:  67% (20728/30936)
+2026-10-17T17:08:14.4047929Z Updating files:  67% (20849/30936)
+2026-10-17T17:08:14.4273034Z Updating files:  68% (21037/30936)
+2026-10-17T17:08:14.8360915Z Updating files:  69% (21346/30936)
+2026-10-17T17:08:15.0590660Z Updating files:  70% (21656/30936)
+2026-10-17T17:08:15.1950049Z Updating files:  70% (21909/30936)
+2026-10-17T17:08:15.2059258Z Updating files:  71% (21965/30936)
+2026-10-17T17:08:15.4485557Z Updating files:  72% (22274/30936)
+2026-10-17T17:08:15.4595601Z Updating files:  73% (22584/30936)
+2026-10-17T17:08:15.7906968Z Updating files:  74% (22893/30936)
+2026-10-17T17:08:16.0189515Z Updating files:  75% (23202/30936)
+2026-10-17T17:08:16.0772394Z Updating files:  75% (23506/30936)
+2026-10-17T17:08:16.2303453Z Updating files:  76% (23512/30936)
+2026-10-17T17:08:16.5604174Z Updating files:  77% (23821/30936)
+2026-10-17T17:08:16.5711982Z Updating files:  78% (24131/30936)
+2026-10-17T17:08:16.9296553Z Updating files:  79% (24440/30936)
+2026-10-17T17:08:16.9412021Z Updating files:  80% (24749/30936)
+2026-10-17T17:08:17.1478834Z Updating files:  81% (25059/30936)
+2026-10-17T17:08:17.4830371Z Updating files:  81% (25098/30936)
+2026-10-17T17:08:17.8171955Z Updating files:  82% (25368/30936)
+2026-10-17T17:08:17.8283012Z Updating files:  83% (25677/30936)
+2026-10-17T17:08:18.0268406Z Updating files:  84% (25987/30936)
+2026-10-17T17:08:18.1580832Z Updating files:  84% (26162/30936)
+2026-10-17T17:08:18.1687965Z Updating files:  85% (26296/30936)
+2026-10-17T17:08:18.3810067Z Updating files:  86% (26605/30936)
+2026-10-17T17:08:18.6887174Z Updating files:  87% (26915/30936)
+2026-10-17T17:08:18.7428512Z Updating files:  88% (27224/30936)
+2026-10-17T17:08:19.0331051Z Updating files:  89% (27534/30936)
+2026-10-17T17:08:19.0370777Z Updating files:  89% (27763/30936)
+2026-10-17T17:08:19.0482266Z Updating files:  90% (27843/30936)
+2026-10-17T17:08:19.3632751Z Updating files:  91% (28152/30936)
+2026-10-17T17:08:19.3741676Z Updating files:  92% (28462/30936)
+2026-10-17T17:08:19.4031336Z Updating files:  93% (28771/30936)
+2026-10-17T17:08:19.7131579Z Updating files:  94% (29080/30936)
+2026-10-17T17:08:19.7237570Z Updating files:  95% (29390/30936)
+2026-10-17T17:08:20.0196293Z Updating files:  96% (29699/30936)
+2026-10-17T17:08:20.0308188Z Updating files:  96% (29841/30936)
+2026-10-17T17:08:20.0479313Z Updating files:  97% (30008/30936)
+2026-10-17T17:08:20.0594313Z Updating files:  98% (30318/30936)
+2026-10-17T17:08:20.0755386Z Updating files:  99% (30627/30936)
+2026-10-17T17:08:20.0755995Z Updating files: 100% (30936/30936)
+2026-10-17T17:08:20.0756544Z Updating files: 100% (30936/30936), done.
+2026-10-17T17:08:20.3041208Z Switched to a new branch 'feat/check-python-startup-registrations'
+2026-10-17T17:08:20.3043290Z branch 'feat/check-python-startup-registrations' set up to track 'origin/feat/check-python-startup-registrations'.
+2026-10-17T17:08:20.3097842Z ##[endgroup]
+2026-10-17T17:08:20.3137607Z [command]/usr/bin/git log -1 --format=%H
+2026-10-17T17:08:20.3163268Z 801bfda5c3403aef1cc589eb6f47249ec42f442e
+2026-10-17T17:08:20.3347024Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt
+2026-10-17T17:08:20.3347874Z [36;1mrustup toolchain install stable --profile minimal --component rustfmt[0m
+2026-10-17T17:08:20.3840221Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:08:20.3840515Z env:
+2026-10-17T17:08:20.3840724Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:20.3841177Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:20.3841426Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:20.3841696Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:20.3841955Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:20.3842188Z ##[endgroup]
+2026-10-17T17:08:20.5779406Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+2026-10-17T17:08:20.7520282Z info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+2026-10-17T17:08:20.7659393Z info: removing previous version of component rustfmt
+2026-10-17T17:08:20.7678217Z info: removing previous version of component clippy
+2026-10-17T17:08:20.7688155Z info: removing previous version of component cargo
+2026-10-17T17:08:20.7717775Z info: removing previous version of component rust-std
+2026-10-17T17:08:20.7748168Z info: removing previous version of component rustc
+2026-10-17T17:08:20.7778805Z info: downloading 5 components
+2026-10-17T17:08:29.8851984Z 
+2026-10-17T17:08:29.8917527Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.99.1 (58cf8f9c3 2026-10-13) (from rustc 1.99.0 (b940084d7 2026-09-28))
+2026-10-17T17:08:29.8918328Z 
+2026-10-17T17:08:29.9079020Z ##[group]Run actions/setup-python@v7
+2026-10-17T17:08:29.9079301Z with:
+2026-10-17T17:08:29.9079508Z   python-version: 3.14
+2026-10-17T17:08:29.9079736Z   check-latest: false
+2026-10-17T17:08:29.9082107Z   token: ***
+2026-10-17T17:08:29.9082373Z   update-environment: true
+2026-10-17T17:08:29.9082625Z   allow-prereleases: false
+2026-10-17T17:08:29.9082860Z   freethreaded: false
+2026-10-17T17:08:29.9083065Z env:
+2026-10-17T17:08:29.9083256Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:29.9083475Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:29.9083698Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:29.9083942Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:29.9084190Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:29.9084411Z ##[endgroup]
+2026-10-17T17:08:30.0245846Z ##[group]Installed versions
+2026-10-17T17:08:30.0322603Z Successfully set up CPython (3.14.8)
+2026-10-17T17:08:30.0323448Z ##[endgroup]
+2026-10-17T17:08:30.0431844Z ##[group]Run python3 -B tools/python-contract.py --check-runtime
+2026-10-17T17:08:30.0432323Z [36;1mpython3 -B tools/python-contract.py --check-runtime[0m
+2026-10-17T17:08:30.0510614Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:08:30.0511076Z env:
+2026-10-17T17:08:30.0511421Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:30.0512112Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:30.0513167Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:30.0514101Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:30.0515071Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:30.0516409Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:30.0518041Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:08:30.0518671Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:30.0519387Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:30.0520097Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:30.0520890Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:08:30.0521501Z ##[endgroup]
+2026-10-17T17:08:44.9156419Z {"analysis_checked": false, "runtime_cases": 916}
+2026-10-17T17:08:44.9393613Z ##[group]Run python3 -B tools/test-retain-python-contract.py
+2026-10-17T17:08:44.9394155Z [36;1mpython3 -B tools/test-retain-python-contract.py[0m
+2026-10-17T17:08:44.9394616Z [36;1mpython3 -B tools/test-python-contract-writer.py[0m
+2026-10-17T17:08:44.9435719Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:08:44.9435992Z env:
+2026-10-17T17:08:44.9436207Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:44.9436454Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:44.9436702Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:44.9436973Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:44.9437229Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:44.9437745Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:44.9438198Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:08:44.9438790Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:44.9439190Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:44.9439643Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:44.9440036Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:08:44.9440366Z ##[endgroup]
+2026-10-17T17:08:45.7552499Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:08:45.7555180Z .HTTP 403: Forbidden
+2026-10-17T17:08:45.7729702Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:08:45.7730374Z ...connection reset by peer
+2026-10-17T17:08:45.7735906Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:08:45.7931084Z ............/opt/hostedtoolcache/Python/3.14.8/x64/lib/python3.14/zipfile/__init__.py:1755: UserWarning: Duplicate name: 'result.json'
+2026-10-17T17:08:45.7932628Z   return self._open_to_write(zinfo, force_zip64=force_zip64)
+2026-10-17T17:08:45.7933615Z ..
+2026-10-17T17:08:45.7934295Z ----------------------------------------------------------------------
+2026-10-17T17:08:45.7935267Z Ran 18 tests in 0.039s
+2026-10-17T17:08:45.7935655Z 
+2026-10-17T17:08:45.7935874Z OK
+2026-10-17T17:08:46.4635841Z ..........
+2026-10-17T17:08:46.4636346Z ----------------------------------------------------------------------
+2026-10-17T17:08:46.4636795Z Ran 10 tests in 0.244s
+2026-10-17T17:08:46.4636942Z 
+2026-10-17T17:08:46.4637037Z OK
+2026-10-17T17:08:46.5045236Z ##[group]Run Swatinem/rust-cache@v2
+2026-10-17T17:08:46.5045507Z with:
+2026-10-17T17:08:46.5045701Z   key: default
+2026-10-17T17:08:46.5045910Z   prefix-key: v0-rust
+2026-10-17T17:08:46.5046130Z   add-job-id-key: true
+2026-10-17T17:08:46.5046384Z   add-rust-environment-hash-key: true
+2026-10-17T17:08:46.5046650Z   cache-targets: true
+2026-10-17T17:08:46.5046873Z   cache-all-crates: false
+2026-10-17T17:08:46.5047120Z   cache-workspace-crates: false
+2026-10-17T17:08:46.5047508Z   save-if: true
+2026-10-17T17:08:46.5047719Z   cache-provider: github
+2026-10-17T17:08:46.5047942Z   cache-bin: true
+2026-10-17T17:08:46.5048145Z   lookup-only: false
+2026-10-17T17:08:46.5048360Z   cmd-format: {0}
+2026-10-17T17:08:46.5048559Z env:
+2026-10-17T17:08:46.5048747Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:46.5048977Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:46.5049205Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:46.5049451Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:46.5049734Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:46.5050021Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:46.5050429Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:08:46.5050829Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:46.5051188Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:46.5051545Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:46.5051912Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:08:46.5052229Z ##[endgroup]
+2026-10-17T17:08:49.9657795Z ##[group]Cache Configuration
+2026-10-17T17:08:49.9658434Z Cache Provider:
+2026-10-17T17:08:49.9658835Z     github
+2026-10-17T17:08:49.9659267Z Workspaces:
+2026-10-17T17:08:49.9659733Z     /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:08:49.9660253Z Cache Paths:
+2026-10-17T17:08:49.9660653Z     /home/runner/.cargo/bin
+2026-10-17T17:08:49.9661155Z     /home/runner/.cargo/.crates.toml
+2026-10-17T17:08:49.9661734Z     /home/runner/.cargo/.crates2.json
+2026-10-17T17:08:49.9662259Z     /home/runner/.cargo/registry
+2026-10-17T17:08:49.9662748Z     /home/runner/.cargo/git
+2026-10-17T17:08:49.9663363Z     /home/runner/work/fun-refactor/fun-refactor/target
+2026-10-17T17:08:49.9663921Z Restore Key:
+2026-10-17T17:08:49.9664414Z     v0-rust-default-python-contract-Linux-x64-f80fee46
+2026-10-17T17:08:49.9665011Z Cache Key:
+2026-10-17T17:08:49.9665571Z     v0-rust-default-python-contract-Linux-x64-f80fee46-bdb9daef
+2026-10-17T17:08:49.9666625Z .. Prefix:
+2026-10-17T17:08:49.9667110Z   - v0-rust-default-python-contract-Linux-x64
+2026-10-17T17:08:49.9667865Z .. Environment considered:
+2026-10-17T17:08:49.9668352Z   - Rust Versions:
+2026-10-17T17:08:49.9668984Z     - 1.99.1 x86_64-unknown-linux-gnu 58cf8f9c35b355199727627d07ae34a4e2846d67
+2026-10-17T17:08:49.9669757Z   - CARGO_BUILD_JOBS
+2026-10-17T17:08:49.9670209Z   - CARGO_INCREMENTAL
+2026-10-17T17:08:49.9670698Z   - CARGO_PROFILE_DEV_DEBUG
+2026-10-17T17:08:49.9671167Z   - CARGO_PROFILE_TEST_DEBUG
+2026-10-17T17:08:49.9671624Z   - RUSTFLAGS
+2026-10-17T17:08:49.9672034Z .. Lockfiles considered:
+2026-10-17T17:08:49.9672603Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.lock
+2026-10-17T17:08:49.9673320Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.toml
+2026-10-17T17:08:49.9674098Z   - /home/runner/work/fun-refactor/fun-refactor/crates/wasm-libc/Cargo.toml
+2026-10-17T17:08:49.9674915Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/go/Cargo.toml
+2026-10-17T17:08:49.9675765Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/lean/Cargo.toml
+2026-10-17T17:08:49.9676560Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/python/Cargo.toml
+2026-10-17T17:08:49.9678256Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/sass/Cargo.toml
+2026-10-17T17:08:49.9678888Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/scss/Cargo.toml
+2026-10-17T17:08:49.9679678Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/typescript/Cargo.toml
+2026-10-17T17:08:49.9680155Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/zig/Cargo.toml
+2026-10-17T17:08:49.9680760Z ##[endgroup]
+2026-10-17T17:08:49.9680889Z 
+2026-10-17T17:08:49.9680983Z ... Restoring cache ...
+2026-10-17T17:08:50.1762561Z No cache found.
+2026-10-17T17:08:50.1902196Z ##[group]Run cargo fmt --all --check
+2026-10-17T17:08:50.1902520Z [36;1mcargo fmt --all --check[0m
+2026-10-17T17:08:50.1939003Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:08:50.1939298Z env:
+2026-10-17T17:08:50.1939502Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:50.1939727Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:50.1939957Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:50.1940213Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:50.1940461Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:50.1940758Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:50.1941172Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:08:50.1941573Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:50.1941935Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:50.1942295Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:50.1942702Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:08:50.1943026Z   CACHE_ON_FAILURE: false
+2026-10-17T17:08:50.1943248Z ##[endgroup]
+2026-10-17T17:08:53.6055298Z ##[group]Run cargo build --locked --bin fr
+2026-10-17T17:08:53.6055658Z [36;1mcargo build --locked --bin fr[0m
+2026-10-17T17:08:53.6091517Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:08:53.6091778Z env:
+2026-10-17T17:08:53.6091984Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:08:53.6092237Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:08:53.6092470Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:08:53.6092716Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:08:53.6092974Z   RUSTFLAGS: -D warnings
+2026-10-17T17:08:53.6093288Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:53.6093708Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:08:53.6094113Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:53.6094477Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:53.6094843Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:08:53.6095251Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:08:53.6095574Z   CACHE_ON_FAILURE: false
+2026-10-17T17:08:53.6095953Z ##[endgroup]
+2026-10-17T17:08:53.6453299Z     Updating crates.io index
+2026-10-17T17:08:53.9169951Z  Downloading crates ...
+2026-10-17T17:08:53.9730313Z   Downloaded cfg-if v1.0.4
+2026-10-17T17:08:53.9740106Z   Downloaded anstyle-query v1.1.5
+2026-10-17T17:08:53.9882907Z   Downloaded block-buffer v0.12.1
+2026-10-17T17:08:53.9892361Z   Downloaded byteorder v1.5.0
+2026-10-17T17:08:53.9925459Z   Downloaded bitflags v2.13.2
+2026-10-17T17:08:53.9966277Z   Downloaded clap_lex v1.1.0
+2026-10-17T17:08:54.0042796Z   Downloaded tree-sitter-xml v0.7.0
+2026-10-17T17:08:54.0068463Z   Downloaded crypto-common v0.2.2
+2026-10-17T17:08:54.0075945Z   Downloaded colorchoice v1.0.5
+2026-10-17T17:08:54.0082886Z   Downloaded embedded-io v0.6.1
+2026-10-17T17:08:54.0091227Z   Downloaded errno v0.3.14
+2026-10-17T17:08:54.0100583Z   Downloaded hash32 v0.2.1
+2026-10-17T17:08:54.0109022Z   Downloaded cobs v0.3.0
+2026-10-17T17:08:54.0118325Z   Downloaded utf8parse v0.2.2
+2026-10-17T17:08:54.0132440Z   Downloaded tracing-log v0.2.0
+2026-10-17T17:08:54.0144985Z   Downloaded scopeguard v1.2.0
+2026-10-17T17:08:54.0153426Z   Downloaded anstyle-parse v1.0.0
+2026-10-17T17:08:54.0165378Z   Downloaded equivalent v1.0.2
+2026-10-17T17:08:54.0171727Z   Downloaded hex v0.4.3
+2026-10-17T17:08:54.0181788Z   Downloaded stable_deref_trait v1.2.1
+2026-10-17T17:08:54.0187277Z   Downloaded matchers v0.2.0
+2026-10-17T17:08:54.0193700Z   Downloaded thread_local v1.1.10
+2026-10-17T17:08:54.0233393Z   Downloaded tree-sitter-json v0.24.8
+2026-10-17T17:08:54.0243513Z   Downloaded is_terminal_polyfill v1.70.2
+2026-10-17T17:08:54.0250585Z   Downloaded itoa v1.0.18
+2026-10-17T17:08:54.0286979Z   Downloaded tree-sitter-html v0.23.2
+2026-10-17T17:08:54.0298326Z   Downloaded walkdir v2.5.0
+2026-10-17T17:08:54.0316698Z   Downloaded zmij v1.0.23
+2026-10-17T17:08:54.0331558Z   Downloaded rustc_version v0.4.1
+2026-10-17T17:08:54.0340010Z   Downloaded crossbeam-deque v0.8.8
+2026-10-17T17:08:54.0351360Z   Downloaded fastrand v2.5.0
+2026-10-17T17:08:54.0378026Z   Downloaded fixedbitset v0.5.7
+2026-10-17T17:08:54.0379022Z   Downloaded anstream v1.0.0
+2026-10-17T17:08:54.0388091Z   Downloaded anstyle v1.0.14
+2026-10-17T17:08:54.0400369Z   Downloaded embedded-io v0.4.0
+2026-10-17T17:08:54.0415803Z   Downloaded cpufeatures v0.3.1
+2026-10-17T17:08:54.0426783Z   Downloaded digest v0.11.3
+2026-10-17T17:08:54.0442565Z   Downloaded either v1.18.0
+2026-10-17T17:08:54.0455003Z   Downloaded find-msvc-tools v0.1.12
+2026-10-17T17:08:54.0464404Z   Downloaded same-file v1.0.6
+2026-10-17T17:08:54.0473891Z   Downloaded smallvec v1.16.1
+2026-10-17T17:08:54.0484883Z   Downloaded heck v0.5.0
+2026-10-17T17:08:54.0497629Z   Downloaded lock_api v0.4.14
+2026-10-17T17:08:54.0509906Z   Downloaded quote v1.0.47
+2026-10-17T17:08:54.0529609Z   Downloaded lazy_static v1.5.0
+2026-10-17T17:08:54.0542205Z   Downloaded toml_writer v1.1.2+spec-1.1.0
+2026-10-17T17:08:54.0553348Z   Downloaded strsim v0.11.1
+2026-10-17T17:08:54.0562353Z   Downloaded unicode-ident v1.0.24
+2026-10-17T17:08:54.0584697Z   Downloaded unsafe-libyaml v0.2.11
+2026-10-17T17:08:54.0607256Z   Downloaded toml_datetime v1.1.1+spec-1.1.0
+2026-10-17T17:08:54.0615855Z   Downloaded tree-sitter-css v0.25.0
+2026-10-17T17:08:54.0632257Z   Downloaded streaming-iterator v0.1.9
+2026-10-17T17:08:54.0639022Z   Downloaded clap_derive v4.6.4
+2026-10-17T17:08:54.0653531Z   Downloaded crossbeam-utils v0.8.23
+2026-10-17T17:08:54.0675987Z   Downloaded shlex v2.0.1
+2026-10-17T17:08:54.0686812Z   Downloaded thiserror-impl v2.0.20
+2026-10-17T17:08:54.0697703Z   Downloaded anyhow v1.0.104
+2026-10-17T17:08:54.0721144Z   Downloaded crossbeam-epoch v0.9.21
+2026-10-17T17:08:54.0738028Z   Downloaded foldhash v0.1.5
+2026-10-17T17:08:54.0747615Z   Downloaded globset v0.4.20
+2026-10-17T17:08:54.0766283Z   Downloaded nu-ansi-term v0.50.3
+2026-10-17T17:08:54.0781887Z   Downloaded once_cell v1.21.4
+2026-10-17T17:08:54.0802777Z   Downloaded pin-project-lite v0.2.17
+2026-10-17T17:08:54.0838247Z   Downloaded sha2 v0.11.0
+2026-10-17T17:08:54.0858207Z   Downloaded spin v0.9.9
+2026-10-17T17:08:54.0874145Z   Downloaded tempfile v3.27.0
+2026-10-17T17:08:54.0889560Z   Downloaded thiserror v2.0.20
+2026-10-17T17:08:54.0922987Z   Downloaded toml_parser v1.1.3+spec-1.1.0
+2026-10-17T17:08:54.0938722Z   Downloaded tracing-attributes v0.1.31
+2026-10-17T17:08:54.0955227Z   Downloaded hybrid-array v0.4.15
+2026-10-17T17:08:54.0970141Z   Downloaded postcard v1.1.3
+2026-10-17T17:08:54.0985669Z   Downloaded semver v1.0.28
+2026-10-17T17:08:54.1000429Z   Downloaded clap v4.6.6
+2026-10-17T17:08:54.1053912Z   Downloaded const-oid v0.10.2
+2026-10-17T17:08:54.1070625Z   Downloaded getrandom v0.4.3
+2026-10-17T17:08:54.1094054Z   Downloaded log v0.4.34
+2026-10-17T17:08:54.1114483Z   Downloaded proc-macro2 v1.0.107
+2026-10-17T17:08:54.1135228Z   Downloaded ryu v1.0.23
+2026-10-17T17:08:54.1156687Z   Downloaded serde_yaml v0.9.34+deprecated
+2026-10-17T17:08:54.1176650Z   Downloaded tinyvec v1.13.3
+2026-10-17T17:08:54.1197976Z   Downloaded serde_derive v1.0.229
+2026-10-17T17:08:54.1216185Z   Downloaded tree-sitter-hcl v1.1.0
+2026-10-17T17:08:54.1235159Z   Downloaded tree-sitter-yaml v0.7.2
+2026-10-17T17:08:54.1265298Z   Downloaded serde_core v1.0.229
+2026-10-17T17:08:54.1282896Z   Downloaded sharded-slab v0.1.7
+2026-10-17T17:08:54.1304524Z   Downloaded ignore v0.4.33
+2026-10-17T17:08:54.1321172Z   Downloaded rayon-core v1.13.0
+2026-10-17T17:08:54.1345752Z   Downloaded toml_edit v0.25.15+spec-1.1.0
+2026-10-17T17:08:54.1371857Z   Downloaded tracing-core v0.1.36
+2026-10-17T17:08:54.1388973Z   Downloaded heapless v0.7.17
+2026-10-17T17:08:54.1411124Z   Downloaded serde v1.0.229
+2026-10-17T17:08:54.1433080Z   Downloaded cc v1.4.6
+2026-10-17T17:08:54.1453814Z   Downloaded typenum v1.20.1
+2026-10-17T17:08:54.1477220Z   Downloaded unicode-normalization v0.1.25
+2026-10-17T17:08:54.1500957Z   Downloaded memchr v2.8.3
+2026-10-17T17:08:54.1532810Z   Downloaded similar v3.2.0
+2026-10-17T17:08:54.1556363Z   Downloaded indexmap v2.14.2
+2026-10-17T17:08:54.1582588Z   Downloaded tree-sitter-java v0.23.5
+2026-10-17T17:08:54.1616402Z   Downloaded winnow v1.0.4
+2026-10-17T17:08:54.1673365Z   Downloaded clap_builder v4.6.6
+2026-10-17T17:08:54.1713586Z   Downloaded hashbrown v0.15.5
+2026-10-17T17:08:54.1745001Z   Downloaded hashbrown v0.17.1
+2026-10-17T17:08:54.1778470Z   Downloaded regex v1.13.1
+2026-10-17T17:08:54.1812149Z   Downloaded serde_json v1.0.151
+2026-10-17T17:08:54.1854624Z   Downloaded rayon v1.12.0
+2026-10-17T17:08:54.1915488Z   Downloaded aho-corasick v1.1.5
+2026-10-17T17:08:54.1951742Z   Downloaded tracing-subscriber v0.3.23
+2026-10-17T17:08:54.2002596Z   Downloaded tree-sitter v0.27.0
+2026-10-17T17:08:54.2054931Z   Downloaded bstr v1.13.1
+2026-10-17T17:08:54.2109464Z   Downloaded syn v2.0.119
+2026-10-17T17:08:54.2176309Z   Downloaded syn v3.0.5
+2026-10-17T17:08:54.2243216Z   Downloaded regex-syntax v0.8.11
+2026-10-17T17:08:54.2292027Z   Downloaded rustix v1.1.4
+2026-10-17T17:08:54.2441428Z   Downloaded tracing v0.1.44
+2026-10-17T17:08:54.2543081Z   Downloaded tree-sitter-md-025 v0.5.6
+2026-10-17T17:08:54.2606335Z   Downloaded tree-sitter-rust v0.24.2
+2026-10-17T17:08:54.2677156Z   Downloaded regex-automata v0.4.18
+2026-10-17T17:08:54.2773497Z   Downloaded tree-sitter-bash v0.25.1
+2026-10-17T17:08:54.2871322Z   Downloaded petgraph v0.8.3
+2026-10-17T17:08:54.3011525Z   Downloaded libc v0.2.189
+2026-10-17T17:08:54.3255563Z   Downloaded linux-raw-sys v0.12.1
+2026-10-17T17:08:54.9084712Z    Compiling shlex v2.0.1
+2026-10-17T17:08:54.9085238Z    Compiling find-msvc-tools v0.1.12
+2026-10-17T17:08:54.9762304Z    Compiling cc v1.4.6
+2026-10-17T17:08:55.0104914Z    Compiling tree-sitter-language v0.1.8 (/home/runner/work/fun-refactor/fun-refactor/crates/tree-sitter-language)
+2026-10-17T17:08:55.0934151Z    Compiling proc-macro2 v1.0.107
+2026-10-17T17:08:55.2392473Z    Compiling unicode-ident v1.0.24
+2026-10-17T17:08:55.2750503Z    Compiling quote v1.0.47
+2026-10-17T17:08:55.8106543Z    Compiling syn v3.0.5
+2026-10-17T17:08:55.8416752Z    Compiling memchr v2.8.3
+2026-10-17T17:08:56.2003484Z    Compiling hashbrown v0.17.1
+2026-10-17T17:08:56.5461588Z    Compiling equivalent v1.0.2
+2026-10-17T17:08:56.5682003Z    Compiling indexmap v2.14.2
+2026-10-17T17:08:56.9681085Z    Compiling zmij v1.0.23
+2026-10-17T17:08:57.0507204Z    Compiling aho-corasick v1.1.5
+2026-10-17T17:08:58.0693028Z    Compiling itoa v1.0.18
+2026-10-17T17:08:58.0882782Z    Compiling serde_core v1.0.229
+2026-10-17T17:08:58.1468554Z    Compiling regex-syntax v0.8.11
+2026-10-17T17:08:58.2678471Z    Compiling crossbeam-utils v0.8.23
+2026-10-17T17:08:58.6215644Z    Compiling serde_json v1.0.151
+2026-10-17T17:08:58.6663595Z    Compiling crossbeam-epoch v0.9.21
+2026-10-17T17:08:59.6423975Z    Compiling regex-automata v0.4.18
+2026-10-17T17:09:01.6380503Z    Compiling once_cell v1.21.4
+2026-10-17T17:09:01.7257190Z    Compiling cfg-if v1.0.4
+2026-10-17T17:09:01.7434041Z    Compiling serde v1.0.229
+2026-10-17T17:09:01.8308666Z    Compiling crossbeam-deque v0.8.8
+2026-10-17T17:09:01.8963974Z    Compiling typenum v1.20.1
+2026-10-17T17:09:02.4279076Z    Compiling semver v1.0.28
+2026-10-17T17:09:02.5678796Z    Compiling rustc_version v0.4.1
+2026-10-17T17:09:02.6956012Z    Compiling hybrid-array v0.4.15
+2026-10-17T17:09:03.1600466Z    Compiling serde_derive v1.0.229
+2026-10-17T17:09:03.3584147Z    Compiling thiserror v2.0.20
+2026-10-17T17:09:03.4648154Z    Compiling libc v0.2.189
+2026-10-17T17:09:03.5901791Z    Compiling scopeguard v1.2.0
+2026-10-17T17:09:03.6158501Z    Compiling log v0.4.34
+2026-10-17T17:09:03.6922043Z    Compiling utf8parse v0.2.2
+2026-10-17T17:09:03.7207553Z    Compiling anstyle-parse v1.0.0
+2026-10-17T17:09:03.7846445Z    Compiling lock_api v0.4.14
+2026-10-17T17:09:03.9351434Z    Compiling tree-sitter v0.27.0
+2026-10-17T17:09:04.0836642Z    Compiling heapless v0.7.17
+2026-10-17T17:09:04.1416648Z    Compiling tracing-core v0.1.36
+2026-10-17T17:09:04.4120294Z    Compiling thiserror-impl v2.0.20
+2026-10-17T17:09:05.0628455Z    Compiling syn v2.0.119
+2026-10-17T17:09:05.2286767Z    Compiling rayon-core v1.13.0
+2026-10-17T17:09:05.2700856Z    Compiling rustix v1.1.4
+2026-10-17T17:09:05.3782433Z    Compiling getrandom v0.4.3
+2026-10-17T17:09:05.4367749Z    Compiling is_terminal_polyfill v1.70.2
+2026-10-17T17:09:05.4597484Z    Compiling byteorder v1.5.0
+2026-10-17T17:09:05.5337580Z    Compiling colorchoice v1.0.5
+2026-10-17T17:09:05.5671199Z    Compiling anstyle v1.0.14
+2026-10-17T17:09:05.7024318Z    Compiling anstyle-query v1.1.5
+2026-10-17T17:09:05.7368826Z    Compiling anstream v1.0.0
+2026-10-17T17:09:05.8681782Z    Compiling hash32 v0.2.1
+2026-10-17T17:09:07.9118453Z    Compiling tracing-attributes v0.1.31
+2026-10-17T17:09:08.0640424Z    Compiling spin v0.9.9
+2026-10-17T17:09:08.1475455Z    Compiling block-buffer v0.12.1
+2026-10-17T17:09:08.2056474Z    Compiling crypto-common v0.2.2
+2026-10-17T17:09:08.5344408Z    Compiling bstr v1.13.1
+2026-10-17T17:09:08.7685910Z    Compiling fun-refactor-go-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/go)
+2026-10-17T17:09:08.7998590Z    Compiling fun-refactor-zig-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/zig)
+2026-10-17T17:09:08.8285041Z    Compiling fun-refactor-typescript-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/typescript)
+2026-10-17T17:09:08.8578264Z    Compiling tree-sitter-java v0.23.5
+2026-10-17T17:09:08.8901183Z    Compiling tree-sitter-json v0.24.8
+2026-10-17T17:09:08.9169550Z    Compiling fun-refactor-scss-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/scss)
+2026-10-17T17:09:08.9481324Z    Compiling tree-sitter-yaml v0.7.2
+2026-10-17T17:09:08.9769191Z    Compiling tree-sitter-html v0.23.2
+2026-10-17T17:09:09.0100313Z    Compiling tree-sitter-xml v0.7.0
+2026-10-17T17:09:09.0371014Z    Compiling fun-refactor-python-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/python)
+2026-10-17T17:09:09.0724993Z    Compiling tree-sitter-rust v0.24.2
+2026-10-17T17:09:09.0982344Z    Compiling tree-sitter-hcl v1.1.0
+2026-10-17T17:09:09.1320461Z    Compiling fun-refactor-lean-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/lean)
+2026-10-17T17:09:09.1588128Z    Compiling tree-sitter-md-025 v0.5.6
+2026-10-17T17:09:09.1898542Z    Compiling tree-sitter-css v0.25.0
+2026-10-17T17:09:09.2325524Z    Compiling tree-sitter-bash v0.25.1
+2026-10-17T17:09:09.2604518Z    Compiling fun-refactor-sass-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/sass)
+2026-10-17T17:09:09.2939380Z    Compiling foldhash v0.1.5
+2026-10-17T17:09:09.3204037Z    Compiling strsim v0.11.1
+2026-10-17T17:09:09.3551663Z    Compiling const-oid v0.10.2
+2026-10-17T17:09:09.4360229Z    Compiling same-file v1.0.6
+2026-10-17T17:09:09.4662871Z    Compiling lazy_static v1.5.0
+2026-10-17T17:09:09.4860287Z    Compiling bitflags v2.13.2
+2026-10-17T17:09:09.4922488Z    Compiling pin-project-lite v0.2.17
+2026-10-17T17:09:09.5184944Z    Compiling clap_lex v1.1.0
+2026-10-17T17:09:09.5802663Z    Compiling anyhow v1.0.104
+2026-10-17T17:09:09.5973947Z    Compiling heck v0.5.0
+2026-10-17T17:09:09.6774533Z    Compiling winnow v1.0.4
+2026-10-17T17:09:09.7109271Z    Compiling linux-raw-sys v0.12.1
+2026-10-17T17:09:09.8986756Z    Compiling stable_deref_trait v1.2.1
+2026-10-17T17:09:10.3708412Z    Compiling toml_parser v1.1.3+spec-1.1.0
+2026-10-17T17:09:10.7156574Z    Compiling clap_derive v4.6.4
+2026-10-17T17:09:11.6587795Z    Compiling clap_builder v4.6.6
+2026-10-17T17:09:11.7208276Z    Compiling tracing v0.1.44
+2026-10-17T17:09:11.8198964Z    Compiling sharded-slab v0.1.7
+2026-10-17T17:09:12.1016480Z    Compiling walkdir v2.5.0
+2026-10-17T17:09:12.2278577Z    Compiling digest v0.11.3
+2026-10-17T17:09:12.2899782Z    Compiling hashbrown v0.15.5
+2026-10-17T17:09:20.1609457Z    Compiling globset v0.4.20
+2026-10-17T17:09:20.6160705Z    Compiling cobs v0.3.0
+2026-10-17T17:09:21.1866961Z    Compiling tracing-log v0.2.0
+2026-10-17T17:09:21.2965898Z    Compiling thread_local v1.1.10
+2026-10-17T17:09:21.4107858Z    Compiling matchers v0.2.0
+2026-10-17T17:09:21.4519640Z    Compiling regex v1.13.1
+2026-10-17T17:09:21.6738939Z    Compiling either v1.18.0
+2026-10-17T17:09:21.7619152Z    Compiling fixedbitset v0.5.7
+2026-10-17T17:09:21.8978631Z    Compiling smallvec v1.16.1
+2026-10-17T17:09:21.9970704Z    Compiling fun-refactor v0.70.0 (/home/runner/work/fun-refactor/fun-refactor)
+2026-10-17T17:09:22.0978715Z    Compiling cpufeatures v0.3.1
+2026-10-17T17:09:22.1191191Z    Compiling toml_writer v1.1.2+spec-1.1.0
+2026-10-17T17:09:22.1904325Z    Compiling nu-ansi-term v0.50.3
+2026-10-17T17:09:22.2057068Z    Compiling ryu v1.0.23
+2026-10-17T17:09:22.2731979Z    Compiling tinyvec v1.13.3
+2026-10-17T17:09:22.3330760Z    Compiling fastrand v2.5.0
+2026-10-17T17:09:22.4318949Z    Compiling toml_datetime v1.1.1+spec-1.1.0
+2026-10-17T17:09:22.4833940Z    Compiling streaming-iterator v0.1.9
+2026-10-17T17:09:22.5304635Z    Compiling unsafe-libyaml v0.2.11
+2026-10-17T17:09:22.9660113Z    Compiling serde_yaml v0.9.34+deprecated
+2026-10-17T17:09:22.9804761Z    Compiling toml_edit v0.25.15+spec-1.1.0
+2026-10-17T17:09:23.7114253Z    Compiling unicode-normalization v0.1.25
+2026-10-17T17:09:23.8589457Z    Compiling tempfile v3.27.0
+2026-10-17T17:09:23.9475395Z    Compiling tracing-subscriber v0.3.23
+2026-10-17T17:09:24.0728678Z    Compiling sha2 v0.11.0
+2026-10-17T17:09:25.1276333Z    Compiling petgraph v0.8.3
+2026-10-17T17:09:25.3982868Z    Compiling rayon v1.12.0
+2026-10-17T17:09:26.3503162Z    Compiling postcard v1.1.3
+2026-10-17T17:09:26.5229991Z    Compiling ignore v0.4.33
+2026-10-17T17:09:27.0050471Z    Compiling clap v4.6.6
+2026-10-17T17:09:27.3520978Z    Compiling hex v0.4.3
+2026-10-17T17:09:27.4698526Z    Compiling similar v3.2.0
+2026-10-17T17:10:05.3555718Z     Finished `dev` profile [unoptimized] target(s) in 1m 11s
+2026-10-17T17:10:05.3982686Z ##[group]Run python3 -m pip install 'pytest==9.1.1'
+2026-10-17T17:10:05.3983293Z [36;1mpython3 -m pip install 'pytest==9.1.1'[0m
+2026-10-17T17:10:05.4034195Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:10:05.4034466Z env:
+2026-10-17T17:10:05.4034664Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:10:05.4034889Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:10:05.4035119Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:10:05.4035804Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:10:05.4036059Z   RUSTFLAGS: -D warnings
+2026-10-17T17:10:05.4036355Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:05.4036773Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:10:05.4037183Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:05.4037739Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:05.4038104Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:05.4038537Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:10:05.4038863Z   CACHE_ON_FAILURE: false
+2026-10-17T17:10:05.4039085Z ##[endgroup]
+2026-10-17T17:10:06.7928477Z Collecting pytest==9.1.1
+2026-10-17T17:10:06.8499058Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+2026-10-17T17:10:06.8692665Z Collecting iniconfig>=1.0.1 (from pytest==9.1.1)
+2026-10-17T17:10:06.8723275Z   Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+2026-10-17T17:10:06.8931406Z Collecting packaging>=22 (from pytest==9.1.1)
+2026-10-17T17:10:06.8961654Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-10-17T17:10:06.9149398Z Collecting pluggy<2,>=1.5 (from pytest==9.1.1)
+2026-10-17T17:10:06.9180702Z   Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)
+2026-10-17T17:10:06.9417810Z Collecting pygments>=2.7.2 (from pytest==9.1.1)
+2026-10-17T17:10:06.9447995Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+2026-10-17T17:10:06.9516481Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+2026-10-17T17:10:06.9697221Z Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
+2026-10-17T17:10:06.9740893Z Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+2026-10-17T17:10:06.9789279Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-10-17T17:10:06.9836264Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+2026-10-17T17:10:06.9944910Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 133.5 MB/s  0:00:00
+2026-10-17T17:10:07.1315971Z Installing collected packages: pygments, pluggy, packaging, iniconfig, pytest
+2026-10-17T17:10:08.3429038Z 
+2026-10-17T17:10:08.3440610Z Successfully installed iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.1.1
+2026-10-17T17:10:08.4076937Z ##[group]Run PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
+2026-10-17T17:10:08.4080978Z [36;1mPYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py[0m
+2026-10-17T17:10:08.4125143Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:10:08.4125468Z env:
+2026-10-17T17:10:08.4125715Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:10:08.4125996Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:10:08.4126280Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:10:08.4126580Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:10:08.4126884Z   RUSTFLAGS: -D warnings
+2026-10-17T17:10:08.4127241Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:08.4128000Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:10:08.4128494Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:08.4129123Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:08.4129571Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:10:08.4130022Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:10:08.4130432Z   CACHE_ON_FAILURE: false
+2026-10-17T17:10:08.4130717Z ##[endgroup]
+2026-10-17T17:10:30.5188105Z ........................................................................ [ 11%]
+2026-10-17T17:10:56.2986617Z ........................................................................ [ 22%]
+2026-10-17T17:11:17.8921165Z ........................................................................ [ 34%]
+2026-10-17T17:11:38.3323139Z ........................................................................ [ 45%]
+2026-10-17T17:11:58.2941623Z ........................................................................ [ 57%]
+2026-10-17T17:12:12.8786971Z ........................................................................ [ 68%]
+2026-10-17T17:12:33.0499620Z ........................................................................ [ 80%]
+2026-10-17T17:12:53.0926997Z ........................................................................ [ 91%]
+2026-10-17T17:13:10.5090543Z .....................................................                    [100%]
+2026-10-17T17:13:10.5091008Z 629 passed in 181.59s (0:03:01)
+2026-10-17T17:13:10.5750257Z ##[group]Run PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
+2026-10-17T17:13:10.5752646Z [36;1mPYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py[0m
+2026-10-17T17:13:10.5753943Z [36;1mpython3 -B tools/reader_examples.py --fr target/debug/fr[0m
+2026-10-17T17:13:10.5754545Z [36;1mpython3 -B tools/python-contract.py --output target/python-contract/result.json[0m
+2026-10-17T17:13:10.5793756Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:13:10.5794035Z env:
+2026-10-17T17:13:10.5794247Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:13:10.5794541Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:13:10.5794788Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:13:10.5795038Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:13:10.5795284Z   RUSTFLAGS: -D warnings
+2026-10-17T17:13:10.5795582Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:13:10.5796000Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:13:10.5796411Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:13:10.5796790Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:13:10.5797162Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:13:10.5797821Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:13:10.5798152Z   CACHE_ON_FAILURE: false
+2026-10-17T17:13:10.5798390Z ##[endgroup]
+2026-10-17T17:13:32.9859277Z ........................................................................ [ 13%]
+2026-10-17T17:13:53.6786831Z ........................................................................ [ 27%]
+2026-10-17T17:14:12.1486629Z ........................................................................ [ 41%]
+2026-10-17T17:14:24.8359808Z ........................................................................ [ 54%]
+2026-10-17T17:14:43.2934609Z ........................................................................ [ 68%]
+2026-10-17T17:15:00.5067792Z ........................................................................ [ 82%]
+2026-10-17T17:15:19.3123867Z ........................................................................ [ 95%]
+2026-10-17T17:15:25.3558209Z ......................                                                   [100%]
+2026-10-17T17:15:25.3559340Z 526 passed in 134.39s (0:02:14)
+2026-10-17T17:15:31.2505476Z Traceback (most recent call last):
+2026-10-17T17:15:31.2523026Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/reader_examples.py", line 342, in <module>
+2026-10-17T17:15:31.2523979Z     print(json.dumps(check(args.fr.resolve()), sort_keys=True))
+2026-10-17T17:15:31.2524558Z                      ~~~~~^^^^^^^^^^^^^^^^^^^
+2026-10-17T17:15:31.2525316Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/reader_examples.py", line 321, in check
+2026-10-17T17:15:31.2526055Z     imported = imported_default_trace(binary, shared)
+2026-10-17T17:15:31.2526901Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/reader_examples.py", line 255, in imported_default_trace
+2026-10-17T17:15:31.2527988Z     return default_trace_variants(binary, folder, lesson, variants)
+2026-10-17T17:15:31.2528957Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/reader_examples.py", line 290, in default_trace_variants
+2026-10-17T17:15:31.2529857Z     assert result['complete'] is complete, result.get('cutoffs')
+2026-10-17T17:15:31.2530395Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-17T17:15:31.2530783Z AssertionError: []
+2026-10-17T17:15:31.2627124Z ##[error]Process completed with exit code 1.
+2026-10-17T17:15:31.2693763Z ##[group]Run actions/upload-artifact@v7
+2026-10-17T17:15:31.2694057Z with:
+2026-10-17T17:15:31.2694274Z   name: python-contract
+2026-10-17T17:15:31.2694530Z   path: target/python-contract
+2026-10-17T17:15:31.2694790Z   if-no-files-found: error
+2026-10-17T17:15:31.2695026Z   retention-days: 7
+2026-10-17T17:15:31.2695239Z   compression-level: 6
+2026-10-17T17:15:31.2695452Z   overwrite: false
+2026-10-17T17:15:31.2695680Z   include-hidden-files: false
+2026-10-17T17:15:31.2695918Z   archive: true
+2026-10-17T17:15:31.2696116Z env:
+2026-10-17T17:15:31.2696307Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:15:31.2696520Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:15:31.2696740Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:15:31.2696993Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:15:31.2697236Z   RUSTFLAGS: -D warnings
+2026-10-17T17:15:31.2697650Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:15:31.2698065Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:15:31.2698501Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:15:31.2698867Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:15:31.2699231Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:15:31.2699600Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:15:31.2699917Z   CACHE_ON_FAILURE: false
+2026-10-17T17:15:31.2700143Z ##[endgroup]
+2026-10-17T17:15:31.4027536Z ##[error]No files were found with the provided path: target/python-contract. No artifacts will be uploaded.
+2026-10-17T17:15:31.4200593Z Post job cleanup.
+2026-10-17T17:15:31.5093789Z [command]/usr/bin/git version
+2026-10-17T17:15:31.5134434Z git version 2.55.0
+2026-10-17T17:15:31.5179118Z Temporarily overriding HOME='/home/runner/work/_temp/238061b9-230a-41e3-b27c-dd7a8aeceb67' before making global git config changes
+2026-10-17T17:15:31.5180569Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T17:15:31.5184806Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:15:31.5213651Z Removing SSH command configuration
+2026-10-17T17:15:31.5220816Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T17:15:31.5253468Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T17:15:31.5539557Z Removing HTTP extra header
+2026-10-17T17:15:31.5540454Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T17:15:31.5578286Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T17:15:31.5990373Z Removing includeIf entries pointing to credentials config files
+2026-10-17T17:15:31.6023233Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T17:15:31.6058805Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+2026-10-17T17:15:31.6068353Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+2026-10-17T17:15:31.6073496Z includeif.gitdir:/github/workspace/.git.path
+2026-10-17T17:15:31.6074361Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-17T17:15:31.6076309Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+2026-10-17T17:15:31.6110807Z /home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:15:31.6123816Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-2aeb7cd0\-1e79\-4acf\-9c51\-d28b6d3c6d7b\.config
+2026-10-17T17:15:31.6172767Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+2026-10-17T17:15:31.6193498Z /home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:15:31.6209462Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-2aeb7cd0\-1e79\-4acf\-9c51\-d28b6d3c6d7b\.config
+2026-10-17T17:15:31.6239666Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-17T17:15:31.6261947Z /github/runner_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:15:31.6270473Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-2aeb7cd0\-1e79\-4acf\-9c51\-d28b6d3c6d7b\.config
+2026-10-17T17:15:31.6303133Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-17T17:15:31.6325066Z /github/runner_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config
+2026-10-17T17:15:31.6333910Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-2aeb7cd0\-1e79\-4acf\-9c51\-d28b6d3c6d7b\.config
+2026-10-17T17:15:31.6371534Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T17:15:31.6607261Z Removing credentials config '/home/runner/work/_temp/git-credentials-2aeb7cd0-1e79-4acf-9c51-d28b6d3c6d7b.config'
+2026-10-17T17:15:31.6740902Z Cleaning up orphan processes

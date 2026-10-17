@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -165,7 +168,7 @@ fn retained_fact_acceptance_matches_inputs_and_oracles() {
         .args([
             "tools/flow-facts-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-flow-facts/result.json",
+            &retained::report("flow-facts"),
         ])
         .output()
         .unwrap();

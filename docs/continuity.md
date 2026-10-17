@@ -39,6 +39,11 @@ The [import explanation](explain-python-imports.md) can show, for example, a hel
 It also shows names the checker cannot resolve and code left unchecked during import.
 It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.
 
+The [default replacement lesson](replace-python-defaults.md) closes one call-checking gap exposed by the library declarations.
+Funcy's `iffy` stores `identity` as a function default, for example.
+Explicit replacements can now bind checked object defaults; omitted object defaults stay unfinished.
+Calls through callback parameters remain unchecked, so this does not establish support for `iffy` or its package.
+
 Ordinary tests and symbolic execution found the same missing input assumption for Pydash's quantity limits.
 Its original-package trace still reaches the source limit and leaves startup operations unchecked; the copied-function trace finishes.
 Use the simpler tests for this question. The experiment adds no analyzer support and cannot establish agent savings.
@@ -100,7 +105,8 @@ Likewise, `follow=selected` stores an earlier function; `follow=selected(0)` cal
 An alias gives an existing function another name. Checked aliases and ordinary function imports can supply the reference; later or missing names cannot.
 Built-in names must still refer to their original objects or an earlier checked local declaration.
 The [default example](python-contract.md#store-a-function-as-a-default-without-calling-it) introduces the two-file case and its commands.
-Calling a function with these function or object defaults remains unfinished, including calls with replacement arguments.
+Calls that consume stored function or object defaults remain unfinished.
+An [explicit replacement](replace-python-defaults.md) can supply a supported scalar while leaving the stored object unused.
 Replay full packages after further changes; fewer unchecked statements alone do not establish complete package support.
 That replay removed ten unchecked Toolz declarations, including nine `factory=dict` defaults.
 For the original identity-helper question, Toolz fell from 92 to 82 unchecked statements across the same loaded source files.
@@ -146,11 +152,13 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-value-aliases-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-17-value-aliases-python-contract/manifest.json)
-covers 448 programs and 896 original or renamed cases, including value aliases, shared defaults, flat assignments and import order.
-It preserves 344 incomplete cases, 18 refusals and 130 documented differences between model and runtime observations.
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json)
+covers 458 programs and 916 original or renamed cases, including explicit replacements of checked object defaults.
+It preserves 344 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
+Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
+The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.
 The earlier [collector receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
 preserves the 818-case comparison after saving each new result without repeatedly rewriting earlier cases.
 The [CI guide](ci.md#save-python-test-progress-without-repeating-earlier-work) explains saved progress and the unchanged final checks.

@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path, process::Command};
@@ -249,7 +252,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-call-binding/result.json",
+            &retained::report("call-binding"),
         ])
         .output()
         .unwrap();

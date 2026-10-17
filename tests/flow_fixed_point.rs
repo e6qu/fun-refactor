@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path, process::Command};
@@ -233,7 +236,7 @@ fn retained_flow_acceptance_is_source_bound_and_consistent() {
         .args([
             "tools/flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-flow-fixed-point/result.json",
+            &retained::report("flow-fixed-point"),
         ])
         .output()
         .unwrap();

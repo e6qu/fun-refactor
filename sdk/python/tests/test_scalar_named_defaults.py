@@ -88,11 +88,17 @@ def test_unsupported_setup_keeps_capture_order_and_result_incomplete(tmp_path, b
 
 @pytest.mark.parametrize("value", ["[]", "{}", "(0,)", "[0]", "source()"])
 @pytest.mark.parametrize("call", ["choose()", "choose(source())"])
-def test_non_scalar_defaults_stay_incomplete_even_when_overridden(tmp_path, value, call):
+def test_checked_non_scalar_defaults_can_be_replaced_but_not_consumed(tmp_path, value, call):
     client, rules = install(tmp_path, value, call=call)
     result = analyze(client, rules, "entry")
-    assert not result.report.at("/complete")
-    assert "unsupported-parameter-contract:choose" in result.report.at("/cutoffs")
+    complete = value != 'source()' and call != 'choose()'
+    assert result.report.at('/complete') is complete
+    assert bool(result.witnesses) is complete
+    if not complete:
+        reason = 'unsupported-parameter-contract' if value == 'source()' else 'unsupported-default-value'
+        assert reason + ':choose' in result.report.at('/cutoffs')
+    else:
+        assert observe(tmp_path)['result'] == 17
 
 
 def test_an_imported_scalar_can_supply_a_default(tmp_path):
@@ -111,8 +117,10 @@ def test_same_named_defaults_in_different_files_keep_their_own_capture(tmp_path)
     (tmp_path / "other.py").write_text("marker = []\ndef choose(value=marker):\n    return value\n")
     (tmp_path / "subject.py").write_text("from helpers import choose\nfrom other import choose as shared\ndef entry():\n    sink(choose())\n    return shared(source())\n")
     result = analyze(client, rules, "entry", imports=True)
-    assert not result.report.at("/complete")
-    assert "unsupported-parameter-contract:other.py::choose" in result.report.at("/cutoffs")
+    assert result.report.at("/complete"), result.report.at('/cutoffs')
+    assert not result.witnesses
+    assert observe(tmp_path) == {'result': 17, 'raised': None,
+                                'events': [['sink', 0], ['source', 17]]}
     assert "unsupported-parameter-contract:helpers.py::choose" not in result.report.at("/cutoffs")
 
 

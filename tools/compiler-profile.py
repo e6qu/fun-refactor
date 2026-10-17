@@ -69,6 +69,7 @@ def bindings():
     paths.update(('Cargo.toml', 'grammars/python/Cargo.toml', 'grammars/python/PROVENANCE.toml'))
     paths.update(row['existing_test'] for row in PROFILE.values())
     paths.add('tools/compiler-profile.py')
+    paths.update(('tests/common/retained.rs', 'tests/retained_evidence.rs'))
     return {path: binding_digest(ROOT / path) for path in sorted(paths)}
 
 

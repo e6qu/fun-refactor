@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -132,7 +135,6 @@ fn named_defaults_preserve_definition_order_and_keep_shared_values_unchecked() {
         ("marker = 0\ndel marker\n", "", "sink(source())"),
         ("marker = source()\n", "", "sink(source())"),
         ("marker = []\n", "", "unused()"),
-        ("marker = []\n", "", "unused(source())"),
     ] {
         let report = analyze_program(root.path(), &format!("{before}def unused(key=marker):\n    return key\n{after}def entry():\n    return {call}\n"), false);
         assert_eq!(report["complete"], false);
@@ -145,7 +147,7 @@ fn named_defaults_preserve_definition_order_and_keep_shared_values_unchecked() {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|cutoff| cutoff == "unsupported-parameter-contract:unused"));
+                .any(|cutoff| cutoff == "unsupported-default-value:unused"));
         }
     }
 }
@@ -171,6 +173,69 @@ fn local_scalar_defaults_bind_calls_and_preserve_definition_time_capture() {
         .unwrap()
         .iter()
         .all(|value| value != "unsupported-parameter-contract:choose"));
+}
+
+#[test]
+fn explicit_arguments_replace_checked_object_defaults_without_consuming_them() {
+    let root = tempfile::tempdir().unwrap();
+    for (setup, parameters, call, complete, witness) in [
+        (
+            "marker = []\n",
+            "value=marker",
+            "choose(source())",
+            true,
+            true,
+        ),
+        ("marker = []\n", "value=marker", "choose()", false, false),
+        (
+            "def marker(value):\n    return source()\n",
+            "value=marker",
+            "choose(0)",
+            true,
+            false,
+        ),
+        ("", "value=dict", "choose(value=source())", true, true),
+        (
+            "LIMIT = 0\nmarker = []\n",
+            "value=LIMIT, *, other=marker",
+            "choose(other=source())",
+            true,
+            false,
+        ),
+        (
+            "LIMIT = 0\nmarker = []\n",
+            "value=LIMIT, *, other=marker",
+            "choose(source())",
+            false,
+            false,
+        ),
+    ] {
+        for imported in [false, true] {
+            let helper = format!("{setup}def choose({parameters}):\n    return value\n");
+            let prelude = if imported {
+                fs::write(root.path().join("helper.py"), &helper).unwrap();
+                "from helper import choose\n".to_owned()
+            } else {
+                helper
+            };
+            let report = analyze_program(
+                root.path(),
+                &format!("{prelude}def entry():\n    return sink({call})\n"),
+                imported,
+            );
+            assert_eq!(report["complete"], complete, "{}", report["cutoffs"]);
+            assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
+            assert!(report["initialization"]["sites"]
+                .as_array()
+                .unwrap()
+                .is_empty());
+            if !complete {
+                assert!(report["cutoffs"].as_array().unwrap().iter().any(|item| item
+                    .as_str()
+                    .is_some_and(|reason| reason.starts_with("unsupported-default-value:"))));
+            }
+        }
+    }
 }
 
 #[test]
@@ -421,7 +486,7 @@ fn literal_defaults_acceptance_replays_checked_delivery() {
         .args([
             "tools/literal-defaults-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-literal-defaults/result.json",
+            &retained::report("literal-defaults"),
         ])
         .output()
         .unwrap();

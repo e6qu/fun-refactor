@@ -1,0 +1,1776 @@
+﻿2026-10-17T17:21:11.7497431Z Current runner version: '2.337.0'
+2026-10-17T17:21:11.7523403Z ##[group]Runner Image Provisioner
+2026-10-17T17:21:11.7524322Z Hosted Compute Agent
+2026-10-17T17:21:11.7524949Z Version: 20261012.601
+2026-10-17T17:21:11.7525762Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-17T17:21:11.7526573Z Build Date: 2026-10-12T17:48:21Z
+2026-10-17T17:21:11.7527346Z Worker ID: {ff3c05ed-3f25-4741-9778-2defdbe9a48e}
+2026-10-17T17:21:11.7528125Z Region: westus
+2026-10-17T17:21:11.7528684Z Cloud: Azure
+2026-10-17T17:21:11.7529312Z ##[endgroup]
+2026-10-17T17:21:11.7531262Z ##[group]Operating System
+2026-10-17T17:21:11.7532443Z Ubuntu
+2026-10-17T17:21:11.7533126Z 24.04.5
+2026-10-17T17:21:11.7533720Z LTS
+2026-10-17T17:21:11.7534423Z ##[endgroup]
+2026-10-17T17:21:11.7535050Z ##[group]Runner Image
+2026-10-17T17:21:11.7535725Z Image: ubuntu-24.04
+2026-10-17T17:21:11.7536346Z Version: 20261012.334.1
+2026-10-17T17:21:11.7537774Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-17T17:21:11.7539479Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-17T17:21:11.7540863Z ##[endgroup]
+2026-10-17T17:21:11.7542353Z ##[group]GITHUB_TOKEN Permissions
+2026-10-17T17:21:11.7544689Z Contents: read
+2026-10-17T17:21:11.7545387Z Metadata: read
+2026-10-17T17:21:11.7545984Z ##[endgroup]
+2026-10-17T17:21:11.7548623Z Secret source: Actions
+2026-10-17T17:21:11.7549653Z Cache mode: write
+2026-10-17T17:21:11.7550909Z Prepare workflow directory
+2026-10-17T17:21:11.7967902Z Prepare all required actions
+2026-10-17T17:21:11.8020410Z Getting action download info
+2026-10-17T17:21:12.1577236Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-17T17:21:12.2729057Z Download action repository 'actions/setup-python@v7' (SHA:5fda3b95a4ea91299a34e894583c3862153e4b97)
+2026-10-17T17:21:12.3493971Z Download action repository 'Swatinem/rust-cache@v2' (SHA:6323deb102c322ba6fcbdcafc7e3dddab59af2b6)
+2026-10-17T17:21:12.7853506Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+2026-10-17T17:21:13.3178299Z Complete job name: python-contract
+2026-10-17T17:21:13.4180552Z ##[group]Run actions/checkout@v7
+2026-10-17T17:21:13.4182283Z with:
+2026-10-17T17:21:13.4182859Z   repository: e6qu/fun-refactor
+2026-10-17T17:21:13.4187011Z   token: ***
+2026-10-17T17:21:13.4187499Z   ssh-strict: true
+2026-10-17T17:21:13.4187981Z   ssh-user: git
+2026-10-17T17:21:13.4188471Z   persist-credentials: true
+2026-10-17T17:21:13.4189166Z   clean: true
+2026-10-17T17:21:13.4189663Z   sparse-checkout-cone-mode: true
+2026-10-17T17:21:13.4190249Z   fetch-depth: 1
+2026-10-17T17:21:13.4190742Z   fetch-tags: false
+2026-10-17T17:21:13.4191246Z   show-progress: true
+2026-10-17T17:21:13.4191746Z   lfs: false
+2026-10-17T17:21:13.4192363Z   submodules: false
+2026-10-17T17:21:13.4192886Z   set-safe-directory: true
+2026-10-17T17:21:13.4193453Z   allow-unsafe-pr-checkout: false
+2026-10-17T17:21:13.4194375Z env:
+2026-10-17T17:21:13.4194843Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:21:13.4195354Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:21:13.4195869Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:21:13.4196664Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:21:13.4197872Z   RUSTFLAGS: -D warnings
+2026-10-17T17:21:13.4198768Z ##[endgroup]
+2026-10-17T17:21:13.5272872Z Syncing repository: e6qu/fun-refactor
+2026-10-17T17:21:13.5276343Z ##[group]Getting Git version info
+2026-10-17T17:21:13.5277888Z Working directory is '/home/runner/work/fun-refactor/fun-refactor'
+2026-10-17T17:21:13.5280057Z [command]/usr/bin/git version
+2026-10-17T17:21:13.5409514Z git version 2.55.0
+2026-10-17T17:21:13.5433615Z ##[endgroup]
+2026-10-17T17:21:13.5447296Z Temporarily overriding HOME='/home/runner/work/_temp/16d19d8c-c0bd-4446-859b-044bd6edd8e2' before making global git config changes
+2026-10-17T17:21:13.5450038Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T17:21:13.5454576Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:21:13.5524520Z Deleting the contents of '/home/runner/work/fun-refactor/fun-refactor'
+2026-10-17T17:21:13.5527386Z ##[group]Determining repository object format
+2026-10-17T17:21:13.5529166Z ##[endgroup]
+2026-10-17T17:21:13.5530796Z ##[group]Initializing the repository
+2026-10-17T17:21:13.5533706Z [command]/usr/bin/git init /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:21:13.5683556Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-17T17:21:13.5685520Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-17T17:21:13.5687385Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-17T17:21:13.5688791Z hint: call:
+2026-10-17T17:21:13.5689579Z hint:
+2026-10-17T17:21:13.5690585Z hint: 	git config --global init.defaultBranch <name>
+2026-10-17T17:21:13.5691743Z hint:
+2026-10-17T17:21:13.5693322Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-17T17:21:13.5695610Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-17T17:21:13.5697058Z hint:
+2026-10-17T17:21:13.5697850Z hint: 	git branch -m <name>
+2026-10-17T17:21:13.5698779Z hint:
+2026-10-17T17:21:13.5699997Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-17T17:21:13.5702258Z Initialized empty Git repository in /home/runner/work/fun-refactor/fun-refactor/.git/
+2026-10-17T17:21:13.5705659Z [command]/usr/bin/git remote add origin https://github.com/e6qu/fun-refactor
+2026-10-17T17:21:13.5761796Z ##[endgroup]
+2026-10-17T17:21:13.5763514Z ##[group]Disabling automatic garbage collection
+2026-10-17T17:21:13.5765317Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-17T17:21:13.5808920Z ##[endgroup]
+2026-10-17T17:21:13.5810304Z ##[group]Setting up auth
+2026-10-17T17:21:13.5811347Z Removing SSH command configuration
+2026-10-17T17:21:13.5817773Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T17:21:13.5860651Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T17:21:13.6272049Z Removing HTTP extra header
+2026-10-17T17:21:13.6278320Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T17:21:13.6315216Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T17:21:13.6543947Z Removing includeIf entries pointing to credentials config files
+2026-10-17T17:21:13.6549189Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T17:21:13.6625002Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T17:21:13.6834624Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-17T17:21:13.6877379Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path /home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:21:13.6914607Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:21:13.6956391Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:21:13.6995235Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:21:13.7030961Z ##[endgroup]
+2026-10-17T17:21:13.7032915Z ##[group]Fetching the repository
+2026-10-17T17:21:13.7041260Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5cd3c3daf7927ee026d6d54eb307e8b1980fd77c:refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:21:38.9710722Z From https://github.com/e6qu/fun-refactor
+2026-10-17T17:21:38.9712604Z  * [new ref]           5cd3c3daf7927ee026d6d54eb307e8b1980fd77c -> origin/feat/check-python-startup-registrations
+2026-10-17T17:21:38.9721204Z [command]/usr/bin/git branch --list --remote origin/feat/check-python-startup-registrations
+2026-10-17T17:21:38.9752510Z   origin/feat/check-python-startup-registrations
+2026-10-17T17:21:38.9762445Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:21:38.9789841Z 5cd3c3daf7927ee026d6d54eb307e8b1980fd77c
+2026-10-17T17:21:38.9794363Z ##[endgroup]
+2026-10-17T17:21:38.9795038Z ##[group]Determining the checkout info
+2026-10-17T17:21:38.9796021Z ##[endgroup]
+2026-10-17T17:21:38.9799672Z [command]/usr/bin/git sparse-checkout disable
+2026-10-17T17:21:38.9855451Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-17T17:21:38.9890421Z ##[group]Checking out the ref
+2026-10-17T17:21:38.9895316Z [command]/usr/bin/git checkout --progress --force -B feat/check-python-startup-registrations refs/remotes/origin/feat/check-python-startup-registrations
+2026-10-17T17:21:40.0760219Z Updating files:  23% (7339/30938)
+2026-10-17T17:21:40.1784038Z Updating files:  24% (7426/30938)
+2026-10-17T17:21:40.1988485Z Updating files:  25% (7735/30938)
+2026-10-17T17:21:40.2191613Z Updating files:  26% (8044/30938)
+2026-10-17T17:21:40.2387380Z Updating files:  27% (8354/30938)
+2026-10-17T17:21:40.2596961Z Updating files:  28% (8663/30938)
+2026-10-17T17:21:40.2823519Z Updating files:  29% (8973/30938)
+2026-10-17T17:21:40.3071806Z Updating files:  30% (9282/30938)
+2026-10-17T17:21:40.3278781Z Updating files:  31% (9591/30938)
+2026-10-17T17:21:40.3476582Z Updating files:  32% (9901/30938)
+2026-10-17T17:21:40.3671651Z Updating files:  33% (10210/30938)
+2026-10-17T17:21:40.3875159Z Updating files:  34% (10519/30938)
+2026-10-17T17:21:40.4066651Z Updating files:  35% (10829/30938)
+2026-10-17T17:21:40.4425089Z Updating files:  36% (11138/30938)
+2026-10-17T17:21:40.4622178Z Updating files:  37% (11448/30938)
+2026-10-17T17:21:40.4828994Z Updating files:  38% (11757/30938)
+2026-10-17T17:21:40.5070879Z Updating files:  39% (12066/30938)
+2026-10-17T17:21:40.5257726Z Updating files:  40% (12376/30938)
+2026-10-17T17:21:40.6489940Z Updating files:  41% (12685/30938)
+2026-10-17T17:21:40.6692423Z Updating files:  42% (12994/30938)
+2026-10-17T17:21:40.7789984Z Updating files:  43% (13304/30938)
+2026-10-17T17:21:40.8005575Z Updating files:  44% (13613/30938)
+2026-10-17T17:21:40.9483217Z Updating files:  45% (13923/30938)
+2026-10-17T17:21:41.0713193Z Updating files:  46% (14232/30938)
+2026-10-17T17:21:41.1118583Z Updating files:  46% (14469/30938)
+2026-10-17T17:21:41.1318027Z Updating files:  47% (14541/30938)
+2026-10-17T17:21:41.2684421Z Updating files:  48% (14851/30938)
+2026-10-17T17:21:41.2884814Z Updating files:  49% (15160/30938)
+2026-10-17T17:21:41.4084466Z Updating files:  50% (15469/30938)
+2026-10-17T17:21:41.5478464Z Updating files:  51% (15779/30938)
+2026-10-17T17:21:41.5678841Z Updating files:  52% (16088/30938)
+2026-10-17T17:21:41.9233643Z Updating files:  53% (16398/30938)
+2026-10-17T17:21:41.9439572Z Updating files:  54% (16707/30938)
+2026-10-17T17:21:42.0438142Z Updating files:  55% (17016/30938)
+2026-10-17T17:21:42.3078532Z Updating files:  55% (17131/30938)
+2026-10-17T17:21:42.3364595Z Updating files:  56% (17326/30938)
+2026-10-17T17:21:42.9373701Z Updating files:  57% (17635/30938)
+2026-10-17T17:21:43.0439070Z Updating files:  58% (17945/30938)
+2026-10-17T17:21:43.4325955Z Updating files:  58% (18188/30938)
+2026-10-17T17:21:43.4628381Z Updating files:  59% (18254/30938)
+2026-10-17T17:21:44.0430692Z Updating files:  60% (18563/30938)
+2026-10-17T17:21:44.0436218Z Updating files:  61% (18873/30938)
+2026-10-17T17:21:44.0643544Z Updating files:  61% (18882/30938)
+2026-10-17T17:21:44.4812739Z Updating files:  62% (19182/30938)
+2026-10-17T17:21:45.0647807Z Updating files:  63% (19491/30938)
+2026-10-17T17:21:45.0892691Z Updating files:  64% (19801/30938)
+2026-10-17T17:21:45.6649010Z Updating files:  65% (20110/30938)
+2026-10-17T17:21:45.6855013Z Updating files:  66% (20420/30938)
+2026-10-17T17:21:46.0870575Z Updating files:  67% (20729/30938)
+2026-10-17T17:21:46.1388905Z Updating files:  67% (20863/30938)
+2026-10-17T17:21:46.1678161Z Updating files:  68% (21038/30938)
+2026-10-17T17:21:46.5318555Z Updating files:  69% (21348/30938)
+2026-10-17T17:21:46.8433213Z Updating files:  70% (21657/30938)
+2026-10-17T17:21:46.8639492Z Updating files:  71% (21966/30938)
+2026-10-17T17:21:47.0439318Z Updating files:  72% (22276/30938)
+2026-10-17T17:21:47.0855162Z Updating files:  72% (22450/30938)
+2026-10-17T17:21:47.1063882Z Updating files:  73% (22585/30938)
+2026-10-17T17:21:47.4081728Z Updating files:  74% (22895/30938)
+2026-10-17T17:21:47.6714327Z Updating files:  75% (23204/30938)
+2026-10-17T17:21:47.8178177Z Updating files:  76% (23513/30938)
+2026-10-17T17:21:48.0557933Z Updating files:  77% (23823/30938)
+2026-10-17T17:21:48.1193363Z Updating files:  77% (24043/30938)
+2026-10-17T17:21:48.1403054Z Updating files:  78% (24132/30938)
+2026-10-17T17:21:48.4693112Z Updating files:  79% (24442/30938)
+2026-10-17T17:21:48.4902567Z Updating files:  80% (24751/30938)
+2026-10-17T17:21:48.9724830Z Updating files:  81% (25060/30938)
+2026-10-17T17:21:49.1467474Z Updating files:  82% (25370/30938)
+2026-10-17T17:21:49.2676669Z Updating files:  82% (25630/30938)
+2026-10-17T17:21:49.2887473Z Updating files:  83% (25679/30938)
+2026-10-17T17:21:49.5844543Z Updating files:  84% (25988/30938)
+2026-10-17T17:21:49.6113042Z Updating files:  85% (26298/30938)
+2026-10-17T17:21:49.8097450Z Updating files:  86% (26607/30938)
+2026-10-17T17:21:50.0857821Z Updating files:  87% (26917/30938)
+2026-10-17T17:21:50.0955993Z Updating files:  87% (27222/30938)
+2026-10-17T17:21:50.1545099Z Updating files:  88% (27226/30938)
+2026-10-17T17:21:50.4339698Z Updating files:  89% (27535/30938)
+2026-10-17T17:21:50.4546486Z Updating files:  90% (27845/30938)
+2026-10-17T17:21:50.7508439Z Updating files:  91% (28154/30938)
+2026-10-17T17:21:50.7717765Z Updating files:  92% (28463/30938)
+2026-10-17T17:21:50.8100712Z Updating files:  93% (28773/30938)
+2026-10-17T17:21:51.0471292Z Updating files:  94% (29082/30938)
+2026-10-17T17:21:51.0963388Z Updating files:  94% (29324/30938)
+2026-10-17T17:21:51.4082509Z Updating files:  95% (29392/30938)
+2026-10-17T17:21:51.4426446Z Updating files:  96% (29701/30938)
+2026-10-17T17:21:51.4655565Z Updating files:  97% (30010/30938)
+2026-10-17T17:21:51.4822715Z Updating files:  98% (30320/30938)
+2026-10-17T17:21:51.5039522Z Updating files:  99% (30629/30938)
+2026-10-17T17:21:51.5040180Z Updating files: 100% (30938/30938)
+2026-10-17T17:21:51.5040736Z Updating files: 100% (30938/30938), done.
+2026-10-17T17:21:51.6936105Z Switched to a new branch 'feat/check-python-startup-registrations'
+2026-10-17T17:21:51.6943672Z branch 'feat/check-python-startup-registrations' set up to track 'origin/feat/check-python-startup-registrations'.
+2026-10-17T17:21:51.7036429Z ##[endgroup]
+2026-10-17T17:21:51.7093678Z [command]/usr/bin/git log -1 --format=%H
+2026-10-17T17:21:51.7126055Z 5cd3c3daf7927ee026d6d54eb307e8b1980fd77c
+2026-10-17T17:21:51.9010705Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt
+2026-10-17T17:21:51.9011388Z [36;1mrustup toolchain install stable --profile minimal --component rustfmt[0m
+2026-10-17T17:21:52.2595326Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:21:52.2595674Z env:
+2026-10-17T17:21:52.2595924Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:21:52.2596210Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:21:52.2596749Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:21:52.2597065Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:21:52.2597380Z   RUSTFLAGS: -D warnings
+2026-10-17T17:21:52.2597681Z ##[endgroup]
+2026-10-17T17:21:52.5197039Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+2026-10-17T17:21:52.6330113Z info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+2026-10-17T17:21:52.6476290Z info: removing previous version of component rustfmt
+2026-10-17T17:21:52.6497154Z info: removing previous version of component clippy
+2026-10-17T17:21:52.6513093Z info: removing previous version of component cargo
+2026-10-17T17:21:52.6565618Z info: removing previous version of component rust-std
+2026-10-17T17:21:52.6616572Z info: removing previous version of component rustc
+2026-10-17T17:21:52.6675373Z info: downloading 5 components
+2026-10-17T17:22:00.8749809Z 
+2026-10-17T17:22:00.8818267Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.99.1 (58cf8f9c3 2026-10-13) (from rustc 1.99.0 (b940084d7 2026-09-28))
+2026-10-17T17:22:00.8819218Z 
+2026-10-17T17:22:00.8976668Z ##[group]Run actions/setup-python@v7
+2026-10-17T17:22:00.8976983Z with:
+2026-10-17T17:22:00.8977188Z   python-version: 3.14
+2026-10-17T17:22:00.8977417Z   check-latest: false
+2026-10-17T17:22:00.8979997Z   token: ***
+2026-10-17T17:22:00.8980212Z   update-environment: true
+2026-10-17T17:22:00.8980457Z   allow-prereleases: false
+2026-10-17T17:22:00.8980690Z   freethreaded: false
+2026-10-17T17:22:00.8980901Z env:
+2026-10-17T17:22:00.8981082Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:00.8981296Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:00.8981529Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:00.8981776Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:00.8982214Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:00.8982441Z ##[endgroup]
+2026-10-17T17:22:01.0169193Z ##[group]Installed versions
+2026-10-17T17:22:01.0260590Z Successfully set up CPython (3.14.8)
+2026-10-17T17:22:01.0261437Z ##[endgroup]
+2026-10-17T17:22:01.0402577Z ##[group]Run python3 -B tools/python-contract.py --check-runtime
+2026-10-17T17:22:01.0403418Z [36;1mpython3 -B tools/python-contract.py --check-runtime[0m
+2026-10-17T17:22:01.0717951Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:22:01.0718266Z env:
+2026-10-17T17:22:01.0718493Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:01.0718744Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:01.0718994Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:01.0719273Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:01.0719550Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:01.0719885Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:01.0720414Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:22:01.0720914Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:01.0721352Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:01.0721790Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:01.0722450Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:22:01.0722842Z ##[endgroup]
+2026-10-17T17:22:18.7282366Z {"analysis_checked": false, "runtime_cases": 916}
+2026-10-17T17:22:18.7489136Z ##[group]Run python3 -B tools/test-retain-python-contract.py
+2026-10-17T17:22:18.7489649Z [36;1mpython3 -B tools/test-retain-python-contract.py[0m
+2026-10-17T17:22:18.7490056Z [36;1mpython3 -B tools/test-python-contract-writer.py[0m
+2026-10-17T17:22:18.7552715Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:22:18.7552970Z env:
+2026-10-17T17:22:18.7553164Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:18.7553403Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:18.7553638Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:18.7553890Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:18.7554136Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:18.7554437Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:18.7554899Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:22:18.7555343Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:18.7555919Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:18.7556351Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:18.7556743Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:22:18.7557077Z ##[endgroup]
+2026-10-17T17:22:19.7261600Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:22:19.7266748Z .HTTP 403: Forbidden
+2026-10-17T17:22:19.7413130Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:22:19.7413940Z ...connection reset by peer
+2026-10-17T17:22:19.7419685Z Artifact connection reset; retrying within the same 60-second deadline.
+2026-10-17T17:22:19.8035762Z ............/opt/hostedtoolcache/Python/3.14.8/x64/lib/python3.14/zipfile/__init__.py:1755: UserWarning: Duplicate name: 'result.json'
+2026-10-17T17:22:19.8037329Z   return self._open_to_write(zinfo, force_zip64=force_zip64)
+2026-10-17T17:22:19.8040116Z ..
+2026-10-17T17:22:19.8040677Z ----------------------------------------------------------------------
+2026-10-17T17:22:19.8041275Z Ran 18 tests in 0.079s
+2026-10-17T17:22:19.8041489Z 
+2026-10-17T17:22:19.8041609Z OK
+2026-10-17T17:22:20.5546136Z ..........
+2026-10-17T17:22:20.5546514Z ----------------------------------------------------------------------
+2026-10-17T17:22:20.5547135Z Ran 10 tests in 0.272s
+2026-10-17T17:22:20.5547525Z 
+2026-10-17T17:22:20.5547616Z OK
+2026-10-17T17:22:20.5894000Z ##[group]Run Swatinem/rust-cache@v2
+2026-10-17T17:22:20.5894299Z with:
+2026-10-17T17:22:20.5894488Z   key: default
+2026-10-17T17:22:20.5894691Z   prefix-key: v0-rust
+2026-10-17T17:22:20.5894912Z   add-job-id-key: true
+2026-10-17T17:22:20.5895159Z   add-rust-environment-hash-key: true
+2026-10-17T17:22:20.5895432Z   cache-targets: true
+2026-10-17T17:22:20.5895646Z   cache-all-crates: false
+2026-10-17T17:22:20.5895884Z   cache-workspace-crates: false
+2026-10-17T17:22:20.5896121Z   save-if: true
+2026-10-17T17:22:20.5896325Z   cache-provider: github
+2026-10-17T17:22:20.5896561Z   cache-bin: true
+2026-10-17T17:22:20.5896763Z   lookup-only: false
+2026-10-17T17:22:20.5896963Z   cmd-format: {0}
+2026-10-17T17:22:20.5897152Z env:
+2026-10-17T17:22:20.5897331Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:20.5897536Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:20.5897757Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:20.5897994Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:20.5898262Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:20.5898555Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:20.5898992Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:22:20.5899422Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:20.5899802Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:20.5900184Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:20.5900567Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:22:20.5900906Z ##[endgroup]
+2026-10-17T17:22:25.1816608Z ##[group]Cache Configuration
+2026-10-17T17:22:25.1817210Z Cache Provider:
+2026-10-17T17:22:25.1817608Z     github
+2026-10-17T17:22:25.1817943Z Workspaces:
+2026-10-17T17:22:25.1818430Z     /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:22:25.1819029Z Cache Paths:
+2026-10-17T17:22:25.1819406Z     /home/runner/.cargo/bin
+2026-10-17T17:22:25.1819844Z     /home/runner/.cargo/.crates.toml
+2026-10-17T17:22:25.1820359Z     /home/runner/.cargo/.crates2.json
+2026-10-17T17:22:25.1820866Z     /home/runner/.cargo/registry
+2026-10-17T17:22:25.1821292Z     /home/runner/.cargo/git
+2026-10-17T17:22:25.1821764Z     /home/runner/work/fun-refactor/fun-refactor/target
+2026-10-17T17:22:25.1822515Z Restore Key:
+2026-10-17T17:22:25.1822959Z     v0-rust-default-python-contract-Linux-x64-f80fee46
+2026-10-17T17:22:25.1823499Z Cache Key:
+2026-10-17T17:22:25.1823984Z     v0-rust-default-python-contract-Linux-x64-f80fee46-bdb9daef
+2026-10-17T17:22:25.1824604Z .. Prefix:
+2026-10-17T17:22:25.1825362Z   - v0-rust-default-python-contract-Linux-x64
+2026-10-17T17:22:25.1825915Z .. Environment considered:
+2026-10-17T17:22:25.1826165Z   - Rust Versions:
+2026-10-17T17:22:25.1826538Z     - 1.99.1 x86_64-unknown-linux-gnu 58cf8f9c35b355199727627d07ae34a4e2846d67
+2026-10-17T17:22:25.1826943Z   - CARGO_BUILD_JOBS
+2026-10-17T17:22:25.1827167Z   - CARGO_INCREMENTAL
+2026-10-17T17:22:25.1827391Z   - CARGO_PROFILE_DEV_DEBUG
+2026-10-17T17:22:25.1827648Z   - CARGO_PROFILE_TEST_DEBUG
+2026-10-17T17:22:25.1827886Z   - RUSTFLAGS
+2026-10-17T17:22:25.1828090Z .. Lockfiles considered:
+2026-10-17T17:22:25.1828384Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.lock
+2026-10-17T17:22:25.1828771Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.toml
+2026-10-17T17:22:25.1829244Z   - /home/runner/work/fun-refactor/fun-refactor/crates/wasm-libc/Cargo.toml
+2026-10-17T17:22:25.1829747Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/go/Cargo.toml
+2026-10-17T17:22:25.1830237Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/lean/Cargo.toml
+2026-10-17T17:22:25.1830736Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/python/Cargo.toml
+2026-10-17T17:22:25.1831225Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/sass/Cargo.toml
+2026-10-17T17:22:25.1831693Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/scss/Cargo.toml
+2026-10-17T17:22:25.1832698Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/typescript/Cargo.toml
+2026-10-17T17:22:25.1833254Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/zig/Cargo.toml
+2026-10-17T17:22:25.1833886Z ##[endgroup]
+2026-10-17T17:22:25.1834003Z 
+2026-10-17T17:22:25.1834095Z ... Restoring cache ...
+2026-10-17T17:22:25.4285711Z No cache found.
+2026-10-17T17:22:25.4468305Z ##[group]Run cargo fmt --all --check
+2026-10-17T17:22:25.4468650Z [36;1mcargo fmt --all --check[0m
+2026-10-17T17:22:25.4534199Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:22:25.4534488Z env:
+2026-10-17T17:22:25.4534695Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:25.4534963Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:25.4535205Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:25.4535466Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:25.4535718Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:25.4536026Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:25.4536493Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:22:25.4536954Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:25.4537370Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:25.4537772Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:25.4538222Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:22:25.4538599Z   CACHE_ON_FAILURE: false
+2026-10-17T17:22:25.4538833Z ##[endgroup]
+2026-10-17T17:22:29.1063990Z ##[group]Run cargo build --locked --bin fr
+2026-10-17T17:22:29.1064359Z [36;1mcargo build --locked --bin fr[0m
+2026-10-17T17:22:29.1127326Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:22:29.1127609Z env:
+2026-10-17T17:22:29.1127805Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:22:29.1128044Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:22:29.1128277Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:22:29.1128536Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:22:29.1128787Z   RUSTFLAGS: -D warnings
+2026-10-17T17:22:29.1129096Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:29.1129553Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:22:29.1130000Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:29.1130392Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:29.1130784Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:22:29.1131219Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:22:29.1131568Z   CACHE_ON_FAILURE: false
+2026-10-17T17:22:29.1131806Z ##[endgroup]
+2026-10-17T17:22:29.1538500Z     Updating crates.io index
+2026-10-17T17:22:29.3461655Z  Downloading crates ...
+2026-10-17T17:22:29.3826801Z   Downloaded anstyle-query v1.1.5
+2026-10-17T17:22:29.3841594Z   Downloaded heck v0.5.0
+2026-10-17T17:22:29.3855986Z   Downloaded equivalent v1.0.2
+2026-10-17T17:22:29.3865230Z   Downloaded anstyle v1.0.14
+2026-10-17T17:22:29.3880523Z   Downloaded anstyle-parse v1.0.0
+2026-10-17T17:22:29.3898749Z   Downloaded anstream v1.0.0
+2026-10-17T17:22:29.3921117Z   Downloaded crossbeam-deque v0.8.8
+2026-10-17T17:22:29.3940696Z   Downloaded tracing-log v0.2.0
+2026-10-17T17:22:29.3956343Z   Downloaded aho-corasick v1.1.5
+2026-10-17T17:22:29.4016573Z   Downloaded serde_yaml v0.9.34+deprecated
+2026-10-17T17:22:29.4056549Z   Downloaded toml_writer v1.1.2+spec-1.1.0
+2026-10-17T17:22:29.4072860Z   Downloaded scopeguard v1.2.0
+2026-10-17T17:22:29.4087257Z   Downloaded shlex v2.0.1
+2026-10-17T17:22:29.4103640Z   Downloaded find-msvc-tools v0.1.12
+2026-10-17T17:22:29.4138014Z   Downloaded tree-sitter-json v0.24.8
+2026-10-17T17:22:29.4159242Z   Downloaded rayon-core v1.13.0
+2026-10-17T17:22:29.4214347Z   Downloaded zmij v1.0.23
+2026-10-17T17:22:29.4233171Z   Downloaded anyhow v1.0.104
+2026-10-17T17:22:29.4273833Z   Downloaded tree-sitter-hcl v1.1.0
+2026-10-17T17:22:29.4300888Z   Downloaded cfg-if v1.0.4
+2026-10-17T17:22:29.4314670Z   Downloaded rustix v1.1.4
+2026-10-17T17:22:29.4592452Z   Downloaded bitflags v2.13.2
+2026-10-17T17:22:29.4637171Z   Downloaded crossbeam-utils v0.8.23
+2026-10-17T17:22:29.4664839Z   Downloaded colorchoice v1.0.5
+2026-10-17T17:22:29.4673969Z   Downloaded walkdir v2.5.0
+2026-10-17T17:22:29.4691799Z   Downloaded cobs v0.3.0
+2026-10-17T17:22:29.4705861Z   Downloaded utf8parse v0.2.2
+2026-10-17T17:22:29.4715388Z   Downloaded cpufeatures v0.3.1
+2026-10-17T17:22:29.4729222Z   Downloaded globset v0.4.20
+2026-10-17T17:22:29.4744363Z   Downloaded foldhash v0.1.5
+2026-10-17T17:22:29.4756379Z   Downloaded tree-sitter-html v0.23.2
+2026-10-17T17:22:29.4773788Z   Downloaded hybrid-array v0.4.15
+2026-10-17T17:22:29.4795594Z   Downloaded memchr v2.8.3
+2026-10-17T17:22:29.4850844Z   Downloaded postcard v1.1.3
+2026-10-17T17:22:29.4873678Z   Downloaded cc v1.4.6
+2026-10-17T17:22:29.4904302Z   Downloaded clap v4.6.6
+2026-10-17T17:22:29.5054946Z   Downloaded embedded-io v0.4.0
+2026-10-17T17:22:29.5080390Z   Downloaded byteorder v1.5.0
+2026-10-17T17:22:29.5101730Z   Downloaded const-oid v0.10.2
+2026-10-17T17:22:29.5136173Z   Downloaded unsafe-libyaml v0.2.11
+2026-10-17T17:22:29.5184573Z   Downloaded tree-sitter-css v0.25.0
+2026-10-17T17:22:29.5219485Z   Downloaded unicode-ident v1.0.24
+2026-10-17T17:22:29.5262233Z   Downloaded digest v0.11.3
+2026-10-17T17:22:29.5296764Z   Downloaded errno v0.3.14
+2026-10-17T17:22:29.5318419Z   Downloaded tree-sitter-xml v0.7.0
+2026-10-17T17:22:29.5368399Z   Downloaded fixedbitset v0.5.7
+2026-10-17T17:22:29.5397291Z   Downloaded hex v0.4.3
+2026-10-17T17:22:29.5420908Z   Downloaded clap_lex v1.1.0
+2026-10-17T17:22:29.5433185Z   Downloaded crypto-common v0.2.2
+2026-10-17T17:22:29.5444579Z   Downloaded tracing-attributes v0.1.31
+2026-10-17T17:22:29.5471081Z   Downloaded tree-sitter-yaml v0.7.2
+2026-10-17T17:22:29.5512879Z   Downloaded clap_builder v4.6.6
+2026-10-17T17:22:29.5576896Z   Downloaded hashbrown v0.15.5
+2026-10-17T17:22:29.5624988Z   Downloaded typenum v1.20.1
+2026-10-17T17:22:29.5662884Z   Downloaded unicode-normalization v0.1.25
+2026-10-17T17:22:29.5694674Z   Downloaded fastrand v2.5.0
+2026-10-17T17:22:29.5708450Z   Downloaded itoa v1.0.18
+2026-10-17T17:22:29.5723088Z   Downloaded tree-sitter-java v0.23.5
+2026-10-17T17:22:29.5773566Z   Downloaded embedded-io v0.6.1
+2026-10-17T17:22:29.5785711Z   Downloaded winnow v1.0.4
+2026-10-17T17:22:29.5883605Z   Downloaded tree-sitter v0.27.0
+2026-10-17T17:22:29.5968743Z   Downloaded tracing-subscriber v0.3.23
+2026-10-17T17:22:29.6053389Z   Downloaded streaming-iterator v0.1.9
+2026-10-17T17:22:29.6067640Z   Downloaded tree-sitter-md-025 v0.5.6
+2026-10-17T17:22:29.6158514Z   Downloaded tree-sitter-bash v0.25.1
+2026-10-17T17:22:29.6302616Z   Downloaded tree-sitter-rust v0.24.2
+2026-10-17T17:22:29.6404914Z   Downloaded thiserror-impl v2.0.20
+2026-10-17T17:22:29.6419503Z   Downloaded either v1.18.0
+2026-10-17T17:22:29.6434572Z   Downloaded nu-ansi-term v0.50.3
+2026-10-17T17:22:29.6458508Z   Downloaded lazy_static v1.5.0
+2026-10-17T17:22:29.6476796Z   Downloaded hash32 v0.2.1
+2026-10-17T17:22:29.6491401Z   Downloaded matchers v0.2.0
+2026-10-17T17:22:29.6502278Z   Downloaded thread_local v1.1.10
+2026-10-17T17:22:29.6515810Z   Downloaded smallvec v1.16.1
+2026-10-17T17:22:29.6529128Z   Downloaded same-file v1.0.6
+2026-10-17T17:22:29.6543311Z   Downloaded stable_deref_trait v1.2.1
+2026-10-17T17:22:29.6552075Z   Downloaded ignore v0.4.33
+2026-10-17T17:22:29.6576314Z   Downloaded is_terminal_polyfill v1.70.2
+2026-10-17T17:22:29.6586404Z   Downloaded lock_api v0.4.14
+2026-10-17T17:22:29.6599341Z   Downloaded sha2 v0.11.0
+2026-10-17T17:22:29.6637160Z   Downloaded rustc_version v0.4.1
+2026-10-17T17:22:29.6650384Z   Downloaded block-buffer v0.12.1
+2026-10-17T17:22:29.6662815Z   Downloaded strsim v0.11.1
+2026-10-17T17:22:29.6676006Z   Downloaded pin-project-lite v0.2.17
+2026-10-17T17:22:29.6735822Z   Downloaded quote v1.0.47
+2026-10-17T17:22:29.6763198Z   Downloaded spin v0.9.9
+2026-10-17T17:22:29.6788142Z   Downloaded thiserror v2.0.20
+2026-10-17T17:22:29.6856483Z   Downloaded toml_datetime v1.1.1+spec-1.1.0
+2026-10-17T17:22:29.6869480Z   Downloaded regex v1.13.1
+2026-10-17T17:22:29.6922771Z   Downloaded semver v1.0.28
+2026-10-17T17:22:29.6946365Z   Downloaded sharded-slab v0.1.7
+2026-10-17T17:22:29.6980179Z   Downloaded toml_parser v1.1.3+spec-1.1.0
+2026-10-17T17:22:29.7003520Z   Downloaded clap_derive v4.6.4
+2026-10-17T17:22:29.7025663Z   Downloaded crossbeam-epoch v0.9.21
+2026-10-17T17:22:29.7050841Z   Downloaded getrandom v0.4.3
+2026-10-17T17:22:29.7089743Z   Downloaded heapless v0.7.17
+2026-10-17T17:22:29.7127770Z   Downloaded once_cell v1.21.4
+2026-10-17T17:22:29.7153620Z   Downloaded proc-macro2 v1.0.107
+2026-10-17T17:22:29.7184095Z   Downloaded ryu v1.0.23
+2026-10-17T17:22:29.7222695Z   Downloaded serde_core v1.0.229
+2026-10-17T17:22:29.7273394Z   Downloaded serde_derive v1.0.229
+2026-10-17T17:22:29.7280216Z   Downloaded tempfile v3.27.0
+2026-10-17T17:22:29.7306253Z   Downloaded toml_edit v0.25.15+spec-1.1.0
+2026-10-17T17:22:29.7346618Z   Downloaded tracing-core v0.1.36
+2026-10-17T17:22:29.7373427Z   Downloaded indexmap v2.14.2
+2026-10-17T17:22:29.7417017Z   Downloaded log v0.4.34
+2026-10-17T17:22:29.7442579Z   Downloaded serde v1.0.229
+2026-10-17T17:22:29.7476997Z   Downloaded tinyvec v1.13.3
+2026-10-17T17:22:29.7511312Z   Downloaded similar v3.2.0
+2026-10-17T17:22:29.7547860Z   Downloaded rayon v1.12.0
+2026-10-17T17:22:29.7643877Z   Downloaded serde_json v1.0.151
+2026-10-17T17:22:29.7717362Z   Downloaded hashbrown v0.17.1
+2026-10-17T17:22:29.7769861Z   Downloaded syn v2.0.119
+2026-10-17T17:22:29.7876153Z   Downloaded syn v3.0.5
+2026-10-17T17:22:29.7981923Z   Downloaded bstr v1.13.1
+2026-10-17T17:22:29.8059986Z   Downloaded regex-syntax v0.8.11
+2026-10-17T17:22:29.8126292Z   Downloaded tracing v0.1.44
+2026-10-17T17:22:29.8280990Z   Downloaded regex-automata v0.4.18
+2026-10-17T17:22:29.8422430Z   Downloaded libc v0.2.189
+2026-10-17T17:22:29.8868197Z   Downloaded petgraph v0.8.3
+2026-10-17T17:22:29.9083055Z   Downloaded linux-raw-sys v0.12.1
+2026-10-17T17:22:30.6740452Z    Compiling shlex v2.0.1
+2026-10-17T17:22:30.6742864Z    Compiling find-msvc-tools v0.1.12
+2026-10-17T17:22:30.7426979Z    Compiling cc v1.4.6
+2026-10-17T17:22:30.7743811Z    Compiling tree-sitter-language v0.1.8 (/home/runner/work/fun-refactor/fun-refactor/crates/tree-sitter-language)
+2026-10-17T17:22:31.2530422Z    Compiling proc-macro2 v1.0.107
+2026-10-17T17:22:31.4105885Z    Compiling unicode-ident v1.0.24
+2026-10-17T17:22:31.4508817Z    Compiling quote v1.0.47
+2026-10-17T17:22:31.6135914Z    Compiling memchr v2.8.3
+2026-10-17T17:22:31.9765853Z    Compiling equivalent v1.0.2
+2026-10-17T17:22:31.9970604Z    Compiling hashbrown v0.17.1
+2026-10-17T17:22:32.0313146Z    Compiling syn v3.0.5
+2026-10-17T17:22:32.3532642Z    Compiling indexmap v2.14.2
+2026-10-17T17:22:32.7473293Z    Compiling zmij v1.0.23
+2026-10-17T17:22:32.8332959Z    Compiling aho-corasick v1.1.5
+2026-10-17T17:22:33.8429268Z    Compiling crossbeam-utils v0.8.23
+2026-10-17T17:22:33.9277112Z    Compiling regex-syntax v0.8.11
+2026-10-17T17:22:34.3500725Z    Compiling serde_core v1.0.229
+2026-10-17T17:22:34.5243164Z    Compiling itoa v1.0.18
+2026-10-17T17:22:34.7913114Z    Compiling serde_json v1.0.151
+2026-10-17T17:22:34.8386627Z    Compiling crossbeam-epoch v0.9.21
+2026-10-17T17:22:35.1643230Z    Compiling regex-automata v0.4.18
+2026-10-17T17:22:37.8802761Z    Compiling once_cell v1.21.4
+2026-10-17T17:22:37.9633265Z    Compiling semver v1.0.28
+2026-10-17T17:22:38.1042809Z    Compiling cfg-if v1.0.4
+2026-10-17T17:22:38.1216476Z    Compiling crossbeam-deque v0.8.8
+2026-10-17T17:22:38.1939029Z    Compiling typenum v1.20.1
+2026-10-17T17:22:38.5377882Z    Compiling serde v1.0.229
+2026-10-17T17:22:38.7308315Z    Compiling hybrid-array v0.4.15
+2026-10-17T17:22:39.0434889Z    Compiling rustc_version v0.4.1
+2026-10-17T17:22:39.3249623Z    Compiling serde_derive v1.0.229
+2026-10-17T17:22:39.3314952Z    Compiling scopeguard v1.2.0
+2026-10-17T17:22:39.3573635Z    Compiling utf8parse v0.2.2
+2026-10-17T17:22:39.3848810Z    Compiling thiserror v2.0.20
+2026-10-17T17:22:39.4946889Z    Compiling libc v0.2.189
+2026-10-17T17:22:39.6303033Z    Compiling log v0.4.34
+2026-10-17T17:22:39.7455403Z    Compiling anstyle-parse v1.0.0
+2026-10-17T17:22:39.8093856Z    Compiling lock_api v0.4.14
+2026-10-17T17:22:39.9231784Z    Compiling tree-sitter v0.27.0
+2026-10-17T17:22:40.0793141Z    Compiling heapless v0.7.17
+2026-10-17T17:22:40.1424284Z    Compiling tracing-core v0.1.36
+2026-10-17T17:22:40.4182642Z    Compiling thiserror-impl v2.0.20
+2026-10-17T17:22:41.0881091Z    Compiling syn v2.0.119
+2026-10-17T17:22:41.4487081Z    Compiling anstyle v1.0.14
+2026-10-17T17:22:41.5351147Z    Compiling rustix v1.1.4
+2026-10-17T17:22:41.6495367Z    Compiling getrandom v0.4.3
+2026-10-17T17:22:41.7143187Z    Compiling rayon-core v1.13.0
+2026-10-17T17:22:41.7584812Z    Compiling anstyle-query v1.1.5
+2026-10-17T17:22:41.7842667Z    Compiling is_terminal_polyfill v1.70.2
+2026-10-17T17:22:41.8062344Z    Compiling byteorder v1.5.0
+2026-10-17T17:22:41.8831806Z    Compiling colorchoice v1.0.5
+2026-10-17T17:22:41.9086421Z    Compiling anstream v1.0.0
+2026-10-17T17:22:42.0343137Z    Compiling hash32 v0.2.1
+2026-10-17T17:22:43.9493825Z    Compiling tracing-attributes v0.1.31
+2026-10-17T17:22:44.5575370Z    Compiling spin v0.9.9
+2026-10-17T17:22:45.1845971Z    Compiling block-buffer v0.12.1
+2026-10-17T17:22:45.2403282Z    Compiling crypto-common v0.2.2
+2026-10-17T17:22:45.7926413Z    Compiling bstr v1.13.1
+2026-10-17T17:22:46.0449552Z    Compiling fun-refactor-zig-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/zig)
+2026-10-17T17:22:46.1014427Z    Compiling tree-sitter-json v0.24.8
+2026-10-17T17:22:46.1583712Z    Compiling tree-sitter-java v0.23.5
+2026-10-17T17:22:46.2148224Z    Compiling fun-refactor-sass-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/sass)
+2026-10-17T17:22:46.2701652Z    Compiling tree-sitter-yaml v0.7.2
+2026-10-17T17:22:46.3270127Z    Compiling fun-refactor-typescript-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/typescript)
+2026-10-17T17:22:46.3859415Z    Compiling tree-sitter-xml v0.7.0
+2026-10-17T17:22:46.4450616Z    Compiling tree-sitter-css v0.25.0
+2026-10-17T17:22:46.5097927Z    Compiling fun-refactor-python-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/python)
+2026-10-17T17:22:46.5670835Z    Compiling tree-sitter-bash v0.25.1
+2026-10-17T17:22:46.6242569Z    Compiling tree-sitter-html v0.23.2
+2026-10-17T17:22:46.6807535Z    Compiling tree-sitter-hcl v1.1.0
+2026-10-17T17:22:46.7373547Z    Compiling tree-sitter-md-025 v0.5.6
+2026-10-17T17:22:46.8038311Z    Compiling tree-sitter-rust v0.24.2
+2026-10-17T17:22:46.8605740Z    Compiling fun-refactor-scss-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/scss)
+2026-10-17T17:22:46.9170821Z    Compiling fun-refactor-go-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/go)
+2026-10-17T17:22:46.9753084Z    Compiling fun-refactor-lean-grammar v0.70.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/lean)
+2026-10-17T17:22:47.0369058Z    Compiling anyhow v1.0.104
+2026-10-17T17:22:47.1356635Z    Compiling linux-raw-sys v0.12.1
+2026-10-17T17:22:47.3260499Z    Compiling foldhash v0.1.5
+2026-10-17T17:22:47.3817519Z    Compiling same-file v1.0.6
+2026-10-17T17:22:47.4241044Z    Compiling const-oid v0.10.2
+2026-10-17T17:22:47.5003653Z    Compiling stable_deref_trait v1.2.1
+2026-10-17T17:22:47.5181746Z    Compiling bitflags v2.13.2
+2026-10-17T17:22:47.6050394Z    Compiling strsim v0.11.1
+2026-10-17T17:22:47.7434378Z    Compiling lazy_static v1.5.0
+2026-10-17T17:22:47.7666985Z    Compiling pin-project-lite v0.2.17
+2026-10-17T17:22:47.8370315Z    Compiling winnow v1.0.4
+2026-10-17T17:22:48.5393343Z    Compiling clap_lex v1.1.0
+2026-10-17T17:22:48.6203027Z    Compiling heck v0.5.0
+2026-10-17T17:22:48.6996424Z    Compiling clap_derive v4.6.4
+2026-10-17T17:22:49.6412827Z    Compiling clap_builder v4.6.6
+2026-10-17T17:22:51.0723249Z    Compiling toml_parser v1.1.3+spec-1.1.0
+2026-10-17T17:22:51.4390517Z    Compiling tracing v0.1.44
+2026-10-17T17:22:51.5433292Z    Compiling sharded-slab v0.1.7
+2026-10-17T17:22:52.1712179Z    Compiling digest v0.11.3
+2026-10-17T17:22:52.2361488Z    Compiling walkdir v2.5.0
+2026-10-17T17:22:52.3685414Z    Compiling hashbrown v0.15.5
+2026-10-17T17:23:01.0404927Z    Compiling globset v0.4.20
+2026-10-17T17:23:01.4571645Z    Compiling cobs v0.3.0
+2026-10-17T17:23:01.5196450Z    Compiling tracing-log v0.2.0
+2026-10-17T17:23:01.5998660Z    Compiling thread_local v1.1.10
+2026-10-17T17:23:01.6833071Z    Compiling regex v1.13.1
+2026-10-17T17:23:01.8530870Z    Compiling matchers v0.2.0
+2026-10-17T17:23:01.8928657Z    Compiling unsafe-libyaml v0.2.11
+2026-10-17T17:23:01.9171067Z    Compiling fixedbitset v0.5.7
+2026-10-17T17:23:02.0529176Z    Compiling fun-refactor v0.70.0 (/home/runner/work/fun-refactor/fun-refactor)
+2026-10-17T17:23:02.1579812Z    Compiling cpufeatures v0.3.1
+2026-10-17T17:23:02.1783782Z    Compiling smallvec v1.16.1
+2026-10-17T17:23:02.2780794Z    Compiling either v1.18.0
+2026-10-17T17:23:02.3663020Z    Compiling toml_writer v1.1.2+spec-1.1.0
+2026-10-17T17:23:02.3748807Z    Compiling ryu v1.0.23
+2026-10-17T17:23:02.4452175Z    Compiling nu-ansi-term v0.50.3
+2026-10-17T17:23:02.4543112Z    Compiling fastrand v2.5.0
+2026-10-17T17:23:02.5504594Z    Compiling toml_datetime v1.1.1+spec-1.1.0
+2026-10-17T17:23:02.5866577Z    Compiling tinyvec v1.13.3
+2026-10-17T17:23:02.6533040Z    Compiling streaming-iterator v0.1.9
+2026-10-17T17:23:02.7974233Z    Compiling unicode-normalization v0.1.25
+2026-10-17T17:23:03.0338228Z    Compiling toml_edit v0.25.15+spec-1.1.0
+2026-10-17T17:23:03.1713164Z    Compiling tracing-subscriber v0.3.23
+2026-10-17T17:23:03.7613186Z    Compiling tempfile v3.27.0
+2026-10-17T17:23:03.9423164Z    Compiling serde_yaml v0.9.34+deprecated
+2026-10-17T17:23:04.3570668Z    Compiling rayon v1.12.0
+2026-10-17T17:23:04.8444632Z    Compiling sha2 v0.11.0
+2026-10-17T17:23:05.7220771Z    Compiling petgraph v0.8.3
+2026-10-17T17:23:06.2233124Z    Compiling postcard v1.1.3
+2026-10-17T17:23:06.4180791Z    Compiling ignore v0.4.33
+2026-10-17T17:23:07.5083163Z    Compiling clap v4.6.6
+2026-10-17T17:23:07.5309982Z    Compiling similar v3.2.0
+2026-10-17T17:23:08.0190678Z    Compiling hex v0.4.3
+2026-10-17T17:23:47.7285949Z     Finished `dev` profile [unoptimized] target(s) in 1m 18s
+2026-10-17T17:23:47.7797832Z ##[group]Run python3 -m pip install 'pytest==9.1.1'
+2026-10-17T17:23:47.7798257Z [36;1mpython3 -m pip install 'pytest==9.1.1'[0m
+2026-10-17T17:23:47.7860776Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:23:47.7861034Z env:
+2026-10-17T17:23:47.7861224Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:23:47.7861453Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:23:47.7861678Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:23:47.7862110Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:23:47.7862555Z   RUSTFLAGS: -D warnings
+2026-10-17T17:23:47.7862854Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:47.7863317Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:23:47.7863759Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:47.7864136Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:47.7864513Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:47.7864949Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:23:47.7865286Z   CACHE_ON_FAILURE: false
+2026-10-17T17:23:47.7865507Z ##[endgroup]
+2026-10-17T17:23:49.6337633Z Collecting pytest==9.1.1
+2026-10-17T17:23:49.6800915Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+2026-10-17T17:23:49.6934968Z Collecting iniconfig>=1.0.1 (from pytest==9.1.1)
+2026-10-17T17:23:49.6963332Z   Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+2026-10-17T17:23:49.7121217Z Collecting packaging>=22 (from pytest==9.1.1)
+2026-10-17T17:23:49.7149119Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-10-17T17:23:49.7274276Z Collecting pluggy<2,>=1.5 (from pytest==9.1.1)
+2026-10-17T17:23:49.7301314Z   Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)
+2026-10-17T17:23:49.7506445Z Collecting pygments>=2.7.2 (from pytest==9.1.1)
+2026-10-17T17:23:49.7538595Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+2026-10-17T17:23:49.7632885Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+2026-10-17T17:23:49.7810210Z Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
+2026-10-17T17:23:49.7859731Z Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+2026-10-17T17:23:49.7907685Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-10-17T17:23:49.7962477Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+2026-10-17T17:23:49.8068605Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 137.9 MB/s  0:00:00
+2026-10-17T17:23:49.9760069Z Installing collected packages: pygments, pluggy, packaging, iniconfig, pytest
+2026-10-17T17:23:51.4046854Z 
+2026-10-17T17:23:51.4060635Z Successfully installed iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.1.1
+2026-10-17T17:23:51.4851601Z ##[group]Run python3 -B tools/reader_examples.py --fr target/debug/fr
+2026-10-17T17:23:51.4852787Z [36;1mpython3 -B tools/reader_examples.py --fr target/debug/fr[0m
+2026-10-17T17:23:51.4919816Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:23:51.4920245Z env:
+2026-10-17T17:23:51.4920579Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:23:51.4920982Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:23:51.4921392Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:23:51.4922059Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:23:51.4922507Z   RUSTFLAGS: -D warnings
+2026-10-17T17:23:51.4923029Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:51.4923798Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:23:51.4924592Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:51.4925274Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:51.4925952Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:51.4926731Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:23:51.4927349Z   CACHE_ON_FAILURE: false
+2026-10-17T17:23:51.4927764Z ##[endgroup]
+2026-10-17T17:23:59.7496051Z {"complete_trace_examples": 2, "first_change_commands": 14, "function_default_examples": 3, "import_order_examples": 3, "imported_default_examples": 5, "parallel_binding_examples": 3, "registry_setup_examples": 3, "startup_diagnostic_examples": 3, "value_alias_examples": 6, "verified_measurement_rows": 6}
+2026-10-17T17:23:59.7623582Z ##[group]Run PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py
+2026-10-17T17:23:59.7627545Z [36;1mPYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_expression_control.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_scalar_assignments.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_function_declarations.py sdk/python/tests/test_module_literals.py[0m
+2026-10-17T17:23:59.7692418Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:23:59.7692673Z env:
+2026-10-17T17:23:59.7692861Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:23:59.7693082Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:23:59.7693317Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:23:59.7693563Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:23:59.7693801Z   RUSTFLAGS: -D warnings
+2026-10-17T17:23:59.7694088Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:59.7694540Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:23:59.7694982Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:59.7695379Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:59.7695760Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:23:59.7696142Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:23:59.7696488Z   CACHE_ON_FAILURE: false
+2026-10-17T17:23:59.7696708Z ##[endgroup]
+2026-10-17T17:24:24.9220847Z ........................................................................ [ 11%]
+2026-10-17T17:24:53.4010250Z ........................................................................ [ 22%]
+2026-10-17T17:25:17.6443436Z ........................................................................ [ 34%]
+2026-10-17T17:25:40.5988386Z ........................................................................ [ 45%]
+2026-10-17T17:26:02.9139260Z ........................................................................ [ 57%]
+2026-10-17T17:26:19.0297281Z ........................................................................ [ 68%]
+2026-10-17T17:26:41.4451690Z ........................................................................ [ 80%]
+2026-10-17T17:27:03.6630601Z ........................................................................ [ 91%]
+2026-10-17T17:27:22.9983045Z .....................................................                    [100%]
+2026-10-17T17:27:22.9983771Z 629 passed in 202.60s (0:03:22)
+2026-10-17T17:27:23.0579117Z ##[group]Run PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
+2026-10-17T17:27:23.0581233Z [36;1mPYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py[0m
+2026-10-17T17:27:23.0582928Z [36;1mpython3 -B tools/python-contract.py --output target/python-contract/result.json[0m
+2026-10-17T17:27:23.0645690Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:27:23.0645944Z env:
+2026-10-17T17:27:23.0646128Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:27:23.0646353Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:27:23.0646577Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:27:23.0646864Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:27:23.0647114Z   RUSTFLAGS: -D warnings
+2026-10-17T17:27:23.0647415Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:27:23.0647860Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:27:23.0648515Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:27:23.0648896Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:27:23.0649283Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:27:23.0649674Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:27:23.0650004Z   CACHE_ON_FAILURE: false
+2026-10-17T17:27:23.0650225Z ##[endgroup]
+2026-10-17T17:27:47.8810010Z ........................................................................ [ 13%]
+2026-10-17T17:28:11.0181626Z ........................................................................ [ 27%]
+2026-10-17T17:28:31.5745974Z ........................................................................ [ 41%]
+2026-10-17T17:28:45.5247706Z ........................................................................ [ 54%]
+2026-10-17T17:29:06.0782728Z ........................................................................ [ 68%]
+2026-10-17T17:29:25.2305548Z ........................................................................ [ 82%]
+2026-10-17T17:29:46.3216648Z ........................................................................ [ 95%]
+2026-10-17T17:29:53.0496699Z ......................                                                   [100%]
+2026-10-17T17:29:53.0498878Z 526 passed in 149.53s (0:02:29)
+2026-10-17T17:29:53.9298268Z module-collection-empty-dictionary/original: checked
+2026-10-17T17:29:54.2439018Z module-collection-empty-dictionary/moved: checked
+2026-10-17T17:29:54.5537926Z module-collection-module-names/original: checked
+2026-10-17T17:29:54.8637186Z module-collection-module-names/moved: checked
+2026-10-17T17:29:55.1296214Z module-collection-nested/original: checked
+2026-10-17T17:29:55.3965753Z module-collection-nested/moved: checked
+2026-10-17T17:29:55.6607922Z module-collection-global-read/original: checked
+2026-10-17T17:29:55.9246969Z module-collection-global-read/moved: checked
+2026-10-17T17:29:56.1889594Z module-collection-mutated/original: checked
+2026-10-17T17:29:56.4560043Z module-collection-mutated/moved: checked
+2026-10-17T17:29:56.7191841Z module-collection-evaluated-element/original: checked
+2026-10-17T17:29:56.9840720Z module-collection-evaluated-element/moved: checked
+2026-10-17T17:29:57.2490027Z module-collection-hash-callback/original: checked
+2026-10-17T17:29:57.5148546Z module-collection-hash-callback/moved: checked
+2026-10-17T17:29:57.7782287Z module-collection-unhashable-key/original: checked
+2026-10-17T17:29:58.0444829Z module-collection-unhashable-key/moved: checked
+2026-10-17T17:29:58.3077239Z module-collection-unpacked/original: checked
+2026-10-17T17:29:58.5717100Z module-collection-unpacked/moved: checked
+2026-10-17T17:29:58.8424521Z module-collection-over-budget/original: checked
+2026-10-17T17:29:59.1132641Z module-collection-over-budget/moved: checked
+2026-10-17T17:29:59.4272814Z module-metadata-forward/original: checked
+2026-10-17T17:29:59.7411150Z module-metadata-forward/moved: checked
+2026-10-17T17:30:00.0509662Z module-metadata-blocked/original: checked
+2026-10-17T17:30:00.3616897Z module-metadata-blocked/moved: checked
+2026-10-17T17:30:00.6693718Z module-metadata-evaluated/original: checked
+2026-10-17T17:30:00.9772722Z module-metadata-evaluated/moved: checked
+2026-10-17T17:30:01.0296288Z module-metadata-mutable/original: checked
+2026-10-17T17:30:01.2968841Z module-metadata-mutable/moved: checked
+2026-10-17T17:30:01.5629911Z module-metadata-repeated/original: checked
+2026-10-17T17:30:01.8349652Z module-metadata-repeated/moved: checked
+2026-10-17T17:30:01.8868672Z module-metadata-global-read/original: checked
+2026-10-17T17:30:02.1545909Z module-metadata-global-read/moved: checked
+2026-10-17T17:30:02.2502306Z module-metadata-import-control/original: checked
+2026-10-17T17:30:02.5572229Z module-metadata-import-control/moved: checked
+2026-10-17T17:30:02.8713392Z postponed-annotations-forward/original: checked
+2026-10-17T17:30:03.1856914Z postponed-annotations-forward/moved: checked
+2026-10-17T17:30:03.4981011Z postponed-annotations-blocked/original: checked
+2026-10-17T17:30:03.8080372Z postponed-annotations-blocked/moved: checked
+2026-10-17T17:30:04.1304255Z postponed-annotations-fixed-slots/original: checked
+2026-10-17T17:30:04.4538014Z postponed-annotations-fixed-slots/moved: checked
+2026-10-17T17:30:04.7674475Z postponed-annotations-unused-variadics/original: checked
+2026-10-17T17:30:05.0820383Z postponed-annotations-unused-variadics/moved: checked
+2026-10-17T17:30:05.3977045Z postponed-annotations-not-evaluated/original: checked
+2026-10-17T17:30:05.7132719Z postponed-annotations-not-evaluated/moved: checked
+2026-10-17T17:30:06.0223436Z postponed-annotations-module-local/original: checked
+2026-10-17T17:30:06.3316379Z postponed-annotations-module-local/moved: checked
+2026-10-17T17:30:06.6384742Z postponed-annotations-default-still-evaluated/original: checked
+2026-10-17T17:30:06.9449103Z postponed-annotations-default-still-evaluated/moved: checked
+2026-10-17T17:30:07.2518569Z postponed-annotations-plain-method/original: checked
+2026-10-17T17:30:07.5583442Z postponed-annotations-plain-method/moved: checked
+2026-10-17T17:30:07.8697310Z postponed-annotations-local-shadow/original: checked
+2026-10-17T17:30:08.1844432Z postponed-annotations-local-shadow/moved: checked
+2026-10-17T17:30:08.4494862Z plain-class-unused/original: checked
+2026-10-17T17:30:08.7152783Z plain-class-unused/moved: checked
+2026-10-17T17:30:08.9807088Z plain-class-default-instance/original: checked
+2026-10-17T17:30:09.2470490Z plain-class-default-instance/moved: checked
+2026-10-17T17:30:09.5212394Z plain-class-default-instance-blocked/original: checked
+2026-10-17T17:30:09.7969914Z plain-class-default-instance-blocked/moved: checked
+2026-10-17T17:30:10.0647464Z plain-class-method-deferred/original: checked
+2026-10-17T17:30:10.3315936Z plain-class-method-deferred/moved: checked
+2026-10-17T17:30:10.5969874Z plain-class-constructor-deferred/original: checked
+2026-10-17T17:30:10.8632608Z plain-class-constructor-deferred/moved: checked
+2026-10-17T17:30:11.1776806Z plain-class-imported-helper/original: checked
+2026-10-17T17:30:11.4945700Z plain-class-imported-helper/moved: checked
+2026-10-17T17:30:11.7598024Z plain-class-global-instance-read/original: checked
+2026-10-17T17:30:12.0279659Z plain-class-global-instance-read/moved: checked
+2026-10-17T17:30:12.2952410Z plain-class-body-effect/original: checked
+2026-10-17T17:30:12.5627861Z plain-class-body-effect/moved: checked
+2026-10-17T17:30:12.8301569Z plain-class-constructor-effect/original: checked
+2026-10-17T17:30:13.0976835Z plain-class-constructor-effect/moved: checked
+2026-10-17T17:30:13.3631664Z plain-class-constructor-arguments/original: checked
+2026-10-17T17:30:13.6294721Z plain-class-constructor-arguments/moved: checked
+2026-10-17T17:30:13.8943487Z plain-class-explicit-base/original: checked
+2026-10-17T17:30:14.1604990Z plain-class-explicit-base/moved: checked
+2026-10-17T17:30:14.4260950Z builtin-base-dict-deferred/original: checked
+2026-10-17T17:30:14.6928097Z builtin-base-dict-deferred/moved: checked
+2026-10-17T17:30:14.9582521Z builtin-base-exception-deferred/original: checked
+2026-10-17T17:30:15.2241701Z builtin-base-exception-deferred/moved: checked
+2026-10-17T17:30:15.4907756Z builtin-base-object-instance/original: checked
+2026-10-17T17:30:15.7559074Z builtin-base-object-instance/moved: checked
+2026-10-17T17:30:16.0790888Z builtin-base-import/original: checked
+2026-10-17T17:30:16.3953586Z builtin-base-import/moved: checked
+2026-10-17T17:30:16.7982454Z builtin-base-reexport/original: checked
+2026-10-17T17:30:17.2035131Z builtin-base-reexport/moved: checked
+2026-10-17T17:30:17.4678662Z builtin-base-shadow-callback/original: checked
+2026-10-17T17:30:17.7337400Z builtin-base-shadow-callback/moved: checked
+2026-10-17T17:30:17.9981083Z builtin-base-computed-callback/original: checked
+2026-10-17T17:30:18.2647944Z builtin-base-computed-callback/moved: checked
+2026-10-17T17:30:18.5294751Z builtin-base-custom-constructor/original: checked
+2026-10-17T17:30:18.8056465Z builtin-base-custom-constructor/moved: checked
+2026-10-17T17:30:19.0723147Z builtin-base-inherited-construction/original: checked
+2026-10-17T17:30:19.3387536Z builtin-base-inherited-construction/moved: checked
+2026-10-17T17:30:19.6034991Z builtin-base-metaclass/original: checked
+2026-10-17T17:30:19.8708126Z builtin-base-metaclass/moved: checked
+2026-10-17T17:30:20.1360889Z builtin-base-unpacked/original: checked
+2026-10-17T17:30:20.4014554Z builtin-base-unpacked/moved: checked
+2026-10-17T17:30:20.6668030Z builtin-base-shadowed-invalid/original: checked
+2026-10-17T17:30:20.9330482Z builtin-base-shadowed-invalid/moved: checked
+2026-10-17T17:30:21.1973210Z plain-class-descriptor-installation/original: checked
+2026-10-17T17:30:21.4651602Z plain-class-descriptor-installation/moved: checked
+2026-10-17T17:30:21.7330781Z module-literal-unused/original: checked
+2026-10-17T17:30:21.9989978Z module-literal-unused/moved: checked
+2026-10-17T17:30:22.0501420Z module-literal-global-read/original: checked
+2026-10-17T17:30:22.3147069Z module-literal-global-read/moved: checked
+2026-10-17T17:30:22.3670154Z module-literal-repeated/original: checked
+2026-10-17T17:30:22.6333175Z module-literal-repeated/moved: checked
+2026-10-17T17:30:22.6863102Z module-literal-shadow-function/original: checked
+2026-10-17T17:30:22.9532630Z module-literal-shadow-function/moved: checked
+2026-10-17T17:30:23.2665506Z module-literal-import-selected/original: checked
+2026-10-17T17:30:23.5823175Z module-literal-import-selected/moved: checked
+2026-10-17T17:30:23.8923280Z module-literal-import-blocked/original: checked
+2026-10-17T17:30:24.2055742Z module-literal-import-blocked/moved: checked
+2026-10-17T17:30:24.4750084Z arithmetic/original: checked
+2026-10-17T17:30:24.7436739Z arithmetic/moved: checked
+2026-10-17T17:30:25.0188066Z commented-operands/original: checked
+2026-10-17T17:30:25.2851204Z commented-operands/moved: checked
+2026-10-17T17:30:25.5502466Z commented-unary/original: checked
+2026-10-17T17:30:25.8168244Z commented-unary/moved: checked
+2026-10-17T17:30:26.0843201Z arithmetic-cancellation/original: checked
+2026-10-17T17:30:26.3529868Z arithmetic-cancellation/moved: checked
+2026-10-17T17:30:26.6195282Z overwrite/original: checked
+2026-10-17T17:30:26.8861755Z overwrite/moved: checked
+2026-10-17T17:30:27.1548714Z destructure/original: checked
+2026-10-17T17:30:27.4239710Z destructure/moved: checked
+2026-10-17T17:30:27.6912063Z chain/original: checked
+2026-10-17T17:30:27.9592837Z chain/moved: checked
+2026-10-17T17:30:28.2239914Z repeat-target/original: checked
+2026-10-17T17:30:28.4926659Z repeat-target/moved: checked
+2026-10-17T17:30:28.7641297Z swap/original: checked
+2026-10-17T17:30:29.0365511Z swap/moved: checked
+2026-10-17T17:30:29.2998773Z and-skip/original: checked
+2026-10-17T17:30:29.6010622Z and-skip/moved: checked
+2026-10-17T17:30:29.8637064Z or-skip/original: checked
+2026-10-17T17:30:30.1316153Z or-skip/moved: checked
+2026-10-17T17:30:30.3978246Z none-select/original: checked
+2026-10-17T17:30:30.6650327Z none-select/moved: checked
+2026-10-17T17:30:30.9351358Z conditional-order/original: checked
+2026-10-17T17:30:31.2019784Z conditional-order/moved: checked
+2026-10-17T17:30:31.4672917Z comparison-order/original: checked
+2026-10-17T17:30:31.7354857Z comparison-order/moved: checked
+2026-10-17T17:30:32.0012267Z comparison-stop/original: checked
+2026-10-17T17:30:32.2689675Z comparison-stop/moved: checked
+2026-10-17T17:30:32.5373159Z if-join/original: checked
+2026-10-17T17:30:32.8078158Z if-join/moved: checked
+2026-10-17T17:30:33.0815786Z elif/original: checked
+2026-10-17T17:30:33.3556609Z elif/moved: checked
+2026-10-17T17:30:33.6266446Z loop-break/original: checked
+2026-10-17T17:30:33.9090481Z loop-break/moved: checked
+2026-10-17T17:30:34.1812401Z loop-continue/original: checked
+2026-10-17T17:30:34.4556700Z loop-continue/moved: checked
+2026-10-17T17:30:34.7303413Z positional/original: checked
+2026-10-17T17:30:35.0059364Z positional/moved: checked
+2026-10-17T17:30:35.2813504Z keyword-order/original: checked
+2026-10-17T17:30:35.5574448Z keyword-order/moved: checked
+2026-10-17T17:30:35.8256357Z literal-default/original: checked
+2026-10-17T17:30:36.1085696Z literal-default/moved: checked
+2026-10-17T17:30:36.3815662Z override-default/original: checked
+2026-10-17T17:30:36.6558453Z override-default/moved: checked
+2026-10-17T17:30:36.9198965Z early-return/original: checked
+2026-10-17T17:30:37.1851361Z early-return/moved: checked
+2026-10-17T17:30:37.4578861Z raise-stops-arguments/original: checked
+2026-10-17T17:30:37.7348027Z raise-stops-arguments/moved: checked
+2026-10-17T17:30:38.0025680Z raise-before-next-argument/original: checked
+2026-10-17T17:30:38.2722469Z raise-before-next-argument/moved: checked
+2026-10-17T17:30:38.5359009Z sanitize/original: checked
+2026-10-17T17:30:38.8019262Z sanitize/moved: checked
+2026-10-17T17:30:39.0681713Z propagate/original: checked
+2026-10-17T17:30:39.3364338Z propagate/moved: checked
+2026-10-17T17:30:39.6057987Z unicode-local/original: checked
+2026-10-17T17:30:39.8729799Z unicode-local/moved: checked
+2026-10-17T17:30:40.1392956Z unbound-local/original: checked
+2026-10-17T17:30:40.4040581Z unbound-local/moved: checked
+2026-10-17T17:30:40.6683198Z shadow-source/original: checked
+2026-10-17T17:30:40.9343442Z shadow-source/moved: checked
+2026-10-17T17:30:41.2016083Z implicit-exception/original: checked
+2026-10-17T17:30:41.4693356Z implicit-exception/moved: checked
+2026-10-17T17:30:41.7330214Z handler/original: checked
+2026-10-17T17:30:41.9978764Z handler/moved: checked
+2026-10-17T17:30:42.2616653Z container/original: checked
+2026-10-17T17:30:42.5257515Z container/moved: checked
+2026-10-17T17:30:42.7884703Z bare-raise/original: checked
+2026-10-17T17:30:43.0529670Z bare-raise/moved: checked
+2026-10-17T17:30:43.3167568Z budget/original: checked
+2026-10-17T17:30:43.5810564Z budget/moved: checked
+2026-10-17T17:30:43.8543995Z binding-ordinary-positional-selected/original: checked
+2026-10-17T17:30:44.1285333Z binding-ordinary-positional-selected/moved: checked
+2026-10-17T17:30:44.3986345Z binding-ordinary-positional-discarded/original: checked
+2026-10-17T17:30:44.6703036Z binding-ordinary-positional-discarded/moved: checked
+2026-10-17T17:30:44.9432456Z binding-ordinary-keyword-selected/original: checked
+2026-10-17T17:30:45.2184123Z binding-ordinary-keyword-selected/moved: checked
+2026-10-17T17:30:45.4902553Z binding-ordinary-keyword-discarded/original: checked
+2026-10-17T17:30:45.7630712Z binding-ordinary-keyword-discarded/moved: checked
+2026-10-17T17:30:46.0359346Z binding-ordinary-mixed-selected/original: checked
+2026-10-17T17:30:46.3104304Z binding-ordinary-mixed-selected/moved: checked
+2026-10-17T17:30:46.5801558Z binding-ordinary-mixed-discarded/original: checked
+2026-10-17T17:30:46.8522446Z binding-ordinary-mixed-discarded/moved: checked
+2026-10-17T17:30:47.1270955Z binding-positional-only-selected/original: checked
+2026-10-17T17:30:47.4036861Z binding-positional-only-selected/moved: checked
+2026-10-17T17:30:47.6733238Z binding-positional-only-discarded/original: checked
+2026-10-17T17:30:47.9477201Z binding-positional-only-discarded/moved: checked
+2026-10-17T17:30:48.2209252Z binding-positional-ordinary-selected/original: checked
+2026-10-17T17:30:48.4954230Z binding-positional-ordinary-selected/moved: checked
+2026-10-17T17:30:48.7655059Z binding-positional-ordinary-discarded/original: checked
+2026-10-17T17:30:49.0375156Z binding-positional-ordinary-discarded/moved: checked
+2026-10-17T17:30:49.3113867Z binding-ordinary-keyword-only-selected/original: checked
+2026-10-17T17:30:49.5866446Z binding-ordinary-keyword-only-selected/moved: checked
+2026-10-17T17:30:49.8577072Z binding-ordinary-keyword-only-discarded/original: checked
+2026-10-17T17:30:50.1303048Z binding-ordinary-keyword-only-discarded/moved: checked
+2026-10-17T17:30:50.4034717Z binding-keyword-only-selected/original: checked
+2026-10-17T17:30:50.6769336Z binding-keyword-only-selected/moved: checked
+2026-10-17T17:30:50.9462905Z binding-keyword-only-discarded/original: checked
+2026-10-17T17:30:51.2186207Z binding-keyword-only-discarded/moved: checked
+2026-10-17T17:30:51.4925524Z binding-positional-keyword-only-selected/original: checked
+2026-10-17T17:30:51.7672970Z binding-positional-keyword-only-selected/moved: checked
+2026-10-17T17:30:52.0391218Z binding-positional-keyword-only-discarded/original: checked
+2026-10-17T17:30:52.3113273Z binding-positional-keyword-only-discarded/moved: checked
+2026-10-17T17:30:52.5858604Z binding-all-kinds-selected/original: checked
+2026-10-17T17:30:52.8616969Z binding-all-kinds-selected/moved: checked
+2026-10-17T17:30:53.1339867Z binding-all-kinds-discarded/original: checked
+2026-10-17T17:30:53.4080947Z binding-all-kinds-discarded/moved: checked
+2026-10-17T17:30:53.6815487Z fixed-variadic-positional-tail-selected/original: checked
+2026-10-17T17:30:53.9551452Z fixed-variadic-positional-tail-selected/moved: checked
+2026-10-17T17:30:54.2250342Z fixed-variadic-positional-tail-blocked/original: checked
+2026-10-17T17:30:54.4967060Z fixed-variadic-positional-tail-blocked/moved: checked
+2026-10-17T17:30:54.7690572Z fixed-variadic-keyword-tail-selected/original: checked
+2026-10-17T17:30:55.0425247Z fixed-variadic-keyword-tail-selected/moved: checked
+2026-10-17T17:30:55.3106769Z fixed-variadic-keyword-tail-blocked/original: checked
+2026-10-17T17:30:55.5801215Z fixed-variadic-keyword-tail-blocked/moved: checked
+2026-10-17T17:30:55.8543624Z fixed-variadic-both-tails-selected/original: checked
+2026-10-17T17:30:56.1289069Z fixed-variadic-both-tails-selected/moved: checked
+2026-10-17T17:30:56.4005504Z fixed-variadic-both-tails-blocked/original: checked
+2026-10-17T17:30:56.6703231Z fixed-variadic-both-tails-blocked/moved: checked
+2026-10-17T17:30:56.9367570Z uncalled-variadic-body/original: checked
+2026-10-17T17:30:57.2084394Z uncalled-variadic-body/moved: checked
+2026-10-17T17:30:57.4752653Z uncalled-keyword-body/original: checked
+2026-10-17T17:30:57.7405245Z uncalled-keyword-body/moved: checked
+2026-10-17T17:30:58.0061372Z uncalled-generator-body/original: checked
+2026-10-17T17:30:58.2716166Z uncalled-generator-body/moved: checked
+2026-10-17T17:30:58.5836470Z import-uncalled-variadic-body/original: checked
+2026-10-17T17:30:58.8978016Z import-uncalled-variadic-body/moved: checked
+2026-10-17T17:30:59.1633227Z called-generator-body/original: checked
+2026-10-17T17:30:59.4326186Z called-generator-body/moved: checked
+2026-10-17T17:30:59.6967732Z called-skipped-yield/original: checked
+2026-10-17T17:30:59.9642778Z called-skipped-yield/moved: checked
+2026-10-17T17:31:00.2352193Z called-lambda-default-yield/original: checked
+2026-10-17T17:31:00.5026616Z called-lambda-default-yield/moved: checked
+2026-10-17T17:31:00.5633126Z skipped-nested-generator/original: checked
+2026-10-17T17:31:00.8341582Z skipped-nested-generator/moved: checked
+2026-10-17T17:31:01.1035199Z fixed-variadic-default/original: checked
+2026-10-17T17:31:01.3820956Z fixed-variadic-default/moved: checked
+2026-10-17T17:31:01.6472586Z fixed-variadic-extra-effect/original: checked
+2026-10-17T17:31:01.9140359Z fixed-variadic-extra-effect/moved: checked
+2026-10-17T17:31:02.1802505Z fixed-variadic-extra-keyword/original: checked
+2026-10-17T17:31:02.4476236Z fixed-variadic-extra-keyword/moved: checked
+2026-10-17T17:31:02.7119077Z fixed-variadic-referenced/original: checked
+2026-10-17T17:31:02.9761799Z fixed-variadic-referenced/moved: checked
+2026-10-17T17:31:03.2412971Z binding-invalid-missing/original: checked
+2026-10-17T17:31:03.5076829Z binding-invalid-missing/moved: checked
+2026-10-17T17:31:03.7747853Z binding-invalid-excess/original: checked
+2026-10-17T17:31:04.0477509Z binding-invalid-excess/moved: checked
+2026-10-17T17:31:04.3080322Z binding-invalid-duplicate/original: checked
+2026-10-17T17:31:04.5759742Z binding-invalid-duplicate/moved: checked
+2026-10-17T17:31:04.8401020Z binding-invalid-unknown/original: checked
+2026-10-17T17:31:05.1047858Z binding-invalid-unknown/moved: checked
+2026-10-17T17:31:05.3695963Z binding-invalid-positional-only-keyword/original: checked
+2026-10-17T17:31:05.6371025Z binding-invalid-positional-only-keyword/moved: checked
+2026-10-17T17:31:05.9045955Z binding-invalid-keyword-only-position/original: checked
+2026-10-17T17:31:06.1722275Z binding-invalid-keyword-only-position/moved: checked
+2026-10-17T17:31:06.4388439Z binding-invalid-missing-keyword-only/original: checked
+2026-10-17T17:31:06.7058761Z binding-invalid-missing-keyword-only/moved: checked
+2026-10-17T17:31:06.9747976Z default-positional/original: checked
+2026-10-17T17:31:07.2439373Z default-positional/moved: checked
+2026-10-17T17:31:07.5125295Z default-keyword-only/original: checked
+2026-10-17T17:31:07.7811717Z default-keyword-only/moved: checked
+2026-10-17T17:31:08.0513021Z default-mixed/original: checked
+2026-10-17T17:31:08.3228767Z default-mixed/moved: checked
+2026-10-17T17:31:08.5925051Z default-required-after-default/original: checked
+2026-10-17T17:31:08.8622714Z default-required-after-default/moved: checked
+2026-10-17T17:31:09.1295973Z default-literal-none/original: checked
+2026-10-17T17:31:09.3984920Z default-literal-none/moved: checked
+2026-10-17T17:31:09.6659076Z default-literal-boolean/original: checked
+2026-10-17T17:31:09.9375859Z default-literal-boolean/moved: checked
+2026-10-17T17:31:10.2055102Z default-literal-signed/original: checked
+2026-10-17T17:31:10.4752464Z default-literal-signed/moved: checked
+2026-10-17T17:31:10.7436299Z default-literal-float/original: checked
+2026-10-17T17:31:11.0137055Z default-literal-float/moved: checked
+2026-10-17T17:31:11.2886451Z default-literal-string/original: checked
+2026-10-17T17:31:11.5526813Z default-literal-string/moved: checked
+2026-10-17T17:31:11.8210757Z default-literal-bytes/original: checked
+2026-10-17T17:31:12.0926405Z default-literal-bytes/moved: checked
+2026-10-17T17:31:12.3626866Z default-literal-parentheses/original: checked
+2026-10-17T17:31:12.6322981Z default-literal-parentheses/moved: checked
+2026-10-17T17:31:12.9038061Z default-keyword-override/original: checked
+2026-10-17T17:31:13.1791004Z default-keyword-override/moved: checked
+2026-10-17T17:31:13.4527275Z binding-independent-callers/original: checked
+2026-10-17T17:31:13.7247957Z binding-independent-callers/moved: checked
+2026-10-17T17:31:13.9970721Z binding-keyword-raise-order/original: checked
+2026-10-17T17:31:14.2705977Z binding-keyword-raise-order/moved: checked
+2026-10-17T17:31:14.5361595Z binding-normalized-keyword/original: checked
+2026-10-17T17:31:14.8020231Z binding-normalized-keyword/moved: checked
+2026-10-17T17:31:15.0656025Z binding-varargs/original: checked
+2026-10-17T17:31:15.3308774Z binding-varargs/moved: checked
+2026-10-17T17:31:15.5940191Z binding-kwargs/original: checked
+2026-10-17T17:31:15.8585283Z binding-kwargs/moved: checked
+2026-10-17T17:31:16.1211132Z binding-unpack/original: checked
+2026-10-17T17:31:16.3861521Z binding-unpack/moved: checked
+2026-10-17T17:31:16.6485247Z binding-unpack-keywords/original: checked
+2026-10-17T17:31:16.9118620Z binding-unpack-keywords/moved: checked
+2026-10-17T17:31:17.1764201Z binding-annotation/original: checked
+2026-10-17T17:31:17.4415777Z binding-annotation/moved: checked
+2026-10-17T17:31:17.7066455Z default-evaluated-override/original: checked
+2026-10-17T17:31:17.9725628Z default-evaluated-override/moved: checked
+2026-10-17T17:31:18.2398578Z default-definition-failure/original: checked
+2026-10-17T17:31:18.5086304Z default-definition-failure/moved: checked
+2026-10-17T17:31:18.7898427Z recursive-return/original: checked
+2026-10-17T17:31:19.0680271Z recursive-return/moved: checked
+2026-10-17T17:31:19.3499381Z recursive-constant/original: checked
+2026-10-17T17:31:19.6240470Z recursive-constant/moved: checked
+2026-10-17T17:31:19.9119859Z recursive-keyword/original: checked
+2026-10-17T17:31:20.1923248Z recursive-keyword/moved: checked
+2026-10-17T17:31:20.4670473Z recursive-independent/original: checked
+2026-10-17T17:31:20.7436801Z recursive-independent/moved: checked
+2026-10-17T17:31:21.0110694Z recursive-no-return/original: checked
+2026-10-17T17:31:21.2787680Z recursive-no-return/moved: checked
+2026-10-17T17:31:21.5539367Z recursive-raise/original: checked
+2026-10-17T17:31:21.8323280Z recursive-raise/moved: checked
+2026-10-17T17:31:22.1120992Z mutual-return/original: checked
+2026-10-17T17:31:22.3953707Z mutual-return/moved: checked
+2026-10-17T17:31:22.6653561Z mutual-no-return/original: checked
+2026-10-17T17:31:22.9375993Z mutual-no-return/moved: checked
+2026-10-17T17:31:22.9891559Z recursive-budget/original: checked
+2026-10-17T17:31:23.0411663Z recursive-budget/moved: checked
+2026-10-17T17:31:23.1433380Z import-absolute-selected/original: checked
+2026-10-17T17:31:23.4617932Z import-absolute-selected/moved: checked
+2026-10-17T17:31:23.7726379Z import-absolute-discarded/original: checked
+2026-10-17T17:31:24.0843337Z import-absolute-discarded/moved: checked
+2026-10-17T17:31:24.4009786Z import-alias-selected/original: checked
+2026-10-17T17:31:24.7166111Z import-alias-selected/moved: checked
+2026-10-17T17:31:24.8126541Z import-alias-discarded/original: checked
+2026-10-17T17:31:24.9081503Z import-alias-discarded/moved: checked
+2026-10-17T17:31:25.2221023Z import-from-alias-selected/original: checked
+2026-10-17T17:31:25.5379276Z import-from-alias-selected/moved: checked
+2026-10-17T17:31:25.6368370Z import-from-alias-discarded/original: checked
+2026-10-17T17:31:25.7361778Z import-from-alias-discarded/moved: checked
+2026-10-17T17:31:26.0514200Z import-dotted-selected/original: checked
+2026-10-17T17:31:26.3748043Z import-dotted-selected/moved: checked
+2026-10-17T17:31:26.4725549Z import-dotted-discarded/original: checked
+2026-10-17T17:31:26.5728069Z import-dotted-discarded/moved: checked
+2026-10-17T17:31:26.8897534Z import-continued-selected/original: checked
+2026-10-17T17:31:27.2053799Z import-continued-selected/moved: checked
+2026-10-17T17:31:27.3038925Z import-continued-discarded/original: checked
+2026-10-17T17:31:27.4026426Z import-continued-discarded/moved: checked
+2026-10-17T17:31:27.7218528Z import-relative-selected/original: checked
+2026-10-17T17:31:28.0419980Z import-relative-selected/moved: checked
+2026-10-17T17:31:28.1410869Z import-relative-discarded/original: checked
+2026-10-17T17:31:28.2406548Z import-relative-discarded/moved: checked
+2026-10-17T17:31:28.5580927Z import-relative-continued-selected/original: checked
+2026-10-17T17:31:28.8768303Z import-relative-continued-selected/moved: checked
+2026-10-17T17:31:28.9785815Z import-relative-continued-discarded/original: checked
+2026-10-17T17:31:29.0833299Z import-relative-continued-discarded/moved: checked
+2026-10-17T17:31:29.4010352Z import-namespace-selected/original: checked
+2026-10-17T17:31:29.7182893Z import-namespace-selected/moved: checked
+2026-10-17T17:31:29.8179540Z import-namespace-discarded/original: checked
+2026-10-17T17:31:29.9193289Z import-namespace-discarded/moved: checked
+2026-10-17T17:31:30.2374773Z import-mixed-tree-selected/original: checked
+2026-10-17T17:31:30.5551650Z import-mixed-tree-selected/moved: checked
+2026-10-17T17:31:30.6552362Z import-mixed-tree-discarded/original: checked
+2026-10-17T17:31:30.7552302Z import-mixed-tree-discarded/moved: checked
+2026-10-17T17:31:31.0808450Z import-reexport-selected/original: checked
+2026-10-17T17:31:31.4074321Z import-reexport-selected/moved: checked
+2026-10-17T17:31:31.5053842Z import-reexport-discarded/original: checked
+2026-10-17T17:31:31.6055036Z import-reexport-discarded/moved: checked
+2026-10-17T17:31:31.9212599Z import-child-fallback-selected/original: checked
+2026-10-17T17:31:32.2384097Z import-child-fallback-selected/moved: checked
+2026-10-17T17:31:32.3374589Z import-child-fallback-discarded/original: checked
+2026-10-17T17:31:32.4365891Z import-child-fallback-discarded/moved: checked
+2026-10-17T17:31:32.7522785Z import-module-alias-chain-selected/original: checked
+2026-10-17T17:31:33.0680317Z import-module-alias-chain-selected/moved: checked
+2026-10-17T17:31:33.1659398Z import-module-alias-chain-discarded/original: checked
+2026-10-17T17:31:33.2641467Z import-module-alias-chain-discarded/moved: checked
+2026-10-17T17:31:33.5808334Z import-keyword-default/original: checked
+2026-10-17T17:31:33.8942347Z import-keyword-default/moved: checked
+2026-10-17T17:31:34.2159874Z import-keyword-selected/original: checked
+2026-10-17T17:31:34.5417756Z import-keyword-selected/moved: checked
+2026-10-17T17:31:34.8628084Z import-helper-source/original: checked
+2026-10-17T17:31:35.1763028Z import-helper-source/moved: checked
+2026-10-17T17:31:35.4936080Z import-helper-sink/original: checked
+2026-10-17T17:31:35.8072539Z import-helper-sink/moved: checked
+2026-10-17T17:31:36.1253280Z import-same-named-helpers/original: checked
+2026-10-17T17:31:36.4450784Z import-same-named-helpers/moved: checked
+2026-10-17T17:31:36.7589012Z import-explicit-raise/original: checked
+2026-10-17T17:31:37.0748752Z import-explicit-raise/moved: checked
+2026-10-17T17:31:37.3889909Z import-effect/original: checked
+2026-10-17T17:31:37.7643191Z import-effect/moved: checked
+2026-10-17T17:31:38.0806325Z import-cycle/original: checked
+2026-10-17T17:31:38.3966578Z import-cycle/moved: checked
+2026-10-17T17:31:38.4914278Z import-missing/original: checked
+2026-10-17T17:31:38.5888713Z import-missing/moved: checked
+2026-10-17T17:31:38.9191192Z import-distinct-sink-files/original: checked
+2026-10-17T17:31:39.2480508Z import-distinct-sink-files/moved: checked
+2026-10-17T17:31:39.5647013Z star-list-selected/original: checked
+2026-10-17T17:31:39.8806767Z star-list-selected/moved: checked
+2026-10-17T17:31:40.1992269Z star-tuple-selected/original: checked
+2026-10-17T17:31:40.5134260Z star-tuple-selected/moved: checked
+2026-10-17T17:31:40.8262427Z star-repeated-selected/original: checked
+2026-10-17T17:31:41.1416536Z star-repeated-selected/moved: checked
+2026-10-17T17:31:41.4529278Z star-discarded/original: checked
+2026-10-17T17:31:41.7649003Z star-discarded/moved: checked
+2026-10-17T17:31:42.0758079Z star-empty/original: checked
+2026-10-17T17:31:42.3864692Z star-empty/moved: checked
+2026-10-17T17:31:42.7030128Z star-private/original: checked
+2026-10-17T17:31:43.0193240Z star-private/moved: checked
+2026-10-17T17:31:43.3394741Z star-child/original: checked
+2026-10-17T17:31:43.6589400Z star-child/moved: checked
+2026-10-17T17:31:43.7556596Z star-unlisted/original: checked
+2026-10-17T17:31:43.8523290Z star-unlisted/moved: checked
+2026-10-17T17:31:44.1627215Z star-computed/original: checked
+2026-10-17T17:31:44.4730905Z star-computed/moved: checked
+2026-10-17T17:31:44.7823586Z star-mutated/original: checked
+2026-10-17T17:31:45.0904850Z star-mutated/moved: checked
+2026-10-17T17:31:45.3997433Z star-missing/original: checked
+2026-10-17T17:31:45.7095312Z star-missing/moved: checked
+2026-10-17T17:31:46.0193555Z star-rebound/original: checked
+2026-10-17T17:31:46.3326026Z star-rebound/moved: checked
+2026-10-17T17:31:46.6024819Z discovery-depth-2-selected/original: checked
+2026-10-17T17:31:46.8739482Z discovery-depth-2-selected/moved: checked
+2026-10-17T17:31:47.1449101Z discovery-depth-2-discarded/original: checked
+2026-10-17T17:31:47.4173409Z discovery-depth-2-discarded/moved: checked
+2026-10-17T17:31:47.4872252Z discovery-depth-3-selected/original: checked
+2026-10-17T17:31:47.5553738Z discovery-depth-3-selected/moved: checked
+2026-10-17T17:31:47.6160389Z discovery-depth-3-discarded/original: checked
+2026-10-17T17:31:47.6782276Z discovery-depth-3-discarded/moved: checked
+2026-10-17T17:31:47.9184866Z refuse-entry-syntax/original: checked
+2026-10-17T17:31:48.1592596Z refuse-entry-syntax/moved: checked
+2026-10-17T17:31:48.4003976Z refuse-local-rule/original: checked
+2026-10-17T17:31:48.6414277Z refuse-local-rule/moved: checked
+2026-10-17T17:31:48.9359262Z refuse-import-rule/original: checked
+2026-10-17T17:31:49.2197414Z refuse-import-rule/moved: checked
+2026-10-17T17:31:49.2888786Z refuse-import-entry/original: checked
+2026-10-17T17:31:49.5702871Z refuse-import-entry/moved: checked
+2026-10-17T17:31:49.5981241Z refuse-step-budget/original: checked
+2026-10-17T17:31:49.6262535Z refuse-step-budget/moved: checked
+2026-10-17T17:31:49.6549952Z refuse-depth-budget/original: checked
+2026-10-17T17:31:49.6834656Z refuse-depth-budget/moved: checked
+2026-10-17T17:31:49.7109014Z refuse-byte-budget/original: checked
+2026-10-17T17:31:49.7394840Z refuse-byte-budget/moved: checked
+2026-10-17T17:31:49.8365289Z import-ambiguous-package-selected/original: checked
+2026-10-17T17:31:49.9341706Z import-ambiguous-package-selected/moved: checked
+2026-10-17T17:31:50.0322286Z import-ambiguous-stub-selected/original: checked
+2026-10-17T17:31:50.1310242Z import-ambiguous-stub-selected/moved: checked
+2026-10-17T17:31:50.4517862Z import-parameter-shadow-selected/original: checked
+2026-10-17T17:31:50.7716758Z import-parameter-shadow-selected/moved: checked
+2026-10-17T17:31:51.0858396Z import-assignment-shadow-selected/original: checked
+2026-10-17T17:31:51.4002736Z import-assignment-shadow-selected/moved: checked
+2026-10-17T17:31:51.7097652Z import-global-shadow-selected/original: checked
+2026-10-17T17:31:52.0203633Z import-global-shadow-selected/moved: checked
+2026-10-17T17:31:52.3317578Z import-binding-conflict-selected/original: checked
+2026-10-17T17:31:52.6432478Z import-binding-conflict-selected/moved: checked
+2026-10-17T17:31:52.9797768Z import-module-limit-15-selected/original: checked
+2026-10-17T17:31:53.3160171Z import-module-limit-15-selected/moved: checked
+2026-10-17T17:31:53.6546275Z import-module-limit-17-selected/original: checked
+2026-10-17T17:31:53.9918364Z import-module-limit-17-selected/moved: checked
+2026-10-17T17:31:54.3308044Z import-byte-limit-selected/original: checked
+2026-10-17T17:31:54.6782446Z import-byte-limit-selected/moved: checked
+2026-10-17T17:31:55.0714137Z import-lookup-limit-selected/original: checked
+2026-10-17T17:31:55.4635017Z import-lookup-limit-selected/moved: checked
+2026-10-17T17:31:55.8866463Z import-binding-limit-selected/original: checked
+2026-10-17T17:31:56.3172142Z import-binding-limit-selected/moved: checked
+2026-10-17T17:31:56.6423864Z import-component-limit-selected/original: checked
+2026-10-17T17:31:56.9681684Z import-component-limit-selected/moved: checked
+2026-10-17T17:31:57.5676875Z summary-function-limit-selected/original: checked
+2026-10-17T17:31:58.1706418Z summary-function-limit-selected/moved: checked
+2026-10-17T17:31:58.4792301Z import-ambiguous-package-discarded/original: checked
+2026-10-17T17:31:58.7879025Z import-ambiguous-package-discarded/moved: checked
+2026-10-17T17:31:58.8836811Z import-ambiguous-stub-discarded/original: checked
+2026-10-17T17:31:58.9798539Z import-ambiguous-stub-discarded/moved: checked
+2026-10-17T17:31:59.2937762Z import-parameter-shadow-discarded/original: checked
+2026-10-17T17:31:59.6067332Z import-parameter-shadow-discarded/moved: checked
+2026-10-17T17:31:59.9144848Z import-assignment-shadow-discarded/original: checked
+2026-10-17T17:32:00.2235406Z import-assignment-shadow-discarded/moved: checked
+2026-10-17T17:32:00.5305684Z import-global-shadow-discarded/original: checked
+2026-10-17T17:32:00.8379140Z import-global-shadow-discarded/moved: checked
+2026-10-17T17:32:01.1449602Z import-binding-conflict-discarded/original: checked
+2026-10-17T17:32:01.4536494Z import-binding-conflict-discarded/moved: checked
+2026-10-17T17:32:01.7863725Z import-module-limit-15-discarded/original: checked
+2026-10-17T17:32:02.1206386Z import-module-limit-15-discarded/moved: checked
+2026-10-17T17:32:02.4572458Z import-module-limit-17-discarded/original: checked
+2026-10-17T17:32:02.7898068Z import-module-limit-17-discarded/moved: checked
+2026-10-17T17:32:02.9125294Z import-byte-limit-discarded/original: checked
+2026-10-17T17:32:03.0407331Z import-byte-limit-discarded/moved: checked
+2026-10-17T17:32:03.4290146Z import-lookup-limit-discarded/original: checked
+2026-10-17T17:32:03.8193799Z import-lookup-limit-discarded/moved: checked
+2026-10-17T17:32:04.1518618Z import-binding-limit-discarded/original: checked
+2026-10-17T17:32:04.4847638Z import-binding-limit-discarded/moved: checked
+2026-10-17T17:32:04.8102133Z import-component-limit-discarded/original: checked
+2026-10-17T17:32:05.1378464Z import-component-limit-discarded/moved: checked
+2026-10-17T17:32:05.7338649Z summary-function-limit-discarded/original: checked
+2026-10-17T17:32:06.3406579Z summary-function-limit-discarded/moved: checked
+2026-10-17T17:32:06.6604320Z value-import-scalar/original: checked
+2026-10-17T17:32:06.9795549Z value-import-scalar/moved: checked
+2026-10-17T17:32:07.2922908Z value-import-blocked/original: checked
+2026-10-17T17:32:07.6074237Z value-import-blocked/moved: checked
+2026-10-17T17:32:07.9326664Z value-import-class/original: checked
+2026-10-17T17:32:08.2530872Z value-import-class/moved: checked
+2026-10-17T17:32:08.5726528Z value-import-instance/original: checked
+2026-10-17T17:32:08.8934809Z value-import-instance/moved: checked
+2026-10-17T17:32:09.3055690Z value-import-reexport/original: checked
+2026-10-17T17:32:09.7164508Z value-import-reexport/moved: checked
+2026-10-17T17:32:10.0342261Z value-import-star/original: checked
+2026-10-17T17:32:10.3509462Z value-import-star/moved: checked
+2026-10-17T17:32:10.6610498Z value-import-read/original: checked
+2026-10-17T17:32:10.9714671Z value-import-read/moved: checked
+2026-10-17T17:32:11.2831734Z value-import-call/original: checked
+2026-10-17T17:32:11.5980360Z value-import-call/moved: checked
+2026-10-17T17:32:11.9109293Z value-import-constructor-call/original: checked
+2026-10-17T17:32:12.2390239Z value-import-constructor-call/moved: checked
+2026-10-17T17:32:12.5528470Z value-import-named-default/original: checked
+2026-10-17T17:32:12.8703306Z value-import-named-default/moved: checked
+2026-10-17T17:32:13.1817633Z value-import-computed/original: checked
+2026-10-17T17:32:13.5001467Z value-import-computed/moved: checked
+2026-10-17T17:32:13.8161739Z value-import-package-precedence/original: checked
+2026-10-17T17:32:14.1387226Z value-import-package-precedence/moved: checked
+2026-10-17T17:32:14.4146124Z function-doc-forward/original: checked
+2026-10-17T17:32:14.6910992Z function-doc-forward/moved: checked
+2026-10-17T17:32:14.9608100Z function-doc-blocked/original: checked
+2026-10-17T17:32:15.2318671Z function-doc-blocked/moved: checked
+2026-10-17T17:32:15.5453362Z function-doc-import/original: checked
+2026-10-17T17:32:15.8623749Z function-doc-import/moved: checked
+2026-10-17T17:32:16.1306598Z function-doc-uncalled-body/original: checked
+2026-10-17T17:32:16.3980217Z function-doc-uncalled-body/moved: checked
+2026-10-17T17:32:16.6652382Z function-doc-before-definition/original: checked
+2026-10-17T17:32:16.9321665Z function-doc-before-definition/moved: checked
+2026-10-17T17:32:17.1975187Z function-doc-computed/original: checked
+2026-10-17T17:32:17.4662513Z function-doc-computed/moved: checked
+2026-10-17T17:32:17.7341657Z function-doc-alias/original: checked
+2026-10-17T17:32:18.0020033Z function-doc-alias/moved: checked
+2026-10-17T17:32:18.3111443Z function-doc-imported-target/original: checked
+2026-10-17T17:32:18.6190285Z function-doc-imported-target/moved: checked
+2026-10-17T17:32:18.8841230Z function-doc-read/original: checked
+2026-10-17T17:32:19.1499834Z function-doc-read/moved: checked
+2026-10-17T17:32:19.4152441Z function-doc-descriptor/original: checked
+2026-10-17T17:32:19.6838177Z function-doc-descriptor/moved: checked
+2026-10-17T17:32:19.9542380Z function-defaults-write/original: checked
+2026-10-17T17:32:20.2268220Z function-defaults-write/moved: checked
+2026-10-17T17:32:20.5225132Z builtin-references-unused/original: checked
+2026-10-17T17:32:20.7899024Z builtin-references-unused/moved: checked
+2026-10-17T17:32:21.1044521Z builtin-reference-import-forward/original: checked
+2026-10-17T17:32:21.4203180Z builtin-reference-import-forward/moved: checked
+2026-10-17T17:32:21.7321559Z builtin-reference-import-blocked/original: checked
+2026-10-17T17:32:22.0452859Z builtin-reference-import-blocked/moved: checked
+2026-10-17T17:32:22.3123311Z builtin-reference-value-shadow/original: checked
+2026-10-17T17:32:22.5796725Z builtin-reference-value-shadow/moved: checked
+2026-10-17T17:32:22.8481599Z builtin-reference-function-shadow/original: checked
+2026-10-17T17:32:23.1175492Z builtin-reference-function-shadow/moved: checked
+2026-10-17T17:32:23.3827953Z builtin-reference-repeated/original: checked
+2026-10-17T17:32:23.6495892Z builtin-reference-repeated/moved: checked
+2026-10-17T17:32:23.9153078Z builtin-reference-evaluated/original: checked
+2026-10-17T17:32:24.1818849Z builtin-reference-evaluated/moved: checked
+2026-10-17T17:32:24.4498290Z builtin-reference-parenthesized/original: checked
+2026-10-17T17:32:24.7164593Z builtin-reference-parenthesized/moved: checked
+2026-10-17T17:32:24.9804980Z builtin-reference-site-name/original: checked
+2026-10-17T17:32:25.2469640Z builtin-reference-site-name/moved: checked
+2026-10-17T17:32:25.5123215Z builtin-reference-special-target/original: checked
+2026-10-17T17:32:25.7796561Z builtin-reference-special-target/moved: checked
+2026-10-17T17:32:26.0467687Z builtin-reference-custom-namespace/original: checked
+2026-10-17T17:32:26.3148194Z builtin-reference-custom-namespace/moved: checked
+2026-10-17T17:32:26.5870685Z function-alias-selected/original: checked
+2026-10-17T17:32:26.8642901Z function-alias-selected/moved: checked
+2026-10-17T17:32:27.1331361Z function-alias-discarded/original: checked
+2026-10-17T17:32:27.4038565Z function-alias-discarded/moved: checked
+2026-10-17T17:32:27.6777880Z function-alias-keyword-discarded/original: checked
+2026-10-17T17:32:27.9496794Z function-alias-keyword-discarded/moved: checked
+2026-10-17T17:32:28.2187454Z function-alias-default/original: checked
+2026-10-17T17:32:28.4891372Z function-alias-default/moved: checked
+2026-10-17T17:32:28.8055210Z function-alias-import/original: checked
+2026-10-17T17:32:29.1268072Z function-alias-import/moved: checked
+2026-10-17T17:32:29.4414325Z function-alias-module/original: checked
+2026-10-17T17:32:29.7571134Z function-alias-module/moved: checked
+2026-10-17T17:32:30.0756607Z function-alias-reexport/original: checked
+2026-10-17T17:32:30.4036254Z function-alias-reexport/moved: checked
+2026-10-17T17:32:30.6696311Z function-alias-before-definition/original: checked
+2026-10-17T17:32:30.9373379Z function-alias-before-definition/moved: checked
+2026-10-17T17:32:31.2036127Z function-alias-evaluated/original: checked
+2026-10-17T17:32:31.4708240Z function-alias-evaluated/moved: checked
+2026-10-17T17:32:31.7395591Z function-alias-rebound-source/original: checked
+2026-10-17T17:32:32.0069805Z function-alias-rebound-source/moved: checked
+2026-10-17T17:32:32.2745466Z function-alias-local-shadow/original: checked
+2026-10-17T17:32:32.5426433Z function-alias-local-shadow/moved: checked
+2026-10-17T17:32:32.8121062Z function-alias-hop-budget/original: checked
+2026-10-17T17:32:33.0829062Z function-alias-hop-budget/moved: checked
+2026-10-17T17:32:33.3913119Z function-alias-before-import/original: checked
+2026-10-17T17:32:33.7020544Z function-alias-before-import/moved: checked
+2026-10-17T17:32:33.9683613Z function-alias-class-attribute/original: checked
+2026-10-17T17:32:34.2364547Z function-alias-class-attribute/moved: checked
+2026-10-17T17:32:34.6378241Z shared-star-wide-forward/original: checked
+2026-10-17T17:32:35.0411196Z shared-star-wide-forward/moved: checked
+2026-10-17T17:32:35.4388536Z shared-star-wide-discard/original: checked
+2026-10-17T17:32:35.8386430Z shared-star-wide-discard/moved: checked
+2026-10-17T17:32:36.2715488Z shared-star-reexport/original: checked
+2026-10-17T17:32:36.7136418Z shared-star-reexport/moved: checked
+2026-10-17T17:32:37.1179487Z shared-star-marker/original: checked
+2026-10-17T17:32:37.5248834Z shared-star-marker/moved: checked
+2026-10-17T17:32:37.9187970Z shared-star-startup/original: checked
+2026-10-17T17:32:38.3147753Z shared-star-startup/moved: checked
+2026-10-17T17:32:38.6325852Z shared-star-child/original: checked
+2026-10-17T17:32:38.9519515Z shared-star-child/moved: checked
+2026-10-17T17:32:39.3211820Z shared-star-over-export-limit/original: checked
+2026-10-17T17:32:39.6917793Z shared-star-over-export-limit/moved: checked
+2026-10-17T17:32:40.0923242Z shared-star-value-limit/original: checked
+2026-10-17T17:32:40.4989909Z shared-star-value-limit/moved: checked
+2026-10-17T17:32:40.9837938Z shared-named-wide-forward/original: checked
+2026-10-17T17:32:41.3746829Z shared-named-wide-forward/moved: checked
+2026-10-17T17:32:41.7601364Z shared-named-wide-discard/original: checked
+2026-10-17T17:32:42.1482115Z shared-named-wide-discard/moved: checked
+2026-10-17T17:32:42.5832715Z shared-named-reexport/original: checked
+2026-10-17T17:32:43.0165925Z shared-named-reexport/moved: checked
+2026-10-17T17:32:43.4211073Z shared-named-marker/original: checked
+2026-10-17T17:32:43.8203684Z shared-named-marker/moved: checked
+2026-10-17T17:32:44.2012283Z shared-named-startup/original: checked
+2026-10-17T17:32:44.5851253Z shared-named-startup/moved: checked
+2026-10-17T17:32:44.9020633Z shared-named-child/original: checked
+2026-10-17T17:32:45.2204559Z shared-named-child/moved: checked
+2026-10-17T17:32:45.5772683Z shared-named-over-binding-limit/original: checked
+2026-10-17T17:32:45.9273264Z shared-named-over-binding-limit/moved: checked
+2026-10-17T17:32:46.2396368Z shared-named-value-limit/original: checked
+2026-10-17T17:32:46.5502264Z shared-named-value-limit/moved: checked
+2026-10-17T17:32:46.8166497Z named-default-prior-scalar/original: checked
+2026-10-17T17:32:47.0839571Z named-default-prior-scalar/moved: checked
+2026-10-17T17:32:47.3490000Z function-default-local/original: checked
+2026-10-17T17:32:47.6165131Z function-default-local/moved: checked
+2026-10-17T17:32:47.8835011Z function-default-local-alias/original: checked
+2026-10-17T17:32:48.1509237Z function-default-local-alias/moved: checked
+2026-10-17T17:32:48.4620535Z function-default-imported/original: checked
+2026-10-17T17:32:48.7716938Z function-default-imported/moved: checked
+2026-10-17T17:32:49.0820134Z function-default-reexport/original: checked
+2026-10-17T17:32:49.3973997Z function-default-reexport/moved: checked
+2026-10-17T17:32:49.6645135Z function-default-builtin/original: checked
+2026-10-17T17:32:49.9334867Z function-default-builtin/moved: checked
+2026-10-17T17:32:50.2015007Z function-default-builtin-alias/original: checked
+2026-10-17T17:32:50.4703710Z function-default-builtin-alias/moved: checked
+2026-10-17T17:32:50.7363879Z function-default-dangerous-builtin-reference/original: checked
+2026-10-17T17:32:51.0057404Z function-default-dangerous-builtin-reference/moved: checked
+2026-10-17T17:32:51.2717577Z function-default-forward/original: checked
+2026-10-17T17:32:51.5391185Z function-default-forward/moved: checked
+2026-10-17T17:32:51.8512206Z function-default-late-import/original: checked
+2026-10-17T17:32:52.1625882Z function-default-late-import/moved: checked
+2026-10-17T17:32:52.4285149Z function-default-evaluated/original: checked
+2026-10-17T17:32:52.6956493Z function-default-evaluated/moved: checked
+2026-10-17T17:32:52.9609697Z function-default-builtin-evaluated/original: checked
+2026-10-17T17:32:53.2285231Z function-default-builtin-evaluated/moved: checked
+2026-10-17T17:32:53.4938910Z function-default-called/original: checked
+2026-10-17T17:32:53.7603269Z function-default-called/moved: checked
+2026-10-17T17:32:54.0266068Z named-default-prior-collection/original: checked
+2026-10-17T17:32:54.2944390Z named-default-prior-collection/moved: checked
+2026-10-17T17:32:54.5620496Z named-default-prior-class/original: checked
+2026-10-17T17:32:54.8289990Z named-default-prior-class/moved: checked
+2026-10-17T17:32:55.0953599Z named-default-prior-instance/original: checked
+2026-10-17T17:32:55.3625578Z named-default-prior-instance/moved: checked
+2026-10-17T17:32:55.6767356Z named-default-import-alias/original: checked
+2026-10-17T17:32:55.9917486Z named-default-import-alias/moved: checked
+2026-10-17T17:32:56.3089869Z named-default-import-reexport/original: checked
+2026-10-17T17:32:56.6325519Z named-default-import-reexport/moved: checked
+2026-10-17T17:32:56.8982450Z named-default-forward/original: checked
+2026-10-17T17:32:57.1674996Z named-default-forward/moved: checked
+2026-10-17T17:32:57.4335513Z named-default-deleted/original: checked
+2026-10-17T17:32:57.7006103Z named-default-deleted/moved: checked
+2026-10-17T17:32:57.9673816Z named-default-rebound/original: checked
+2026-10-17T17:32:58.2350515Z named-default-rebound/moved: checked
+2026-10-17T17:32:58.5029445Z named-default-unknown-setup/original: checked
+2026-10-17T17:32:58.7700283Z named-default-unknown-setup/moved: checked
+2026-10-17T17:32:59.0365545Z named-default-construction/original: checked
+2026-10-17T17:32:59.3036798Z named-default-construction/moved: checked
+2026-10-17T17:32:59.5732865Z named-default-call/original: checked
+2026-10-17T17:32:59.8429555Z named-default-call/moved: checked
+2026-10-17T17:33:00.1177107Z scalar-default-override/original: checked
+2026-10-17T17:33:00.3917796Z scalar-default-override/moved: checked
+2026-10-17T17:33:00.6611544Z scalar-default-keyword-only/original: checked
+2026-10-17T17:33:00.9308085Z scalar-default-keyword-only/moved: checked
+2026-10-17T17:33:01.2009066Z scalar-default-parameter-shadow/original: checked
+2026-10-17T17:33:01.4732836Z scalar-default-parameter-shadow/moved: checked
+2026-10-17T17:33:01.7855861Z scalar-default-imported-helper/original: checked
+2026-10-17T17:33:02.1061093Z scalar-default-imported-helper/moved: checked
+2026-10-17T17:33:02.4266192Z scalar-default-reexported-helper/original: checked
+2026-10-17T17:33:02.7446421Z scalar-default-reexported-helper/moved: checked
+2026-10-17T17:33:03.0139643Z scalar-default-later-rebinding/original: checked
+2026-10-17T17:33:03.2838168Z scalar-default-later-rebinding/moved: checked
+2026-10-17T17:33:03.5529771Z scalar-default-later-deletion/original: checked
+2026-10-17T17:33:03.8232761Z scalar-default-later-deletion/moved: checked
+2026-10-17T17:33:04.1357124Z scalar-default-imported-value/original: checked
+2026-10-17T17:33:04.4487366Z scalar-default-imported-value/moved: checked
+2026-10-17T17:33:04.7266830Z type-registry-views/original: checked
+2026-10-17T17:33:05.0036292Z type-registry-views/moved: checked
+2026-10-17T17:33:05.2699643Z type-registry-direct/original: checked
+2026-10-17T17:33:05.5368886Z type-registry-direct/moved: checked
+2026-10-17T17:33:05.8642270Z type-registry-import/original: checked
+2026-10-17T17:33:06.1831993Z type-registry-import/moved: checked
+2026-10-17T17:33:06.5957199Z type-registry-reexport/original: checked
+2026-10-17T17:33:07.0048553Z type-registry-reexport/moved: checked
+2026-10-17T17:33:07.2740939Z type-registry-keeps-marker/original: checked
+2026-10-17T17:33:07.5429187Z type-registry-keeps-marker/moved: checked
+2026-10-17T17:33:07.8098883Z type-registry-shadowed-type/original: checked
+2026-10-17T17:33:08.0780285Z type-registry-shadowed-type/moved: checked
+2026-10-17T17:33:08.3463655Z type-registry-shadowed-value/original: checked
+2026-10-17T17:33:08.6155778Z type-registry-shadowed-value/moved: checked
+2026-10-17T17:33:08.8823893Z type-registry-user-hash/original: checked
+2026-10-17T17:33:09.1493432Z type-registry-user-hash/moved: checked
+2026-10-17T17:33:09.4178088Z type-registry-user-view/original: checked
+2026-10-17T17:33:09.6864972Z type-registry-user-view/moved: checked
+2026-10-17T17:33:09.9525068Z type-registry-mutation/original: checked
+2026-10-17T17:33:10.2220957Z type-registry-mutation/moved: checked
+2026-10-17T17:33:10.4895251Z type-registry-global-read/original: checked
+2026-10-17T17:33:10.7576793Z type-registry-global-read/moved: checked
+2026-10-17T17:33:11.0264135Z type-registry-called-default/original: checked
+2026-10-17T17:33:11.2912711Z type-registry-called-default/moved: checked
+2026-10-17T17:33:11.5635634Z type-registry-at-budget/original: checked
+2026-10-17T17:33:11.8368663Z type-registry-at-budget/moved: checked
+2026-10-17T17:33:12.1103263Z type-registry-over-budget/original: checked
+2026-10-17T17:33:12.3867884Z type-registry-over-budget/moved: checked
+2026-10-17T17:33:12.6999232Z startup-registry-lambda-discarded/original: checked
+2026-10-17T17:33:13.0148002Z startup-registry-lambda-discarded/moved: checked
+2026-10-17T17:33:13.3311736Z startup-registry-lambda-selected/original: checked
+2026-10-17T17:33:13.6466116Z startup-registry-lambda-selected/moved: checked
+2026-10-17T17:33:13.9582062Z startup-registry-literal-discarded/original: checked
+2026-10-17T17:33:14.2700664Z startup-registry-literal-discarded/moved: checked
+2026-10-17T17:33:14.5870303Z startup-registry-literal-selected/original: checked
+2026-10-17T17:33:14.9063682Z startup-registry-literal-selected/moved: checked
+2026-10-17T17:33:15.2216313Z startup-registry-constructor-discarded/original: checked
+2026-10-17T17:33:15.5356599Z startup-registry-constructor-discarded/moved: checked
+2026-10-17T17:33:15.8527431Z startup-registry-constructor-selected/original: checked
+2026-10-17T17:33:16.1687168Z startup-registry-constructor-selected/moved: checked
+2026-10-17T17:33:16.4823224Z startup-registry-combined-discarded/original: checked
+2026-10-17T17:33:16.7947285Z startup-registry-combined-discarded/moved: checked
+2026-10-17T17:33:17.1142283Z startup-registry-combined-selected/original: checked
+2026-10-17T17:33:17.4305073Z startup-registry-combined-selected/moved: checked
+2026-10-17T17:33:17.7412520Z startup-registry-item-discarded/original: checked
+2026-10-17T17:33:18.0521069Z startup-registry-item-discarded/moved: checked
+2026-10-17T17:33:18.3692740Z startup-registry-item-selected/original: checked
+2026-10-17T17:33:18.6946791Z startup-registry-item-selected/moved: checked
+2026-10-17T17:33:19.0318825Z startup-registry-update-discarded/original: checked
+2026-10-17T17:33:19.3462929Z startup-registry-update-discarded/moved: checked
+2026-10-17T17:33:19.6631186Z startup-registry-update-selected/original: checked
+2026-10-17T17:33:19.9861214Z startup-registry-update-selected/moved: checked
+2026-10-17T17:33:20.3001103Z startup-registry-replace-discarded/original: checked
+2026-10-17T17:33:20.6137981Z startup-registry-replace-discarded/moved: checked
+2026-10-17T17:33:20.9379248Z startup-registry-replace-selected/original: checked
+2026-10-17T17:33:21.2532753Z startup-registry-replace-selected/moved: checked
+2026-10-17T17:33:21.5698547Z startup-registry-evaluated-value/original: checked
+2026-10-17T17:33:21.8869387Z startup-registry-evaluated-value/moved: checked
+2026-10-17T17:33:22.1532728Z startup-registry-evaluated-default/original: checked
+2026-10-17T17:33:22.4203179Z startup-registry-evaluated-default/moved: checked
+2026-10-17T17:33:22.6872446Z startup-registry-mutation-call/original: checked
+2026-10-17T17:33:22.9566995Z startup-registry-mutation-call/moved: checked
+2026-10-17T17:33:23.2753070Z startup-registry-shared-write/original: checked
+2026-10-17T17:33:23.5968921Z startup-registry-shared-write/moved: checked
+2026-10-17T17:33:23.8647640Z startup-registry-global-read/original: checked
+2026-10-17T17:33:24.1332423Z startup-registry-global-read/moved: checked
+2026-10-17T17:33:24.3991020Z startup-registry-called-callback/original: checked
+2026-10-17T17:33:24.6652658Z startup-registry-called-callback/moved: checked
+2026-10-17T17:33:24.9769565Z import-order-module-handles-discarded/original: checked
+2026-10-17T17:33:25.2898012Z import-order-module-handles-discarded/moved: checked
+2026-10-17T17:33:25.6052841Z import-order-module-handles-selected/original: checked
+2026-10-17T17:33:25.9199700Z import-order-module-handles-selected/moved: checked
+2026-10-17T17:33:26.2331181Z import-order-earlier-function-discarded/original: checked
+2026-10-17T17:33:26.5482893Z import-order-earlier-function-discarded/moved: checked
+2026-10-17T17:33:26.8688028Z import-order-earlier-function-selected/original: checked
+2026-10-17T17:33:27.1862320Z import-order-earlier-function-selected/moved: checked
+2026-10-17T17:33:27.5003538Z import-order-earlier-exports-discarded/original: checked
+2026-10-17T17:33:27.8163820Z import-order-earlier-exports-discarded/moved: checked
+2026-10-17T17:33:28.1362988Z import-order-earlier-exports-selected/original: checked
+2026-10-17T17:33:28.4557934Z import-order-earlier-exports-selected/moved: checked
+2026-10-17T17:33:28.7710901Z import-order-earlier-default-discarded/original: checked
+2026-10-17T17:33:29.0899125Z import-order-earlier-default-discarded/moved: checked
+2026-10-17T17:33:29.4066476Z import-order-earlier-default-selected/original: checked
+2026-10-17T17:33:29.7267542Z import-order-earlier-default-selected/moved: checked
+2026-10-17T17:33:30.0398600Z import-order-self-member-discarded/original: checked
+2026-10-17T17:33:30.3513516Z import-order-self-member-discarded/moved: checked
+2026-10-17T17:33:30.6669380Z import-order-self-member-selected/original: checked
+2026-10-17T17:33:30.9824702Z import-order-self-member-selected/moved: checked
+2026-10-17T17:33:31.3918158Z import-order-parent-member-discarded/original: checked
+2026-10-17T17:33:31.8019873Z import-order-parent-member-discarded/moved: checked
+2026-10-17T17:33:32.1224219Z import-order-parent-member-selected/original: checked
+2026-10-17T17:33:32.4432407Z import-order-parent-member-selected/moved: checked
+2026-10-17T17:33:32.7506469Z import-order-late-function/original: checked
+2026-10-17T17:33:33.0585626Z import-order-late-function/moved: checked
+2026-10-17T17:33:33.3675468Z import-order-late-default/original: checked
+2026-10-17T17:33:33.6778002Z import-order-late-default/moved: checked
+2026-10-17T17:33:33.9870977Z import-order-late-export/original: checked
+2026-10-17T17:33:34.2955744Z import-order-late-export/moved: checked
+2026-10-17T17:33:34.6019389Z import-order-late-self-member/original: checked
+2026-10-17T17:33:34.9097230Z import-order-late-self-member/moved: checked
+2026-10-17T17:33:35.0088474Z import-order-package-entry-discarded/original: checked
+2026-10-17T17:33:35.1077953Z import-order-package-entry-discarded/moved: checked
+2026-10-17T17:33:35.2113225Z import-order-package-entry-selected/original: checked
+2026-10-17T17:33:35.3143940Z import-order-package-entry-selected/moved: checked
+2026-10-17T17:33:35.6292018Z import-order-unknown-effects/original: checked
+2026-10-17T17:33:35.9457983Z import-order-unknown-effects/moved: checked
+2026-10-17T17:33:36.2595069Z import-order-unresolved-module/original: checked
+2026-10-17T17:33:36.6021711Z import-order-unresolved-module/moved: checked
+2026-10-17T17:33:36.9169462Z import-order-unresolved-member/original: checked
+2026-10-17T17:33:37.2271064Z import-order-unresolved-member/moved: checked
+2026-10-17T17:33:37.5406580Z import-order-preload-marker/original: checked
+2026-10-17T17:33:37.8522396Z import-order-preload-marker/moved: checked
+2026-10-17T17:33:38.1613906Z import-order-preload-inner/original: checked
+2026-10-17T17:33:38.4722813Z import-order-preload-inner/moved: checked
+2026-10-17T17:33:38.8866966Z import-order-ordinary-sequence-False/original: checked
+2026-10-17T17:33:39.3000614Z import-order-ordinary-sequence-False/moved: checked
+2026-10-17T17:33:39.7620770Z import-order-written-exports-False/original: checked
+2026-10-17T17:33:40.2261763Z import-order-written-exports-False/moved: checked
+2026-10-17T17:33:40.3408751Z import-order-ordinary-sequence-True/original: checked
+2026-10-17T17:33:40.4487602Z import-order-ordinary-sequence-True/moved: checked
+2026-10-17T17:33:40.7697860Z import-order-written-exports-True/original: checked
+2026-10-17T17:33:41.0908839Z import-order-written-exports-True/moved: checked
+2026-10-17T17:33:41.4048381Z import-order-written-exports-za/original: checked
+2026-10-17T17:33:41.7226462Z import-order-written-exports-za/moved: checked
+2026-10-17T17:33:42.0434650Z import-order-written-exports-aza/original: checked
+2026-10-17T17:33:42.3637592Z import-order-written-exports-aza/moved: checked
+2026-10-17T17:33:42.6763299Z import-order-written-exports-zaz/original: checked
+2026-10-17T17:33:42.9876807Z import-order-written-exports-zaz/moved: checked
+2026-10-17T17:33:43.2639803Z parallel-builtin-defaults/original: checked
+2026-10-17T17:33:43.5385595Z parallel-builtin-defaults/moved: checked
+2026-10-17T17:33:43.8142835Z parallel-builtin-before-writes/original: checked
+2026-10-17T17:33:44.0893452Z parallel-builtin-before-writes/moved: checked
+2026-10-17T17:33:44.3617556Z parallel-functions-forward/original: checked
+2026-10-17T17:33:44.6382653Z parallel-functions-forward/moved: checked
+2026-10-17T17:33:44.9074860Z parallel-functions-stop/original: checked
+2026-10-17T17:33:45.1812550Z parallel-functions-stop/moved: checked
+2026-10-17T17:33:45.5122812Z parallel-functions-reexport/original: checked
+2026-10-17T17:33:45.9247407Z parallel-functions-reexport/moved: checked
+2026-10-17T17:33:46.0307498Z parallel-imported-functions/original: checked
+2026-10-17T17:33:46.3504877Z parallel-imported-functions/moved: checked
+2026-10-17T17:33:46.6717385Z parallel-literal-imports/original: checked
+2026-10-17T17:33:46.9977850Z parallel-literal-imports/moved: checked
+2026-10-17T17:33:47.2682622Z parallel-scalar-default/original: checked
+2026-10-17T17:33:47.5385394Z parallel-scalar-default/moved: checked
+2026-10-17T17:33:47.8048702Z parallel-snapshot-missing/original: checked
+2026-10-17T17:33:48.0727263Z parallel-snapshot-missing/moved: checked
+2026-10-17T17:33:48.3388125Z parallel-length-mismatch/original: checked
+2026-10-17T17:33:48.6056602Z parallel-length-mismatch/moved: checked
+2026-10-17T17:33:48.8725852Z parallel-evaluated-value/original: checked
+2026-10-17T17:33:49.1396425Z parallel-evaluated-value/moved: checked
+2026-10-17T17:33:49.4052451Z parallel-duplicate-target/original: checked
+2026-10-17T17:33:49.6727732Z parallel-duplicate-target/moved: checked
+2026-10-17T17:33:49.9387060Z parallel-nested-pattern/original: checked
+2026-10-17T17:33:50.2067321Z parallel-nested-pattern/moved: checked
+2026-10-17T17:33:50.4816165Z parallel-captured-function/original: checked
+2026-10-17T17:33:50.7564619Z parallel-captured-function/moved: checked
+2026-10-17T17:33:51.0202510Z parallel-global-value-read/original: checked
+2026-10-17T17:33:51.2850980Z parallel-global-value-read/moved: checked
+2026-10-17T17:33:51.6029224Z shared-default-explicit/original: checked
+2026-10-17T17:33:51.9230972Z shared-default-explicit/moved: checked
+2026-10-17T17:33:52.2436635Z shared-default-reexport/original: checked
+2026-10-17T17:33:52.5645078Z shared-default-reexport/moved: checked
+2026-10-17T17:33:52.8792613Z shared-default-star/original: checked
+2026-10-17T17:33:53.1953229Z shared-default-star/moved: checked
+2026-10-17T17:33:53.5116684Z shared-default-relative/original: checked
+2026-10-17T17:33:53.8283374Z shared-default-relative/moved: checked
+2026-10-17T17:33:54.1537435Z shared-default-namespace/original: checked
+2026-10-17T17:33:54.4726664Z shared-default-namespace/moved: checked
+2026-10-17T17:33:54.5717601Z shared-default-flat-export/original: checked
+2026-10-17T17:33:54.8841423Z shared-default-flat-export/moved: checked
+2026-10-17T17:33:55.2039608Z shared-default-keyword/original: checked
+2026-10-17T17:33:55.5217158Z shared-default-keyword/moved: checked
+2026-10-17T17:33:55.8393092Z shared-default-mutable/original: checked
+2026-10-17T17:33:56.1597498Z shared-default-mutable/moved: checked
+2026-10-17T17:33:56.4690265Z shared-default-attribute/original: checked
+2026-10-17T17:33:56.7796725Z shared-default-attribute/moved: checked
+2026-10-17T17:33:57.0980778Z shared-default-forward-reference/original: checked
+2026-10-17T17:33:57.4081323Z shared-default-forward-reference/moved: checked
+2026-10-17T17:33:57.7204452Z shared-default-global-read/original: checked
+2026-10-17T17:33:58.0351501Z shared-default-global-read/moved: checked
+2026-10-17T17:33:58.3592159Z shared-default-collection-sibling/original: checked
+2026-10-17T17:33:58.6749333Z shared-default-collection-sibling/moved: checked
+2026-10-17T17:33:58.9473458Z replacement-function/original: checked
+2026-10-17T17:33:59.2212373Z replacement-function/moved: checked
+2026-10-17T17:33:59.4899630Z replacement-function-clean/original: checked
+2026-10-17T17:33:59.7786469Z replacement-function-clean/moved: checked
+2026-10-17T17:34:00.0539962Z replacement-builtin/original: checked
+2026-10-17T17:34:00.3287397Z replacement-builtin/moved: checked
+2026-10-17T17:34:00.5930767Z replacement-omitted-function/original: checked
+2026-10-17T17:34:00.8585001Z replacement-omitted-function/moved: checked
+2026-10-17T17:34:01.1238304Z replacement-omitted-list/original: checked
+2026-10-17T17:34:01.3926997Z replacement-omitted-list/moved: checked
+2026-10-17T17:34:01.6646761Z replacement-mixed-scalar/original: checked
+2026-10-17T17:34:01.9376716Z replacement-mixed-scalar/moved: checked
+2026-10-17T17:34:02.2154382Z replacement-mixed-input/original: checked
+2026-10-17T17:34:02.4909401Z replacement-mixed-input/moved: checked
+2026-10-17T17:34:02.7574685Z replacement-missing-object/original: checked
+2026-10-17T17:34:03.0242147Z replacement-missing-object/moved: checked
+2026-10-17T17:34:03.3423304Z replacement-imported-function/original: checked
+2026-10-17T17:34:03.6605658Z replacement-imported-function/moved: checked
+2026-10-17T17:34:03.9339555Z replacement-call-isolation/original: checked
+2026-10-17T17:34:04.2070870Z replacement-call-isolation/moved: checked
+2026-10-17T17:34:04.4771282Z value-alias-default/original: checked
+2026-10-17T17:34:04.7478805Z value-alias-default/moved: checked
+2026-10-17T17:34:05.0223718Z value-alias-explicit/original: checked
+2026-10-17T17:34:05.2974602Z value-alias-explicit/moved: checked
+2026-10-17T17:34:05.5680504Z value-alias-parallel/original: checked
+2026-10-17T17:34:05.8397265Z value-alias-parallel/moved: checked
+2026-10-17T17:34:06.1133353Z value-alias-mixed-functions/original: checked
+2026-10-17T17:34:06.3886892Z value-alias-mixed-functions/moved: checked
+2026-10-17T17:34:06.7053212Z value-alias-import/original: checked
+2026-10-17T17:34:07.0271554Z value-alias-import/moved: checked
+2026-10-17T17:34:07.4417501Z value-alias-reexport/original: checked
+2026-10-17T17:34:07.9880067Z value-alias-reexport/moved: checked
+2026-10-17T17:34:08.2545550Z value-alias-class-default/original: checked
+2026-10-17T17:34:08.5218018Z value-alias-class-default/moved: checked
+2026-10-17T17:34:08.7887596Z value-alias-collection-unused/original: checked
+2026-10-17T17:34:09.0562487Z value-alias-collection-unused/moved: checked
+2026-10-17T17:34:09.3289342Z value-alias-collection-call/original: checked
+2026-10-17T17:34:09.6018993Z value-alias-collection-call/moved: checked
+2026-10-17T17:34:09.8676570Z value-alias-global-read/original: checked
+2026-10-17T17:34:10.1331625Z value-alias-global-read/moved: checked
+2026-10-17T17:34:10.3994327Z value-alias-late-source/original: checked
+2026-10-17T17:34:10.6660955Z value-alias-late-source/moved: checked
+2026-10-17T17:34:10.9496010Z value-alias-rebound-original/original: checked
+2026-10-17T17:34:11.2207351Z value-alias-rebound-original/moved: checked
+2026-10-17T17:34:17.2338273Z {"cases": 916, "contract_complete": true, "documented_difference_cases": 126, "examples": 458, "incomplete_cases": 344, "refused_cases": 18, "renamed_relocated_cases": 458, "rules": 14}
+2026-10-17T17:34:17.2592370Z ##[group]Run python3 -B tools/test-python-contract.py
+2026-10-17T17:34:17.2592852Z [36;1mpython3 -B tools/test-python-contract.py[0m
+2026-10-17T17:34:17.2656084Z shell: /usr/bin/bash -e {0}
+2026-10-17T17:34:17.2656353Z env:
+2026-10-17T17:34:17.2656547Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:34:17.2656786Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:34:17.2657022Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:34:17.2657273Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:34:17.2657520Z   RUSTFLAGS: -D warnings
+2026-10-17T17:34:17.2657840Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:34:17.2658335Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:34:17.2658820Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:34:17.2659283Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:34:17.2659701Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:34:17.2660172Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:34:17.2660542Z   CACHE_ON_FAILURE: false
+2026-10-17T17:34:17.2660888Z   FR_PYTHON_CONTRACT_REPORT: target/python-contract/result.json
+2026-10-17T17:34:17.2661263Z ##[endgroup]
+2026-10-17T17:36:09.9452412Z ........................................................
+2026-10-17T17:36:09.9453220Z ----------------------------------------------------------------------
+2026-10-17T17:36:09.9453739Z Ran 56 tests in 112.208s
+2026-10-17T17:36:09.9453948Z 
+2026-10-17T17:36:09.9454068Z OK
+2026-10-17T17:36:10.5325158Z ##[group]Run actions/upload-artifact@v7
+2026-10-17T17:36:10.5325459Z with:
+2026-10-17T17:36:10.5325655Z   name: python-contract
+2026-10-17T17:36:10.5325888Z   path: target/python-contract
+2026-10-17T17:36:10.5326145Z   if-no-files-found: error
+2026-10-17T17:36:10.5326370Z   retention-days: 7
+2026-10-17T17:36:10.5326572Z   compression-level: 6
+2026-10-17T17:36:10.5326777Z   overwrite: false
+2026-10-17T17:36:10.5326986Z   include-hidden-files: false
+2026-10-17T17:36:10.5327215Z   archive: true
+2026-10-17T17:36:10.5327401Z env:
+2026-10-17T17:36:10.5327758Z   CARGO_BUILD_JOBS: 2
+2026-10-17T17:36:10.5327962Z   CARGO_INCREMENTAL: 0
+2026-10-17T17:36:10.5328172Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-17T17:36:10.5328403Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-17T17:36:10.5328657Z   RUSTFLAGS: -D warnings
+2026-10-17T17:36:10.5328948Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:36:10.5329393Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+2026-10-17T17:36:10.5329857Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:36:10.5330235Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:36:10.5330613Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+2026-10-17T17:36:10.5330990Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+2026-10-17T17:36:10.5331318Z   CACHE_ON_FAILURE: false
+2026-10-17T17:36:10.5331536Z ##[endgroup]
+2026-10-17T17:36:10.6832515Z With the provided path, there will be 1 file uploaded
+2026-10-17T17:36:10.6833372Z Artifact name is valid!
+2026-10-17T17:36:10.6833802Z Root directory input is valid!
+2026-10-17T17:36:11.0464140Z Uploading artifact: python-contract.zip
+2026-10-17T17:36:11.0505260Z Beginning upload of artifact content to blob storage
+2026-10-17T17:36:12.6983779Z Uploaded bytes 5167237
+2026-10-17T17:36:12.7753139Z Finished uploading artifact content to blob storage!
+2026-10-17T17:36:12.7754592Z SHA256 digest of uploaded artifact is 450d4459d9737d5cbbb437b59c6a2f56b39c0148590c557597ccce34b2cb492f
+2026-10-17T17:36:12.7756417Z Finalizing artifact upload
+2026-10-17T17:36:13.1707236Z Artifact python-contract successfully finalized. Artifact ID 12109355771
+2026-10-17T17:36:13.1708635Z Artifact python-contract has been successfully uploaded! Final size is 5167237 bytes. Artifact ID is 12109355771
+2026-10-17T17:36:13.1713476Z Artifact download URL: https://github.com/e6qu/fun-refactor/actions/runs/39053350792/artifacts/12109355771
+2026-10-17T17:36:13.1939357Z Post job cleanup.
+2026-10-17T17:36:13.2791309Z [command]/usr/bin/git version
+2026-10-17T17:36:13.2839827Z git version 2.55.0
+2026-10-17T17:36:13.2887586Z Temporarily overriding HOME='/home/runner/work/_temp/b4db7af8-5a15-48e3-87cc-191e4c1d3f28' before making global git config changes
+2026-10-17T17:36:13.2888978Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T17:36:13.2894685Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+2026-10-17T17:36:13.2934502Z Removing SSH command configuration
+2026-10-17T17:36:13.2942375Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T17:36:13.2986954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T17:36:13.3328807Z Removing HTTP extra header
+2026-10-17T17:36:13.3336936Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T17:36:13.3385282Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T17:36:13.3718471Z Removing includeIf entries pointing to credentials config files
+2026-10-17T17:36:13.3728413Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T17:36:13.3771669Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+2026-10-17T17:36:13.3782989Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+2026-10-17T17:36:13.3783825Z includeif.gitdir:/github/workspace/.git.path
+2026-10-17T17:36:13.3784441Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-17T17:36:13.3786243Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+2026-10-17T17:36:13.3815085Z /home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:36:13.3827011Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-29f2c0a5\-5a20\-491e\-9884\-d45b055704ed\.config
+2026-10-17T17:36:13.3873404Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+2026-10-17T17:36:13.3907479Z /home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:36:13.3920267Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-29f2c0a5\-5a20\-491e\-9884\-d45b055704ed\.config
+2026-10-17T17:36:13.3979748Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-17T17:36:13.4011184Z /github/runner_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:36:13.4020807Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-29f2c0a5\-5a20\-491e\-9884\-d45b055704ed\.config
+2026-10-17T17:36:13.4066513Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-17T17:36:13.4097464Z /github/runner_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config
+2026-10-17T17:36:13.4110365Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-29f2c0a5\-5a20\-491e\-9884\-d45b055704ed\.config
+2026-10-17T17:36:13.4154958Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T17:36:13.4459722Z Removing credentials config '/home/runner/work/_temp/git-credentials-29f2c0a5-5a20-491e-9884-d45b055704ed.config'
+2026-10-17T17:36:13.4611679Z Cleaning up orphan processes

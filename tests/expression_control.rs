@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path, process::Command};
@@ -156,7 +159,7 @@ fn expression_control_acceptance_replays_checked_delivery() {
         .args([
             "tools/expression-control-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-expression-control/result.json",
+            &retained::report("expression-control"),
         ])
         .output()
         .unwrap();

@@ -20,13 +20,13 @@ flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
 # Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = 'dab03e908a7ce61fe97a0468145fa90d2d52d94e'
+flow.COHORT['analyzer_revision'] = '6800a76194e9d6334f44173a0f8c2470b81c67f7'
 flow.COHORT['analyzer_trees'] = {
-    'src': 'e277de7a6c292f5b9c7dd1f4b327781690b2c06b',
-    'grammars': 'ef41fbda287f4fff914de728c24c5fe961d8f02d',
-    'sdk/python/src': '014340955dc9c0747f6638a8f2e9c25874c49faf',
-    'Cargo.toml': 'd623eac8702e1e6a5da4f71eba299a9d450f4562',
-    'Cargo.lock': '902649fb373dac96c47196b5ebd014d0cbb7a11d',
+    'src': 'eac08f68165c0b94876258eeff74abe2bca937f9',
+    'grammars': '9b67428e98cd483ff64d1febc6a04287c862a64f',
+    'sdk/python/src': '470ba660ce083ea293cb4b3e9a477ddd1e48b8f3',
+    'Cargo.toml': '62cb5860f1e098282ad09289d6fc0dcbadf17496',
+    'Cargo.lock': '6436cfc2d72d2e67a7f5d6ea271a35a32194f65f',
 }
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Jaraco.functools remains unopened and does not participate in this regression collection.'
 for project in flow.COHORT['projects']:

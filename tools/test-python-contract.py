@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):

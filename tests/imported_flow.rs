@@ -1,3 +1,6 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 use serde_json::{json, Value};
 use std::{fs, path::Path, process::Command};
 
@@ -133,7 +136,7 @@ fn imported_flow_acceptance_matches_its_inputs_and_replays_delivery() {
         .args([
             "tools/imported-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-17-value-aliases-imported-flow/result.json",
+            &retained::report("imported-flow"),
         ])
         .output()
         .unwrap();

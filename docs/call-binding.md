@@ -83,7 +83,9 @@ The [named-default example](python-contract.md#read-a-known-name-in-an-unused-fu
 Calls can use [earlier scalar defaults](python-contract.md#call-a-helper-with-an-earlier-scalar-default), including [values imported from checked local files](python-contract.md#share-a-default-value-between-files).
 Giving a checked scalar another name, such as `LIMIT = BASE`, also preserves that default.
 The [alias lesson](python-contract.md#give-a-shared-setting-another-name) explains the files, call results and remaining limits.
-Collections, object markers and function objects still prevent calls, even with explicit replacement arguments.
+Checked collections, object markers and function objects require explicit replacement arguments.
+Omitting one reports `unsupported-default-value`; the analysis stays incomplete.
+The [complete lesson](replace-python-defaults.md) compares a supplied value with an omitted object default in Python and `fr`.
 Decorators, computed defaults, class-method defaults and annotations outside the documented future rule remain unchecked during initialization.
 
 To find where a shared default came from, the Python interface exposes `FlowDependencies.value_aliases` when imports are enabled.

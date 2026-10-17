@@ -84,11 +84,13 @@ def test_unused_value_aliases_keep_defaults_inert_without_calling_objects(tmp_pa
 @pytest.mark.parametrize('route', ['local', 'direct', 'shared'])
 @pytest.mark.parametrize('value', ['[]', '{}', '(0,)', 'lambda: 0'])
 @pytest.mark.parametrize('explicit', [False, True])
-def test_aliasing_a_collection_or_callable_does_not_make_its_default_scalar(tmp_path, route, value, explicit):
+def test_aliasing_an_object_preserves_the_need_for_an_explicit_replacement(tmp_path, route, value, explicit):
     client, rules = install(tmp_path, value, route, explicit=explicit)
     result = analyze(client, rules, 'entry', imports=route != 'local')
-    assert not result.report.at('/complete')
-    assert any('unsupported-parameter-contract' in cutoff for cutoff in result.report.at('/cutoffs'))
+    assert result.report.at('/complete') is explicit
+    assert bool(result.witnesses) is explicit
+    if not explicit:
+        assert any('unsupported-default-value' in cutoff for cutoff in result.report.at('/cutoffs'))
     if explicit:
         assert observe(tmp_path)['result'] == 17
 

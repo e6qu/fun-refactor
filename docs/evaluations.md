@@ -1216,3 +1216,68 @@ for an active audit; a newer push can still replace older work.
 
 The [call-binding guide](call-binding.md) keeps the built-in-name clarification outside the source-bound Python guide.
 These changes address the recorded failures. They do not establish whole-package support or general agent savings.
+
+### Replace a stored default with a supplied value
+
+A helper can now receive an explicit value while leaving its checked object default unused.
+For example, after `stored = []`, `choose(read_input())` can pass the input through `def choose(value=stored): return value`.
+Calling `choose()` still leaves consuming the stored list unchecked.
+The [complete lesson](replace-python-defaults.md) supplies the files and compares both calls with Python execution.
+This closes an argument-checking gap; package startup and calls through supplied functions remain separate work.
+
+The [first focused check](https://github.com/e6qu/fun-refactor/actions/runs/39051542846) found older expectations that rejected explicit object replacements.
+It also found a mistaken new assertion: that example returned the input, but sent only zero to the configured output.
+The corrected assertion checks no input-to-output connection and compares the exact Python events.
+The omitted-object controls remain in place.
+
+The [next focused check](https://github.com/e6qu/fun-refactor/actions/runs/39052096575) found that expanded mandatory rule text exceeded an existing 8 KiB report budget.
+The corrected descriptions remove repeated wording while keeping every field and the original byte limit.
+The [corrected focused run](https://github.com/e6qu/fun-refactor/actions/runs/39053130954) passed 70 native checks and 2,032 Python interface cases.
+The unchanged output-budget cases also ran first and passed. The job kept its fifteen-minute deadline.
+
+A [documentation check](https://github.com/e6qu/fun-refactor/actions/runs/39052366220) still expected an explicit replacement to remain incomplete.
+It stopped before report collection began. The [original log and receipt](../tests/agent-eval/results/2026-10-17-default-replacements-reader-failure/failure.json) preserve that unsuccessful attempt.
+The corrected example keeps both the supported replacement and the unfinished omitted-default case.
+
+The [following collection](https://github.com/e6qu/fun-refactor/actions/runs/39053350792) passed all examples and 56 altered-record checks, then exceeded its fifteen-minute job deadline during cleanup.
+Its audit took 112.208 seconds within the existing 120-second limit.
+The [original archive and log](../tests/agent-eval/results/2026-10-17-default-replacements-deadline/failure.json) remain historical; the cancelled job cannot qualify as a successful collection.
+Two independent interface-test groups had run serially for 202.60 and 149.53 seconds before report collection and auditing.
+The corrected [runner](../tools/python-contract-runner.py) overlaps interface checks with collection, then requires both to pass before auditing.
+The five failure controls check that either worker's error fails the job and that both errors remain available.
+Job and audit deadlines remain unchanged. These timings describe CI scheduling.
+Language-analysis overhead and complete agent costs remain unmeasured.
+
+The [corrected collection](https://github.com/e6qu/fun-refactor/actions/runs/39055073592) passed 1,246 interface cases, including the new replacement lesson.
+It checked 458 programs in 916 original or renamed cases and passed all 56 altered-record controls in 83.868 seconds.
+The complete job took 8 minutes 38 seconds within its unchanged fifteen-minute deadline.
+The earlier cancelled run checked 1,155 interface cases on another runner; these observations establish deadline compliance, not a controlled speed comparison.
+
+The [retention audit](https://github.com/e6qu/fun-refactor/actions/runs/39057204807) kept the original reports and verified their recorded inputs against current files.
+It passed the same 56 altered-record controls in 108.915 seconds under the unchanged 120-second limit.
+That [collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-python-contract/manifest.json)
+retains 344 incomplete answers, eighteen refusals and 126 documented differences between model and runtime observations.
+The familiar-library replay keeps its previous full-package outcomes. No full-package answer becomes complete through this call rule.
+
+A CI-only edit had created different commit IDs while leaving the analyzer unchanged.
+Retention now checks complete analyzer source folders, local dependencies, parsing queries, the Python client, build script and dependency manifests against current code.
+Each record still names its actual collection commit and passes its original input audit.
+Twelve retention controls include changed code, dirty or untracked analyzer files, substituted archives and failed input audits.
+Completed captures remain byte-for-byte unchanged; code or recorded-input changes require fresh results.
+
+The [first full PR suite](https://github.com/e6qu/fun-refactor/actions/runs/39058153609) found fifteen native report links still pointing at the preceding value-alias collection.
+The tracker had advanced to the new collection, but those tests had not. Their source checks correctly rejected the older reports.
+Native tests now select the current collection through the tracker, check its receipt and report checksum, and then run the existing audit.
+Four controls cover changed bytes, missing current receipts, a different collection and the complete set of current report groups.
+The first helper check caught a checksum encoding type error; it was corrected to use the repository's existing encoding API.
+That attempt produced no compiler report, and its now-stale Python collection was cancelled.
+The edited test files are recorded inputs, so the compiler, Python and familiar-library reports require fresh hosted collections.
+Unchanged captures retain their original names and bytes when assembled into the new current collection.
+
+The [fresh compiler collection](https://github.com/e6qu/fun-refactor/actions/runs/39066090634) passed all four selection controls, 88 editing tests and 27 altered-result checks.
+The [fresh Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39066103722) passed 1,246 client cases, checked 916 examples and passed 56 altered-result checks in 108.586 seconds.
+The [fresh library replay](https://github.com/e6qu/fun-refactor/actions/runs/39066248827) preserves the same unfinished full-package outcomes.
+The [complete collection audit](https://github.com/e6qu/fun-refactor/actions/runs/39066978333) passed fourteen admission controls and the existing audits for all seventeen native report groups.
+It also repeated the 56 Python controls in 108.699 seconds, within the unchanged 120-second audit limit.
+The [current receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json) keeps the same 344 incomplete cases, eighteen refusals and 126 documented differences.
+These checks establish consistency with recorded inputs. They do not establish complete library support or a performance improvement.

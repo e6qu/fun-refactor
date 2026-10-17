@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "qualifying_collection": false,
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/39053350792",
+  "job_id": 117456306083,
+  "run_conclusion": "cancelled",
+  "source_commit": "5cd3c3daf7927ee026d6d54eb307e8b1980fd77c",
+  "annotation": "The job has exceeded the maximum execution time of 15m0s",
+  "job_started_at": "2026-10-17T17:21:10Z",
+  "job_completed_at": "2026-10-17T17:36:15Z",
+  "artifact_id": 12109355771,
+  "artifact": {
+    "path": "capture.zip",
+    "bytes": 5167237,
+    "sha256": "450d4459d9737d5cbbb437b59c6a2f56b39c0148590c557597ccce34b2cb492f"
+  },
+  "log": {
+    "path": "failure.log",
+    "bytes": 129185,
+    "sha256": "7bc05e4d127dc2463c2f4399f8fe74e325ff667ec4bda878841242571d77c16a"
+  },
+  "observed": {
+    "interface_cases_passed": 1155,
+    "report_cases": 916,
+    "altered_record_checks_passed": 56,
+    "altered_record_check_seconds": 112.208
+  },
+  "scope": "All validation steps and the upload passed, but the overall job exceeded its deadline. This archive is historical and cannot qualify as a successful collection.",
+  "cause": "Independent interface checks ran serially for 202.60 and 149.53 seconds before collection and audit, leaving no cleanup headroom.",
+  "correction": "Overlap read-only interface checks with report collection. Join both successfully before the audit. Preserve the 15-minute job deadline and 120-second audit deadline."
+}

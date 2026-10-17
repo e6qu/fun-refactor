@@ -1,10 +1,13 @@
+#[path = "common/retained.rs"]
+mod retained;
+
 #[test]
 fn resolution_measurements_match_complete_baseline_outputs() {
     let output = std::process::Command::new("python3")
         .args([
             "tools/index-resolution-acceptance.py",
             "--verify",
-            "tests/agent-eval/results/2026-10-17-value-aliases-index-resolution/result.json",
+            &retained::report("index-resolution"),
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()

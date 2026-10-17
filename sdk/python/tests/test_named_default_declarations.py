@@ -93,13 +93,14 @@ def test_a_later_binding_cannot_supply_an_earlier_default(tmp_path, route):
 
 @pytest.mark.parametrize("call", ["unused()", "unused(source())"])
 @pytest.mark.parametrize("declaration", [VALUES[1], VALUES[2], VALUES[-2], VALUES[-1]])
-def test_calling_a_named_default_stays_unfinished_even_when_overridden(tmp_path, call, declaration):
+def test_unknown_body_calls_stay_unfinished_after_a_default_override(tmp_path, call, declaration):
     client, rules = install(tmp_path, declaration)
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("sink(relay(source()))", call))
     result = analyze(client, rules, "entry")
     assert not result.report.at("/complete") and not result.initialization.sites
-    assert "unsupported-parameter-contract:unused" in result.report.at("/cutoffs")
+    reason = "unsupported-default-value:unused" if call == "unused()" else "unknown-external-call:opaque"
+    assert reason in result.report.at("/cutoffs")
 
 
 def test_parameter_names_do_not_shadow_globals_during_definition(tmp_path):

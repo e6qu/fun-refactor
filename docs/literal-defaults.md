@@ -35,7 +35,7 @@ After an earlier `LIMIT = 10` assignment, `def choose(value=LIMIT): ...` also wo
 Python captures the scalar when it defines the function. The [worked example](python-contract.md#call-a-helper-with-an-earlier-scalar-default)
 shows omitted and explicit arguments, import support and the remaining binding limits.
 The [shared-default lesson](python-contract.md#share-a-default-value-between-files) supplies all three files for `from settings import LIMIT` followed by `def choose(value=LIMIT): ...`.
-It explains how the default captures an earlier scalar and how changing that scalar into a list keeps calls incomplete.
+It explains how the default captures an earlier scalar. Changing that scalar into a list leaves calls that consume it incomplete.
 An earlier checked scalar can also have another name, as in `BASE = 0; LIMIT = BASE`.
 The [alias lesson](python-contract.md#give-a-shared-setting-another-name) follows that value across three files and shows which changes invalidate the answer.
 Aliasing a list or object keeps its original kind; it does not make calls using that default supported.
@@ -54,7 +54,9 @@ exceptions remain outside this contract. Unused variadic declarations admit fixe
 An uncalled module function can read an earlier checked value without running its body.
 For example, after `EMPTY = EmptyType()`, `def unused(key=EMPTY): ...` reads the existing marker during definition.
 The [declaration rule](python-contract.md#read-a-known-name-in-an-unused-functions-default) checks binding order and static value imports.
-Calling a helper with an object or collection default still remains outside this call contract.
+Calls can explicitly replace a checked object or collection default.
+The [complete replacement lesson](replace-python-defaults.md) supplies every file and compares both call forms with Python execution.
+Consuming the stored object remains unfinished, even when the function body ignores that parameter.
 
 Selecting `choose` itself as the analysis entry asks about values supplied to its parameters.
 Its default does not restrict that question to `choose()` with no argument.

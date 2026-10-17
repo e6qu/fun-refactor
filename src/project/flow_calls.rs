@@ -13,6 +13,11 @@ pub(super) struct Parameter<'t> {
     pub default: Option<Node<'t>>,
 }
 
+pub(super) struct CapturedDefaults {
+    values: BTreeSet<String>,
+    scalars: BTreeSet<String>,
+}
+
 #[derive(Clone, Serialize)]
 pub(super) struct ParameterSignature {
     name: String,
@@ -836,19 +841,25 @@ pub(super) fn unshadowed_builtin_defaults(
         .collect()
 }
 
-pub(super) fn captured_scalar_defaults(
+pub(super) fn captured_defaults(
     function: Node<'_>,
     source: &str,
     postponed: bool,
+    values: &BTreeSet<String>,
     scalars: &BTreeSet<String>,
-) -> BTreeSet<String> {
-    parameters(function, source, postponed, scalars)
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|parameter| parameter.default)
-        .filter_map(|node| default_name(node, source))
-        .map(str::to_owned)
-        .collect()
+) -> CapturedDefaults {
+    let values: BTreeSet<_> =
+        parameter_contract(function, source, postponed, Phase::Declaration, values)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|parameter| parameter.default)
+            .filter_map(|node| default_name(node, source))
+            .map(str::to_owned)
+            .collect();
+    CapturedDefaults {
+        scalars: values.intersection(scalars).cloned().collect(),
+        values,
+    }
 }
 
 pub(super) fn generator_function(function: Node<'_>) -> bool {
@@ -1018,12 +1029,12 @@ fn variadic_parameter<'s>(
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding",
-        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; required or immutable scalar defaults.",
+        "parameters":"ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
         "evaluation":"Evaluate explicit values once in source order before binding.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-        "boundary":"No evaluated/mutable defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-        "definitions":"Functions defer bodies; defaults use literals, prior values/functions or unshadowed builtins. Calls accept literal or checked scalar defaults. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
+        "boundary":"No omitted object defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra/unpacked arguments, async/generator calls, external-rule keywords or non-normalized names.",
+        "definitions":"Bodies defer. Defaults capture literals, prior values/functions or unshadowed builtins. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
         "initialization":"Setup: literals, value/function aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat <=128 nodes; own writes, fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
         "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
@@ -1038,11 +1049,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         source: &str,
     ) -> Option<Vec<Parameter<'n>>> {
         let empty = BTreeSet::new();
-        let scalars = self
-            .scalar_defaults
+        let values = self
+            .captured_defaults
             .get(&(file.to_path_buf(), function.start_byte()))
+            .map(|defaults| &defaults.values)
             .unwrap_or(&empty);
-        parameters(function, source, self.annotations_postponed(file), scalars)
+        parameters(function, source, self.annotations_postponed(file), values)
     }
 
     pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
@@ -1117,9 +1129,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         values: Vec<Flow>,
         names: &[Option<String>],
     ) -> Option<Vec<Flow>> {
-        let source = self.contexts[name].1;
-        let Some(parameters) = self.function_parameters(function, self.contexts[name].0, source)
-        else {
+        let (file, source) = self.contexts[name];
+        let Some(parameters) = self.function_parameters(function, file, source) else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
@@ -1148,8 +1159,21 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
         }
         for (slot, parameter) in slots.iter_mut().zip(&parameters) {
-            if slot.is_none() && parameter.default.is_some() {
-                *slot = Some(Flow::new());
+            if slot.is_none() {
+                if let Some(default) = parameter.default {
+                    let scalar = literal_default(default, source)
+                        || self
+                            .captured_defaults
+                            .get(&(file.to_path_buf(), function.start_byte()))
+                            .is_some_and(|captured| {
+                                prior_value_default(default, source, &captured.scalars)
+                            });
+                    if !scalar {
+                        self.cutoff(format!("unsupported-default-value:{name}"));
+                        return None;
+                    }
+                    *slot = Some(Flow::new());
+                }
             }
         }
         let result: Option<Vec<_>> = slots.into_iter().collect();

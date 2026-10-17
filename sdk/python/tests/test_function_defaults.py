@@ -66,13 +66,14 @@ def test_capturing_a_known_function_does_not_call_it(tmp_path, route, parameters
 
 @pytest.mark.parametrize("route", ["local", "direct", "reexport"])
 @pytest.mark.parametrize("call", ["unused()", "unused(source())"])
-def test_a_function_default_does_not_admit_a_call_contract(tmp_path, route, call):
+def test_default_consumption_and_calls_through_parameters_stay_unfinished(tmp_path, route, call):
     client, rules = install(tmp_path, route)
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("sink(relay(source()))", call))
     result = analyze(client, rules, "entry", imports=route != "local")
     assert not result.report.at("/complete") and not result.initialization.sites
-    assert any(item.startswith("unsupported-parameter-contract:") for item in result.report.at("/cutoffs"))
+    reason = "unsupported-default-value:" if call == "unused()" else "ambiguous-call:callback"
+    assert any(item.startswith(reason) for item in result.report.at("/cutoffs"))
 
 
 @pytest.mark.parametrize("before", ["del selected\n", "selected = 0\n", "selected = source()\n", "setup()\n"])
