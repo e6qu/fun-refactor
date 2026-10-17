@@ -47,6 +47,26 @@ gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
 This replays the same retained observations as a fixed input for saving.
 Use the `python-contract` group when you also need fresh analysis results.
 
+## Collect Python results while checking the interface
+
+The `python-contract` collection job checks two independent questions.
+Does the Python interface return the expected traces? Do the saved analyzer answers agree with the declared Python examples?
+For example, the interface checks `choose(read_input())` after a stored list supplies the helper's default.
+The collector separately runs the declared programs and saves their Python and analyzer results.
+
+Those tasks read the compiled executable and use separate temporary projects.
+The [collection runner](../tools/python-contract-runner.py) starts the interface checks while collecting reports.
+It waits for both tasks before checking that altered records fail validation.
+If either task fails, the job fails and keeps its diagnostics.
+The [runner tests](../tools/test-python-contract-runner.py) check that both failures remain visible and that an audit cannot run before both tasks finish.
+
+The interface and collection processes each have a 600-second limit.
+The altered-record audit has 120 seconds. The complete job keeps its fifteen-minute deadline, including setup, upload and cleanup.
+The interface log is saved separately as `python-contract-sdk-checks`; the result artifact remains `python-contract`.
+A cancelled job cannot qualify as a successful collection, even when its report and individual tests passed.
+
+This changes the order of CI work. Analysis speed and complete agent costs need separate measurements.
+
 ## How the checks run
 
 PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
