@@ -1,0 +1,72 @@
+name: Python import explanations
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'sdk/python/src/fr_ir/flow_import_explanation.py'
+      - 'sdk/python/tests/test_flow_import_explanation.py'
+      - 'docs/explain-python-imports.md'
+      - '.github/workflows/python-import-explanations.yml'
+permissions:
+  contents: read
+concurrency:
+  group: python-import-explanations-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  saved-reports:
+    name: Explain saved Python reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - name: Check saved reports before the native build finishes
+        env:
+          PYTHONPATH: sdk/python/src
+        # The full SDK lane also runs these cases and every live-analysis case.
+        run: >-
+          python3 -m pytest -q sdk/python/tests/test_flow_import_explanation.py
+          -k 'not fresh_analysis and not complete_reader'
+      - name: Save reviewable explanations of the retained package answer
+        env:
+          PYTHONPATH: sdk/python/src
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import zipfile
+          from fr_ir.flow_import_explanation import ImportExplanation
+          from fr_ir.runtime import FrReport
+          base = Path('tests/agent-eval/python-symbolic')
+          receipt = json.loads((base / 'frozen-run.json').read_text())
+          source = base / receipt['artifact']
+          with source.open('rb') as stream:
+              assert hashlib.file_digest(stream, 'sha256').hexdigest() == receipt['artifact_sha256']
+          with zipfile.ZipFile(source) as archive:
+              raw = archive.read('numeric-results/full-package-trace/trace.stdout')
+          report = FrReport(json.loads(raw), ())
+          explanation = ImportExplanation.from_report(report)
+          output = Path(os.environ['RUNNER_TEMP']) / 'import-explanations'
+          output.mkdir()
+          for budget in (1024, 2048, 4096):
+              text = explanation.render(max_bytes=budget)
+              (output / f'{budget}-bytes.txt').write_text(text)
+              print(f'Explanation with a {budget}-byte limit:\n{text}')
+          (output / 'source.json').write_text(json.dumps({
+              'recorded_analysis': receipt,
+              'explanation_commit': os.environ['GITHUB_SHA'],
+              'scope': 'Explanation of an unchanged historical answer; no new native analysis or savings measurement.',
+          }, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-import-explanations
+          path: ${{ runner.temp }}/import-explanations/
+          retention-days: 30
+          if-no-files-found: warn

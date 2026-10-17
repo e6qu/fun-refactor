@@ -42,6 +42,8 @@ _CONDITIONS = {
     "unresolved-local-import": "Some imports have no unambiguous supported module under the checked project root.",
     "missing-or-ambiguous-import-member": "Some requested names remain unresolved; the import groups separate unread source from unchecked bindings.",
 }
+_PRIORITY = {"unread-source": 0, "budget": 1, "local-module": 2, "ambiguous": 3,
+             "wildcard": 4, "cyclic": 5, "missing-binding": 6, "unavailable": 7}
 
 
 def _count(number: int, singular: str, plural: str | None = None) -> str:
@@ -141,7 +143,8 @@ class ImportExplanation:
                 kind, paths = gap
                 grouped.setdefault((kind, lookup.importer, lookup.module, paths), []).append(lookup.alias)
         gaps = tuple(ImportGap(kind, importer, module, tuple(sorted(names)), paths)
-                     for (kind, importer, module, paths), names in sorted(grouped.items()))
+                     for (kind, importer, module, paths), names in sorted(
+                         grouped.items(), key=lambda pair: (_PRIORITY[pair[0][0]], pair[0][1:])))
         families = {reason.split(":", 1)[0] for reason in dependencies.cutoffs}
         if not families <= _LIMITS.keys() | _CONDITIONS.keys():
             raise FrRuntimeError("unsupported module stopping reason in explanation")
