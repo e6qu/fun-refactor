@@ -1247,3 +1247,20 @@ The corrected [runner](../tools/python-contract-runner.py) overlaps interface ch
 The five failure controls check that either worker's error fails the job and that both errors remain available.
 Job and audit deadlines remain unchanged. These timings describe CI scheduling.
 Language-analysis overhead and complete agent costs remain unmeasured.
+
+The [corrected collection](https://github.com/e6qu/fun-refactor/actions/runs/39055073592) passed 1,246 interface cases, including the new replacement lesson.
+It checked 458 programs in 916 original or renamed cases and passed all 56 altered-record controls in 83.868 seconds.
+The complete job took 8 minutes 38 seconds within its unchanged fifteen-minute deadline.
+The earlier cancelled run checked 1,155 interface cases on another runner; these observations establish deadline compliance, not a controlled speed comparison.
+
+The [retention audit](https://github.com/e6qu/fun-refactor/actions/runs/39057204807) kept the original reports and verified their recorded inputs against current files.
+It passed the same 56 altered-record controls in 108.915 seconds under the unchanged 120-second limit.
+The [current receipt](../tests/agent-eval/results/2026-10-17-default-replacements-python-contract/manifest.json)
+retains 344 incomplete answers, eighteen refusals and 126 documented differences between model and runtime observations.
+The familiar-library replay keeps its previous full-package outcomes. No full-package answer becomes complete through this call rule.
+
+A CI-only edit had created different commit IDs while leaving the analyzer unchanged.
+Retention now checks complete analyzer source folders, local dependencies, parsing queries, the Python client, build script and dependency manifests against current code.
+Each record still names its actual collection commit and passes its original input audit.
+Twelve retention controls include changed code, dirty or untracked analyzer files, substituted archives and failed input audits.
+Completed captures remain byte-for-byte unchanged; code or recorded-input changes require fresh results.

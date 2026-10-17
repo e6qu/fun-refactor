@@ -237,6 +237,25 @@ The [complete lesson](python-contract.md#give-a-shared-setting-another-name) int
 The remaining `concat = chain` in Funcy reads an imported native object whose behavior is still unresolved here.
 `cat = chain.from_iterable` also needs attribute access checked. Those operations remain separate work.
 
+The [default-replacement replay](../tests/agent-eval/results/2026-10-17-default-replacements-fixed-arity-probes/result.json)
+checks the same familiar libraries after allowing explicit arguments to replace checked object defaults.
+Its 100 cases and 200 Python executions keep the preceding completion totals.
+All 40 full-package cases remain unfinished: 32 incomplete answers and eight deliberate budget refusals.
+The copied declarations keep sixteen complete answers, and the standalone module keeps eight.
+These smaller contexts have different import behavior from their original packages.
+
+Compared with the value-alias replay, the same selected-helper questions keep these unchecked startup counts:
+
+| Library and selected helper | Unchecked startup statements |
+| --- | ---: |
+| Toolz `return_none` | 82 |
+| Funcy `inc` | 76 |
+| Pydash `add` | 420 |
+
+The file, source-size and import-search limits stay unchanged.
+The [complete replacement lesson](replace-python-defaults.md) shows the supported smaller call and the unfinished omitted-object case.
+The full packages still need import and startup behavior outside current support.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The
