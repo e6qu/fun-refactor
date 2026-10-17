@@ -77,7 +77,8 @@ def test_invalid_disclosure_limits_refuse(option, value):
 
 
 @pytest.mark.parametrize("mutation", ["old-alias-format", "false-complete", "missing-cutoffs",
-                                     "false-startup-count", "false-digest", "nontext-cutoff", "unknown-module-reason"])
+                                     "false-startup-count", "false-digest", "nontext-cutoff", "unknown-module-reason",
+                                     "unexpected-budget-detail", "missing-module-name"])
 def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
     value = archived_report().to_data()
     if mutation == "old-alias-format":
@@ -90,9 +91,12 @@ def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
         value["initialization"]["by_file"]["pydash/numerical.py"]["statements"] = 1
     elif mutation == "false-digest":
         value["input_digest"] = "0" * 64
-    elif mutation == "unknown-module-reason":
-        value["inputs"]["modules"]["cutoffs"].append("unrecognized-module-condition")
-        value["cutoffs"] = sorted([*value["cutoffs"], "unrecognized-module-condition"])
+    elif mutation in {"unknown-module-reason", "unexpected-budget-detail", "missing-module-name"}:
+        reason = {"unknown-module-reason": "unrecognized-module-condition",
+                  "unexpected-budget-detail": "import-source-byte-budget:unknown",
+                  "missing-module-name": "unresolved-local-import:"}[mutation]
+        value["inputs"]["modules"]["cutoffs"].append(reason)
+        value["cutoffs"] = sorted([*value["cutoffs"], reason])
     else:
         value["cutoffs"].append(17)
     report = FrReport(value, ()) if mutation == "false-digest" else rehash(value)

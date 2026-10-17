@@ -44,6 +44,7 @@ _CONDITIONS = {
 }
 _PRIORITY = {"unread-source": 0, "budget": 1, "local-module": 2, "ambiguous": 3,
              "wildcard": 4, "cyclic": 5, "missing-binding": 6, "unavailable": 7}
+_NAMED_CONDITIONS = {"unresolved-local-import", "missing-or-ambiguous-import-member"}
 
 
 def _count(number: int, singular: str, plural: str | None = None) -> str:
@@ -150,9 +151,19 @@ class ImportExplanation:
                          key=lambda binding: (binding[0], "" if binding[1] is None else binding[1]))), paths)
                      for (kind, importer, module, paths), bindings in sorted(
                          grouped.items(), key=lambda pair: (_PRIORITY[pair[0][0]], pair[0][1:])))
-        families = {reason.split(":", 1)[0] for reason in dependencies.cutoffs}
-        if not families <= _LIMITS.keys() | _CONDITIONS.keys():
-            raise FrRuntimeError("unsupported module stopping reason in explanation")
+        families = set()
+        for reason in dependencies.cutoffs:
+            if reason in _LIMITS or reason in _CONDITIONS and reason not in _NAMED_CONDITIONS:
+                families.add(reason)
+                continue
+            family, separator, name = reason.partition(":")
+            parts = name.split(".") if family == "unresolved-local-import" else [name]
+            if (not separator or family not in _NAMED_CONDITIONS
+                    or not 1 <= len(parts) <= 16
+                    or not all(part.isascii() and part.isidentifier()
+                               or family == "missing-or-ambiguous-import-member" and part == "*" for part in parts)):
+                raise FrRuntimeError("unsupported module stopping reason in explanation")
+            families.add(family)
         return cls(revision, data["input_digest"], data["complete"], dependencies.complete,
                    len(files), dependencies.lookup_count,
                    tuple(message for reason, message in _LIMITS.items() if reason in dependencies.cutoffs),
