@@ -95,9 +95,11 @@ def test_imported_table_is_shared_even_inside_a_local_function(tmp_path):
 @pytest.mark.parametrize('edit', ['body', 'call', 'allocation'])
 def test_source_edits_invalidate_a_saved_startup_answer(tmp_path, edit):
     client, rules = install(tmp_path, setup("table['label'] = 0"), 'value')
-    cache = FlowCache(MemoryObjectStore())
+    store = MemoryObjectStore()
+    cache = FlowCache(store)
     first = analyze(client, rules, 'entry', cache, imports=True)
     assert first.report.at('/complete')
+    cache = FlowCache.restore(store, cache.persist())
     assert analyze(client, rules, 'entry', cache, imports=True).reused
     path = tmp_path / 'helpers.py'
     old, new = {'body': ("table['label'] = 0", "table['label'] = source()"),
@@ -107,6 +109,11 @@ def test_source_edits_invalidate_a_saved_startup_answer(tmp_path, edit):
     result = analyze(client, rules, 'entry', cache, imports=True)
     assert not result.reused and not result.report.at('/complete')
     assert evidence(result) == evidence(analyze(client, rules, 'entry', imports=True))
+    expected = {'body': {'result': 17, 'raised': None,
+                         'events': [['source', 17], ['source', 17], ['sink', 17]]},
+                'call': {'result': None, 'raised': 'TypeError', 'events': []},
+                'allocation': {'result': None, 'raised': 'NameError', 'events': []}}
+    assert observe(tmp_path) == expected[edit]
 
 
 def test_startup_helper_replacement_cannot_be_hidden_by_a_checked_call(tmp_path):

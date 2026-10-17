@@ -49,7 +49,7 @@ def entry():
 ```
 
 Save this as `rules.json`.
-These rules identify input and output; the empty lists add no assumptions about other calls.
+These rules identify input and output without assuming other calls remove or carry the input.
 
 ```json
 {

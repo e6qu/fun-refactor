@@ -806,7 +806,9 @@ jobs:
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check documentation examples before collecting reports
-        run: python3 -B tools/reader_examples.py --fr target/debug/fr
+        run: |
+          python3 -B tools/reader_examples.py --fr target/debug/fr
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
       - uses: actions/upload-artifact@v7
