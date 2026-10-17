@@ -244,7 +244,6 @@ impl Workspace {
                     .output()
                     .expect("javac runs")
             }
-            // Three passes.
             Toolchain::Bash => {
                 for script in self.files_ending(".sh") {
                     for (program, args) in [
