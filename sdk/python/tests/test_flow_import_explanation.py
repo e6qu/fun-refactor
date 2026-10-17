@@ -171,7 +171,8 @@ def test_complete_reader_example_and_fresh_analysis_after_edit(tmp_path):
     assert "finished within its stated rules" in after and "0 import-time statements unchecked" in after
 
 
-@pytest.mark.parametrize("content", [b'[]', b'{"schema":1,"schema":2}', b'\xff', b' ' * 1048577])
+@pytest.mark.parametrize("content", [b'[]', b'{"schema":1,"schema":2}', b'\xff', b' ' * 1048577],
+                         ids=["non-object", "duplicate-field", "invalid-utf8", "oversized"])
 def test_saved_report_requires_one_bounded_current_json_object(tmp_path, content):
     path = tmp_path / "answer.json"
     path.write_bytes(content)
