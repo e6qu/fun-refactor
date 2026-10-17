@@ -10,10 +10,11 @@ For example, `choose(value=stored)` stores `stored` when Python defines `choose`
 Calling `choose(17)` replaces it with 17; calling `choose()` uses the stored object.
 `fr` can trace explicit replacements of checked defaults, including collections and functions.
 Consuming those object defaults remains unfinished.
+Here, a scalar means a simple value such as zero, `True` or a string.
 
 ## Create the example
 
-You need Python 3, an installed `fr` executable and its matching Python SDK.
+You need Python 3, an installed `fr` executable and its matching Python SDK, the library that lets Python call `fr`.
 Follow the [installation guide](../README.md#install) and [Python client setup](../README.md#give-fr-to-an-agent).
 Create a new directory and run the following commands there.
 
@@ -111,7 +112,8 @@ Python calls `make_default` while defining the function, before the later replac
 Supplying an argument cannot remove that earlier work. Unknown calls, missing names and computed defaults keep the analysis unfinished.
 
 Stored functions, classes, supported instances and checked imported values follow the same replacement rule.
-Calls through function parameters, changing shared objects and reading arbitrary global values keep their existing limits.
+Calling a function supplied as an argument remains unchecked.
+Changing an object shared with other code and reading names outside the called function also remain unchecked.
 Mixed defaults work independently: omitted checked scalars remain supported, while each stored object needs its own replacement.
 The file, source-size, step and elapsed-time limits remain unchanged.
 
