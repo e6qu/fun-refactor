@@ -20,11 +20,11 @@ flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
 # Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = '8912df88ce91e2b762a6f7377a5493a4746f9213'
+flow.COHORT['analyzer_revision'] = '6800a76194e9d6334f44173a0f8c2470b81c67f7'
 flow.COHORT['analyzer_trees'] = {
-    'src': '3183f294afddc42e7af45de799967bbff8c69c3c',
+    'src': 'eac08f68165c0b94876258eeff74abe2bca937f9',
     'grammars': '9b67428e98cd483ff64d1febc6a04287c862a64f',
-    'sdk/python/src': '07c57bcba7e2ab680dc88af5566cb51432f6b287',
+    'sdk/python/src': '470ba660ce083ea293cb4b3e9a477ddd1e48b8f3',
     'Cargo.toml': '62cb5860f1e098282ad09289d6fc0dcbadf17496',
     'Cargo.lock': '6436cfc2d72d2e67a7f5d6ea271a35a32194f65f',
 }
