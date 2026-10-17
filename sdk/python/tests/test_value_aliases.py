@@ -183,8 +183,8 @@ def test_value_alias_evidence_is_required_and_consistent_even_after_rehashing(tm
         elif edit == 'target':
             aliases[0]['target'] = 'missing'
         else:
-            lookup = next(item for item in modules['lookups'] if item['names'] is not None)
-            lookup['names'][0]['binding_chain'] = []
+            lookup = next(item for item in modules['lookups'] if item['resolution'] == 'value')
+            lookup['binding_chain'] = []
     data['input_digest'] = hashlib.sha256(json.dumps(data['inputs'], sort_keys=True, ensure_ascii=False,
                                                     separators=(',', ':')).encode()).hexdigest()
     with pytest.raises(FrRuntimeError):
