@@ -1203,7 +1203,13 @@ impl Project<'_> {
                     let short = &text[name_node.byte_range()];
                     captured_defaults.insert(
                         (file.to_path_buf(), node.start_byte()),
-                        calls::captured_defaults(node, text, postponed, &definition_values, &default_scalars),
+                        calls::captured_defaults(
+                            node,
+                            text,
+                            postponed,
+                            &definition_values,
+                            &default_scalars,
+                        ),
                     );
                     classes.remove(short);
                     documentable.remove(short);

@@ -848,13 +848,14 @@ pub(super) fn captured_defaults(
     values: &BTreeSet<String>,
     scalars: &BTreeSet<String>,
 ) -> CapturedDefaults {
-    let values: BTreeSet<_> = parameter_contract(function, source, postponed, Phase::Declaration, values)
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|parameter| parameter.default)
-        .filter_map(|node| default_name(node, source))
-        .map(str::to_owned)
-        .collect();
+    let values: BTreeSet<_> =
+        parameter_contract(function, source, postponed, Phase::Declaration, values)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|parameter| parameter.default)
+            .filter_map(|node| default_name(node, source))
+            .map(str::to_owned)
+            .collect();
     CapturedDefaults {
         scalars: values.intersection(scalars).cloned().collect(),
         values,
@@ -1129,8 +1130,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         names: &[Option<String>],
     ) -> Option<Vec<Flow>> {
         let (file, source) = self.contexts[name];
-        let Some(parameters) = self.function_parameters(function, file, source)
-        else {
+        let Some(parameters) = self.function_parameters(function, file, source) else {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return None;
         };
@@ -1162,9 +1162,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if slot.is_none() {
                 if let Some(default) = parameter.default {
                     let scalar = literal_default(default, source)
-                        || self.captured_defaults
+                        || self
+                            .captured_defaults
                             .get(&(file.to_path_buf(), function.start_byte()))
-                            .is_some_and(|captured| prior_value_default(default, source, &captured.scalars));
+                            .is_some_and(|captured| {
+                                prior_value_default(default, source, &captured.scalars)
+                            });
                     if !scalar {
                         self.cutoff(format!("unsupported-default-value:{name}"));
                         return None;
