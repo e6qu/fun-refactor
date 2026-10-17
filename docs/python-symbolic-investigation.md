@@ -99,7 +99,7 @@ CrossHair reported those two requirements confirmed within its analysis; the col
 
 For the ordered-limit question through the original package, the recorded elapsed times were:
 
-| Method | First repetition, seconds | Second repetition, seconds | Highest sampled memory, MiB |
+| Method | Earlier observation, seconds | Later observation, seconds | Highest sampled memory, MiB |
 | --- | ---: | ---: | ---: |
 | Handpicked tests | 0.200843 | 0.206527 | 20.961 |
 | Generated integer tests | 0.195958 | 0.210627 | 20.938 |
@@ -113,6 +113,13 @@ The source archive, raw outputs, separate replay costs and setup records remain 
 Its [receipt](../tests/agent-eval/python-symbolic/first-run.json) records the producer, tested merge commit and archive digest.
 The artifact's machine record identifies Python 3.14.8 and Linux x86-64; the first collector did not record the processor model.
 Later captures must record that missing detail. Do not supply it retrospectively from another runner.
+
+The [frozen-dependency repeat](https://github.com/e6qu/fun-refactor/actions/runs/39038172898) installed the admitted package files and repeated all 36 checks with the same outcomes and no resource stops.
+All four symbolic failing inputs reproduced again. Its package versions match the first capture.
+That runner reported an AMD EPYC 9V74 processor and four logical CPUs.
+Its separate [raw artifact](../tests/agent-eval/python-symbolic/2026-10-17-frozen-dependencies.zip) and
+[receipt](../tests/agent-eval/python-symbolic/frozen-run.json) preserve those observations.
+The timing table above continues to describe the first capture only.
 
 The separate `fr` diagnostic loaded eight source files and reached its existing 256 KiB source limit through the original package.
 It also left 420 startup statements unchecked, including decorators, calls and module writes, and could not resolve several imported names.

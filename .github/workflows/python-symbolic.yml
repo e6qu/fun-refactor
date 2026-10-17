@@ -1,14 +1,6 @@
 name: Python numeric investigation
 on:
   workflow_dispatch:
-  push:
-    branches: [investigate/python-symbolic-checks]
-    paths:
-      - 'tools/python-symbolic-*'
-      - 'tools/python_symbolic_cases.py'
-      - 'tools/test-python-symbolic-experiment.py'
-      - '.github/workflows/python-symbolic.yml'
-      - 'tests/agent-eval/python-symbolic/requirements.txt'
   pull_request:
     paths:
       - 'tools/python-symbolic-*'
