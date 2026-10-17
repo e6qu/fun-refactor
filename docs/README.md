@@ -16,6 +16,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | Use fr from an agent program | [Short agent guide](agent-skill.md) or [Python client](agent-runtime-sdk.md) |
 | Decide whether fr saves work | [Product review](product-review.md) and [recorded results](evaluations.md) |
 | Understand a performance number | [Comparisons, baselines and overhead](benchmarks.md) |
+| Decide whether checking conditions would help Python analysis | [Numeric investigation and its comparisons](python-symbolic-investigation.md) |
 | Contribute to fr | [Development](development.md) and [current handoff](continuity.md) |
 
 The examples in the guides describe user tasks. Exact commands, data fields and limits remain

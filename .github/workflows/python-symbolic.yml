@@ -1,0 +1,57 @@
+name: Python numeric investigation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/python-symbolic-*'
+      - 'tools/python_symbolic_cases.py'
+      - 'tools/test-python-symbolic-experiment.py'
+      - '.github/workflows/python-symbolic.yml'
+      - 'tests/agent-eval/python-symbolic/requirements.txt'
+permissions:
+  contents: read
+concurrency:
+  group: python-symbolic-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Prepare measured setup records
+        run: mkdir -p "$RUNNER_TEMP/numeric-setup"
+      - name: Install the frozen checker dependencies and record setup cost
+        run: |
+          /usr/bin/time -v -o "$RUNNER_TEMP/numeric-setup/install-time.txt" \
+            python3 -m pip install --only-binary=:all: --require-hashes \
+            --report "$RUNNER_TEMP/numeric-setup/install.json" \
+            -r tests/agent-eval/python-symbolic/requirements.txt
+          python3 -m pip freeze --all > "$RUNNER_TEMP/numeric-setup/packages.txt"
+      - name: Check rejection of malformed and inadmissible failing inputs
+        run: python3 -B tools/test-python-symbolic-experiment.py
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Build the analyzer and record build cost separately
+        run: /usr/bin/time -v -o "$RUNNER_TEMP/numeric-setup/build-time.txt" cargo build --locked --bin fr
+      - name: Compare checks and preserve every first attempt
+        run: python3 -B tools/python-symbolic-experiment.py --output "$RUNNER_TEMP/numeric-results"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-numeric-investigation
+          path: |
+            ${{ runner.temp }}/numeric-setup/
+            ${{ runner.temp }}/numeric-results/
+          retention-days: 30
+          if-no-files-found: error

@@ -69,6 +69,14 @@ reject missing or old data without adding compatibility readers or migration fal
 
 ## Next large chunk
 
+Choose work by a useful question that we can answer from beginning to end.
+The [numeric investigation](docs/python-symbolic-investigation.md) checked whether Pydash keeps a quantity between user-supplied limits.
+Ordinary tests and an existing symbolic execution tool found the same missing assumption: the caller must order the limits.
+Symbolic execution searches for inputs satisfying conditions in the code. This example does not justify building another execution engine inside `fr`.
+Use ordinary tests for this question; consider the existing checker again when a real task needs harder input searches.
+Keep original package imports separate from copied-function results, count setup and checking costs, and reproduce reported failing inputs in Python.
+The experiment adds no analyzer support and does not restart the stopped agent studies.
+
 Continue the Python work from the actual library failures. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
 answer, then improve the language rule needed to handle it.
