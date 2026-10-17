@@ -114,6 +114,13 @@ The full-package answers still cannot finish; see the [library results](python-r
 Continue from the remaining assignments in `seqs.py` and Toolz's calls that execute while modules load.
 Their behavior needs separate investigation; this rule only stores already checked functions and values.
 
+Functions can now capture a simple default imported from another checked file.
+For example, `settings.py` defines `LIMIT = 0`; `helpers.py` imports it and defines `choose(value=LIMIT)`.
+Omitting the argument uses the stored zero, while supplying an input keeps that input's connection.
+The [three-file lesson](python-contract.md#share-a-default-value-between-files) supplies the files, rules and commands before comparing those calls.
+It also shows why a list default or an import placed after the function definition leaves the answer incomplete.
+This support follows checked local imports; it does not evaluate arbitrary shared objects or ordinary global reads in function bodies.
+
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
 
@@ -123,10 +130,10 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-python-contract/manifest.json)
-covers 424 programs and 848 original or renamed cases, including flat module assignments, function defaults and import order.
-It preserves 330 incomplete cases, 18 refusals and 120 documented differences between model and runtime observations.
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/manifest.json)
+covers 436 programs and 872 original or renamed cases, including defaults shared between files, flat assignments and import order.
+It preserves 338 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 The earlier [collector receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
 preserves the 818-case comparison after saving each new result without repeatedly rewriting earlier cases.

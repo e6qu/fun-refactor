@@ -52,6 +52,7 @@ def bindings():
                  'sdk/python/tests/test_parallel_bindings.py',
                  'sdk/python/tests/test_module_literals.py',
                  'sdk/python/tests/test_scalar_named_defaults.py',
+                 'sdk/python/tests/test_imported_scalar_defaults.py',
                  'sdk/python/tests/test_type_registries.py',
                  'sdk/python/tests/test_registry_initialization.py', 'tools/python_contract_allocations.py',
                  'sdk/python/tests/test_builtin_class_bases.py', 'sdk/python/tests/test_class_initialization.py',

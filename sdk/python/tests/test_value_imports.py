@@ -89,7 +89,7 @@ def test_computed_values_and_conflicting_declarations_are_not_promoted(tmp_path,
     assert next(item for item in result.dependencies.lookups if item.alias == "marker").resolution == "unavailable"
 
 
-def test_a_known_import_defers_a_named_default_without_admitting_its_calls(tmp_path):
+def test_a_known_scalar_import_allows_a_named_default_and_explicit_override(tmp_path):
     client, rules = install(tmp_path, "marker = 0\n")
     subject = tmp_path / "subject.py"
     subject.write_text(subject.read_text() + "def unused(value=marker):\n    return value\n")
@@ -98,8 +98,9 @@ def test_a_known_import_defers_a_named_default_without_admitting_its_calls(tmp_p
     assert observe(tmp_path)["result"] == 17
     subject.write_text(subject.read_text().replace("relay(source())", "unused(source())"))
     result = analyze(client, rules, "entry", imports=True)
-    assert not result.report.at("/complete") and not result.initialization.sites
-    assert "unsupported-parameter-contract:subject.py::unused" in result.report.at("/cutoffs")
+    assert result.report.at("/complete") and not result.initialization.sites
+    assert result.witnesses
+    assert observe(tmp_path)["result"] == 17
 
 
 def test_a_value_import_cannot_replace_an_external_rule(tmp_path):

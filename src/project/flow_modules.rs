@@ -30,6 +30,7 @@ pub(super) struct Modules {
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
     values: BTreeMap<PathBuf, BTreeMap<String, (usize, &'static str)>>,
+    scalar_values: BTreeSet<(PathBuf, usize)>,
     opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
     future_nodes: BTreeMap<PathBuf, BTreeSet<usize>>,
     pub cutoffs: BTreeSet<String>,
@@ -785,6 +786,7 @@ impl Modules {
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
             values: BTreeMap::new(),
+            scalar_values: BTreeSet::new(),
             opaque_bindings: BTreeMap::new(),
             future_nodes: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
@@ -902,6 +904,9 @@ impl Modules {
                         if calls::collection_value(value, source, false) {
                             literals.insert(name.to_owned());
                             values.insert(name.to_owned(), (offset, "literal"));
+                            if calls::literal_default(value, source) {
+                                result.scalar_values.insert((file.clone(), offset));
+                            }
                         } else {
                             let target = &source[value.byte_range()];
                             if prior {
@@ -950,6 +955,11 @@ impl Modules {
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     } else if !special_attribute(name) {
                         values.insert(name.to_owned(), (node.start_byte(), "literal"));
+                        if calls::module_literal(node, source).is_some() {
+                            result
+                                .scalar_values
+                                .insert((file.clone(), node.start_byte()));
+                        }
                     }
                     continue;
                 }
@@ -1497,6 +1507,23 @@ impl Modules {
 
     pub fn is_value(&self, file: &Path, name: &str) -> bool {
         self.member_chain(file, name).0 == "value"
+    }
+
+    pub fn is_scalar_value(&self, file: &Path, name: &str) -> bool {
+        let (status, chain, _) = self.member_chain(file, name);
+        if status != "value" {
+            return false;
+        }
+        let Some((path, name)) = chain.last() else {
+            return false;
+        };
+        let path = self.root.join(path);
+        self.values
+            .get(&path)
+            .and_then(|values| values.get(name))
+            .is_some_and(|(offset, kind)| {
+                *kind == "literal" && self.scalar_values.contains(&(path.clone(), *offset))
+            })
     }
 
     pub fn is_function(&self, file: &Path, name: &str) -> bool {

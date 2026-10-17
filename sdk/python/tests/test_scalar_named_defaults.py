@@ -95,14 +95,15 @@ def test_non_scalar_defaults_stay_incomplete_even_when_overridden(tmp_path, valu
     assert "unsupported-parameter-contract:choose" in result.report.at("/cutoffs")
 
 
-def test_an_imported_value_is_not_a_local_scalar_declaration(tmp_path):
+def test_an_imported_scalar_can_supply_a_default(tmp_path):
     client, rules = install(tmp_path)
     (tmp_path / "constants.py").write_text("marker = 0\n")
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("marker = 0", "from constants import marker"))
     result = analyze(client, rules, "entry", imports=True)
-    assert not result.report.at("/complete") and not result.initialization.sites
-    assert "unsupported-parameter-contract:subject.py::choose" in result.report.at("/cutoffs")
+    assert result.report.at("/complete") and not result.initialization.sites
+    assert not result.witnesses
+    assert observe(tmp_path)["result"] == 0
 
 
 def test_same_named_defaults_in_different_files_keep_their_own_capture(tmp_path):

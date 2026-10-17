@@ -1325,7 +1325,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-parallel-bindings-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -1387,7 +1387,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-parallel-bindings-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-16-shared-defaults-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -1444,7 +1444,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-parallel-bindings-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-16-shared-defaults-module-aliases/result.json",
         ])
         .output()
         .unwrap();
@@ -1490,6 +1490,23 @@ fn parallel_aliases_keep_distinct_functions_and_source_bindings() {
             .unwrap();
         assert_eq!(aliases.len(), 2);
         assert_ne!(aliases[0]["offset"], aliases[1]["offset"]);
+    }
+}
+
+#[test]
+fn imported_scalar_defaults_bind_omitted_and_explicit_arguments() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "settings.py", "marker, other = 0, []\n");
+    write(root.path(), "bridge.py", "from settings import marker\n");
+    for (argument, reaches) in [("", false), ("source()", true)] {
+        write(root.path(), "app.py", &format!("from bridge import marker as saved\ndef choose(value=saved):\n    return value\ndef entry():\n    return sink(choose({argument}))\n"));
+        let report = analyze(root.path(), "entry");
+        assert_eq!(report["complete"], true, "{report}");
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), reaches);
+        assert_eq!(
+            report["inputs"]["modules"]["value_bindings"][0]["path"],
+            "settings.py"
+        );
     }
 }
 

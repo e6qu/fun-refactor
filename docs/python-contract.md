@@ -105,7 +105,7 @@ Importing a value does not add a model for reading or calling it. For example,
 `send(LIMIT)` and `LIMIT(read_input())` still leave the answer incomplete.
 An unused module function such as `def unused(key=LIMIT): ...` can read a previously available value
 without running its body. The [default-name example](#read-a-known-name-in-an-unused-functions-default)
-explains this declaration rule. Calls can use the supported earlier local scalar defaults described below.
+explains this declaration rule. Calls can use the supported earlier local or imported scalar defaults described below.
 Computed setup, missing imports, conflicting bindings
 and cycle reads of unavailable names remain unfinished. A declared package value takes precedence over
 a same-named child file; it cannot be treated as that child to obtain a callable helper.
@@ -320,7 +320,7 @@ def entry():
     return send(choose(read_input()))  # the supplied input reaches send
 ```
 
-The analyzer accepts an earlier immutable scalar literal assigned in the function's own module.
+The analyzer accepts an earlier immutable scalar literal assigned in the function's own module or imported from a checked local file.
 This includes `None`, Booleans, numbers, ordinary strings and bytes. Parentheses around the name are allowed.
 The function may itself be imported or reexported. Its default still belongs to the defining file.
 Omitted arguments have no source origins; explicit arguments keep their own origins and effects.
@@ -328,9 +328,83 @@ Omitted arguments have no source origins; explicit arguments keep their own orig
 Python captures `LIMIT` when it defines `choose`. Changing or deleting `LIMIT` afterward does not
 replace the captured default. Such module changes remain unchecked, so the overall answer stays incomplete.
 A forward reference, an earlier rebinding or unknown setup cannot establish a supported scalar capture.
-Imported scalar names, aliases of values, collections and object markers remain unsupported for calls,
+Assignment aliases of values, collections and object markers remain unsupported for calls,
 even when an explicit argument replaces the default. Ordinary global reads in the body also stay unchecked.
 The analysis does not specialize branches using the default's concrete value.
+
+## Share a default value between files
+
+Suppose several parts of your application use the same initial limit.
+A default is the value a function uses when its caller leaves an argument out.
+A scalar is one simple value, such as `0`, `None` or an ordinary string; a list is not a scalar.
+In `LIMIT = 0`, the `0` is a literal: a value written directly in the code.
+Python captures the default while defining the function, before a later call supplies any arguments.
+
+Create a new folder and save these three files:
+
+```python
+# settings.py
+LIMIT = 0
+
+# helpers.py
+from settings import LIMIT
+
+def choose(value=LIMIT):
+    return value
+
+# app.py
+from helpers import choose
+
+def entry():
+    return send(choose())
+```
+
+The import makes the earlier value available before Python defines `choose`.
+`send` receives the output. `read_input` will supply the tracked input in the second variant below.
+Save their roles as `rules.json` beside the Python files:
+
+```json
+{
+  "version": "tutorial",
+  "sources": ["read_input"],
+  "sinks": ["send"],
+  "sanitizers": {},
+  "propagators": []
+}
+```
+
+This rule set adds no external cleaning or forwarding assumptions.
+`find` returns a reference to `entry`; `dataflow` asks for its input-to-output trace.
+`--summaries` follows the supported helper calls, and `--imports` follows the checked local files.
+With `fr` installed, run these commands from that folder:
+
+```sh
+fr --json -C . project find entry
+fr --json -C . project dataflow '<HANDLE>' --summaries --imports --rules rules.json
+```
+
+Replace `<HANDLE>`, including its brackets, with the full reference returned by `find`.
+The trace can finish with no input connection: `choose()` returns its stored default.
+Now change `choose()` in `app.py` to `choose(read_input())`.
+That explicit argument replaces the default, so the complete trace shows the input reaching `send`.
+
+Changing `LIMIT = 0` to `LIMIT = []` stores a list instead.
+Python still accepts an explicit argument, but this analysis leaves both omitted and explicit calls incomplete because the declared default is not scalar.
+Moving the import below the definition raises `NameError` in Python and leaves the analysis incomplete.
+Import cycles also require the value to exist before another file requests it.
+
+An import can give the value another name, as in `from settings import LIMIT as saved`.
+Renamed imports, reexports and supported wildcard imports can retain the original literal declaration.
+A reexport is a file making an imported name available to another file.
+In a wildcard import, `from settings import *` requests the names selected by that module's supported `__all__` list.
+Saved answers depend on that declaring file; changing the scalar into a list invalidates reuse.
+The analysis can load at most sixteen files and follow at most sixteen links through imports or aliases for one name.
+The existing import-search limits still apply.
+Use plain letters, digits and underscores for imported names and parameters, as in the example.
+Names with accented letters remain unchecked here.
+Only checked literal declarations supply these defaults. Calls, object defaults, assignments that overwrite a name and attribute expressions such as `settings.LIMIT` remain outside this call support.
+Returning `LIMIT` inside the function would read a global value each time; that remains unchecked too.
+This analysis tracks whether input can reach output. It does not use the default's concrete value to choose branches.
 
 ## Keep declarations separate from reads
 
