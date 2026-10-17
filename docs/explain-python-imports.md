@@ -49,6 +49,8 @@ def entry():
 
 Save this as `rules.json`. It tells the analyzer which function supplies input and which receives output.
 The rule label identifies this chosen configuration; it does not change Python's behavior.
+A sanitizer rule assumes that a call makes its result safe for the chosen question; `sanitizers` is empty here.
+A propagator rule assumes that a call passes input into its result; `propagators` is empty here.
 
 ```json
 {
