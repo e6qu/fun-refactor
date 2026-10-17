@@ -129,6 +129,8 @@ Instrumentation also stops after 200,000 package trace events; the job deadline 
 The existing analyzer limits remain sixteen files or package directories, 256 KiB of source and 128 module searches.
 The collector preserves raw attempts before interpreting their output.
 A stop, changed source, missing result or altered comparison fails collection and its audit.
+The first failed process stops the schedule after saving its raw output; remaining processes stay unstarted.
+This leaves time to upload the failure instead of spending the job deadline on repeated failures.
 Fix the cause before collecting again; keep unsuccessful attempts alongside corrected ones.
 
 The [measurement guide](benchmarks.md) explains how these costs differ from a complete agent-task comparison.

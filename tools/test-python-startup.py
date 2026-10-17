@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -261,6 +262,24 @@ class StartupChecks(unittest.TestCase):
                 (root / 'attempt-00.stderr').unlink()
                 with self.assertRaises(FileNotFoundError):
                     study.audit(root)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'hosted Linux collection control')
+    def test_first_failed_process_is_saved_and_remaining_processes_do_not_consume_the_job_deadline(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            scopes = {project: root for project in study.PLAN['archives']}
+            with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
+                 patch.object(study, 'prepare', return_value=(scopes, {})), \
+                 patch.object(study, 'bindings', return_value={}), \
+                 patch.object(study, 'run', return_value={'stop_reason': 'wall_seconds', 'exit_code': 124}) as run:
+                with self.assertRaisesRegex(ValueError, 'remaining scheduled processes were not started'):
+                    study.collect(root / 'result')
+                self.assertEqual(run.call_count, 1)
+            result = json.loads((root / 'result/result.json').read_bytes())
+            self.assertFalse(result['finished'])
+            self.assertEqual(len(result['attempts']), 1)
+            self.assertIn('stopped or failed', result['attempts'][0]['error'])
+            self.assertTrue((root / 'result/attempt-00.stderr').is_file())
 
 
 if __name__ == '__main__':

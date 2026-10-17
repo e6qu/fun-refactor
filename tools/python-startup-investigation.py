@@ -254,6 +254,7 @@ def collect(output):
             row['error'] = str(error)
         save(output / 'result.json', result)
         print(f'{index + 1}/{len(schedule())}: {helper_id}, trace={traced}, error={row["error"]}', flush=True)
+        require(row['error'] is None, 'observation failed; remaining scheduled processes were not started')
     result['finished'] = all(row['error'] is None for row in result['attempts'])
     save(output / 'result.json', result)
     audit(output)
