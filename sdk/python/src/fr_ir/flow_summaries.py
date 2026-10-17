@@ -103,12 +103,12 @@ class ExpressionControl:
 
 _CALL_BINDING = {
     "schema": "fr-call-binding",
-    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults may be explicitly replaced.",
+    "parameters": "ASCII positional-only, positional-or-keyword and keyword-only slots; checked defaults permit replacements.",
     "evaluation": "Evaluate explicit values once in source order before binding.",
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
     "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-    "boundary": "No consuming non-scalar defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra arguments, unpacking, async/generator calls, external-rule keywords or non-normalized names.",
-    "definitions": "Functions defer bodies; defaults use literals, prior values/functions or unshadowed builtins. Calls fill only scalar defaults; checked non-scalar defaults require replacements. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
+    "boundary": "No omitted object defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra/unpacked arguments, async/generator calls, external-rule keywords or non-normalized names.",
+    "definitions": "Bodies defer. Defaults capture literals, prior values/functions or unshadowed builtins. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
     "initialization": "Setup: literals, value/function aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat <=128 nodes; own writes, fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
     "implicit_exceptions": False,
     "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
