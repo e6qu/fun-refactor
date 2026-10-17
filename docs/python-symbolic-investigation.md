@@ -38,16 +38,16 @@ This experiment uses CrossHair with typed wrapper functions that state the three
 Read [how CrossHair works](https://crosshair.readthedocs.io/en/latest/how_does_it_work.html) and its
 [limitations](https://crosshair.readthedocs.io/en/latest/limitations.html).
 Every reported failing input must reproduce in an ordinary Python process.
-The collector reads only literal integer arguments from tool output; it never executes generated tool text.
+The collection script reads only literal integer arguments from tool output; it never executes generated tool text.
 Finding no failing input remains a limited observation, not a proof about the application.
 
 ## Keep the original package separate from a simpler copy
 
 The project revision is `24ae1aad60dec4d9d5a0e88b8d8d692ee85f232e` in `dgilland/pydash`.
-One context imports its unchanged original package, including package startup.
+One context imports its unchanged original package, including code run during the import.
 Another copies the function body into a small module and removes its type annotations, which refer to definitions in the omitted module.
 Both contexts use the same integer wrappers and requirements.
-The report retains the original declaration, complete source archive, source inventory and license.
+The report retains the original declaration, a compressed copy of the complete source, a file inventory and the license.
 Success in the copied context cannot establish support for importing the original package.
 
 The experiment also asks `fr` to follow a submitted value through `clamp(value, 1, 10)` to an output.
@@ -58,22 +58,27 @@ Its report must keep unsupported imports, startup operations and exhausted searc
 ## Account for the extra work
 
 The comparison is between handpicked tests, generated integer tests and CrossHair checking the same stated requirements.
-Each operation starts a fresh Python process. Elapsed time includes startup, imports, checking, output and host monitoring.
+Each operation starts Python afresh rather than reusing an earlier interpreter.
+Elapsed time includes startup, imports, checking, output and host monitoring.
 Sampled memory and CPU cover the child process group; they exclude the monitoring process.
 Short resource peaks can fall between samples.
 The report records two repetitions per method, requirement and context, with a fixed shuffled order.
 Two repetitions can reveal large costs or failures, but cannot establish a stable speed distribution.
 Filesystem caches and other runner activity remain uncontrolled.
 
-Dependency installation, source preparation, the `fr` build and counterexample replay are separate costs.
+A dependency is another installed package the checker needs. A hash is a fingerprint of a file's contents.
+Dependency installation, source preparation, the `fr` build and replaying failing inputs are separate costs.
 The artifact keeps installation and build time records, resolved packages and downloaded package hashes.
 The [dependency list](../tests/agent-eval/python-symbolic/requirements.txt) freezes the exact packages selected in the first capture.
 Its hashes admit only those downloaded files on the Linux Python 3.14 runner.
 Compare the full costs needed for the intended use before drawing a speed conclusion.
+The individual timers exclude checkout, toolchain and cache preparation, collection-script startup, binary fingerprinting and saving reports.
+Those operations still take work. The workflow logs record their steps, but this experiment does not isolate every one's CPU and memory cost.
 No agent runs in this experiment, so it cannot establish fewer agent calls, lower model charges or cheaper repairs.
 
 Each measured process has a 20-second elapsed limit, 10 sampled CPU seconds, 512 MiB sampled memory,
 16 MiB workspace growth and 1 MiB output.
+MiB means 1,048,576 bytes; KiB means 1,024 bytes.
 CrossHair also has a three-second budget per requirement and a one-second budget per route.
 The GitHub job has a 15-minute deadline including setup and build.
 Every attempt is retained, including stops, malformed results and failing controls.
@@ -82,20 +87,22 @@ A resource stop leaves the question unfinished; investigate its cause without in
 ## Run and inspect the investigation
 
 Use the [Python numeric investigation workflow](../.github/workflows/python-symbolic.yml) on a GitHub runner.
-It runs collector controls before building `fr`, collects the comparison and uploads an artifact even after failure.
+Before building `fr`, it checks that stopped processes and missing or malformed results cannot become successful checks.
+It then collects the comparison and uploads the records even after failure.
 The artifact contains `result.json`, raw output for each attempt, original package source and setup records.
-The [collector](../tools/python-symbolic-experiment.py) records the exact project commit and input file hashes.
+The [collection script](../tools/python-symbolic-experiment.py) records the exact project commit and input file fingerprints.
 There are 36 planned measured checks: two contexts, three requirements, three methods and two repetitions.
 Replays and the two `fr` diagnostics appear separately.
 
 ## What the first capture tells us
 
-The [first hosted collection](https://github.com/e6qu/fun-refactor/actions/runs/39037586407) completed all 36 planned checks without a resource stop or collector error.
+The [first hosted collection](https://github.com/e6qu/fun-refactor/actions/runs/39037586407) completed all 36 planned checks without a resource stop or an error gathering or interpreting the results.
 All three methods found a failing input for the requirement that admitted reversed limits.
 CrossHair selected `clamp(1, 1, 0)`, which returns 0. Ordinary Python reproduced all four symbolic reports across the two contexts and repetitions.
 That input was also in the generated tests; this capture found no additional failing behavior through symbolic execution.
 The handpicked and generated inputs passed the ordered-limit and upper-only requirements.
-CrossHair reported those two requirements confirmed within its analysis; the collector retains these as no failing input reported, rather than a proof about the application.
+CrossHair reported those two requirements confirmed within its analysis.
+The record describes these as no failing input reported, rather than a proof about the application.
 
 For the ordered-limit question through the original package, the recorded elapsed times were:
 
@@ -116,7 +123,7 @@ Later captures must record that missing detail. Do not supply it retrospectively
 
 The [frozen-dependency repeat](https://github.com/e6qu/fun-refactor/actions/runs/39038172898) installed the admitted package files and repeated all 36 checks with the same outcomes and no resource stops.
 All four symbolic failing inputs reproduced again. Its package versions match the first capture.
-That runner reported an AMD EPYC 9V74 processor and four logical CPUs.
+That runner reported an AMD EPYC 9V74 processor and four CPUs available to the operating system.
 Its separate [raw artifact](../tests/agent-eval/python-symbolic/2026-10-17-frozen-dependencies.zip) and
 [receipt](../tests/agent-eval/python-symbolic/frozen-run.json) preserve those observations.
 The timing table above continues to describe the first capture only.
