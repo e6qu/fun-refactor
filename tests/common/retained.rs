@@ -48,7 +48,7 @@ pub fn checked_report(root: &Path, group: &str) -> String {
         .as_str()
         .expect("need the requested group in the current collection");
     assert_eq!(
-        format!("{:x}", Sha256::digest(fs::read(&path).unwrap())),
+        hex::encode(Sha256::digest(fs::read(&path).unwrap())),
         expected,
         "saved report differs from its collection receipt"
     );

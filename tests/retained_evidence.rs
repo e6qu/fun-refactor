@@ -12,7 +12,7 @@ fn fixture(root: &Path) {
     fs::create_dir_all(results.join("old-flow-facts")).unwrap();
     fs::write(results.join("current-flow-facts/result.json"), b"{}").unwrap();
     fs::write(results.join("old-flow-facts/result.json"), b"{}").unwrap();
-    let digest = format!("{:x}", Sha256::digest(b"{}"));
+    let digest = hex::encode(Sha256::digest(b"{}"));
     fs::write(
         root.join("tests/agent-eval/roadmap.json"),
         json!({"schema": "fr-roadmap-catalog-1", "evidence": [{
