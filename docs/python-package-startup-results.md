@@ -14,6 +14,12 @@ There were no resource stops or collection errors.
 The [raw artifact](../tests/agent-eval/python-startup/2026-10-18-first-run.zip) and [receipt](../tests/agent-eval/python-startup/first-run.json) preserve that first capture.
 The receipt identifies its original collector; later audit improvements require a fresh capture rather than rewriting this one.
 
+The [checked repeat](https://github.com/e6qu/fun-refactor/actions/runs/39073951823) also passed thirteen controls and all sixteen processes without stops or collection errors.
+It repeats the package file counts, source sizes and forty-eight expected integer results below.
+Its separate audit also checks producer metadata, raw-output fingerprints, transcript sizes and sampled measurements against the unchanged limits.
+The [second raw artifact](../tests/agent-eval/python-startup/2026-10-18-checked-run.zip) and [receipt](../tests/agent-eval/python-startup/checked-run.json) preserve that capture.
+It used an AMD EPYC 7763 processor; the timing table continues to describe the first runner only.
+
 | Selected helper | Files read by the saved analyzer answer | Package source files observed in Python | Whole-file source bytes observed |
 | --- | ---: | ---: | ---: |
 | Toolz `return_none` | 14 | 13 | 103,897 |
