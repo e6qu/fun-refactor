@@ -847,6 +847,8 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --tests -- -D warnings
       - run: cargo build --locked --bin fr
+      - name: Reject missing or changed current reports before collection
+        run: cargo test --locked --test retained_evidence -- --test-threads 1
       - name: Check ambiguous semantic selection and authoring refusals
         run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads 1
       - name: Preserve supported source and semantic authoring
