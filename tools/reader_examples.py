@@ -250,7 +250,7 @@ def imported_default_trace(binary, folder):
     variants = [(settings, helper, app, True, {'returned': 0}),
                 (settings, helper, explicit, True, {'returned': 17}),
                 (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, app, False, {'returned': []}),
-                (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, explicit, False, {'returned': 17}),
+                (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, explicit, True, {'returned': 17}),
                 (settings, late, app, False, {'raised': 'NameError'})]
     return default_trace_variants(binary, folder, lesson, variants)
 
@@ -266,7 +266,7 @@ def value_alias_trace(binary, folder):
     variants = [(settings, helper, app, True, {'returned': 0}),
                 (settings, helper, explicit, True, {'returned': 17}),
                 (settings.replace('BASE = 0', 'BASE = []'), helper, app, False, {'returned': []}),
-                (settings.replace('BASE = 0', 'BASE = []'), helper, explicit, False, {'returned': 17}),
+                (settings.replace('BASE = 0', 'BASE = []'), helper, explicit, True, {'returned': 17}),
                 (late, helper, app, False, {'raised': 'NameError'}),
                 (settings, helper.replace('return value', 'return FALLBACK'), app, False, {'returned': 0})]
     return default_trace_variants(binary, folder, lesson, variants)
