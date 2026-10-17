@@ -149,10 +149,12 @@ Missing parents, competing modules, new stubs and changed initializers change th
 Named member lookups report functions, modules, missing declarations, ambiguity or unavailable modules.
 Duplicate bindings, shadowing (a nearer declaration hiding an earlier name), ignored files, symlink leaves or ancestors and syntax errors keep the report incomplete.
 Static module aliases and supported plain function aliases can select a helper.
-Arbitrary object aliases remain unsupported.
+A checked value can also have another name, such as `BASE = 0; LIMIT = BASE`.
+The [shared-setting lesson](python-contract.md#give-a-shared-setting-another-name) follows that scalar into a function default across three files.
+Aliasing a list or object does not add support for reading its contents or calling it.
 
 The [Python behavior guide](python-contract.md) owns the current initialization rules.
-It shows supported unused literals, collections, metadata, function aliases and built-in references.
+It shows supported unused literals, collections, metadata, value and function aliases, and built-in references.
 An unused declaration can leave a helper trace complete while reading its global value still remains
 unsupported. Rebinding and evaluated initialization outside those rules leave the answer unfinished.
 A literal package member prevents selection of a same-named child module.

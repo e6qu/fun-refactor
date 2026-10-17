@@ -252,6 +252,27 @@ def imported_default_trace(binary, folder):
                 (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, app, False, {'returned': []}),
                 (settings.replace('LIMIT = 0', 'LIMIT = []'), helper, explicit, False, {'returned': 17}),
                 (settings, late, app, False, {'raised': 'NameError'})]
+    return default_trace_variants(binary, folder, lesson, variants)
+
+
+def value_alias_trace(binary, folder):
+    page = (ROOT / 'docs/python-contract.md').read_text()
+    lesson = page.split('## Give a shared setting another name\n', 1)[1].split('\n## ', 1)[0]
+    source, = blocks(lesson, 'python')
+    settings, rest = source.removeprefix('# settings.py\n').split('# helpers.py\n', 1)
+    helper, app = rest.split('# app.py\n', 1)
+    explicit = app.replace('choose()', 'choose(read_input())')
+    late = settings.replace('BASE = 0\nLIMIT = BASE', 'LIMIT = BASE\nBASE = 0')
+    variants = [(settings, helper, app, True, {'returned': 0}),
+                (settings, helper, explicit, True, {'returned': 17}),
+                (settings.replace('BASE = 0', 'BASE = []'), helper, app, False, {'returned': []}),
+                (settings.replace('BASE = 0', 'BASE = []'), helper, explicit, False, {'returned': 17}),
+                (late, helper, app, False, {'raised': 'NameError'}),
+                (settings, helper.replace('return value', 'return FALLBACK'), app, False, {'returned': 0})]
+    return default_trace_variants(binary, folder, lesson, variants)
+
+
+def default_trace_variants(binary, folder, lesson, variants):
     (folder / 'rules.json').write_text(blocks(lesson, 'json')[0])
     script = ('import json\ntry:\n import app\n app.read_input=lambda:17\n app.send=lambda value:value\n'
               ' print(json.dumps({"returned":app.entry()}))\n'
@@ -298,6 +319,9 @@ def check(binary):
         shared = root / 'shared'
         shared.mkdir()
         imported = imported_default_trace(binary, shared)
+        aliases = root / 'value-aliases'
+        aliases.mkdir()
+        values = value_alias_trace(binary, aliases)
     return {'first_change_commands': commands, 'complete_trace_examples': traces,
             'registry_setup_examples': setups,
             'import_order_examples': cycles,
@@ -305,6 +329,7 @@ def check(binary):
             'function_default_examples': captures,
             'parallel_binding_examples': bindings,
             'imported_default_examples': imported,
+            'value_alias_examples': values,
             'verified_measurement_rows': measurements}
 
 

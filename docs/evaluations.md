@@ -811,6 +811,8 @@ preserves the collection before flat module assignments were admitted.
 The [parallel-assignment receipt](../tests/agent-eval/results/2026-10-16-parallel-bindings-scalar-collection/manifest.json)
 preserves the collection before calls could use imported scalar defaults.
 The [shared-default receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-scalar-collection/manifest.json)
+preserves the collection before aliases of checked values were admitted.
+The [value-alias receipt](../tests/agent-eval/results/2026-10-17-value-aliases-scalar-collection/manifest.json)
 identifies the current collection and its exact inputs.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
@@ -1106,8 +1108,75 @@ keeps the original thirty cases at 24 incomplete reports and six deliberate CLI 
 Its one hundred expanded cases still have zero complete full-package answers, sixteen complete isolated-declaration answers and eight complete standalone-module answers.
 The new small-program support does not finish the libraries' remaining initialization and import behavior.
 
+The value-alias change follows an earlier checked value through another name.
+For example, `BASE = 0; LIMIT = BASE` can supply a captured default without turning a list or object into a scalar.
+The [shared-setting lesson](python-contract.md#give-a-shared-setting-another-name) supplies three files, defines the terms and shows both argument forms before explaining the limits.
+Import records retain the original declaration and separate value aliases from function aliases.
+Missing alias inventories and contradictory records are rejected before saved answers are reused.
+
+The [first focused run](https://github.com/e6qu/fun-refactor/actions/runs/39022266750)
+found an older expectation that `sorted = 0; public = sorted` must remain incomplete.
+The new rule deliberately follows that local constant instead of assuming Python's built-in `sorted` object.
+The corrected case checks a complete answer with no input connection and records `public` as an alias of the local `sorted` declaration.
+The separate unsupported-call test stayed in place.
+
+The [second focused run](https://github.com/e6qu/fun-refactor/actions/runs/39022658793)
+passed all 69 native checks, type checking and 525 Python interface cases, but one new altered-report test targeted the wrong field.
+That fixture attempted to change a name list rather than a binding chain.
+It now removes the actual value-binding chain; both the Python reader and native reuse command must reject the altered report after its digest is recalculated.
+
+The [corrected focused run](https://github.com/e6qu/fun-refactor/actions/runs/39023267940)
+passed 69 native checks, 1,941 Python interface tests and 896 independent Python runtime expectations.
+The new interface suite contributes 184 cases covering original declarations, aliases across files, scalar defaults, shared limits, edited sources and rejected reports.
+These runtime prechecks do not replace the separately collected analyzer comparisons.
+The run passed within its existing fifteen-minute deadline; no timeout limit was raised.
+
+The [first broader Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39024232894)
+passed 1,155 interface tests and all six new lesson variants.
+It then found two copies of the same older expectation: the original and renamed `sorted = 0; stored = sorted` example.
+The analyzer correctly completed that checked value alias; the authored expectation still required an incomplete answer.
+The [failed report and its original validator](../tests/agent-eval/results/2026-10-17-value-aliases-first-python-contract-failure/manifest.json)
+preserve that mismatch. The corrected expectations leave the Python programs and production code unchanged.
+
+The [corrected Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39025611731)
+passed 1,155 interface tests, all six new lesson variants and the complete analyzer comparisons.
+The [retained results](../tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json)
+cover 448 programs in 896 original or renamed cases under the same fourteen rules.
+They retain 344 incomplete cases, 18 refusals and 130 documented differences between model and runtime observations.
+An incomplete answer passes only when the example deliberately expects that question to remain unanswered.
+All 56 altered-report checks passed in 106.492 seconds under the unchanged 120-second audit limit.
+The complete collection passed within its existing fifteen-minute deadline.
+The [combined retention audit](https://github.com/e6qu/fun-refactor/actions/runs/39026989443)
+verified the collected files and source records, then passed the same 56 checks in 59.651 seconds under that limit.
+These timings describe individual hosted checks, rather than analysis overhead or an agent's complete task.
+
 The familiar-library replay still gives no complete full-package answers. Unknown startup operations, missing imports and exhausted limits remain separate obstacles.
 The tool still needs to demonstrate complete traces in unfamiliar projects and savings on complete agent tasks.
+
+The [first full PR check](https://github.com/e6qu/fun-refactor/actions/runs/39027802949/job/117382130062)
+passed 824 selected Python interface cases but found two older list and class alias expectations.
+Those tests still required an incomplete answer when a local declaration shadows a built-in name.
+The corrected cases keep the same programs and check complete setup, Python execution and the original value's recorded kind.
+The scalar counterpart and a checked import use the same rule.
+A separate unknown native import keeps the answer incomplete, even when its name matches a built-in function.
+These test corrections leave the collected analyzer, guide and example inputs unchanged.
+
+The [next full Python check](https://github.com/e6qu/fun-refactor/actions/runs/39029039323/job/117385681317)
+passed 826 selected cases but found a mistaken assertion in the new declaration check.
+The [other Python job](https://github.com/e6qu/fun-refactor/actions/runs/39029039323/job/117385681445)
+passed 824 cases and found the same assertion for the scalar setting.
+The behavior and runtime assertions passed. The fixture imported only the helper, so its report needed no imported value record.
+The corrected test keeps that case, then imports the alias and checks the original kind and full declaration chain.
+Production code and collected example inputs remain unchanged.
+
+The [scripted client job](https://github.com/e6qu/fun-refactor/actions/runs/39031180016/job/117391774611)
+then found an unrelated memory stop during its intentionally unsuccessful review control.
+The sampled process group reached 805,642,240 bytes against its unchanged 805,306,368-byte limit.
+Only one response had completed, so the two-response assertion correctly failed.
+The [original artifact and diagnosis](../tests/agent-eval/opencode/memory/2026-10-17-scripted-limit/README.md)
+retain that failure and its partial work.
+The corrected CI job supplies the existing small catalog and preserves its path in the scripted environment.
+Catalog verification runs before the client. Memory, time and complete-work requirements stay unchanged.
 
 The [corrected compiler run](https://github.com/e6qu/fun-refactor/actions/runs/38716582932)
 measured the hashing cost on the same runner. Hashing 32 MiB took 0.830 seconds before optimization

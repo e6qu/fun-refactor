@@ -298,7 +298,7 @@ The whole assignment must fit the existing 128-node syntax limit.
 A syntax node is one parsed element, such as a name or literal; surrounding structure and comments count too.
 This limit counts syntax elements rather than lines.
 Function aliases can be imported or reexported. Literal bindings retain their distinct source positions.
-Each function alias uses one of the existing 128 alias slots per analysis, even when several are assigned together.
+Function and checked value aliases share the existing 128 alias slots per analysis, even when several are assigned together.
 Stored built-in references remain limited to unused setup and defaults; importing or calling those aliases is not added here.
 Nested patterns, starred targets, repeated destinations, rebinding, evaluated calls and arbitrary iterables remain unchecked.
 For example, `forwarded, stopped = (relay,)` has too few values: Python raises `ValueError` and the analysis stays incomplete.
@@ -328,8 +328,9 @@ Omitted arguments have no source origins; explicit arguments keep their own orig
 Python captures `LIMIT` when it defines `choose`. Changing or deleting `LIMIT` afterward does not
 replace the captured default. Such module changes remain unchecked, so the overall answer stays incomplete.
 A forward reference, an earlier rebinding or unknown setup cannot establish a supported scalar capture.
-Assignment aliases of values, collections and object markers remain unsupported for calls,
-even when an explicit argument replaces the default. Ordinary global reads in the body also stay unchecked.
+[Checked scalar aliases](#give-a-shared-setting-another-name) can supply defaults too.
+Collections and object markers remain unsupported for calls, even when an explicit argument replaces the default.
+Ordinary global reads in the body also stay unchecked.
 The analysis does not specialize branches using the default's concrete value.
 
 ## Share a default value between files
@@ -405,6 +406,79 @@ Names with accented letters remain unchecked here.
 Only checked literal declarations supply these defaults. Calls, object defaults, assignments that overwrite a name and attribute expressions such as `settings.LIMIT` remain outside this call support.
 Returning `LIMIT` inside the function would read a global value each time; that remains unchecked too.
 This analysis tracks whether input can reach output. It does not use the default's concrete value to choose branches.
+
+## Give a shared setting another name
+
+Suppose a settings file defines an initial limit, and a helper uses a more specific name for it.
+An alias is another name for an existing value. Assigning `LIMIT = BASE` reads `BASE` before creating `LIMIT`.
+It does not call the value or create a copy of a shared object.
+A default supplies a function argument when its caller leaves that argument out.
+A scalar is one simple value, such as a number, `None` or an ordinary string.
+
+Create an empty folder and save these three files:
+
+```python
+# settings.py
+BASE = 0
+LIMIT = BASE
+
+# helpers.py
+from settings import LIMIT
+FALLBACK = LIMIT
+
+def choose(value=FALLBACK):
+    return value
+
+# app.py
+from helpers import choose
+
+def entry():
+    return send(choose())
+```
+
+`choose()` uses the value captured while Python defines the function.
+The alias does not introduce external input. `send` is the output call we want to check.
+Save `rules.json` beside the Python files; it also identifies `read_input` for the next variant:
+
+```json
+{
+  "version": "tutorial",
+  "sources": ["read_input"],
+  "sinks": ["send"],
+  "sanitizers": {},
+  "propagators": []
+}
+```
+
+With `fr` installed, run these commands from that folder:
+
+```sh
+fr --json -C . project find entry
+fr --json -C . project dataflow '<HANDLE>' --summaries --imports --rules rules.json
+```
+
+`find` returns a reference to `entry`. Replace `<HANDLE>`, including the brackets, with that full reference.
+`--summaries` follows supported helper calls; `--imports` follows checked local files.
+The trace can finish without an input connection because the omitted argument uses the stored scalar.
+Change `choose()` to `choose(read_input())` in `app.py` to see supplied input reach `send` instead.
+
+Now change `BASE = 0` to `BASE = []`.
+Both `BASE` and `LIMIT` refer to the same list. The alias keeps its original kind; it does not turn the list into a scalar.
+This analysis therefore leaves calls using that declared default incomplete, including calls with an explicit replacement argument.
+An unused function may store the checked list or object without calling it, but calls and global reads need separate support.
+
+Use earlier checked names and fresh destinations. `LIMIT = BASE` before `BASE` exists raises `NameError` in Python.
+Overwriting or deleting either name leaves the analysis incomplete, even when Python could still use a previously captured value.
+Flat pairs such as `LIMIT, OTHER = BASE, None` read all values before creating any destination.
+A new destination cannot supply another value in that same assignment.
+Plain name assignments are supported; attribute expressions, nested patterns and computed values remain unchecked.
+
+Aliases preserve the original declaration in import records and depend on the files they pass through.
+Changing the original scalar into a list invalidates a saved answer.
+Value and function aliases share the existing 128 slots, and a binding chain has at most sixteen links.
+The sixteen-file and import-search limits also remain unchanged.
+Imported names must resolve to checked declarations in loaded local files.
+Unknown native imports remain unknown; giving such an object another name does not add support for its behavior.
 
 ## Keep declarations separate from reads
 

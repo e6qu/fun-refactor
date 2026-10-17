@@ -13,7 +13,7 @@ For a slow PR, inspect those times separately before deciding which operation ne
 
 The Python collector runs small programs through Python itself and through `fr`, then saves both observations for comparison.
 A case is one program with its chosen names and file locations.
-The current collection has 818 cases, including renamed copies and requests that the command deliberately refuses.
+The saving comparison uses 818 retained cases, including renamed copies and requests that the command deliberately refuses.
 
 Previously, saving case 800 also encoded and rewrote the preceding 799 results.
 The collector now appends the new result in JSON, a text format for structured data.
@@ -64,6 +64,14 @@ Grading jobs use the public Docker registry mirror with an empty, job-local Dock
 client configuration. This avoids the shared Hub pull limit and inherited login
 path observed in failed runs. Original image digests and isolation checks remain
 required. The setup needs no new credentials and changes only the GitHub runner.
+
+The scripted client checks use the existing small, verified model catalog.
+A catalog lists model settings, such as provider endpoints and supported tools.
+Disabling downloads still loads the client's bundled catalog, which caused a [recorded memory stop](../tests/agent-eval/opencode/memory/2026-10-17-scripted-limit/README.md).
+CI verifies the selected catalog before starting the client and passes its path through the isolated environment.
+The fake provider still uses each test's explicit model configuration.
+The 768 MiB process-group limit, deadlines and complete two-response checks stay unchanged.
+These controls use scripted responses; live studies remain stopped.
 
 The last measured serial baseline, [run 36592893805](https://github.com/e6qu/fun-refactor/actions/runs/36592893805),
 spent 54 minutes in `cargo test --all-targets`. Python accounted for 18 minutes,

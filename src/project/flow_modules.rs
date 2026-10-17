@@ -26,6 +26,7 @@ pub(super) struct Modules {
     namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     pub function_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
+    pub value_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
     import_names: BTreeMap<PathBuf, BTreeMap<usize, BTreeSet<String>>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     literals: BTreeMap<PathBuf, BTreeSet<String>>,
@@ -563,6 +564,108 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
     (count <= IMPORT_LIMIT).then_some(expanded)
 }
 
+fn aliases_valid(modules: &Value, lookups: &[Value]) -> bool {
+    let mut aliases = BTreeMap::new();
+    let mut positions = BTreeSet::new();
+    for (field, kind) in [("function_aliases", "function"), ("value_aliases", "value")] {
+        let Some(items) = modules[field].as_array() else {
+            return false;
+        };
+        if items.len() + aliases.len() > IMPORT_LIMIT {
+            return false;
+        }
+        let mut previous = None;
+        for alias in items {
+            let (Some(path), Some(name), Some(target), Some(offset)) = (
+                alias["path"].as_str(),
+                alias["name"].as_str(),
+                alias["target"].as_str(),
+                alias["offset"].as_u64(),
+            ) else {
+                return false;
+            };
+            if alias.as_object().is_none_or(|item| item.len() != 4)
+                || modules["files"].get(path).is_none()
+                || !identifier(name)
+                || special_attribute(name)
+                || !identifier(target)
+                || offset >= BYTE_LIMIT as u64
+                || previous.is_some_and(|previous| previous >= (path, offset))
+                || !positions.insert((path, offset))
+                || aliases
+                    .insert((path, name), (target, offset, kind))
+                    .is_some()
+            {
+                return false;
+            }
+            previous = Some((path, offset));
+        }
+    }
+    for ((path, name), (_, _, kind)) in &aliases {
+        if lookups
+            .iter()
+            .any(|lookup| lookup["importer"] == *path && lookup["alias"] == *name)
+        {
+            return false;
+        }
+        let mut current = (*path, *name);
+        let mut seen = BTreeSet::new();
+        loop {
+            if seen.len() >= MODULE_LIMIT || !seen.insert(current) {
+                return false;
+            }
+            let (target, offset, _) = aliases[&current];
+            let next = (current.0, target);
+            if let Some((_, next_offset, next_kind)) = aliases.get(&next) {
+                if next_offset >= &offset || next_kind != kind {
+                    return false;
+                }
+                current = next;
+                continue;
+            }
+            let imported: Vec<_> = lookups
+                .iter()
+                .filter(|lookup| lookup["importer"] == current.0 && lookup["alias"] == target)
+                .collect();
+            if let [imported] = imported.as_slice() {
+                if imported["resolution"] != *kind
+                    || imported["binding_chain"]
+                        .as_array()
+                        .is_none_or(|chain| seen.len() + 1 + chain.len() > MODULE_LIMIT)
+                {
+                    return false;
+                }
+            } else if !imported.is_empty() || seen.len() + 1 > MODULE_LIMIT {
+                return false;
+            }
+            break;
+        }
+    }
+    for lookup in lookups {
+        if !matches!(lookup["resolution"].as_str(), Some("function" | "value")) {
+            continue;
+        }
+        let Some(chain) = lookup["binding_chain"].as_array() else {
+            return false;
+        };
+        for (index, hop) in chain.iter().enumerate() {
+            let (Some(path), Some(name)) = (hop["path"].as_str(), hop["name"].as_str()) else {
+                return false;
+            };
+            if let Some((target, _, kind)) = aliases.get(&(path, name)) {
+                let Some(next) = chain.get(index + 1) else {
+                    return false;
+                };
+                if lookup["resolution"] != *kind || next["path"] != path || next["name"] != *target
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 pub(super) fn value_bindings_valid(modules: &Value) -> bool {
     let Some(values) = modules["value_bindings"].as_array() else {
         return false;
@@ -570,6 +673,9 @@ pub(super) fn value_bindings_valid(modules: &Value) -> bool {
     let Some(lookups) = expanded_lookups(modules) else {
         return false;
     };
+    if !aliases_valid(modules, &lookups) {
+        return false;
+    }
     if values.len() > IMPORT_LIMIT {
         return false;
     }
@@ -782,6 +888,7 @@ impl Modules {
             namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
             function_aliases: BTreeMap::new(),
+            value_aliases: BTreeMap::new(),
             import_names: BTreeMap::new(),
             definitions: BTreeMap::new(),
             literals: BTreeMap::new(),
@@ -1313,7 +1420,13 @@ impl Modules {
         let aliases = std::mem::take(&mut result.function_aliases);
         for (file, items) in aliases {
             for (offset, name) in items {
-                if result.resolve(&file, &name).is_empty() {
+                if result.is_value(&file, &name) {
+                    result
+                        .value_aliases
+                        .entry(file.clone())
+                        .or_default()
+                        .insert(offset, name);
+                } else if result.resolve(&file, &name).is_empty() {
                     result
                         .opaque_bindings
                         .entry(file.clone())
@@ -1407,6 +1520,18 @@ impl Modules {
                 })
             })
             .collect();
+        let value_aliases: Vec<_> = result
+            .value_aliases
+            .iter()
+            .flat_map(|(file, aliases)| {
+                aliases.iter().map(move |(offset, name)| {
+                    json!({
+                        "path":file.strip_prefix(&project.root).unwrap(), "name":name,
+                        "target":alias_bindings[file][name].member, "offset":offset
+                    })
+                })
+            })
+            .collect();
         let mut compact: Vec<Value> = Vec::new();
         let mut anchors: BTreeMap<usize, usize> = BTreeMap::new();
         for (index, mut lookup) in lookups.into_iter().enumerate() {
@@ -1440,6 +1565,7 @@ impl Modules {
         }
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
             "function_aliases":aliases,
+            "value_aliases":value_aliases,
             "value_bindings":value_bindings,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
             "policy":POLICY,

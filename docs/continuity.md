@@ -92,9 +92,9 @@ Built-in names must still refer to their original objects or an earlier checked 
 The [default example](python-contract.md#store-a-function-as-a-default-without-calling-it) introduces the two-file case and its commands.
 Calling a function with these function or object defaults remains unfinished, including calls with replacement arguments.
 Replay full packages after further changes; fewer unchecked statements alone do not establish complete package support.
-The new replay removes ten unchecked Toolz declarations, including nine `factory=dict` defaults.
-For the original identity-helper question, Toolz falls from 92 to 82 unchecked statements across the same loaded source files.
-Funcy stays at 98 and Pydash at 461 for their separate identity-helper questions.
+That replay removed ten unchecked Toolz declarations, including nine `factory=dict` defaults.
+For the original identity-helper question, Toolz fell from 92 to 82 unchecked statements across the same loaded source files.
+At that stage, Funcy stayed at 98 and Pydash at 461 for their separate identity-helper questions.
 The full-package answers remain unfinished; the [library results](python-repository-flow.md) keep those counts separate from `inc` and `add`.
 
 Flat assignments can now give several existing functions new names without calling them.
@@ -105,11 +105,11 @@ The [two-file lesson](python-contract.md#save-several-helper-names-in-one-assign
 shows a complete trace, a helper swap that removes the input connection and a mismatched assignment that fails in Python.
 Each destination must be a new name using ordinary ASCII characters, such as `forwarded`.
 The names and values must form fixed, flat pairs, such as `forwarded, stopped = relay, discard`.
-The existing limits stay in place: 128 parsed syntax elements per assignment and 128 function aliases per analysis.
+The existing limits stay in place: 128 parsed syntax elements per assignment and 128 shared value/function alias slots per analysis.
 Syntax elements include names, strings and surrounding expression structure; this is not a line count.
 Reusing an existing destination, nesting a pattern or unpacking an arbitrary iterable remains unchecked.
-The fresh replay reduces Funcy's original identity-helper query from 98 unchecked startup statements to 94.
-In `funcy/seqs.py`, the count falls from 22 to 18. Toolz stays at 82 and Pydash at 461 for their original identity-helper questions.
+That replay reduced Funcy's original identity-helper query from 98 unchecked startup statements to 94.
+In `funcy/seqs.py`, the count fell from 22 to 18. Toolz stayed at 82 and Pydash at 461 for their original identity-helper questions.
 The full-package answers still cannot finish; see the [library results](python-repository-flow.md) for the separate helper questions and remaining limits.
 Continue from the remaining assignments in `seqs.py` and Toolz's calls that execute while modules load.
 Their behavior needs separate investigation; this rule only stores already checked functions and values.
@@ -121,6 +121,12 @@ The [three-file lesson](python-contract.md#share-a-default-value-between-files) 
 It also shows why a list default or an import placed after the function definition leaves the answer incomplete.
 This support follows checked local imports; it does not evaluate arbitrary shared objects or ordinary global reads in function bodies.
 
+Checked settings can also have another name before they supply a default.
+For example, `BASE = 0; LIMIT = BASE` keeps the original scalar, including when another file imports `LIMIT` and gives it a new name.
+The [complete alias lesson](python-contract.md#give-a-shared-setting-another-name) introduces the terms and compares omitted arguments, supplied input, lists and missing earlier names.
+An alias preserves the original kind and declaration; it does not add calls through objects or reads of global values in function bodies.
+Unknown native imports still prevent a complete answer. In particular, another name for an unresolved imported object does not resolve its behavior.
+
 Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
 Link detailed test inventories and failure history from the short description.
 
@@ -130,10 +136,10 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-16-shared-defaults-python-contract/manifest.json)
-covers 436 programs and 872 original or renamed cases, including defaults shared between files, flat assignments and import order.
-It preserves 338 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-value-aliases-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-17-value-aliases-python-contract/manifest.json)
+covers 448 programs and 896 original or renamed cases, including value aliases, shared defaults, flat assignments and import order.
+It preserves 344 incomplete cases, 18 refusals and 130 documented differences between model and runtime observations.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 The earlier [collector receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
 preserves the 818-case comparison after saving each new result without repeatedly rewriting earlier cases.

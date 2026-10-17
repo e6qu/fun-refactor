@@ -63,16 +63,47 @@ def test_tool_style_declarations_do_not_change_a_helper_transfer(tmp_path, impor
 
 
 @pytest.mark.parametrize("imports", [False, True])
+@pytest.mark.parametrize("prefix,kind", [
+    ("sorted = 0\nstored = sorted\n", "literal"),
+    ("sorted = []\nstored = sorted\n", "literal"),
+    ("class sorted:\n    pass\nstored = sorted\n", "class"),
+])
+def test_unused_aliases_preserve_values_named_like_builtins(tmp_path, imports, prefix, kind):
+    client, rules = install(tmp_path, prefix, imports)
+    result = analyze(client, rules, "entry", imports=imports)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses and not result.initialization.sites
+    assert observe(tmp_path) == {"result": 17, "raised": None,
+                                "events": [["source", 17], ["sink", 17]]}
+    if imports:
+        assert not result.dependencies.function_aliases
+        alias, = result.dependencies.value_aliases
+        assert (alias.path, alias.name, alias.target) == ("helpers.py", "stored", "sorted")
+        assert not result.dependencies.value_bindings
+        subject = tmp_path / "subject.py"
+        subject.write_text("from helpers import stored\n" + subject.read_text())
+        result = analyze(client, rules, "entry", imports=True)
+        assert result.report.at("/complete"), result.report.at("/cutoffs")
+        assert result.witnesses and not result.initialization.sites
+        original, = result.dependencies.value_bindings
+        assert (original.path, original.name, original.kind) == ("helpers.py", "sorted", kind)
+        lookup = next(item for item in result.dependencies.lookups if item.alias == "stored")
+        assert lookup.resolution == "value"
+        assert [(hop.path, hop.name) for hop in lookup.binding_chain] == [
+            ("helpers.py", "stored"), ("helpers.py", "sorted")]
+        assert observe(tmp_path)["result"] == 17
+
+
+@pytest.mark.parametrize("imports", [False, True])
 @pytest.mark.parametrize("prefix", [
-    "sorted = 0\nstored = sorted\n", "sorted = []\nstored = sorted\n",
-    "class sorted:\n    pass\nstored = sorted\n", "stored = missing\n",
+    "stored = missing\n",
     "stored = help\n", "stored = quit\n", "stored = sorted(())\n",
     "stored = (sorted)\n", "stored: object = sorted\n", "stored = other = sorted\n",
     "__custom__ = sorted\n", "sorted = sorted\nsorted = sorted\n",
     "stored = sorted\nstored = 0\n", "stored = sorted\ndef stored(value):\n    return 0\n",
     "stored = sorted\nstored.attribute = source()\n", "stored = sorted\ndel stored\n",
 ])
-def test_other_objects_effects_and_rebindings_leave_initialization_unchecked(tmp_path, imports, prefix):
+def test_unknown_values_effects_and_rebindings_leave_initialization_unchecked(tmp_path, imports, prefix):
     client, rules = install(tmp_path, prefix, imports)
     result = analyze(client, rules, "entry", imports=imports)
     assert not result.report.at("/complete")
@@ -112,11 +143,26 @@ def test_a_prior_local_function_named_like_a_builtin_keeps_its_own_behavior(tmp_
     assert observe(tmp_path)["result"] == 0
 
 
-def test_imported_values_are_not_guessed_from_a_builtin_spelling(tmp_path):
+def test_imported_value_preserves_its_original_declaration(tmp_path):
     client, rules = install(tmp_path, "from other import sorted\nstored = sorted\n", True)
     (tmp_path / "other.py").write_text("sorted = 0\n")
     result = analyze(client, rules, "entry", imports=True)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses and not result.initialization.sites
+    lookup = next(item for item in result.dependencies.lookups
+                  if item.importer == "helpers.py" and item.alias == "sorted")
+    assert lookup.resolution == "value"
+    assert [(hop.path, hop.name) for hop in lookup.binding_chain] == [("other.py", "sorted")]
+    assert not result.dependencies.function_aliases
+    assert observe(tmp_path)["result"] == 17
+
+
+def test_unknown_import_named_like_a_builtin_stays_incomplete(tmp_path):
+    client, rules = install(tmp_path, "from other import sorted\nstored = sorted\n", True)
+    (tmp_path / "other.py").write_text("from itertools import chain as sorted\n")
+    result = analyze(client, rules, "entry", imports=True)
     assert not result.report.at("/complete") and result.initialization.sites
+    assert not result.dependencies.value_aliases
     assert observe(tmp_path)["result"] == 17
 
 

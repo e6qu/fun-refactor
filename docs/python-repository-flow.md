@@ -125,7 +125,7 @@ retain full source inventories and upstream licenses. The
 
 The fixed-slot correction uses `python-scalar-summaries`. It admits unused, unannotated
 variadic declarations only for calls that bind fixed slots. Referenced variadic values and extra
-arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-16-shared-defaults-fixed-arity-probes/result.json)
+arguments remain incomplete. The [current regression collection](../tests/agent-eval/results/2026-10-17-value-aliases-fixed-arity-probes/result.json)
 replays these thirty already-seen cells and requires each upstream identity helper to enter the
 summary solver. Pydash's parameter rejection disappears. All 24 emitted reports remain incomplete,
 and the six deliberate CLI refusals remain refusals. The remaining import and initialization
@@ -199,7 +199,7 @@ All values on the right are read before any new name on the left is written.
 The [two-file lesson](python-contract.md#save-several-helper-names-in-one-assignment) explains the rule and shows why swapping the stored helpers can change an input trace.
 
 An identity helper returns its input unchanged. For the three original identity-helper questions,
-the current reports expose these groups of unchecked statements:
+that replay exposed these groups of unchecked statements:
 
 | Library | Total unchecked statements in loaded files | Example loaded file | Unchecked statements in that file |
 | --- | ---: | --- | ---: |
@@ -229,6 +229,13 @@ For example, a helper can import `LIMIT = 0` from a settings file and store it i
 The [three-file lesson](python-contract.md#share-a-default-value-between-files) explains that capture and its limits before showing the commands.
 The replay keeps the same completion totals in both tables above.
 This general rule helps the new small programs; it does not finish these libraries' remaining startup operations and imports.
+
+The [value-alias replay](../tests/agent-eval/results/2026-10-17-value-aliases-fixed-arity-probes/result.json)
+keeps the same completion totals in both tables after allowing checked values to have another name.
+For example, `BASE = 0; LIMIT = BASE` can now supply a scalar default across files.
+The [complete lesson](python-contract.md#give-a-shared-setting-another-name) introduces aliases before showing the files and commands.
+The remaining `concat = chain` in Funcy reads an imported native object whose behavior is still unresolved here.
+`cat = chain.from_iterable` also needs attribute access checked. Those operations remain separate work.
 
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and

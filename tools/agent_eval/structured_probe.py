@@ -213,7 +213,8 @@ def environment(root, endpoint):
                     "command": [sys.executable, "-B", str(Path(__file__).parents[1] / "check-native-submission.py"),
                                 "serve", str(root / "tools.jsonl")]}})
     # Empty XDG roots keep the scripted probe away from configured providers and credentials.
-    env = {k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "SYSTEMROOT", "LD_LIBRARY_PATH"}}
+    env = {k: v for k, v in os.environ.items() if k in {
+        "PATH", "TMPDIR", "LANG", "SYSTEMROOT", "LD_LIBRARY_PATH", "OPENCODE_MODELS_PATH"}}
     for name in ("CONFIG", "CACHE", "DATA", "STATE"):
         env[f"XDG_{name}_HOME"] = str(root / name.lower())
     env.update(OPENCODE_CONFIG_CONTENT=json.dumps(config), OPENCODE_CONFIG_DIR=str(root / "config"),

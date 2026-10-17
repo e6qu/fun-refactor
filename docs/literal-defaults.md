@@ -36,6 +36,9 @@ Python captures the scalar when it defines the function. The [worked example](py
 shows omitted and explicit arguments, import support and the remaining binding limits.
 The [shared-default lesson](python-contract.md#share-a-default-value-between-files) supplies all three files for `from settings import LIMIT` followed by `def choose(value=LIMIT): ...`.
 It explains how the default captures an earlier scalar and how changing that scalar into a list keeps calls incomplete.
+An earlier checked scalar can also have another name, as in `BASE = 0; LIMIT = BASE`.
+The [alias lesson](python-contract.md#give-a-shared-setting-another-name) follows that value across three files and shows which changes invalidate the answer.
+Aliasing a list or object keeps its original kind; it does not make calls using that default supported.
 
 The analysis leaves calls incomplete for defaults such as `value=[]`, `value=(0,)`, `value=lambda: 0`,
 `value=f'{name}'` or `value=make_default()`.
@@ -79,7 +82,7 @@ The response byte limit includes signature details; leaving out results keeps th
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
 resumption in a new process, independent patch replay and exact reversal. The
-[retained run](../tests/agent-eval/results/2026-10-16-shared-defaults-literal-defaults/result.json) passes those
+[retained run](../tests/agent-eval/results/2026-10-17-value-aliases-literal-defaults/result.json) passes those
 checks and binds the current source. The baseline records the installed local binary separately from
 the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results

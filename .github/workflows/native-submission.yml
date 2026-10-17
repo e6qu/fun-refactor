@@ -14,12 +14,16 @@ jobs:
     name: Scripted OpenCode submissions
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      OPENCODE_MODELS_PATH: ${{ github.workspace }}/tests/agent-eval/opencode/catalog/2026-10-07/catalog.json
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Verify the small model catalog before starting the client
+        run: python3 -B tests/agent-eval/opencode/catalog/prepare.py check
       - name: Install the pinned client
         run: |
           mkdir -p target/opencode

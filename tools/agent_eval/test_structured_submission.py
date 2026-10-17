@@ -1,11 +1,15 @@
 """Offline adversarial controls for terminal native submissions."""
 import base64
 import copy
+import hashlib
 import io
+import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -37,6 +41,44 @@ def capture_fixture(root):
 
 
 class Replay(unittest.TestCase):
+    def test_scripted_client_receives_the_selected_catalog_without_provider_credentials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            catalog = str(Path(temporary) / "catalog.json")
+            supplied = {"OPENCODE_MODELS_PATH": catalog, "OPENAI_API_KEY": "must-not-reach-the-child"}
+            with patch.dict(os.environ, supplied, clear=True):
+                env = probe.environment(Path(temporary), "http://127.0.0.1:1/v1")
+                self.assertEqual(dict(os.environ), supplied)
+            self.assertEqual(env["OPENCODE_MODELS_PATH"], catalog)
+            self.assertNotIn("OPENAI_API_KEY", env)
+            self.assertEqual(env["OPENCODE_DISABLE_MODELS_FETCH"], "1")
+            with patch.dict(os.environ, {}, clear=True):
+                self.assertNotIn("OPENCODE_MODELS_PATH", probe.environment(Path(temporary), "http://127.0.0.1:1/v1"))
+
+    def test_retained_collection_memory_stop_keeps_partial_work_and_the_stop_rule(self):
+        root = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/memory/2026-10-17-scripted-limit"
+        manifest = json.loads((root / "manifest.json").read_bytes())
+        archive = root / "ci-artifact.zip"
+        self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), manifest["artifact_sha256"])
+        with zipfile.ZipFile(archive) as saved:
+            prefix = "review-collection/stop-after-two/"
+            result = json.loads(saved.read(prefix + "result.json"))["report"]
+            first, second, unstarted = result["attempts"]
+            self.assertEqual(first["status"], "failed")
+            process = first["process"]
+            self.assertEqual(process["stop_reason"], "rss_bytes")
+            self.assertFalse(process["timed_out"])
+            self.assertEqual(process["limits"]["rss_bytes"], 768 * 1024**2)
+            self.assertGreater(process["sampled_aggregate_rss_bytes"], process["limits"]["rss_bytes"])
+            self.assertEqual(first["observed"]["usage"]["finished_steps"], 1)
+            self.assertEqual(first["observed"]["host_calls"], 1)
+            events = [json.loads(line) for line in saved.read(prefix + "attempts/value-review-0/events.jsonl").splitlines()]
+            finishes = {event["properties"]["part"]["id"] for event in events
+                        if event["type"] == "message.part.updated"
+                        and event["properties"]["part"]["type"] == "step-finish"}
+            self.assertEqual(len(finishes), first["observed"]["usage"]["finished_steps"])
+            self.assertEqual(second["failure"], "failed assistant response")
+            self.assertEqual(unstarted["status"], "not_started")
+
     def test_loopback_provider_startup_does_not_resolve_hostnames(self):
         with tempfile.TemporaryDirectory() as temporary:
             with patch("socket.getfqdn", side_effect=AssertionError("unexpected DNS lookup")):
