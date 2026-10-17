@@ -38,6 +38,7 @@ Read the [numeric investigation](python-symbolic-investigation.md) before choosi
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
 It also shows names the checker cannot resolve and code left unchecked during import.
 It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.
+
 Ordinary tests and symbolic execution found the same missing input assumption for Pydash's quantity limits.
 Its original-package trace still reaches the source limit and leaves startup operations unchecked; the copied-function trace finishes.
 Use the simpler tests for this question. The experiment adds no analyzer support and cannot establish agent savings.

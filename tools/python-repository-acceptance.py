@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 import hashlib
 import json
@@ -54,6 +55,23 @@ def save(path, value):
     text = json.dumps(value, indent=2, sort_keys=True) + '\n'
     assert len(text.encode()) <= TASKS['budgets']['report_bytes'], 'retained report exceeds the declared byte budget'
     path.write_text(text)
+
+
+def save_task_record(name, output, record):
+    limit = TASKS['budgets']['task_seconds']
+    if record['seconds'] <= limit:
+        save(output / 'result.json', record)
+        return
+    save(output / 'budget-failure.json', {
+        'passed': False, 'error': 'task-time-budget', 'task': name,
+        'seconds': record['seconds'], 'limit_seconds': limit,
+        'original_upstream': record['original_upstream'],
+    })
+    raise AssertionError(f'{name} took {record["seconds"]:.2f}s; task budget is {limit}s')
+
+
+def upstream_command(task):
+    return [sys.executable, '-B', '-m', 'pytest', '-q', '--durations=10', task['upstream_tests']]
 
 
 def run(argv, cwd, check=True):
@@ -162,7 +180,7 @@ def configuration(root, name, task):
          'identity_files': ['.fr/oracle.py'], 'covers': ['Parse original, changed, reversed and redone sources']},
         {'name': 'behavior', 'argv': base, 'cwd': '.', 'timeout_seconds': 30,
          'identity_files': ['.fr/oracle.py'], 'covers': [task['oracle']]},
-        {'name': 'upstream', 'argv': [sys.executable, '-B', '-m', 'pytest', '-q', task['upstream_tests']],
+        {'name': 'upstream', 'argv': upstream_command(task),
          'cwd': '.', 'timeout_seconds': 120, 'covers': [task['upstream_tests']]},
     ]})
     run(['git', 'init', '-q'], root)
@@ -201,13 +219,16 @@ def flow_probe(client, selected, root):
 
 def measure_task(binary, name, task, output):
     start = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix='fr-upstream-task-') as temporary:
+    with (
+        tempfile.TemporaryDirectory(prefix='fr-upstream-task-') as temporary,
+        ThreadPoolExecutor(max_workers=1) as upstream_checks,
+    ):
         root = Path(temporary) / 'project'
         unpack(task, root)
         configuration(root, name, task)
         baseline = oracle(root, name)
         assert not baseline['passed']
-        original_tests = run([sys.executable, '-B', '-m', 'pytest', '-q', task['upstream_tests']], root)
+        original_tests_pending = upstream_checks.submit(run, upstream_command(task), root)
         client = FrClient(root, executable=str(binary), timeout=120, max_output_bytes=2_097_152)
         symbol = 'singularize' if task['kind'] == 'bug' else 'take'
         selected, discovery = find(client, symbol)
@@ -283,6 +304,8 @@ def measure_task(binary, name, task, output):
         assert stale_review.at('/ready')
         # Rediscover because configuration/analysis inputs may have changed the project revision.
         dependent, _ = find(client, dependent['name'], dependent['path'])
+        # The original-source suite overlaps read-only discovery, then finishes before any source edit.
+        original_tests = original_tests_pending.result()
         perturb(root, dependent, replacement)
         interrupted_sources = {p: (root / p).read_text() for p in paths}
         reopened = json.loads(run([sys.executable, '-B', str(Path(__file__).resolve()), '--reopen',
@@ -321,8 +344,7 @@ def measure_task(binary, name, task, output):
             'receipt_root': delivered.receipt_root, 'initial_plan_root': plan_root, 'final_plan_root': final_root,
             'complete': final.complete, 'oracle': accepted, 'patch': patch,
             'seconds': time.monotonic() - start}
-        assert record['seconds'] <= TASKS['budgets']['task_seconds']
-        save(output / 'result.json', record)
+        save_task_record(name, output, record)
         return record
 
 

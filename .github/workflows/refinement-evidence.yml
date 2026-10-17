@@ -1028,6 +1028,8 @@ jobs:
           key: default
           cache-on-failure: true
       - run: cargo build --locked
+      - name: Check archive, behavior and task-budget refusals
+        run: python3 tests/agent-eval/test_python_repository_acceptance.py
       - name: Execute pinned upstream tasks and independent replay
         run: python3 tools/python-repository-acceptance.py --output "$RUNNER_TEMP/roadmap-evidence"
       - name: Prepare fresh repository records and tracking pages together
