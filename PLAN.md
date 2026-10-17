@@ -70,6 +70,8 @@ reject missing or old data without adding compatibility readers or migration fal
 ## Next large chunk
 
 Choose work by a useful question that we can answer from beginning to end.
+For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
+Separate selected files that were not analyzed from unchecked bindings and code run during imports before choosing a language change.
 The [numeric investigation](docs/python-symbolic-investigation.md) checked whether Pydash keeps a quantity between user-supplied limits.
 Ordinary tests and an existing symbolic execution tool found the same missing assumption: the caller must order the limits.
 Symbolic execution searches for inputs satisfying conditions in the code. This example does not justify building another execution engine inside `fr`.
