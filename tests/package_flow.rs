@@ -315,7 +315,9 @@ fn unused_builtin_references_preserve_helpers_without_admitting_calls_or_shadows
     assert_eq!(shadowed["witnesses"], json!([]));
     assert_eq!(shadowed["initialization"]["sites"], json!([]));
     assert_eq!(shadowed["inputs"]["modules"]["function_aliases"], json!([]));
-    let aliases = shadowed["inputs"]["modules"]["value_aliases"].as_array().unwrap();
+    let aliases = shadowed["inputs"]["modules"]["value_aliases"]
+        .as_array()
+        .unwrap();
     assert_eq!(aliases.len(), 1);
     assert_eq!(aliases[0]["name"], "public");
     assert_eq!(aliases[0]["target"], "sorted");
