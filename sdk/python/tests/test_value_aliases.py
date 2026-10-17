@@ -196,3 +196,32 @@ def test_value_alias_evidence_is_required_and_consistent_even_after_rehashing(tm
         with pytest.raises(FrRuntimeError):
             client.project('dataflow', handle, '--summaries', '--imports', '--rules', str(rules),
                            '--reuse', str(retained), '--steps', '4096', '--bytes', '1048576')
+
+
+@pytest.mark.parametrize('imports', [False, True])
+@pytest.mark.parametrize('body,raised', [
+    ('return sink(saved)', None),
+    ('return sink(saved(source()))', 'TypeError'),
+    ('return sink(saved.attribute)', 'AttributeError'),
+])
+def test_aliases_do_not_add_global_reads_calls_or_attributes(tmp_path, imports, body, raised):
+    client, rules = workspace(tmp_path)
+    setup = 'base = 0\nsaved = base\n'
+    if imports:
+        (tmp_path / 'helpers.py').write_text(setup)
+        setup = 'from helpers import saved\n'
+    (tmp_path / 'subject.py').write_text(setup + f'def entry():\n    {body}\n')
+    assert not analyze(client, rules, 'entry', imports=imports).report.at('/complete')
+    assert observe(tmp_path)['raised'] == raised
+
+
+def test_aliasing_an_unknown_native_import_does_not_guess_its_behavior(tmp_path):
+    client, rules = workspace(tmp_path)
+    (tmp_path / 'subject.py').write_text('from itertools import chain\nsaved = chain\n'
+                                       'def entry():\n    return sink(source())\n')
+    result = analyze(client, rules, 'entry', imports=True)
+    assert not result.report.at('/complete')
+    assert any('unresolved' in cutoff for cutoff in result.report.at('/cutoffs'))
+    assert not result.dependencies.value_aliases
+    assert result.initialization.sites
+    assert observe(tmp_path)['result'] == 17

@@ -311,11 +311,14 @@ fn unused_builtin_references_preserve_helpers_without_admitting_calls_or_shadows
         "sorted = 0\npublic = sorted\ndef relay(value):\n    return 0\n",
     );
     let shadowed = analyze(root.path(), "entry");
-    assert_eq!(shadowed["complete"], false);
-    assert!(!shadowed["initialization"]["sites"]
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert_eq!(shadowed["complete"], true, "{}", shadowed["cutoffs"]);
+    assert_eq!(shadowed["witnesses"], json!([]));
+    assert_eq!(shadowed["initialization"]["sites"], json!([]));
+    assert_eq!(shadowed["inputs"]["modules"]["function_aliases"], json!([]));
+    let aliases = shadowed["inputs"]["modules"]["value_aliases"].as_array().unwrap();
+    assert_eq!(aliases.len(), 1);
+    assert_eq!(aliases[0]["name"], "public");
+    assert_eq!(aliases[0]["target"], "sorted");
     write(
         root.path(),
         "helpers.py",
@@ -1325,7 +1328,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-shared-defaults-package-flow/result.json",
+            "tests/agent-eval/results/2026-10-17-value-aliases-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -1387,7 +1390,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-shared-defaults-package-reexports/result.json",
+            "tests/agent-eval/results/2026-10-17-value-aliases-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -1444,7 +1447,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-16-shared-defaults-module-aliases/result.json",
+            "tests/agent-eval/results/2026-10-17-value-aliases-module-aliases/result.json",
         ])
         .output()
         .unwrap();
