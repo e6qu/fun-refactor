@@ -1216,3 +1216,34 @@ for an active audit; a newer push can still replace older work.
 
 The [call-binding guide](call-binding.md) keeps the built-in-name clarification outside the source-bound Python guide.
 These changes address the recorded failures. They do not establish whole-package support or general agent savings.
+
+### Replace a stored default with a supplied value
+
+A helper can now receive an explicit value while leaving its checked object default unused.
+For example, after `stored = []`, `choose(read_input())` can pass the input through `def choose(value=stored): return value`.
+Calling `choose()` still leaves consuming the stored list unchecked.
+The [complete lesson](replace-python-defaults.md) supplies the files and compares both calls with Python execution.
+This closes an argument-checking gap; package startup and calls through supplied functions remain separate work.
+
+The [first focused check](https://github.com/e6qu/fun-refactor/actions/runs/39051542846) found older expectations that rejected explicit object replacements.
+It also found a mistaken new assertion: that example returned the input, but sent only zero to the configured output.
+The corrected assertion checks no input-to-output connection and compares the exact Python events.
+The omitted-object controls remain in place.
+
+The [next focused check](https://github.com/e6qu/fun-refactor/actions/runs/39052096575) found that expanded mandatory rule text exceeded an existing 8 KiB report budget.
+The corrected descriptions remove repeated wording while keeping every field and the original byte limit.
+The [corrected focused run](https://github.com/e6qu/fun-refactor/actions/runs/39053130954) passed 70 native checks and 2,032 Python interface cases.
+The unchanged output-budget cases also ran first and passed. The job kept its fifteen-minute deadline.
+
+A [documentation check](https://github.com/e6qu/fun-refactor/actions/runs/39052366220) still expected an explicit replacement to remain incomplete.
+It stopped before report collection began. The [original log and receipt](../tests/agent-eval/results/2026-10-17-default-replacements-reader-failure/failure.json) preserve that unsuccessful attempt.
+The corrected example keeps both the supported replacement and the unfinished omitted-default case.
+
+The [following collection](https://github.com/e6qu/fun-refactor/actions/runs/39053350792) passed all examples and 56 altered-record checks, then exceeded its fifteen-minute job deadline during cleanup.
+Its audit took 112.208 seconds within the existing 120-second limit.
+The [original archive and log](../tests/agent-eval/results/2026-10-17-default-replacements-deadline/failure.json) remain historical; the cancelled job cannot qualify as a successful collection.
+Two independent interface-test groups had run serially for 202.60 and 149.53 seconds before report collection and auditing.
+The corrected [runner](../tools/python-contract-runner.py) overlaps interface checks with collection, then requires both to pass before auditing.
+The five failure controls check that either worker's error fails the job and that both errors remain available.
+Job and audit deadlines remain unchanged. These timings describe CI scheduling.
+Language-analysis overhead and complete agent costs remain unmeasured.

@@ -97,7 +97,7 @@
       "id": "python-contract",
       "path": "tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 448 authored programs and 896 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "scope": "14 declared Python rules; 458 authored programs and 916 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-17-value-aliases-python-contract/result.json",
       "sha256": "c44389e2a0e36eded8356f95cb073afccf9a175cd1b5b8a0bc4b64a3694828e2"
     },
@@ -254,15 +254,15 @@
             },
             {
               "pointer": "/summary/examples",
-              "equals": 448
+              "equals": 458
             },
             {
               "pointer": "/summary/cases",
-              "equals": 896
+              "equals": 916
             },
             {
               "pointer": "/summary/renamed_relocated_cases",
-              "equals": 448
+              "equals": 458
             },
             {
               "pointer": "/summary/incomplete_cases",
@@ -274,7 +274,7 @@
             },
             {
               "pointer": "/summary/documented_difference_cases",
-              "equals": 130
+              "equals": 126
             }
           ]
         }
