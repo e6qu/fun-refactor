@@ -129,14 +129,17 @@ A syntax node represents a piece of parsed code, such as a call, name or literal
 It accepts supported dictionary writes, `pass`, and an optional final `return` or `return None`.
 At least one dictionary write must occur.
 Keys and stored values follow the [callback-table rules](python-contract.md#prepare-a-callback-table-without-calling-its-entries).
-The dictionary and function need fresh ordinary ASCII names, with no earlier binding under those names.
+Use fresh names such as `table` and `register`, with basic English letters, digits and underscores.
+Neither name can already belong to something else in the file.
 
 The checker rechecks dictionary ownership and built-in names at each call.
-An intervening import, unknown call or escaping alias discards that checked connection.
-The existing saved-answer cache records the source files and import lookups; changing them requires another check.
-This does not add a separately stored startup certificate or divide a large import into smaller analyses.
+An intervening import, unknown call or assignment giving either object another name discards that checked connection.
+The existing saved-answer cache records the files read and the places searched for imports; changing them requires another check.
+Startup checks remain part of one analysis; they cannot yet be saved and reused on their own.
 
-Imported shared dictionaries, helper replacement, nested calls, loops, conditions, decorators, asynchronous functions and calls with arguments stay unfinished.
+Imported shared dictionaries, helper replacement, nested calls, loops, conditions and calls with arguments stay unfinished.
+So do functions using an `@` decorator or declared with `async def`.
+A decorator can replace a function while Python defines it; an asynchronous function needs a caller that awaits its work.
 Reading dictionary contents or calling stored callbacks remains outside this rule.
 All file, source-size, execution and time limits remain unchanged.
 Toolz's actual registration function includes loops, imported introspection and computed values, so this first step cannot finish its package analysis.
