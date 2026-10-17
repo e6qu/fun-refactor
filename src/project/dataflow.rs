@@ -912,10 +912,7 @@ impl Project<'_> {
                                     })
                                     .or_else(|| {
                                         if let Some(modules) = &modules {
-                                            modules
-                                                .value_aliases
-                                                .get(file)?
-                                                .get(&offset)?;
+                                            modules.value_aliases.get(file)?.get(&offset)?;
                                             Some(ParallelValue::Value(
                                                 modules.is_scalar_value(file, name),
                                                 0,
@@ -929,9 +926,12 @@ impl Project<'_> {
                                                 && !functions.contains_key(target)
                                                 && !function_aliases.contains_key(target)
                                                 && depth < 15)
-                                                .then(|| ParallelValue::Value(
-                                                    default_scalars.contains(target), depth + 1,
-                                                ))
+                                                .then(|| {
+                                                    ParallelValue::Value(
+                                                        default_scalars.contains(target),
+                                                        depth + 1,
+                                                    )
+                                                })
                                         }
                                     })
                             })
@@ -942,7 +942,11 @@ impl Project<'_> {
                                     + values
                                         .iter()
                                         .filter(|value| {
-                                            matches!(value, ParallelValue::Function(..) | ParallelValue::Value(..))
+                                            matches!(
+                                                value,
+                                                ParallelValue::Function(..)
+                                                    | ParallelValue::Value(..)
+                                            )
                                         })
                                         .count()
                                     + value_alias_count
@@ -962,7 +966,11 @@ impl Project<'_> {
                                     }
                                 } else {
                                     literal_bindings.insert(binding.clone());
-                                    if matches!(value, ParallelValue::Literal(true) | ParallelValue::Value(true, _)) {
+                                    if matches!(
+                                        value,
+                                        ParallelValue::Literal(true)
+                                            | ParallelValue::Value(true, _)
+                                    ) {
                                         default_scalars.insert(name.to_owned());
                                     }
                                     if let ParallelValue::Value(_, depth) = value {
@@ -1019,7 +1027,9 @@ impl Project<'_> {
                             })
                         };
                         if let Some((target, depth)) = alias.filter(|(_, depth)| {
-                            *depth < 15 && (modules.is_some() || function_aliases.len() + value_alias_count < 128)
+                            *depth < 15
+                                && (modules.is_some()
+                                    || function_aliases.len() + value_alias_count < 128)
                         }) {
                             classes.remove(name);
                             documentable.remove(name);
@@ -1046,13 +1056,19 @@ impl Project<'_> {
                         }
                         let depth = value_alias_depths.get(target).copied().unwrap_or(0);
                         let value = modules.as_ref().map_or_else(
-                            || default_values.contains(target)
-                                && !functions.contains_key(target)
-                                && !function_aliases.contains_key(target)
-                                && depth < 15
-                                && function_aliases.len() + value_alias_count < 128,
-                            |modules| modules.value_aliases.get(file)
-                                .is_some_and(|aliases| aliases.contains_key(&node.start_byte())),
+                            || {
+                                default_values.contains(target)
+                                    && !functions.contains_key(target)
+                                    && !function_aliases.contains_key(target)
+                                    && depth < 15
+                                    && function_aliases.len() + value_alias_count < 128
+                            },
+                            |modules| {
+                                modules
+                                    .value_aliases
+                                    .get(file)
+                                    .is_some_and(|aliases| aliases.contains_key(&node.start_byte()))
+                            },
                         );
                         if value {
                             let scalar = modules.as_ref().map_or_else(
@@ -1064,7 +1080,12 @@ impl Project<'_> {
                             default_values.remove(name);
                             default_scalars.remove(name);
                             if !bound_names.insert(name) {
-                                initialization.record(self, file, node, vec!["binding-collision"])?;
+                                initialization.record(
+                                    self,
+                                    file,
+                                    node,
+                                    vec!["binding-collision"],
+                                )?;
                             } else {
                                 default_values.insert(name.to_owned());
                                 if scalar {
@@ -1076,7 +1097,8 @@ impl Project<'_> {
                                 }
                             }
                             let binding = modules.as_ref().map_or_else(
-                                || name.to_owned(), |modules| modules.function_name(file, name),
+                                || name.to_owned(),
+                                |modules| modules.function_name(file, name),
                             );
                             literal_bindings.insert(binding.clone());
                             inert_bindings.insert(binding);

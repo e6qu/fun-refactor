@@ -577,18 +577,24 @@ fn aliases_valid(modules: &Value, lookups: &[Value]) -> bool {
         let mut previous = None;
         for alias in items {
             let (Some(path), Some(name), Some(target), Some(offset)) = (
-                alias["path"].as_str(), alias["name"].as_str(),
-                alias["target"].as_str(), alias["offset"].as_u64(),
+                alias["path"].as_str(),
+                alias["name"].as_str(),
+                alias["target"].as_str(),
+                alias["offset"].as_u64(),
             ) else {
                 return false;
             };
             if alias.as_object().is_none_or(|item| item.len() != 4)
                 || modules["files"].get(path).is_none()
-                || !identifier(name) || special_attribute(name) || !identifier(target)
+                || !identifier(name)
+                || special_attribute(name)
+                || !identifier(target)
                 || offset >= BYTE_LIMIT as u64
                 || previous.is_some_and(|previous| previous >= (path, offset))
                 || !positions.insert((path, offset))
-                || aliases.insert((path, name), (target, offset, kind)).is_some()
+                || aliases
+                    .insert((path, name), (target, offset, kind))
+                    .is_some()
             {
                 return false;
             }
@@ -596,7 +602,10 @@ fn aliases_valid(modules: &Value, lookups: &[Value]) -> bool {
         }
     }
     for ((path, name), (_, _, kind)) in &aliases {
-        if lookups.iter().any(|lookup| lookup["importer"] == *path && lookup["alias"] == *name) {
+        if lookups
+            .iter()
+            .any(|lookup| lookup["importer"] == *path && lookup["alias"] == *name)
+        {
             return false;
         }
         let mut current = (*path, *name);
@@ -614,12 +623,15 @@ fn aliases_valid(modules: &Value, lookups: &[Value]) -> bool {
                 current = next;
                 continue;
             }
-            let imported: Vec<_> = lookups.iter().filter(|lookup| {
-                lookup["importer"] == current.0 && lookup["alias"] == target
-            }).collect();
+            let imported: Vec<_> = lookups
+                .iter()
+                .filter(|lookup| lookup["importer"] == current.0 && lookup["alias"] == target)
+                .collect();
             if let [imported] = imported.as_slice() {
                 if imported["resolution"] != *kind
-                    || imported["binding_chain"].as_array().is_none_or(|chain| seen.len() + 1 + chain.len() > MODULE_LIMIT)
+                    || imported["binding_chain"]
+                        .as_array()
+                        .is_none_or(|chain| seen.len() + 1 + chain.len() > MODULE_LIMIT)
                 {
                     return false;
                 }
@@ -644,7 +656,8 @@ fn aliases_valid(modules: &Value, lookups: &[Value]) -> bool {
                 let Some(next) = chain.get(index + 1) else {
                     return false;
                 };
-                if lookup["resolution"] != *kind || next["path"] != path || next["name"] != *target {
+                if lookup["resolution"] != *kind || next["path"] != path || next["name"] != *target
+                {
                     return false;
                 }
             }
