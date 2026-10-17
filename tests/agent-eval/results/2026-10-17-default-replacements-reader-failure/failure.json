@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/39052366220",
+  "job_id": 117453414648,
+  "source_commit": "801bfda5c3403aef1cc589eb6f47249ec42f442e",
+  "stage": "reader examples before Python report collection",
+  "cause": "The example still expected an explicit replacement of a checked list default to remain incomplete.",
+  "collection_started": false,
+  "report_artifact": null,
+  "scope": "A failed validation before collection; no qualifying Python contract results were produced.",
+  "original_log": {
+    "path": "failure.log",
+    "bytes": 60546,
+    "sha256": "3fe5b87df99069ec0e9dc6465d57f20673f61e16581551b05745dbe32360e2cf"
+  },
+  "correction": "Check the explicit replacement as complete, retain the omitted-object control, and run reader examples before the longer SDK checks."
+}
