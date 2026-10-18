@@ -274,3 +274,37 @@ def test_large_location_disclosure_remains_bounded_and_roundtrips(tmp_path):
     assert _restore(store, _store(store, saved)) == saved
     later = ask(cache, client, rules, 'stopped', imports=False)
     assert later.reused and later.answer.report.at('/complete')
+
+
+def test_complete_lesson_uses_separate_processes_and_rechecks_edits(tmp_path):
+    import os
+    import re
+    import subprocess
+    import sys
+    root = Path(__file__).resolve().parents[3]
+    guide = (root / 'docs/save-python-startup.md').read_text()
+    programs = re.findall(r'```python\n(.*?)```', guide, re.S)
+    assert len(programs) == 5
+    for name, source in zip(('helpers.py', 'app.py', 'check_first.py', 'check_later.py', 'run_example.py'), programs):
+        (tmp_path / name).write_text(source)
+    (tmp_path / 'rules.json').write_text(re.findall(r'```json\n(.*?)```', guide, re.S)[0])
+    environment = dict(os.environ, PATH=str(root / 'target/debug') + os.pathsep + os.environ['PATH'],
+                       PYTHONPATH=str(root / 'sdk/python/src'))
+    def run(name):
+        result = subprocess.run([sys.executable, '-B', name], cwd=tmp_path, env=environment,
+                                capture_output=True, text=True, timeout=20)
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+    assert run('check_first.py') == ('Preparation checks: 1\nImport checks: 1\n'
+                                     'Finished: True\nPossible input connection: True\n')
+    assert run('check_later.py') == ('Preparation checks: 0\nImport checks: 1\n'
+                                     'Finished: True\nPossible input connection: False\n')
+    assert run('run_example.py') == 'ready\n17\n0\n'
+    helper = tmp_path / 'helpers.py'
+    helper.write_text(helper.read_text().replace('return 0', 'return value'))
+    assert run('check_later.py') == ('Preparation checks: 1\nImport checks: 1\n'
+                                     'Finished: True\nPossible input connection: True\n')
+    assert run('run_example.py') == 'ready\n17\n17\n'
+    helper.write_text(helper.read_text().replace('register()\n\n', 'register()\nunknown()\n\n'))
+    assert run('check_later.py') == ('Preparation checks: 1\nImport checks: 1\n'
+                                     'Finished: False\nPossible input connection: True\n')

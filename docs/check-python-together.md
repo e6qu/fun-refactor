@@ -132,8 +132,9 @@ files, import candidates (including missing files), configuration, checking rule
 and analyzer implementation. A dictionary write inside `register()` is covered
 by the recorded call statement and its complete source file.
 
-Sharing lasts for this request. A new request checks startup again. Whole-answer
-saved results still use `FlowCache`; there is no separately saved startup record.
+`analyze_together` shares work for this request. A new call checks startup again.
+Use [saved startup preparation](save-python-startup.md) to ask separate questions later.
+Whole-answer saved results use `FlowCache`.
 For example, editing the registration body, replacing a helper, or adding a
 competing `helpers.pyi` file changes the next request's inputs for both answers.
 The checker never treats a previous startup check as permission to ignore an edit.

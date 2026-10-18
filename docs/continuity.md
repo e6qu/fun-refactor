@@ -32,6 +32,13 @@ The Python behavior guide is a recorded test input. Changing its wording require
 Agent instruction changes also require refreshing the derived text-size report.
 Do not change recorded fingerprints to disguise outdated results.
 
+The active change saves checked Python preparation between separate requests.
+The [new lesson](save-python-startup.md) asks about a forwarding function, closes that process, then asks about a zero-returning function.
+Each call requires explicit settings. Each request still resolves imports and verifies source files.
+The saved pass contains checked declarations, captured defaults and startup dictionary writes.
+Edits invalidate it, corruption refuses, and unfinished answers add no saved entry.
+Hosted validation and fresh source-bound reports are pending for this change.
+
 ## Continue Python work from actual library failures
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.

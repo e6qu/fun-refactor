@@ -98,11 +98,16 @@ Saved answers already depend on source files and import lookups.
 You can now [ask about two helpers together](docs/check-python-together.md).
 It prepares shared startup once within one request, then returns separate function answers.
 Both questions share the existing work and output limits; changed sources and unknown effects remain visible.
-Next, save checked startup work for later questions.
-For example, ask about the forwarding helper first and the helper returning zero in a later request.
-The later question should reuse checked setup only while its files and import choices still match.
-Editing a helper file or adding a competing import candidate must invalidate that saved work.
-Do not describe request-local sharing as reuse across requests or as finishing a large package import.
+The current change [saves preparation between separate questions](docs/save-python-startup.md).
+Ask about the forwarding helper first and the helper returning zero in a later process.
+The later question reuses checked declarations, default values and startup writes while its files and import choices match.
+Every request still resolves imports and checks their declaration and execution order.
+Edits and competing import files trigger fresh preparation. Corrupt records fail visibly.
+The new API requires explicit rules, context, analysis limits and import settings.
+Hosted checks are in progress. Keep saved preparation separate from whole-answer reuse and full-package acceptance.
+Next, measure whether saving this preparation reduces total work on a repeated real question.
+Compare fresh requests, saved preparation and saved whole answers under the same limits.
+Count file checks, import resolution, parsing, process startup and storage costs before claiming a speedup.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 
