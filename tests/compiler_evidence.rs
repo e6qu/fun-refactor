@@ -167,7 +167,9 @@ fn compiler_coverage_matches_all_sixteen_lean_cases() {
 fn retained_compiler_acceptance_matches_its_inputs_and_oracles() {
     let data = fs::read(retained::report("compiler-profile")).unwrap();
     let captured: Value = serde_json::from_slice(&data).unwrap();
-    let compiler = captured.get("compiler").expect("current compiler observations");
+    let compiler = captured
+        .get("compiler")
+        .expect("current compiler observations");
     let directory = tempfile::tempdir().unwrap();
     let compiler_report = directory.path().join("compiler.json");
     fs::write(&compiler_report, serde_json::to_vec(compiler).unwrap()).unwrap();

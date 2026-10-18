@@ -1408,6 +1408,12 @@ The [first full PR gate](https://github.com/e6qu/fun-refactor/actions/runs/39117
 The test now recognizes that one Cargo build helper and forbids runtime source files from importing it.
 Runtime analysis still has to read project files through the shared filesystem layer used by the terminal and browser.
 
+Another completed check still selected a compiler report from September after its inputs had changed.
+The [compiler acceptance test](../tests/compiler_evidence.rs) now selects the current collection, checks its receipt, and passes its compiler observations through the same full audit.
+The historical report remains unchanged.
+The compiler comparison, Python examples and familiar-library probes record that test file as an input, so those three captures need refreshing after the correction.
+The checking program's source and the other five capture groups remain unchanged.
+
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
