@@ -165,10 +165,12 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json)
-covers 458 programs and 916 original or renamed cases, including explicit replacements of checked object defaults.
-It preserves 344 incomplete cases, 18 refusals and 126 documented differences between model and runtime observations.
+The [analyzer collection receipt](../tests/agent-eval/results/2026-10-18-startup-registration-ci-scalar-collection/manifest.json) identifies the current native analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/manifest.json)
+covers 464 programs and 928 original or renamed cases, including small startup registration functions.
+It preserves 352 incomplete cases, 18 refusals and 130 documented differences between model and runtime observations.
+The four new differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
+Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
 The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.

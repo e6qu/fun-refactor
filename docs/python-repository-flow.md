@@ -256,6 +256,12 @@ The file, source-size and import-search limits stay unchanged.
 The [complete replacement lesson](replace-python-defaults.md) shows the supported smaller call and the unfinished omitted-object case.
 The full packages still need import and startup behavior outside current support.
 
+The [startup-function replay](../tests/agent-eval/results/2026-10-18-startup-registration-ci-fixed-arity-probes/result.json)
+keeps the same 100-case outcomes: no complete full-package answers, sixteen complete copied-declaration answers and eight complete standalone-module answers.
+The [new lesson](check-python-startup.md) checks a smaller setup function that fills a dictionary created in its own file.
+Toolz's actual table builder still uses loops, imported introspection and computed values outside that rule.
+The replay establishes neither complete library support nor lower agent cost.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The

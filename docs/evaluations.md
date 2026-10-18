@@ -1288,5 +1288,42 @@ The [fresh Python collection](https://github.com/e6qu/fun-refactor/actions/runs/
 The [fresh library replay](https://github.com/e6qu/fun-refactor/actions/runs/39066248827) preserves the same unfinished full-package outcomes.
 The [complete collection audit](https://github.com/e6qu/fun-refactor/actions/runs/39066978333) passed fourteen admission controls and the existing audits for all seventeen native report groups.
 It also repeated the 56 Python controls in 108.699 seconds, within the unchanged 120-second audit limit.
-The [current receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json) keeps the same 344 incomplete cases, eighteen refusals and 126 documented differences.
+The [default-replacement receipt](../tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/manifest.json) keeps the same 344 incomplete cases, eighteen refusals and 126 documented differences.
 These checks establish consistency with recorded inputs. They do not establish complete library support or a performance improvement.
+
+## Check a small function that fills a table during import
+
+Importing a helper can call another function before the application starts.
+The [complete startup lesson](check-python-startup.md) first fills a local dictionary and then follows submitted input through a helper.
+Its control changes startup to replace that helper: Python returns zero instead of the submitted value, and the analysis must remain unfinished.
+The supported setup function takes no parameters and writes only to dictionaries created earlier in its own file.
+The whole function must fit the existing 128-node syntax limit, where a node represents a piece of parsed code.
+Unknown calls, imported shared dictionaries, loops and helper replacement remain unchecked.
+Changing the setup source invalidates the existing saved answer.
+Reusing setup checks separately remains unfinished.
+
+The [first focused check](https://github.com/e6qu/fun-refactor/actions/runs/39080162868) exceeded its fifteen-minute job deadline.
+All native tests passed, followed by Python groups of 617, 722 and 815 passing cases.
+Those three groups took 173.50, 223.47 and 249.54 seconds after compilation and setup, which left too much work in one serial job.
+The import and saved-answer group now runs in a separate hosted job using the same test command.
+Both jobs keep the fifteen-minute deadline. The fix removes no tests and increases no resource limits.
+These job durations diagnose CI scheduling. They do not measure the analyzer's speed or the language's execution cost.
+
+The [first Python capture](https://github.com/e6qu/fun-refactor/actions/runs/39080445641) checked all 928 authored report cases but failed one of its 1,368 interface tests.
+The failing control meant to change `register()` into `register(0)` and compare Python's `TypeError` with an unfinished analysis.
+Its text replacement also changed `def register():`, producing invalid syntax and a `SyntaxError` instead.
+The fix edits exactly one standalone call and rejects analysis results containing an import syntax error.
+The expected `TypeError` remains unchanged. The failed workflow does not qualify as passing evidence, and its final audit did not run.
+
+Reader review also corrected both standalone lessons to print “Possible input connection” beside the completion result.
+A connection from an unfinished analysis can differ from Python's actual behavior after startup changes a helper.
+The [default-replacement lesson](replace-python-defaults.md) uses the same wording.
+The extra analysis time and memory for startup registration remain unmeasured; these comparisons check specific behavior against Python.
+
+The [corrected Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39082855346) passed all 1,368 interface cases and checked 464 programs in 928 original or renamed cases.
+It passed all 56 altered-record checks in 67.519 seconds, within the unchanged 120-second audit deadline.
+Its [receipt](../tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/manifest.json)
+preserves 352 incomplete cases, eighteen refusals and 130 documented differences between the model and Python.
+The [split focused check](https://github.com/e6qu/fun-refactor/actions/runs/39082857741) passed both jobs, including every group from the timed-out attempt.
+The [familiar-library replay](https://github.com/e6qu/fun-refactor/actions/runs/39080371185) keeps all forty full-package questions unfinished.
+Copied declarations and standalone modules retain their earlier smaller successes; neither establishes complete package support.

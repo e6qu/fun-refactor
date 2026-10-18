@@ -4,8 +4,10 @@ import copy
 import hashlib
 import importlib.util
 import io
+import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -137,6 +139,89 @@ class ArtifactIdentity(unittest.TestCase):
                 artifact['created_at'] = '2026-10-11T08:03:00Z'
             with self.assertRaises(ValueError):
                 retain.collection(run, artifact, report, 'e6qu/fun-refactor', jobs)
+
+
+class CompactReports(unittest.TestCase):
+    def capture(self):
+        value = {'source_commit': 'a' * 40, 'binary_sha256': 'b' * 64,
+                 'cases': [{'source': 'é\n雪', 'values': [True, 1, None, -0.0]}]}
+        original = (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('result.json', original)
+        data = output.getvalue()
+        return value, original, data, {'source_commit': 'a' * 40,
+            'artifact_digest': 'sha256:' + hashlib.sha256(data).hexdigest()}
+
+    def test_compact_copy_preserves_types_unicode_and_the_exact_original_capture(self):
+        value, original, archive, identity = self.capture()
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'capture'
+            manifest = retain.store_report(folder, archive, identity)
+            saved = (folder / 'result.json').read_bytes()
+            self.assertLess(len(saved), len(original))
+            self.assertEqual(saved, retain.compact_report(value))
+            self.assertEqual((folder / 'artifact.zip').read_bytes(), archive)
+            self.assertEqual(retain.checked_report(archive, identity['artifact_digest']), original)
+            self.assertEqual(manifest['source_report_sha256'], hashlib.sha256(original).hexdigest())
+            self.assertEqual(retain.retained_report(folder / 'result.json'), value)
+
+    def test_an_existing_capture_is_never_overwritten(self):
+        _, _, archive, identity = self.capture()
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'capture'
+            retain.store_report(folder, archive, identity)
+            before = {path.name: path.read_bytes() for path in folder.iterdir()}
+            with self.assertRaisesRegex(ValueError, 'preserve prior results'):
+                retain.store_report(folder, archive, identity)
+            self.assertEqual(before, {path.name: path.read_bytes() for path in folder.iterdir()})
+
+    def test_a_report_edit_is_rejected_even_after_recomputing_its_file_digest(self):
+        _, _, archive, identity = self.capture()
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'capture'
+            manifest = retain.store_report(folder, archive, identity)
+            path = folder / 'result.json'
+            value = json.loads(path.read_bytes())
+            value['cases'][0]['values'][0] = 1
+            changed = retain.compact_report(value)
+            path.write_bytes(changed)
+            manifest['files']['result.json'] = hashlib.sha256(changed).hexdigest()
+            (folder / 'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, 'differs from original captured values'):
+                retain.retained_report(path)
+
+    def test_noncanonical_whitespace_is_not_another_current_storage_format(self):
+        _, _, archive, identity = self.capture()
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'capture'
+            manifest = retain.store_report(folder, archive, identity)
+            path = folder / 'result.json'
+            changed = json.dumps(json.loads(path.read_bytes()), indent=2).encode()
+            path.write_bytes(changed)
+            manifest['files']['result.json'] = hashlib.sha256(changed).hexdigest()
+            (folder / 'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, 'differs from original captured values'):
+                retain.retained_report(path)
+
+    def test_archive_and_original_report_fingerprints_are_mandatory(self):
+        for changed in ('archive', 'original', 'identity', 'missing'):
+            with self.subTest(change=changed), tempfile.TemporaryDirectory() as temporary:
+                _, _, archive, identity = self.capture()
+                folder = Path(temporary) / 'capture'
+                manifest = retain.store_report(folder, archive, identity)
+                if changed == 'archive':
+                    (folder / 'artifact.zip').write_bytes(archive + b'changed')
+                    manifest['files']['artifact.zip'] = hashlib.sha256(archive + b'changed').hexdigest()
+                elif changed == 'original':
+                    manifest['source_report_sha256'] = 'c' * 64
+                elif changed == 'identity':
+                    manifest['collection']['source_commit'] = 'c' * 40
+                else:
+                    del manifest['source_report_sha256']
+                (folder / 'manifest.json').write_text(json.dumps(manifest))
+                with self.assertRaises(ValueError):
+                    retain.retained_report(folder / 'result.json')
 
 
 class ArtifactDownloads(unittest.TestCase):
