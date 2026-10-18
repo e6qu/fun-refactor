@@ -74,6 +74,7 @@ class PythonContract(unittest.TestCase):
         self.assertEqual(contract.profile.compiler.digest(contract.cases()), expected)
 
     def changed(self, name='unicode-local/moved'):
+        self.changed_case = name
         value = copy.deepcopy({key: item for key, item in self.report.items() if key != 'cases'})
         value['cases'] = list(self.report['cases'])
         index = next(index for index, row in enumerate(value['cases']) if row['case']['id'] == name)
@@ -82,8 +83,39 @@ class PythonContract(unittest.TestCase):
         return value, row
 
     def reject(self, value):
-        with self.assertRaises((ValueError, AssertionError)):
-            contract.audit(value)
+        authored_cases = contract.cases
+
+        def changed_first():
+            cases = authored_cases()
+            cases.sort(key=lambda case: case['id'] != self.changed_case)
+            return cases
+
+        # Keep every case and the full audit. Check the deliberately damaged row
+        # first instead of rechecking hundreds of unchanged rows before it.
+        with patch.object(contract, 'cases', side_effect=changed_first):
+            with self.assertRaises((ValueError, AssertionError)):
+                contract.audit(value)
+
+    def test_corruption_audit_starts_with_the_changed_case(self):
+        # Pick a late case from the actual inventory rather than assuming an ID.
+        name = contract.cases()[-1]['id']
+        value, row = self.changed(name)
+        row['case']['files'].clear()
+        with patch.object(contract, 'audit_case', wraps=contract.audit_case) as checks:
+            self.reject(value)
+        self.assertEqual([call.args[1]['id'] for call in checks.call_args_list], [name])
+
+    def test_changed_case_priority_does_not_hide_another_damaged_row(self):
+        value, _ = self.changed()
+        name = next(case['id'] for case in contract.cases() if case['id'] != self.changed_case)
+        index = next(index for index, row in enumerate(value['cases']) if row['case']['id'] == name)
+        other = copy.deepcopy(value['cases'][index])
+        value['cases'][index] = other
+        other['case']['files'].clear()
+        with patch.object(contract, 'audit_case', wraps=contract.audit_case) as checks:
+            self.reject(value)
+        self.assertEqual([call.args[1]['id'] for call in checks.call_args_list],
+                         [self.changed_case, other['case']['id']])
 
     def test_corruption_fixtures_leave_the_retained_report_unchanged(self):
         before = contract.profile.compiler.digest(self.report)
