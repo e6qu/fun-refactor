@@ -861,32 +861,52 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
-        let basis = options.with_startup.then(|| {
-            self.startup_inputs(&symbol.file, modules.as_ref())
-        }).transpose()?;
-        let retained = options.reuse_startup.as_ref().map(|path| {
-            self.restore_startup(path, options.startup_digest.as_deref().unwrap(),
-                basis.as_ref().unwrap(), &symbol.file, &parsed, modules.as_ref())
-        }).transpose()?.flatten();
+        let basis = options
+            .with_startup
+            .then(|| self.startup_inputs(&symbol.file, modules.as_ref()))
+            .transpose()?;
+        let retained = options
+            .reuse_startup
+            .as_ref()
+            .map(|path| {
+                self.restore_startup(
+                    path,
+                    options.startup_digest.as_deref().unwrap(),
+                    basis.as_ref().unwrap(),
+                    &symbol.file,
+                    &parsed,
+                    modules.as_ref(),
+                )
+            })
+            .transpose()?
+            .flatten();
         let reused = retained.is_some();
         let startup = match retained {
             Some(startup) => startup,
-            None => self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options)?,
+            None => {
+                self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options)?
+            }
         };
         if options.with_startup {
             let answer = self.flow_answer(options, modules.as_ref(), &startup, options.steps)?;
-            let record = if answer["complete"] == true && startup.ambiguous.is_empty()
-                && startup.initialization.by_file.is_empty() {
+            let record = if answer["complete"] == true
+                && startup.ambiguous.is_empty()
+                && startup.initialization.by_file.is_empty()
+            {
                 Some(self.save_startup(basis.unwrap(), &startup)?)
-            } else { None };
+            } else {
+                None
+            };
             let report = json!({"schema":"fr-dataflow-prepared", "answer":answer,
                 "startup":record, "preparation":{"kind":if reused {"retained"} else {"checked"},
                     "checks":usize::from(!reused), "import_checks":usize::from(options.imports),
                     "reason":if reused {"matching-inputs"} else if options.reuse_startup.is_some() {
                         "changed-inputs"} else {"no-saved-startup"},
                     "trust":"caller-supplied digest binds saved work; no execution attestation"}});
-            ensure!(serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
-                "answer and saved startup exceed byte budget.");
+            ensure!(
+                serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+                "answer and saved startup exceed byte budget."
+            );
             return Ok(report);
         }
         if options.also.is_empty() {
