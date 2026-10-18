@@ -161,7 +161,8 @@ impl Project<'_> {
             let node = parsed
                 .descendant_at(function.span.start, function.span.end)
                 .filter(|node| {
-                    node.kind() == "function_definition" && Span::from(*node) == function.span
+                    node.kind() == "function_definition"
+                        && Span::from(*node) == function.span
                         && node.parent() == Some(parsed.root())
                 })
                 .context("saved function does not match a top-level declaration")?;
