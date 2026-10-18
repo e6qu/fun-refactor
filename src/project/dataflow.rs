@@ -1504,7 +1504,7 @@ impl Project<'_> {
             function_aliases,
             captured_defaults,
             ambiguous,
-            modules: modules.as_ref(),
+            modules,
             contexts,
             rules,
             context: &options.context,
