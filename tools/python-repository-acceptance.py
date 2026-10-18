@@ -26,6 +26,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from python_repository_basis import file_digest
+from evidence_basis import native_source_bindings
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKind, TaskPlan, TaskStep
 from fr_ir.investigation_delivery import DeliveryReceipt, run_delivery
@@ -375,7 +376,7 @@ def replay(name, task, record):
 def bindings():
     paths = [*ROOT.glob('src/**/*.rs'), *ROOT.glob('crates/**/*.rs'), *ROOT.glob('sdk/python/src/fr_ir/*.py'),
              *FIXTURE.iterdir(), ROOT / 'Cargo.lock', ROOT / 'tools/evidence_basis.py', ROOT / 'tools/python_repository_basis.py', Path(__file__).resolve()]
-    return {str(p.relative_to(ROOT)): file_digest(p) for p in sorted(paths) if p.is_file()}
+    return {str(p.relative_to(ROOT)): file_digest(p) for p in sorted(paths) if p.is_file()} | native_source_bindings(ROOT)
 
 
 def audit(output):

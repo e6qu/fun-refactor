@@ -148,7 +148,11 @@ rustix = { version = "1.1", features = ["process"], optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 fun-refactor-wasm-libc = { version = "0.72.0", path = "crates/wasm-libc", optional = true }
 
+[build-dependencies]
+sha2 = "0.11"
+
 [dev-dependencies]
+sha2 = "0.11"
 # Also an optional runtime dependency (the edit engine stages through it); tests need
 # it unconditionally, including when the crate is built without the `cli` feature.
 tempfile = "3.27"

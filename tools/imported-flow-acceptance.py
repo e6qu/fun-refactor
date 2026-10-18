@@ -17,7 +17,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
 from fr_ir.context import DirectoryObjectStore, MemoryObjectStore, store_merkle_value
 from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
@@ -209,7 +209,7 @@ def measure(args):
         run(["git", "apply", str(patch)], receiver)
         behavior = json.loads(run([sys.executable, "-B", str(FIXTURE / "oracle.py"), str(receiver), "--check"], receiver).stdout)
         return {"schema":"fr-imported-flow-acceptance-1", "repository_revision":run(["git","rev-parse","HEAD"],ROOT).stdout.strip(),
-            "source_bindings":{path:file_digest(ROOT/path) for path in BINDINGS}, "platform":platform.platform(),
+            "source_bindings":native_bindings(ROOT, BINDINGS), "platform":platform.platform(),
             "binary_sha256":hashlib.sha256(args.fr.read_bytes()).hexdigest(), "baseline":json.loads((FIXTURE/"baseline.json").read_text()),
             "oracle":oracle, "ordinary_runtime_ast_seconds":ordinary_seconds, "cases":cases,"mutations":mutations,
             "arms":arms,"plan":plan.to_data(),"plan_root":plan_root,"reopened":reopened.report.to_data(),"independent_resume":independent_resume,
@@ -220,7 +220,7 @@ def measure(args):
 
 def audit(value):
     assert value["schema"] == "fr-imported-flow-acceptance-1"
-    assert value["source_bindings"] == {path:file_digest(ROOT/path) for path in BINDINGS}
+    assert value["source_bindings"] == native_bindings(ROOT, BINDINGS)
     assert value["baseline"] == json.loads((FIXTURE/"baseline.json").read_text())
     oracle = json.loads(run([sys.executable, "-B", str(FIXTURE/"oracle.py"), str(FIXTURE), "--check"], ROOT).stdout)
     assert value["oracle"] == oracle and value["false_claims"] == 0

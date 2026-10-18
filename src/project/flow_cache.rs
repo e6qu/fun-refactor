@@ -9,26 +9,7 @@ use std::{
 pub(super) fn analyzer_identity() -> Result<String> {
     hash([
         "python-scalar-fixed-point",
-        env!("CARGO_PKG_VERSION"),
-        include_str!("dataflow.rs"),
-        include_str!("flow_summaries.rs"),
-        include_str!("flow_expressions.rs"),
-        include_str!("flow_calls.rs"),
-        include_str!("flow_assignments.rs"),
-        include_str!("flow_modules.rs"),
-        include_str!("control_flow.rs"),
-        include_str!("flow_cache.rs"),
-        include_str!("occurrence.rs"),
-        include_str!("../span.rs"),
-        include_str!("../parse.rs"),
-        include_str!("../project.rs"),
-        include_str!("manifests.rs"),
-        include_str!("lockfiles.rs"),
-        include_str!("../scan.rs"),
-        include_str!("../index.rs"),
-        include_str!("../index/references.rs"),
-        include_str!("../extract.rs"),
-        include_str!("../../Cargo.lock"),
+        env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT"),
     ])
 }
 

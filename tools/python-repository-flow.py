@@ -16,13 +16,14 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
+from evidence_basis import native_source_roots
 FIXTURE = ROOT / 'tests/agent-eval/python-repository-flow'
 COHORT = json.loads((FIXTURE / 'cohort.json').read_text())
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
 SCHEMA = 'fr-python-repository-flow-1'
-ANALYZER_PATHS = ('src', 'grammars', 'sdk/python/src', 'Cargo.toml', 'Cargo.lock')
+ANALYZER_PATHS = (*native_source_roots(ROOT), 'sdk/python/src')
 BODIES = {
     'positive': 'return record_value(relay(relay(emit_value())))',
     'overwritten': 'value = relay(emit_value())\nvalue = 0\nreturn record_value(relay(value))',

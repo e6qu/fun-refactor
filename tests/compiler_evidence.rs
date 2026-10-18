@@ -1,6 +1,9 @@
 use serde_json::{json, Value};
 use std::{fs, path::Path, process::Command};
 
+#[path = "common/retained.rs"]
+mod retained;
+
 fn run(root: &Path, args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "--no-cache", "-C"])
@@ -163,11 +166,8 @@ fn compiler_coverage_matches_all_sixteen_lean_cases() {
 #[test]
 fn retained_compiler_acceptance_matches_its_inputs_and_oracles() {
     let output = Command::new("python3")
-        .args([
-            "tools/compiler-evidence-acceptance.py",
-            "--audit",
-            "tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
-        ])
+        .args(["tools/compiler-profile.py", "--audit"])
+        .arg(retained::report("compiler-profile"))
         .output()
         .unwrap();
     assert!(

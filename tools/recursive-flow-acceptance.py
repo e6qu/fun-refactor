@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "sdk/python/src"))
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
 
 FIXTURE = ROOT / "tests/agent-eval/recursive-flow"
 BINDINGS = ["sdk/python/src/fr_ir/flow_initialization.py", "src/project/flow_assignments.rs", "src/project/flow_calls.rs", "src/project/flow_expressions.rs", "src/index/references.rs", "src/project/flow_modules.rs", "sdk/python/src/fr_ir/flow_dependencies.py", "tools/recursive-flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs",
@@ -110,7 +110,7 @@ def measure(args):
         arm("helper_clean", "clean")
     return {"schema": "fr-recursive-flow-acceptance-1", "repository_revision": subprocess.check_output(
                 ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-            "source_bindings": {path: file_digest(ROOT / path) for path in BINDINGS},
+            "source_bindings": native_bindings(ROOT, BINDINGS),
             "binary_sha256": digest(args.fr.read_bytes()), "platform": platform.platform(),
             "oracle": oracle, "ordinary_ast_runtime_seconds": oracle_seconds,
             "baseline": json.loads((FIXTURE / "baseline.json").read_text()), "cases": cases, "arms": arms,
@@ -120,7 +120,7 @@ def measure(args):
 
 def audit(value):
     assert value["schema"] == "fr-recursive-flow-acceptance-1"
-    assert value["source_bindings"] == {path: file_digest(ROOT / path) for path in BINDINGS}
+    assert value["source_bindings"] == native_bindings(ROOT, BINDINGS)
     oracle = json.loads(subprocess.check_output([sys.executable, str(FIXTURE / "oracle.py")]))
     assert value["oracle"] == oracle
     assert value["baseline"] == json.loads((FIXTURE / "baseline.json").read_text())

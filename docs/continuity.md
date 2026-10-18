@@ -43,9 +43,14 @@ The [small startup-call lesson](check-python-startup.md) checks a first bounded 
 Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
 Changing its source invalidates a saved answer through the existing source and import dependencies.
 This does not yet store startup checks separately or divide a large package import into smaller analyses.
-Next, ask two helper questions after the same setup and reuse only the checked startup work for the second answer.
-Record the files, imports, names and dictionary writes that work depends on.
-Changing any dependency must invalidate both answers; an unknown startup effect must keep both questions unfinished.
+Two helper questions in one request now share one startup preparation.
+The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
+Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
+A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
+Next, save checked startup work for a later helper question.
+For example, check the forwarding helper now and the helper returning zero in a later request.
+Before sharing saved setup between those questions, verify its files and import choices within the same limits.
+Editing a helper or adding a competing file must invalidate the saved work.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
@@ -165,12 +170,13 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [analyzer collection receipt](../tests/agent-eval/results/2026-10-18-startup-registration-ci-scalar-collection/manifest.json) identifies the current native analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/manifest.json)
+The [checker collection receipt](../tests/agent-eval/results/2026-10-18-ci-repairs-scalar-collection/manifest.json) identifies the current analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-18-ci-repairs-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
-It preserves 352 incomplete cases, 18 refusals and 130 documented differences between model and runtime observations.
-The four new differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
+It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
+Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
 Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
+The shared-startup Python interface adds 41 cases, including comparisons with separate analyses and Python, within the 1,409-case interface check.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
 The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.

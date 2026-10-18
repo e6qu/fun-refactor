@@ -343,8 +343,8 @@ fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
     let fingerprint = env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT");
     assert_eq!(
         fingerprint.len(),
-        16,
-        "expected a 64-bit hex fingerprint, got {fingerprint:?}"
+        64,
+        "expected a SHA-256 source fingerprint, got {fingerprint:?}"
     );
     assert!(
         fingerprint.chars().all(|c| c.is_ascii_hexdigit()),

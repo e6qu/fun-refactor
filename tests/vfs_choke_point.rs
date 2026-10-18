@@ -62,11 +62,19 @@ fn source_is_read_only_through_the_vfs() {
 
     let mut offences = Vec::new();
     for file in &files {
+        let source =
+            without_test_modules(&std::fs::read_to_string(file).expect("reading a source"));
+        if file == &root.join("native_fingerprint.rs") {
+            continue;
+        }
+        assert!(
+            !source.contains("native_fingerprint"),
+            "runtime modules must not import the build-only disk reader: {}.",
+            file.display()
+        );
         if is_exempt(file) {
             continue;
         }
-        let source =
-            without_test_modules(&std::fs::read_to_string(file).expect("reading a source"));
         for (line_number, line) in source.lines().enumerate() {
             for (needle, instead) in banned {
                 if line.contains(needle) {

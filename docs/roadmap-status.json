@@ -12,53 +12,85 @@
   ],
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-facts/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-flow-facts/result.json",
+      "changed_sources": [
+        "Cargo.toml",
+        "crates/wasm-libc/Cargo.toml",
+        "grammars/go/Cargo.toml",
+        "grammars/lean/Cargo.toml",
+        "grammars/python/Cargo.toml",
+        "grammars/sass/Cargo.toml",
+        "grammars/scss/Cargo.toml",
+        "grammars/typescript/Cargo.toml",
+        "grammars/zig/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-package-flow/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-package-flow/result.json",
+      "changed_sources": [
+        "Cargo.toml",
+        "crates/wasm-libc/Cargo.toml",
+        "grammars/go/Cargo.toml",
+        "grammars/lean/Cargo.toml",
+        "grammars/python/Cargo.toml",
+        "grammars/sass/Cargo.toml",
+        "grammars/scss/Cargo.toml",
+        "grammars/typescript/Cargo.toml",
+        "grammars/zig/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-python-repositories",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-python-repositories",
+      "changed_sources": [
+        "Cargo.toml",
+        "crates/wasm-libc/Cargo.toml",
+        "grammars/go/Cargo.toml",
+        "grammars/lean/Cargo.toml",
+        "grammars/python/Cargo.toml",
+        "grammars/sass/Cargo.toml",
+        "grammars/scss/Cargo.toml",
+        "grammars/typescript/Cargo.toml",
+        "grammars/zig/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-cache/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-flow-cache/result.json",
+      "changed_sources": [
+        "crates/tree-sitter-language/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
@@ -92,33 +124,39 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-compiler-profile/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-compiler-profile/result.json",
+      "changed_sources": [
+        "crates/tree-sitter-language/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-python-contract/result.json",
+      "changed_sources": [
+        "crates/tree-sitter-language/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-python-contract/result.json",
       "scope": "14 declared Python rules; 464 authored programs and 928 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-18-startup-registration-ci-index-resolution/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-18-ci-repairs-index-resolution/result.json",
+      "changed_sources": [
+        "crates/tree-sitter-language/Cargo.toml"
+      ],
+      "freshness": "stale",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-index-resolution/result.json",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
     },
     {
@@ -133,9 +171,11 @@
         "src/project/flow_modules.rs",
         "src/project/flow_summaries.rs",
         "tests/agent-eval/python-repository-flow/cohort.json",
+        "tests/compiler_evidence.rs",
         "tests/flow_fixed_point.rs",
         "tests/semantic_evidence.rs",
         "tools/compiler-profile.py",
+        "tools/evidence_basis.py",
         "tools/python-repository-flow.py"
       ],
       "freshness": "stale",
@@ -148,26 +188,30 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 3,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.live-repeat"
+        "A.exact",
+        "A.repositories",
+        "A.live-repeat",
+        "A.compiler-profile"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 0,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.scalar",
         "B.contract",
         "B.repository-flow",
         "B.effects"
@@ -176,13 +220,15 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "C.resume",
+        "C.clean",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -190,13 +236,14 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 1,
         "total": 6
       },
       "engineering_remaining": 5,
       "remaining": [
+        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
@@ -210,7 +257,9 @@
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
-      "blockers": [],
+      "blockers": [
+        "exact-facts: stale source binding"
+      ],
       "id": "A.exact",
       "kind": "deterministic",
       "next": "Keep these location tests passing as discovery changes.",
@@ -229,12 +278,14 @@
           "evidence": "exact-facts"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Point to the exact code behind an answer"
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -253,7 +304,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -270,7 +321,9 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [],
+      "blockers": [
+        "compiler-profile: stale source binding"
+      ],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -305,12 +358,14 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -333,12 +388,13 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace simple values through package helpers"
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
       "blockers": [
+        "python-contract: stale source binding",
         "python-contract: unmet /summary/examples",
         "python-contract: unmet /summary/cases",
         "python-contract: unmet /summary/renamed_relocated_cases",
@@ -416,7 +472,9 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -435,12 +493,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -463,7 +523,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -492,7 +552,9 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -511,7 +573,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {

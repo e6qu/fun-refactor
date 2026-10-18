@@ -72,6 +72,23 @@ The [development history](evaluations.md#check-a-small-function-that-fills-a-tab
 
 This changes the order of CI work. Analysis speed and complete agent costs need separate measurements.
 
+## Find repeated work in Python report checks
+
+An audit compares saved answers with the declared source files, checking rules and Python observations.
+If its controls time out, measure their work before changing anything.
+Use a successful `python-contract` collection as the fixed input:
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=python-report-audit -f prefix=YOUR_NEW_NAME \
+  -f collection_run=SUCCESSFUL_PYTHON_RUN_ID
+```
+
+Replace `SUCCESSFUL_PYTHON_RUN_ID` with the number in that collection's GitHub Actions URL.
+The diagnostic downloads its original report, runs every audit control, and saves call counts and elapsed times as `python-audit-profile`.
+It keeps the existing 120-second audit deadline and stops with a stack trace if that limit is reached.
+This measures the audit of that report; it does not measure analysis speed or overhead compared with Python execution.
+
 Keeping a capture also requires checking which code produced it.
 A documentation edit creates a different commit while leaving the analyzer unchanged.
 Retention compares the analyzer's source folders, local dependencies, parsing queries, Python client, build script and dependency manifests with the current checkout.
@@ -252,3 +269,20 @@ If this occurs, confirm the intended release commit and preserve it on a tempora
 authorized maintainer account. Retry the failed release job, verify the tag targets that exact commit,
 then delete the temporary branch. Do not retarget the release to newer code or broaden token permissions.
 Run [37190700691](https://github.com/e6qu/fun-refactor/actions/runs/37190700691) recovered version 0.49.2 this way.
+
+## Keep saved answers tied to the checking code
+
+If we fix how `fr` reads Python, an answer saved by the earlier checker needs checking again.
+The same applies to saved information about functions and imports.
+[`native-source-inputs.txt`](../native-source-inputs.txt) lists the checking program's source roots and the generated directories to ignore.
+A compiler turns the Rust source into the program we run.
+The build hashes every declared source file, including generated grammar tables, with the compiler version and build settings.
+A missing or unreadable input stops the build.
+A symbolic link points to another file or folder. These links are refused inside the declared source roots.
+The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
+Release labels retain the existing normalization used by these recorded behavior comparisons; dependency and code changes remain bound.
+
+The focused runner changes source, grammar, query and dependency inputs in temporary projects.
+It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.
+The full native gate runs these controls alongside the existing cache tests.
+When these inputs change, `fr` computes fresh answers using the current checking code.

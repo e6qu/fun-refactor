@@ -11,6 +11,22 @@ The [measurement guide](benchmarks.md) distinguishes that comparison from reply-
 
 ## Recorded experiments and their limits
 
+The [two-question Python lesson](check-python-together.md) prepares shared startup once within one request.
+For example, the same import exposes a helper passing `17` along and another returning `0`.
+Forty-one new checks exercise the Python interface.
+The behavior checks compare shared answers with separate analyses and ordinary Python results.
+They cover changed files and import candidates, unknown startup effects, shared work limits and bounded location detail.
+An unchecked write after the displayed locations must still leave both answers unfinished.
+These checks establish agreement on the chosen examples; they measure no speed or agent savings.
+Saved answers also need to change when the checking program changes.
+For example, fixing how the checker reads Python must invalidate an older answer, even if the user's files stay the same.
+A shared source-input list now covers the Rust checking code, compiled grammars, queries, dependency files and build settings.
+The checker hashes these inputs when building; the result collectors record the same source files.
+Tests change a rule, generated parser, scanner, query, dependency and build setting, and require a changed cache identity.
+Missing declared inputs stop the build or collection. The tests also check added, removed and renamed source files.
+Saving startup work for a later request remains open. The existing package questions remain unfinished.
+
+
 The [Python package startup investigation](python-package-startup-results.md) observes what runs before four simple library helpers become available.
 Three hosted captures each completed sixteen fresh processes and forty-eight integer calls, with ordinary and instrumented results agreeing.
 The existing package answers remain incomplete: Toolz still runs an unchecked table builder, while the observed Funcy and Pydash source exceeds current single-analysis budgets.
@@ -1338,3 +1354,84 @@ The receipt records separate fingerprints for the compact file, original report 
 The current reader requires both files and rejects changed values, changed fingerprints and obsolete receipts.
 All 23 retention controls and 56 altered-report controls passed; the latter took 83.427 seconds within the unchanged deadline.
 This compares storage representations of the same data. It does not measure analysis speed or a reduction in complete agent cost.
+
+## Ask several Python questions after checking startup once
+
+The [complete two-question lesson](check-python-together.md) asks whether submitted input passes through a forwarding helper and a helper returning zero.
+Startup is the code Python runs while importing their files.
+The new interface checks that setup once within a request, then returns separate answers.
+It accepts 2–16 functions from the same file and shares the existing tracing and output limits.
+A later request checks startup again; saving checked setup for later requests remains unfinished.
+
+The [focused hosted check](https://github.com/e6qu/fun-refactor/actions/runs/39110056871) passed 92 tests of the compiled checker and all selected Python interface tests.
+The new interface contributes 41 cases covering answer agreement, changed imports, unknown startup effects, shared limits and altered reports.
+Behavior checks compare shared answers with separate `fr` analyses and run Python to verify the forwarding and zero-returning examples.
+The [full Python collection](https://github.com/e6qu/fun-refactor/actions/runs/39110451140) passed 1,409 interface cases and checked 464 programs in 928 original or renamed cases.
+It retains 352 incomplete cases, eighteen refusals and 130 documented differences between the checker's model and Python's observed behavior.
+All 56 altered-report controls passed in 93.551 seconds, within the unchanged 120-second deadline.
+These are behavior comparisons, not timing benchmarks. Analysis overhead compared with executing Python remains unmeasured.
+
+Review also found that editing parsing or grammar code could leave an old saved answer reusable.
+The build now hashes all declared checking sources, generated grammar tables, dependencies, compiler identity and build settings.
+Saved answers and saved information about functions and imports both depend on that result.
+The report collectors record the same declared sources.
+Seven Rust tests and six collector tests change files, names, settings and dependencies, and check that missing declared inputs stop the operation.
+The [compiler check](https://github.com/e6qu/fun-refactor/actions/runs/39110392846) passed these controls and the existing compiler comparisons.
+
+The first workflow-report check exposed a temporary test project missing the newly required source inputs.
+The fixture now creates a complete project; the source checks still reject missing inputs.
+The [corrected workflow check](https://github.com/e6qu/fun-refactor/actions/runs/39111437978) passed its source-change controls and existing workflow and recovery checks.
+No analysis limit, CI deadline or audit deadline was increased.
+
+When saving these captures, the [report-admission job](https://github.com/e6qu/fun-refactor/actions/runs/39114027198) exceeded the existing 120-second Python audit deadline.
+The [focused measurement](https://github.com/e6qu/fun-refactor/actions/runs/39115312912) found 24,072 case checks across 56 tests.
+A test damaging a late case rechecked every unchanged case before it.
+The test fixture now puts its damaged case first while keeping the complete inventory and full audit.
+Two new controls prove that this happens and that damage to another row is still caught.
+The production validator continues to check the full report and its current source inputs.
+
+The [fixed measurement](https://github.com/e6qu/fun-refactor/actions/runs/39115623782) passed all 58 controls in 42.609 seconds, within the unchanged deadline.
+It performed 3,793 case checks against the same 928-case report, including the added controls.
+The earlier measured run took 73.296 seconds; the two hosted runners may differ, so elapsed times describe those runs.
+The call counts identify the repeated work removed. These are audit measurements, not a speed or overhead comparison between `fr` and Python.
+
+The [next admission run](https://github.com/e6qu/fun-refactor/actions/runs/39115880371) passed all 58 Python controls in 66.471 seconds.
+It then rejected the workflow and repair reports because they came from different commits after the temporary-project fixture fix.
+The [replacement repair collection](https://github.com/e6qu/fun-refactor/actions/runs/39116213030) uses the workflow report's exact commit.
+The requirement that this report pair share one source commit remains unchanged.
+
+The [first complete admission](https://github.com/e6qu/fun-refactor/actions/runs/39116460591) passed all seventeen report groups and the workflow/repair checks, then saved that report set.
+All 58 Python controls passed in 53.026 seconds, within the unchanged 120-second deadline.
+The [Python receipt](../tests/agent-eval/results/2026-10-18-shared-startup-ci-python-contract/manifest.json) preserves the original collection commit, compiled-program identity and exact original archive alongside the compact report.
+
+The [first full PR gate](https://github.com/e6qu/fun-refactor/actions/runs/39117090490) found that the filesystem boundary test treated the new build-time source reader as runtime analysis code.
+The test now recognizes that one Cargo build helper and forbids runtime source files from importing it.
+Runtime analysis still has to read project files through the shared filesystem layer used by the terminal and browser.
+
+Another completed check still selected a compiler report from September after its inputs had changed.
+The [compiler acceptance test](../tests/compiler_evidence.rs) now selects the current collection, checks its receipt, and passes its compiler observations through the same full audit.
+The historical report remains unchanged.
+The compiler comparison, Python examples and familiar-library probes record that test file as an input, so the correction required three fresh captures.
+The checking program's source and the other five capture groups remain unchanged.
+
+The [replacement report admission](https://github.com/e6qu/fun-refactor/actions/runs/39119891634) passed all report checks and saved [that collection](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-scalar-collection/manifest.json).
+Its 58 Python controls passed in 52.358 seconds within the unchanged deadline; the earlier report set remains recorded separately.
+
+Full CI then found other saved reports tied to the changed checking tools.
+The tests now use [fresh hosted reports](../tests/agent-eval/results/2026-10-18-ci-repairs-ci-collection/manifest.json), with the original reports preserved.
+For example, recovery evidence must describe the tools being checked today; a passing older run cannot establish that result.
+The source and behavior checks still reject changed inputs and incorrect results.
+The cache test's small project now supplies the required workspace and source-input list, and still rejects missing inputs.
+
+One compiler test read and rewrote a saved report through Rust before validating it in Python.
+That numeric conversion broke the report's content check even though the original report passed.
+The test now validates the original file directly and retains the full compiler audit.
+Two added controls reject an altered nested report format or content check.
+The [fresh Python run](https://github.com/e6qu/fun-refactor/actions/runs/39128833298) passed 1,409 interface tests.
+Its 58 altered-report tests passed in 64.001 seconds, within the existing 120-second deadline.
+No timeout, resource limit or writing budget increased.
+
+The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
+Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
+Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
+Jaraco.functools remains unopened for a later independent evaluation.

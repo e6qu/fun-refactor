@@ -17,7 +17,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
 from fr_ir.context import MemoryObjectStore, store_merkle_value
 from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
@@ -120,7 +120,7 @@ def ordinary(root):
 
 
 def measure(args):
-    bindings = {path: file_digest(ROOT / path) for path in BINDINGS}
+    bindings = native_bindings(ROOT, BINDINGS)
     binary = hashlib.sha256(args.fr.read_bytes()).hexdigest()
     with tempfile.TemporaryDirectory(prefix="fr-package-eval-") as temporary:
         work = Path(temporary)
@@ -231,14 +231,14 @@ def measure(args):
             "stale_review_refusal":refusal,"records":records,"receiver":oracle(receiver,"feature"),
             "after":analyze(client,"render").report.to_data(),"resumed_after":plan.resume(client).report.to_data(),
             "false_claims":0,"live_agent":False,"scope":json.loads((FIXTURE/"task.json").read_text())["claims"]}
-        assert bindings == {path:file_digest(ROOT/path) for path in BINDINGS}
+        assert bindings == native_bindings(ROOT, BINDINGS)
         assert binary == hashlib.sha256(args.fr.read_bytes()).hexdigest()
         return result
 
 
 def audit(value):
     assert value["schema"] == "fr-package-flow-acceptance-1"
-    assert value["source_bindings"] == {path:file_digest(ROOT/path) for path in BINDINGS}
+    assert value["source_bindings"] == native_bindings(ROOT, BINDINGS)
     assert value["baseline"] == json.loads((FIXTURE/"baseline.json").read_text())
     assert value["oracle"] == oracle(FIXTURE,"baseline")
     assert value["false_claims"] == 0 and value["live_agent"] is False

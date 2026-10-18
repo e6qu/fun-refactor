@@ -35,12 +35,34 @@ class WorkflowBindings(unittest.TestCase):
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(LOCK if name == 'Cargo.lock' else name)
+            policy = (ROOT / 'native-source-inputs.txt').read_text()
+            for name in policy.splitlines():
+                if name.startswith('!'):
+                    continue
+                path = root / name.rstrip('/')
+                if name.endswith('/'):
+                    path.mkdir(parents=True, exist_ok=True)
+                elif name not in routes.BOUND_FILES:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(policy if name == 'native-source-inputs.txt' else name)
+            (root / 'Cargo.toml').write_text('[workspace]\nmembers=["."]\n[package]\n'
+                'name="workspace-root"\nversion="0.1.0"\n')
             original = routes.ROOT
             try:
                 routes.ROOT = root
                 baseline = routes.bindings()
                 (root / 'Cargo.lock').write_text(LOCK.replace('0.1.0', '0.2.0'))
                 self.assertEqual(routes.bindings(), baseline)
+                manifest = root / 'Cargo.toml'
+                manifest.write_text(manifest.read_text().replace('0.1.0', '0.2.0'))
+                self.assertEqual(routes.bindings(), baseline)
+                for name in ('src/added_rule.rs', 'grammars/python/src/parser.c', 'queries/python/imports.scm'):
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('added checking input')
+                    self.assertNotEqual(routes.bindings(), baseline, name)
+                    path.unlink()
+                    self.assertEqual(routes.bindings(), baseline)
                 (root / 'src/workflow.rs').write_text('changed workflow behavior')
                 self.assertNotEqual(routes.bindings(), baseline)
                 (root / 'src/workflow.rs').write_text('src/workflow.rs')

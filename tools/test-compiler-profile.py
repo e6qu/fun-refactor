@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-18-startup-registration-ci-compiler-profile/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-18-ci-repairs-compiler-profile/result.json'
 
 
 def retained_report(path):
@@ -212,6 +212,16 @@ class CompilerProfile(unittest.TestCase):
         value['compiler']['cases']['strict']['checks']['passed'] = True
         nested = value['compiler']
         nested['evidence_digest'] = profile.compiler.digest([nested['cases'], nested['clipped']['report'], nested['cargo']['report'], nested['plan']])
+        self.reject(value)
+
+    def test_nested_compiler_digest_cannot_change(self):
+        value, _ = self.changed()
+        value['compiler']['evidence_digest'] = '0' * 64
+        self.reject(value)
+
+    def test_nested_compiler_schema_cannot_change(self):
+        value, _ = self.changed()
+        value['compiler']['schema'] = 'invalid'
         self.reject(value)
 
     def test_nested_binary_identity_cannot_change(self):

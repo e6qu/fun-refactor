@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from evidence_basis import cargo_lock_basis, file_digest
+from evidence_basis import cargo_lock_basis, cargo_manifest_basis, file_digest
 
 spec = importlib.util.spec_from_file_location(
     "flow_cache_acceptance", Path(__file__).with_name("flow-cache-acceptance.py"))
@@ -15,7 +15,9 @@ spec.loader.exec_module(evaluator)
 
 
 def manifest(version="0.34.0"):
-    return f'''[package]
+    return f'''[workspace]
+members = ["."]
+[package]
 name = "example"
 version = "{version}"
 edition = "2021"
@@ -52,12 +54,12 @@ checksum = "first"
 
 class FlowCacheBasisTests(unittest.TestCase):
     def test_coordinated_release_is_stable(self):
-        self.assertEqual(evaluator.manifest_basis(manifest()),
-                         evaluator.manifest_basis(manifest("0.34.1")))
+        self.assertEqual(cargo_manifest_basis(manifest()),
+                         cargo_manifest_basis(manifest("0.34.1")))
         self.assertEqual(cargo_lock_basis(lock()), cargo_lock_basis(lock("0.34.1")))
 
     def test_dependency_and_build_changes_remain_visible(self):
-        baseline = evaluator.manifest_basis(manifest())
+        baseline = cargo_manifest_basis(manifest())
         changes = [
             (b'remote = "1.0"', b'remote = "1.1"'),
             (b'path = "local"', b'path = "elsewhere"'),
@@ -70,7 +72,7 @@ class FlowCacheBasisTests(unittest.TestCase):
         ]
         for old, new in changes:
             with self.subTest(change=new):
-                self.assertNotEqual(baseline, evaluator.manifest_basis(manifest().replace(old, new)))
+                self.assertNotEqual(baseline, cargo_manifest_basis(manifest().replace(old, new)))
 
     def test_remote_lock_changes_remain_visible(self):
         for old, new in [(b'1.0.0', b'1.0.1'), (b'first', b'second'),
@@ -87,6 +89,8 @@ class FlowCacheBasisTests(unittest.TestCase):
                 (root / "Cargo.toml").write_bytes(manifest())
                 (root / "Cargo.lock").write_bytes(lock())
                 (root / "source.rs").write_text("fn answer() -> u8 { 1 }")
+                (root / "native-source-inputs.txt").write_text(
+                    "Cargo.toml\nCargo.lock\nsource.rs\nnative-source-inputs.txt\n")
                 baseline = evaluator.bindings()
                 (root / "Cargo.toml").write_bytes(manifest("0.34.1"))
                 (root / "Cargo.lock").write_bytes(lock("0.34.1"))
@@ -94,6 +98,9 @@ class FlowCacheBasisTests(unittest.TestCase):
                 self.assertEqual(baseline["Cargo.lock"], file_digest(root / "Cargo.lock"))
                 (root / "source.rs").write_text("fn answer() -> u8 { 2 }")
                 self.assertNotEqual(baseline["source.rs"], evaluator.bindings()["source.rs"])
+                (root / "native-source-inputs.txt").unlink()
+                with self.assertRaises(FileNotFoundError):
+                    evaluator.bindings()
         finally:
             evaluator.ROOT, evaluator.BINDINGS = previous
 

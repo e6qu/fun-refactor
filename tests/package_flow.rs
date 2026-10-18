@@ -1572,3 +1572,79 @@ fn incomplete_parallel_initializers_cannot_establish_an_absence() {
             .is_empty());
     }
 }
+
+#[test]
+fn two_questions_share_startup_and_one_step_budget() {
+    let root = tempfile::tempdir().unwrap();
+    write(root.path(), "helpers.py", "table = {}\ndef register():\n    table['label'] = 'ready'\nregister()\ndef relay(value):\n    return value\n");
+    write(root.path(), "app.py", "from helpers import relay\ndef forwards():\n    return sink(relay(source()))\ndef stopped():\n    return sink(0)\n");
+    write(
+        root.path(),
+        "rules.json",
+        "{\"version\":\"together\",\"sources\":[\"source\"],\"sinks\":[\"sink\"]}",
+    );
+    let first = project(root.path(), &["find", "forwards"]);
+    let second = project(root.path(), &["find", "stopped"]);
+    let run = |steps: &str| {
+        project(
+            root.path(),
+            &[
+                "dataflow",
+                first["rows"][0][0].as_str().unwrap(),
+                "--also",
+                second["rows"][0][0].as_str().unwrap(),
+                "--summaries",
+                "--imports",
+                "--rules",
+                root.path().join("rules.json").to_str().unwrap(),
+                "--steps",
+                steps,
+                "--bytes",
+                "1048576",
+            ],
+        )
+    };
+    let checked = run("4096");
+    assert_eq!(checked["schema"], "fr-dataflow-together");
+    assert_eq!(checked["startup"]["checks"], 1);
+    assert_eq!(
+        checked["startup"]["dictionary_statements"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(checked["answers"][0]["complete"], true);
+    assert_eq!(checked["answers"][1]["complete"], true);
+    assert_eq!(
+        checked["answers"][0]["witnesses"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(checked["answers"][1]["witnesses"], json!([]));
+    let limited = run("1");
+    assert_eq!(limited["budget"]["used"], 1);
+    assert_eq!(limited["answers"][1]["execution"]["analysis_steps"], 0);
+    assert_eq!(limited["answers"][1]["complete"], false);
+    write(
+        root.path(),
+        "helpers.py",
+        "def relay(value):\n    return value\nunknown()\n",
+    );
+    let unknown = project(root.path(), &["find", "forwards"]);
+    let other = project(root.path(), &["find", "stopped"]);
+    let report = project(
+        root.path(),
+        &[
+            "dataflow",
+            unknown["rows"][0][0].as_str().unwrap(),
+            "--also",
+            other["rows"][0][0].as_str().unwrap(),
+            "--summaries",
+            "--imports",
+            "--bytes",
+            "1048576",
+        ],
+    );
+    assert_eq!(report["answers"][0]["complete"], false);
+    assert_eq!(report["answers"][1]["complete"], false);
+}
