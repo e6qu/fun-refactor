@@ -1,0 +1,73 @@
+{
+  "schema": "fr-index-consumers-result-1",
+  "repository_revision": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+  "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "binary_sha256": "383f0a5aa8f7d2bd5b1257635a5b353f4903d828c8fa7adc162065e693870b81",
+  "profile": "unoptimized test, debug information and incremental compilation disabled",
+  "bindings": {
+    "tests/index_consumers.rs": "25480ee8e4d86c4959f283e21c2dc2863374c9d16dd9f1d0fde193dc317f823c",
+    "tests/reference_storage.rs": "c69f8c1d534d524aa39a19d550238c13fac67a3ae998822d020fdc60a372be01",
+    "tests/agent-eval/index-consumers/task.json": "03c0afa5839b2b14a4070d96697bf55db6e4fc69ed98c26522eaf8e0e8fd3a1e",
+    "tools/index-consumers-acceptance.py": "f557406a6f4e900d27c8d5d0371ed38f17dc7f5c1e1b952cfd67aac4636498c1",
+    "tools/evidence_basis.py": "9ea1b27410e70c355088530c07b52795b481a11ee2eca57d76b47a347f68bda6",
+    "src/index.rs": "f7c8bcbdfd4b421f8ee75f6b0e55b4012b9284f42c3e4edd6939db3cca8d3575",
+    "src/index/references.rs": "c1fbb6754a0744eb8b57673b36f03a1c71fadd384bb1e45c739242fad044c038",
+    "src/model.rs": "05fa1b35ebb8a6e44698b0e2c084d875beedfc3798af9355b23968604a99de74",
+    "src/extract.rs": "95e06bdd00533bc2a431a38d10acd80b5c49b1b1fa755f84d2637a69672eb22c",
+    "src/parse.rs": "0350455e231b482f63f56569d930f8f7004ed5a5411ae56861df53db68cc9a7b",
+    "src/scan.rs": "329ff1a680ddb56fa0694ff0feb7e6f4835ae9a4c5cd0cf63f194f75d493b32d",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c"
+  },
+  "samples": [
+    {
+      "answer_bytes": 19927203,
+      "build_seconds": 0.769351238,
+      "oracle_agrees": true,
+      "queries": 428,
+      "query_seconds": [
+        0.239559572,
+        0.224455801,
+        0.226252448
+      ],
+      "references": 2177,
+      "symbols": 1282,
+      "workload": "128",
+      "process_seconds": 4.600068600000014,
+      "peak_rss_bytes": 73121792
+    },
+    {
+      "answer_bytes": 88879857,
+      "build_seconds": 6.545124331,
+      "oracle_agrees": true,
+      "queries": 466,
+      "query_seconds": [
+        1.134375761,
+        1.106303895,
+        1.109827815
+      ],
+      "references": 8705,
+      "symbols": 5122,
+      "workload": "512",
+      "process_seconds": 52.707090986,
+      "peak_rss_bytes": 283402240
+    },
+    {
+      "answer_bytes": 186861,
+      "build_seconds": 164.3099574,
+      "oracle_agrees": true,
+      "queries": 512,
+      "query_seconds": [
+        0.106340373,
+        0.005621013,
+        0.00503886
+      ],
+      "references": 592962,
+      "symbols": 98147,
+      "workload": "repository",
+      "process_seconds": 169.209466594,
+      "peak_rss_bytes": 723865600
+    }
+  ],
+  "baseline_sha256": "d763d9b85a562d85be10e22d6a95d4928592f7284776a126d55c92b557052f6c",
+  "claim": "Membership and occurrence order agree with a linear oracle on this finite workload. Process RSS includes indexing and oracle storage."
+}

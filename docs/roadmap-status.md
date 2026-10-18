@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**0 of 18 specific test requirements have matching recorded results; 18 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**1 of 18 specific test requirements have matching recorded results; 17 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -36,7 +36,7 @@ The implementation column counts completed code changes. The test column counts 
 | A. Find relevant code and explain the evidence | 6/6 | 0/4 | open |
 | B. Explain how values move through code | 4/5 | 0/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 0/4 | open |
-| D. Make checked changes and useful proofs | 1/6 | 0/6 | open |
+| D. Make checked changes and useful proofs | 1/6 | 1/6 | open |
 
 ## Finite acceptance obligations
 
@@ -222,9 +222,9 @@ Next: Choose a useful function and exact property before writing it; reuse the g
 
 User example: Resume or undo an interrupted edit without overwriting someone else’s newer work.
 
-**State: open.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
+**State: demonstrated.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
 
-Recorded results or remaining work: host-recovery: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [host-recovery](../tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json).
 
 Next: Keep the process-interruption tests passing and preserve the limit on what they establish.
 
@@ -238,12 +238,12 @@ The entries below identify the stored test results. “Current” means their re
 | [package-flow](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-package-flow/result.json) / scripted behavior checks | checked | stale (9 changed inputs) | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-package-flow/result.json` |
 | [repository-tasks](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-repositories/result.json) / scripted behavior checks | checked | stale (9 changed inputs) | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-flow-cache/result.json) / measured tool operations | checked | stale (1 changed inputs) | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-flow-cache/result.json` |
-| [host-recovery](../tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json) / deliberately interrupted operations | checked | stale (1 changed inputs) | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json` |
+| [host-recovery](../tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / scripted behavior checks | checked | historical | Rust rename/signature migration with 49 calls; frozen recorded input fingerprints. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three Boolean model relations; no source implementation connection between the descriptions. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
-| [compiler-profile](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-compiler-profile/result.json) / compiler and execution comparisons | checked | stale (1 changed inputs) | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-compiler-profile/result.json` |
-| [python-contract](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-contract/result.json) / Python rule comparisons | checked | stale (1 changed inputs) | 14 declared Python rules; 464 authored programs and 928 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-contract/result.json` |
+| [compiler-profile](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-compiler-profile/result.json) / compiler and execution comparisons | checked | stale (3 changed inputs) | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-compiler-profile/result.json` |
+| [python-contract](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-contract/result.json) / Python rule comparisons | checked | stale (3 changed inputs) | 14 declared Python rules; 464 authored programs and 928 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-contract/result.json` |
 | [index-resolution](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-index-resolution/result.json) / measured tool operations | checked | stale (1 changed inputs) | Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-index-resolution/result.json` |
 | [repository-flow](../tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json) / scripted behavior checks | checked | stale (15 changed inputs) | Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow. Audit: `python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json` |
 

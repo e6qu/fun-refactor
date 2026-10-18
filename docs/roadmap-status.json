@@ -84,15 +84,13 @@
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
-      "changed_sources": [
-        "tools/evidence_basis.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
@@ -128,7 +126,9 @@
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-compiler-profile/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "tests/compiler_evidence.rs",
+        "tools/compiler-profile.py"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -140,7 +140,9 @@
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-python-contract/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "tests/compiler_evidence.rs",
+        "tools/compiler-profile.py"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -238,7 +240,7 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 0,
+      "demonstrated": 1,
       "engineering": {
         "done": 1,
         "total": 6
@@ -249,8 +251,7 @@
         "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof",
-        "D.host"
+        "D.new-proof"
       ],
       "state": "open",
       "total": 6
@@ -629,9 +630,7 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [
-        "host-recovery: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -646,7 +645,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],
