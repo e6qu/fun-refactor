@@ -229,3 +229,21 @@ def test_native_group_count_and_mode_controls_cannot_be_bypassed(tmp_path):
     accepted = analyze_together(client, handles[:16], steps=4096, max_bytes=1_048_576)
     assert len(accepted.answers) == 16
     assert all(answer.report.at('/complete') for answer in accepted.answers)
+
+
+def test_saved_answer_identity_covers_the_startup_module_graph():
+    root = Path(__file__).resolve().parents[3] / 'src/project'
+    identity_source = (root / 'flow_cache.rs').read_text()
+    identity = identity_source.split('pub(super) fn analyzer_identity()', 1)[1].split('\nfn origins(', 1)[0]
+    included = set(re.findall(r'include_str!\("([^"]+)"\)', identity))
+    pending = ['dataflow.rs']
+    reachable = set()
+    while pending:
+        name = pending.pop()
+        if name in reachable:
+            continue
+        reachable.add(name)
+        source = (root / name).read_text()
+        pending.extend(re.findall(r'#\[path\s*=\s*"([^"]+)"\]\s*mod\s+\w+;', source))
+    assert 'flow_initializers.rs' in reachable and 'flow_import_order.rs' in reachable
+    assert reachable <= included, f'Flow rules missing from saved-answer identity: {reachable - included}'
