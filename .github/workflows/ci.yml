@@ -194,7 +194,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, toolchain]
+    needs: [native, static, agent-study, toolchain, go-toolchain]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -205,7 +205,8 @@ jobs:
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
-        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success && test "$TOOLCHAIN" = success
+          GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
+        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success && test "$TOOLCHAIN" = success && test "$GO_TOOLCHAIN" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
