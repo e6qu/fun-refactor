@@ -48,6 +48,7 @@ on:
           - compiler-profile
           - python-contract
           - python-report-writes
+          - python-report-audit
           - retain-python-contract
           - retain-workflows
           - repository-flow-coverage
@@ -97,7 +98,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -760,6 +761,39 @@ jobs:
             tools/test-recovery-delivery-context.py tools/test-source-repair-context.py
           git commit -m 'test: retain release-stable workflow evidence'
           git push origin "HEAD:refs/heads/$BRANCH"
+
+  python-report-audit:
+    if: inputs.group == 'python-report-audit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Download the original Python report for diagnosis
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+        run: |
+          python3 -c 'import os; assert os.environ["COLLECTION_RUN"].isdigit()'
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          gh run download "$COLLECTION_RUN" --name python-contract --dir "$RUNNER_TEMP/python-contract"
+      - name: Measure every audit control within its existing deadline
+        run: >-
+          python3 -B tools/profile-python-contract-audit.py
+          --report "$RUNNER_TEMP/python-contract/result.json"
+          --output target/python-audit/profile.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-audit-profile
+          path: target/python-audit
+          if-no-files-found: warn
+          retention-days: 7
 
   python-report-writes:
     if: inputs.group == 'python-report-writes' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
