@@ -14,7 +14,7 @@ import tempfile
 import time
 import tomllib
 
-from evidence_basis import file_digest
+from evidence_basis import file_digest, native_source_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-resolution/task.json"
@@ -43,7 +43,7 @@ def bindings():
     paths += [ROOT / p for p in ["Cargo.toml", "Cargo.lock", "tests/index_resolution.rs",
               "tools/index-resolution-acceptance.py", "tools/evidence_basis.py", str(TASK.relative_to(ROOT))]]
     return {str(p.relative_to(ROOT)): hashlib.sha256(manifest_basis(p.read_bytes())).hexdigest()
-            if p.name == "Cargo.toml" else file_digest(p) for p in paths}
+            if p.name == "Cargo.toml" else file_digest(p) for p in paths} | native_source_bindings(ROOT)
 
 
 def validate_samples(report):

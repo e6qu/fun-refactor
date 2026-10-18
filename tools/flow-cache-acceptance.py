@@ -15,9 +15,8 @@ import subprocess
 import sys
 import tempfile
 import time
-import tomllib
 
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/agent-eval/flow-cache"
@@ -52,22 +51,8 @@ def digest(value):
     return hashlib.sha256(encode(value)).hexdigest()
 
 
-def manifest_basis(data):
-    manifest = tomllib.loads(data.decode())
-    version = manifest["package"]["version"]
-    manifest["package"]["version"] = "<workspace>"
-    for container in [manifest, manifest.get("workspace", {}), *manifest.get("target", {}).values()]:
-        for kind in ("dependencies", "dev-dependencies", "build-dependencies"):
-            for dependency in container.get(kind, {}).values():
-                if (isinstance(dependency, dict) and "path" in dependency
-                        and dependency.get("version") == version):
-                    dependency["version"] = "<workspace>"
-    return encode(manifest)
-
-
 def bindings():
-    return {path: hashlib.sha256(manifest_basis((ROOT / path).read_bytes())).hexdigest()
-            if path == "Cargo.toml" else file_digest(ROOT / path) for path in BINDINGS}
+    return native_bindings(ROOT, BINDINGS)
 
 
 def legacy_class():

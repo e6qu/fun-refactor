@@ -70,5 +70,87 @@ checksum = "{checksum}"
     assert baseline != digest(cargo_lock_basis(lock(checksum="second")))
 
 
+
+def _native_policy(root):
+    roots, ignored = {}, set()
+    for line in (root / 'native-source-inputs.txt').read_text().splitlines():
+        if not line or line.strip() != line:
+            raise ValueError('Native source policy needs one literal path per line.')
+        name = line[1:] if line.startswith('!') else line
+        directory = name.endswith('/')
+        name = name[:-1] if directory else name
+        if (not name or '\\' in name or Path(name).is_absolute()
+                or any(part in {'', '.', '..'} for part in name.split('/'))):
+            raise ValueError('Native source roots must be normalized relative paths.')
+        if line.startswith('!'):
+            if not directory or '/' in name or name in ignored:
+                raise ValueError('Ignored directories need unique single names.')
+            ignored.add(name)
+        else:
+            if name in roots:
+                raise ValueError('Native source roots must be unique.')
+            roots[name] = directory
+    if roots.get('native-source-inputs.txt') is not False:
+        raise ValueError('Native source policy must include itself.')
+    return roots, ignored
+
+
+def native_source_roots(root):
+    return tuple(_native_policy(Path(root))[0])
+
+
+def native_source_paths(root):
+    import stat
+    root = Path(root)
+    roots, ignored = _native_policy(root)
+    files = set()
+    def collect(relative):
+        path = root / relative
+        mode = path.lstat().st_mode
+        if stat.S_ISLNK(mode):
+            raise ValueError(f'Native source input is a symlink: {relative}')
+        if stat.S_ISREG(mode):
+            files.add(relative.as_posix())
+        elif stat.S_ISDIR(mode):
+            for child in path.iterdir():
+                if stat.S_ISDIR(child.lstat().st_mode) and child.name in ignored:
+                    continue
+                collect(relative / child.name)
+        else:
+            raise ValueError(f'Native source input is not a regular file: {relative}')
+    for name, directory in roots.items():
+        path = root / name
+        mode = path.lstat().st_mode
+        if stat.S_ISLNK(mode) or stat.S_ISDIR(mode) != directory:
+            raise ValueError(f'Native source root has the wrong kind: {name}')
+        collect(Path(name))
+    return tuple(sorted(files))
+
+
+def cargo_manifest_basis(data):
+    manifest = tomllib.loads(data.decode())
+    version = manifest['package']['version']
+    manifest['package']['version'] = '<workspace>'
+    for container in [manifest, manifest.get('workspace', {}), *manifest.get('target', {}).values()]:
+        for kind in ('dependencies', 'dev-dependencies', 'build-dependencies'):
+            for dependency in container.get(kind, {}).values():
+                if isinstance(dependency, dict) and 'path' in dependency and dependency.get('version') == version:
+                    dependency['version'] = '<workspace>'
+    return json.dumps(manifest, sort_keys=True, ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode()
+
+
+def native_source_bindings(root):
+    root = Path(root)
+    manifest = tomllib.loads((root / 'Cargo.toml').read_text())
+    members = {'Cargo.toml' if member == '.' else member + '/Cargo.toml'
+               for member in manifest['workspace']['members']}
+    return {path: digest(cargo_manifest_basis((root / path).read_bytes()))
+            if path in members else file_digest(root / path) for path in native_source_paths(root)}
+
+
+def native_bindings(root, declared):
+    return {**{path: file_digest(Path(root) / path) for path in declared}, **native_source_bindings(root)}
+
+
 if __name__ == "__main__":
     self_test()

@@ -252,3 +252,18 @@ If this occurs, confirm the intended release commit and preserve it on a tempora
 authorized maintainer account. Retry the failed release job, verify the tag targets that exact commit,
 then delete the temporary branch. Do not retarget the release to newer code or broaden token permissions.
 Run [37190700691](https://github.com/e6qu/fun-refactor/actions/runs/37190700691) recovered version 0.49.2 this way.
+
+## Keep saved answers tied to the checking code
+
+If we fix how `fr` reads Python, an answer saved by the earlier checker needs checking again.
+The same applies to saved information about functions and imports.
+[`native-source-inputs.txt`](../native-source-inputs.txt) lists the checking program's source roots and the generated directories to ignore.
+The build hashes every declared source file, including generated grammar tables, with the compiler identity and build settings.
+A missing or unreadable input stops the build. Symbolic links inside the declared source roots also stop it.
+The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
+Release labels retain the existing normalization used by these recorded behavior comparisons; dependency and code changes remain bound.
+
+The focused runner changes source, grammar, query and dependency inputs in temporary projects.
+It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.
+The full native gate runs these controls alongside the existing cache tests.
+This is cache invalidation, not a compatibility reader or a migration of old saved answers.

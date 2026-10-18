@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
-from evidence_basis import file_digest
+from evidence_basis import file_digest, native_source_bindings
 
 
 def load(name):
@@ -69,8 +69,8 @@ def bindings():
     paths.update(('Cargo.toml', 'grammars/python/Cargo.toml', 'grammars/python/PROVENANCE.toml'))
     paths.update(row['existing_test'] for row in PROFILE.values())
     paths.add('tools/compiler-profile.py')
-    paths.update(('tests/common/retained.rs', 'tests/retained_evidence.rs'))
-    return {path: binding_digest(ROOT / path) for path in sorted(paths)}
+    paths.update(('tests/common/retained.rs', 'tests/retained_evidence.rs', 'tests/native_fingerprint.rs', 'tools/test-native-source-inputs.py'))
+    return {path: binding_digest(ROOT / path) for path in sorted(paths)} | native_source_bindings(ROOT)
 
 
 def cases():

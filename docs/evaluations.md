@@ -18,6 +18,12 @@ The behavior checks compare shared answers with separate analyses and ordinary P
 They cover changed files and import candidates, unknown startup effects, shared work limits and bounded location detail.
 An unchecked write after the displayed locations must still leave both answers unfinished.
 These checks establish agreement on the chosen examples; they measure no speed or agent savings.
+Saved answers also need to change when the checking program changes.
+For example, fixing how the checker reads Python must invalidate an older answer, even if the user's files stay the same.
+A shared source-input list now covers the Rust checking code, compiled grammars, queries, dependency files and build settings.
+The checker hashes these inputs when building; the result collectors record the same source files.
+Tests change a rule, generated parser, scanner, query, dependency and build setting, and require a changed cache identity.
+Missing declared inputs stop the build or collection. The tests also check added, removed and renamed source files.
 Saving startup work for a later request remains open. The existing package questions remain unfinished.
 
 

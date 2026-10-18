@@ -10,6 +10,7 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import zipfile
+from evidence_basis import native_source_roots
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('retain', ROOT / 'tools/retain-python-contract.py')
@@ -27,8 +28,7 @@ SCRIPTS = {'flow-fixed-point': 'flow-acceptance', 'compiler-profile': 'compiler-
            'fixed-arity-probes': 'python-fixed-arity-probes'}
 SCRIPTS.update({group: group + '-acceptance' for groups in FLOW.values() for group in groups
                 if group != 'flow-fixed-point'})
-ANALYZER_PATHS = ('src', 'grammars', 'crates', 'queries', 'sdk/python/src',
-                  'build.rs', 'Cargo.toml', 'Cargo.lock')
+ANALYZER_PATHS = (*native_source_roots(ROOT), 'sdk/python/src')
 
 
 def verify_sources(root, revisions):

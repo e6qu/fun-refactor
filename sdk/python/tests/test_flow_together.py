@@ -239,11 +239,13 @@ def test_native_group_count_and_mode_controls_cannot_be_bypassed(tmp_path):
     assert all(answer.report.at('/complete') for answer in accepted.answers)
 
 
-def test_saved_answer_identity_covers_the_startup_module_graph():
-    root = Path(__file__).resolve().parents[3] / 'src/project'
-    identity_source = (root / 'flow_cache.rs').read_text()
-    identity = identity_source.split('pub(super) fn analyzer_identity()', 1)[1].split('\nfn origins(', 1)[0]
-    included = set(re.findall(r'include_str!\("([^"]+)"\)', identity))
+def test_saved_answer_inputs_cover_the_startup_and_parser_module_graph():
+    import importlib.util
+    root = Path(__file__).resolve().parents[3]
+    spec = importlib.util.spec_from_file_location('native_inputs', root / 'tools/evidence_basis.py')
+    basis = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(basis)
+    included = set(basis.native_source_paths(root))
     pending = ['dataflow.rs']
     reachable = set()
     while pending:
@@ -251,10 +253,12 @@ def test_saved_answer_identity_covers_the_startup_module_graph():
         if name in reachable:
             continue
         reachable.add(name)
-        source = (root / name).read_text()
+        source = (root / 'src/project' / name).read_text()
         pending.extend(re.findall(r'#\[path\s*=\s*"([^"]+)"\]\s*mod\s+\w+;', source))
     assert 'flow_initializers.rs' in reachable and 'flow_import_order.rs' in reachable
-    assert reachable <= included, f'Flow rules missing from saved-answer identity: {reachable - included}'
+    assert {'src/project/' + name for name in reachable} <= included
+    assert {'src/model.rs', 'src/lang.rs', 'src/parse.rs', 'grammars/python/src/parser.c',
+            'grammars/python/src/scanner.c', 'src/native_fingerprint.rs', 'build.rs'} <= included
 
 
 @pytest.mark.parametrize('unchecked', [False, True])
