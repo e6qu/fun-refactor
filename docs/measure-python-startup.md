@@ -3,6 +3,7 @@
 You can save checked Python setup before asking about another function.
 Saving work also costs time: the client writes a record, reopens it and checks whether it still applies.
 This measurement compares those costs with checking the same questions from scratch.
+The [recorded result](python-startup-cost-results.md) found no reduction in total time for these four examples.
 
 A **baseline** is the alternative used for comparison.
 Here, the baseline starts a fresh check directly, without opening a saved record.

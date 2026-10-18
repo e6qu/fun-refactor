@@ -83,6 +83,12 @@ Read each report's actual baseline before interpreting a warm-run improvement.
 An edited run also measures checking which earlier results still apply.
 A faster warm run must repay the initial work and added storage before it benefits the whole task.
 
+The [saved Python setup comparison](python-startup-cost-results.md) measures 420 requests across four disclosed examples.
+The baseline checks each function directly. The alternatives reopen saved setup or saved whole answers under the same limits.
+Median seven-question totals increased by 0.8–2.8% with saved setup and 28.7–33.8% with saved whole answers.
+The totals include initial population, finding functions, Python and native startup, file and import checks, parsing and storage.
+The development build disabled persistent project caching; optimized-release costs and enabled-cache costs remain unknown.
+
 The [saved cache report](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains three repetitions on one host.
 The table below derives warm-versus-cold differences from its unrounded median elapsed times for the newer report-chunk format.
 The baseline here is fresh analysis using that format, not the older cache format.
