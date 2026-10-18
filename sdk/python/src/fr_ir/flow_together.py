@@ -25,6 +25,7 @@ class FlowTogether:
             startup, budget = data['startup'], data['budget']
             answers = data['answers']
             if (report.schema != 'fr-dataflow-together'
+                    or data['handle_prefix'] != 'frp1:' + data['revision'][:32] + ':'
                     or not isinstance(startup, dict) or set(startup) != {
                         'checks', 'questions', 'input_digest', 'inputs', 'names', 'dictionary_statements'}
                     or type(startup['checks']) is not int or startup['checks'] != 1
@@ -64,6 +65,7 @@ class FlowTogether:
                 dependencies.pop('selection')
                 work = value['execution']['analysis_steps']
                 if (answer.report.schema != 'fr-dataflow-1' or value['revision'] != data['revision']
+                        or value['handle_prefix'] != data['handle_prefix'] or value['coverage'] != data['coverage']
                         or dependencies != inputs or value['target'] in targets
                         or type(value['complete']) is not bool or value['execution']['kind'] != 'analyzed'
                         or type(work) is not int or work < 0

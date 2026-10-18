@@ -141,7 +141,7 @@ def test_questions_need_distinct_functions_in_one_file(tmp_path, kind):
         together(client, rules, names)
 
 
-@pytest.mark.parametrize('kind', ['count', 'work', 'budget', 'inputs', 'digest', 'write', 'names', 'complete'])
+@pytest.mark.parametrize('kind', ['count', 'work', 'budget', 'inputs', 'digest', 'write', 'names', 'complete', 'context', 'answer-context'])
 def test_altered_group_reports_are_rejected(tmp_path, kind):
     client, rules = install(tmp_path)
     value = together(client, rules).report.to_data()
@@ -159,6 +159,10 @@ def test_altered_group_reports_are_rejected(tmp_path, kind):
         value['startup']['dictionary_statements'][0]['revision'] = '0' * 64
     elif kind == 'names':
         value['startup']['names'].append(value['startup']['names'][0])
+    elif kind == 'context':
+        value['handle_prefix'] = 'frp1:' + '0' * 32 + ':'
+    elif kind == 'answer-context':
+        value['answers'][1]['coverage'] = {}
     else:
         value['answers'][1]['complete'] = 'true'
     with pytest.raises(FrRuntimeError):

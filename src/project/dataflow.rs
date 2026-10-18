@@ -879,6 +879,7 @@ impl Project<'_> {
         }
         let report = json!({
             "schema":"fr-dataflow-together", "revision":self.revision,
+            "handle_prefix":format!("frp1:{}:",&self.revision[..32]), "coverage":self.coverage(),
             "startup":{
                 "checks":1, "questions":answers.len(),
                 "input_digest":hash(&dependencies)?, "inputs":dependencies,
