@@ -1395,6 +1395,11 @@ It performed 3,793 case checks against the same 928-case report, including the a
 The earlier measured run took 73.296 seconds; the two hosted runners may differ, so elapsed times describe those runs.
 The call counts identify the repeated work removed. These are audit measurements, not a speed or overhead comparison between `fr` and Python.
 
+The [next admission run](https://github.com/e6qu/fun-refactor/actions/runs/39115880371) passed all 58 Python controls in 66.471 seconds.
+It then rejected the workflow and repair reports because they came from different commits after the temporary-project fixture fix.
+The repair report is being [collected again](https://github.com/e6qu/fun-refactor/actions/runs/39116213030) from the workflow report's exact commit.
+The requirement that this report pair share one source commit remains unchanged.
+
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
