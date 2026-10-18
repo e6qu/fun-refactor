@@ -84,9 +84,11 @@ forwards finished: True possible input connection: True
 stopped finished: True possible input connection: False
 ```
 
-A finished answer means this bounded scalar model checked the question.
-A possible connection is a conservative flow explanation, not a demonstrated
-execution path. In the Python API, `answer.witnesses` holds those explanations.
+A finished answer means `fr` checked the question under its
+[published Python rules](python-contract.md).
+A possible connection means values may pass from an input to an output.
+The checker can report connections that Python would never take.
+In the Python API, `answer.witnesses` holds the explanations for those connections.
 If an answer is unfinished, an empty connection list does not
 establish that the output is safe.
 
