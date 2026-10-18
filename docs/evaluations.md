@@ -1400,7 +1400,7 @@ It then rejected the workflow and repair reports because they came from differen
 The [replacement repair collection](https://github.com/e6qu/fun-refactor/actions/runs/39116213030) uses the workflow report's exact commit.
 The requirement that this report pair share one source commit remains unchanged.
 
-The [final admission](https://github.com/e6qu/fun-refactor/actions/runs/39116460591) passed all seventeen report groups and the workflow/repair checks, then saved the current reports.
+The [first complete admission](https://github.com/e6qu/fun-refactor/actions/runs/39116460591) passed all seventeen report groups and the workflow/repair checks, then saved that report set.
 All 58 Python controls passed in 53.026 seconds, within the unchanged 120-second deadline.
 The [Python receipt](../tests/agent-eval/results/2026-10-18-shared-startup-ci-python-contract/manifest.json) preserves the original collection commit, compiled-program identity and exact original archive alongside the compact report.
 
@@ -1411,8 +1411,11 @@ Runtime analysis still has to read project files through the shared filesystem l
 Another completed check still selected a compiler report from September after its inputs had changed.
 The [compiler acceptance test](../tests/compiler_evidence.rs) now selects the current collection, checks its receipt, and passes its compiler observations through the same full audit.
 The historical report remains unchanged.
-The compiler comparison, Python examples and familiar-library probes record that test file as an input, so those three captures need refreshing after the correction.
+The compiler comparison, Python examples and familiar-library probes record that test file as an input, so the correction required three fresh captures.
 The checking program's source and the other five capture groups remain unchanged.
+
+The [replacement report admission](https://github.com/e6qu/fun-refactor/actions/runs/39119891634) passed all report checks and saved the [current collection](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-scalar-collection/manifest.json).
+Its 58 Python controls passed in 52.358 seconds within the unchanged deadline; the earlier report set remains recorded separately.
 
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
