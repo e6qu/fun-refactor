@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import math
 from pathlib import Path
 import subprocess
 import tempfile
@@ -160,7 +161,13 @@ class CompactReports(unittest.TestCase):
             manifest = retain.store_report(folder, archive, identity)
             saved = (folder / 'result.json').read_bytes()
             self.assertLess(len(saved), len(original))
-            self.assertEqual(saved, retain.compact_report(value))
+            decoded = json.loads(saved)
+            self.assertEqual(decoded, value)
+            values = decoded['cases'][0]['values']
+            self.assertIs(values[0], True)
+            self.assertIs(type(values[1]), int)
+            self.assertIs(values[2], None)
+            self.assertEqual(math.copysign(1.0, values[3]), -1.0)
             self.assertEqual((folder / 'artifact.zip').read_bytes(), archive)
             self.assertEqual(retain.checked_report(archive, identity['artifact_digest']), original)
             self.assertEqual(manifest['source_report_sha256'], hashlib.sha256(original).hexdigest())

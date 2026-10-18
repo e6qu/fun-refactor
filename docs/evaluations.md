@@ -1327,3 +1327,14 @@ preserves 352 incomplete cases, eighteen refusals and 130 documented differences
 The [split focused check](https://github.com/e6qu/fun-refactor/actions/runs/39082857741) passed both jobs, including every group from the timed-out attempt.
 The [familiar-library replay](https://github.com/e6qu/fun-refactor/actions/runs/39080371185) keeps all forty full-package questions unfinished.
 Copied declarations and standalone modules retain their earlier smaller successes; neither establishes complete package support.
+
+The [complete report audit](https://github.com/e6qu/fun-refactor/actions/runs/39083435664) passed fourteen admission controls and the existing audits for all seventeen native report groups.
+It repeated the 56 Python controls in 100.379 seconds, within the unchanged 120-second deadline.
+
+GitHub warned that the new Python report exceeded its recommended file size because retention copied the fully indented JSON.
+The [storage check](https://github.com/e6qu/fun-refactor/actions/runs/39084661457) retains compact JSON and the exact original downloaded archive instead.
+The compact copy occupies 28,826,487 bytes; the archive occupies 5,248,180 bytes and preserves the original capture unchanged.
+The receipt records separate fingerprints for the compact file, original report and archive, while keeping the actual collection commit and binary identity.
+The current reader requires both files and rejects changed values, changed fingerprints and obsolete receipts.
+All 23 retention controls and 56 altered-report controls passed; the latter took 83.427 seconds within the unchanged deadline.
+This compares storage representations of the same data. It does not measure analysis speed or a reduction in complete agent cost.

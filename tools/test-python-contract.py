@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Reject false contract claims and corrupted retained Python observations."""
 import copy
-import hashlib
 import importlib.util
 import json
 import os
