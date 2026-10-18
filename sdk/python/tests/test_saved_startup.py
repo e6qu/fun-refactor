@@ -129,13 +129,18 @@ def test_saved_work_preserves_captured_scalar_defaults_and_aliases(tmp_path):
     assert later.reused and later.answer.report.at('/complete') and not later.answer.witnesses
 
 
-def test_new_rules_apply_to_new_question_without_rechecking_independent_startup(tmp_path):
+@pytest.mark.parametrize('known', [False, True])
+def test_new_rules_apply_to_new_question_without_rechecking_independent_startup(tmp_path, known):
     client, rules = install(tmp_path, 'helper')
     cache = StartupCache(MemoryObjectStore())
     ask(cache, client, rules, 'forwards', imports=True)
-    rules.write_text(json.dumps({'version': 'changed', 'sources': [], 'sinks': ['sink']}))
+    rules.write_text(json.dumps({'version': 'changed', 'sources': ['source'] if known else [],
+                                 'sinks': [] if known else ['sink'],
+                                 'propagators': ['sink'] if known else [], 'sanitizers': {}}))
     later = ask(cache, client, rules, 'forwards', imports=True)
-    assert later.reused and later.answer.report.at('/complete') and not later.answer.witnesses
+    assert later.reused and later.answer.report.at('/complete') is known and not later.answer.witnesses
+    if not known:
+        assert 'unknown-external-call:source' in later.answer.report.at('/cutoffs')
     fresh = ask(StartupCache(MemoryObjectStore()), client, rules, 'forwards', imports=True)
     assert evidence(later.answer) == evidence(fresh.answer)
 
