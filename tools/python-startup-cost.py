@@ -22,13 +22,15 @@ FIXTURE = ROOT / 'tests/agent-eval/python-startup-cost'
 sys.path[:0] = [str(ROOT / 'sdk/python/src'), str(FIXTURE)]
 from corpus import CASES, STAGES, STRATEGIES, expected, install, sources
 from evidence_basis import native_bindings
+from python_repository_basis import file_digest as python_file_digest
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow import FlowAnalysis, FlowCache
 from fr_ir.flow_startup import StartupCache
 from fr_ir.runtime import FrClient
 
 BINDINGS = ('tools/python-startup-cost.py', 'tools/test-python-startup-cost.py',
-            'tools/evidence_basis.py', 'tests/agent-eval/python-startup-cost/corpus.py',
+            'tools/evidence_basis.py', 'tools/python_repository_basis.py',
+            'tests/agent-eval/python-startup-cost/corpus.py',
             '.github/workflows/python-startup-cost.yml')
 FIELDS = ('elapsed_seconds', 'worker_seconds', 'native_seconds', 'store_seconds',
           'native_calls', 'canonical_reply_bytes', 'store_gets', 'store_puts',
@@ -56,7 +58,7 @@ def digest(value):
 
 def bindings():
     sdk = [str(path.relative_to(ROOT)) for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))]
-    return native_bindings(ROOT, [*BINDINGS, *sdk])
+    return native_bindings(ROOT, BINDINGS) | {name: python_file_digest(ROOT / name) for name in sdk}
 
 
 def require(condition, message):

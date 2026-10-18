@@ -146,6 +146,7 @@ The report records the runner's CPU, available CPU set, visible memory, operatin
 Measurements from one runner cannot establish costs across different machines.
 Source identities in the report bind the analyzer, client, examples, measurement and rejection controls.
 Changing those inputs requires a new collection.
+The existing evidence policy ignores distribution version labels when the implementation stays the same.
 
 This comparison cannot establish savings for an unfamiliar project or for an agent completing a repair.
 Use measured whole-request and whole-sequence costs before choosing another optimization.
