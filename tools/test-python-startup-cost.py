@@ -13,9 +13,18 @@ spec.loader.exec_module(cost)
 def fixture():
     rows, answers, observations = [], {}, []
     for case in cost.CASES:
-        for stage, (name, _, _) in enumerate(cost.STAGES):
+        for stage, (name, function, state) in enumerate(cost.STAGES):
             wanted = cost.expected(case, stage)
+            files = cost.sources(case, state)
+            inputs = {'source': {'path': 'app.py', 'digest': cost.digest(files['app.py'])},
+                      'configuration': cost.digest({}), 'selection': {'name': function},
+                      'budget': {'steps': cost.CASES[case]['steps'], 'depth': 8, 'bytes': 1_048_576},
+                      'context': 'html', 'summary_mode': True}
+            if cost.CASES[case]['imports']:
+                inputs['modules'] = {'files': {name: cost.digest(contents) for name, contents in files.items()
+                                              if name.endswith('.py')}}
             answer = {'case': case, 'stage': name, 'complete': wanted['complete'],
+                      'inputs': inputs, 'input_digest': cost.digest(inputs),
                       'witnesses': [17] if wanted['python']['returned'] == 17 else [],
                       'cutoffs': [] if wanted['complete'] else [
                           'step-budget' if case == 'unfinished-budget' else 'module-effects-unchecked']}
@@ -36,7 +45,8 @@ def fixture():
                                  'metrics': metrics})
     return {'schema': 'fr-python-startup-cost', 'bindings': {'source': 'frozen'}, 'scope': cost.SCOPE,
             'cases': cost.CASES, 'stages': cost.STAGES, 'strategies': cost.STRATEGIES, 'repetitions': 3,
-            'samples': rows, 'answers': answers, 'observations': observations, 'summary': cost.summarize(rows)}
+            'samples': rows, 'answers': answers, 'observations': observations, 'summary': cost.summarize(rows),
+            'sequence_totals': cost.sequence_totals(rows, 3)}
 
 
 class Controls(unittest.TestCase):
@@ -50,6 +60,7 @@ class Controls(unittest.TestCase):
         changed = copy.deepcopy(self.report)
         change(changed)
         changed['summary'] = cost.summarize(changed['samples'])
+        changed['sequence_totals'] = cost.sequence_totals(changed['samples'], 3)
         with self.assertRaises(ValueError):
             cost.audit(changed)
 
@@ -84,6 +95,20 @@ class Controls(unittest.TestCase):
 
     def test_budget_cannot_increase(self):
         self.check(lambda report: report['samples'][0]['metrics'].update(analysis_steps=4097))
+
+    def test_analysis_settings_cannot_be_substituted(self):
+        def change(report):
+            row = report['samples'][0]
+            answer = report['answers'].pop(row['answer_digest'])
+            answer['inputs']['budget']['steps'] = 2048
+            answer['input_digest'] = cost.digest(answer['inputs'])
+            key = cost.digest(answer)
+            report['answers'][key] = answer
+            previous = row['answer_digest']
+            for other in report['samples']:
+                if other['answer_digest'] == previous:
+                    other['answer_digest'] = key
+        self.check(change)
 
     def test_reuse_cannot_be_invented(self):
         self.check(lambda report: report['samples'][0].update(startup_reused=True))

@@ -213,9 +213,24 @@ def summarize(rows):
     return result
 
 
+def sequence_totals(rows, repetitions):
+    result = {}
+    for case in CASES:
+        result[case] = {}
+        for strategy in STRATEGIES:
+            values = [sum(row['metrics']['elapsed_seconds'] for row in rows
+                          if (row['case'], row['strategy'], row['repetition']) == (case, strategy, repetition))
+                      for repetition in range(repetitions)]
+            result[case][strategy] = {'samples_seconds': values, 'median_seconds': statistics.median(values)}
+    return result
+
+
 def measure(args):
     require(3 <= args.repetitions <= 9, 'use 3 to 9 explicit repetitions')
     before = bindings()
+    args.output.mkdir(parents=True, exist_ok=False)
+    (args.output / 'attempt.json').write_bytes(encode({'bindings': before, 'repetitions': args.repetitions,
+                                                     'scope': SCOPE}) + b'\n')
     rows, answers, observations = [], {}, []
     with tempfile.TemporaryDirectory(prefix='fr-startup-cost-') as directory:
         base = Path(directory)
@@ -235,8 +250,11 @@ def measure(args):
                         answer = result.pop('answer')
                         key = digest(answer)
                         answers[key] = answer
-                        rows.append({'case': case, 'repetition': repetition, 'position': position,
-                                     'stage': name, 'strategy': strategy, 'answer_digest': key, **result})
+                        row = {'case': case, 'repetition': repetition, 'position': position,
+                               'stage': name, 'strategy': strategy, 'answer_digest': key, **result}
+                        rows.append(row)
+                        with (args.output / 'requests.jsonl').open('ab') as stream:
+                            stream.write(encode({'request': row, 'answer': answer}) + b'\n')
                 print(f'measured {case} repetition {repetition + 1}', file=sys.stderr, flush=True)
             for name, function, state in STAGES:
                 for path in project.glob('*.py'):
@@ -251,9 +269,8 @@ def measure(args):
               'repetitions': args.repetitions, 'scope': SCOPE, 'cases': CASES,
               'stages': STAGES, 'strategies': STRATEGIES,
               'samples': rows, 'answers': answers, 'observations': observations,
-              'summary': summarize(rows)}
+              'summary': summarize(rows), 'sequence_totals': sequence_totals(rows, args.repetitions)}
     audit(report)
-    args.output.mkdir(parents=True, exist_ok=False)
     (args.output / 'result.json').write_bytes(encode(report) + b'\n')
 
 
@@ -269,6 +286,7 @@ def audit(report):
     rows = report['samples']
     require(len(rows) == len(CASES) * len(STAGES) * len(STRATEGIES) * repetitions, 'missing or extra requests')
     require(report['summary'] == summarize(rows), 'summary does not match raw samples')
+    require(report['sequence_totals'] == sequence_totals(rows, repetitions), 'sequence totals changed')
     used_answers, seen = set(), set()
     for row in rows:
         case, strategy, stage_name, repetition = row['case'], row['strategy'], row['stage'], row['repetition']
@@ -286,6 +304,18 @@ def audit(report):
         used_answers.add(key)
         require(digest(answer) == key, 'answer content digest changed')
         require(answer['complete'] is wanted['complete'], 'completion changed')
+        inputs = answer['inputs']
+        files = sources(case, STAGES[stage][2])
+        require(inputs['source'] == {'path': 'app.py', 'digest': digest(files['app.py'])}
+                and inputs['configuration'] == digest({})
+                and inputs['selection']['name'] == STAGES[stage][1]
+                and inputs['budget'] == {'steps': CASES[case]['steps'], 'depth': 8, 'bytes': 1_048_576}
+                and inputs['context'] == 'html' and inputs['summary_mode'] is True
+                and ('modules' in inputs) is CASES[case]['imports']
+                and answer['input_digest'] == digest(inputs), 'source, function or analysis settings changed')
+        if CASES[case]['imports']:
+            require(inputs['modules']['files'] == {name: digest(contents) for name, contents in files.items()
+                                                  if name.endswith('.py')}, 'imported file set changed')
         require(row['startup_reused'] is (strategy == 'saved-startup' and wanted['startup_reused']),
                 'startup reuse changed')
         require(row['answer_reused'] is (strategy == 'saved-answer' and wanted['answer_reused']),
@@ -307,6 +337,8 @@ def audit(report):
         require(metrics['native_seconds'] + metrics['store_seconds'] <= metrics['worker_seconds'],
                 'component time exceeds worker time')
         require(metrics['analysis_steps'] <= CASES[case]['steps'], 'analysis exceeded its budget')
+        if row['answer_reused']:
+            require(metrics['analysis_steps'] == 0, 'saved whole answer repeated function analysis')
         if strategy == 'fresh':
             require(all(metrics[name] == 0 for name in FIELDS if name.startswith(('store_', 'stored_', 'added_'))),
                     'fresh baseline used saved storage')
