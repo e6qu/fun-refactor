@@ -898,6 +898,8 @@ impl Project<'_> {
                 None
             };
             let report = json!({"schema":"fr-dataflow-prepared", "answer":answer,
+                "revision":self.revision, "handle_prefix":format!("frp1:{}:", &self.revision[..32]),
+                "coverage":self.coverage(),
                 "startup":record, "preparation":{"kind":if reused {"retained"} else {"checked"},
                     "checks":usize::from(!reused), "import_checks":usize::from(options.imports),
                     "reason":if reused {"matching-inputs"} else if options.reuse_startup.is_some() {

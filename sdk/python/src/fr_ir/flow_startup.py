@@ -89,7 +89,8 @@ class PreparedFlow:
             data = report.to_data()
             preparation, answer = data['preparation'], data['answer']
             if (report.schema != 'fr-dataflow-prepared'
-                    or set(data) != {'schema', 'preparation', 'startup', 'answer'}
+                    or set(data) != {'schema', 'revision', 'handle_prefix', 'coverage', 'context_basis',
+                                     'preparation', 'startup', 'answer'}
                     or not isinstance(preparation, dict) or set(preparation) != {
                         'kind', 'checks', 'import_checks', 'reason', 'trust'}
                     or preparation['kind'] not in ('checked', 'retained')
@@ -101,10 +102,29 @@ class PreparedFlow:
                     or (preparation['reason'] == 'matching-inputs') != (preparation['kind'] == 'retained')
                     or preparation['trust'] != 'caller-supplied digest binds saved work; no execution attestation'
                     or not isinstance(answer, dict) or answer['schema'] != 'fr-dataflow-1'
+                    or answer['revision'] != data['revision']
+                    or answer['handle_prefix'] != data['handle_prefix']
+                    or data['handle_prefix'] != 'frp1:' + data['revision'][:32] + ':'
+                    or answer['coverage'] != data['coverage']
+                    or data['context_basis'] != 'frcb1:' + _digest([
+                        'fr-context-1', data['revision'], data['handle_prefix'], data['coverage']])
                     or type(answer['complete']) is not bool or answer['execution']['kind'] != 'analyzed'
+                    or answer['inputs']['summary_mode'] is not True
                     or preparation['import_checks'] != int('modules' in answer['inputs'])
                     or answer['input_digest'] != _digest(answer['inputs'])):
                 raise FrRuntimeError('unsupported prepared flow report')
+            limits, work = answer['inputs']['budget'], answer['execution']['analysis_steps']
+            if (not isinstance(limits, dict) or set(limits) != {'steps', 'depth', 'bytes'}
+                    or any(type(value) is not int for value in limits.values())
+                    or not 1 <= limits['steps'] <= 4096 or not 1 <= limits['depth'] <= 32
+                    or not 2048 <= limits['bytes'] <= 1_048_576
+                    or type(work) is not int or not 0 <= work <= limits['steps']
+                    or not isinstance(answer['budget'], dict)
+                    or any(type(value) is not int for value in answer['budget'].values())
+                    or answer['budget'] != {'steps': limits['steps'], 'used': work,
+                                            'call_depth': limits['depth'], 'response_bytes': limits['bytes']}
+                    or len(_encode(data).encode('utf-8')) > limits['bytes']):
+                raise FrRuntimeError('prepared answer exceeds or disagrees with its work limits')
             analysis = FlowAnalysis(FrReport(answer, report.arguments))
             analysis.initialization
             analysis.graphs

@@ -253,7 +253,8 @@ def test_native_rejects_rehashed_malformed_saved_work(tmp_path, change):
                        '--startup-digest', hashlib.sha256(encoded.encode()).hexdigest())
 
 
-@pytest.mark.parametrize('change', ['schema', 'checks', 'imports', 'reason', 'inputs', 'complete', 'extra'])
+@pytest.mark.parametrize('change', ['schema', 'checks', 'imports', 'reason', 'inputs', 'complete', 'extra',
+                                   'work', 'work-type', 'budget', 'budget-type', 'revision', 'coverage'])
 def test_sdk_rejects_inconsistent_prepared_reports(tmp_path, change):
     client, rules = install(tmp_path, 'helper')
     result = ask(StartupCache(MemoryObjectStore()), client, rules, 'forwards', imports=True)
@@ -270,8 +271,20 @@ def test_sdk_rejects_inconsistent_prepared_reports(tmp_path, change):
         data['startup']['inputs']['source']['digest'] = '0' * 64
     elif change == 'complete':
         data['answer']['complete'] = False
-    else:
+    elif change == 'extra':
         data['old_field'] = True
+    elif change == 'work':
+        data['answer']['execution']['analysis_steps'] = 4097
+    elif change == 'work-type':
+        data['answer']['execution']['analysis_steps'] = True
+    elif change == 'budget':
+        data['answer']['budget']['steps'] = 4095
+    elif change == 'budget-type':
+        data['answer']['budget']['call_depth'] = True
+    elif change == 'revision':
+        data['revision'] = '0' * 64
+    else:
+        data['coverage'] = {}
     with pytest.raises(FrRuntimeError):
         PreparedFlow.from_report(FrReport(data, ()))
 
