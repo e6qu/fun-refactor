@@ -3,6 +3,7 @@
 You checked whether one function forwards an input. Later, you want to check another function in the same file.
 Save the checked startup preparation between those questions.
 Startup preparation identifies functions, captures their default values and checks supported statements that run during import.
+In Python, a default value fills an omitted argument: `value=0` uses `0` when the caller leaves out `value`.
 
 This lesson uses separate Python processes for the two questions.
 Each question still verifies source files and resolves imports.
@@ -60,6 +61,9 @@ These are assumptions you supply about external functions.
 ```json
 {"version":"lesson","sources":["source"],"sinks":["sink"],"propagators":[],"sanitizers":{}}
 ```
+
+`version` labels this caller-supplied rule set.
+Empty `propagators` and `sanitizers` add no external forwarding or cleaning rules.
 
 `check_first.py`:
 
@@ -181,6 +185,7 @@ The answer is unfinished because that startup call has unknown effects.
 The checker saves no preparation from an unfinished answer.
 Python raises `NameError` during import because `unknown` has no definition.
 An unfinished answer with no connection establishes nothing about output safety.
+Remove `unknown()` and run `python check_later.py` to check the repaired example.
 
 Source edits, configuration changes and competing import files invalidate saved preparation.
 For example, adding `helpers.pyi` changes import admission even when `helpers.py` stays unchanged.
@@ -201,6 +206,7 @@ The function answer always uses the settings supplied for that request.
 Imports retain their limits: 16 modules, 256 KiB of source and 128 import searches.
 A KiB is 1,024 bytes. Each supported initializer retains its 128-node limit.
 The new answer and saved record share the requested output limit, up to 1 MiB.
+One MiB is 1,048,576 bytes.
 The command refuses a combined reply that will not fit.
 Reusing preparation grants no extra analysis steps or larger source allowance.
 

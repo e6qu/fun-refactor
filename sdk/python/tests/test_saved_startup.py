@@ -333,6 +333,11 @@ def test_large_location_disclosure_remains_bounded_and_roundtrips(tmp_path):
     assert _restore(store, _store(store, saved)) == saved
     later = ask(cache, client, rules, 'stopped', imports=False)
     assert later.reused and later.answer.report.at('/complete')
+    (tmp_path / 'subject.py').write_text(
+        (source + HELPERS + ENTRIES).replace("table['key19'] = 0", "table['key19'] = source()"))
+    changed = ask(cache, client, rules, 'stopped', imports=False)
+    assert not changed.reused and not changed.answer.report.at('/complete')
+    assert changed.report.at('/startup') is None
 
 
 def test_complete_lesson_uses_separate_processes_and_rechecks_edits(tmp_path):
@@ -367,3 +372,6 @@ def test_complete_lesson_uses_separate_processes_and_rechecks_edits(tmp_path):
     helper.write_text(helper.read_text().replace('register()\n\n', 'register()\nunknown()\n\n'))
     assert run('check_later.py') == ('Preparation checks: 1\nImport checks: 1\n'
                                      'Finished: False\nPossible input connection: True\n')
+    helper.write_text(helper.read_text().replace('unknown()\n', ''))
+    assert run('check_later.py') == ('Preparation checks: 1\nImport checks: 1\n'
+                                     'Finished: True\nPossible input connection: True\n')
