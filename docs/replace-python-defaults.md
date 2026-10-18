@@ -73,11 +73,12 @@ answer = FlowCache(MemoryObjectStore()).analyze(
     steps=4096, max_bytes=1048576,
 )
 print("Finished:", answer.report.at("/complete"))
-print("Input reaches output:", bool(answer.witnesses))
+print("Possible input connection:", bool(answer.witnesses))
 print("Unfinished reasons:", answer.report.at("/cutoffs"))
 ```
 
-Run `python3 check_example.py`. It prints `Finished: True`, `Input reaches output: True` and an empty reason list.
+Run `python3 check_example.py`. It prints `Finished: True`, `Possible input connection: True` and an empty reason list.
+Read these lines together: an unfinished answer cannot establish whether the program has an input connection.
 The supplied input reaches `send`; the stored list supplies no value to this call.
 
 Save this as `run_example.py` to run the same program in Python.

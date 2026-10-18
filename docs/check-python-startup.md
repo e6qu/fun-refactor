@@ -81,10 +81,11 @@ answer = FlowCache(MemoryObjectStore()).analyze(
     steps=4096, max_bytes=1048576,
 )
 print('Finished:', answer.report.at('/complete'))
-print('Input reaches output:', bool(answer.witnesses))
+print('Possible input connection:', bool(answer.witnesses))
 ```
 
-Run `python3 check_example.py`. It prints `Finished: True` and `Input reaches output: True`.
+Run `python3 check_example.py`. It prints `Finished: True` and `Possible input connection: True`.
+Read both lines together: an unfinished answer cannot establish whether the program has an input connection.
 
 Save this as `run_example.py` to run the same application in ordinary Python.
 The first two lines of output show that registration ran and stored the callback without calling it.

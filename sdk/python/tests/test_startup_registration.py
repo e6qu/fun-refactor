@@ -175,12 +175,12 @@ def test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement(tm
                                 capture_output=True, text=True, timeout=20)
         assert result.returncode == 0, result.stderr
         return result.stdout
-    assert run('check_example.py') == 'Finished: True\nInput reaches output: True\n'
+    assert run('check_example.py') == 'Finished: True\nPossible input connection: True\n'
     assert run('run_example.py') == 'ready\nTrue\n17\n'
     helper = tmp_path / 'helpers.py'
     changed = programs[0].replace('    table.update(send=lambda: missing())\n',
                                   '    table.update(send=lambda: missing())\n' + programs[4])
     changed = changed.replace('\nregister()\n', '\n') + '\nregister()\n'
     helper.write_text(changed)
-    assert run('check_example.py').startswith('Finished: False\n')
+    assert run('check_example.py').startswith('Finished: False\nPossible input connection:')
     assert run('run_example.py') == 'ready\nTrue\n0\n'

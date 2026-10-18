@@ -95,7 +95,10 @@ Funcy and Pydash exceed the current file or source budgets in their complete obs
 Small no-argument startup functions can now fill dictionaries created earlier in their own file.
 The [startup lesson](docs/check-python-startup.md) compares this check with a function that replaces the selected helper and must stay unfinished.
 Saved answers already depend on source files and import lookups.
-Next, investigate checking startup in smaller steps and reusing those results separately, with dependencies and unknown effects explicit.
+Next, ask about two helpers that share the same setup.
+Check that setup once and reuse the checked work for the second question.
+Changing a setup file must invalidate both answers; unknown startup effects must keep both questions unfinished.
+This needs separately reusable startup checks within the existing limits.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 

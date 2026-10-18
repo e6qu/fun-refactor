@@ -154,7 +154,7 @@ def test_the_complete_tutorial_runs_before_and_after_removing_the_argument(tmp_p
                                 capture_output=True, text=True, timeout=20)
         assert result.returncode == 0, result.stderr
         return result.stdout
-    assert run('check_example.py') == 'Finished: True\nInput reaches output: True\nUnfinished reasons: []\n'
+    assert run('check_example.py') == 'Finished: True\nPossible input connection: True\nUnfinished reasons: []\n'
     assert run('run_example.py') == '17\n'
     app = tmp_path / 'app.py'
     app.write_text(app.read_text().replace('choose(read_input())', 'choose()'))
