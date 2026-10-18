@@ -13,7 +13,8 @@ The [measurement guide](benchmarks.md) distinguishes that comparison from reply-
 
 The [two-question Python lesson](check-python-together.md) prepares shared startup once within one request.
 For example, the same import exposes a helper passing `17` along and another returning `0`.
-Forty-one new SDK cases compare shared answers with separate analyses and ordinary Python behavior.
+Forty-one new checks exercise the Python interface.
+The behavior checks compare shared answers with separate analyses and ordinary Python results.
 They cover changed files and import candidates, unknown startup effects, shared work limits and bounded location detail.
 An unchecked write after the displayed locations must still leave both answers unfinished.
 These checks establish agreement on the chosen examples; they measure no speed or agent savings.
