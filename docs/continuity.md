@@ -181,7 +181,7 @@ Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
 The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-saved-startup-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
 It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
 Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
