@@ -420,6 +420,8 @@ def audit(report):
         require(set(metrics) == set(FIELDS), 'missing or extra metrics')
         require(all(type(value) in (int, float) and math.isfinite(value) and value >= 0
                     for value in metrics.values()), 'invalid measurement')
+        require(all(type(value) is int for name, value in metrics.items() if not name.endswith('_seconds')),
+                'counts and byte totals must be integers')
         require(metrics['native_calls'] == (3 if strategy == 'saved-answer' else 2), 'native process count changed')
         calls = row['calls']
         operations = ['find', 'inputs', 'answer'] if strategy == 'saved-answer' else ['find', 'answer']

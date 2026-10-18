@@ -137,6 +137,9 @@ class Controls(unittest.TestCase):
     def test_cache_order_cannot_be_hidden(self):
         self.check(lambda report: report['samples'][0].update(cache_position=1))
 
+    def test_fractional_counts_are_rejected(self):
+        self.check(lambda report: report['samples'][0]['metrics'].update(analysis_steps=0.5))
+
     def test_each_native_operation_is_accounted_for(self):
         self.check(lambda report: report['samples'][0]['calls'].pop())
         self.check(lambda report: report['samples'][0]['calls'][0].update(operation='answer'))

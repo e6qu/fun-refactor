@@ -77,7 +77,7 @@ These examples do not measure complete third-party package imports.
 
 Each request starts a new Python process and fresh native processes.
 Saved data passes between requests through a directory on disk.
-The ordinary command-line measurement repeats each sequence five times with project caching off, then also with it on.
+The ordinary command-line measurement repeats each sequence five times for each project-cache setting.
 That makes 840 requests. A separate diagnostic measurement repeats both settings three times, adding 504 requests.
 It uses the existing profiling program: a program that records time spent in individual operations.
 The diagnostic times help locate work; they do not substitute for ordinary command-line latency.
@@ -85,7 +85,7 @@ The measurement rotates approach order and reverses cache-setting order between 
 It also reverses whether the ordinary or diagnostic sequences run first.
 Five repetitions cannot divide evenly between two starting orders or three approaches; the raw rows retain their positions.
 It keeps every sample and reports the median, minimum and maximum.
-The **median** is the middle of the five values after sorting them.
+The **median** is the middle value after sorting the samples.
 Whole-sequence totals include the first population request and all six later requests.
 Their medians come from per-sequence sums; summing the seven separate medians can give a different number.
 
