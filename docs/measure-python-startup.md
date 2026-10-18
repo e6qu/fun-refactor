@@ -91,6 +91,9 @@ Compilation, checkout, dependency installation and fixture edits happen outside 
 Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.
 An empty saved-data store therefore does not mean an empty operating-system cache.
+Every native call explicitly disables the persistent project cache with `--no-cache`.
+Results describe that setting; they cannot predict costs with the project cache enabled.
+The outer timer also includes the shared measurement imports and counters.
 
 Native time includes parsing and file checks, but the tool has no separate timers for those operations.
 The report cannot assign each operation an individual cost.
