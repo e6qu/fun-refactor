@@ -7,6 +7,7 @@ import copy
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import platform
 import resource
@@ -227,6 +228,7 @@ def sequence_totals(rows, repetitions):
 
 def measure(args):
     require(3 <= args.repetitions <= 9, 'use 3 to 9 explicit repetitions')
+    require(sys.platform == 'linux', 'collect on a Linux GitHub runner')
     before = bindings()
     args.output.mkdir(parents=True, exist_ok=False)
     (args.output / 'attempt.json').write_bytes(encode({'bindings': before, 'repetitions': args.repetitions,
@@ -265,6 +267,15 @@ def measure(args):
     report = {'schema': 'fr-python-startup-cost', 'bindings': before,
               'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),
               'environment': {'platform': platform.platform(), 'python': sys.version,
+                              'cpu_model': next(line.split(':', 1)[1].strip() for line in
+                                                Path('/proc/cpuinfo').read_text().splitlines()
+                                                if line.startswith('model name')),
+                              'cpu_count': os.cpu_count(), 'cpu_affinity': sorted(os.sched_getaffinity(0)),
+                              'visible_memory_kib': int(next(line.split()[1] for line in
+                                                            Path('/proc/meminfo').read_text().splitlines()
+                                                            if line.startswith('MemTotal:'))),
+                              'rustc': subprocess.run(['rustc', '--version'], check=True, capture_output=True,
+                                                      text=True, timeout=10).stdout.strip(),
                               'build': 'cargo build --locked --bin fr; dev profile without debug symbols'},
               'repetitions': args.repetitions, 'scope': SCOPE, 'cases': CASES,
               'stages': STAGES, 'strategies': STRATEGIES,

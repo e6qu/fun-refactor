@@ -142,6 +142,8 @@ Run them from the repository root on the runner. The output directory must not a
 The audit prints that every request, reuse decision, budget and Python result passed its checks.
 The executable uses the development build with debug symbols disabled, as recorded in the workflow.
 Results from that build cannot establish optimized-release performance.
+The report records the runner's CPU, available CPU set, visible memory, operating system and compiler version.
+Measurements from one runner cannot establish costs across different machines.
 Source identities in the report bind the analyzer, client, examples, measurement and rejection controls.
 Changing those inputs requires a new collection.
 
