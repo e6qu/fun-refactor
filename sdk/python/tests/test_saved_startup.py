@@ -10,7 +10,7 @@ from fr_ir.context import DirectoryObjectStore, MemoryObjectStore, restore_store
 from fr_ir.flow_startup import PreparedFlow, StartupCache, _restore, _store
 from fr_ir.ir import IrError
 from fr_ir.runtime import FrReport, FrRuntimeError
-from test_flow_summaries import evidence
+from test_flow_summaries import analyze, evidence
 from test_flow_together import ENTRIES, HELPERS, SETUP, install, observe
 
 
@@ -39,6 +39,7 @@ def test_later_question_reopens_saved_startup_and_matches_fresh_and_python(tmp_p
     assert later.import_checks == int(route != 'local')
     assert later.answer.report.at('/complete') and not later.answer.witnesses
     assert evidence(later.answer) == evidence(fresh.answer)
+    assert evidence(later.answer) == evidence(analyze(client, rules, 'stopped', imports=route != 'local'))
     assert len(later.report.at('/startup/dictionary_statements')) == 1
     assert observe(tmp_path) == [17, 0]
 
@@ -152,6 +153,38 @@ def test_saved_startup_gives_no_extra_steps_or_output_bytes(tmp_path):
         ask(cache, client, rules, 'stopped', imports=True, max_bytes=2048)
 
 
+@pytest.mark.parametrize('limit', ['modules', 'source_bytes'])
+def test_saved_preparation_never_expands_import_limits(tmp_path, limit):
+    client, rules = install(tmp_path, 'helper')
+    cache = StartupCache(MemoryObjectStore())
+    ask(cache, client, rules, 'forwards', imports=True)
+    if limit == 'source_bytes':
+        (tmp_path / 'helpers.py').write_text('#' * 262_144 + '\n' + SETUP + HELPERS)
+        cutoff = 'import-source-byte-budget'
+    else:
+        (tmp_path / 'helpers.py').write_text('from chain0 import relay, discard\n')
+        for number in range(16):
+            source = f'from chain{number + 1} import relay, discard\n' if number < 15 else HELPERS
+            (tmp_path / f'chain{number}.py').write_text(source)
+        cutoff = 'import-module-budget'
+    later = ask(cache, client, rules, 'stopped', imports=True)
+    assert not later.reused and not later.answer.report.at('/complete')
+    assert cutoff in later.answer.report.at('/cutoffs')
+    assert len(later.answer.report.at('/inputs/modules/files')) <= 16
+    assert later.report.at('/startup') is None
+
+
+def test_another_file_replaces_the_single_saved_entry(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'other.py').write_text('def other():\n    return sink(source())\n')
+    cache = StartupCache(MemoryObjectStore())
+    ask(cache, client, rules, 'forwards', imports=False)
+    other = ask(cache, client, rules, 'other', imports=False)
+    assert not other.reused and other.answer.witnesses
+    original = ask(cache, client, rules, 'stopped', imports=False)
+    assert not original.reused and original.answer.report.at('/complete')
+
+
 @pytest.mark.parametrize('field', ['context', 'steps', 'depth', 'max_bytes', 'imports', 'rules'])
 def test_every_new_api_setting_is_required(tmp_path, field):
     client, rules = install(tmp_path)
@@ -180,7 +213,7 @@ def test_corrupt_storage_refuses_without_running_a_fresh_check(tmp_path):
 
 
 @pytest.mark.parametrize('change', ['schema', 'digest', 'extra', 'missing', 'span', 'path', 'name',
-                                   'omitted', 'alias', 'function', 'statement'])
+                                   'omitted', 'alias', 'function', 'statement', 'nested-extra'])
 def test_native_rejects_rehashed_malformed_saved_work(tmp_path, change):
     client, rules = install(tmp_path, 'helper')
     result = ask(StartupCache(MemoryObjectStore()), client, rules, 'forwards', imports=True)
@@ -205,8 +238,10 @@ def test_native_rejects_rehashed_malformed_saved_work(tmp_path, change):
         saved['function_aliases']['invented'] = ['missing', 1]
     elif change == 'function':
         saved['functions'].pop()
-    else:
+    elif change == 'statement':
         saved['dictionary_statements'][0]['span']['start'] += 1
+    else:
+        saved['functions'][0]['span']['old_field'] = 0
     path = tmp_path / 'saved.json'
     encoded = json.dumps(saved, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     path.write_text(encoded)

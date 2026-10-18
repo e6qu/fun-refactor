@@ -49,15 +49,16 @@ Toolz fits the observed local file set but still runs its argument-table builder
 The [small startup-call lesson](check-python-startup.md) checks a first bounded case: a no-argument function filling its own file's dictionaries.
 Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
 Changing its source invalidates a saved answer through the existing source and import dependencies.
-This does not yet store startup checks separately or divide a large package import into smaller analyses.
+This keeps the existing limits for each package question.
 Two helper questions in one request now share one startup preparation.
 The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
 Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
 A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
-Next, save checked startup work for a later helper question.
-For example, check the forwarding helper now and the helper returning zero in a later request.
-Before sharing saved setup between those questions, verify its files and import choices within the same limits.
-Editing a helper or adding a competing file must invalidate the saved work.
+The active change saves the separate preparation pass for a later helper question.
+Its [lesson](save-python-startup.md) checks forwarding now and a zero-returning helper in another process.
+Each request verifies files and import choices within the existing limits.
+After validation, measure fresh requests, saved preparation and saved whole answers with the same inputs and settings.
+Include the work that still runs before making any speed claim.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.

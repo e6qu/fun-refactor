@@ -909,6 +909,7 @@ jobs:
       - name: Check documentation examples before collecting reports
         run: |
           python3 -B tools/reader_examples.py --fr target/debug/fr
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py::test_complete_lesson_uses_separate_processes_and_rechecks_edits
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json

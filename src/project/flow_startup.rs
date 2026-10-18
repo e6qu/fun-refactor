@@ -107,7 +107,11 @@ impl Project<'_> {
         );
         let value: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
         ensure!(hash(&value)? == digest, "saved startup digest mismatch.");
-        let record: Record = serde_json::from_value(value)?;
+        let record: Record = serde_json::from_value(value.clone())?;
+        ensure!(
+            serde_json::to_value(&record)? == value,
+            "saved startup does not match the current record format."
+        );
         ensure!(
             record.schema == "fr-python-startup" && record.input_digest == hash(&record.inputs)?,
             "saved startup has inconsistent identities."

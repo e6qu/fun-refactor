@@ -69,7 +69,7 @@ from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow_startup import StartupCache
 from fr_ir.runtime import FrClient
 
-client = FrClient(Path.cwd(), max_output_bytes=1_048_576)
+client = FrClient(Path.cwd(), executable='fr', timeout=120, max_output_bytes=1_048_576)
 store = DirectoryObjectStore(Path('saved-startup'))
 cache = StartupCache(store)
 handle = client.project('find', 'forwards').definition_target().handle
@@ -101,7 +101,7 @@ from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow_startup import StartupCache
 from fr_ir.runtime import FrClient
 
-client = FrClient(Path.cwd(), max_output_bytes=1_048_576)
+client = FrClient(Path.cwd(), executable='fr', timeout=120, max_output_bytes=1_048_576)
 store = DirectoryObjectStore(Path('saved-startup'))
 digest = Path('startup-id.txt').read_text(encoding='utf-8')
 cache = StartupCache.restore(store, digest)

@@ -9,6 +9,9 @@ The examples assume `fr` is installed and the Python package is available in the
 For a repair, keep the report in Python, print the complete proposed diff, review it, then execute that reviewed change.
 Keeping intermediate results outside the conversation still incurs Python execution, memory and validation costs.
 
+For repeated Python questions, [save checked startup preparation](save-python-startup.md) between requests.
+That complete lesson supplies every analysis setting explicitly and shows how source edits trigger a fresh check.
+
 ## Commands, results and limits
 
 Start a structured task with `FrClient.guide(AgentGoal(...))` when you need help choosing a command.
