@@ -122,7 +122,10 @@ equivalent adds `--also OTHER_FUNCTION_HANDLE` to `fr project dataflow` with
 file contents; the example obtains them instead of inventing them.
 
 The returned startup record lists checked definition names and the source
-locations of checked dictionary startup statements. It also binds the full source
+locations of checked dictionary startup statements. It shows up to sixteen locations
+and counts any others in `dictionary_omitted`. The checker still checks every
+statement; the location limit only bounds the displayed detail.
+It also binds the full source
 files, import candidates (including missing files), configuration, checking rules
 and analyzer implementation. A dictionary write inside `register()` is covered
 by the recorded call statement and its complete source file.

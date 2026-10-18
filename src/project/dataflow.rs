@@ -113,6 +113,7 @@ struct Startup<'a, 't> {
     inert_bindings: BTreeSet<String>,
     initialization: Initialization,
     dictionary_statements: Vec<Occurrence>,
+    dictionary_omitted: usize,
 }
 
 #[derive(Clone, Args)]
@@ -849,8 +850,7 @@ impl Project<'_> {
             source,
             &parsed,
             modules.as_ref(),
-            options.summaries,
-            options.imports,
+            options,
         )?;
         if options.also.is_empty() {
             return self.flow_answer(options, modules.as_ref(), &startup, options.steps);
@@ -885,6 +885,7 @@ impl Project<'_> {
                 "input_digest":hash(&dependencies)?, "inputs":dependencies,
                 "names":startup.functions.keys().chain(startup.inert_bindings.iter()).collect::<BTreeSet<_>>(),
                 "dictionary_statements":startup.dictionary_statements,
+                "dictionary_omitted":startup.dictionary_omitted,
             },
             "budget":{"steps":options.steps,"used":options.steps-remaining,"response_bytes":options.bytes},
             "answers":answers,
@@ -902,12 +903,13 @@ impl Project<'_> {
         source: &'a str,
         parsed: &'t Parsed,
         modules: Option<&'t modules::Modules>,
-        summary_mode: bool,
-        import_mode: bool,
+        options: &Options,
     ) -> Result<Startup<'a, 't>>
     where
         't: 'a,
     {
+        let summary_mode = options.summaries;
+        let import_mode = options.imports;
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
         let mut value_alias_count = 0;
@@ -918,6 +920,7 @@ impl Project<'_> {
         let mut literal_bindings = BTreeSet::new();
         let mut initialization = Initialization::default();
         let mut dictionary_statements = Vec::new();
+        let mut dictionary_omitted = 0;
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
                 .parsed
@@ -968,11 +971,17 @@ impl Project<'_> {
                     })
                     .flatten();
                 if matches!(allocation, Some(initializers::Statement::Population)) {
-                    dictionary_statements.push(self.occurrence(
-                        file,
-                        Span::from(node),
-                        "checked-dictionary-startup",
-                    )?);
+                    if !options.also.is_empty() {
+                        if dictionary_statements.len() < 16 {
+                            dictionary_statements.push(self.occurrence(
+                                file,
+                                Span::from(node),
+                                "checked-dictionary-startup",
+                            )?);
+                        } else {
+                            dictionary_omitted += 1;
+                        }
+                    }
                     continue;
                 }
                 let allocated = match allocation {
@@ -1414,6 +1423,7 @@ impl Project<'_> {
             inert_bindings,
             initialization,
             dictionary_statements,
+            dictionary_omitted,
         })
     }
 

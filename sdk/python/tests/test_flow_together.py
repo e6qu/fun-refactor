@@ -141,7 +141,7 @@ def test_questions_need_distinct_functions_in_one_file(tmp_path, kind):
         together(client, rules, names)
 
 
-@pytest.mark.parametrize('kind', ['count', 'work', 'budget', 'inputs', 'digest', 'write', 'names', 'complete', 'context', 'answer-context'])
+@pytest.mark.parametrize('kind', ['count', 'work', 'budget', 'inputs', 'digest', 'write', 'names', 'complete', 'context', 'answer-context', 'omitted-type', 'omitted-count'])
 def test_altered_group_reports_are_rejected(tmp_path, kind):
     client, rules = install(tmp_path)
     value = together(client, rules).report.to_data()
@@ -159,6 +159,10 @@ def test_altered_group_reports_are_rejected(tmp_path, kind):
         value['startup']['dictionary_statements'][0]['revision'] = '0' * 64
     elif kind == 'names':
         value['startup']['names'].append(value['startup']['names'][0])
+    elif kind == 'omitted-type':
+        value['startup']['dictionary_omitted'] = False
+    elif kind == 'omitted-count':
+        value['startup']['dictionary_omitted'] = 1
     elif kind == 'context':
         value['handle_prefix'] = 'frp1:' + '0' * 32 + ':'
     elif kind == 'answer-context':
@@ -251,3 +255,19 @@ def test_saved_answer_identity_covers_the_startup_module_graph():
         pending.extend(re.findall(r'#\[path\s*=\s*"([^"]+)"\]\s*mod\s+\w+;', source))
     assert 'flow_initializers.rs' in reachable and 'flow_import_order.rs' in reachable
     assert reachable <= included, f'Flow rules missing from saved-answer identity: {reachable - included}'
+
+
+@pytest.mark.parametrize('unchecked', [False, True])
+def test_bounded_locations_do_not_skip_later_startup_checks(tmp_path, unchecked):
+    writes = ''.join(f"table['key{number}'] = {number}\n" for number in range(128))
+    if unchecked:
+        writes = writes.replace("table['key127'] = 127", "table['key127'] = source()")
+    client, rules = install(tmp_path, 'helper', SETUP + writes)
+    result = together(client, rules, imports=True)
+    assert len(result.dictionary_statements) == 16
+    assert result.dictionary_omitted == (112 if unchecked else 113)
+    for name, answer in zip(('forwards', 'stopped'), result.answers):
+        assert answer.report.at('/complete') is not unchecked
+        assert evidence(answer) == evidence(analyze(client, rules, name, imports=True))
+        if unchecked:
+            assert 'module-effects-unchecked' in answer.report.at('/cutoffs')

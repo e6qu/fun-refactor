@@ -17,6 +17,7 @@ class FlowTogether:
     answers: tuple[FlowAnalysis, ...]
     names: tuple[str, ...]
     dictionary_statements: tuple[Occurrence, ...]
+    dictionary_omitted: int
 
     @classmethod
     def from_report(cls, report: FrReport) -> FlowTogether:
@@ -27,7 +28,7 @@ class FlowTogether:
             if (report.schema != 'fr-dataflow-together'
                     or data['handle_prefix'] != 'frp1:' + data['revision'][:32] + ':'
                     or not isinstance(startup, dict) or set(startup) != {
-                        'checks', 'questions', 'input_digest', 'inputs', 'names', 'dictionary_statements'}
+                        'checks', 'questions', 'input_digest', 'inputs', 'names', 'dictionary_statements', 'dictionary_omitted'}
                     or type(startup['checks']) is not int or startup['checks'] != 1
                     or not isinstance(answers, list) or not 2 <= len(answers) <= 16
                     or type(startup['questions']) is not int or startup['questions'] != len(answers)
@@ -46,7 +47,9 @@ class FlowTogether:
                 raise FrRuntimeError('shared startup input digest mismatch')
             names, statements = startup['names'], startup['dictionary_statements']
             if (not isinstance(names, list) or any(not isinstance(name, str) or not name for name in names)
-                    or names != sorted(set(names)) or not isinstance(statements, list)):
+                    or names != sorted(set(names)) or not isinstance(statements, list) or len(statements) > 16
+                    or type(startup['dictionary_omitted']) is not int or startup['dictionary_omitted'] < 0
+                    or startup['dictionary_omitted'] > 0 and len(statements) != 16):
                 raise FrRuntimeError('malformed shared startup names or writes')
             files = inputs['modules']['files'] if 'modules' in inputs else {
                 inputs['source']['path']: inputs['source']['digest']}
@@ -89,7 +92,7 @@ class FlowTogether:
                 analyses.append(answer)
             if used != budget['used']:
                 raise FrRuntimeError('shared work count disagrees with its answers')
-            return cls(report, tuple(analyses), tuple(names), occurrences)
+            return cls(report, tuple(analyses), tuple(names), occurrences, startup['dictionary_omitted'])
         except (KeyError, TypeError, ValueError) as error:
             raise FrRuntimeError('missing or malformed shared startup report') from error
 
