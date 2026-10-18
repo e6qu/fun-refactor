@@ -37,6 +37,8 @@ The input identity records the function, source files, rules and work limits tha
 The saved-answer client requests that identity through a separate native call, including when its store is empty.
 The fresh baseline makes no such preliminary request.
 Every approach supplies its rules, context, import setting and work limits explicitly.
+A native call starts the compiled `fr` executable separately from Python.
+A process means one running program.
 
 ## What runs
 
@@ -64,8 +66,9 @@ Four examples exercise different costs:
 | Unfinished question | The local example with too little work to finish | One analysis step |
 
 An analysis step is one unit of work counted by the checker, rather than a CPU instruction.
-All requests allow call depth eight and at most one MiB of output.
-One MiB means 1,048,576 bytes.
+All requests allow eight nested function calls and at most one MiB of output.
+That nesting limit is the call depth.
+One MiB means 1,048,576 bytes. One KiB means 1,024 bytes.
 Import limits remain 16 files, 256 KiB of source and 128 searches.
 The complete starting files come from [the example generator](../tests/agent-eval/python-startup-cost/corpus.py).
 These examples do not measure complete third-party package imports.
@@ -93,6 +96,7 @@ Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.
 An empty saved-data store therefore does not mean an empty operating-system cache.
 Every native call explicitly disables the persistent project cache with `--no-cache`.
+That cache saves project data between native calls, separately from saved setup or saved answers.
 Results describe that setting; they cannot predict costs with the project cache enabled.
 The outer timer also includes the shared measurement imports and counters.
 
@@ -100,9 +104,11 @@ Native time includes parsing and file checks, but the tool has no separate timer
 The report cannot assign each operation an individual cost.
 Native-call counts include finding the function and the saved-answer client's preliminary request.
 Canonical JSON bytes measure the equivalent compact report, rather than exact bytes on the process pipe.
+Canonical JSON uses consistent key order and compact punctuation, giving equivalent data the same representation.
 
 Storage counters show repeated reads, offered writes and newly retained bytes separately.
 An offered write can verify an existing immutable object without adding another file.
+An immutable object's contents stay fixed; saving it again checks the existing contents.
 Temporary reuse files contribute to elapsed time but do not remain in the saved-object inventory.
 The small manifest pointer also contributes time; object-byte totals exclude that pointer.
 Memory figures show separate lifetime peaks for the Python worker and its largest native child.
@@ -125,7 +131,9 @@ Their elapsed times provide context, rather than an interchangeable baseline for
 
 ## Reproduce on GitHub
 
-Open **Actions**, select **Python saved setup costs**, choose the branch, and run the workflow with retention disabled.
+Open **Actions** and select **Python saved setup costs**.
+Choose the branch containing the code you want to measure.
+Leave **Commit the checked measurement to this branch** unchecked; that setting controls whether the workflow commits its report.
 The runner installs stable Rust and Python 3.14, then builds the current native executable.
 It runs the rejection controls, measures the requests and independently audits the saved result.
 Download the `python-startup-cost` artifact to inspect `result.json` and the per-request log.
