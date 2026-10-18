@@ -1135,6 +1135,16 @@ class BatchMeasurementEvidence(unittest.TestCase):
 
 
 class ProjectPhaseEvidence(unittest.TestCase):
+    def test_profile_compares_every_field_except_the_cli_context_identity(self):
+        answer = {"revision": "current", "coverage": {"files": 2}, "rows": [["alpha"]], "page": {"next": None}}
+        baseline = {"stdout": json.dumps({**answer, "context_basis": "cli-only"})}
+        phase_measurement.check_report({"report_stdout": json.dumps(answer)}, baseline)
+        for field, value in (("revision", "stale"), ("coverage", {}), ("rows", []), ("page", {"next": "lost"})):
+            with self.subTest(field=field), self.assertRaisesRegex(AssertionError, "answers differ"):
+                phase_measurement.check_report({"report_stdout": json.dumps({**answer, field: value})}, baseline)
+        with self.assertRaises(KeyError):
+            phase_measurement.check_report({"report_stdout": json.dumps(answer)}, {"stdout": json.dumps(answer)})
+
     def test_construction_times_must_partition_the_outer_project_phase(self):
         valid = {"construction_seconds": {name: 0.01 for name in construction_measurement.CONSTRUCTION},
                  "phases_seconds": {"project": 0.1}}
@@ -1165,11 +1175,12 @@ class ProjectPhaseEvidence(unittest.TestCase):
                 elif mutation == "outer":
                     report["measured_seconds"] = 2
                 result = mock.Mock(returncode=0, stdout=json.dumps(report).encode(), stderr=b"")
-                with mock.patch.object(phase_measurement.subprocess, "run", return_value=result), \
+                with mock.patch.object(phase_measurement.subprocess, "run", return_value=result) as run, \
                      mock.patch.object(phase_measurement.time, "perf_counter_ns", side_effect=[0, 1_000_000_000]):
                     if mutation == "none":
                         self.assertEqual(phase_measurement.profile(Path("profile"), Path("."), Path("cache"),
                                                                   ["project", "find", "f"], True)["subprocess_seconds"], 1)
+                        self.assertEqual(run.call_args.args[0], ["profile", "-C", ".", "--no-cache", "find", "f"])
                     else:
                         with self.assertRaises(AssertionError):
                             phase_measurement.profile(Path("profile"), Path("."), Path("cache"),

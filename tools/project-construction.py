@@ -47,7 +47,7 @@ def measure(before, after, before_profiler, after_profiler, repetitions):
             profile_args = ["project", "--construction", *args[1:]]
             for side in profilers:
                 warmup = phases.profile(profilers[side], root, caches[side], profile_args, False)
-                assert warmup["report_stdout"] == baseline["stdout"]
+                phases.check_report(warmup, baseline)
             inventory = {side: cache.cache_inventory(directory) for side, directory in caches.items()}
             samples = []
             for repetition in range(repetitions):
@@ -55,7 +55,7 @@ def measure(before, after, before_profiler, after_profiler, repetitions):
                     sample, _ = cache.query(executables[side], root, caches[side], args)
                     cache.same_report(baseline, sample)
                     profile = phases.profile(profilers[side], root, caches[side], profile_args, False)
-                    assert profile["report_stdout"] == baseline["stdout"]
+                    phases.check_report(profile, baseline)
                     assert profile["fact_cache_hits"] == profile["indexed_files"]
                     check_construction(profile)
                     cache_after = cache.cache_inventory(caches[side])
@@ -104,7 +104,7 @@ def measure(before, after, before_profiler, after_profiler, repetitions):
             "measurement_files": {name: harness.digest((ROOT / name).read_bytes()) for name in files},
             "archive_sha256": harness.regex_workspace.ARCHIVE_SHA, "dependency_lock_sha256": harness.regex_workspace.LOCK_SHA,
             "repetitions": repetitions, "examples": examples, "inspections": inspections, "source_and_index_restored": True,
-            "scope": "Alternating before/after release CLI and development-profiler samples on one host with populated caches. Construction checkpoints include their own overhead; ordinary CLI calls have no construction timing. Every query and complete map/manifest/diagnostic page matches the baseline bytes, including revisions and continuation cursors. Cached source-invalidation probes target the candidate CLI. No agent, context-saving, cold-start or general production-latency claim."}
+            "scope": "Alternating before/after release CLI and development-profiler samples on one host with populated caches. Construction checkpoints include their own overhead; ordinary CLI calls have no construction timing. CLI queries and complete map/manifest/diagnostic pages match the baseline bytes. Profiler answers match after removing only the CLI-only context_basis identity. Revisions and continuation cursors remain compared. Cached source-invalidation probes target the candidate CLI. No agent, context-saving, cold-start or general production-latency claim."}
 
 
 def main():

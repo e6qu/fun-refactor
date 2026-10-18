@@ -1,11 +1,14 @@
 # Does saving Python setup make later questions cheaper?
 
 You can save checked Python setup before asking about another function.
+Here, setup means declarations, default values and checked statements that run before the function call.
+For example, a file can create a dictionary and fill it by calling `register()` before either helper runs.
 Saving work also costs time: the client writes a record, reopens it and checks whether it still applies.
 This measurement compares those costs with checking the same questions from scratch.
+
 The [earlier development-build result](python-startup-cost-results.md) found no reduction in total time for these four examples.
 The current measurement uses an optimized executable and tests project caching both off and on.
-An optimized executable is compiled with Rust's release settings, which trade compilation time for faster execution.
+Rust's release settings spend more compilation time producing an optimized executable that aims to run faster.
 
 A **baseline** is the alternative used for comparison.
 Here, the baseline starts a fresh check directly, without opening a saved record.
@@ -14,7 +17,7 @@ For example, reading a saved answer can cost more than recomputing a very small 
 
 ## The question and the three ways to answer it
 
-The disclosed example has these two functions:
+Illustration from `app.py`; the example generator supplies the complete files:
 
 ```python
 def forwards():
@@ -84,6 +87,7 @@ The diagnostic times help locate work; they do not substitute for ordinary comma
 The measurement rotates approach order and reverses cache-setting order between repetitions.
 It also reverses whether the ordinary or diagnostic sequences run first.
 Five repetitions cannot divide evenly between two starting orders or three approaches; the raw rows retain their positions.
+
 It keeps every sample and reports the median, minimum and maximum.
 The **median** is the middle value after sorting the samples.
 Whole-sequence totals include the first population request and all six later requests.
@@ -104,7 +108,8 @@ Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.
 An empty saved-data store therefore does not mean an empty operating-system cache.
 Each sequence explicitly chooses whether to use the persistent project cache.
-That cache saves extracted file facts and resolved references between native calls, separately from saved setup or saved answers.
+That cache remembers functions discovered in files and which declarations their names refer to.
+It reuses those facts between native calls, separately from saved setup or saved answers.
 Each approach and repetition has its own project-cache directory outside the project being scanned.
 It starts empty. The first function lookup populates it inside the timed request; there is no free preliminary fill.
 The next native call can reuse those facts, including within that first request.
@@ -121,7 +126,8 @@ The answering phase includes parsing Python, resolving Python imports, and analy
 Those operations still have no individual timers, so their separate costs remain unknown.
 Profiler phases exclude process startup, argument parsing and writing its outer diagnostic reply.
 Subtracting those phases from elapsed time does not isolate operating-system process startup.
-The profiler omits the CLI's response-context packaging and adds diagnostic output, so its totals are not CLI request times.
+The ordinary CLI also packages an identity for the project behind the answer.
+The profiler omits that packaging and adds diagnostic output. Its totals therefore cannot stand in for CLI request times.
 Native-call counts include finding the function and the saved-answer client's preliminary request.
 Canonical JSON bytes measure the equivalent compact report, rather than exact bytes on the process pipe.
 Canonical JSON uses consistent key order and compact punctuation, giving equivalent data the same representation.
