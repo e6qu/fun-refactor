@@ -103,11 +103,14 @@ def test_source_edits_invalidate_a_saved_startup_answer(tmp_path, edit):
     assert analyze(client, rules, 'entry', cache, imports=True).reused
     path = tmp_path / 'helpers.py'
     old, new = {'body': ("table['label'] = 0", "table['label'] = source()"),
-                'call': ('register()', 'register(0)'),
+                'call': ('\nregister()\n', '\nregister(0)\n'),
                 'allocation': ('table = {}', 'table = missing()')}[edit]
-    path.write_text(path.read_text().replace(old, new))
+    source = path.read_text()
+    assert source.count(old) == 1
+    path.write_text(source.replace(old, new, 1))
     result = analyze(client, rules, 'entry', cache, imports=True)
     assert not result.reused and not result.report.at('/complete')
+    assert 'import-syntax-errors' not in result.report.at('/cutoffs')
     assert evidence(result) == evidence(analyze(client, rules, 'entry', imports=True))
     expected = {'body': {'result': 17, 'raised': None,
                          'events': [['source', 17], ['source', 17], ['sink', 17]]},
