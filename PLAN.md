@@ -105,9 +105,12 @@ Every request still resolves imports and checks their declaration and execution 
 Edits and competing import files trigger fresh preparation. Corrupt records fail visibly.
 The new API requires explicit rules, context, analysis limits and import settings.
 Keep saved preparation separate from whole-answer reuse and full-package acceptance.
-Next, measure whether saving this preparation reduces total work on a repeated real question.
-Compare fresh requests, saved preparation and saved whole answers under the same limits.
-Count file checks, import resolution, parsing, process startup and storage costs before claiming a speedup.
+The [complete-request comparison](docs/python-startup-cost-results.md) now measures the three approaches under the same limits.
+Across 420 requests, saved answers matched fresh checks for the same question, including edits and unfinished work.
+Saving setup did not reduce total time in these four disclosed examples.
+The development build disabled persistent project caching, so optimized releases and enabled-cache costs remain unknown.
+Before adding more saved-work machinery, measure where optimized requests spend time with the project cache enabled.
+Count finding functions, file checks, import resolution, parsing, process startup and storage before choosing what to change.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 

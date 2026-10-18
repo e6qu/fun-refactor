@@ -40,9 +40,12 @@ Every call supplies its settings explicitly and still verifies source files and 
 Edits to those files force fresh preparation. Damaged saved records fail visibly.
 Unknown startup effects keep the answer unfinished and add no saved entry.
 
-Next, measure fresh requests, saved preparation and saved whole answers using the same questions and limits.
-Count file checks, import resolution, parsing, process startup and storage before claiming a speedup.
-The new preparation checks passed; their results appear in the collection receipts below.
+The [complete-request comparison](python-startup-cost-results.md) measures those approaches across 420 requests under the same limits.
+Saved and fresh answers agreed, including edits and unfinished questions. Neither saved approach reduced median total time for these four examples.
+The development build disabled persistent project caching; optimized-release and enabled-cache costs remain unknown.
+Next, measure where optimized requests spend time with the project cache enabled before adding more saved-work machinery.
+Count finding functions, file checks, import resolution, parsing, process startup and storage when choosing the next change.
+The preparation checks and the new cost comparison passed; their results appear in the linked reports.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
@@ -178,7 +181,7 @@ Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
 The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-saved-startup-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
 It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
 Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
