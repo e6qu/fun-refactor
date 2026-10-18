@@ -47,7 +47,8 @@ The next implementation asks two helper questions in one request and prepares th
 The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
 Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
 A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
-Separately saved startup checks remain a later step: they need the same source and lookup validation without resetting budgets.
+Next, save checked startup work for a later helper question.
+Before using it again, verify that its files and import choices still match, within the same limits.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.

@@ -110,12 +110,13 @@ and output functions. The checker does not execute this runner.
 
 ## What work is shared
 
-`analyze_together` asks about 2–16 distinct functions defined in the same file.
-It resolves that file's local imports and prepares its declarations and checked
-startup statements once. Each function then gets its own answer. The command-line
+`analyze_together` asks about 2–16 distinct top-level functions in the same file.
+Top-level means outside any class or other function.
+With `imports=True`, it also follows that file's local imports.
+It prepares the declarations and checked startup statements once. Each function then gets its own answer. The command-line
 equivalent adds `--also OTHER_FUNCTION_HANDLE` to `fr project dataflow` with
 `--summaries`. Function handles are references returned by `find` for the current
-source snapshot; the example obtains them instead of inventing them.
+file contents; the example obtains them instead of inventing them.
 
 The returned startup record lists checked definition names and the source
 locations of checked dictionary startup statements. It also binds the full source
@@ -131,7 +132,10 @@ The checker never treats a previous startup check as permission to ignore an edi
 
 The existing import limits still apply to the one shared set of files: 16 modules,
 256 KiB of source, and 128 import searches. All questions together share the
-requested step limit and output byte limit. When earlier questions use the steps,
+requested step limit and output byte limit.
+Steps count the work used to trace values through functions.
+Finding imports and checking startup have their own existing limits.
+When earlier questions use the steps,
 later answers remain unfinished. If the combined report will not fit, the command
 refuses it. Splitting a large package into subchecks does not grant extra budget.
 
@@ -139,7 +143,7 @@ refuses it. Splitting a large package into subchecks does not grant extra budget
 
 Add `missing()` after `register()` in `helpers.py`. Both questions now remain
 unfinished because the effects of that call are unknown. Python raises
-`NameError` while importing it. The checker does not claim to reproduce every
+`NameError` while importing it because that name has no definition. The checker does not claim to reproduce every
 Python exception; it reports that this import is unchecked.
 
 The [startup-call lesson](check-python-startup.md) also shows a function replacing

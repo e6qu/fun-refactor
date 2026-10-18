@@ -98,7 +98,8 @@ Saved answers already depend on source files and import lookups.
 The next implementation [asks about two helpers together](docs/check-python-together.md).
 It prepares shared startup once within one request, then returns separate function answers.
 Both questions share the existing work and output limits; changed sources and unknown effects remain visible.
-Separately saved startup checks still need a strict dependency-checked admission path.
+Next, save checked startup work for later questions.
+Before using it again, check that its source files and import choices still match.
 Do not describe request-local sharing as reuse across requests or as finishing a large package import.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
