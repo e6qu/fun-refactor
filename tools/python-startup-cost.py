@@ -26,25 +26,35 @@ from python_repository_basis import file_digest as python_file_digest
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow import FlowAnalysis, FlowCache
 from fr_ir.flow_startup import StartupCache
-from fr_ir.runtime import FrClient
+from fr_ir.runtime import FrClient, FrReport
 
 BINDINGS = ('tools/python-startup-cost.py', 'tools/test-python-startup-cost.py',
             'tools/evidence_basis.py', 'tools/python_repository_basis.py',
             'tests/agent-eval/python-startup-cost/corpus.py',
+            'tools/project-profile.rs',
             '.github/workflows/python-startup-cost.yml')
 FIELDS = ('elapsed_seconds', 'worker_seconds', 'native_seconds', 'store_seconds',
           'native_calls', 'canonical_reply_bytes', 'store_gets', 'store_puts',
           'store_read_bytes', 'store_offered_bytes', 'added_files', 'added_bytes',
           'stored_files', 'stored_bytes', 'analysis_steps',
-          'worker_peak_rss_bytes', 'native_peak_rss_bytes')
+          'worker_peak_rss_bytes', 'native_peak_rss_bytes',
+          'find_seconds', 'inputs_seconds', 'answer_seconds',
+          'project_cache_files', 'project_cache_bytes',
+          'project_cache_added_files', 'project_cache_added_bytes')
+ENGINES = ('cli', 'profile')
+CACHE_MODES = ('disabled', 'enabled')
+PHASES = {'root', 'scan', 'cache_open', 'index', 'project', 'query', 'verify', 'serialize', 'drop'}
+CONSTRUCTION = {'manifests', 'setup', 'source_read', 'source_digest', 'source_lines',
+                'hierarchy', 'symbol_digest', 'reference_digest', 'finish'}
+BUILD = 'cargo build --locked --release --bin fr --example project-profile'
 SCOPE = {
     'elapsed_seconds': 'Parent timer around a new Python worker through parsed JSON reply. Includes Python/SDK startup, finding the function, native process startup, file checks, import resolution, parsing, analysis or validation, saved-record reads/writes and manifest pointer I/O.',
-    'excluded': 'Checkout, compilation, dependency installation, fixture edits, ordinary Python observation, store inventory, report comparison and audit. Worker reply serialization/transfer, shared measurement imports and instrumentation are included. Native project caching is explicitly disabled for every call. OS file caches are neither flushed nor controlled.',
-    'attribution': 'Native time includes all native work and client reply parsing. No separate parser, file-check or import-resolution timers exist; their individual costs cannot be inferred. Native calls count process starts, including find and inputs-only.',
+    'excluded': 'Checkout, compilation, dependency installation, fixture edits, ordinary Python observation, store inventory, report comparison and audit. Worker reply serialization/transfer, shared measurement imports and instrumentation are included. Each sequence explicitly enables or disables the project cache, isolated by approach and repetition and initially empty. No uncounted priming. OS file caches are neither flushed nor controlled.',
+    'attribution': 'Ordinary CLI calls time finding the function, input identity and answering separately, including client parsing. Separate profiling sequences use the existing library profiler with construction timers. Their phase times exclude process startup, argument parsing and outer reply output. Index includes extraction or cached facts and resolution; query includes import loading, parsing and analysis or validation, without separate import/parser timers. Profiling totals are diagnostic, not CLI latency.',
     'bytes': 'Canonical JSON reply bytes, not exact wire bytes. Store reads and offered writes count repeated object operations. Added bytes count unique object files; offered writes can verify existing objects. Manifest pointer bytes are outside object totals but their I/O is timed. Temporary native reuse files are timed but not retained in the object inventory.',
     'memory': 'Separate worker and largest-child lifetime RSS high-water marks, not sampled aggregate RSS. Python runtime and fr are separate processes.',
     'python': 'Ordinary Python executes the same selected function with source returning 17 and sink returning its argument. It checks one concrete result, not all input-flow paths. Its elapsed time is contextual, not an equivalent analysis baseline.',
-    'claims': 'Disclosed synthetic development examples only. No unfamiliar package, agent task, paid study, full-package acceptance or general speedup claim.',
+    'claims': 'Optimized build, disclosed synthetic development examples only. No unfamiliar package, agent task, paid study, full-package acceptance or general speedup claim. The earlier development-build collection is historical, not a controlled build-profile comparison.',
 }
 
 
@@ -78,6 +88,11 @@ def inventory(root):
     return len(files), sum(path.stat().st_size for path in files)
 
 
+def project_inventory(root):
+    files = [path for path in root.rglob('*') if path.is_file()]
+    return len(files), sum(path.stat().st_size for path in files)
+
+
 class MeasuredStore:
     def __init__(self, root):
         self.store = DirectoryObjectStore(root)
@@ -106,23 +121,43 @@ class MeasuredStore:
 
 
 class MeasuredClient(FrClient):
-    def __init__(self, project, executable):
+    def __init__(self, project, executable, engine, cache_mode):
         super().__init__(project, executable=executable, timeout=20, max_output_bytes=1_048_576)
         self.calls = self.reply_bytes = 0
         self.seconds = 0.0
+        self.engine, self.cache_mode = engine, cache_mode
+        self.requests = []
 
     def project(self, *arguments):
         started = time.perf_counter()
-        report = self.call('--no-cache', 'project', *arguments)
-        self.seconds += time.perf_counter() - started
+        cache_args = ['--no-cache'] if self.cache_mode == 'disabled' else []
+        profile = None
+        if self.engine == 'cli':
+            report = self.call(*cache_args, 'project', *arguments)
+        else:
+            process = subprocess.run([self.executable, '-C', str(self.root), *cache_args,
+                                      '--construction', *arguments],
+                                     capture_output=True, timeout=self.timeout, check=True)
+            require(len(process.stdout) <= self.max_output_bytes
+                    and len(process.stderr) <= self.max_output_bytes, 'profiler output exceeds budget')
+            profile = json.loads(process.stdout)
+            report = FrReport(json.loads(profile.pop('report_stdout')), ('project', *arguments))
+        elapsed = time.perf_counter() - started
+        self.seconds += elapsed
         self.calls += 1
-        self.reply_bytes += len(encode(report.to_data()))
+        reply_bytes = len(encode(report.to_data()))
+        self.reply_bytes += reply_bytes
+        operation = 'find' if arguments[0] == 'find' else 'inputs' if '--inputs-only' in arguments else 'answer'
+        self.requests.append({'operation': operation, 'seconds': elapsed,
+                              'reply_bytes': reply_bytes, 'profile': profile})
         return report
 
 
 def worker(args):
     started = time.perf_counter()
-    client = MeasuredClient(args.project, str(args.fr.resolve()))
+    # Every child uses this explicit location; it is outside the scanned project.
+    os.environ['FUN_REFACTOR_CACHE'] = str(args.work / 'project-cache')
+    client = MeasuredClient(args.project, str(args.fr.resolve()), args.engine, args.project_cache)
     target = client.project('find', args.function).definition_target().handle
     settings = CASES[args.case]
     options = dict(rules=args.project / 'rules.json', context='html', steps=settings['steps'],
@@ -161,7 +196,11 @@ def worker(args):
     scale = 1 if sys.platform == 'darwin' else 1024
     return {'answer': evidence(value), 'startup_reused': startup_reused,
             'answer_reused': answer_reused, 'startup_checks': startup_checks,
+            'calls': client.requests,
             'metrics': {'worker_seconds': elapsed, 'native_seconds': client.seconds,
+                        **{name + '_seconds': sum(call['seconds'] for call in client.requests
+                                                  if call['operation'] == name)
+                           for name in ('find', 'inputs', 'answer')},
                         'store_seconds': 0.0 if store is None else store.seconds,
                         'native_calls': client.calls, 'canonical_reply_bytes': client.reply_bytes,
                         'store_gets': 0 if store is None else store.gets,
@@ -175,17 +214,22 @@ def worker(args):
 
 def invoke(args, project, work, case, function, strategy):
     before = inventory(work)
+    cache_before = project_inventory(work / 'project-cache')
     command = [sys.executable, '-B', str(Path(__file__).resolve()), '--worker', '--fr', str(args.fr.resolve()),
                '--project', str(project), '--work', str(work), '--case', case, '--function', function,
-               '--strategy', strategy]
+               '--strategy', strategy, '--engine', args.engine, '--project-cache', args.project_cache]
     started = time.perf_counter()
     process = subprocess.run(command, capture_output=True, text=True, timeout=30)
     require(process.returncode == 0, f'worker failed ({case}/{function}/{strategy}): {process.stderr}')
     result = json.loads(process.stdout)
     elapsed = time.perf_counter() - started
     after = inventory(work)
+    cache_after = project_inventory(work / 'project-cache')
     result['metrics'].update(elapsed_seconds=elapsed, stored_files=after[0], stored_bytes=after[1],
-                             added_files=after[0] - before[0], added_bytes=after[1] - before[1])
+                             added_files=after[0] - before[0], added_bytes=after[1] - before[1],
+                             project_cache_files=cache_after[0], project_cache_bytes=cache_after[1],
+                             project_cache_added_files=cache_after[0] - cache_before[0],
+                             project_cache_added_bytes=cache_after[1] - cache_before[1])
     return result
 
 
@@ -229,13 +273,25 @@ def sequence_totals(rows, repetitions):
 
 
 def measure(args):
-    require(3 <= args.repetitions <= 9, 'use 3 to 9 explicit repetitions')
+    require(args.repetitions == 5 and args.profile_repetitions == 3,
+            'use five CLI repetitions and three separate profiling repetitions')
     require(sys.platform == 'linux', 'collect on a Linux GitHub runner')
     before = bindings()
     args.output.mkdir(parents=True, exist_ok=False)
-    (args.output / 'attempt.json').write_bytes(encode({'bindings': before, 'repetitions': args.repetitions,
-                                                     'scope': SCOPE}) + b'\n')
-    rows, answers, observations = [], {}, []
+    reports, settings, observations = {}, {}, []
+    for engine in ENGINES:
+        for mode in CACHE_MODES:
+            condition = argparse.Namespace(**vars(args))
+            condition.engine, condition.project_cache = engine, mode
+            condition.fr = args.fr if engine == 'cli' else args.profiler
+            condition.repetitions = args.repetitions if engine == 'cli' else args.profile_repetitions
+            condition.output = args.output / f'{engine}-{mode}'
+            condition.output.mkdir()
+            settings[engine, mode] = condition
+            reports[engine, mode] = {'samples': [], 'answers': {}}
+            (condition.output / 'attempt.json').write_bytes(encode({
+                'bindings': before, 'repetitions': condition.repetitions, 'engine': engine,
+                'project_cache': mode, 'scope': SCOPE}) + b'\n')
     with tempfile.TemporaryDirectory(prefix='fr-startup-cost-') as directory:
         base = Path(directory)
         project = base / 'project'
@@ -243,22 +299,31 @@ def measure(args):
             for repetition in range(args.repetitions):
                 offset = repetition % len(STRATEGIES)
                 order = STRATEGIES[offset:] + STRATEGIES[:offset]
-                for position, strategy in enumerate(order):
-                    for stage, (name, function, state) in enumerate(STAGES):
-                        # Remove the previous case's imported helper before installing this case.
-                        for path in project.glob('*.py'):
-                            path.unlink()
-                        install(project, case, state)
-                        result = invoke(args, project, base / case / str(repetition) / strategy,
-                                        case, function, strategy)
-                        answer = result.pop('answer')
-                        key = digest(answer)
-                        answers[key] = answer
-                        row = {'case': case, 'repetition': repetition, 'position': position,
-                               'stage': name, 'strategy': strategy, 'answer_digest': key, **result}
-                        rows.append(row)
-                        with (args.output / 'requests.jsonl').open('ab') as stream:
-                            stream.write(encode({'request': row, 'answer': answer}) + b'\n')
+                engines = ENGINES if repetition % 2 == 0 else ENGINES[::-1]
+                modes = CACHE_MODES if repetition % 2 == 0 else CACHE_MODES[::-1]
+                for engine in engines:
+                    for mode_position, mode in enumerate(modes):
+                        condition = settings[engine, mode]
+                        if repetition >= condition.repetitions:
+                            continue
+                        report = reports[engine, mode]
+                        for position, strategy in enumerate(order):
+                            for stage, (name, function, state) in enumerate(STAGES):
+                                # Remove the previous case's imported helper before installing this case.
+                                for path in project.glob('*.py'):
+                                    path.unlink()
+                                install(project, case, state)
+                                work = base / f'{engine}-{mode}' / case / str(repetition) / strategy
+                                result = invoke(condition, project, work, case, function, strategy)
+                                answer = result.pop('answer')
+                                key = digest(answer)
+                                report['answers'][key] = answer
+                                row = {'case': case, 'repetition': repetition, 'position': position,
+                                       'cache_position': mode_position, 'stage': name,
+                                       'strategy': strategy, 'answer_digest': key, **result}
+                                report['samples'].append(row)
+                                with (condition.output / 'requests.jsonl').open('ab') as stream:
+                                    stream.write(encode({'request': row, 'answer': answer}) + b'\n')
                 print(f'measured {case} repetition {repetition + 1}', file=sys.stderr, flush=True)
             for name, function, state in STAGES:
                 for path in project.glob('*.py'):
@@ -266,9 +331,7 @@ def measure(args):
                 install(project, case, state)
                 observations.append({'case': case, 'stage': name, **observe(project, function)})
     require(before == bindings(), 'measurement sources changed')
-    report = {'schema': 'fr-python-startup-cost', 'bindings': before,
-              'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),
-              'environment': {'platform': platform.platform(), 'python': sys.version,
+    environment = {'platform': platform.platform(), 'python': sys.version,
                               'cpu_model': next(line.split(':', 1)[1].strip() for line in
                                                 Path('/proc/cpuinfo').read_text().splitlines()
                                                 if line.startswith('model name')),
@@ -278,13 +341,19 @@ def measure(args):
                                                             if line.startswith('MemTotal:'))),
                               'rustc': subprocess.run(['rustc', '--version'], check=True, capture_output=True,
                                                       text=True, timeout=10).stdout.strip(),
-                              'build': 'cargo build --locked --bin fr; dev profile without debug symbols'},
-              'repetitions': args.repetitions, 'scope': SCOPE, 'cases': CASES,
-              'stages': STAGES, 'strategies': STRATEGIES,
-              'samples': rows, 'answers': answers, 'observations': observations,
-              'summary': summarize(rows), 'sequence_totals': sequence_totals(rows, args.repetitions)}
-    audit(report)
-    (args.output / 'result.json').write_bytes(encode(report) + b'\n')
+                              'build': BUILD}
+    for (engine, mode), report in reports.items():
+        condition = settings[engine, mode]
+        report.update(schema='fr-python-startup-cost', bindings=before,
+                      binary_sha256=hashlib.sha256(condition.fr.read_bytes()).hexdigest(),
+                      engine=engine, project_cache=mode, environment=environment,
+                      repetitions=condition.repetitions, scope=SCOPE, cases=CASES,
+                      stages=STAGES, strategies=STRATEGIES, observations=observations,
+                      summary=summarize(report['samples']),
+                      sequence_totals=sequence_totals(report['samples'], condition.repetitions))
+        audit(report)
+        (condition.output / 'result.json').write_bytes(encode(report) + b'\n')
+    audit_set(args.output)
 
 
 def audit(report):
@@ -294,6 +363,10 @@ def audit(report):
     require(report['stages'] == [list(stage) for stage in STAGES] or report['stages'] == STAGES,
             'question sequence changed')
     require(list(report['strategies']) == list(STRATEGIES), 'strategies changed')
+    require(report['engine'] in ENGINES and report['project_cache'] in CACHE_MODES, 'missing execution settings')
+    require(report['environment']['build'] == BUILD, 'optimized build settings changed')
+    require(isinstance(report['binary_sha256'], str) and len(report['binary_sha256']) == 64
+            and all(char in '0123456789abcdef' for char in report['binary_sha256']), 'invalid binary digest')
     repetitions = report['repetitions']
     require(type(repetitions) is int and 3 <= repetitions <= 9, 'invalid repetition count')
     rows = report['samples']
@@ -311,6 +384,8 @@ def audit(report):
         seen.add(identity)
         require(row['position'] == (STRATEGIES.index(strategy) - repetition) % len(STRATEGIES),
                 'strategy order changed')
+        require(row['cache_position'] == (CACHE_MODES.index(report['project_cache']) - repetition) % 2,
+                'project cache order changed')
         wanted = expected(case, stage)
         key = row['answer_digest']
         answer = report['answers'][key]
@@ -346,6 +421,61 @@ def audit(report):
         require(all(type(value) in (int, float) and math.isfinite(value) and value >= 0
                     for value in metrics.values()), 'invalid measurement')
         require(metrics['native_calls'] == (3 if strategy == 'saved-answer' else 2), 'native process count changed')
+        calls = row['calls']
+        operations = ['find', 'inputs', 'answer'] if strategy == 'saved-answer' else ['find', 'answer']
+        require([call['operation'] for call in calls] == operations, 'native request order changed')
+        require(all(type(call['seconds']) in (int, float) and math.isfinite(call['seconds'])
+                    and 0 <= call['seconds'] <= 20 and type(call['reply_bytes']) is int
+                    and call['reply_bytes'] > 0 for call in calls), 'invalid native request measurement')
+        require(metrics['native_seconds'] == sum(call['seconds'] for call in calls)
+                and metrics['canonical_reply_bytes'] == sum(call['reply_bytes'] for call in calls),
+                'native request totals changed')
+        for operation in ('find', 'inputs', 'answer'):
+            require(metrics[operation + '_seconds'] == sum(call['seconds'] for call in calls
+                                                         if call['operation'] == operation),
+                    'operation timing changed')
+        for position, call in enumerate(calls):
+            profile = call['profile']
+            if report['engine'] == 'cli':
+                require(profile is None, 'CLI time contains profiling')
+                continue
+            require(profile['schema'] == 'fr-project-profile-1', 'unexpected profiling report')
+            phases, construction = profile['phases_seconds'], profile['construction_seconds']
+            require(set(phases) == PHASES and set(construction) == CONSTRUCTION, 'profiling phases changed')
+            require(all(type(value) in (int, float) and math.isfinite(value) and value >= 0
+                        for value in [*phases.values(), *construction.values(), profile['measured_seconds']]),
+                    'invalid phase timing')
+            require(sum(phases.values()) <= profile['measured_seconds'] <= call['seconds']
+                    and sum(construction.values()) <= phases['project'], 'phase timing exceeds parent')
+            counters = ('fact_cache_hits', 'resolution_cache_hits', 'resolution_cache_misses')
+            if report['project_cache'] == 'disabled':
+                require(all(profile[name] is None for name in counters), 'disabled cache was used')
+            else:
+                require(all(type(profile[name]) is int and profile[name] >= 0 for name in counters),
+                        'enabled cache did not report counters')
+                require(type(profile['indexed_files']) is int and profile['indexed_files'] > 0
+                        and profile['fact_cache_hits'] <= profile['indexed_files'], 'invalid fact cache hits')
+                if position > 0 or stage in (1, 2, 5, 6):
+                    require(profile['fact_cache_hits'] == profile['indexed_files'],
+                            'unchanged files missed the project cache')
+                elif stage == 0:
+                    require(profile['fact_cache_hits'] == 0, 'first request was secretly primed')
+                else:
+                    require(profile['fact_cache_hits'] < profile['indexed_files'],
+                            'edited file reused stale cached facts')
+        cache_fields = [name for name in FIELDS if name.startswith('project_cache_')]
+        require(all(type(metrics[name]) is int for name in cache_fields), 'invalid project cache inventory')
+        if report['project_cache'] == 'disabled':
+            require(all(metrics[name] == 0 for name in cache_fields), 'disabled project cache wrote files')
+        else:
+            require(metrics['project_cache_files'] > 0 and metrics['project_cache_bytes'] > 0,
+                    'enabled project cache stored nothing')
+            for unit in ('files', 'bytes'):
+                total, added = metrics['project_cache_' + unit], metrics['project_cache_added_' + unit]
+                previous = [other for other in rows if (other['case'], other['strategy'], other['repetition'],
+                            other['stage']) == (case, strategy, repetition, STAGES[stage - 1][0])]
+                require(total == added + (previous[0]['metrics']['project_cache_' + unit] if stage else 0),
+                        'project cache population was excluded or inventory changed')
         require(metrics['worker_seconds'] <= metrics['elapsed_seconds'] <= 30, 'worker timer changed')
         require(metrics['native_seconds'] + metrics['store_seconds'] <= metrics['worker_seconds'],
                 'component time exceeds worker time')
@@ -372,27 +502,55 @@ def audit(report):
                 and 0 <= item['elapsed_seconds'] <= 20, 'invalid Python duration')
 
 
+def audit_set(directory):
+    reports = {}
+    for engine in ENGINES:
+        for mode in CACHE_MODES:
+            report = json.loads((directory / f'{engine}-{mode}' / 'result.json').read_bytes())
+            audit(report)
+            require((report['engine'], report['project_cache']) == (engine, mode), 'condition mislabeled')
+            require(report['repetitions'] == (5 if engine == 'cli' else 3), 'collection repetitions changed')
+            reports[engine, mode] = report
+    baseline = reports['cli', 'disabled']
+    for (engine, _), report in reports.items():
+        require(report['answers'] == baseline['answers'], 'cache mode or profiler changed answers')
+        require(report['environment'] == baseline['environment'], 'conditions used different environments')
+        require(report['binary_sha256'] == reports[engine, 'disabled']['binary_sha256'],
+                'cache conditions used different binaries')
+    print('checked optimized CLI and separate profiles with project caching off and on; all answers agree')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--output', type=Path)
     mode.add_argument('--audit', type=Path)
+    mode.add_argument('--audit-set', type=Path)
     mode.add_argument('--worker', action='store_true')
     parser.add_argument('--fr', type=Path)
+    parser.add_argument('--profiler', type=Path)
     parser.add_argument('--repetitions', type=int)
+    parser.add_argument('--profile-repetitions', type=int)
     parser.add_argument('--project', type=Path)
     parser.add_argument('--work', type=Path)
     parser.add_argument('--case', choices=CASES)
     parser.add_argument('--function', choices=('forwards', 'stopped'))
     parser.add_argument('--strategy', choices=STRATEGIES)
+    parser.add_argument('--engine', choices=ENGINES)
+    parser.add_argument('--project-cache', choices=CACHE_MODES)
     args = parser.parse_args()
-    if args.audit:
+    if args.audit_set:
+        audit_set(args.audit_set)
+    elif args.audit:
         audit(json.loads((args.audit / 'result.json').read_bytes()))
         print('checked every request, fresh-answer agreement, reuse decision, budget and Python result')
     elif args.worker:
+        require(args.engine is not None and args.project_cache is not None, 'supply --engine and --project-cache')
         print(encode(worker(args)).decode())
     else:
-        require(args.fr is not None and args.repetitions is not None, 'supply --fr and --repetitions')
+        require(args.fr is not None and args.profiler is not None and args.repetitions is not None
+                and args.profile_repetitions is not None,
+                'supply --fr, --profiler, --repetitions and --profile-repetitions')
         measure(args)
 
 
