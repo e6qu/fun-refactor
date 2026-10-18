@@ -32,14 +32,18 @@ The Python behavior guide is a recorded test input. Changing its wording require
 Agent instruction changes also require refreshing the derived text-size report.
 Do not change recorded fingerprints to disguise outdated results.
 
-The active change saves checked Python preparation between separate requests.
-The [new lesson](save-python-startup.md) asks about a forwarding function, closes that process, then asks about a zero-returning function.
-Each call requires explicit settings. Each request still resolves imports and verifies source files.
-The saved pass contains checked declarations, captured defaults and startup dictionary writes.
-Edits invalidate it, corruption refuses, and unfinished answers add no saved entry.
-Hosted validation and fresh source-bound reports are pending for this change.
-
 ## Continue Python work from actual library failures
+
+You can now save checked setup and ask about another function from the same file in a later process.
+The [complete lesson](save-python-startup.md) checks a forwarding function first, then a function returning zero.
+Every call supplies its settings explicitly and still verifies source files and import choices.
+Edits to those files force fresh preparation. Damaged saved records fail visibly.
+Unknown startup effects keep the answer unfinished and add no saved entry.
+
+Next, measure fresh requests, saved preparation and saved whole answers using the same questions and limits.
+Count file checks, import resolution, parsing, process startup and storage before claiming a speedup.
+The new preparation checks passed; their results appear in the collection receipts below.
+Full-package support and savings on unfamiliar agent tasks remain unproven.
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
 Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.
@@ -54,11 +58,6 @@ Two helper questions in one request now share one startup preparation.
 The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
 Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
 A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
-The active change saves the separate preparation pass for a later helper question.
-Its [lesson](save-python-startup.md) checks forwarding now and a zero-returning helper in another process.
-Each request verifies files and import choices within the existing limits.
-After validation, measure fresh requests, saved preparation and saved whole answers with the same inputs and settings.
-Include the work that still runs before making any speed claim.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
@@ -178,13 +177,14 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [checker collection receipt](../tests/agent-eval/results/2026-10-18-ci-repairs-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-ci-repairs-python-contract/manifest.json)
+The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-18-saved-startup-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
 It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
 Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
 Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
-The shared-startup Python interface adds 41 cases, including comparisons with separate analyses and Python, within the 1,409-case interface check.
+The Python interface check passed 1,484 cases, including 75 cases for saving preparation between requests.
+Those cases compare saved and fresh answers, ordinary Python, source edits, competing imports, damaged records and unchanged limits.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
 The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.
