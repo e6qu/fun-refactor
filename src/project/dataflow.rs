@@ -4,7 +4,11 @@ use super::{
     occurrence::Occurrence,
     Project,
 };
-use crate::{lang::Language, parse::{Parsed, Parsers}, span::Span};
+use crate::{
+    lang::Language,
+    parse::{Parsed, Parsers},
+    span::Span,
+};
 use anyhow::{ensure, Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -809,15 +813,29 @@ impl Project<'_> {
             symbol.language == Language::Python,
             "dataflow admits the Python scalar subset only."
         );
-        ensure!(options.also.len() < 16, "at most 16 questions may share startup.");
-        ensure!(options.also.is_empty() || options.summaries, "shared startup requires summaries.");
+        ensure!(
+            options.also.len() < 16,
+            "at most 16 questions may share startup."
+        );
+        ensure!(
+            options.also.is_empty() || options.summaries,
+            "shared startup requires summaries."
+        );
         let mut targets = BTreeSet::from([options.target.as_str()]);
         for target in &options.also {
-            ensure!(targets.insert(target), "shared startup requires distinct functions.");
+            ensure!(
+                targets.insert(target),
+                "shared startup requires distinct functions."
+            );
             let selected = self.target(target)?;
-            let other = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
-            ensure!(other.file == symbol.file && other.language == Language::Python,
-                    "shared startup requires functions in the same Python file.");
+            let other = self.nodes[selected]
+                .symbol
+                .and_then(|id| self.index.symbol(id))
+                .context("select a function")?;
+            ensure!(
+                other.file == symbol.file && other.language == Language::Python,
+                "shared startup requires functions in the same Python file."
+            );
         }
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
@@ -826,7 +844,14 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
-        let startup = self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options.summaries, options.imports)?;
+        let startup = self.prepare_flow_startup(
+            &symbol.file,
+            source,
+            &parsed,
+            modules.as_ref(),
+            options.summaries,
+            options.imports,
+        )?;
         if options.also.is_empty() {
             return self.flow_answer(options, modules.as_ref(), &startup, options.steps);
         }
@@ -837,7 +862,9 @@ impl Project<'_> {
             question.target = target.clone();
             question.also.clear();
             let answer = self.flow_answer(&question, modules.as_ref(), &startup, remaining)?;
-            remaining -= answer["execution"]["analysis_steps"].as_u64().context("missing flow work count.")? as usize;
+            remaining -= answer["execution"]["analysis_steps"]
+                .as_u64()
+                .context("missing flow work count.")? as usize;
             answers.push(answer);
         }
         let mut dependencies = answers[0]["inputs"].clone();
@@ -845,7 +872,10 @@ impl Project<'_> {
         for answer in &answers[1..] {
             let mut current = answer["inputs"].clone();
             current.as_object_mut().unwrap().remove("selection");
-            ensure!(current == dependencies, "shared startup inputs changed between questions.");
+            ensure!(
+                current == dependencies,
+                "shared startup inputs changed between questions."
+            );
         }
         let report = json!({
             "schema":"fr-dataflow-together", "revision":self.revision,
@@ -858,15 +888,25 @@ impl Project<'_> {
             "budget":{"steps":options.steps,"used":options.steps-remaining,"response_bytes":options.bytes},
             "answers":answers,
         });
-        ensure!(serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
-                "combined response exceeds byte budget.");
+        ensure!(
+            serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+            "combined response exceeds byte budget."
+        );
         Ok(report)
     }
 
     fn prepare_flow_startup<'a, 't>(
-        &'a self, file: &'a Path, source: &'a str, parsed: &'t Parsed,
-        modules: Option<&'t modules::Modules>, summary_mode: bool, import_mode: bool,
-    ) -> Result<Startup<'a, 't>> where 't: 'a {
+        &'a self,
+        file: &'a Path,
+        source: &'a str,
+        parsed: &'t Parsed,
+        modules: Option<&'t modules::Modules>,
+        summary_mode: bool,
+        import_mode: bool,
+    ) -> Result<Startup<'a, 't>>
+    where
+        't: 'a,
+    {
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
         let mut value_alias_count = 0;
@@ -927,7 +967,11 @@ impl Project<'_> {
                     })
                     .flatten();
                 if matches!(allocation, Some(initializers::Statement::Population)) {
-                    dictionary_statements.push(self.occurrence(file, Span::from(node), "checked-dictionary-startup")?);
+                    dictionary_statements.push(self.occurrence(
+                        file,
+                        Span::from(node),
+                        "checked-dictionary-startup",
+                    )?);
                     continue;
                 }
                 let allocated = match allocation {
@@ -1360,14 +1404,30 @@ impl Project<'_> {
                 .filter(|name| functions.contains_key(*name))
                 .cloned(),
         );
-        Ok(Startup { functions, function_aliases, captured_defaults, contexts, ambiguous,
-                     inert_bindings, initialization, dictionary_statements })
+        Ok(Startup {
+            functions,
+            function_aliases,
+            captured_defaults,
+            contexts,
+            ambiguous,
+            inert_bindings,
+            initialization,
+            dictionary_statements,
+        })
     }
 
-    fn flow_answer(&self, options: &Options, modules: Option<&modules::Modules>,
-                   startup: &Startup<'_, '_>, allowance: usize) -> Result<Value> {
+    fn flow_answer(
+        &self,
+        options: &Options,
+        modules: Option<&modules::Modules>,
+        startup: &Startup<'_, '_>,
+        allowance: usize,
+    ) -> Result<Value> {
         let selected = self.target(&options.target)?;
-        let symbol = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
+        let symbol = self.nodes[selected]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("select a function")?;
         let source = &self.sources[&symbol.file];
         let functions = startup.functions.clone();
         let function_aliases = startup.function_aliases.clone();
