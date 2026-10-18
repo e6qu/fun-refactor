@@ -100,7 +100,6 @@ impl Initialization {
     }
 }
 
-#[derive(Clone)]
 struct Startup<'a, 't> {
     functions: BTreeMap<String, Node<'t>>,
     function_aliases: BTreeMap<String, (String, usize)>,
@@ -843,6 +842,11 @@ impl Project<'_> {
         }
         let mut dependencies = answers[0]["inputs"].clone();
         dependencies.as_object_mut().unwrap().remove("selection");
+        for answer in &answers[1..] {
+            let mut current = answer["inputs"].clone();
+            current.as_object_mut().unwrap().remove("selection");
+            ensure!(current == dependencies, "shared startup inputs changed between questions");
+        }
         let report = json!({
             "schema":"fr-dataflow-together", "revision":self.revision,
             "startup":{
@@ -1365,8 +1369,13 @@ impl Project<'_> {
         let selected = self.target(&options.target)?;
         let symbol = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
         let source = &self.sources[&symbol.file];
-        let Startup { functions, function_aliases, captured_defaults, contexts, ambiguous,
-                      inert_bindings, initialization, .. } = startup.clone();
+        let functions = startup.functions.clone();
+        let function_aliases = startup.function_aliases.clone();
+        let captured_defaults = startup.captured_defaults.clone();
+        let contexts = startup.contexts.clone();
+        let ambiguous = startup.ambiguous.clone();
+        let inert_bindings = startup.inert_bindings.clone();
+        let initialization = startup.initialization.clone();
         let entry = if let Some(modules) = &modules {
             modules.function_name(&symbol.file, &symbol.name)
         } else {

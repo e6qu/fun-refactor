@@ -191,3 +191,41 @@ def test_complete_lesson_runs_both_checker_and_python(tmp_path):
     assert run('check_example.py') == ('Startup checks: 1\n'
         'forwards finished: False possible input connection: True\n'
         'stopped finished: False possible input connection: False\n')
+
+
+@pytest.mark.parametrize('limit', ['modules', 'source_bytes'])
+def test_shared_requests_preserve_import_budgets(tmp_path, limit):
+    client, rules = install(tmp_path, 'helper')
+    if limit == 'source_bytes':
+        (tmp_path / 'helpers.py').write_text('#' * 262_144 + '\n' + SETUP + HELPERS)
+        cutoff = 'import-source-byte-budget'
+    else:
+        (tmp_path / 'helpers.py').write_text('from chain0 import relay, discard\n')
+        for number in range(16):
+            source = f'from chain{number + 1} import relay, discard\n' if number < 15 else HELPERS
+            (tmp_path / f'chain{number}.py').write_text(source)
+        cutoff = 'import-module-budget'
+    result = together(client, rules, imports=True)
+    for answer in result.answers:
+        assert not answer.report.at('/complete')
+        assert cutoff in answer.report.at('/cutoffs')
+        assert len(answer.report.at('/inputs/modules/files')) <= 16
+
+
+def test_native_group_count_and_mode_controls_cannot_be_bypassed(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'subject.py').write_text(''.join(f'def f{i}():\n    return 0\n' for i in range(17)))
+    handles = [client.project('find', f'f{i}').definition_target().handle for i in range(17)]
+    base = ['dataflow', handles[0], '--bytes', '1048576']
+    additions = [argument for handle in handles[1:] for argument in ('--also', handle)]
+    with pytest.raises(FrRuntimeError, match='at most 16'):
+        client.project(*base, '--summaries', *additions)
+    with pytest.raises(FrRuntimeError):
+        client.project(*base, '--also', handles[1])
+    with pytest.raises(FrRuntimeError):
+        client.project(*base, '--summaries', '--also', handles[1], '--inputs-only')
+    with pytest.raises(FrRuntimeError, match='distinct functions'):
+        client.project(*base, '--summaries', '--also', handles[0])
+    accepted = analyze_together(client, handles[:16], steps=4096, max_bytes=1_048_576)
+    assert len(accepted.answers) == 16
+    assert all(answer.report.at('/complete') for answer in accepted.answers)

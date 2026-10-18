@@ -67,8 +67,14 @@ class FlowTogether:
                         or dependencies != inputs or value['target'] in targets
                         or type(value['complete']) is not bool or value['execution']['kind'] != 'analyzed'
                         or type(work) is not int or work < 0
-                        or value['budget']['used'] != work or value['budget']['steps'] != budget['steps']):
+                        or type(value['budget']['used']) is not int or value['budget']['used'] != work
+                        or type(value['budget']['steps']) is not int or value['budget']['steps'] != budget['steps']
+                        or type(value['budget']['response_bytes']) is not int
+                        or value['budget']['response_bytes'] != budget['response_bytes']):
                     raise FrRuntimeError('answer differs from its shared startup inputs or work')
+                answer_inputs = json.dumps(value['inputs'], sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+                if hashlib.sha256(answer_inputs.encode('utf-8')).hexdigest() != value['input_digest']:
+                    raise FrRuntimeError('answer input digest mismatch')
                 targets.add(value['target'])
                 used += work
                 answer.initialization
