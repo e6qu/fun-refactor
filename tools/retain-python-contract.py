@@ -68,6 +68,52 @@ def checked_report(archive, digest):
     return checked_reports(archive, digest, ['result.json'])['result.json']
 
 
+def compact_report(value):
+    return (json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n').encode('utf-8')
+
+
+def store_report(destination, archive, identity):
+    contract.require(len(archive) <= 16 * 1024 * 1024, 'artifact exceeds download admission')
+    data = checked_report(archive, identity['artifact_digest'])
+    value = json.loads(data)
+    contract.require(value['source_commit'] == identity['source_commit'], 'collection source identity changed')
+    compact = compact_report(value)
+    contract.require(len(compact) <= 50 * 1024 * 1024, 'compact report exceeds the 50 MiB storage bound')
+    contract.require(not destination.exists(), 'retain into a new evidence directory; preserve prior results')
+    destination.mkdir(parents=True)
+    (destination / 'result.json').write_bytes(compact)
+    (destination / 'artifact.zip').write_bytes(archive)
+    manifest = {'schema': 'fr-python-contract-evidence-1', 'collection': identity,
+                'binary_sha256': value['binary_sha256'],
+                'source_report_sha256': hashlib.sha256(data).hexdigest(),
+                'files': {'result.json': hashlib.sha256(compact).hexdigest(),
+                          'artifact.zip': hashlib.sha256(archive).hexdigest()}}
+    (destination / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    return manifest
+
+
+def retained_report(path):
+    manifest = json.loads((path.parent / 'manifest.json').read_text())
+    contract.require(set(manifest) == {'schema', 'collection', 'binary_sha256', 'source_report_sha256', 'files'}
+                     and manifest['schema'] == 'fr-python-contract-evidence-1'
+                     and set(manifest['files']) == {'result.json', 'artifact.zip'},
+                     'current contract receipt requires a compact report and original artifact')
+    artifact = path.parent / 'artifact.zip'
+    contract.require(path.name == 'result.json' and path.stat().st_size <= 50 * 1024 * 1024
+                     and artifact.stat().st_size <= 16 * 1024 * 1024, 'retained files exceed storage admission')
+    compact, archive = path.read_bytes(), artifact.read_bytes()
+    contract.require(manifest['files'] == {'result.json': hashlib.sha256(compact).hexdigest(),
+                     'artifact.zip': hashlib.sha256(archive).hexdigest()}, 'contract report digest changed')
+    data = checked_report(archive, manifest['collection']['artifact_digest'])
+    contract.require(manifest['source_report_sha256'] == hashlib.sha256(data).hexdigest(),
+                     'original captured report digest changed')
+    value = json.loads(data)
+    contract.require(compact == compact_report(value), 'compact report differs from original captured values')
+    contract.require(manifest['collection']['source_commit'] == value['source_commit']
+                     and manifest['binary_sha256'] == value['binary_sha256'], 'contract collection identity changed')
+    return value
+
+
 def collection(run, artifact, report, repository, jobs, group='python-contract', producer=None):
     contract.require(run['status'] == 'completed' and run['conclusion'] == 'success'
                      and run['path'] == '.github/workflows/refinement-evidence.yml'
@@ -121,13 +167,7 @@ def main():
     result = contract.audit(value)
     relative = Path('tests/agent-eval/results') / (args.prefix + '-python-contract')
     destination = ROOT / relative
-    contract.require(not destination.exists(), 'retain into a new evidence directory; preserve prior results')
-    destination.mkdir()
-    (destination / 'result.json').write_bytes(data)
-    manifest = {'schema': 'fr-python-contract-evidence-1', 'collection': identity,
-                'binary_sha256': value['binary_sha256'],
-                'files': {'result.json': hashlib.sha256(data).hexdigest()}}
-    (destination / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    manifest = store_report(destination, archive, identity)
     tests = ROOT / 'tools/test-python-contract.py'
     text, count = re.subn(r"^REPORT = ROOT / '[^']+'$", f"REPORT = ROOT / '{relative}/result.json'",
                           tests.read_text(), flags=re.MULTILINE)

@@ -84,9 +84,10 @@ A reusable result would need to record the source and imports it depends on, whi
 Changing any of those inputs must invalidate the saved result.
 The result must preserve unknown calls and writes instead of assuming they have no effect.
 
-Start with a small import-time registration function and a test that changes it to replace the selected helper.
+The [first startup-call implementation](check-python-startup.md) checks a small registration function and keeps a helper-replacement control unfinished.
 A registration function records values or functions for later use, like Toolz's argument table.
-Check both outcomes against ordinary Python before using the result to make any answer complete.
+Tests compare both outcomes with ordinary Python before using the supported case to make an answer complete.
+Toolz's actual table builder still needs loops, imported introspection and computed values that this first rule leaves unfinished.
 Keep existing file, source, search and execution limits throughout that work.
 Splitting a large question into smaller checked steps requires an explicit dependency connection between those steps.
 Running more unchecked source elsewhere would not solve the correctness problem.

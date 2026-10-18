@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-flow-facts/result.json",
-      "sha256": "cf8f14e0dd17cd9b9278ade2c35883e50d30e431c31993e4b01caf0ba5721289"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-facts/result.json",
+      "sha256": "8f81bfa2f44e31af300d3a7c51a46d8846cc948348023be1e61e5f9ed800d123"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-package-flow/result.json",
-      "sha256": "37b68a57a2fd0a08aaf9cdbd0bb492e6bcb4b91704f63941311be67182227d0a"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-package-flow/result.json",
+      "sha256": "1e021987215d5643475c5adac3d66525f1c44f06c14f6c17ce525e4a56837707"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-python-repositories",
-      "sha256": "c076f8a287a53f585ae554a19241e4a14b839a7b02adeb0a886c59214fffcfd4"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-python-repositories",
+      "sha256": "2ad8bdb300265a3f2d6d25a465933f73a172605eb346ef8bbc6e94f8d5f30a9d"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-flow-cache/result.json",
-      "sha256": "349ad9cb584a8014f7ccf84998eddd4ca9522f444df0c51d23415e9a598e18bd"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-flow-cache/result.json",
+      "sha256": "e079bac13ea122dea94df406feddf077125911110d42ee262c391dc4202c980a"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-compiler-profile/result.json",
-      "sha256": "fc5c3878c776eeb12d14150fe14cf0c685c4e8a5bcef0266094519184d75d718"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-18-startup-registration-ci-compiler-profile/result.json",
+      "sha256": "823522cc1e162f036281bb84a9752b74ab9ae0a932c4b0f0cfb9a6974dfd0385"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 458 authored programs and 916 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/result.json",
-      "sha256": "433f34cd426f8b3d4c787174e97dcfef33070f36ca9167459724c2c07fa88466"
+      "scope": "14 declared Python rules; 464 authored programs and 928 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/result.json",
+      "sha256": "6cb0aeb3cfebdfafb51bffcf1bee1b69986389180c0ee64492bec0eb09ccd11d"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-17-default-replacements-ci-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-18-startup-registration-ci-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-17-default-replacements-ci-index-resolution/result.json",
-      "sha256": "21c638627f01957d516e3c6f70de2d3f180ddcc251a0f4fd896c55308e59b715"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-18-startup-registration-ci-index-resolution/result.json",
+      "sha256": "7bfa9be4d511167009fd874119df7fe19a11e2c2926806603152a2f10d79bf02"
     },
     {
       "id": "repository-flow",

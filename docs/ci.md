@@ -65,12 +65,22 @@ The altered-record audit has 120 seconds. The complete job keeps its fifteen-min
 The interface log is saved separately as `python-contract-sdk-checks`; the result artifact remains `python-contract`.
 A cancelled job cannot qualify as a successful collection, even when its report and individual tests passed.
 
+The `scalar-development` option runs focused development checks in two hosted jobs.
+One compiles and tests the analyzer, then checks Python arguments and [code run during import](check-python-startup.md).
+The other checks imports and saved answers. Both keep a fifteen-minute deadline.
+The [development history](evaluations.md#check-a-small-function-that-fills-a-table-during-import) records why running every group after compilation exceeded that deadline.
+
 This changes the order of CI work. Analysis speed and complete agent costs need separate measurements.
 
 Keeping a capture also requires checking which code produced it.
 A documentation edit creates a different commit while leaving the analyzer unchanged.
 Retention compares the analyzer's source folders, local dependencies, parsing queries, Python client, build script and dependency manifests with the current checkout.
 Each capture keeps its actual collection commit. Every recorded input still receives its existing report audit.
+The retained Python report uses compact JSON to avoid storing indentation across hundreds of examples.
+Its `artifact.zip` keeps the exact downloaded archive, including the original report bytes.
+The reader verifies both files, the original report's fingerprint and the compact copy's exact agreement with the captured values.
+A missing archive, changed value or obsolete receipt stops the check; the current reader accepts one receipt format.
+This changes storage only. The source identity, cases and recorded measurements keep their original values.
 Changed analyzer code, changed recorded inputs and uncommitted analyzer files stop retention.
 This lets unrelated captures remain useful after a CI-only edit without changing their contents or fingerprints.
 

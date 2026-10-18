@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Reject false contract claims and corrupted retained Python observations."""
 import copy
-import hashlib
 import importlib.util
 import json
 import os
@@ -13,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-contract.py')
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-17-default-replacements-ci-python-contract/result.json'
+retention = contract.profile.load('retain-python-contract')
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-18-startup-registration-compact-ci-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
@@ -58,13 +58,7 @@ class PythonContract(unittest.TestCase):
                 raise ValueError('unretained reports may only be tested on GitHub')
             cls.report = json.loads(Path(override).read_text())
         else:
-            manifest = json.loads((REPORT.parent / 'manifest.json').read_text())
-            if manifest['files'] != {'result.json': hashlib.sha256(REPORT.read_bytes()).hexdigest()}:
-                raise ValueError('contract report digest changed')
-            cls.report = json.loads(REPORT.read_text())
-            if (manifest['collection']['source_commit'] != cls.report['source_commit']
-                    or manifest['binary_sha256'] != cls.report['binary_sha256']):
-                raise ValueError('contract collection identity changed')
+            cls.report = retention.retained_report(REPORT)
         cls.authored_cases = staticmethod(contract.cases)
         encoded = json.dumps(contract.cases(), ensure_ascii=False)
         snapshots = patch.object(contract, 'cases', side_effect=lambda: json.loads(encoded))

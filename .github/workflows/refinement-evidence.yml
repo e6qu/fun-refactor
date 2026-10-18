@@ -428,7 +428,30 @@ jobs:
           ty check sdk/python/src
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+
+  scalar-import-development:
+    if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Check Python imports and saved answers independently
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_shared_named_imports.py sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
 
   workflow-routes:
@@ -806,7 +829,9 @@ jobs:
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check documentation examples before collecting reports
-        run: python3 -B tools/reader_examples.py --fr target/debug/fr
+        run: |
+          python3 -B tools/reader_examples.py --fr target/debug/fr
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
       - uses: actions/upload-artifact@v7
