@@ -1414,8 +1414,22 @@ The historical report remains unchanged.
 The compiler comparison, Python examples and familiar-library probes record that test file as an input, so the correction required three fresh captures.
 The checking program's source and the other five capture groups remain unchanged.
 
-The [replacement report admission](https://github.com/e6qu/fun-refactor/actions/runs/39119891634) passed all report checks and saved the [current collection](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-scalar-collection/manifest.json).
+The [replacement report admission](https://github.com/e6qu/fun-refactor/actions/runs/39119891634) passed all report checks and saved [that collection](../tests/agent-eval/results/2026-10-18-shared-startup-checked-ci-scalar-collection/manifest.json).
 Its 58 Python controls passed in 52.358 seconds within the unchanged deadline; the earlier report set remains recorded separately.
+
+Full CI then found other saved reports tied to the changed checking tools.
+The tests now use [fresh hosted reports](../tests/agent-eval/results/2026-10-18-ci-repairs-ci-collection/manifest.json), with the original reports preserved.
+For example, recovery evidence must describe the tools being checked today; a passing older run cannot establish that result.
+The source and behavior checks still reject changed inputs and incorrect results.
+The cache test's small project now supplies the required workspace and source-input list, and still rejects missing inputs.
+
+One compiler test read and rewrote a saved report through Rust before validating it in Python.
+That numeric conversion broke the report's content check even though the original report passed.
+The test now validates the original file directly and retains the full compiler audit.
+Two added controls reject an altered nested report format or content check.
+The [fresh Python run](https://github.com/e6qu/fun-refactor/actions/runs/39128833298) passed 1,409 interface tests.
+Its 58 altered-report tests passed in 64.001 seconds, within the existing 120-second deadline.
+No timeout, resource limit or writing budget increased.
 
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
