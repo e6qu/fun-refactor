@@ -13,7 +13,8 @@ pub(super) struct Parameter<'t> {
     pub default: Option<Node<'t>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct CapturedDefaults {
     values: BTreeSet<String>,
     scalars: BTreeSet<String>,

@@ -466,6 +466,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
