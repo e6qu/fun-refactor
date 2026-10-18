@@ -28,6 +28,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/zig-toolchain
 
+  go-toolchain:
+    name: Pinned Go toolchain
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/go-toolchain
+
   agent-study:
     name: Independent agent study accounting
     runs-on: ubuntu-latest

@@ -3,6 +3,10 @@ description: Install the declared Go release from its checksum-verified official
 runs:
   using: composite
   steps:
+    - uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/fr-go1.27.2.linux-amd64.tar.gz
+        key: go-archive-linux-amd64-ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5
     - name: Fetch and verify Go
       shell: bash
       run: |
@@ -10,11 +14,16 @@ runs:
         test "${RUNNER_OS}/${RUNNER_ARCH}" = Linux/X64
         go_archive="${RUNNER_TEMP}/fr-go1.27.2.linux-amd64.tar.gz"
         go_destination="${RUNNER_TEMP}/fr-go1.27.2"
-        curl -fsSL --connect-timeout 20 --max-time 120 \
-          -o "$go_archive" https://go.dev/dl/go1.27.2.linux-amd64.tar.gz
-        echo "ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5  $go_archive" | sha256sum -c -
+        go_expected=ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5
+        if [ ! -f "$go_archive" ]; then
+          timeout 120 tools/fetch-verified-ranges.sh \
+            https://dl.google.com/go/go1.27.2.linux-amd64.tar.gz \
+            "$go_archive" "$go_expected" 70590635 8
+        fi
+        echo "$go_expected  $go_archive" | sha256sum -c -
         mkdir -p "$go_destination"
         tar -xzf "$go_archive" -C "$go_destination" --strip-components=1
         echo "${go_destination}/bin" >> "$GITHUB_PATH"
         echo "GOROOT=${go_destination}" >> "$GITHUB_ENV"
+        echo "GOTOOLCHAIN=local" >> "$GITHUB_ENV"
         "$go_destination/bin/go" version
