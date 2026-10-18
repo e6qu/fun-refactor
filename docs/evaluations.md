@@ -1400,6 +1400,10 @@ It then rejected the workflow and repair reports because they came from differen
 The [replacement repair collection](https://github.com/e6qu/fun-refactor/actions/runs/39116213030) uses the workflow report's exact commit.
 The requirement that this report pair share one source commit remains unchanged.
 
+The [final admission](https://github.com/e6qu/fun-refactor/actions/runs/39116460591) passed all seventeen report groups and the workflow/repair checks, then saved the current reports.
+All 58 Python controls passed in 53.026 seconds, within the unchanged 120-second deadline.
+The [Python receipt](../tests/agent-eval/results/2026-10-18-shared-startup-ci-python-contract/manifest.json) preserves the original collection commit, compiled-program identity and exact original archive alongside the compact report.
+
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
