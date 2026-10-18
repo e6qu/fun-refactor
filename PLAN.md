@@ -95,11 +95,13 @@ Funcy and Pydash exceed the current file or source budgets in their complete obs
 Small no-argument startup functions can now fill dictionaries created earlier in their own file.
 The [startup lesson](docs/check-python-startup.md) compares this check with a function that replaces the selected helper and must stay unfinished.
 Saved answers already depend on source files and import lookups.
-The next implementation [asks about two helpers together](docs/check-python-together.md).
+You can now [ask about two helpers together](docs/check-python-together.md).
 It prepares shared startup once within one request, then returns separate function answers.
 Both questions share the existing work and output limits; changed sources and unknown effects remain visible.
 Next, save checked startup work for later questions.
-Before using it again, check that its source files and import choices still match.
+For example, ask about the forwarding helper first and the helper returning zero in a later request.
+The later question should reuse checked setup only while its files and import choices still match.
+Editing a helper file or adding a competing import candidate must invalidate that saved work.
 Do not describe request-local sharing as reuse across requests or as finishing a large package import.
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.

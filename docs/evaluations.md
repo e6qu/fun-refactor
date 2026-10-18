@@ -11,6 +11,15 @@ The [measurement guide](benchmarks.md) distinguishes that comparison from reply-
 
 ## Recorded experiments and their limits
 
+The [two-question Python lesson](check-python-together.md) prepares shared startup once within one request.
+For example, the same import exposes a helper passing `17` along and another returning `0`.
+Forty-one new SDK cases compare shared answers with separate analyses and ordinary Python behavior.
+They cover changed files and import candidates, unknown startup effects, shared work limits and bounded location detail.
+An unchecked write after the displayed locations must still leave both answers unfinished.
+These checks establish agreement on the chosen examples; they measure no speed or agent savings.
+Saving startup work for a later request remains open. The existing package questions remain unfinished.
+
+
 The [Python package startup investigation](python-package-startup-results.md) observes what runs before four simple library helpers become available.
 Three hosted captures each completed sixteen fresh processes and forty-eight integer calls, with ordinary and instrumented results agreeing.
 The existing package answers remain incomplete: Toolz still runs an unchecked table builder, while the observed Funcy and Pydash source exceeds current single-analysis budgets.
