@@ -262,6 +262,13 @@ The [new lesson](check-python-startup.md) checks a smaller setup function that f
 Toolz's actual table builder still uses loops, imported introspection and computed values outside that rule.
 The replay establishes neither complete library support nor lower agent cost.
 
+The [shared-startup comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189)
+keeps those same outcomes. You can now ask about several functions in one file with one startup check within that request.
+The [complete lesson](check-python-together.md) follows submitted input through a forwarding helper and a helper returning zero, then runs both in Python.
+The questions share the existing work and output limits; unknown startup effects still leave them unfinished.
+A later request checks startup again. Saving checked setup for later questions remains the next step.
+This change has no timing measurements and does not finish the original packages' import checks.
+
 Next, address the remaining import and initialization boundaries
 through general language rules. Reserve an unopened holdout before further analyzer edits and
 freeze broader coverage before opening it. The

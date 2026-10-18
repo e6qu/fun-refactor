@@ -258,12 +258,14 @@ Run [37190700691](https://github.com/e6qu/fun-refactor/actions/runs/37190700691)
 If we fix how `fr` reads Python, an answer saved by the earlier checker needs checking again.
 The same applies to saved information about functions and imports.
 [`native-source-inputs.txt`](../native-source-inputs.txt) lists the checking program's source roots and the generated directories to ignore.
-The build hashes every declared source file, including generated grammar tables, with the compiler identity and build settings.
-A missing or unreadable input stops the build. Symbolic links inside the declared source roots also stop it.
+A compiler turns the Rust source into the program we run.
+The build hashes every declared source file, including generated grammar tables, with the compiler version and build settings.
+A missing or unreadable input stops the build.
+A symbolic link points to another file or folder. These links are refused inside the declared source roots.
 The result collectors use that same list, so changing a grammar or a helper file cannot escape their source checks.
 Release labels retain the existing normalization used by these recorded behavior comparisons; dependency and code changes remain bound.
 
 The focused runner changes source, grammar, query and dependency inputs in temporary projects.
 It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.
 The full native gate runs these controls alongside the existing cache tests.
-This is cache invalidation, not a compatibility reader or a migration of old saved answers.
+When these inputs change, `fr` computes fresh answers using the current checking code.
