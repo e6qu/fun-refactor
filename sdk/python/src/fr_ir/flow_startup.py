@@ -136,7 +136,7 @@ class PreparedFlow:
             if data['startup'] is not None:
                 saved = _record(data['startup'])
                 basis = {key: answer['inputs'][key] for key in ('analyzer', 'source', 'configuration')}
-                basis['modules'] = answer['inputs'].get('modules')
+                basis['modules'] = answer['inputs']['modules'] if preparation['import_checks'] else None
                 if not answer['complete'] or saved['inputs'] != basis:
                     raise FrRuntimeError('saved startup differs from the checked answer')
             return cls(report, analysis, preparation['kind'] == 'retained',

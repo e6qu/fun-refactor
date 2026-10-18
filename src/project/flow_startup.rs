@@ -159,10 +159,10 @@ impl Project<'_> {
                 .context("saved function is outside checked files")?;
             let source = self.sources[*file].as_str();
             let node = parsed
-                .root()
-                .named_children(&mut parsed.root().walk())
-                .find(|node| {
+                .descendant_at(function.span.start, function.span.end)
+                .filter(|node| {
                     node.kind() == "function_definition" && Span::from(*node) == function.span
+                        && node.parent() == Some(parsed.root())
                 })
                 .context("saved function does not match a top-level declaration")?;
             let name_node = node

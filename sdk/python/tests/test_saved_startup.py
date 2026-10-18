@@ -185,6 +185,17 @@ def test_another_file_replaces_the_single_saved_entry(tmp_path):
     assert not original.reused and original.answer.report.at('/complete')
 
 
+def test_saved_work_reopens_all_declarations_in_a_larger_file(tmp_path):
+    client, rules = install(tmp_path)
+    unused = ''.join(f'def unused_{number}():\n    return {number}\n' for number in range(200))
+    (tmp_path / 'subject.py').write_text(SETUP + HELPERS + ENTRIES + unused)
+    cache = StartupCache(MemoryObjectStore())
+    first = ask(cache, client, rules, 'forwards', imports=False)
+    assert len(first.report.at('/startup/functions')) == 205
+    later = ask(cache, client, rules, 'stopped', imports=False)
+    assert later.reused and later.answer.report.at('/complete') and not later.answer.witnesses
+
+
 @pytest.mark.parametrize('field', ['context', 'steps', 'depth', 'max_bytes', 'imports', 'rules'])
 def test_every_new_api_setting_is_required(tmp_path, field):
     client, rules = install(tmp_path)
