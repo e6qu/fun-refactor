@@ -1404,6 +1404,10 @@ The [final admission](https://github.com/e6qu/fun-refactor/actions/runs/39116460
 All 58 Python controls passed in 53.026 seconds, within the unchanged 120-second deadline.
 The [Python receipt](../tests/agent-eval/results/2026-10-18-shared-startup-ci-python-contract/manifest.json) preserves the original collection commit, compiled-program identity and exact original archive alongside the compact report.
 
+The [first full PR gate](https://github.com/e6qu/fun-refactor/actions/runs/39117090490) found that the filesystem boundary test treated the new build-time source reader as runtime analysis code.
+The test now recognizes that one Cargo build helper and forbids runtime source files from importing it.
+Runtime analysis still has to read project files through the shared filesystem layer used by the terminal and browser.
+
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
