@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -36,18 +36,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
         with:
           key: optimized-python-cost
       - run: cargo build --locked --release --bin fr --example project-profile
+      - name: Record the compiled source, compiler and executable identities
+        run: |
+          git rev-parse HEAD > target/release/source.txt
+          rustc --version > target/release/rustc.txt
+          cd target/release
+          sha256sum fr examples/project-profile > SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
           name: optimized-python-cost-binaries
           path: |
             target/release/fr
             target/release/examples/project-profile
+            target/release/source.txt
+            target/release/rustc.txt
+            target/release/SHA256SUMS
           retention-days: 7
           if-no-files-found: error
   measure:
@@ -57,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: rustup toolchain install stable --profile minimal
       - uses: actions/setup-python@v7
         with:
@@ -67,6 +76,12 @@ jobs:
           name: optimized-python-cost-binaries
           path: target/release
       - run: chmod +x target/release/fr target/release/examples/project-profile
+      - name: Verify the binaries came from this exact source and compiler
+        run: |
+          test "$(cat target/release/source.txt)" = "$(git rev-parse HEAD)"
+          test "$(cat target/release/rustc.txt)" = "$(rustc --version)"
+          cd target/release
+          sha256sum --check SHA256SUMS
       - name: Measure ordinary requests and separate diagnostic sequences
         run: >-
           python3 -B tools/python-startup-cost.py --fr target/release/fr

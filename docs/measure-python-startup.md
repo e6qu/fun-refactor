@@ -3,7 +3,9 @@
 You can save checked Python setup before asking about another function.
 Saving work also costs time: the client writes a record, reopens it and checks whether it still applies.
 This measurement compares those costs with checking the same questions from scratch.
-The [recorded result](python-startup-cost-results.md) found no reduction in total time for these four examples.
+The [earlier development-build result](python-startup-cost-results.md) found no reduction in total time for these four examples.
+The current measurement uses an optimized executable and tests project caching both off and on.
+An optimized executable is compiled with Rust's release settings, which trade compilation time for faster execution.
 
 A **baseline** is the alternative used for comparison.
 Here, the baseline starts a fresh check directly, without opening a saved record.
@@ -75,7 +77,13 @@ These examples do not measure complete third-party package imports.
 
 Each request starts a new Python process and fresh native processes.
 Saved data passes between requests through a directory on disk.
-The measurement repeats each sequence five times and rotates the approach order between repetitions.
+The ordinary command-line measurement repeats each sequence five times with project caching off, then also with it on.
+That makes 840 requests. A separate diagnostic measurement repeats both settings three times, adding 504 requests.
+It uses the existing profiling program: a program that records time spent in individual operations.
+The diagnostic times help locate work; they do not substitute for ordinary command-line latency.
+The measurement rotates approach order and reverses cache-setting order between repetitions.
+It also reverses whether the ordinary or diagnostic sequences run first.
+Five repetitions cannot divide evenly between two starting orders or three approaches; the raw rows retain their positions.
 It keeps every sample and reports the median, minimum and maximum.
 The **median** is the middle of the five values after sorting them.
 Whole-sequence totals include the first population request and all six later requests.
@@ -95,13 +103,25 @@ Compilation, checkout, dependency installation and fixture edits happen outside 
 Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.
 An empty saved-data store therefore does not mean an empty operating-system cache.
-Every native call explicitly disables the persistent project cache with `--no-cache`.
-That cache saves project data between native calls, separately from saved setup or saved answers.
-Results describe that setting; they cannot predict costs with the project cache enabled.
+Each sequence explicitly chooses whether to use the persistent project cache.
+That cache saves extracted file facts and resolved references between native calls, separately from saved setup or saved answers.
+Each approach and repetition has its own project-cache directory outside the project being scanned.
+It starts empty. The first function lookup populates it inside the timed request; there is no free preliminary fill.
+The next native call can reuse those facts, including within that first request.
+Edits require facts for the changed file to be collected again. Restoring original files can reuse their earlier facts.
+Both cache-file growth and the saved-answer object store appear separately in the report.
 The outer timer also includes the shared measurement imports and counters.
 
-Native time includes parsing and file checks, but the tool has no separate timers for those operations.
-The report cannot assign each operation an individual cost.
+Ordinary native-call timers separate finding the function, requesting its input identity and answering.
+The separate profiling sequences divide each call into scanning, indexing, constructing the project, answering,
+verifying files and serializing the reply. Indexing includes loading or extracting facts and resolving references.
+Project-construction timers further separate source reads, source identities and declaration/reference identities.
+An identity here means the content-derived value used to detect changed inputs.
+The answering phase includes parsing Python, resolving Python imports, and analysis or saved-answer validation.
+Those operations still have no individual timers, so their separate costs remain unknown.
+Profiler phases exclude process startup, argument parsing and writing its outer diagnostic reply.
+Subtracting those phases from elapsed time does not isolate operating-system process startup.
+The profiler omits the CLI's response-context packaging and adds diagnostic output, so its totals are not CLI request times.
 Native-call counts include finding the function and the saved-answer client's preliminary request.
 Canonical JSON bytes measure the equivalent compact report, rather than exact bytes on the process pipe.
 Canonical JSON uses consistent key order and compact punctuation, giving equivalent data the same representation.
@@ -117,6 +137,7 @@ They do not measure aggregate simultaneous memory use.
 ## How correctness limits the comparison
 
 Every saved answer must match the direct fresh answer for the same files, question and limits.
+Every answer must also agree across cache settings and between the ordinary executable and the profiler.
 The comparison preserves source locations, unfinished reasons, witnesses and the full analysis input identity.
 It removes execution metadata describing how the answer was obtained.
 A **witness** is a reported path carrying submitted input to the selected output.
@@ -131,31 +152,40 @@ Their elapsed times provide context, rather than an interchangeable baseline for
 
 ## Reproduce on GitHub
 
-Open **Actions** and select **Python saved setup costs**.
+Open **Actions** and select **Optimized Python request costs**.
 Choose the branch containing the code you want to measure.
-Leave **Commit the checked measurement to this branch** unchecked; that setting controls whether the workflow commits its report.
-The runner installs stable Rust and Python 3.14, then builds the current native executable.
-It runs the rejection controls, measures the requests and independently audits the saved result.
-Download the `python-startup-cost` artifact to inspect `result.json` and the per-request log.
+The runner installs stable Rust and Python 3.14.
+It runs the rejection controls, builds the release executable and existing profiler, then passes those binaries to the measurement job.
+Compilation and measurement have separate bounded jobs; their costs are outside the per-request timers.
+It measures the requests and independently audits the saved result.
+Download the `optimized-python-startup-cost` artifact.
+Its four directories are `cli-disabled`, `cli-enabled`, `profile-disabled` and `profile-enabled`.
+Each contains `result.json` and the per-request log. Here, `cli` means the ordinary command-line executable.
 The artifact also preserves completed requests if a later request fails.
 
 These are the measurement commands from that workflow, after compilation:
 
 ```sh
-python3 -B tools/python-startup-cost.py --fr target/debug/fr --repetitions 5 \
+python3 -B tools/python-startup-cost.py --fr target/release/fr \
+  --profiler target/release/examples/project-profile \
+  --repetitions 5 --profile-repetitions 3 \
   --output "$RUNNER_TEMP/python-startup-cost"
-python3 -B tools/python-startup-cost.py --audit "$RUNNER_TEMP/python-startup-cost"
+python3 -B tools/python-startup-cost.py --audit-set "$RUNNER_TEMP/python-startup-cost"
 ```
 
 Run them from the repository root on the runner. The output directory must not already exist.
-The audit prints that every request, reuse decision, budget and Python result passed its checks.
-The executable uses the development build with debug symbols disabled, as recorded in the workflow.
-Results from that build cannot establish optimized-release performance.
+The final audit prints that optimized CLI requests and separate profiles agree with project caching off and on.
+The build command is `cargo build --locked --release --bin fr --example project-profile`.
+It keeps the normal language features. The executable hashes appear in the report.
 The report records the runner's CPU, available CPU set, visible memory, operating system and compiler version.
 Measurements from one runner cannot establish costs across different machines.
 Source identities in the report bind the analyzer, client, examples, measurement and rejection controls.
 Changing those inputs requires a new collection.
 The existing evidence policy ignores distribution version labels when the implementation stays the same.
+The older development-build report remains historical. Audit it with its original code from
+[the recorded source](https://github.com/e6qu/fun-refactor/tree/24decae109f5721f9bdc1df520aebec29336d240),
+using that source's `--audit` command. The current reader accepts the current report fields only.
+The two collections run on different occasions with different instrumentation; their difference is not a controlled estimate of compilation's effect.
 
 This comparison cannot establish savings for an unfamiliar project or for an agent completing a repair.
 Use measured whole-request and whole-sequence costs before choosing another optimization.
