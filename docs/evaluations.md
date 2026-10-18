@@ -1383,6 +1383,18 @@ The fixture now creates a complete project; the source checks still reject missi
 The [corrected workflow check](https://github.com/e6qu/fun-refactor/actions/runs/39111437978) passed its source-change controls and existing workflow and recovery checks.
 No analysis limit, CI deadline or audit deadline was increased.
 
+When saving these captures, the [report-admission job](https://github.com/e6qu/fun-refactor/actions/runs/39114027198) exceeded the existing 120-second Python audit deadline.
+The [focused measurement](https://github.com/e6qu/fun-refactor/actions/runs/39115312912) found 24,072 case checks across 56 tests.
+A test damaging a late case rechecked every unchanged case before it.
+The test fixture now puts its damaged case first while keeping the complete inventory and full audit.
+Two new controls prove that this happens and that damage to another row is still caught.
+The production validator continues to check the full report and its current source inputs.
+
+The [fixed measurement](https://github.com/e6qu/fun-refactor/actions/runs/39115623782) passed all 58 controls in 42.609 seconds, within the unchanged deadline.
+It performed 3,793 case checks against the same 928-case report, including the added controls.
+The earlier measured run took 73.296 seconds; the two hosted runners may differ, so elapsed times describe those runs.
+The call counts identify the repeated work removed. These are audit measurements, not a speed or overhead comparison between `fr` and Python.
+
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.

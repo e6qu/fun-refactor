@@ -72,6 +72,23 @@ The [development history](evaluations.md#check-a-small-function-that-fills-a-tab
 
 This changes the order of CI work. Analysis speed and complete agent costs need separate measurements.
 
+## Find repeated work in Python report checks
+
+An audit compares saved answers with the declared source files, checking rules and Python observations.
+If its controls time out, measure their work before changing anything.
+Use a successful `python-contract` collection as the fixed input:
+
+```sh
+gh workflow run refinement-evidence.yml --ref YOUR_BRANCH \
+  -f group=python-report-audit -f prefix=YOUR_NEW_NAME \
+  -f collection_run=SUCCESSFUL_PYTHON_RUN_ID
+```
+
+Replace `SUCCESSFUL_PYTHON_RUN_ID` with the number in that collection's GitHub Actions URL.
+The diagnostic downloads its original report, runs every audit control, and saves call counts and elapsed times as `python-audit-profile`.
+It keeps the existing 120-second audit deadline and stops with a stack trace if that limit is reached.
+This measures the audit of that report; it does not measure analysis speed or overhead compared with Python execution.
+
 Keeping a capture also requires checking which code produced it.
 A documentation edit creates a different commit while leaving the analyzer unchanged.
 Retention compares the analyzer's source folders, local dependencies, parsing queries, Python client, build script and dependency manifests with the current checkout.
