@@ -845,13 +845,8 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
-        let startup = self.prepare_flow_startup(
-            &symbol.file,
-            source,
-            &parsed,
-            modules.as_ref(),
-            options,
-        )?;
+        let startup =
+            self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options)?;
         if options.also.is_empty() {
             return self.flow_answer(options, modules.as_ref(), &startup, options.steps);
         }
