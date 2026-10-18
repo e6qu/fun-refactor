@@ -15,7 +15,9 @@ spec.loader.exec_module(evaluator)
 
 
 def manifest(version="0.34.0"):
-    return f'''[package]
+    return f'''[workspace]
+members = ["."]
+[package]
 name = "example"
 version = "{version}"
 edition = "2021"
@@ -87,6 +89,8 @@ class FlowCacheBasisTests(unittest.TestCase):
                 (root / "Cargo.toml").write_bytes(manifest())
                 (root / "Cargo.lock").write_bytes(lock())
                 (root / "source.rs").write_text("fn answer() -> u8 { 1 }")
+                (root / "native-source-inputs.txt").write_text(
+                    "Cargo.toml\nCargo.lock\nsource.rs\nnative-source-inputs.txt\n")
                 baseline = evaluator.bindings()
                 (root / "Cargo.toml").write_bytes(manifest("0.34.1"))
                 (root / "Cargo.lock").write_bytes(lock("0.34.1"))
@@ -94,6 +98,9 @@ class FlowCacheBasisTests(unittest.TestCase):
                 self.assertEqual(baseline["Cargo.lock"], file_digest(root / "Cargo.lock"))
                 (root / "source.rs").write_text("fn answer() -> u8 { 2 }")
                 self.assertNotEqual(baseline["source.rs"], evaluator.bindings()["source.rs"])
+                (root / "native-source-inputs.txt").unlink()
+                with self.assertRaises(FileNotFoundError):
+                    evaluator.bindings()
         finally:
             evaluator.ROOT, evaluator.BINDINGS = previous
 

@@ -363,6 +363,7 @@ def audit(value):
         require(nested['binary_sha256'] == value['binary_sha256'] and nested['repository_revision'] == value['source_commit'],
                 'nested report uses a different binary or commit')
     audit_compiler(value['compiler'])
+    compiler.audit(value['compiler'])
     semantic.audit(value['semantic'])
     require(value['rustc_version'] == value['compiler']['compiler_version'], 'compiler version disagrees across collectors')
     require(value['python_version'].split()[0] == value['semantic']['python'], 'Python version disagrees across collectors')

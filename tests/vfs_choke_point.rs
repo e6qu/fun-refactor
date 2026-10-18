@@ -64,14 +64,12 @@ fn source_is_read_only_through_the_vfs() {
     for file in &files {
         let source =
             without_test_modules(&std::fs::read_to_string(file).expect("reading a source"));
-        // Cargo compiles this helper through build.rs, before the runtime exists.
-        // It hashes the checking program's own disk files, not an active project.
         if file == &root.join("native_fingerprint.rs") {
             continue;
         }
         assert!(
             !source.contains("native_fingerprint"),
-            "runtime modules must not import the build-only disk reader: {}",
+            "runtime modules must not import the build-only disk reader: {}.",
             file.display()
         );
         if is_exempt(file) {
