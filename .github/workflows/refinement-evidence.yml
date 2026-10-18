@@ -428,7 +428,7 @@ jobs:
           ty check sdk/python/src
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
 
   scalar-import-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'

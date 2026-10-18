@@ -1016,3 +1016,7 @@ identities are retained. Output digests detect changes; they do not attest that 
 Focused regressions check comments between operands and explicit continuations inside module names.
 Both LF and CRLF imports must preserve binding, runtime results and witness locations.
 Full builds and evidence collection stay on hosted runners to protect local interactivity.
+
+The [two-question lesson](check-python-together.md) checks shared startup once in one request,
+with separate answers and one shared work and output budget. It introduces the input/output
+assumptions and compares both answers with ordinary Python.

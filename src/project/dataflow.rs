@@ -4,7 +4,7 @@ use super::{
     occurrence::Occurrence,
     Project,
 };
-use crate::{lang::Language, parse::Parsers, span::Span};
+use crate::{lang::Language, parse::{Parsed, Parsers}, span::Span};
 use anyhow::{ensure, Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -42,20 +42,20 @@ pub(super) fn value_bindings_valid(value: &Value) -> bool {
 #[path = "flow_summaries.rs"]
 mod summaries;
 
-#[derive(Default, Serialize)]
+#[derive(Clone, Default, Serialize)]
 struct Initialization {
     sites: Vec<InitializationSite>,
     omitted: usize,
     by_file: BTreeMap<String, InitializationCounts>,
 }
 
-#[derive(Default, Serialize)]
+#[derive(Clone, Default, Serialize)]
 struct InitializationCounts {
     statements: usize,
     reasons: BTreeMap<&'static str, usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct InitializationSite {
     occurrence: Occurrence,
     reasons: Vec<&'static str>,
@@ -100,9 +100,24 @@ impl Initialization {
     }
 }
 
-#[derive(Args)]
+#[derive(Clone)]
+struct Startup<'a, 't> {
+    functions: BTreeMap<String, Node<'t>>,
+    function_aliases: BTreeMap<String, (String, usize)>,
+    captured_defaults: BTreeMap<(PathBuf, usize), calls::CapturedDefaults>,
+    contexts: BTreeMap<String, (&'a Path, &'a str)>,
+    ambiguous: BTreeSet<String>,
+    inert_bindings: BTreeSet<String>,
+    initialization: Initialization,
+    dictionary_statements: Vec<Occurrence>,
+}
+
+#[derive(Clone, Args)]
 pub struct Options {
     target: String,
+    #[arg(long, requires = "summaries", conflicts_with_all = ["inputs_only", "reuse"],
+          help = "Ask another function in the same file using one shared startup check (16 total).")]
+    also: Vec<String>,
     #[arg(
         long,
         help = "Solve symbolic function summaries, including same-file recursion."
@@ -143,6 +158,7 @@ impl Options {
     ) -> Self {
         Self {
             target: target.into(),
+            also: Vec::new(),
             summaries: true,
             imports,
             rules,
@@ -756,6 +772,7 @@ impl Project<'_> {
             .transpose()?;
         let report = self.dataflow(&Options {
             target,
+            also: Vec::new(),
             summaries: true,
             imports: true,
             rules,
@@ -793,6 +810,16 @@ impl Project<'_> {
             symbol.language == Language::Python,
             "dataflow admits the Python scalar subset only."
         );
+        ensure!(options.also.len() < 16, "at most 16 questions may share startup");
+        ensure!(options.also.is_empty() || options.summaries, "shared startup requires summaries");
+        let mut targets = BTreeSet::from([options.target.as_str()]);
+        for target in &options.also {
+            ensure!(targets.insert(target), "shared startup requires distinct functions");
+            let selected = self.target(target)?;
+            let other = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
+            ensure!(other.file == symbol.file && other.language == Language::Python,
+                    "shared startup requires functions in the same Python file");
+        }
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
         ensure!(!parsed.has_errors(), "dataflow refuses syntax errors");
@@ -800,6 +827,42 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
+        let startup = self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options.summaries, options.imports)?;
+        if options.also.is_empty() {
+            return self.flow_answer(options, modules.as_ref(), &startup, options.steps);
+        }
+        let mut remaining = options.steps;
+        let mut answers = Vec::new();
+        for target in std::iter::once(&options.target).chain(&options.also) {
+            let mut question = options.clone();
+            question.target = target.clone();
+            question.also.clear();
+            let answer = self.flow_answer(&question, modules.as_ref(), &startup, remaining)?;
+            remaining -= answer["execution"]["analysis_steps"].as_u64().context("missing flow work count")? as usize;
+            answers.push(answer);
+        }
+        let mut dependencies = answers[0]["inputs"].clone();
+        dependencies.as_object_mut().unwrap().remove("selection");
+        let report = json!({
+            "schema":"fr-dataflow-together", "revision":self.revision,
+            "startup":{
+                "checks":1, "questions":answers.len(),
+                "input_digest":hash(&dependencies)?, "inputs":dependencies,
+                "names":startup.functions.keys().chain(startup.inert_bindings.iter()).collect::<BTreeSet<_>>(),
+                "dictionary_statements":startup.dictionary_statements,
+            },
+            "budget":{"steps":options.steps,"used":options.steps-remaining,"response_bytes":options.bytes},
+            "answers":answers,
+        });
+        ensure!(serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+                "combined response exceeds byte budget");
+        Ok(report)
+    }
+
+    fn prepare_flow_startup<'a, 't>(
+        &'a self, file: &'a Path, source: &'a str, parsed: &'t Parsed,
+        modules: Option<&'t modules::Modules>, summary_mode: bool, import_mode: bool,
+    ) -> Result<Startup<'a, 't>> where 't: 'a {
         let mut functions: BTreeMap<String, Node<'_>> = BTreeMap::new();
         let mut function_aliases: BTreeMap<String, (String, usize)> = BTreeMap::new();
         let mut value_alias_count = 0;
@@ -809,6 +872,7 @@ impl Project<'_> {
         let mut inert_bindings = BTreeSet::new();
         let mut literal_bindings = BTreeSet::new();
         let mut initialization = Initialization::default();
+        let mut dictionary_statements = Vec::new();
         let units: Vec<_> = if let Some(modules) = &modules {
             modules
                 .parsed
@@ -816,7 +880,7 @@ impl Project<'_> {
                 .map(|(file, parsed)| (file.as_path(), self.sources[file].as_str(), parsed))
                 .collect()
         } else {
-            vec![(symbol.file.as_path(), source.as_str(), &parsed)]
+            vec![(file, source, parsed)]
         };
         for (file, text, parsed) in units {
             let postponed = modules
@@ -851,8 +915,7 @@ impl Project<'_> {
                 .filter(|name| !module_aliases.contains(name))
                 .collect();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
-                let allocation = options
-                    .summaries
+                let allocation = summary_mode
                     .then(|| {
                         allocations.statement(node, text, |name| {
                             explicit_builtins || bound_names.contains(name)
@@ -860,13 +923,14 @@ impl Project<'_> {
                     })
                     .flatten();
                 if matches!(allocation, Some(initializers::Statement::Population)) {
+                    dictionary_statements.push(self.occurrence(file, Span::from(node), "checked-dictionary-startup")?);
                     continue;
                 }
                 let allocated = match allocation {
                     Some(initializers::Statement::Declaration(name)) => Some(name),
                     _ => None,
                 };
-                if options.summaries {
+                if summary_mode {
                     if let Some(pairs) = calls::parallel_assignment(node, text) {
                         let values: Option<Vec<_>> = pairs
                             .iter()
@@ -1178,7 +1242,7 @@ impl Project<'_> {
                         text,
                         |name| !builtin_defaults || bound_names.contains(name),
                     ));
-                    if if options.summaries {
+                    if if summary_mode {
                         !calls::definition_is_inert_with_values(
                             node,
                             text,
@@ -1242,7 +1306,7 @@ impl Project<'_> {
                         ambiguous.insert(name.clone());
                     }
                     contexts.insert(name, (file, text));
-                } else if !(options.imports
+                } else if !(import_mode
                     && matches!(node.kind(), "import_statement" | "import_from_statement"))
                     && !modules
                         .as_ref()
@@ -1292,6 +1356,17 @@ impl Project<'_> {
                 .filter(|name| functions.contains_key(*name))
                 .cloned(),
         );
+        Ok(Startup { functions, function_aliases, captured_defaults, contexts, ambiguous,
+                     inert_bindings, initialization, dictionary_statements })
+    }
+
+    fn flow_answer(&self, options: &Options, modules: Option<&modules::Modules>,
+                   startup: &Startup<'_, '_>, allowance: usize) -> Result<Value> {
+        let selected = self.target(&options.target)?;
+        let symbol = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
+        let source = &self.sources[&symbol.file];
+        let Startup { functions, function_aliases, captured_defaults, contexts, ambiguous,
+                      inert_bindings, initialization, .. } = startup.clone();
         let entry = if let Some(modules) = &modules {
             modules.function_name(&symbol.file, &symbol.name)
         } else {
@@ -1424,7 +1499,7 @@ impl Project<'_> {
             contexts,
             rules,
             context: &options.context,
-            remaining: options.steps,
+            remaining: allowance,
             depth: options.depth,
             active: Vec::new(),
             local_bindings: Vec::new(),
@@ -1507,7 +1582,7 @@ impl Project<'_> {
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
-            "execution":{"kind":"analyzed","analysis_steps":options.steps-analyzer.remaining,
+            "execution":{"kind":"analyzed","analysis_steps":allowance-analyzer.remaining,
                 "reason":if options.reuse.is_some() {"retained-result-not-reusable"} else {"no-retained-result"}},
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
@@ -1517,7 +1592,7 @@ impl Project<'_> {
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "initialization":initialization,
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
-            "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
+            "budget": {"steps": options.steps, "used": allowance - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         let mut omitted = serde_json::Map::new();
         for field in [
             "initialization",

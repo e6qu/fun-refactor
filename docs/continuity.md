@@ -43,9 +43,11 @@ The [small startup-call lesson](check-python-startup.md) checks a first bounded 
 Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
 Changing its source invalidates a saved answer through the existing source and import dependencies.
 This does not yet store startup checks separately or divide a large package import into smaller analyses.
-Next, ask two helper questions after the same setup and reuse only the checked startup work for the second answer.
-Record the files, imports, names and dictionary writes that work depends on.
-Changing any dependency must invalidate both answers; an unknown startup effect must keep both questions unfinished.
+The next implementation asks two helper questions in one request and prepares their shared startup once.
+The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
+Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
+A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
+Separately saved startup checks remain a later step: they need the same source and lookup validation without resetting budgets.
 The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
 This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
 The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
