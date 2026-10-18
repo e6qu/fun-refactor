@@ -40,6 +40,9 @@ pub(super) fn expression_contract() -> Value {
 #[path = "flow_modules.rs"]
 mod modules;
 
+#[path = "flow_startup.rs"]
+mod saved_startup;
+
 pub(super) fn value_bindings_valid(value: &Value) -> bool {
     modules::value_bindings_valid(value)
 }
@@ -149,6 +152,13 @@ pub struct Options {
     reuse: Option<std::path::PathBuf>,
     #[arg(long, requires = "reuse")]
     reuse_digest: Option<String>,
+    #[arg(long, requires = "summaries", conflicts_with_all = ["also", "inputs_only", "reuse"],
+          help = "Return the answer and checked startup work for later questions.")]
+    with_startup: bool,
+    #[arg(long, requires_all = ["with_startup", "startup_digest"])]
+    reuse_startup: Option<PathBuf>,
+    #[arg(long, requires = "reuse_startup")]
+    startup_digest: Option<String>,
 }
 
 impl Options {
@@ -173,6 +183,9 @@ impl Options {
             inputs_only: false,
             reuse: None,
             reuse_digest: None,
+            with_startup: false,
+            reuse_startup: None,
+            startup_digest: None,
         }
     }
 }
@@ -787,6 +800,9 @@ impl Project<'_> {
             inputs_only: true,
             reuse: None,
             reuse_digest: None,
+            with_startup: false,
+            reuse_startup: None,
+            startup_digest: None,
         })?;
         Ok(report["input_digest"]
             .as_str()
@@ -845,8 +861,56 @@ impl Project<'_> {
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
             .transpose()?;
-        let startup =
-            self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options)?;
+        let basis = options
+            .with_startup
+            .then(|| self.startup_inputs(&symbol.file, modules.as_ref()))
+            .transpose()?;
+        let retained = options
+            .reuse_startup
+            .as_ref()
+            .map(|path| {
+                self.restore_startup(
+                    path,
+                    options.startup_digest.as_deref().unwrap(),
+                    basis.as_ref().unwrap(),
+                    &symbol.file,
+                    &parsed,
+                    modules.as_ref(),
+                )
+            })
+            .transpose()?
+            .flatten();
+        let reused = retained.is_some();
+        let startup = match retained {
+            Some(startup) => startup,
+            None => {
+                self.prepare_flow_startup(&symbol.file, source, &parsed, modules.as_ref(), options)?
+            }
+        };
+        if options.with_startup {
+            let answer = self.flow_answer(options, modules.as_ref(), &startup, options.steps)?;
+            let record = if answer["complete"] == true
+                && startup.ambiguous.is_empty()
+                && startup.initialization.by_file.is_empty()
+            {
+                Some(self.save_startup(basis.unwrap(), &startup)?)
+            } else {
+                None
+            };
+            let report = json!({"schema":"fr-dataflow-prepared", "answer":answer,
+                "revision":self.revision, "handle_prefix":format!("frp1:{}:", &self.revision[..32]),
+                "coverage":self.coverage(),
+                "startup":record, "preparation":{"kind":if reused {"retained"} else {"checked"},
+                    "checks":usize::from(!reused), "import_checks":usize::from(options.imports),
+                    "reason":if reused {"matching-inputs"} else if options.reuse_startup.is_some() {
+                        "changed-inputs"} else {"no-saved-startup"},
+                    "trust":"caller-supplied digest binds saved work; no execution attestation"}});
+            ensure!(
+                serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+                "answer and saved startup exceed byte budget."
+            );
+            return Ok(report);
+        }
         if options.also.is_empty() {
             return self.flow_answer(options, modules.as_ref(), &startup, options.steps);
         }
@@ -966,7 +1030,7 @@ impl Project<'_> {
                     })
                     .flatten();
                 if matches!(allocation, Some(initializers::Statement::Population)) {
-                    if !options.also.is_empty() {
+                    if !options.also.is_empty() || options.with_startup {
                         if dictionary_statements.len() < 16 {
                             dictionary_statements.push(self.occurrence(
                                 file,

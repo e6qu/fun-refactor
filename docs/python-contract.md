@@ -52,6 +52,10 @@ The rules are your assumptions about external calls, not a discovery of their co
 
 ## Read the answer before relying on it
 
+For several questions, [share preparation within one request](check-python-together.md)
+or [save checked preparation for a later request](save-python-startup.md).
+The later request still verifies files and resolves imports.
+
 A trace, called a witness in the report, records a possible connection in the supported model.
 An empty trace list answers the question only when the model completes, with its assumptions and
 limits still in view. If `complete` is false, read `cutoffs`: the tool could not finish answering.

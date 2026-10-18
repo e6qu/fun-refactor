@@ -2315,5 +2315,12 @@ uses exits 1, and the reason names the use.
 [bounded investigations](docs/agent-investigations.md).
 
 Use `project dataflow HANDLE --imports --summaries` for workspace-local Python modules and regular packages.
-Absolute dotted imports and explicit relative function imports retain full file identities and parent dependencies.
-Effectful initializers, namespace packages, re-exports and runtime import machinery remain outside this bounded contract.
+Supported static imports include dotted names, explicit relative names, checked re-exports and single-root namespace directories.
+The report retains defining files, parent dependencies and competing import candidates.
+Unknown startup effects, merged namespace paths and dynamic imports keep the answer unfinished.
+The [Python guide](docs/python-contract.md) gives the supported rules and their limits.
+
+Add `--with-startup` to return checked preparation for a later question.
+Supply the rules, context, step limit, call depth and output limit for your question.
+The [complete lesson](docs/save-python-startup.md) saves that work, reopens it in another process and checks edits.
+Every later request still verifies files and resolves imports before reusing preparation.

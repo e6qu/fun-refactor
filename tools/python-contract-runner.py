@@ -13,6 +13,7 @@ SDK_TESTS = (
     'namespace_packages', 'function_declarations', 'module_literals',
     'function_defaults', 'parallel_bindings', 'scalar_named_defaults',
     'imported_scalar_defaults', 'value_aliases', 'default_replacements', 'startup_registration', 'flow_together',
+    'saved_startup',
 )
 
 
