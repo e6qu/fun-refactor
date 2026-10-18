@@ -7,6 +7,7 @@ questions in one request and shares that work.
 
 Create an empty directory and put these four files in it. Use an installed `fr`
 and its matching Python SDK, or follow the [SDK setup](python-contract.md).
+The SDK is the Python library that calls `fr` and reads its reports.
 
 `helpers.py`:
 
@@ -85,7 +86,8 @@ stopped finished: True possible input connection: False
 
 A finished answer means this bounded scalar model checked the question.
 A possible connection is a conservative flow explanation, not a demonstrated
-execution path. If an answer is unfinished, an empty connection list does not
+execution path. In the Python API, `answer.witnesses` holds those explanations.
+If an answer is unfinished, an empty connection list does not
 establish that the output is safe.
 
 To compare with Python itself, create `run_example.py`:
@@ -105,8 +107,9 @@ print(app.stopped())
 ```
 
 Run `python run_example.py`. It prints `ready`, `17` and `0`, each on its own line.
-The temporary definitions in `builtins` give these two example files their input
-and output functions. The checker does not execute this runner.
+A `lambda` creates a small function from one expression.
+`builtins` holds names Python can find without importing them into each file.
+These temporary definitions give the example files their input and output functions. The checker does not execute this runner.
 
 ## What work is shared
 
@@ -131,7 +134,7 @@ competing `helpers.pyi` file changes the next request's inputs for both answers.
 The checker never treats a previous startup check as permission to ignore an edit.
 
 The existing import limits still apply to the one shared set of files: 16 modules,
-256 KiB of source, and 128 import searches. All questions together share the
+256 KiB of source, and 128 import searches. A KiB is 1,024 bytes of source text. All questions together share the
 requested step limit and output byte limit.
 Steps count the work used to trace values through functions.
 Finding imports and checking startup have their own existing limits.
