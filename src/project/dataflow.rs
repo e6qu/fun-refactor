@@ -809,15 +809,15 @@ impl Project<'_> {
             symbol.language == Language::Python,
             "dataflow admits the Python scalar subset only."
         );
-        ensure!(options.also.len() < 16, "at most 16 questions may share startup");
-        ensure!(options.also.is_empty() || options.summaries, "shared startup requires summaries");
+        ensure!(options.also.len() < 16, "at most 16 questions may share startup.");
+        ensure!(options.also.is_empty() || options.summaries, "shared startup requires summaries.");
         let mut targets = BTreeSet::from([options.target.as_str()]);
         for target in &options.also {
-            ensure!(targets.insert(target), "shared startup requires distinct functions");
+            ensure!(targets.insert(target), "shared startup requires distinct functions.");
             let selected = self.target(target)?;
             let other = self.nodes[selected].symbol.and_then(|id| self.index.symbol(id)).context("select a function")?;
             ensure!(other.file == symbol.file && other.language == Language::Python,
-                    "shared startup requires functions in the same Python file");
+                    "shared startup requires functions in the same Python file.");
         }
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
@@ -837,7 +837,7 @@ impl Project<'_> {
             question.target = target.clone();
             question.also.clear();
             let answer = self.flow_answer(&question, modules.as_ref(), &startup, remaining)?;
-            remaining -= answer["execution"]["analysis_steps"].as_u64().context("missing flow work count")? as usize;
+            remaining -= answer["execution"]["analysis_steps"].as_u64().context("missing flow work count.")? as usize;
             answers.push(answer);
         }
         let mut dependencies = answers[0]["inputs"].clone();
@@ -845,7 +845,7 @@ impl Project<'_> {
         for answer in &answers[1..] {
             let mut current = answer["inputs"].clone();
             current.as_object_mut().unwrap().remove("selection");
-            ensure!(current == dependencies, "shared startup inputs changed between questions");
+            ensure!(current == dependencies, "shared startup inputs changed between questions.");
         }
         let report = json!({
             "schema":"fr-dataflow-together", "revision":self.revision,
@@ -859,7 +859,7 @@ impl Project<'_> {
             "answers":answers,
         });
         ensure!(serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
-                "combined response exceeds byte budget");
+                "combined response exceeds byte budget.");
         Ok(report)
     }
 
