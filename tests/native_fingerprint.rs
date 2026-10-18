@@ -79,7 +79,8 @@ fn generated_outputs_and_documentation_do_not_move_the_source_namespace() {
 fn missing_declared_inputs_and_malformed_policy_fail_loudly() {
     let root = fixture();
     fs::remove_file(root.path().join("Cargo.lock")).unwrap();
-    assert!(native_fingerprint::fingerprint(root.path(), &BTreeMap::new()).is_err());
+    let error = native_fingerprint::fingerprint(root.path(), &BTreeMap::new()).err().unwrap();
+    assert!(error.to_string().contains("Cargo.lock"));
     for policy in ["../outside\nnative-source-inputs.txt\n", "src/\nsrc/\nnative-source-inputs.txt\n",
                    "src/\n", "src/\n\nnative-source-inputs.txt\n", "!bad/path/\nnative-source-inputs.txt\n"] {
         let root = fixture();

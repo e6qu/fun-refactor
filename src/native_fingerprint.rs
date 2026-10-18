@@ -12,6 +12,10 @@ fn invalid(message: impl Into<String>) -> io::Error {
     io::Error::new(ErrorKind::InvalidData, message.into())
 }
 
+fn source_error(path: &Path, error: io::Error) -> io::Error {
+    io::Error::new(error.kind(), format!("Cannot read native source {}: {error}.", path.display()))
+}
+
 fn normalized(value: &str) -> bool {
     !value.is_empty()
         && !value.contains('\\')
@@ -23,7 +27,7 @@ fn normalized(value: &str) -> bool {
 
 fn collect(root: &Path, relative: &Path, ignored: &BTreeSet<String>, files: &mut BTreeSet<PathBuf>, directories: &mut BTreeSet<PathBuf>) -> io::Result<()> {
     let path = root.join(relative);
-    let metadata = std::fs::symlink_metadata(&path)?;
+    let metadata = std::fs::symlink_metadata(&path).map_err(|error| source_error(relative, error))?;
     if metadata.file_type().is_symlink() {
         return Err(invalid(format!("native source input is a symlink: {}.", relative.display())));
     }
@@ -31,7 +35,7 @@ fn collect(root: &Path, relative: &Path, ignored: &BTreeSet<String>, files: &mut
         files.insert(relative.to_owned());
     } else if metadata.is_dir() {
         directories.insert(relative.to_owned());
-        for entry in std::fs::read_dir(&path)? {
+        for entry in std::fs::read_dir(&path).map_err(|error| source_error(relative, error))? {
             let entry = entry?;
             let name = entry.file_name();
             let name = name.to_str().ok_or_else(|| invalid("native source names must be UTF-8."))?;
@@ -52,7 +56,7 @@ fn field(hasher: &mut Sha256, bytes: &[u8]) {
 }
 
 pub fn fingerprint(root: &Path, configuration: &BTreeMap<String, String>) -> io::Result<Fingerprint> {
-    let policy = std::fs::read_to_string(root.join("native-source-inputs.txt"))?;
+    let policy = std::fs::read_to_string(root.join("native-source-inputs.txt")).map_err(|error| source_error(Path::new("native-source-inputs.txt"), error))?;
     let mut watched = BTreeMap::new();
     let mut ignored = BTreeSet::new();
     for line in policy.lines() {
@@ -78,7 +82,7 @@ pub fn fingerprint(root: &Path, configuration: &BTreeMap<String, String>) -> io:
     let mut files = BTreeSet::new();
     let mut directories = BTreeSet::new();
     for (path, directory) in &watched {
-        let metadata = std::fs::symlink_metadata(root.join(path))?;
+        let metadata = std::fs::symlink_metadata(root.join(path)).map_err(|error| source_error(path, error))?;
         if metadata.file_type().is_symlink() || metadata.is_dir() != *directory {
             return Err(invalid(format!("native source root has the wrong kind: {}.", path.display())));
         }
@@ -89,7 +93,7 @@ pub fn fingerprint(root: &Path, configuration: &BTreeMap<String, String>) -> io:
         let name = path.to_str().ok_or_else(|| invalid("native source paths must be UTF-8."))?.replace('\\', "/");
         field(&mut hasher, b"file");
         field(&mut hasher, name.as_bytes());
-        let mut file = std::fs::File::open(root.join(path))?;
+        let mut file = std::fs::File::open(root.join(path)).map_err(|error| source_error(path, error))?;
         let expected = file.metadata()?.len();
         hasher.update(expected.to_le_bytes());
         let mut read = 0_u64;
