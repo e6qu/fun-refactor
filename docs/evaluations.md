@@ -1467,3 +1467,12 @@ Sixteen copied-declaration cases and eight standalone-module cases complete in t
 Toolz still needs conditional imports, function-argument inspection and other setup this rule cannot establish.
 There is no separate time or memory measurement for this language change.
 The [continuation notes](continuity.md#continue-python-work-from-actual-library-failures) now lead with the user question and remaining package obstacles.
+
+The [first full PR gate](https://github.com/e6qu/fun-refactor/actions/runs/39268191916) then found a separate CI timeout.
+The accounting job finished its tests near the five-minute deadline, but upload and cleanup took the job to 302 seconds.
+GitHub marked the job cancelled even though every test step passed; this is not a passing CI result.
+Its work included a sixty-second checkout, about 84 seconds of accounting checks and 118 seconds of saved-code-change grading.
+The independent grading checks now run in their own five-minute job, with the same commands, report and artifact.
+The final gate requires both accounting and grading to pass.
+Both five-minute deadlines remain unchanged, and every check remains required.
+Use [PR #543's checks](https://github.com/e6qu/fun-refactor/pull/543/checks) for the corrected run.
