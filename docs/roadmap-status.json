@@ -22,7 +22,13 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml"
+        "grammars/zig/Cargo.toml",
+        "sdk/python/src/fr_ir/flow_dependencies.py",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "exact-facts",
@@ -42,7 +48,16 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml"
+        "grammars/zig/Cargo.toml",
+        "sdk/python/src/fr_ir/flow.py",
+        "sdk/python/src/fr_ir/flow_dependencies.py",
+        "sdk/python/src/fr_ir/flow_summaries.py",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs",
+        "tools/package-flow-acceptance.py"
       ],
       "freshness": "stale",
       "id": "package-flow",
@@ -62,7 +77,18 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml"
+        "grammars/zig/Cargo.toml",
+        "sdk/python/src/fr_ir/flow.py",
+        "sdk/python/src/fr_ir/flow_dependencies.py",
+        "sdk/python/src/fr_ir/flow_import_explanation.py",
+        "sdk/python/src/fr_ir/flow_startup.py",
+        "sdk/python/src/fr_ir/flow_summaries.py",
+        "sdk/python/src/fr_ir/flow_together.py",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
@@ -74,7 +100,16 @@
     {
       "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-flow-cache/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "sdk/python/src/fr_ir/flow.py",
+        "sdk/python/src/fr_ir/flow_dependencies.py",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs",
+        "tests/agent-eval/flow-cache/task.json",
+        "tools/flow-cache-acceptance.py"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
@@ -126,7 +161,12 @@
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-compiler-profile/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -138,7 +178,27 @@
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "docs/check-python-startup.md",
+        "docs/check-python-together.md",
+        "docs/python-contract.md",
+        "docs/replace-python-defaults.md",
+        "docs/save-python-startup.md",
+        "sdk/python/src/fr_ir/flow_dependencies.py",
+        "sdk/python/src/fr_ir/flow_summaries.py",
+        "sdk/python/src/fr_ir/flow_together.py",
+        "sdk/python/tests/test_class_initialization.py",
+        "sdk/python/tests/test_flow_imports.py",
+        "sdk/python/tests/test_flow_together.py",
+        "sdk/python/tests/test_import_order.py",
+        "sdk/python/tests/test_registration_arguments.py",
+        "sdk/python/tests/test_registration_loops.py",
+        "sdk/python/tests/test_saved_startup.py",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -150,7 +210,12 @@
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-registration-arguments-index-resolution/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml"
+        "crates/tree-sitter-language/Cargo.toml",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_calls.rs",
+        "src/project/flow_modules.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "index-resolution",
@@ -170,6 +235,7 @@
         "src/project/flow_expressions.rs",
         "src/project/flow_modules.rs",
         "src/project/flow_summaries.rs",
+        "src/vfs.rs",
         "tests/agent-eval/python-repository-flow/cohort.json",
         "tests/compiler_evidence.rs",
         "tests/flow_fixed_point.rs",
