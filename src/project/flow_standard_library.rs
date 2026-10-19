@@ -3,6 +3,11 @@ use sha2::{Digest, Sha256};
 
 const STANDARD_MODULES: &str = include_str!("python_standard_modules.txt");
 
+pub(super) fn is_module_name(name: &str) -> bool {
+    let first = name.split('.').next().unwrap_or_default();
+    STANDARD_MODULES.lines().any(|module| module == first)
+}
+
 // These are language-model assumptions, like standard scalar arithmetic. They
 // neither execute Python nor replace a workspace module with the same name.
 pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {

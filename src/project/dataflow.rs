@@ -1069,7 +1069,8 @@ impl Project<'_> {
                 .filter(|name| !module_aliases.contains(name))
                 .chain(modules.into_iter().flat_map(|modules| modules.standard_names(file)))
                 .collect();
-            for node in parsed.root().named_children(&mut parsed.root().walk()) {
+            let statements = modules.map_or_else(|| parsed.root().named_children(&mut parsed.root().walk()).collect(), |modules| modules.statement_nodes(file, parsed));
+            for node in statements {
                 let allocation = summary_mode
                     .then(|| {
                         allocations.statement(node, text, |name| {

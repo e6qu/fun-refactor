@@ -8,7 +8,7 @@ mod order;
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
-const POLICY: &str = "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
+const POLICY: &str = "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -36,6 +36,7 @@ pub(super) struct Modules {
     scalar_values: BTreeSet<(PathBuf, usize)>,
     opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
     future_nodes: BTreeMap<PathBuf, BTreeSet<usize>>,
+    startup_choices: BTreeMap<PathBuf, BTreeMap<usize, usize>>,
     pub cutoffs: BTreeSet<String>,
     pub inputs: Value,
 }
@@ -454,6 +455,15 @@ fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<
     Ok(export_sequence(project, target)?.map(|names| names.into_iter().collect()))
 }
 
+fn has_attribute_hook(project: &Project<'_>, path: &Path) -> Result<bool> {
+    let source = &project.sources[&project.root.join(path)];
+    if source.len() > BYTE_LIMIT { return Ok(true); }
+    let parsed = Parsers::new().parse(Language::Python, source)?;
+    let found = parsed.root().named_children(&mut parsed.root().walk()).any(|node| node.kind() == "function_definition"
+        && node.child_by_field_name("name").is_some_and(|name| &source[name.byte_range()] == "__getattr__"));
+    Ok(found)
+}
+
 fn export_sequence(project: &Project<'_>, target: &Path) -> Result<Option<Vec<String>>> {
     let Some(source) = project
         .sources
@@ -782,6 +792,53 @@ pub(super) fn value_bindings_valid(modules: &Value) -> bool {
 }
 
 impl Modules {
+    pub(super) fn statement_nodes<'t>(&self, file: &Path, parsed: &'t Parsed) -> Vec<Node<'t>> {
+        let mut nodes = Vec::new();
+        for node in parsed.root().named_children(&mut parsed.root().walk()) {
+            if let Some(start) = self.startup_choices.get(file).and_then(|choices| choices.get(&node.start_byte())) {
+                let body = node.named_children(&mut node.walk()).filter(|child| child.kind() == "except_clause")
+                    .flat_map(|handler| handler.named_children(&mut handler.walk()).collect::<Vec<_>>())
+                    .find(|child| child.kind() == "block" && child.start_byte() == *start)
+                    .expect("checked metadata handler belongs to the unchanged syntax tree");
+                nodes.extend(body.named_children(&mut body.walk()));
+            } else { nodes.push(node); }
+        }
+        nodes
+    }
+
+    fn metadata_import<'t>(&mut self, project: &Project<'_>, file: &Path, node: Node<'t>, source: &str, count: &mut usize) -> Result<Option<(Node<'t>, Resolution, bool)>> {
+        if node.kind() != "try_statement" || !calls::initialization_fits(node) { return Ok(None); }
+        let parts: Vec<_> = node.named_children(&mut node.walk()).filter(|node| node.kind() != "comment").collect();
+        if parts.len() != 2 || parts[0].kind() != "block" || parts[1].kind() != "except_clause" { return Ok(None); }
+        let handler: Vec<_> = parts[1].named_children(&mut parts[1].walk()).filter(|node| node.kind() != "comment").collect();
+        if handler.len() != 2 || handler[0].kind() != "identifier" || &source[handler[0].byte_range()] != "ImportError" || handler[1].kind() != "block" { return Ok(None); }
+        let body: Vec<_> = parts[0].named_children(&mut parts[0].walk()).filter(|node| node.kind() != "comment").collect();
+        if body.len() != 1 || body[0].kind() != "import_from_statement" { return Ok(None); }
+        let Some(provider) = body[0].child_by_field_name("module_name") else { return Ok(None) };
+        let provider = &source[provider.byte_range()];
+        if !provider.strip_prefix('.').is_some_and(identifier) { return Ok(None); }
+        let statements: Vec<_> = handler[1].named_children(&mut handler[1].walk()).filter(|node| node.kind() != "comment").collect();
+        if statements.is_empty() || statements.iter().any(|node| calls::module_metadata(*node, source).is_none()) { return Ok(None); }
+        let root = node.parent().context("metadata import has no module")?;
+        if calls::explicit_builtins(root, source) || root.named_children(&mut root.walk()).any(|statement| {
+            statement.kind() == "function_definition" && statement.child_by_field_name("name").is_some_and(|name| &source[name.byte_range()] == "ImportError")
+                || opaque_names(statement, source).contains(&"ImportError")
+                || matches!(statement.kind(), "import_statement" | "import_from_statement") && imports(statement, source, file.strip_prefix(&project.root).unwrap()).is_none_or(|items| items.iter().any(|(alias, _)| matches!(alias.as_str(), "ImportError" | "*")))
+        }) { return Ok(None); }
+        let Some(requested) = imports(body[0], source, file.strip_prefix(&project.root)?) else { return Ok(None) };
+        if requested.len() != 1 || requested[0].1.member.is_none() || !calls::metadata_name(&requested[0].0) { return Ok(None); }
+        if *count >= IMPORT_LIMIT { self.cutoffs.insert("import-lookup-budget".into()); return Ok(None); }
+        *count += 1;
+        let resolution = resolve_module(project, &requested[0].1.module)?;
+        let stem = resolution.module.replace('.', "/");
+        let paths = [format!("{stem}.py"), format!("{stem}/__init__.py"), format!("{stem}.pyi"), format!("{stem}/__init__.pyi"), stem];
+        let selected = !resolution.admitted && resolution.target.is_none() && resolution.opaque_candidates.is_empty() && resolution.namespaces.is_empty()
+            && resolution.packages.len() + 1 == resolution.module.split('.').count()
+            && paths.iter().all(|path| resolution.candidates.get(Path::new(path)).is_some_and(|value| value["status"] == "missing"));
+        if !selected { self.cutoffs.insert("metadata-import-unchecked".into()); }
+        Ok(Some((handler[1], resolution, selected)))
+    }
+
     pub(super) fn annotations_postponed(&self, file: &Path) -> bool {
         self.future_nodes
             .get(file)
@@ -926,7 +983,7 @@ impl Modules {
         } else { BTreeSet::new() };
         let name = entry_name(entry.strip_prefix(&project.root)?)
             .context("imported flow requires a root-local Python source entry.")?;
-        ensure!(!matches!(name.split('.').next(), Some("sys" | "builtins")), "entry import would select an intrinsic Python module rather than workspace source.");
+        ensure!(!standard_library::is_module_name(&name), "entry import may select a standard-library module rather than workspace source.");
         let entry_resolution = resolve_module(project, &name)?;
         ensure!(
             entry_resolution.admitted
@@ -952,6 +1009,7 @@ impl Modules {
             scalar_values: BTreeSet::new(),
             opaque_bindings: BTreeMap::new(),
             future_nodes: BTreeMap::new(),
+            startup_choices: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
@@ -967,6 +1025,7 @@ impl Modules {
         let mut files = BTreeMap::new();
         let mut lookups = Vec::new();
         let mut standard_imports = Vec::new();
+        let mut metadata_imports = Vec::new();
         let mut star_resolutions: BTreeMap<usize, Resolution> = BTreeMap::new();
         let mut named_members = BTreeMap::new();
         let mut named_declarations = BTreeMap::new();
@@ -1015,6 +1074,12 @@ impl Modules {
             let mut allocations = initializers::Allocations::default();
             let mut startup = Vec::new();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if let Some((handler, resolution, selected)) = result.metadata_import(project, &file, node, source, &mut import_count)? {
+                    metadata_imports.push(json!({"importer":file.strip_prefix(&project.root)?, "span":Span::from(node), "handler":Span::from(handler), "lookup":resolution, "selected":selected}));
+                    if selected { result.startup_choices.entry(file.clone()).or_default().insert(node.start_byte(), handler.start_byte()); }
+                }
+            }
+            for node in result.statement_nodes(&file, &parsed) {
                 let declared = if node.kind() == "function_definition" {
                     node.child_by_field_name("name")
                         .map(|name| vec![&source[name.byte_range()]])
@@ -1302,6 +1367,10 @@ impl Modules {
                     if matches!(binding.module.split('.').next(), Some("sys" | "builtins")) {
                         result.cutoffs.insert("intrinsic-standard-import-unchecked".into());
                     }
+                    if standard_library::is_module_name(&binding.module) && (!resolution.opaque_candidates.is_empty()
+                        || resolution.candidates.values().any(|value| value["status"] != "missing")) {
+                        result.cutoffs.insert("standard-library-import-collision".into());
+                    }
                     binding.future = future_nodes.contains(&node.start_byte())
                         && resolution.opaque_candidates.is_empty()
                         && resolution
@@ -1374,6 +1443,9 @@ impl Modules {
                             && (resolution.namespaces.contains(target)
                                 || !declares_member(project, target, member, skip)?)
                         {
+                            if !resolution.namespaces.contains(target) && has_attribute_hook(project, target)? {
+                                result.cutoffs.insert("import-attribute-hook-unchecked".into());
+                            }
                             let child = format!("{}.{}", binding.module, member);
                             if module_name(&child) {
                                 if import_count >= IMPORT_LIMIT {
@@ -1471,6 +1543,7 @@ impl Modules {
                 special_attribute(name)
                     && !(name == "__all__" && declared_exports.is_some())
                     && !(literals.contains(name) && calls::metadata_name(name))
+                    && !(matches!(name, "__getattr__" | "__dir__") && definitions.get(name) == Some(&1) && !bindings.contains_key(name) && !opaque_bindings.contains(name))
             }) {
                 result.cutoffs.insert("special-module-attributes".into());
             }
@@ -1652,7 +1725,9 @@ impl Modules {
                 compact.push(lookup);
             }
         }
+        metadata_imports.sort_by_key(|record| (record["importer"].as_str().unwrap().to_owned(), record["span"]["start"].as_u64().unwrap()));
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
+            "metadata_imports":metadata_imports,
             "standard_library":standard_contract,"standard_imports":standard_imports,"standard_shadowing":standard_shadowing,
             "function_aliases":aliases,
             "value_aliases":value_aliases,

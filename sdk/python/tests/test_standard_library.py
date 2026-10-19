@@ -116,8 +116,8 @@ def test_a_new_local_module_invalidates_the_standard_model(tmp_path):
     assert not changed.dependencies.standard_imports
     assert evidence(changed) == evidence(analyze(client, rules, 'entry', imports=True, standard_library=('math',)))
     local = analyze(client, rules, 'entry', imports=True, standard_library=())
-    assert local.report.at('/complete') and not local.witnesses
-    assert observe(tmp_path)['events'] == [['source', 17], ['sink', 0]]
+    assert not local.report.at('/complete')
+    assert 'standard-library-import-collision' in local.report.at('/cutoffs')
 
 
 @pytest.mark.parametrize('candidate', ['math.pyi', 'math/__init__.pyi', 'math'])

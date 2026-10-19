@@ -9,11 +9,12 @@ import re
 from typing import Any
 
 from .investigation import Dependency, DependencyKind
-from .runtime import FrReport, FrRuntimeError
+from .runtime import ByteSpan, FrReport, FrRuntimeError
 from .flow_standard_library import MEMBERS, selected_contract
 
 MODULE_POLICY = ("Single-root modules/packages; local from-import names share a provider search. "
                  "Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. "
+                 "Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. "
                  "Cycles require available names in execution order. "
                  "Annotation directives need absent local __future__ candidates. "
                  "Dynamic imports, merged namespaces and search paths stay unchecked.")
@@ -120,6 +121,15 @@ class StandardImport:
     candidates: tuple[ImportCandidate, ...]
 
 
+@dataclass(frozen=True)
+class MetadataImport:
+    importer: str
+    span: ByteSpan
+    handler: ByteSpan
+    lookup: ImportResolution
+    selected: bool
+
+
 def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
                 namespace_paths: frozenset[str]) -> ImportResolution:
     name = item["module"]
@@ -133,6 +143,8 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
         if status not in {"source", "missing", "outside-snapshot", "symlink", "directory"}:
             raise FrRuntimeError("unknown import candidate status")
         digest = _digest(candidate["digest"]) if status == "source" else None
+        if set(candidate) != ({'status', 'digest'} if status == 'source' else {'status'}):
+            raise FrRuntimeError('import candidate has unsupported fields')
         if status != "source" and "digest" in candidate:
             raise FrRuntimeError("non-source import candidate carries a digest")
         candidates.append(ImportCandidate(_path(path), status, digest))
@@ -364,6 +376,7 @@ class FlowDependencies:
     standard_library: tuple[str, ...]
     standard_imports: tuple[StandardImport, ...]
     standard_shadowing: tuple[str, ...]
+    metadata_imports: tuple[MetadataImport, ...]
 
     @property
     def dependency(self) -> Dependency:
@@ -498,6 +511,35 @@ class FlowDependencies:
                 raise FrRuntimeError("complete closure includes a special child module")
             records, lookup_count = _expanded_lookups(modules)
             lookup_count += len(standard_imports)
+            raw_metadata = modules['metadata_imports']
+            if not isinstance(raw_metadata, list) or len(raw_metadata) > 128:
+                raise FrRuntimeError('metadata import count exceeds its budget')
+            metadata_imports = []
+            metadata_sites = []
+            for item in raw_metadata:
+                if (not isinstance(item, dict) or set(item) != {'importer', 'span', 'handler', 'lookup', 'selected'}
+                        or item['importer'] not in paths or type(item['selected']) is not bool):
+                    raise FrRuntimeError('malformed metadata import')
+                span, handler = ByteSpan.from_data(item['span']), ByteSpan.from_data(item['handler'])
+                if not span.start < handler.start < handler.end <= span.end <= 262144:
+                    raise FrRuntimeError('metadata handler escapes its source statement')
+                lookup = _resolution(item['lookup'], paths, False, namespace_paths)
+                parent = '.'.join(PurePosixPath(item['importer']).parent.parts)
+                if not parent or lookup.module.rpartition('.')[0] != parent:
+                    raise FrRuntimeError('metadata import leaves its current package')
+                stem = lookup.module.replace('.', '/')
+                leaves = {stem + '.py', stem + '/__init__.py', stem + '.pyi', stem + '/__init__.pyi', stem}
+                statuses = {candidate.path: candidate.status for candidate in lookup.candidates}
+                missing = (not lookup.admitted and lookup.target is None and not lookup.opaque_candidates and not lookup.namespaces
+                           and len(lookup.packages) + 1 == len(lookup.module.split('.'))
+                           and all(statuses.get(path) == 'missing' for path in leaves))
+                if item['selected'] != missing or modules['complete'] and not item['selected']:
+                    raise FrRuntimeError('metadata branch is not justified by its missing-module lookup')
+                metadata_imports.append(MetadataImport(item['importer'], span, handler, lookup, item['selected']))
+                metadata_sites.append((item['importer'], span.start))
+            if metadata_sites != sorted(set(metadata_sites)):
+                raise FrRuntimeError('metadata imports repeat or reorder a source statement')
+            lookup_count += len(metadata_imports)
             if lookup_count > 128:
                 raise FrRuntimeError('combined standard and local import count exceeds its budget')
             lookups = []
@@ -577,7 +619,8 @@ class FlowDependencies:
                    for lookup in lookups for hop in lookup.binding_chain):
                 raise FrRuntimeError("invalid re-export member name")
             _binding_chains(lookups, paths, frozenset(namespaces), function_aliases, value_aliases, value_bindings)
-            resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None)]
+            resolutions = [entry, *lookups, *(item.submodule for item in lookups if item.submodule is not None),
+                           *(item.lookup for item in metadata_imports)]
             expected_namespaces = {path for resolution in resolutions if resolution is not None and resolution.admitted
                                    for path in resolution.namespaces}
             if (not set(namespaces) <= expected_namespaces
@@ -594,6 +637,6 @@ class FlowDependencies:
                      "standard_library": list(standard_library)}
             dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
                                     _digest(data["input_digest"]))
-            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count, standard_library, tuple(standard_imports), standard_shadowing)
+            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count, standard_library, tuple(standard_imports), standard_shadowing, tuple(metadata_imports))
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed flow dependencies") from error
