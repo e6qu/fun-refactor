@@ -129,6 +129,16 @@ The experiment used the existing analyzer and client.
 Return to the real libraries' remaining import and startup gaps.
 For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.
 Choose the next concrete statement from the import explanation and check its behavior against Python.
+
+A small registration function can now copy entries from an unchanged literal dictionary into another owned dictionary.
+For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
+records the label without running unknown code.
+The [startup lesson](docs/check-python-startup.md) supplies the complete example.
+The function and its repeated work each keep the 128-node limit.
+Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
+Toolz still needs stored object defaults, module-valued keys, conditional imports and function-argument inspection.
+This bounded loop rule does not complete its package answer.
+
 Aim for a complete helper answer through the original package import while preserving the existing limits and unfinished answers.
 
 Never teach the analyzer the names of test projects or their expected answers.

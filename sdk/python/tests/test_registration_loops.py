@@ -117,3 +117,53 @@ def test_expanded_work_keeps_the_existing_128_node_limit(tmp_path, entries, comp
     client, rules = install(tmp_path, setup(body))
     assert analyze(client, rules, 'entry').report.at('/complete') is complete
     assert observe(tmp_path)['result'] == 17
+
+
+def test_saved_startup_rechecks_a_changed_iteration_source(tmp_path):
+    from fr_ir.flow_startup import StartupCache
+
+    client, rules = install(tmp_path, setup(BODIES[2], prefix=PREFIX), 'value')
+    store = MemoryObjectStore()
+    cache = StartupCache(store)
+    handle = client.project('find', 'entry').definition_target().handle
+    first = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                          depth=8, max_bytes=1_048_576, imports=True)
+    assert first.checks == 1 and first.answer.report.at('/complete')
+    cache = StartupCache.restore(store, cache.persist())
+    second = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                           depth=8, max_bytes=1_048_576, imports=True)
+    assert second.reused and second.checks == 0
+    path = tmp_path / 'helpers.py'
+    path.write_text(path.read_text().replace("'state': 'ready'", "'state': source()"))
+    handle = client.project('find', 'entry').definition_target().handle
+    changed = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                            depth=8, max_bytes=1_048_576, imports=True)
+    assert not changed.reused and changed.checks == 1
+    assert not changed.answer.report.at('/complete') and changed.report.at('/startup') is None
+    assert evidence(changed.answer) == evidence(analyze(client, rules, 'entry', imports=True))
+
+
+def test_replacing_a_helper_inside_a_loop_changes_python_but_stays_unfinished(tmp_path):
+    client, rules = install(tmp_path, '')
+    (tmp_path / 'subject.py').write_text(
+        "table = {}\ndef relay(value):\n    return value\n"
+        "def register():\n    for key in ('state',):\n        global relay\n"
+        "        relay = lambda value: 0\nregister()\n"
+        "def entry():\n    return sink(relay(source()))\n")
+    result = analyze(client, rules, 'entry')
+    assert not result.report.at('/complete') and result.initialization.sites
+    assert observe(tmp_path) == {'result': 0, 'raised': None,
+                                'events': [['source', 17], ['sink', 0]]}
+
+
+@pytest.mark.parametrize('change,expected', [('existing', ['ready', None]), ('size', [None, 'RuntimeError'])])
+def test_python_dictionary_mutation_does_not_become_checked_iteration(tmp_path, change, expected):
+    write = "labels[key] = 'ready'" if change == 'existing' else "labels['extra'] = 'ready'"
+    client, rules = install(tmp_path, setup('for key, item in labels.items():\n    ' + write, prefix=PREFIX), 'value')
+    assert not analyze(client, rules, 'entry', imports=True).report.at('/complete')
+    script = ("import sys,json; sys.path.insert(0,sys.argv[1])\n"
+              "try:\n import helpers\n print(json.dumps([helpers.labels['state'], None]))\n"
+              "except Exception as error:\n print(json.dumps([None, type(error).__name__]))")
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(tmp_path)],
+                            check=True, capture_output=True, text=True, timeout=30)
+    assert json.loads(result.stdout) == expected

@@ -19,15 +19,19 @@ Create a new directory and save the following files there.
 
 Save this as `helpers.py`.
 `table` starts as an empty dictionary.
-The call to `register()` fills it during import.
+The call to `register()` fills it during import by visiting the entries in `labels`.
+At each visit, `key` receives the entry name and `item` receives its value.
+Here there is one entry: the loop copies the key `label` and the value `ready` into `table`.
 The stored `lambda` creates a function; creating it does not run its body.
 Here, `missing()` deliberately names an unavailable function to demonstrate that the body stays deferred.
 
 ```python
 table = {}
+labels = {'label': 'ready'}
 
 def register():
-    table['label'] = 'ready'
+    for key, item in labels.items():
+        table[key] = item
     table.update(send=lambda: missing())
 
 register()

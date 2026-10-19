@@ -62,7 +62,12 @@ fn children(node: Node<'_>) -> Vec<Node<'_>> {
         .collect()
 }
 
-fn dictionary(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool, locals: &BTreeMap<&str, Node<'_>>) -> bool {
+fn dictionary(
+    node: Node<'_>,
+    source: &str,
+    shadowed: &impl Fn(&str) -> bool,
+    locals: &BTreeMap<&str, Node<'_>>,
+) -> bool {
     let Some(node) = calls::unparenthesized(node) else {
         return false;
     };
@@ -94,7 +99,12 @@ fn dictionary(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool, lo
         .is_some_and(|args| arguments(args, source, shadowed, locals))
 }
 
-fn arguments(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool, locals: &BTreeMap<&str, Node<'_>>) -> bool {
+fn arguments(
+    node: Node<'_>,
+    source: &str,
+    shadowed: &impl Fn(&str) -> bool,
+    locals: &BTreeMap<&str, Node<'_>>,
+) -> bool {
     let mut keywords = BTreeSet::new();
     children(node).iter().enumerate().all(|(index, node)| {
         if node.kind() != "keyword_argument" {
@@ -112,7 +122,12 @@ fn arguments(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool, loc
     })
 }
 
-fn value(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bool, locals: &BTreeMap<&str, Node<'_>>) -> bool {
+fn value(
+    node: Node<'_>,
+    source: &str,
+    shadowed: &impl Fn(&str) -> bool,
+    locals: &BTreeMap<&str, Node<'_>>,
+) -> bool {
     let Some(node) = calls::unparenthesized(node) else {
         return false;
     };
@@ -142,10 +157,17 @@ fn value_is_literal(node: Node<'_>, source: &str, shadowed: &impl Fn(&str) -> bo
 }
 
 fn key_value(node: Node<'_>, source: &str, locals: &BTreeMap<&str, Node<'_>>) -> bool {
-    let Some(node) = calls::unparenthesized(node) else { return false; };
+    let Some(node) = calls::unparenthesized(node) else {
+        return false;
+    };
     let resolved = if node.kind() == "identifier" {
-        locals.get(&source[node.byte_range()]).copied().unwrap_or(node)
-    } else { node };
+        locals
+            .get(&source[node.byte_range()])
+            .copied()
+            .unwrap_or(node)
+    } else {
+        node
+    };
     calls::collection_value(resolved, source, true)
 }
 
@@ -158,7 +180,10 @@ struct Registration<'s, 't> {
 }
 
 fn node_count(node: Node<'_>) -> usize {
-    1 + node.named_children(&mut node.walk()).map(node_count).sum::<usize>()
+    1 + node
+        .named_children(&mut node.walk())
+        .map(node_count)
+        .sum::<usize>()
 }
 
 impl<'s, 't> Allocations<'s, 't> {
@@ -173,7 +198,10 @@ impl<'s, 't> Allocations<'s, 't> {
             self.registrations.remove(name);
             self.known_dictionaries.remove(name);
             let ordinary = !(name.starts_with("__") && name.ends_with("__"));
-            if ordinary && calls::initialization_fits(right) && value_is_literal(right, source, &shadowed) {
+            if ordinary
+                && calls::initialization_fits(right)
+                && value_is_literal(right, source, &shadowed)
+            {
                 if !shadowed(name) && dictionary(right, source, &shadowed, &BTreeMap::new()) {
                     self.dictionaries.insert(name);
                     self.known_dictionaries.insert(name, right);
@@ -192,7 +220,9 @@ impl<'s, 't> Allocations<'s, 't> {
                 return Some(Statement::Population);
             }
             if let Some(written) = self.registration_call(node, source, &shadowed) {
-                for name in written { self.known_dictionaries.remove(name); }
+                for name in written {
+                    self.known_dictionaries.remove(name);
+                }
                 return Some(Statement::Population);
             }
         }
@@ -201,7 +231,7 @@ impl<'s, 't> Allocations<'s, 't> {
                 let name = &source[name.byte_range()];
                 self.dictionaries.remove(name);
                 self.registrations.remove(name);
-            self.known_dictionaries.remove(name);
+                self.known_dictionaries.remove(name);
                 if name.is_ascii()
                     && !(name.starts_with("__") && name.ends_with("__"))
                     && !shadowed(name)
@@ -231,105 +261,255 @@ impl<'s, 't> Allocations<'s, 't> {
     }
 
     fn registration_call(
-        &self, node: Node<'t>, source: &'s str, shadowed: &impl Fn(&str) -> bool,
+        &self,
+        node: Node<'t>,
+        source: &'s str,
+        shadowed: &impl Fn(&str) -> bool,
     ) -> Option<BTreeSet<&'s str>> {
-        if node.kind() != "expression_statement" || node.named_child_count() != 1 { return None; }
+        if node.kind() != "expression_statement" || node.named_child_count() != 1 {
+            return None;
+        }
         let call = calls::unparenthesized(node.named_child(0)?)?;
         let function = calls::unparenthesized(call.child_by_field_name("function")?)?;
-        if call.kind() != "call" || function.kind() != "identifier"
-            || !children(call.child_by_field_name("arguments")?).is_empty() { return None; }
-        let body = self.registrations.get(&source[function.byte_range()])?
+        if call.kind() != "call"
+            || function.kind() != "identifier"
+            || !children(call.child_by_field_name("arguments")?).is_empty()
+        {
+            return None;
+        }
+        let body = self
+            .registrations
+            .get(&source[function.byte_range()])?
             .child_by_field_name("body")?;
-        let mut state = Registration { locals: BTreeMap::new(), names: BTreeSet::new(),
-            reading: BTreeSet::new(), written: BTreeSet::new(), remaining: 128 };
+        let mut state = Registration {
+            locals: BTreeMap::new(),
+            names: BTreeSet::new(),
+            reading: BTreeSet::new(),
+            written: BTreeSet::new(),
+            remaining: 128,
+        };
         // Python treats every loop target as a local throughout the function.
-        if !self.loop_names(body, source, shadowed, &mut state.names) { return None; }
+        if !self.loop_names(body, source, shadowed, &mut state.names) {
+            return None;
+        }
         if self.block(body, source, shadowed, &mut state, true) && !state.written.is_empty() {
             Some(state.written)
-        } else { None }
+        } else {
+            None
+        }
     }
 
-    fn loop_names(&self, node: Node<'t>, source: &'s str,
-        shadowed: &impl Fn(&str) -> bool, names: &mut BTreeSet<&'s str>) -> bool {
+    fn loop_names(
+        &self,
+        node: Node<'t>,
+        source: &'s str,
+        shadowed: &impl Fn(&str) -> bool,
+        names: &mut BTreeSet<&'s str>,
+    ) -> bool {
         if node.kind() == "for_statement" {
-            let Some(left) = node.child_by_field_name("left") else { return false; };
-            let targets = if left.kind() == "identifier" { vec![left] } else { children(left) };
+            let Some(left) = node.child_by_field_name("left") else {
+                return false;
+            };
+            let targets = if left.kind() == "identifier" {
+                vec![left]
+            } else {
+                children(left)
+            };
             for target in targets {
                 let name = &source[target.byte_range()];
-                if target.kind() != "identifier" || !name.is_ascii()
-                    || name.starts_with("__") && name.ends_with("__") || shadowed(name)
-                    || self.dictionaries.contains(name) || !names.insert(name) { return false; }
+                if target.kind() != "identifier"
+                    || !name.is_ascii()
+                    || name.starts_with("__") && name.ends_with("__")
+                    || shadowed(name)
+                    || self.dictionaries.contains(name)
+                    || !names.insert(name)
+                {
+                    return false;
+                }
             }
         }
-        children(node).into_iter().all(|child| self.loop_names(child, source, shadowed, names))
+        children(node)
+            .into_iter()
+            .all(|child| self.loop_names(child, source, shadowed, names))
     }
 
-    fn block(&self, body: Node<'t>, source: &'s str, shadowed: &impl Fn(&str) -> bool,
-        state: &mut Registration<'s, 't>, returns: bool) -> bool {
+    fn block(
+        &self,
+        body: Node<'t>,
+        source: &'s str,
+        shadowed: &impl Fn(&str) -> bool,
+        state: &mut Registration<'s, 't>,
+        returns: bool,
+    ) -> bool {
         let statements = children(body);
         for (index, statement) in statements.iter().copied().enumerate() {
             if statement.kind() == "for_statement" {
-                if !self.iteration(statement, source, shadowed, state) { return false; }
+                if !self.iteration(statement, source, shadowed, state) {
+                    return false;
+                }
                 continue;
             }
-            let Some(remaining) = state.remaining.checked_sub(node_count(statement)) else { return false; };
+            let Some(remaining) = state.remaining.checked_sub(node_count(statement)) else {
+                return false;
+            };
             state.remaining = remaining;
-            if statement.kind() == "pass_statement" { continue; }
-            if returns && statement.kind() == "return_statement" && index + 1 == statements.len()
-                && children(statement).iter().all(|value| value.kind() == "none") { continue; }
-            let Some(name) = self.population(statement, source, &|name| shadowed(name) || state.names.contains(name), &state.locals) else { return false; };
-            if state.reading.contains(name) { return false; }
+            if statement.kind() == "pass_statement" {
+                continue;
+            }
+            if returns
+                && statement.kind() == "return_statement"
+                && index + 1 == statements.len()
+                && children(statement)
+                    .iter()
+                    .all(|value| value.kind() == "none")
+            {
+                continue;
+            }
+            let Some(name) = self.population(
+                statement,
+                source,
+                &|name| shadowed(name) || state.names.contains(name),
+                &state.locals,
+            ) else {
+                return false;
+            };
+            if state.reading.contains(name) {
+                return false;
+            }
             state.written.insert(name);
         }
         true
     }
 
-    fn iteration(&self, node: Node<'t>, source: &'s str, shadowed: &impl Fn(&str) -> bool,
-        state: &mut Registration<'s, 't>) -> bool {
+    fn iteration(
+        &self,
+        node: Node<'t>,
+        source: &'s str,
+        shadowed: &impl Fn(&str) -> bool,
+        state: &mut Registration<'s, 't>,
+    ) -> bool {
         if node.child_by_field_name("alternative").is_some()
-            || node.children(&mut node.walk()).any(|child| child.kind() == "async") { return false; }
-        let (Some(left), Some(right), Some(body)) = (node.child_by_field_name("left"),
-            node.child_by_field_name("right").and_then(calls::unparenthesized), node.child_by_field_name("body"))
-            else { return false; };
-        let Some(remaining) = state.remaining.checked_sub(node_count(node) - node_count(body)) else { return false; };
-        state.remaining = remaining;
-        let targets = if left.kind() == "identifier" { vec![left] } else { children(left) };
-        let names: Vec<_> = targets.iter().map(|node| &source[node.byte_range()]).collect();
-        let mut reading = None;
-        let entries: Vec<Vec<Node<'t>>> = if matches!(right.kind(), "tuple" | "list" | "expression_list")
-            && left.kind() == "identifier" {
-            let values = children(right);
-            if !values.iter().all(|node| value_is_literal(*node, source, &|name| shadowed(name) || state.names.contains(name))) { return false; }
-            values.into_iter().map(|node| vec![node]).collect()
-        } else {
-            if right.kind() != "call" || targets.len() != 2
-                || !matches!(left.kind(), "pattern_list" | "tuple_pattern")
-                || !right.child_by_field_name("arguments").is_some_and(|args| children(args).is_empty()) { return false; }
-            let Some(function) = right.child_by_field_name("function") else { return false; };
-            let Some(object) = function.child_by_field_name("object") else { return false; };
-            let name = &source[object.byte_range()];
-            if function.kind() != "attribute" || object.kind() != "identifier"
-                || !function.child_by_field_name("attribute").is_some_and(|attr| &source[attr.byte_range()] == "items")
-                || state.written.contains(name) || state.reading.contains(name) { return false; }
-            let Some(dictionary) = self.known_dictionaries.get(name).copied().and_then(calls::unparenthesized)
-                .filter(|node| node.kind() == "dictionary") else { return false; };
-            reading = Some(name);
-            children(dictionary).into_iter().map(|pair| {
-                vec![pair.child_by_field_name("key").unwrap(), pair.child_by_field_name("value").unwrap()]
-            }).collect()
-        };
-        if entries.is_empty() { return false; }
-        if let Some(name) = reading { state.reading.insert(name); }
-        for entry in entries {
-            for (name, value) in names.iter().zip(entry) { state.locals.insert(name, value); }
-            if !self.block(body, source, shadowed, state, false) { return false; }
+            || node
+                .children(&mut node.walk())
+                .any(|child| child.kind() == "async")
+        {
+            return false;
         }
-        for name in names { state.locals.remove(name); }
-        if let Some(name) = reading { state.reading.remove(name); }
+        let (Some(left), Some(right), Some(body)) = (
+            node.child_by_field_name("left"),
+            node.child_by_field_name("right")
+                .and_then(calls::unparenthesized),
+            node.child_by_field_name("body"),
+        ) else {
+            return false;
+        };
+        let Some(remaining) = state
+            .remaining
+            .checked_sub(node_count(node) - node_count(body))
+        else {
+            return false;
+        };
+        state.remaining = remaining;
+        let targets = if left.kind() == "identifier" {
+            vec![left]
+        } else {
+            children(left)
+        };
+        let names: Vec<_> = targets
+            .iter()
+            .map(|node| &source[node.byte_range()])
+            .collect();
+        let mut reading = None;
+        let entries: Vec<Vec<Node<'t>>> =
+            if matches!(right.kind(), "tuple" | "list" | "expression_list")
+                && left.kind() == "identifier"
+            {
+                let values = children(right);
+                if !values.iter().all(|node| {
+                    value_is_literal(*node, source, &|name| {
+                        shadowed(name) || state.names.contains(name)
+                    })
+                }) {
+                    return false;
+                }
+                values.into_iter().map(|node| vec![node]).collect()
+            } else {
+                if right.kind() != "call"
+                    || targets.len() != 2
+                    || !matches!(left.kind(), "pattern_list" | "tuple_pattern")
+                    || !right
+                        .child_by_field_name("arguments")
+                        .is_some_and(|args| children(args).is_empty())
+                {
+                    return false;
+                }
+                let Some(function) = right.child_by_field_name("function") else {
+                    return false;
+                };
+                let Some(object) = function.child_by_field_name("object") else {
+                    return false;
+                };
+                let name = &source[object.byte_range()];
+                if function.kind() != "attribute"
+                    || object.kind() != "identifier"
+                    || !function
+                        .child_by_field_name("attribute")
+                        .is_some_and(|attr| &source[attr.byte_range()] == "items")
+                    || state.written.contains(name)
+                    || state.reading.contains(name)
+                {
+                    return false;
+                }
+                let Some(dictionary) = self
+                    .known_dictionaries
+                    .get(name)
+                    .copied()
+                    .and_then(calls::unparenthesized)
+                    .filter(|node| node.kind() == "dictionary")
+                else {
+                    return false;
+                };
+                reading = Some(name);
+                children(dictionary)
+                    .into_iter()
+                    .map(|pair| {
+                        vec![
+                            pair.child_by_field_name("key").unwrap(),
+                            pair.child_by_field_name("value").unwrap(),
+                        ]
+                    })
+                    .collect()
+            };
+        if entries.is_empty() {
+            return false;
+        }
+        if let Some(name) = reading {
+            state.reading.insert(name);
+        }
+        for entry in entries {
+            for (name, value) in names.iter().zip(entry) {
+                state.locals.insert(name, value);
+            }
+            if !self.block(body, source, shadowed, state, false) {
+                return false;
+            }
+        }
+        for name in names {
+            state.locals.remove(name);
+        }
+        if let Some(name) = reading {
+            state.reading.remove(name);
+        }
         true
     }
 
-    fn population(&self, node: Node<'_>, source: &'s str, shadowed: &impl Fn(&str) -> bool, locals: &BTreeMap<&str, Node<'_>>) -> Option<&'s str> {
+    fn population(
+        &self,
+        node: Node<'_>,
+        source: &'s str,
+        shadowed: &impl Fn(&str) -> bool,
+        locals: &BTreeMap<&str, Node<'_>>,
+    ) -> Option<&'s str> {
         if node.kind() != "expression_statement" || node.named_child_count() != 1 {
             return None;
         }
@@ -356,7 +536,7 @@ impl<'s, 't> Allocations<'s, 't> {
                 && expression
                     .child_by_field_name("right")
                     .is_some_and(|node| value(node, source, shadowed, locals)))
-                .then_some(&source[object.byte_range()]);
+            .then_some(&source[object.byte_range()]);
         }
         let Some(function) = expression
             .child_by_field_name("function")
@@ -380,6 +560,6 @@ impl<'s, 't> Allocations<'s, 't> {
             && expression
                 .child_by_field_name("arguments")
                 .is_some_and(|args| arguments(args, source, shadowed, locals)))
-            .then_some(&source[object.byte_range()])
+        .then_some(&source[object.byte_range()])
     }
 }

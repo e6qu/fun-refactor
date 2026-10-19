@@ -59,6 +59,16 @@ With one shared step, the second answer gets zero; that measurement performs dif
 The original failed audit is preserved; its mistaken rule fingerprint and missing call-depth field are fixed with a real-reply regression.
 The experiment used the existing analyzer, client and limits.
 Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
+
+A small registration function can now copy entries from an unchanged literal dictionary into another owned dictionary.
+For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
+records the label without running unknown code.
+The [startup lesson](check-python-startup.md) supplies the complete example.
+The function and its repeated work each keep the 128-node limit.
+Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
+Toolz still needs stored object defaults, module-valued keys, conditional imports and function-argument inspection.
+This bounded loop rule does not complete its package answer.
+
 The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
