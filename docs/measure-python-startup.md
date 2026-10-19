@@ -190,6 +190,7 @@ python3 -B tools/python-startup-cost.py --audit-set "$RUNNER_TEMP/python-startup
 ```
 
 Run them from the repository root on the runner. The output directory must not already exist.
+`RUNNER_TEMP` is GitHub's temporary directory for that job.
 The final audit prints that optimized CLI requests and separate profiles agree with project caching off and on.
 The build command is `cargo build --locked --release --bin fr --example project-profile`.
 It keeps the normal language features. The executable hashes appear in the report.

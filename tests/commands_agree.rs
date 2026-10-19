@@ -224,7 +224,8 @@ fn impact_covers_every_reference_it_could_rewrite() {
             unreferenced += 1;
             continue;
         }
-        let report = impact::analyse(index, symbol.id, 2).expect("impact on an indexed declaration");
+        let report =
+            impact::analyse(index, symbol.id, 2).expect("impact on an indexed declaration");
         reports += 1;
         let covered: HashSet<(PathBuf, usize)> = report
             .items

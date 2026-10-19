@@ -6,6 +6,9 @@ It checked from scratch, reopened saved setup, or reopened saved whole answers.
 It tested each approach with the persistent project cache switched off and on.
 The Python SDK is the client library that starts `fr` and checks its replies.
 
+Each ordinary command-line comparison uses five complete runs per condition.
+The median is the middle total after sorting those five.
+
 Project caching reduced the median total time for direct fresh checks by 21.9–23.3% in these four examples.
 On top of that cache, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2%.
 Neither saved approach reduced the median complete-sequence time in any example or cache setting.
@@ -123,7 +126,7 @@ The inner worker itself takes about 16 ms in that case; the entire request takes
 
 The next investigation should separate those startup and reply costs.
 For example, compare an agent asking several questions from one running Python program with starting Python for every question.
-Also measure the existing two-helper request against separate questions with explicit limits.
+Also measure [asking about two helpers together](check-python-together.md) against separate questions with explicit limits.
 Use those full costs before adding another saved-work mechanism.
 
 ## Limits and retained unsuccessful work
