@@ -12,7 +12,7 @@
   ],
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json",
       "changed_sources": [
         "Cargo.toml",
         "crates/wasm-libc/Cargo.toml",
@@ -22,23 +22,17 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml",
-        "sdk/python/src/fr_ir/flow_dependencies.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs"
+        "grammars/zig/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json",
       "changed_sources": [
         "Cargo.toml",
         "crates/wasm-libc/Cargo.toml",
@@ -48,26 +42,17 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml",
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_dependencies.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs",
-        "tools/package-flow-acceptance.py"
+        "grammars/zig/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories",
       "changed_sources": [
         "Cargo.toml",
         "crates/wasm-libc/Cargo.toml",
@@ -77,45 +62,25 @@
         "grammars/sass/Cargo.toml",
         "grammars/scss/Cargo.toml",
         "grammars/typescript/Cargo.toml",
-        "grammars/zig/Cargo.toml",
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_dependencies.py",
-        "sdk/python/src/fr_ir/flow_import_explanation.py",
-        "sdk/python/src/fr_ir/flow_startup.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "sdk/python/src/fr_ir/flow_together.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs"
+        "grammars/zig/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml",
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_dependencies.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs",
-        "tests/agent-eval/flow-cache/task.json",
-        "tools/flow-cache-acceptance.py"
+        "crates/tree-sitter-language/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
@@ -159,69 +124,39 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs"
+        "crates/tree-sitter-language/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml",
-        "docs/check-python-startup.md",
-        "docs/check-python-together.md",
-        "docs/python-contract.md",
-        "docs/replace-python-defaults.md",
-        "docs/save-python-startup.md",
-        "sdk/python/src/fr_ir/flow_dependencies.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "sdk/python/src/fr_ir/flow_together.py",
-        "sdk/python/tests/test_class_initialization.py",
-        "sdk/python/tests/test_flow_imports.py",
-        "sdk/python/tests/test_flow_together.py",
-        "sdk/python/tests/test_import_order.py",
-        "sdk/python/tests/test_registration_arguments.py",
-        "sdk/python/tests/test_registration_loops.py",
-        "sdk/python/tests/test_saved_startup.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs"
+        "crates/tree-sitter-language/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-registration-arguments-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json",
       "changed_sources": [
-        "crates/tree-sitter-language/Cargo.toml",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_calls.rs",
-        "src/project/flow_modules.rs",
-        "src/vfs.rs"
+        "crates/tree-sitter-language/Cargo.toml"
       ],
       "freshness": "stale",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
     },
     {
