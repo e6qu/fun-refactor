@@ -489,6 +489,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
@@ -941,8 +942,8 @@ jobs:
           retention-days: 7
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
-      - name: Compare bounded registration loops and mutations with Python
-        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_loops.py
+      - name: Compare registration arguments, loops and mutations with Python
+        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
       - name: Check documentation examples before collecting reports
         run: |
           python3 -B tools/reader_examples.py --fr target/debug/fr

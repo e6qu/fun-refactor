@@ -67,7 +67,7 @@ def test_unknown_calls_control_flow_and_writes_stay_unfinished(tmp_path, body, r
     ('', 'register(0)'), ('', 'register(value=0)'),
     ('', 'register(*())'), ('', 'register(**{})'),
 ])
-def test_only_empty_signatures_and_empty_calls_are_checked(tmp_path, signature, call):
+def test_missing_non_dictionary_and_variadic_arguments_stay_unfinished(tmp_path, signature, call):
     client, rules = install(tmp_path, setup("table['label'] = 0", call, signature))
     assert not analyze(client, rules, 'entry').report.at('/complete')
 
