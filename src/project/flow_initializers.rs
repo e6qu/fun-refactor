@@ -221,7 +221,9 @@ impl<'s, 't> Allocations<'s, 't> {
             }
         }
         if calls::initialization_fits(node) {
-            if let Some(name) = self.population(node, source, &shadowed, &BTreeMap::new(), &BTreeMap::new()) {
+            if let Some(name) =
+                self.population(node, source, &shadowed, &BTreeMap::new(), &BTreeMap::new())
+            {
                 self.known_dictionaries.remove(name);
                 return Some(Statement::Population);
             }
@@ -233,7 +235,11 @@ impl<'s, 't> Allocations<'s, 't> {
             }
         }
         if node.kind() == "function_definition" && {
-            let defaults = self.dictionaries.iter().map(|name| (*name).to_owned()).collect();
+            let defaults = self
+                .dictionaries
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect();
             calls::definition_is_inert_with_values(node, source, false, &defaults)
         } {
             if let Some(name) = node.child_by_field_name("name") {
@@ -250,7 +256,13 @@ impl<'s, 't> Allocations<'s, 't> {
                         .any(|child| child.kind() == "async")
                 {
                     if let Some(parameters) = self.registration_parameters(node, source) {
-                        self.registrations.insert(name, RegistrationFunction { definition: node, parameters });
+                        self.registrations.insert(
+                            name,
+                            RegistrationFunction {
+                                definition: node,
+                                parameters,
+                            },
+                        );
                     }
                 }
             }
@@ -268,7 +280,11 @@ impl<'s, 't> Allocations<'s, 't> {
         None
     }
 
-    fn registration_parameters(&self, node: Node<'t>, source: &'s str) -> Option<Vec<(&'s str, Option<&'s str>)>> {
+    fn registration_parameters(
+        &self,
+        node: Node<'t>,
+        source: &'s str,
+    ) -> Option<Vec<(&'s str, Option<&'s str>)>> {
         let mut parameters = Vec::new();
         let mut names = BTreeSet::new();
         let mut optional = false;
@@ -287,9 +303,11 @@ impl<'s, 't> Allocations<'s, 't> {
                 _ => return None,
             };
             let name_text = &source[name.byte_range()];
-            if name.kind() != "identifier" || !name_text.is_ascii()
+            if name.kind() != "identifier"
+                || !name_text.is_ascii()
                 || name_text.starts_with("__") && name_text.ends_with("__")
-                || !names.insert(name_text) {
+                || !names.insert(name_text)
+            {
                 return None;
             }
             parameters.push((name_text, default));
@@ -297,7 +315,12 @@ impl<'s, 't> Allocations<'s, 't> {
         Some(parameters)
     }
 
-    fn dictionary_root(&self, node: Node<'_>, source: &'s str, roots: &BTreeMap<&str, &'s str>) -> Option<&'s str> {
+    fn dictionary_root(
+        &self,
+        node: Node<'_>,
+        source: &'s str,
+        roots: &BTreeMap<&str, &'s str>,
+    ) -> Option<&'s str> {
         let node = calls::unparenthesized(node)?;
         if node.kind() != "identifier" {
             return None;
@@ -318,18 +341,17 @@ impl<'s, 't> Allocations<'s, 't> {
         }
         let call = calls::unparenthesized(node.named_child(0)?)?;
         let function = calls::unparenthesized(call.child_by_field_name("function")?)?;
-        if call.kind() != "call"
-            || function.kind() != "identifier"
-        {
+        if call.kind() != "call" || function.kind() != "identifier" {
             return None;
         }
-        let function = self
-            .registrations
-            .get(&source[function.byte_range()])?;
+        let function = self.registrations.get(&source[function.byte_range()])?;
         let body = function.definition.child_by_field_name("body")?;
         let mut roots = BTreeMap::new();
         let mut keyword = false;
-        for (index, argument) in children(call.child_by_field_name("arguments")?).into_iter().enumerate() {
+        for (index, argument) in children(call.child_by_field_name("arguments")?)
+            .into_iter()
+            .enumerate()
+        {
             let (parameter, value) = if argument.kind() == "keyword_argument" {
                 keyword = true;
                 let name = argument.child_by_field_name("name")?;
@@ -337,8 +359,14 @@ impl<'s, 't> Allocations<'s, 't> {
                     return None;
                 }
                 let name = &source[name.byte_range()];
-                (function.parameters.iter().find(|(parameter, _)| *parameter == name)?.0,
-                 argument.child_by_field_name("value")?)
+                (
+                    function
+                        .parameters
+                        .iter()
+                        .find(|(parameter, _)| *parameter == name)?
+                        .0,
+                    argument.child_by_field_name("value")?,
+                )
             } else {
                 if keyword {
                     return None;
