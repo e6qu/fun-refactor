@@ -1,11 +1,9 @@
-"""Reject substituted source or rewritten records in completed cost studies."""
+"""Reject changed source and rewritten records in completed cost studies."""
 import importlib.util
-import io
-import json
 from pathlib import Path
-import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('history', ROOT / 'tools/frozen-python-cost.py')
@@ -14,36 +12,26 @@ spec.loader.exec_module(history)
 
 
 class History(unittest.TestCase):
-    def test_exact_pinned_source_is_read_without_modification(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path, metadata = root / 'source.tar.gz', root / 'manifest.json'
-            path.write_bytes(b'original source')
-            identity = history.digest(path.read_bytes())
-            metadata.write_text(json.dumps(history.manifest(identity)))
-            self.assertEqual(history.checked_snapshot(path, metadata, identity), b'original source')
+    def test_exact_clean_revision_is_required(self):
+        for revision, status, accepted in (
+            (history.SOURCE_COMMIT, '', True),
+            ('0' * 40, '', False),
+            (history.SOURCE_COMMIT, ' M src/project/flow_initializers.rs\n', False),
+            (history.SOURCE_COMMIT, '?? tools/injected.py\n', False),
+        ):
+            with self.subTest(revision=revision, status=status), patch.object(
+                history.subprocess, 'check_output', side_effect=[revision + '\n', status]
+            ):
+                if accepted:
+                    history.check_source(Path('/separate-original-source'))
+                else:
+                    with self.assertRaisesRegex(ValueError, 'historical source .*changed'):
+                        history.check_source(Path('/separate-original-source'))
 
-    def test_unpinned_and_substituted_source_refuse(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path, metadata = root / 'source.tar.gz', root / 'manifest.json'
-            path.write_bytes(b'swapped source')
-            for identity in ('', '0' * 64):
-                with self.assertRaisesRegex(ValueError, 'not pinned|archive changed'):
-                    history.checked_snapshot(path, metadata, identity)
-
-    def test_changed_producer_archive_name_and_report_set_refuse(self):
-        for field in ('source_commit', 'snapshot', 'reports'):
-            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                path, metadata = root / 'source.tar.gz', root / 'manifest.json'
-                path.write_bytes(b'original source')
-                identity = history.digest(path.read_bytes())
-                value = history.manifest(identity)
-                value[field] = 'changed'
-                metadata.write_text(json.dumps(value))
-                with self.assertRaisesRegex(ValueError, 'manifest changed'):
-                    history.checked_snapshot(path, metadata, identity)
+    def test_current_checkout_cannot_be_used_as_history(self):
+        with patch.object(history.subprocess, 'check_output', side_effect=[history.SOURCE_COMMIT, '']):
+            with self.assertRaisesRegex(ValueError, 'separate source checkout'):
+                history.check_source(ROOT)
 
     def test_published_reports_must_keep_their_original_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -56,23 +44,6 @@ class History(unittest.TestCase):
             (published / 'result.json').write_bytes(b'{"original":false}\n')
             with self.assertRaisesRegex(ValueError, 'historical report changed'):
                 history.check_published_reports(source, published, ('result.json',))
-
-    def test_even_correctly_fingerprinted_unsafe_archive_refuses(self):
-        for name, kind in (('../escape', tarfile.REGTYPE), ('tools/link', tarfile.SYMTYPE)):
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                output = io.BytesIO()
-                with tarfile.open(fileobj=output, mode='w:gz') as archive:
-                    member = tarfile.TarInfo(name)
-                    member.type = kind
-                    member.linkname = '/tmp/escape'
-                    archive.addfile(member, io.BytesIO(b''))
-                path, metadata = root / 'source.tar.gz', root / 'manifest.json'
-                path.write_bytes(output.getvalue())
-                identity = history.digest(output.getvalue())
-                metadata.write_text(json.dumps(history.manifest(identity)))
-                with self.assertRaisesRegex(ValueError, 'unsafe frozen source'):
-                    history.audit(path, metadata, identity, root)
 
 
 if __name__ == '__main__':

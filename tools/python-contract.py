@@ -47,6 +47,7 @@ def bindings():
                  'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py', 'sdk/python/tests/test_function_docs.py',
                  'docs/replace-python-defaults.md', 'sdk/python/tests/test_default_replacements.py',
                  'docs/check-python-startup.md', 'sdk/python/tests/test_startup_registration.py',
+                 'sdk/python/tests/test_registration_loops.py',
                  'docs/check-python-together.md', 'sdk/python/tests/test_flow_together.py',
                  'docs/save-python-startup.md', 'sdk/python/tests/test_saved_startup.py',
                  'sdk/python/src/fr_ir/flow_together.py',

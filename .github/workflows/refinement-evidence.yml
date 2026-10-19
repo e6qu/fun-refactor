@@ -58,7 +58,6 @@ on:
           - scalar-development
           - docs-review
           - freeze-repository-flow
-          - freeze-python-cost
           - retain-scalar
           - retain-ci-reports
           - retain-contract-failure
@@ -101,7 +100,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'freeze-python-cost' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -351,44 +350,6 @@ jobs:
           path: tests/agent-eval/results/${{ inputs.prefix }}-*
           if-no-files-found: warn
           retention-days: 7
-
-  freeze-python-cost:
-    if: inputs.group == 'freeze-python-cost' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.14'
-      - name: Reject source substitution and rewritten published reports
-        run: python3 -B tools/test-frozen-python-cost.py
-      - name: Read the exact merged source used before language changes
-        run: git fetch --depth=1 origin 8ca25c2d72484b7e66f49b279f8b5009c68f3d6e
-      - name: Retain unchanged source and rerun its original checks
-        run: python3 -B tools/frozen-python-cost.py --retain
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: python-cost-historical-source
-          path: tests/agent-eval/results/2026-10-19-python-cost-source/
-          retention-days: 30
-          if-no-files-found: error
-      - name: Commit the verified snapshot to this branch
-        env:
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f tests/agent-eval/results/2026-10-19-python-cost-source
-          git add tools/frozen-python-cost.py
-          git commit -m 'test: retain the source behind completed Python cost studies'
-          git push origin "HEAD:refs/heads/$BRANCH"
 
   freeze-repository-flow:
     if: inputs.group == 'freeze-repository-flow' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
@@ -965,7 +926,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
-      - run: cargo fmt --all --check
+      - name: Check Rust formatting and retain a correction if needed
+        run: |
+          if cargo fmt --all --check; then exit 0; fi
+          cargo fmt --all
+          git diff > "$RUNNER_TEMP/rustfmt.patch"
+          exit 1
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: rustfmt-correction
+          path: ${{ runner.temp }}/rustfmt.patch
+          if-no-files-found: ignore
+          retention-days: 7
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check documentation examples before collecting reports
@@ -1010,7 +983,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
-      - run: cargo fmt --all --check
+      - name: Check Rust formatting and retain a correction if needed
+        run: |
+          if cargo fmt --all --check; then exit 0; fi
+          cargo fmt --all
+          git diff > "$RUNNER_TEMP/rustfmt.patch"
+          exit 1
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: rustfmt-correction
+          path: ${{ runner.temp }}/rustfmt.patch
+          if-no-files-found: ignore
+          retention-days: 7
       - run: cargo clippy --locked --tests -- -D warnings
       - run: cargo build --locked --bin fr
       - name: Reject missing or changed current reports before collection
