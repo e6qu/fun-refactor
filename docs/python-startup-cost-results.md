@@ -1,5 +1,8 @@
 # Saving Python setup did not reduce total time in these examples
 
+This is the earlier development-build collection, with project caching disabled.
+The [optimized-build follow-up](python-optimized-cost-results.md) now tests project caching both off and on and records separate native-operation profiles.
+
 The [hosted comparison](https://github.com/e6qu/fun-refactor/actions/runs/39153927428) asked the same seven questions three ways.
 It compared direct fresh checks, saved setup and saved whole answers.
 Every saved result agreed with the direct fresh answer, including unfinished questions and changed files.
@@ -88,8 +91,7 @@ The raw memory fields are separate lifetime high-water marks, rather than simult
 Every Python worker reported the same 120,082,432-byte peak; those readings do not establish memory savings between approaches.
 Native-child peaks ranged from 40,075,264 to 44,126,208 bytes.
 
-These small disclosed examples establish correct reuse and visible overhead under this setup.
-They establish no speed advantage for optimized releases, enabled project caching, unfamiliar packages or agents completing repairs.
-Before adding more saved-work machinery, measure where optimized requests spend their time with the project cache enabled.
-Preserve source checks, import checks and unfinished answers while investigating those costs.
+These small disclosed examples establish correct reuse and visible overhead under this earlier setup.
+The [follow-up](python-optimized-cost-results.md) now measures optimized requests with project caching off and on.
+It preserves source checks, import checks and unfinished answers while locating those costs.
 Full-package acceptance and the stopped live-agent studies retain their existing limits.

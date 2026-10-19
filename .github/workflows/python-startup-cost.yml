@@ -1,16 +1,11 @@
-name: Python saved setup costs
+name: Optimized Python request costs
 on:
   workflow_dispatch:
-    inputs:
-      retain:
-        description: Commit the checked measurement to this branch
-        required: true
-        type: boolean
-        default: false
   pull_request:
     paths:
       - 'tools/python-startup-cost.py'
       - 'tools/test-python-startup-cost.py'
+      - 'tools/project-profile.rs'
       - 'tests/agent-eval/python-startup-cost/**'
       - '.github/workflows/python-startup-cost.yml'
 permissions:
@@ -19,56 +14,87 @@ concurrency:
   group: python-startup-cost-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
-  measure:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Check controls that reject misleading measurements
+        run: python3 -B tools/test-python-startup-cost.py
+  build:
+    needs: controls
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: write
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
-      CARGO_PROFILE_DEV_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: optimized-python-cost
+      - run: cargo build --locked --release --bin fr --example project-profile
+      - name: Record the compiled source, compiler and executable identities
+        run: |
+          git rev-parse HEAD > target/release/source.txt
+          rustc --version > target/release/rustc.txt
+          cd target/release
+          sha256sum fr examples/project-profile > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: optimized-python-cost-binaries
+          path: |
+            target/release/fr
+            target/release/examples/project-profile
+            target/release/source.txt
+            target/release/rustc.txt
+            target/release/SHA256SUMS
+          retention-days: 7
+          if-no-files-found: error
+  measure:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: rustup toolchain install stable --profile minimal
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
         with:
-          key: default
-      - run: cargo build --locked --bin fr
-      - name: Check controls that reject misleading measurements
-        run: python3 -B tools/test-python-startup-cost.py
-      - name: Measure the complete requests with five repetitions
+          name: optimized-python-cost-binaries
+          path: target/release
+      - run: chmod +x target/release/fr target/release/examples/project-profile
+      - name: Verify the binaries came from this exact source and compiler
+        run: |
+          test "$(cat target/release/source.txt)" = "$(git rev-parse HEAD)"
+          test "$(cat target/release/rustc.txt)" = "$(rustc --version)"
+          cd target/release
+          sha256sum --check SHA256SUMS
+      - name: Measure ordinary requests and separate diagnostic sequences
         run: >-
-          python3 -B tools/python-startup-cost.py --fr target/debug/fr --repetitions 5
+          python3 -B tools/python-startup-cost.py --fr target/release/fr
+          --profiler target/release/examples/project-profile
+          --repetitions 5 --profile-repetitions 3
           --output "$RUNNER_TEMP/python-startup-cost"
       - name: Independently check every saved request
-        run: python3 -B tools/python-startup-cost.py --audit "$RUNNER_TEMP/python-startup-cost"
+        run: python3 -B tools/python-startup-cost.py --audit-set "$RUNNER_TEMP/python-startup-cost"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: python-startup-cost
+          name: optimized-python-startup-cost
           path: ${{ runner.temp }}/python-startup-cost/
           retention-days: 30
           if-no-files-found: error
-      - name: Retain the checked raw measurements
-        if: github.event_name == 'workflow_dispatch' && inputs.retain
-        env:
-          BRANCH: ${{ github.ref_name }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          destination="tests/agent-eval/results/2026-10-18-python-startup-cost"
-          mkdir "$destination"
-          cp "$RUNNER_TEMP/python-startup-cost/result.json" "$destination/result.json"
-          printf '%s\n' "https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > "$destination/run.txt"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$destination"
-          git commit -m 'test: retain Python startup cost measurements'
-          git push origin "HEAD:refs/heads/$BRANCH"

@@ -136,7 +136,7 @@
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-optimized-cost-docs-python-contract/result.json",
       "changed_sources": [
         "crates/tree-sitter-language/Cargo.toml"
       ],
@@ -144,7 +144,7 @@
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-optimized-cost-docs-python-contract/result.json",
       "scope": "14 declared Python rules; 464 authored programs and 928 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {

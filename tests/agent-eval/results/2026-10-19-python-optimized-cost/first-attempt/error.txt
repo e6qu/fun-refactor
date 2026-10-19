@@ -1,0 +1,29 @@
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1841362Z Traceback (most recent call last):
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1853869Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 560, in <module>
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1854438Z     main()
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1854642Z     ~~~~^^
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1855045Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 556, in main
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1855477Z     measure(args)
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1855692Z     ~~~~~~~^^^^^^
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1856290Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 317, in measure
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1856837Z     result = invoke(condition, project, work, case, function, strategy)
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1857375Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 223, in invoke
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1857975Z     require(process.returncode == 0, f'worker failed ({case}/{function}/{strategy}): {process.stderr}')
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1858496Z     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1859013Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 76, in require
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1859472Z     raise ValueError(message)
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1859875Z ValueError: worker failed (local/forwards/saved-startup): Traceback (most recent call last):
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1860490Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 560, in <module>
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1860918Z     main()
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1861110Z     ~~~~^^
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1861515Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 551, in main
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1861957Z     print(encode(worker(args)).decode())
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1862225Z                  ~~~~~~^^^^^^
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1862643Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/python-startup-cost.py", line 187, in worker
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1863125Z     prepared = cache.analyze(client, target, **options)
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1863644Z   File "/home/runner/work/fun-refactor/fun-refactor/sdk/python/src/fr_ir/flow_startup.py", line 188, in analyze
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1864129Z     result = PreparedFlow.from_report(report)
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1864702Z   File "/home/runner/work/fun-refactor/fun-refactor/sdk/python/src/fr_ir/flow_startup.py", line 115, in from_report
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1887016Z ##[error]    raise FrRuntimeError('unsupported prepared flow report')
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1893361Z fr_ir.runtime.FrRuntimeError: unsupported prepared flow report
+measure	Measure ordinary requests and separate diagnostic sequences	2026-10-19T00:02:40.1893647Z 

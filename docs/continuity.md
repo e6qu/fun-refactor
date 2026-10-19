@@ -40,13 +40,24 @@ Every call supplies its settings explicitly and still verifies source files and 
 Edits to those files force fresh preparation. Damaged saved records fail visibly.
 Unknown startup effects keep the answer unfinished and add no saved entry.
 
-The [complete-request comparison](python-startup-cost-results.md) measures those approaches across 420 requests under the same limits.
-Saved and fresh answers agreed, including edits and unfinished questions. Neither saved approach reduced median total time for these four examples.
-The development build disabled persistent project caching; optimized-release and enabled-cache costs remain unknown.
-Next, measure where optimized requests spend time with the project cache enabled before adding more saved-work machinery.
-Count finding functions, file checks, import resolution, parsing, process startup and storage when choosing the next change.
-The preparation checks and the new cost comparison passed; their results appear in the linked reports.
+The [optimized comparison](python-optimized-cost-results.md) measures project caching off and on across 1,344 ordinary and diagnostic requests.
+Answers agreed, including edits and unfinished questions.
+Project caching reduced fresh-check totals by about 22–23% in these examples.
+With that cache on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% to total time.
+Neither saved approach reduced median sequence time in either setting.
+
+One repeated local question took about 0.258 seconds overall and 0.016 seconds after loading code and reading options.
+Next, measure starting Python, loading client and measurement code, reading options and returning the final reply separately.
+The measurement loads client source without saved compiled Python modules. Compare an installed client before choosing code changes.
+Compare several questions from one Python program with separate process starts, and measure the existing two-helper request against separate questions.
+The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
+
+The impact audit previously passed its test but exhausted the 15-minute job budget during cleanup.
+It now avoids reports for sampled declarations without rewritable references and reuses each test file's line index.
+Every sampled rewritable-reference assertion remains, and source or analysis errors now fail visibly.
+Only audit jobs that use external compilers install them.
+The [complete deep recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) passed all audits and external replays at the same deadlines.
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
 Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.
@@ -181,7 +192,7 @@ Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
 The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-19-optimized-cost-docs-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
 It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
 Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.

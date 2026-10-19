@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Profile public project-query stages and compare every report with the release CLI."""
+"""Profile public project-query stages and compare every answer with the release CLI."""
 
 import argparse
 from datetime import datetime, timezone
@@ -24,7 +24,8 @@ PHASES = {"root", "scan", "cache_open", "index", "project", "query", "verify", "
 def profile(binary, root, cache, args, disabled):
     env = os.environ.copy()
     env["FUN_REFACTOR_CACHE"] = str(cache)
-    argv = [str(binary), "-C", str(root)] + (["--no-cache"] if disabled else []) + args
+    assert args[0] == "project", "Supply the complete CLI project query"
+    argv = [str(binary), "-C", str(root)] + (["--no-cache"] if disabled else []) + args[1:]
     started = time.perf_counter_ns()
     process = subprocess.run(argv, cwd=root, env=env, capture_output=True, timeout=180)
     seconds = (time.perf_counter_ns() - started) / 1_000_000_000
@@ -35,6 +36,12 @@ def profile(binary, root, cache, args, disabled):
     assert all(0 <= value <= result["measured_seconds"] for value in result["phases_seconds"].values())
     assert sum(result["phases_seconds"].values()) <= result["measured_seconds"] <= seconds
     return {**result, "subprocess_seconds": seconds, "stderr": process.stderr.decode()}
+
+
+def check_report(profile, baseline):
+    expected = json.loads(baseline["stdout"])
+    del expected["context_basis"]
+    assert json.loads(profile["report_stdout"]) == expected, "Profiler and CLI answers differ"
 
 
 def measure(binary, profiler, repetitions):
@@ -60,11 +67,11 @@ def measure(binary, profiler, repetitions):
                     warmup = None
                     if mode == "populated":
                         warmup = profile(profiler, root, cache, args, False)
-                        assert warmup["report_stdout"] == baseline["stdout"]
+                        check_report(warmup, baseline)
                     before = cache_measurement.cache_inventory(cache)
                     result = profile(profiler, root, cache, args, mode == "disabled")
                     after = cache_measurement.cache_inventory(cache)
-                    assert result["report_stdout"] == baseline["stdout"], "Profile and CLI reports differ"
+                    check_report(result, baseline)
                     if mode == "populated":
                         assert before["files"] > 0 and before == after
                         assert result["fact_cache_hits"] == result["indexed_files"]
@@ -95,7 +102,7 @@ def measure(binary, profiler, repetitions):
             "measurement_files": {name: harness.digest((ROOT / name).read_bytes()) for name in files},
             "archive_sha256": harness.regex_workspace.ARCHIVE_SHA, "dependency_lock_sha256": harness.regex_workspace.LOCK_SHA,
             "repetitions": repetitions, "examples": examples, "source_and_index_unchanged": True,
-            "scope": "A separate executable times the public library pipeline with default scan options. Every report matches the ordinary CLI byte for byte. Stage times exclude argument parsing, startup and profiling-report output; subprocess time includes them. Index time includes fact loading/extraction, merging and workspace resolution. Populated runs require a fact-cache hit for every indexed file; resolution-cache hits are not counted. Priming and cache-inventory hashing occur outside the measured sample. Single host, rotating modes, no cold OS cache, agent, context-saving or general production-latency claim."}
+            "scope": "A separate executable times the public library pipeline with default scan options. Every answer matches the CLI after removing only the CLI-only context_basis identity; all other fields remain compared. Stage times exclude argument parsing, startup and profiling-report output; subprocess time includes them. Index time includes fact loading/extraction, merging and workspace resolution. Populated runs require a fact-cache hit for every indexed file; resolution-cache hits are not counted. Priming and cache-inventory hashing occur outside the measured sample. Single host, rotating modes, no cold OS cache, agent, context-saving or general production-latency claim."}
 
 
 def main():

@@ -83,11 +83,18 @@ Read each report's actual baseline before interpreting a warm-run improvement.
 An edited run also measures checking which earlier results still apply.
 A faster warm run must repay the initial work and added storage before it benefits the whole task.
 
-The [saved Python setup comparison](python-startup-cost-results.md) measures 420 requests across four disclosed examples.
+The [earlier saved Python setup comparison](python-startup-cost-results.md) measures 420 requests across four disclosed examples.
 The baseline checks each function directly. The alternatives reopen saved setup or saved whole answers under the same limits.
 Median seven-question totals increased by 0.8–2.8% with saved setup and 28.7–33.8% with saved whole answers.
 The totals include initial population, finding functions, Python and native startup, file and import checks, parsing and storage.
-The development build disabled persistent project caching; optimized-release costs and enabled-cache costs remain unknown.
+That development build disabled persistent project caching.
+
+The [optimized follow-up](python-optimized-cost-results.md) adds project caching off and on, with 840 ordinary requests and 504 separate diagnostic requests.
+Project caching reduced fresh-check sequence totals by 21.9–23.3% relative to the same optimized executable with caching off.
+With project caching on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% relative to fresh checks.
+Those totals include the initial cache fill, later questions, edits, unfinished replies and source restoration.
+Separate native-operation timers locate work; their diagnostic totals do not substitute for ordinary request times.
+The roughly 242 ms outside one repeated question's inner worker includes launch, imports and reply handling, without identifying their individual costs.
 
 The [saved cache report](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains three repetitions on one host.
 The table below derives warm-versus-cold differences from its unrounded median elapsed times for the newer report-chunk format.

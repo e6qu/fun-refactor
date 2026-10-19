@@ -69,7 +69,8 @@ if [ "$slice" = study ]; then
     python3 -B tools/test-python-symbolic-experiment.py
     python3 -B tools/test-python-startup.py
     python3 -B tools/test-python-startup-cost.py
-    python3 -B tools/python-startup-cost.py --audit tests/agent-eval/results/2026-10-18-python-startup-cost
+    python3 -B tools/agent_eval/test_harness.py ProjectPhaseEvidence
+    python3 -B tools/python-startup-cost.py --audit-set tests/agent-eval/results/2026-10-19-python-optimized-cost
     python3 -B tools/test-frozen-analyzer.py
     python3 tools/agent_eval/test_codex_runner.py
     python3 tests/agent-eval/test_python_repository_basis.py

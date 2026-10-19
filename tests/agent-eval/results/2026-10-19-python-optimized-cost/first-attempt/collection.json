@@ -1,0 +1,21 @@
+{
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/39177745364",
+  "source": "ee7fc15b1446f3e63271ef2d002c1c070cadaa9e",
+  "status": "failure",
+  "artifact_id": 12155880909,
+  "artifact_name": "optimized-python-startup-cost",
+  "artifact_sha256": "8ca6b3ebd1cd768f63455a7307eeb17ecb872b72275ea826d52ca13960d3d6c6",
+  "artifact_bytes": 189458,
+  "completed_requests": 49,
+  "failed_request": {
+    "engine": "profile",
+    "project_cache": "disabled",
+    "case": "local",
+    "repetition": 0,
+    "strategy": "saved-startup",
+    "stage": "first-question"
+  },
+  "cause": "The library profiler omitted the project context_basis identity required by the strict prepared-flow SDK report reader.",
+  "repair": "The diagnostic client constructs the current project identity before invoking the unchanged SDK validation. Dedicated controls compare it with the SDK identity calculation and reject an unexpected profiler format.",
+  "accepted_as_complete_comparison": false
+}

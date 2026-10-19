@@ -210,34 +210,42 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
 #[test]
 fn impact_covers_every_reference_it_could_rewrite() {
     let (_root, index) = workspace();
-    let mut sources: HashMap<PathBuf, String> = HashMap::new();
+    let mut sources: HashMap<PathBuf, (String, fun_refactor::span::LineIndex)> = HashMap::new();
     let mut checked = 0;
+    let mut reports = 0;
+    let mut unreferenced = 0;
     for symbol in sampled(index, 311) {
-        let Ok(report) = impact::analyse(index, symbol.id, 2) else {
+        let references = index
+            .references_to(symbol.id)
+            .into_iter()
+            .filter(|reference| reference.confidence.is_safe_to_rewrite())
+            .collect::<Vec<_>>();
+        if references.is_empty() {
+            unreferenced += 1;
             continue;
-        };
+        }
+        let report =
+            impact::analyse(index, symbol.id, 2).expect("impact on an indexed declaration");
+        reports += 1;
         let covered: HashSet<(PathBuf, usize)> = report
             .items
             .iter()
             .map(|i| (i.file.clone(), i.line))
             .collect();
-        for reference in index.references_to(symbol.id) {
-            if !reference.confidence.is_safe_to_rewrite() {
-                continue;
-            }
+        for reference in references {
             checked += 1;
-            let text = sources
-                .entry(reference.file.clone())
-                .or_insert_with(|| std::fs::read_to_string(&reference.file).unwrap_or_default());
-            let line = fun_refactor::span::LineIndex::new(text)
-                .line_col(reference.span.start, text)
-                .line;
-            let declared = sources
-                .entry(symbol.file.clone())
-                .or_insert_with(|| std::fs::read_to_string(&symbol.file).unwrap_or_default());
-            let at = fun_refactor::span::LineIndex::new(declared)
-                .line_col(symbol.name_span.start, declared)
-                .line;
+            let (text, lines) = sources.entry(reference.file.clone()).or_insert_with(|| {
+                let text = std::fs::read_to_string(&reference.file).expect("reference source");
+                let lines = fun_refactor::span::LineIndex::new(&text);
+                (text, lines)
+            });
+            let line = lines.line_col(reference.span.start, text).line;
+            let (declared, lines) = sources.entry(symbol.file.clone()).or_insert_with(|| {
+                let text = std::fs::read_to_string(&symbol.file).expect("declaration source");
+                let lines = fun_refactor::span::LineIndex::new(&text);
+                (text, lines)
+            });
+            let at = lines.line_col(symbol.name_span.start, declared).line;
             assert!(
                 covered.contains(&(reference.file.clone(), line)),
                 "impact on `{}`, declared at {}:{at}, omits the reference at \
@@ -249,11 +257,13 @@ fn impact_covers_every_reference_it_could_rewrite() {
             );
         }
     }
-    // Every `impact::analyse` erroring, or no reference being safe to rewrite, would
-    // leave nothing compared and the test passing.
+    // An empty sample must not pass without checking a reference.
     assert!(
         checked > 0,
         "this checked no rewritable reference against any impact report."
+    );
+    eprintln!(
+        "Checked {checked} rewritable references across {reports} impact reports; {unreferenced} sampled declarations have no rewritable references."
     );
 }
 
