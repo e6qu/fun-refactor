@@ -58,7 +58,20 @@ The three examples with matching answers showed 2.7–9.0% lower totals together
 With one shared step, the second answer gets zero; that measurement performs different work and supports no equal-answer saving claim.
 The original failed audit is preserved; its mistaken rule fingerprint and missing call-depth field are fixed with a real-reply regression.
 The experiment used the existing analyzer, client and limits.
+These timing studies predate bounded loop support.
+Their original code still audits them; this language change has no separate cost measurement.
 Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
+
+A small registration function can now copy entries between dictionaries created in the same file.
+The source must list its entries directly in code and stay unchanged.
+For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
+records the label without running unknown code.
+The [startup lesson](check-python-startup.md) supplies the complete example.
+The function and its repeated work each keep the 128-node limit.
+Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
+Toolz still needs stored object defaults, module-valued keys, conditional imports and function-argument inspection.
+This bounded loop rule does not complete its package answer.
+
 The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
@@ -204,13 +217,14 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-19-optimized-cost-docs-python-contract/manifest.json)
-covers 464 programs and 928 original or renamed cases, including small startup registration functions.
-It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
-Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
+The [checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-loops-scalar-collection/manifest.json) identifies the current analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-19-registration-loops-python-contract/manifest.json)
+covers 468 programs and 936 original or renamed cases, including bounded startup registration loops.
+It preserves 356 incomplete cases, 18 refusals and 132 documented differences between the checker's model and Python's observed behavior.
+Six differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
 Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
-The Python interface check passed 1,484 cases, including 75 cases for saving preparation between requests.
+The Python interface check passed 1,560 cases, including 75 cases for saving preparation between requests.
+Another 76 cases check bounded loops, source mutations, local names and saved answers after edits.
 Those cases compare saved and fresh answers, ordinary Python, source edits, competing imports, damaged records and unchanged limits.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.

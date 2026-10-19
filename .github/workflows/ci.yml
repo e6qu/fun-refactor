@@ -48,6 +48,32 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Check out the unchanged source for completed Python measurements
+        uses: actions/checkout@v7
+        with:
+          ref: 8ca25c2d72484b7e66f49b279f8b5009c68f3d6e
+          path: historical-python-cost
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /build.rs
+            /native-source-inputs.txt
+            /src
+            grammars
+            crates
+            queries
+            tools
+            sdk/python/src
+            sdk/python/pyproject.toml
+            .github/workflows
+            tests/agent-eval/python-startup-cost
+            tests/agent-eval/results/2026-10-19-python-optimized-cost
+            tests/agent-eval/results/2026-10-19-python-process-cost
+            tests/agent-eval/results/2026-10-19-python-together-cost
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Select the separate historical source checkout
+        run: echo "FR_PYTHON_COST_SOURCE=$GITHUB_WORKSPACE/historical-python-cost" >> "$GITHUB_ENV"
       - name: Prepare the isolated grader test image
         timeout-minutes: 2
         run: |

@@ -19,15 +19,19 @@ Create a new directory and save the following files there.
 
 Save this as `helpers.py`.
 `table` starts as an empty dictionary.
-The call to `register()` fills it during import.
+The call to `register()` fills it during import by visiting the entries in `labels`.
+At each visit, `key` receives the entry name and `item` receives its value.
+Here there is one entry: the loop copies the key `label` and the value `ready` into `table`.
 The stored `lambda` creates a function; creating it does not run its body.
 Here, `missing()` deliberately names an unavailable function to demonstrate that the body stays deferred.
 
 ```python
 table = {}
+labels = {'label': 'ready'}
 
 def register():
-    table['label'] = 'ready'
+    for key, item in labels.items():
+        table[key] = item
     table.update(send=lambda: missing())
 
 register()
@@ -136,14 +140,29 @@ Neither name can already belong to something else in the file.
 The checker rechecks dictionary ownership and built-in names at each call.
 An intervening import, unknown call or assignment giving either object another name discards that checked connection.
 The existing saved-answer cache records the files read and the places searched for imports; changing them requires another check.
-Startup checks remain part of one analysis; they cannot yet be saved and reused on their own.
+You can also [save startup checks separately](save-python-startup.md). Reuse requires matching source files, import searches and settings; an edit requires another check.
 
-Imported shared dictionaries, helper replacement, nested calls, loops, conditions and calls with arguments stay unfinished.
+A registration function can also copy a short, known set of entries.
+A literal writes values directly in source, such as `labels = {'state': 'ready'}`.
+For example, declare `labels = {'state': 'ready'}` before `register`, then put
+`for key, item in labels.items():` and the indented write `table[key] = item` inside it.
+Python visits each key and its value; here it copies `'state': 'ready'` into `table`.
+The source dictionary must come from a literal in the same file and have no intervening writes.
+The destination must be a different dictionary created in the same file.
+The checker also accepts a nonempty literal tuple or list, such as
+`for key in ('state', 'label'):` followed by `table[key] = 'ready'`.
+Nested loops need distinct local names.
+Both the function's syntax and the work after repeating each loop body must fit 128 nodes.
+An empty loop, reused target name, loop `else`, early exit or changed source dictionary stays unfinished.
+This includes overwriting an existing source entry: the checker deliberately requires an unchanged source.
+Dictionary constructors such as `dict(state='ready')` cannot supply iteration entries yet.
+
+Imported shared dictionaries, helper replacement, nested calls, unknown iterables, conditions and calls with arguments stay unfinished.
 So do functions using an `@` decorator or declared with `async def`.
 A decorator can replace a function while Python defines it; an asynchronous function needs a caller that awaits its work.
 Reading dictionary contents or calling stored callbacks remains outside this rule.
 All file, source-size, execution and time limits remain unchanged.
-Toolz's actual registration function includes loops, imported introspection and computed values, so this first step cannot finish its package analysis.
+Toolz's registration function also inspects function arguments, imports modules dynamically and computes new values. Checking bounded iteration alone cannot finish its package analysis.
 
 Tests compare these examples and unsafe changes with ordinary Python execution.
 This measures agreement on specific behavior, not speed or complete package support.

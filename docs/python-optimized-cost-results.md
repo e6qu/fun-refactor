@@ -1,5 +1,8 @@
 # Project caching helped; saving Python setup added cost in these examples
 
+These completed measurements describe the checker before bounded startup loops.
+CI audits them with their unchanged source and SDK; they do not measure the later loop-support change.
+
 You want a later Python question to take less time without losing checks after an edit.
 The [optimized-build comparison](https://github.com/e6qu/fun-refactor/actions/runs/39179055709) measured three ways to answer the same questions.
 It checked from scratch, reopened saved setup, or reopened saved whole answers.

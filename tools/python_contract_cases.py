@@ -1199,6 +1199,28 @@ EXAMPLES.extend([
             difference='Python raises before entering the application; the unchecked startup call keeps the model incomplete.'),
 ])
 
+for returned in ('value', '0'):
+    EXAMPLES.append(example('registration-loop-' + ('forward' if returned == 'value' else 'discard'),
+        'imports calls names returns boundaries', 'return sink(relay(source()))',
+        [S, T if returned == 'value' else ZERO], 17 if returned == 'value' else 0,
+        witness=returned == 'value', prelude='from helper import relay\n', files={
+            'helper.py': "table = {}\nlabels = {'state': 'ready', 'count': 2}\ndef register():\n"
+                         "    for key, item in labels.items():\n        table[key] = item\nregister()\n"
+                         'def relay(value):\n    return ' + returned + '\n'}))
+
+EXAMPLES.extend([
+    example('registration-loop-evaluated-value', 'calls names boundaries', 'return sink(source())',
+            [S, S, T], 17, witness=True, source_index=1,
+            prelude="table = {}\ndef register():\n    for key in ('state',):\n        table[key] = source()\nregister()\n",
+            complete=False, cutoff='module-effects-unchecked'),
+    example('registration-loop-replaces-helper', 'calls names returns boundaries',
+            'return sink(relay(source()))', [S, ZERO], 0, witness=True,
+            prelude="table = {}\ndef relay(value):\n    return value\ndef register():\n"
+                    "    for key in ('state',):\n        global relay\n        relay = lambda value: 0\nregister()\n",
+            complete=False, cutoff='module-effects-unchecked',
+            difference='Python uses the helper replaced inside the loop; startup stays unchecked and the possible original connection is not a complete answer.'),
+])
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',

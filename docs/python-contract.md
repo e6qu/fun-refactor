@@ -556,7 +556,8 @@ ASCII module names; class attributes, function defaults and special metadata kee
 
 The [startup-call lesson](check-python-startup.md) also fills such a table through a small no-argument function called during import.
 It supplies all files, compares the result with Python, and changes startup to replace the helper as an unfinished control.
-The whole registration function must fit the existing 128-node syntax bound; unknown calls, shared writes and control flow remain unchecked.
+The whole registration function and its repeated loop work must each fit the existing 128-node bound.
+The lesson explains copying known literal entries into a different dictionary; unknown calls, shared writes and other control flow remain unchecked.
 
 A dictionary stores values under keys. A callback is a function stored for a later call;
 `lambda value: value` creates a function that returns its argument when called.

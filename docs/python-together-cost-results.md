@@ -1,5 +1,8 @@
 # Two helper questions together saved a little time in these examples
 
+These completed measurements describe the checker before bounded startup loops.
+CI audits them with their unchanged source and SDK; they do not measure the later loop-support change.
+
 Checking two local helpers separately took a median of 0.444 seconds across seven pairs of questions.
 Asking about both helpers in one request took 0.429 seconds, about 3.2% less.
 Both approaches kept one installed Python client running and included its first start and final shutdown.

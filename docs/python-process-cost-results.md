@@ -1,5 +1,8 @@
 # Keeping Python running helped these repeated questions
 
+These completed measurements describe the checker before bounded startup loops.
+CI audits them with their unchanged source and SDK; they do not measure the later loop-support change.
+
 For seven questions about a local helper, starting Python from SDK source each time took a median of 1.212 seconds.
 Installing the same client with saved compiled modules reduced that total to 0.888 seconds.
 Keeping the installed client running for all seven questions reduced it to 0.280 seconds, including its first start and final shutdown.
