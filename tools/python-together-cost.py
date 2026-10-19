@@ -302,7 +302,8 @@ def collect(args):
                     with (args.output / 'sessions.jsonl').open('ab') as stream:
                         stream.write(encode(row) + b'\n')
                 print(f'measured {case} repetition {repetition + 1}', file=sys.stderr, flush=True)
-        require(copies['installed'] == process.sdk_inventory(installed, True), 'installed SDK changed')
+        require(copies == {'source': process.sdk_inventory(ROOT / 'sdk/python/src', False),
+                           'installed': process.sdk_inventory(installed, True)}, 'SDK changed during collection')
     require(before == bindings(), 'sources changed')
     report = {'schema': 'fr-python-together-cost', 'bindings': before, 'scope': SCOPE, 'cases': CASES,
               'stages': json.loads(encode(STAGES)), 'conditions': list(CONDITIONS), 'repetitions': 5,

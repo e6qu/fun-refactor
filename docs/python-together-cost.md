@@ -78,8 +78,9 @@ These runtime checks occur outside the timed sequences and do not compare Python
 The recurring total adds the first process start through its ready reply, all seven submitted pairs through parsed replies, and shutdown through process exit.
 It includes client loading, both function searches, native startup, analysis, client validation, measurement code and JSON serialization and parsing.
 Each process stays alive for its whole sequence in both approaches.
-The controller changes the example files, verifies installation and saves evidence between those intervals.
-A separate wall-time record includes that controller work.
+The controller changes the example files, checks loaded module paths and saves progress between those intervals.
+A separate session wall-time record includes that controller work.
+The installation inventory and ordinary-Python correctness checks run outside every session's timers.
 
 The installation record lists building a wheel, installing it and compiling checked-hash bytecode separately.
 A **wheel** is a Python package archive.
