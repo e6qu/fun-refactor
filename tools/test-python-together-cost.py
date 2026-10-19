@@ -20,6 +20,7 @@ def fixture():
                 requests = []
                 for label, state, names in cost.STAGES:
                     answers = []
+                    lookups = []
                     files = cost.process.sources(case, state)
                     for index, name in enumerate(names):
                         inputs = {'source': {'path': 'app.py', 'digest': cost.digest(files['app.py'])},
@@ -32,7 +33,13 @@ def fixture():
                                                           if path.endswith('.py')}}
                         complete = case != 'unfinished-budget' and state != 'unknown'
                         work = 0 if case == 'unfinished-budget' and condition == 'together' and index == 1 else 1
+                        revision = 'a' * 64
+                        target = 'frp1:' + revision[:32] + ':' + ('1' if name == 'forwards' else '2')
+                        lookups.append({'schema': 'fr-project-1', 'query': 'find', 'revision': revision,
+                                        'columns': ['handle', 'name', 'path'], 'rows': [[target, name, 'app.py']],
+                                        'page': {'remaining': 0}})
                         answers.append({'schema': 'fr-dataflow-1', 'inputs': inputs,
+                                        'revision': revision, 'target': target,
                                         'input_digest': cost.digest(inputs), 'complete': complete,
                                         'budget': {'steps': steps, 'used': work, 'response_bytes': 1_048_576},
                                         'witnesses': [17] if name == 'forwards' or state == 'edited' else [],
@@ -51,15 +58,14 @@ def fixture():
                         raw = answers
                     key = cost.digest(raw)
                     reports[key] = raw
-                    calls = [{'operation': 'find', 'seconds': 0.005, 'report_json_bytes': 500}
-                             for _ in range(2)] + [
-                                 {'operation': 'dataflow', 'seconds': 0.005,
+                    calls = [
+                                 {'operation': 'find' if index < 2 else 'dataflow', 'seconds': 0.005,
                                   'report_json_bytes': len(cost.json.dumps(value, ensure_ascii=False,
                                                                           separators=(',', ':')).encode())}
-                                 for value in raw]
+                                 for index, value in enumerate(lookups + raw)]
                     requests.append({'stage': label, 'names': names, 'report_digest': key,
                                      'seconds': 0.03, 'body_seconds': 0.025,
-                                     'calls': calls})
+                                     'calls': calls, 'lookups': lookups})
                 launch = {'ready': True, 'stopped': True, 'startup_seconds': 0.1,
                           'bootstrap_seconds': 0.08, 'shutdown_seconds': 0.01,
                           'module_files': ['fr_ir/__init__.py', 'fr_ir/runtime.py', 'fr_ir/flow.py',
@@ -188,6 +194,11 @@ class Controls(unittest.TestCase):
             row = r['sessions'][0]['requests'][0]
             change_raw(r, row, lambda raw: raw[0]['inputs']['budget'].update(bytes=2_097_152))
         self.reject(change, 'source or explicit')
+
+    def test_search_receipts_must_select_the_analyzed_functions(self):
+        self.reject(lambda r: r['sessions'][0]['requests'][0]['lookups'].pop(), 'search receipts')
+        self.reject(lambda r: r['sessions'][0]['requests'][0]['lookups'][0]['rows'][0].__setitem__(1, 'other'),
+                    'selected function')
 
 
 if __name__ == '__main__':

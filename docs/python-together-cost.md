@@ -111,7 +111,7 @@ python3 -B tools/python-together-cost.py \
 
 `result.json` retains all reports and sample timings, file identities, settings, hardware and installation costs.
 The artifact also contains progress records, the built wheel and any failure trace.
-The independent audit checks every stage, source edit, unfinished reason, work allocation, cost sum and native report byte count.
+The independent audit checks every stage, selected function, source edit, unfinished reason, work allocation, cost sum and native report byte count.
 For sufficient work, full semantic answers must agree between approaches and repetitions.
 Only execution accounting and the enclosing command's project identity leave that comparison.
 The one-step case compares the first answer across approaches and keeps the second answers separate because their work differs.

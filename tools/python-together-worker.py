@@ -26,6 +26,7 @@ class TimedClient(FrClient):
         super().__init__(args.project, executable=args.fr, timeout=20,
                          max_output_bytes=1_048_576)
         self.calls = []
+        self.lookups = []
 
     def project(self, *arguments):
         started = time.perf_counter()
@@ -34,6 +35,8 @@ class TimedClient(FrClient):
         self.calls.append({'operation': arguments[0], 'seconds': seconds,
                            'report_json_bytes': len(json.dumps(report.to_data(), ensure_ascii=False,
                                                                separators=(',', ':')).encode())})
+        if arguments[0] == 'find':
+            self.lookups.append(report.to_data())
         return report
 
 
@@ -82,4 +85,5 @@ for line in sys.stdin:
             reports.append(answer.report.to_data())
     else:
         raise ValueError('unknown approach')
-    emit({'reports': reports, 'calls': client.calls, 'body_seconds': time.perf_counter() - started})
+    emit({'reports': reports, 'lookups': client.lookups, 'calls': client.calls,
+          'body_seconds': time.perf_counter() - started})

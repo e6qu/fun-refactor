@@ -163,12 +163,21 @@ def audit(report):
                     del shared['selection']
                     require(shared == group['startup']['inputs'], 'shared dependencies changed')
             calls = request['calls']
+            lookups = request['lookups']
+            require(len(lookups) == 2, 'function search receipts missing')
+            for lookup, name, answer in zip(lookups, names, answers):
+                require(lookup['schema'] == 'fr-project-1' and lookup['query'] == 'find'
+                        and lookup['revision'] == answer['revision'] and len(lookup['rows']) == 1
+                        and lookup['page']['remaining'] == 0, 'function search changed')
+                found = dict(zip(lookup['columns'], lookup['rows'][0]))
+                require(found['handle'] == answer['target'] and found['name'] == name
+                        and found['path'] == 'app.py', 'selected function changed')
             require([call['operation'] for call in calls] == ['find', 'find'] + ['dataflow'] * (
                 1 if condition == 'together' else 2), 'native calls missing')
             require(all(finite(call['seconds']) and type(call['report_json_bytes']) is int
                         and call['report_json_bytes'] > 0 for call in calls), 'native call cost missing')
-            require([call['report_json_bytes'] for call in calls[2:]] == [len(json.dumps(
-                value, ensure_ascii=False, separators=(',', ':')).encode()) for value in raw],
+            require([call['report_json_bytes'] for call in calls] == [len(json.dumps(
+                value, ensure_ascii=False, separators=(',', ':')).encode()) for value in lookups + raw],
                 'native report bytes changed')
             if condition == 'together':
                 require(calls[2]['report_json_bytes'] + 512 <= 1_048_576, 'combined output limit exceeded')
