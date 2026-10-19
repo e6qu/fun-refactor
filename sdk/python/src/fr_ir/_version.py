@@ -1,3 +1,3 @@
 """Distribution version shared with the native release."""
 
-VERSION = "0.75.0"  # x-release-please-version
+VERSION = "0.76.0"  # x-release-please-version
