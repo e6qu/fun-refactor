@@ -46,10 +46,14 @@ Project caching reduced fresh-check totals by about 22–23% in these examples.
 With that cache on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% to total time.
 Neither saved approach reduced median sequence time in either setting.
 
-One repeated local question took about 0.258 seconds overall and 0.016 seconds after loading code and reading options.
-Next, measure starting Python, loading client and measurement code, reading options and returning the final reply separately.
-The measurement loads client source without saved compiled Python modules. Compare an installed client before choosing code changes.
-Compare several questions from one Python program with separate process starts, and measure the existing two-helper request against separate questions.
+The [installed-client comparison](python-process-cost-results.md) checked 560 questions with matching answers across SDK copies and process choices.
+Installing the client reduced fresh-process sequence totals by 26.7–33.0% in these examples.
+Keeping that installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
+Seven local questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process, including startup and shutdown.
+Building the wheel, installing it and compiling Python bytecode added 1.144 seconds separately; full environment setup remains unmeasured.
+Use that running installed client as the next baseline.
+Compare the existing two-helper request with separate questions in that program, counting function lookups, reply checks and source edits.
+Explain that a combined request shares a work limit, while separate requests each receive their own limit.
 The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
@@ -58,6 +62,8 @@ It now avoids reports for sampled declarations without rewritable references and
 Every sampled rewritable-reference assertion remains, and source or analysis errors now fail visibly.
 Only audit jobs that use external compilers install them.
 The [complete deep recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) passed all audits and external replays at the same deadlines.
+The [merged-main recheck](https://github.com/e6qu/fun-refactor/actions/runs/39210593046) also passed all 17 jobs.
+Its impact test took 537 seconds and the complete job took 667 seconds, within the unchanged 15-minute limit.
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
 Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.

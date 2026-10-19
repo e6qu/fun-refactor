@@ -112,14 +112,17 @@ Project caching reduced fresh-check totals by about 22–23% in these four examp
 With that cache on, saved setup added 0.9–4.1% and saved answers added 2.7–6.2% to total time.
 Neither saved approach reduced median sequence time in either cache setting.
 
-One repeated local question took about a quarter of a second, including starting Python and returning the final reply.
-Running the check after loading code and reading options took about 0.016 seconds.
-Next, measure starting Python, loading client and measurement code, reading options and returning the reply separately.
-The measurement loads client source without saved compiled Python modules; compare an installed client before choosing changes.
+The [installed-client comparison](docs/python-process-cost-results.md) checked 560 questions with matching answers across all four approaches.
+In these examples, installing the client with saved compiled Python modules reduced fresh-process totals by 26.7–33.0%.
+Keeping the installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
+For the local helper, seven questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process.
+Both totals include the first start, fresh analysis after edits and final shutdown.
+Wheel building, installation and bytecode compilation added 1.144 seconds separately; complete environment setup remains unmeasured.
 
-Compare several questions from one running Python program with starting Python for each question.
-Also measure the existing two-helper request against separate questions with explicit limits.
-Use those full costs before adding another saved-work mechanism.
+Use one running installed client for the next comparison.
+Measure the existing two-helper request against separate questions in that same Python program, including finding both functions and checking replies.
+State their different work allocations: one combined request shares a limit, while separate requests each receive a limit.
+Keep unknown answers visible, then return to the real libraries' remaining import and startup gaps.
 
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.

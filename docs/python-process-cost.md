@@ -6,6 +6,7 @@ Starting Python for every question repeats interpreter and client loading work.
 Keeping one Python program running might avoid that work. It must still notice the edit.
 
 The Python client library, also called the SDK, starts `fr` and checks its replies.
+The [recorded results](python-process-cost-results.md) show lower totals with an installed client and one running Python process in these examples.
 The [earlier measurement](python-optimized-cost-results.md) loaded SDK source in a fresh Python process for every question.
 It included compiling that source into instructions for Python.
 Those instructions are **bytecode**. Python can save them in `.pyc` files for later starts.
@@ -23,6 +24,7 @@ This experiment compares four ways to ask exactly the same questions:
 A **wheel** is a Python package archive that an installer can unpack.
 The experiment builds that archive from the current SDK source, installs it and compiles its modules before measuring questions.
 It records those three setup costs separately. They still matter when deciding whether installation pays for itself.
+Runner provisioning, interpreter setup, Rust compilation and installing the build tools occur outside those three timers.
 Both approaches use the same Python interpreter. This does not compare different virtual environments.
 
 Each question finds its function and requests a fresh analysis through the ordinary optimized `fr` executable.
