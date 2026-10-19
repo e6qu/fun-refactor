@@ -266,7 +266,9 @@ jobs:
         with:
           python-version: '3.14'
       - name: Reject false package answers before compiling
-        run: python3 -B tools/test-repository-declarations.py
+        run: |
+          python3 -B tools/test-repository-declarations.py
+          python3 -B tools/test-python-repository-flow.py
       - uses: Swatinem/rust-cache@v2
         with:
           key: default

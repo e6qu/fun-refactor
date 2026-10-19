@@ -7,6 +7,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/python-repository-flow.py')
@@ -105,6 +106,29 @@ class RepositoryAdmission(unittest.TestCase):
 
 
 class AnswerAuthority(unittest.TestCase):
+    def complete_cohort(self, projects):
+        return [{'project': project['id'], 'variant': variant, 'case': case,
+                 'assessment': {'status': 'complete', 'no_path': case == 'overwritten'},
+                 'invocations': [{}, {'report': {'witnesses': [{}] if case == 'positive' else []}}]}
+                for project in projects for variant in ('original', 'renamed-relocated')
+                for case in ('positive', 'overwritten')]
+
+    def test_familiar_projects_alone_cannot_demonstrate_unfamiliar_project_acceptance(self):
+        projects = [{**project, 'role': 'coverage'} for project in flow.COHORT['projects']]
+        with patch.dict(flow.COHORT, {'projects': projects}):
+            self.assertFalse(flow.summary(self.complete_cohort(projects))['acceptance_demonstrated'])
+            projects[-1]['role'] = 'held-out'
+            self.assertTrue(flow.summary(self.complete_cohort(projects))['acceptance_demonstrated'])
+
+    def test_an_incomplete_or_missing_project_cannot_complete_the_milestone(self):
+        projects = [{**project, 'role': 'coverage'} for project in flow.COHORT['projects']]
+        projects[-1]['role'] = 'held-out'
+        with patch.dict(flow.COHORT, {'projects': projects}):
+            rows = self.complete_cohort(projects)
+            self.assertFalse(flow.summary(rows[:-4])['acceptance_demonstrated'])
+            rows[-1]['assessment'] = {'status': 'incomplete', 'no_path': False}
+            self.assertFalse(flow.summary(rows)['acceptance_demonstrated'])
+
     def row(self, case, complete=False, witnesses=None, cutoffs=None):
         return {'case': case, 'invocations': [{}, {'exit_code': 0, 'report': {
             'schema': 'fr-dataflow-1', 'claim': 'possible-value-propagation', 'complete': complete,
