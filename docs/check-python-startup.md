@@ -143,11 +143,12 @@ The existing saved-answer cache records the files read and the places searched f
 You can also [save startup checks separately](save-python-startup.md). Reuse requires matching source files, import searches and settings; an edit requires another check.
 
 A registration function can also copy a short, known set of entries.
+A literal writes values directly in source, such as `labels = {'state': 'ready'}`.
 For example, declare `labels = {'state': 'ready'}` before `register`, then put
 `for key, item in labels.items():` and the indented write `table[key] = item` inside it.
 Python visits each key and its value; here it copies `'state': 'ready'` into `table`.
 The source dictionary must come from a literal in the same file and have no intervening writes.
-The destination must be a different, owned dictionary.
+The destination must be a different dictionary created in the same file.
 The checker also accepts a nonempty literal tuple or list, such as
 `for key in ('state', 'label'):` followed by `table[key] = 'ready'`.
 Nested loops need distinct local names.

@@ -130,7 +130,8 @@ Return to the real libraries' remaining import and startup gaps.
 For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.
 Choose the next concrete statement from the import explanation and check its behavior against Python.
 
-A small registration function can now copy entries from an unchanged literal dictionary into another owned dictionary.
+A small registration function can now copy entries between dictionaries created in the same file.
+The source must list its entries directly in code and stay unchanged.
 For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
 records the label without running unknown code.
 The [startup lesson](docs/check-python-startup.md) supplies the complete example.

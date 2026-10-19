@@ -87,7 +87,15 @@ The result must preserve unknown calls and writes instead of assuming they have 
 The [first startup-call implementation](check-python-startup.md) checks a small registration function and keeps a helper-replacement control unfinished.
 A registration function records values or functions for later use, like Toolz's argument table.
 Tests compare both outcomes with ordinary Python before using the supported case to make an answer complete.
-Toolz's actual table builder still needs loops, imported introspection and computed values that this first rule leaves unfinished.
+The checker now handles bounded copies from an unchanged literal dictionary, but Toolz's actual builder needs more than that loop rule.
+The familiar Toolz source at revision `451af60dec590a6010e2babdbf391ea8f815122f` makes the next missing pieces concrete.
+Its table builder accepts dictionaries as default arguments, visits `module_info.items()`, and visits each module's function entries.
+For a module named by a string, it imports that module before looking up its functions.
+It then calls `expand_sig`, which inspects the arguments accepted by a function and constructs new signature values.
+A signature describes those accepted arguments.
+The current bounded copy rule cannot establish the behavior of those imports, inspections or computed values.
+Some input tables also exceed the existing per-initializer syntax limit and use module objects as keys.
+Completing this package question needs checked connections across these steps; recognizing a `for` statement alone does not finish it.
 Keep existing file, source, search and execution limits throughout that work.
 Splitting a large question into smaller checked steps requires an explicit dependency connection between those steps.
 Running more unchecked source elsewhere would not solve the correctness problem.

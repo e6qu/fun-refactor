@@ -60,7 +60,8 @@ The original failed audit is preserved; its mistaken rule fingerprint and missin
 The experiment used the existing analyzer, client and limits.
 Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
 
-A small registration function can now copy entries from an unchanged literal dictionary into another owned dictionary.
+A small registration function can now copy entries between dictionaries created in the same file.
+The source must list its entries directly in code and stay unchanged.
 For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
 records the label without running unknown code.
 The [startup lesson](check-python-startup.md) supplies the complete example.
