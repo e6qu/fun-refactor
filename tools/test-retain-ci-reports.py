@@ -14,7 +14,7 @@ spec.loader.exec_module(reports)
 
 
 class ReportRetention(unittest.TestCase):
-    def retain(self, root, *, mixed=False, extra=False, reject=False):
+    def retain(self, root, *, mixed=False, extra=False, reject=False, only=None):
         prefix = 'test-reports'
         payload = b'{"sample":0.10000000000000001}\n'
         groups = list(reports.GROUPS.values())
@@ -34,6 +34,8 @@ class ReportRetention(unittest.TestCase):
             if reject and '--audit' in command:
                 raise subprocess.CalledProcessError(1, command)
         runs = {group: index for index, group in enumerate(reports.GROUPS, 1)}
+        if only is not None:
+            runs = {name: runs[name] for name in only}
         with mock.patch.object(reports, 'ROOT', root), \
              mock.patch.object(reports.scalar, 'collect', side_effect=collect), \
              mock.patch.object(reports.scalar, 'verify_sources'), \
@@ -63,6 +65,25 @@ class ReportRetention(unittest.TestCase):
             root = Path(directory)
             with self.assertRaises(ValueError):
                 self.retain(root, mixed=True)
+            self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+
+    def test_refreshing_proofs_preserves_unrequested_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['retained-proofs'])
+            saved = root / 'tests/agent-eval/results'
+            self.assertEqual({path.name for path in saved.iterdir()},
+                             {'test-reports-retained-proofs', 'test-reports-ci-collection'})
+            self.assertEqual(json.loads((root / 'tests/agent-eval/roadmap.json').read_text()),
+                             {'evidence': [{'id': 'host-recovery'}]})
+            manifest = json.loads((saved / 'test-reports-ci-collection/manifest.json').read_text())
+            self.assertEqual(set(manifest['groups']), {'retained-proofs'})
+
+    def test_empty_refresh_refuses_before_any_report_is_saved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(ValueError, 'requested hosted collections'):
+                self.retain(root, only=[])
             self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
 
     def test_extra_reports_are_rejected_before_saving(self):
