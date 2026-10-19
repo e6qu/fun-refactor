@@ -1236,10 +1236,10 @@ for stored in (False, True):
 
 EXAMPLES.extend([
     example('registration-dictionary-evaluated-argument', 'calls defaults names boundaries',
-            'return sink(source())', [S], None, 'TypeError', phase='definition', witness=True,
+            'return sink(source())', [S], None, 'TypeError', phase='definition', witness=True, source_index=1,
             prelude="table = {}\ndef register(output):\n    output['state'] = 'ready'\nregister(source())\n",
             complete=False, cutoff='module-effects-unchecked',
-            difference='Python evaluates the argument during import and fails on the integer write; the analysis leaves the call unchecked.'),
+            difference='Python evaluates the startup argument and fails on the integer write before entering the application; the unfinished analysis reports a possible connection from the separate source inside entry.'),
     example('registration-dictionary-aliased-source', 'calls defaults names boundaries',
             'return sink(source())', [S, T], 17, witness=True,
             prelude="labels = {'state': 'ready'}\ndef register(inputs, output):\n"

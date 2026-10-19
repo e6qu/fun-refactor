@@ -124,6 +124,18 @@ def test_passing_an_imported_dictionary_does_not_make_it_owned(tmp_path):
     assert observe(tmp_path)['result'] == 17
 
 
+def test_evaluated_argument_stops_python_before_the_reported_application_source(tmp_path):
+    client, rules = install(tmp_path, setup("output['state'] = 'ready'", 'register(source())', 'output'))
+    result = analyze(client, rules, 'entry')
+    assert not result.report.at('/complete') and result.initialization.sites
+    assert observe(tmp_path) == {'result': None, 'raised': 'TypeError', 'events': [['source', 17]]}
+    occurrence = result.report.at('/witnesses')[0]['trace']['occurrences'][0]
+    span = occurrence['location']['span']
+    source = (tmp_path / 'subject.py').read_text()
+    assert source[span['start']:span['end']] == 'source()'
+    assert span['start'] > source.index('def entry():')
+
+
 def test_rebinding_does_not_move_a_python_default_to_the_new_object(tmp_path):
     source = setup("output['state'] = 'stored'", "table = {}\nregister()", 'output=table', PREFIX)
     client, rules = install(tmp_path, source, 'value')
