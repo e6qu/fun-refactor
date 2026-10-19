@@ -554,7 +554,10 @@ ASCII module names; class attributes, function defaults and special metadata kee
 
 ## Prepare a callback table without calling its entries
 
-The [startup-call lesson](check-python-startup.md) also fills such a table through a small no-argument function called during import.
+The [startup-call lesson](check-python-startup.md) also fills such a table through a small function called during import.
+It receives dictionaries created in the same file, either as explicit arguments or stored dictionary defaults.
+For example, `def register(output=table): ...` stores the current dictionary, and `register(other_table)` replaces that argument for one call.
+The check follows the underlying object when two parameters receive the same dictionary; rebinding a stored default's name stays unfinished.
 It supplies all files, compares the result with Python, and changes startup to replace the helper as an unfinished control.
 The whole registration function and its repeated loop work must each fit the existing 128-node bound.
 The lesson explains copying known literal entries into a different dictionary; unknown calls, shared writes and other control flow remain unchecked.

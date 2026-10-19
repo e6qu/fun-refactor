@@ -181,9 +181,9 @@ def test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement(tm
     assert run('check_example.py') == 'Finished: True\nPossible input connection: True\n'
     assert run('run_example.py') == 'ready\nTrue\n17\n'
     helper = tmp_path / 'helpers.py'
-    changed = programs[0].replace('    table.update(send=lambda: missing())\n',
-                                  '    table.update(send=lambda: missing())\n' + programs[4])
-    changed = changed.replace('\nregister()\n', '\n') + '\nregister()\n'
+    changed = programs[0].replace('    output.update(send=lambda: missing())\n',
+                                  '    output.update(send=lambda: missing())\n' + programs[4])
+    changed = changed.replace('\nregister(labels)\n', '\n') + '\nregister(labels)\n'
     helper.write_text(changed)
     assert run('check_example.py').startswith('Finished: False\nPossible input connection:')
     assert run('run_example.py') == 'ready\nTrue\n0\n'

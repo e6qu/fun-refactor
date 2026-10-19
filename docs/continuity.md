@@ -69,8 +69,11 @@ records the label without running unknown code.
 The [startup lesson](check-python-startup.md) supplies the complete example.
 The function and its repeated work each keep the 128-node limit.
 Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
-Toolz still needs stored object defaults, module-valued keys, conditional imports and function-argument inspection.
-This bounded loop rule does not complete its package answer.
+Dictionary arguments and stored dictionary defaults now work in these bounded startup functions.
+For example, `register(labels, table)` can copy entries into the table without relying on global names.
+Passing the same dictionary as both source and destination stays unfinished, as do changed source contents and rebound defaults.
+Toolz still needs module-valued keys, conditional imports and function-argument inspection, among other unchecked setup.
+These rules do not complete its package answer.
 
 The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
@@ -90,7 +93,7 @@ Read the [package startup findings](python-package-startup-results.md) before an
 Python observed sixteen Funcy package files plus the caller, and about 420 KiB of Pydash package source.
 Those complete observed executions exceed the existing single-analysis budgets.
 Toolz fits the observed local file set but still runs its argument-table builder and imported introspection code.
-The [small startup-call lesson](check-python-startup.md) checks a first bounded case: a no-argument function filling its own file's dictionaries.
+The [small startup-call lesson](check-python-startup.md) checks a bounded function filling its own file's dictionaries, including dictionary arguments and defaults.
 Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
 Changing its source invalidates a saved answer through the existing source and import dependencies.
 This keeps the existing limits for each package question.
@@ -170,7 +173,8 @@ Likewise, `follow=selected` stores an earlier function; `follow=selected(0)` cal
 An alias gives an existing function another name. Checked aliases and ordinary function imports can supply the reference; later or missing names cannot.
 Built-in names must still refer to their original objects or an earlier checked local declaration.
 The [default example](python-contract.md#store-a-function-as-a-default-without-calling-it) introduces the two-file case and its commands.
-Calls that consume stored function or object defaults remain unfinished.
+Ordinary helper calls that consume stored function or object defaults remain unfinished.
+Bounded startup registration is a separate allowance for dictionary defaults, explained in the startup lesson.
 An [explicit replacement](replace-python-defaults.md) can supply a supported scalar while leaving the stored object unused.
 Replay full packages after further changes; fewer unchecked statements alone do not establish complete package support.
 That replay removed ten unchecked Toolz declarations, including nine `factory=dict` defaults.

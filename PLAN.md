@@ -92,7 +92,8 @@ run a package's setup code before the helper is available. Explain which stateme
 answer, then improve the language rule needed to handle it.
 The [startup investigation](docs/python-package-startup-results.md) shows why another declaration rule alone cannot finish these package questions.
 Funcy and Pydash exceed the current file or source budgets in their complete observed Python executions.
-Small no-argument startup functions can now fill dictionaries created earlier in their own file.
+Small startup functions can now fill dictionaries created earlier in their own file.
+They can receive those dictionaries explicitly or store them as defaults, such as `output=table`.
 The [startup lesson](docs/check-python-startup.md) compares this check with a function that replaces the selected helper and must stay unfinished.
 Saved answers already depend on source files and import lookups.
 You can now [ask about two helpers together](docs/check-python-together.md).
@@ -139,8 +140,11 @@ records the label without running unknown code.
 The [startup lesson](docs/check-python-startup.md) supplies the complete example.
 The function and its repeated work each keep the 128-node limit.
 Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
-Toolz still needs stored object defaults, module-valued keys, conditional imports and function-argument inspection.
-This bounded loop rule does not complete its package answer.
+Dictionary arguments and stored dictionary defaults now work in these bounded startup functions.
+For example, `register(labels, table)` can copy entries into the table without relying on global names.
+Passing the same dictionary as both source and destination stays unfinished, as do changed source contents and rebound defaults.
+Toolz still needs module-valued keys, conditional imports and function-argument inspection, among other unchecked setup.
+These rules do not complete its package answer.
 
 Aim for a complete helper answer through the original package import while preserving the existing limits and unfinished answers.
 

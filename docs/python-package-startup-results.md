@@ -90,10 +90,14 @@ Tests compare both outcomes with ordinary Python before using the supported case
 The checker now handles bounded copies from an unchanged literal dictionary, but Toolz's actual builder needs more than that loop rule.
 The familiar Toolz source at revision `451af60dec590a6010e2babdbf391ea8f815122f` makes the next missing pieces concrete.
 Its table builder accepts dictionaries as default arguments, visits `module_info.items()`, and visits each module's function entries.
+The checker now handles dictionary arguments and defaults in small registration functions.
+For example, `def register(inputs=labels, output=table): ...` stores references to the two earlier dictionaries.
+An explicit call can replace either reference. Two parameters pointing to one dictionary cannot hide a write during iteration.
+Changed source contents and rebinding a stored default's name stay unfinished.
 For a module named by a string, it imports that module before looking up its functions.
 It then calls `expand_sig`, which inspects the arguments accepted by a function and constructs new signature values.
 A signature describes those accepted arguments.
-The current bounded copy rule cannot establish the behavior of those imports, inspections or computed values.
+The dictionary and bounded copy rules cannot establish the behavior of those imports, inspections or computed values.
 Some input tables also exceed the existing per-initializer syntax limit and use module objects as keys.
 Completing this package question needs checked connections across these steps; recognizing a `for` statement alone does not finish it.
 Keep existing file, source, search and execution limits throughout that work.

@@ -8,7 +8,8 @@ That startup work can change which helper your program calls.
 A registry is a dictionary holding values or functions for later use.
 A registration function fills that dictionary.
 `fr` can check a small registration function that writes to dictionaries created earlier in the same file.
-The function takes no parameters, and the startup call supplies no arguments.
+It can use those dictionaries directly or receive them as arguments.
+An argument is a value supplied by the caller; a parameter is the name receiving it inside the function.
 
 ## Create and check the example
 
@@ -19,7 +20,10 @@ Create a new directory and save the following files there.
 
 Save this as `helpers.py`.
 `table` starts as an empty dictionary.
-The call to `register()` fills it during import by visiting the entries in `labels`.
+The call to `register(labels)` fills it during import by visiting the entries in `labels`.
+Inside the function, `inputs` refers to `labels`.
+The parameter `output=table` stores a reference to `table` when Python defines the function.
+Because the call leaves `output` out, the function writes into that stored dictionary.
 At each visit, `key` receives the entry name and `item` receives its value.
 Here there is one entry: the loop copies the key `label` and the value `ready` into `table`.
 The stored `lambda` creates a function; creating it does not run its body.
@@ -29,12 +33,12 @@ Here, `missing()` deliberately names an unavailable function to demonstrate that
 table = {}
 labels = {'label': 'ready'}
 
-def register():
-    for key, item in labels.items():
-        table[key] = item
-    table.update(send=lambda: missing())
+def register(inputs, output=table):
+    for key, item in inputs.items():
+        output[key] = item
+    output.update(send=lambda: missing())
 
-register()
+register(labels)
 
 def relay(value):
     return value
@@ -117,7 +121,7 @@ Add these two lines inside `register`, after its existing writes:
     relay = lambda value: 0
 ```
 
-Also move the `register()` call to the end of `helpers.py`, after the definition of `relay`.
+Also move the `register(labels)` call to the end of `helpers.py`, after the definition of `relay`.
 Otherwise that later definition would replace the startup assignment again.
 The `global` statement makes the assignment change the file's helper rather than a name local to `register`.
 
@@ -139,6 +143,20 @@ Neither name can already belong to something else in the file.
 
 The checker rechecks dictionary ownership and built-in names at each call.
 An intervening import, unknown call or assignment giving either object another name discards that checked connection.
+Dictionary parameters accept positional arguments, as in `register(labels, table)`, or named arguments,
+as in `register(output=table, inputs=labels)`.
+Each argument must name a dictionary already created in this file.
+A default can refer to one of those dictionaries, as `output=table` does above.
+An explicit argument replaces that reference for the call: `register(labels, other_table)` writes to `other_table`.
+The checker tracks the underlying dictionaries, including two parameters referring to the same one.
+It rejects missing, duplicate or unknown arguments, argument unpacking with `*` or `**`,
+and signatures using `/`, a separate `*`, annotations or variable argument lists.
+Creating a new dictionary in the call, such as `register(labels, {})`, remains unchecked.
+
+A stored default refers to an object; it does not copy the object's contents.
+Changing `labels['label']` after the definition changes what a later loop sees and leaves this check unfinished.
+Assigning `table = {}` later creates a different dictionary: an omitted `output` still refers to the original.
+The analyzer leaves that rebinding unfinished rather than treating the new dictionary as the stored default.
 The existing saved-answer cache records the files read and the places searched for imports; changing them requires another check.
 You can also [save startup checks separately](save-python-startup.md). Reuse requires matching source files, import searches and settings; an edit requires another check.
 
@@ -157,12 +175,12 @@ An empty loop, reused target name, loop `else`, early exit or changed source dic
 This includes overwriting an existing source entry: the checker deliberately requires an unchanged source.
 Dictionary constructors such as `dict(state='ready')` cannot supply iteration entries yet.
 
-Imported shared dictionaries, helper replacement, nested calls, unknown iterables, conditions and calls with arguments stay unfinished.
+Imported shared dictionaries, helper replacement, nested calls, unknown iterables, conditions and other argument values stay unfinished.
 So do functions using an `@` decorator or declared with `async def`.
 A decorator can replace a function while Python defines it; an asynchronous function needs a caller that awaits its work.
-Reading dictionary contents or calling stored callbacks remains outside this rule.
+Other dictionary reads and calls to stored callbacks remain outside this rule.
 All file, source-size, execution and time limits remain unchanged.
-Toolz's registration function also inspects function arguments, imports modules dynamically and computes new values. Checking bounded iteration alone cannot finish its package analysis.
+Toolz's registration function also inspects function arguments, imports modules dynamically and computes new values. Checking dictionary arguments and bounded iteration cannot finish its package analysis.
 
 Tests compare these examples and unsafe changes with ordinary Python execution.
 This measures agreement on specific behavior, not speed or complete package support.

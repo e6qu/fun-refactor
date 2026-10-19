@@ -128,6 +128,38 @@ def test_a_default_reads_later_mutations_not_a_copied_literal(tmp_path):
     assert dictionary_observation(tmp_path) == [{'state': 'changed', 'count': 2}, {'state': 'changed', 'count': 2}]
 
 
+@pytest.mark.parametrize('entries,complete', [(2, True), (20, False)])
+def test_parameter_loops_keep_the_expanded_work_limit(tmp_path, entries, complete):
+    body = 'for key in (' + ','.join(str(n) for n in range(entries)) + "):\n    output[key] = 'ready'"
+    client, rules = install(tmp_path, setup(body, 'register(table)', 'output', PREFIX))
+    assert analyze(client, rules, 'entry').report.at('/complete') is complete
+    assert observe(tmp_path)['result'] == 17
+
+
+def test_saved_startup_rechecks_an_aliased_dictionary_argument(tmp_path):
+    from fr_ir.flow_startup import StartupCache
+
+    client, rules = install(tmp_path, setup(COPY, 'register(labels)', 'inputs, output=table', PREFIX), 'value')
+    store = MemoryObjectStore()
+    cache = StartupCache(store)
+    handle = client.project('find', 'entry').definition_target().handle
+    first = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                          depth=8, max_bytes=1_048_576, imports=True)
+    assert first.checks == 1 and first.answer.report.at('/complete')
+    cache = StartupCache.restore(store, cache.persist())
+    second = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                           depth=8, max_bytes=1_048_576, imports=True)
+    assert second.reused and second.checks == 0
+    path = tmp_path / 'helpers.py'
+    path.write_text(path.read_text().replace('register(labels)', 'register(labels, labels)'))
+    handle = client.project('find', 'entry').definition_target().handle
+    changed = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+                            depth=8, max_bytes=1_048_576, imports=True)
+    assert not changed.reused and changed.checks == 1
+    assert not changed.answer.report.at('/complete') and changed.report.at('/startup') is None
+    assert evidence(changed.answer) == evidence(analyze(client, rules, 'entry', imports=True))
+
+
 @pytest.mark.parametrize('edit', ['argument', 'default', 'alias'])
 def test_saved_answers_recheck_dictionary_binding_edits(tmp_path, edit):
     client, rules = install(tmp_path, setup(COPY, 'register(labels)', 'inputs, output=table', PREFIX), 'value')

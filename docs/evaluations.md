@@ -1312,11 +1312,12 @@ These checks establish consistency with recorded inputs. They do not establish c
 Importing a helper can call another function before the application starts.
 The [complete startup lesson](check-python-startup.md) first fills a local dictionary and then follows submitted input through a helper.
 Its control changes startup to replace that helper: Python returns zero instead of the submitted value, and the analysis must remain unfinished.
-The supported setup function takes no parameters and writes only to dictionaries created earlier in its own file.
+The supported setup function writes only to dictionaries created earlier in its own file.
+It can receive them as arguments or stored dictionary defaults; the lesson explains both using `register(labels)` and `output=table`.
 The whole function must fit the existing 128-node syntax limit, where a node represents a piece of parsed code.
-Unknown calls, imported shared dictionaries, loops and helper replacement remain unchecked.
+Unknown calls, imported shared dictionaries, unknown loops and helper replacement remain unchecked.
 Changing the setup source invalidates the existing saved answer.
-Reusing setup checks separately remains unfinished.
+The [saved-startup lesson](save-python-startup.md) now shows reusing setup checks separately.
 
 The [first focused check](https://github.com/e6qu/fun-refactor/actions/runs/39080162868) exceeded its fifteen-minute job deadline.
 All native tests passed, followed by Python groups of 617, 722 and 815 passing cases.
