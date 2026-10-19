@@ -487,12 +487,38 @@ jobs:
             git commit -m 'style: format module literal controls'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
+      - name: Cache the Lean toolchain
+        id: lean-cache
+        uses: actions/cache@v6
+        with:
+          path: /opt/lean
+          key: lean-4.28.0-linux-x86_64
+      - name: Install Lean
+        if: steps.lean-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          LEAN=4.28.0
+          LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
+            "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
+            || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
+          echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
+          sudo mkdir -p /opt/lean
+          sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
+      - name: Put Lean on the path
+        run: |
+          echo "/opt/lean/bin" >> "$GITHUB_PATH"
+          /opt/lean/bin/lean --version
+
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
       - name: Check native binding and summary controls
         run: cargo test --locked --no-fail-fast --test native_fingerprint --test cache --test package_flow --test imported_flow --test vfs_choke_point --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
       - name: Check Python runtime and SDK controls
+        if: always()
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src

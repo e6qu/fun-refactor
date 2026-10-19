@@ -1,5 +1,8 @@
 # Finish a package question, then test an unfamiliar project
 
+Start with the [number and date examples](original-package-questions.md) for
+the user questions, the meaning of a finished answer and its assumptions.
+
 Milestones 1 and 2 belong in one pull request. The pull request is not ready just
 because its regression tests pass. It must retain results demonstrating the user
 outcomes below with one frozen implementation.
