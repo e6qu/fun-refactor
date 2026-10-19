@@ -474,8 +474,7 @@ fn the_epilogue_names_the_ty_version_and_official_playground() {
     let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
     let tools =
         std::fs::read_to_string(root().join(".github/actions/native-tools/action.yml")).unwrap();
-    let wheels =
-        std::fs::read_to_string(root().join(".github/actions/native-tools/python-wheels.txt")).unwrap();
+    let wheels = include_str!("../.github/actions/native-tools/python-wheels.txt");
     assert!(workflow.contains("uses: ./.github/actions/native-tools"));
     assert!(tools.contains(".github/actions/native-tools/python-wheels.txt"));
     let pin = script
