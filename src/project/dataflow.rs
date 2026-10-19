@@ -143,7 +143,12 @@ pub struct Options {
         help = "Follow static workspace-local Python modules and regular packages."
     )]
     imports: bool,
-    #[arg(long, requires = "imports", value_delimiter = ',', help = "Select explicit standard-library module models; local candidates must be absent.")]
+    #[arg(
+        long,
+        requires = "imports",
+        value_delimiter = ',',
+        help = "Select explicit standard-library module models; local candidates must be absent."
+    )]
     standard_library: Vec<String>,
     #[arg(long)]
     rules: Option<std::path::PathBuf>,
@@ -368,13 +373,28 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
             },
             "call" => self.call(node, env),
-            "binary_operator" if self.modules.is_some_and(|modules| modules.standard_enabled("builtins"))
-                && node.child_by_field_name("operator").is_some_and(|operator| self.text(operator) == "%")
-                && node.child_by_field_name("left").is_some_and(|left| left.kind() == "string" && calls::literal_default(left, self.source))
-                && node.child_by_field_name("right").and_then(calls::unparenthesized).is_some_and(|right| right.kind() == "tuple") => {
+            "binary_operator"
+                if self
+                    .modules
+                    .is_some_and(|modules| modules.standard_enabled("builtins"))
+                    && node
+                        .child_by_field_name("operator")
+                        .is_some_and(|operator| self.text(operator) == "%")
+                    && node.child_by_field_name("left").is_some_and(|left| {
+                        left.kind() == "string" && calls::literal_default(left, self.source)
+                    })
+                    && node
+                        .child_by_field_name("right")
+                        .and_then(calls::unparenthesized)
+                        .is_some_and(|right| right.kind() == "tuple") =>
+            {
                 let mut flow = self.expression(node.child_by_field_name("left").unwrap(), env);
-                let right = calls::unparenthesized(node.child_by_field_name("right").unwrap()).unwrap();
-                for child in right.named_children(&mut right.walk()).filter(|node| node.kind() != "comment") {
+                let right =
+                    calls::unparenthesized(node.child_by_field_name("right").unwrap()).unwrap();
+                for child in right
+                    .named_children(&mut right.walk())
+                    .filter(|node| node.kind() != "comment")
+                {
                     merge(&mut flow, self.expression(child, env));
                 }
                 self.extend(flow, node, "standard-format-result")
@@ -506,14 +526,30 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     && !self.functions.contains_key(&binding)
                     && !self.inert_bindings.contains(&binding)
                     && !modules.has_binding(self.file, &name)
-                    && self.active.last().and_then(|name| self.functions.get(name)).is_some_and(|function| function.parent().is_some_and(|root| !calls::explicit_builtins(root, self.source))))
-                    .then(|| format!("builtins.{name}"))
+                    && self
+                        .active
+                        .last()
+                        .and_then(|name| self.functions.get(name))
+                        .is_some_and(|function| {
+                            function
+                                .parent()
+                                .is_some_and(|root| !calls::explicit_builtins(root, self.source))
+                        }))
+                .then(|| format!("builtins.{name}"))
             });
             if let Some(standard) = standard {
                 if let Some((minimum, maximum)) = standard_library::arity(&standard) {
-                    let exception = matches!(standard.as_str(), "builtins.ValueError" | "builtins.TypeError");
-                    if argument_names.iter().any(Option::is_some) || !(minimum..=maximum).contains(&arguments.len())
-                        || exception && node.parent().is_none_or(|parent| parent.kind() != "raise_statement") {
+                    let exception = matches!(
+                        standard.as_str(),
+                        "builtins.ValueError" | "builtins.TypeError"
+                    );
+                    if argument_names.iter().any(Option::is_some)
+                        || !(minimum..=maximum).contains(&arguments.len())
+                        || exception
+                            && node
+                                .parent()
+                                .is_none_or(|parent| parent.kind() != "raise_statement")
+                    {
                         self.cutoff(format!("unsupported-standard-call:{standard}"));
                         return joined;
                     }
@@ -1067,9 +1103,21 @@ impl Project<'_> {
                 .into_iter()
                 .flat_map(|bindings| bindings.keys().map(String::as_str))
                 .filter(|name| !module_aliases.contains(name))
-                .chain(modules.into_iter().flat_map(|modules| modules.standard_names(file)))
+                .chain(
+                    modules
+                        .into_iter()
+                        .flat_map(|modules| modules.standard_names(file)),
+                )
                 .collect();
-            let statements = modules.map_or_else(|| parsed.root().named_children(&mut parsed.root().walk()).collect(), |modules| modules.statement_nodes(file, parsed));
+            let statements = modules.map_or_else(
+                || {
+                    parsed
+                        .root()
+                        .named_children(&mut parsed.root().walk())
+                        .collect()
+                },
+                |modules| modules.statement_nodes(file, parsed),
+            );
             for node in statements {
                 let allocation = summary_mode
                     .then(|| {
@@ -1405,7 +1453,9 @@ impl Project<'_> {
                     let mut definition_values = default_values.clone();
                     let mut definition_scalars = default_scalars.clone();
                     if modules.is_some_and(|modules| modules.standard_enabled("builtins")) {
-                        let numeric = calls::numeric_defaults(node, text, |name| !builtin_defaults || bound_names.contains(name));
+                        let numeric = calls::numeric_defaults(node, text, |name| {
+                            !builtin_defaults || bound_names.contains(name)
+                        });
                         definition_values.extend(numeric.iter().cloned());
                         definition_scalars.extend(numeric);
                     }
@@ -1604,7 +1654,8 @@ impl Project<'_> {
                             .iter()
                             .any(|key| key.rsplit("::").next() == Some(name.as_str()))
                         && !modules.as_ref().is_some_and(|m| m.has_imported_name(name)
-                            || m.standard_enabled("builtins") && standard_library::arity(name).is_some()),
+                            || m.standard_enabled("builtins")
+                                && standard_library::arity(name).is_some()),
                     "rule overlaps another rule or local definition."
                 );
             }

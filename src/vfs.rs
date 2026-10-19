@@ -157,11 +157,21 @@ mod memory {
     pub fn read_dir_bounded(dir: &Path, limit: usize) -> io::Result<Vec<PathBuf>> {
         with_active(|files| {
             let mut entries = std::collections::BTreeSet::new();
-            for path in files.range(dir.to_path_buf()..).map(|(path, _)| path).take_while(|path| path.starts_with(dir)) {
-                let Ok(relative) = path.strip_prefix(dir) else { continue };
-                let Some(component) = relative.components().next() else { continue };
+            for path in files
+                .range(dir.to_path_buf()..)
+                .map(|(path, _)| path)
+                .take_while(|path| path.starts_with(dir))
+            {
+                let Ok(relative) = path.strip_prefix(dir) else {
+                    continue;
+                };
+                let Some(component) = relative.components().next() else {
+                    continue;
+                };
                 let entry = dir.join(component);
-                if !entries.contains(&entry) && entries.len() == limit { return Err(super::directory_over_limit(limit)); }
+                if !entries.contains(&entry) && entries.len() == limit {
+                    return Err(super::directory_over_limit(limit));
+                }
                 entries.insert(entry);
             }
             Ok(entries.into_iter().collect())
@@ -224,7 +234,9 @@ mod backing {
     pub fn read_dir_bounded(dir: &Path, limit: usize) -> io::Result<Vec<std::path::PathBuf>> {
         let mut out = Vec::new();
         for entry in std::fs::read_dir(dir)? {
-            if out.len() == limit { return Err(super::directory_over_limit(limit)); }
+            if out.len() == limit {
+                return Err(super::directory_over_limit(limit));
+            }
             out.push(entry?.path());
         }
         Ok(out)
@@ -326,10 +338,16 @@ pub fn read_dir(dir: impl AsRef<Path>) -> io::Result<Vec<std::path::PathBuf>> {
 }
 
 fn directory_over_limit(limit: usize) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidData, format!("directory exceeds {limit} entries"))
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        format!("directory exceeds {limit} entries"),
+    )
 }
 
-pub fn read_dir_bounded(dir: impl AsRef<Path>, limit: usize) -> io::Result<Vec<std::path::PathBuf>> {
+pub fn read_dir_bounded(
+    dir: impl AsRef<Path>,
+    limit: usize,
+) -> io::Result<Vec<std::path::PathBuf>> {
     let dir = dir.as_ref();
     through_memory!(read_dir_bounded(dir, limit));
     backing::read_dir_bounded(dir, limit)

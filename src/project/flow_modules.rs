@@ -206,14 +206,19 @@ struct Resolution {
 fn opaque_candidates(project: &Project<'_>, stem: &str) -> Result<BTreeSet<PathBuf>> {
     let relative = Path::new(stem);
     let parent = relative.parent().unwrap_or(Path::new(""));
-    let name = relative.file_name().and_then(|name| name.to_str()).context("import has no basename")?;
+    let name = relative
+        .file_name()
+        .and_then(|name| name.to_str())
+        .context("import has no basename")?;
     let directory = project.root.join(parent);
     if !crate::vfs::is_in_memory() {
         let mut ancestor = project.root.clone();
         for component in parent.components() {
             ancestor.push(component);
             match std::fs::symlink_metadata(&ancestor) {
-                Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => return Ok(BTreeSet::new()),
+                Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+                    return Ok(BTreeSet::new())
+                }
                 Ok(_) => (),
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
                 Err(error) => return Err(error.into()),
@@ -227,12 +232,21 @@ fn opaque_candidates(project: &Project<'_>, stem: &str) -> Result<BTreeSet<PathB
     };
     let mut found = BTreeSet::new();
     for entry in entries {
-        let Some(filename) = entry.file_name() else { continue };
+        let Some(filename) = entry.file_name() else {
+            continue;
+        };
         let filename = filename.to_string_lossy();
-        if filename == format!("{name}.pyc") || filename.starts_with(&format!("{name}."))
-            && [".so", ".pyd", ".dll"].iter().any(|suffix| filename.ends_with(suffix)) {
+        if filename == format!("{name}.pyc")
+            || filename.starts_with(&format!("{name}."))
+                && [".so", ".pyd", ".dll"]
+                    .iter()
+                    .any(|suffix| filename.ends_with(suffix))
+        {
             found.insert(entry.strip_prefix(&project.root)?.to_path_buf());
-            ensure!(found.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
+            ensure!(
+                found.len() <= IMPORT_LIMIT,
+                "opaque import candidate budget exceeds 128."
+            );
         }
     }
     Ok(found)
@@ -255,8 +269,13 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
     };
     for count in 1..=parts.len() {
         let stem = parts[..count].join("/");
-        result.opaque_candidates.extend(opaque_candidates(project, &stem)?);
-        ensure!(result.opaque_candidates.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
+        result
+            .opaque_candidates
+            .extend(opaque_candidates(project, &stem)?);
+        ensure!(
+            result.opaque_candidates.len() <= IMPORT_LIMIT,
+            "opaque import candidate budget exceeds 128."
+        );
         let module = PathBuf::from(format!("{stem}.py"));
         let package = PathBuf::from(format!("{stem}/__init__.py"));
         let stub = PathBuf::from(format!("{stem}.pyi"));
@@ -270,8 +289,13 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
         let status = |path: &Path, expected| result.candidates[path]["status"] == expected;
         let stubs_missing = status(&stub, "missing") && status(&package_stub, "missing");
         if status(&directory, "directory") || status(&package, "source") {
-            result.opaque_candidates.extend(opaque_candidates(project, &format!("{stem}/__init__"))?);
-            ensure!(result.opaque_candidates.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
+            result
+                .opaque_candidates
+                .extend(opaque_candidates(project, &format!("{stem}/__init__"))?);
+            ensure!(
+                result.opaque_candidates.len() <= IMPORT_LIMIT,
+                "opaque import candidate budget exceeds 128."
+            );
         }
         let is_package = local_module_admitted(
             status(&package, "source"),
@@ -457,10 +481,19 @@ fn export_names(project: &Project<'_>, target: &Path) -> Result<Option<BTreeSet<
 
 fn has_attribute_hook(project: &Project<'_>, path: &Path) -> Result<bool> {
     let source = &project.sources[&project.root.join(path)];
-    if source.len() > BYTE_LIMIT { return Ok(true); }
+    if source.len() > BYTE_LIMIT {
+        return Ok(true);
+    }
     let parsed = Parsers::new().parse(Language::Python, source)?;
-    let found = parsed.root().named_children(&mut parsed.root().walk()).any(|node| node.kind() == "function_definition"
-        && node.child_by_field_name("name").is_some_and(|name| &source[name.byte_range()] == "__getattr__"));
+    let found = parsed
+        .root()
+        .named_children(&mut parsed.root().walk())
+        .any(|node| {
+            node.kind() == "function_definition"
+                && node
+                    .child_by_field_name("name")
+                    .is_some_and(|name| &source[name.byte_range()] == "__getattr__")
+        });
     Ok(found)
 }
 
@@ -795,47 +828,141 @@ impl Modules {
     pub(super) fn statement_nodes<'t>(&self, file: &Path, parsed: &'t Parsed) -> Vec<Node<'t>> {
         let mut nodes = Vec::new();
         for node in parsed.root().named_children(&mut parsed.root().walk()) {
-            if let Some(start) = self.startup_choices.get(file).and_then(|choices| choices.get(&node.start_byte())) {
-                let body = node.named_children(&mut node.walk()).filter(|child| child.kind() == "except_clause")
-                    .flat_map(|handler| handler.named_children(&mut handler.walk()).collect::<Vec<_>>())
+            if let Some(start) = self
+                .startup_choices
+                .get(file)
+                .and_then(|choices| choices.get(&node.start_byte()))
+            {
+                let body = node
+                    .named_children(&mut node.walk())
+                    .filter(|child| child.kind() == "except_clause")
+                    .flat_map(|handler| {
+                        handler
+                            .named_children(&mut handler.walk())
+                            .collect::<Vec<_>>()
+                    })
                     .find(|child| child.kind() == "block" && child.start_byte() == *start)
                     .expect("checked metadata handler belongs to the unchanged syntax tree");
                 nodes.extend(body.named_children(&mut body.walk()));
-            } else { nodes.push(node); }
+            } else {
+                nodes.push(node);
+            }
         }
         nodes
     }
 
-    fn metadata_import<'t>(&mut self, project: &Project<'_>, file: &Path, node: Node<'t>, source: &str, count: &mut usize) -> Result<Option<(Node<'t>, Resolution, bool)>> {
-        if node.kind() != "try_statement" || !calls::initialization_fits(node) { return Ok(None); }
-        let parts: Vec<_> = node.named_children(&mut node.walk()).filter(|node| node.kind() != "comment").collect();
-        if parts.len() != 2 || parts[0].kind() != "block" || parts[1].kind() != "except_clause" { return Ok(None); }
-        let handler: Vec<_> = parts[1].named_children(&mut parts[1].walk()).filter(|node| node.kind() != "comment").collect();
-        if handler.len() != 2 || handler[0].kind() != "identifier" || &source[handler[0].byte_range()] != "ImportError" || handler[1].kind() != "block" { return Ok(None); }
-        let body: Vec<_> = parts[0].named_children(&mut parts[0].walk()).filter(|node| node.kind() != "comment").collect();
-        if body.len() != 1 || body[0].kind() != "import_from_statement" { return Ok(None); }
-        let Some(provider) = body[0].child_by_field_name("module_name") else { return Ok(None) };
+    fn metadata_import<'t>(
+        &mut self,
+        project: &Project<'_>,
+        file: &Path,
+        node: Node<'t>,
+        source: &str,
+        count: &mut usize,
+    ) -> Result<Option<(Node<'t>, Resolution, bool)>> {
+        if node.kind() != "try_statement" || !calls::initialization_fits(node) {
+            return Ok(None);
+        }
+        let parts: Vec<_> = node
+            .named_children(&mut node.walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if parts.len() != 2 || parts[0].kind() != "block" || parts[1].kind() != "except_clause" {
+            return Ok(None);
+        }
+        let handler: Vec<_> = parts[1]
+            .named_children(&mut parts[1].walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if handler.len() != 2
+            || handler[0].kind() != "identifier"
+            || &source[handler[0].byte_range()] != "ImportError"
+            || handler[1].kind() != "block"
+        {
+            return Ok(None);
+        }
+        let body: Vec<_> = parts[0]
+            .named_children(&mut parts[0].walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if body.len() != 1 || body[0].kind() != "import_from_statement" {
+            return Ok(None);
+        }
+        let Some(provider) = body[0].child_by_field_name("module_name") else {
+            return Ok(None);
+        };
         let provider = &source[provider.byte_range()];
-        if !provider.strip_prefix('.').is_some_and(identifier) { return Ok(None); }
-        let statements: Vec<_> = handler[1].named_children(&mut handler[1].walk()).filter(|node| node.kind() != "comment").collect();
-        if statements.is_empty() || statements.iter().any(|node| calls::module_metadata(*node, source).is_none()) { return Ok(None); }
+        if !provider.strip_prefix('.').is_some_and(identifier) {
+            return Ok(None);
+        }
+        let statements: Vec<_> = handler[1]
+            .named_children(&mut handler[1].walk())
+            .filter(|node| node.kind() != "comment")
+            .collect();
+        if statements.is_empty()
+            || statements
+                .iter()
+                .any(|node| calls::module_metadata(*node, source).is_none())
+        {
+            return Ok(None);
+        }
         let root = node.parent().context("metadata import has no module")?;
-        if calls::explicit_builtins(root, source) || root.named_children(&mut root.walk()).any(|statement| {
-            statement.kind() == "function_definition" && statement.child_by_field_name("name").is_some_and(|name| &source[name.byte_range()] == "ImportError")
-                || opaque_names(statement, source).contains(&"ImportError")
-                || matches!(statement.kind(), "import_statement" | "import_from_statement") && imports(statement, source, file.strip_prefix(&project.root).unwrap()).is_none_or(|items| items.iter().any(|(alias, _)| matches!(alias.as_str(), "ImportError" | "*")))
-        }) { return Ok(None); }
-        let Some(requested) = imports(body[0], source, file.strip_prefix(&project.root)?) else { return Ok(None) };
-        if requested.len() != 1 || requested[0].1.member.is_none() || !calls::metadata_name(&requested[0].0) { return Ok(None); }
-        if *count >= IMPORT_LIMIT { self.cutoffs.insert("import-lookup-budget".into()); return Ok(None); }
+        if calls::explicit_builtins(root, source)
+            || root.named_children(&mut root.walk()).any(|statement| {
+                statement.kind() == "function_definition"
+                    && statement
+                        .child_by_field_name("name")
+                        .is_some_and(|name| &source[name.byte_range()] == "ImportError")
+                    || opaque_names(statement, source).contains(&"ImportError")
+                    || matches!(
+                        statement.kind(),
+                        "import_statement" | "import_from_statement"
+                    ) && imports(statement, source, file.strip_prefix(&project.root).unwrap())
+                        .is_none_or(|items| {
+                            items
+                                .iter()
+                                .any(|(alias, _)| matches!(alias.as_str(), "ImportError" | "*"))
+                        })
+            })
+        {
+            return Ok(None);
+        }
+        let Some(requested) = imports(body[0], source, file.strip_prefix(&project.root)?) else {
+            return Ok(None);
+        };
+        if requested.len() != 1
+            || requested[0].1.member.is_none()
+            || !calls::metadata_name(&requested[0].0)
+        {
+            return Ok(None);
+        }
+        if *count >= IMPORT_LIMIT {
+            self.cutoffs.insert("import-lookup-budget".into());
+            return Ok(None);
+        }
         *count += 1;
         let resolution = resolve_module(project, &requested[0].1.module)?;
         let stem = resolution.module.replace('.', "/");
-        let paths = [format!("{stem}.py"), format!("{stem}/__init__.py"), format!("{stem}.pyi"), format!("{stem}/__init__.pyi"), stem];
-        let selected = !resolution.admitted && resolution.target.is_none() && resolution.opaque_candidates.is_empty() && resolution.namespaces.is_empty()
+        let paths = [
+            format!("{stem}.py"),
+            format!("{stem}/__init__.py"),
+            format!("{stem}.pyi"),
+            format!("{stem}/__init__.pyi"),
+            stem,
+        ];
+        let selected = !resolution.admitted
+            && resolution.target.is_none()
+            && resolution.opaque_candidates.is_empty()
+            && resolution.namespaces.is_empty()
             && resolution.packages.len() + 1 == resolution.module.split('.').count()
-            && paths.iter().all(|path| resolution.candidates.get(Path::new(path)).is_some_and(|value| value["status"] == "missing"));
-        if !selected { self.cutoffs.insert("metadata-import-unchecked".into()); }
+            && paths.iter().all(|path| {
+                resolution
+                    .candidates
+                    .get(Path::new(path))
+                    .is_some_and(|value| value["status"] == "missing")
+            });
+        if !selected {
+            self.cutoffs.insert("metadata-import-unchecked".into());
+        }
         Ok(Some((handler[1], resolution, selected)))
     }
 
@@ -976,14 +1103,22 @@ impl Modules {
 
     pub fn load(project: &Project<'_>, entry: &Path, standard: &[String]) -> Result<Self> {
         let standard_library: BTreeSet<_> = standard.iter().cloned().collect();
-        ensure!(standard_library.len() == standard.len(), "standard-library models must be unique.");
+        ensure!(
+            standard_library.len() == standard.len(),
+            "standard-library models must be unique."
+        );
         let standard_contract = standard_library::contract(&standard_library)?;
         let standard_shadowing = if standard_library.iter().any(|module| module != "builtins") {
             standard_library::shadow_candidates(&project.root)?
-        } else { BTreeSet::new() };
+        } else {
+            BTreeSet::new()
+        };
         let name = entry_name(entry.strip_prefix(&project.root)?)
             .context("imported flow requires a root-local Python source entry.")?;
-        ensure!(!standard_library::is_module_name(&name), "entry import may select a standard-library module rather than workspace source.");
+        ensure!(
+            !standard_library::is_module_name(&name),
+            "entry import may select a standard-library module rather than workspace source."
+        );
         let entry_resolution = resolve_module(project, &name)?;
         ensure!(
             entry_resolution.admitted
@@ -1014,7 +1149,9 @@ impl Modules {
             inputs: Value::Null,
         };
         if !standard_shadowing.is_empty() {
-            result.cutoffs.insert("standard-library-shadowing-unchecked".into());
+            result
+                .cutoffs
+                .insert("standard-library-shadowing-unchecked".into());
         }
         result.retain_namespaces(&project.root, &entry_resolution.namespaces);
         if name.split('.').skip(1).any(special_attribute) {
@@ -1074,9 +1211,17 @@ impl Modules {
             let mut allocations = initializers::Allocations::default();
             let mut startup = Vec::new();
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
-                if let Some((handler, resolution, selected)) = result.metadata_import(project, &file, node, source, &mut import_count)? {
+                if let Some((handler, resolution, selected)) =
+                    result.metadata_import(project, &file, node, source, &mut import_count)?
+                {
                     metadata_imports.push(json!({"importer":file.strip_prefix(&project.root)?, "span":Span::from(node), "handler":Span::from(handler), "lookup":resolution, "selected":selected}));
-                    if selected { result.startup_choices.entry(file.clone()).or_default().insert(node.start_byte(), handler.start_byte()); }
+                    if selected {
+                        result
+                            .startup_choices
+                            .entry(file.clone())
+                            .or_default()
+                            .insert(node.start_byte(), handler.start_byte());
+                    }
                 }
             }
             for node in result.statement_nodes(&file, &parsed) {
@@ -1301,8 +1446,12 @@ impl Modules {
                     .iter()
                     .map(|(alias, binding)| (alias, &binding.member))
                     .collect::<Vec<_>>());
-                let standard_members_known = imports.iter().all(|(_, binding)| binding.member.as_ref().is_none_or(|member|
-                    standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str()))));
+                let standard_members_known = imports.iter().all(|(_, binding)| {
+                    binding.member.as_ref().is_none_or(|member| {
+                        standard_library::members(&binding.module)
+                            .is_some_and(|members| members.contains(&member.as_str()))
+                    })
+                });
                 let mut named_provider: Option<(usize, Resolution)> = None;
                 let mut startup_imports = Vec::new();
                 let mut startup_exports = None;
@@ -1344,9 +1493,15 @@ impl Modules {
                     let modeled = result.standard_library.contains(&binding.module)
                         && standard_members_known
                         && alias != "*"
-                        && resolution.candidates.values().all(|value| value["status"] == "missing")
+                        && resolution
+                            .candidates
+                            .values()
+                            .all(|value| value["status"] == "missing")
                         && resolution.opaque_candidates.is_empty()
-                        && binding.member.as_ref().is_none_or(|member| standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str())));
+                        && binding.member.as_ref().is_none_or(|member| {
+                            standard_library::members(&binding.module)
+                                .is_some_and(|members| members.contains(&member.as_str()))
+                        });
                     if modeled {
                         let mut lookup = serde_json::to_value(&resolution)?;
                         lookup["importer"] = json!(file.strip_prefix(&project.root)?);
@@ -1354,19 +1509,38 @@ impl Modules {
                         lookup["member"] = json!(binding.member);
                         lookup["prefix"] = json!(binding.prefix);
                         standard_imports.push(lookup);
-                        result.standard_bindings.entry(file.clone()).or_default().insert(alias.clone(), binding);
-                        result.import_names.entry(file.clone()).or_default().entry(node.start_byte()).or_default().insert(alias.clone());
+                        result
+                            .standard_bindings
+                            .entry(file.clone())
+                            .or_default()
+                            .insert(alias.clone(), binding);
+                        result
+                            .import_names
+                            .entry(file.clone())
+                            .or_default()
+                            .entry(node.start_byte())
+                            .or_default()
+                            .insert(alias.clone());
                         startup.push(order::Step::Bind(vec![alias]));
                         named_provider = None;
                         named_declarations.remove(&lookups.len());
                         continue;
                     }
                     if matches!(binding.module.split('.').next(), Some("sys" | "builtins")) {
-                        result.cutoffs.insert("intrinsic-standard-import-unchecked".into());
+                        result
+                            .cutoffs
+                            .insert("intrinsic-standard-import-unchecked".into());
                     }
-                    if standard_library::is_module_name(&binding.module) && (!resolution.opaque_candidates.is_empty()
-                        || resolution.candidates.values().any(|value| value["status"] != "missing")) {
-                        result.cutoffs.insert("standard-library-import-collision".into());
+                    if standard_library::is_module_name(&binding.module)
+                        && (!resolution.opaque_candidates.is_empty()
+                            || resolution
+                                .candidates
+                                .values()
+                                .any(|value| value["status"] != "missing"))
+                    {
+                        result
+                            .cutoffs
+                            .insert("standard-library-import-collision".into());
                     }
                     binding.future = future_nodes.contains(&node.start_byte())
                         && resolution.opaque_candidates.is_empty()
@@ -1440,8 +1614,12 @@ impl Modules {
                             && (resolution.namespaces.contains(target)
                                 || !declares_member(project, target, member, skip)?)
                         {
-                            if !resolution.namespaces.contains(target) && has_attribute_hook(project, target)? {
-                                result.cutoffs.insert("import-attribute-hook-unchecked".into());
+                            if !resolution.namespaces.contains(target)
+                                && has_attribute_hook(project, target)?
+                            {
+                                result
+                                    .cutoffs
+                                    .insert("import-attribute-hook-unchecked".into());
                             }
                             let child = format!("{}.{}", binding.module, member);
                             if module_name(&child) {
@@ -1540,7 +1718,10 @@ impl Modules {
                 special_attribute(name)
                     && !(name == "__all__" && declared_exports.is_some())
                     && !(literals.contains(name) && calls::metadata_name(name))
-                    && !(matches!(name, "__getattr__" | "__dir__") && definitions.get(name) == Some(&1) && !bindings.contains_key(name) && !opaque_bindings.contains(name))
+                    && !(matches!(name, "__getattr__" | "__dir__")
+                        && definitions.get(name) == Some(&1)
+                        && !bindings.contains_key(name)
+                        && !opaque_bindings.contains(name))
             }) {
                 result.cutoffs.insert("special-module-attributes".into());
             }
@@ -1722,7 +1903,12 @@ impl Modules {
                 compact.push(lookup);
             }
         }
-        metadata_imports.sort_by_key(|record| (record["importer"].as_str().unwrap().to_owned(), record["span"]["start"].as_u64().unwrap()));
+        metadata_imports.sort_by_key(|record| {
+            (
+                record["importer"].as_str().unwrap().to_owned(),
+                record["span"]["start"].as_u64().unwrap(),
+            )
+        });
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
             "metadata_imports":metadata_imports,
             "standard_library":standard_contract,"standard_imports":standard_imports,"standard_shadowing":standard_shadowing,
@@ -1790,12 +1976,26 @@ impl Modules {
     }
 
     pub fn is_module(&self, file: &Path, name: &str) -> bool {
-        if self.standard_bindings.get(file).and_then(|bindings| bindings.get(name)).is_some_and(|binding| !binding.ambiguous && binding.member.is_none()) { return true; }
+        if self
+            .standard_bindings
+            .get(file)
+            .and_then(|bindings| bindings.get(name))
+            .is_some_and(|binding| !binding.ambiguous && binding.member.is_none())
+        {
+            return true;
+        }
         self.member_chain(file, name).0 == "module"
     }
 
     pub fn is_value(&self, file: &Path, name: &str) -> bool {
-        if self.standard_bindings.get(file).and_then(|bindings| bindings.get(name)).is_some_and(|binding| !binding.ambiguous && binding.member.is_some()) { return true; }
+        if self
+            .standard_bindings
+            .get(file)
+            .and_then(|bindings| bindings.get(name))
+            .is_some_and(|binding| !binding.ambiguous && binding.member.is_some())
+        {
+            return true;
+        }
         self.member_chain(file, name).0 == "value"
     }
 
@@ -1842,31 +2042,50 @@ impl Modules {
         )
     }
 
-    pub fn standard_enabled(&self, module: &str) -> bool { self.standard_library.contains(module) }
+    pub fn standard_enabled(&self, module: &str) -> bool {
+        self.standard_library.contains(module)
+    }
 
     pub fn has_binding(&self, file: &Path, name: &str) -> bool {
-        self.bindings.get(file).is_some_and(|bindings| bindings.contains_key(name))
-            || self.standard_bindings.get(file).is_some_and(|bindings| bindings.contains_key(name))
+        self.bindings
+            .get(file)
+            .is_some_and(|bindings| bindings.contains_key(name))
+            || self
+                .standard_bindings
+                .get(file)
+                .is_some_and(|bindings| bindings.contains_key(name))
     }
 
     pub fn has_imported_name(&self, name: &str) -> bool {
-        self.bindings.values().any(|bindings| bindings.contains_key(name))
-            || self.standard_bindings.values().any(|bindings| bindings.contains_key(name))
+        self.bindings
+            .values()
+            .any(|bindings| bindings.contains_key(name))
+            || self
+                .standard_bindings
+                .values()
+                .any(|bindings| bindings.contains_key(name))
     }
 
     pub fn standard_names<'a>(&'a self, file: &Path) -> impl Iterator<Item = &'a str> {
-        self.standard_bindings.get(file).into_iter().flat_map(|bindings| bindings.keys().map(String::as_str))
+        self.standard_bindings
+            .get(file)
+            .into_iter()
+            .flat_map(|bindings| bindings.keys().map(String::as_str))
     }
 
     pub fn standard_callee(&self, file: &Path, name: &str) -> Option<String> {
         let base = name.split('.').next()?;
         let binding = self.standard_bindings.get(file)?.get(base)?;
-        if binding.ambiguous { return None; }
+        if binding.ambiguous {
+            return None;
+        }
         let member = match &binding.member {
             Some(member) if name == base => member.as_str(),
             None => name.strip_prefix(&format!("{}.", binding.prefix))?,
             _ => return None,
         };
-        standard_library::members(&binding.module)?.contains(&member).then(|| format!("{}.{member}", binding.module))
+        standard_library::members(&binding.module)?
+            .contains(&member)
+            .then(|| format!("{}.{member}", binding.module))
     }
 }
