@@ -161,7 +161,7 @@ def expected_runtime(helper, case):
              'returned': result(0 if case == 'overwritten' else value)} for value in (17, 31)]
 
 
-def assessment(row, helper):
+def declaration_outcome(row, helper):
     result = row['invocations'][1]
     if result['exit_code']:
         flow.require(row['case'] == 'bytes' and 'invalid response byte budget' in json.dumps(result['report']),
@@ -171,13 +171,27 @@ def assessment(row, helper):
     flow.require(report['schema'] == 'fr-dataflow-1' and report['semantics'] == 'python-scalar-summaries'
                  and report['claim'] == 'possible-value-propagation' and type(report['complete']) is bool,
                  'declaration report authority changed')
-    typed = FunctionSummaries.from_report(FrReport(report, ()))
-    if row['context'] in ('isolated-declarations', 'standalone-module') and row['case'] in ('positive', 'overwritten'):
-        flow.require(report['complete'] and not report['cutoffs'], 'inert declaration still blocks scalar flow')
-        flow.require(bool(report['witnesses']) == (row['case'] == 'positive' and helper['expression'] != 'None'),
-                     'isolated scalar flow disagrees with its specification')
-    else:
+    flow.require(not report['complete'] or not report['cutoffs'],
+                 'complete declaration answer retains cutoffs')
+    if row['case'] in ('unknown', 'steps'):
         flow.require(not report['complete'] and report['cutoffs'], 'unsupported effects claimed completeness')
+    elif row['context'] in ('isolated-declarations', 'standalone-module'):
+        flow.require(report['complete'], 'inert declaration still blocks scalar flow')
+    if report['complete']:
+        flow.require(bool(report['witnesses']) == (row['case'] == 'positive' and helper['expression'] != 'None'),
+                     'scalar flow disagrees with its independent specification')
+    else:
+        flow.require(report['cutoffs'], 'incomplete declaration answer lacks cutoffs')
+    return {'status': 'complete' if report['complete'] else 'incomplete',
+            'no_path': report['complete'] and not report['witnesses']}
+
+
+def assessment(row, helper):
+    outcome = declaration_outcome(row, helper)
+    if outcome['status'] == 'refused':
+        return outcome
+    report = row['invocations'][1]['report']
+    typed = FunctionSummaries.from_report(FrReport(report, ()))
     if row['case'] not in ('steps', 'bytes'):
         name = ('pinned_functions.py' if row['context'] != 'full-package'
                 else str(Path(helper['path']).relative_to(project_for(helper)['python_root'])))
@@ -185,8 +199,7 @@ def assessment(row, helper):
         summary = typed.for_function(name)
         flow.require(summary.normal_return is True,
                      'non-identity helper did not enter the summary solver')
-    return {'status': 'complete' if report['complete'] else 'incomplete',
-            'no_path': report['complete'] and not report['witnesses']}
+    return outcome
 
 
 def project_for(helper):
