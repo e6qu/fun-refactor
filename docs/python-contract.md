@@ -656,6 +656,8 @@ except ImportError:
     __version__ = 'unknown'
 ```
 
+Python runs the `except` block if the import raises `ImportError`.
+
 The analyzer can select the literal handler only after checking that the sibling
 module is absent. The record retains the original statement locations and every
 competing import path. Source, stubs, bytecode, native extensions or a namespace

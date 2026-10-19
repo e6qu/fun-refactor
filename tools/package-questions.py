@@ -214,6 +214,21 @@ def inspect_unread(scope):
     return candidates[0]
 
 
+def admission(root):
+    licenses = sorted(path for path in root.iterdir() if path.is_file()
+                      and path.name.lower().startswith(('license', 'copying')))
+    requirements = [root / name for name in ('pyproject.toml', 'setup.cfg', 'setup.py', 'requirements.txt')
+                    if (root / name).is_file()]
+    flow.require(licenses, 'the original project root has no license for admission review')
+    flow.require(sum(path.stat().st_size for path in [*licenses, *requirements]) <= 65536,
+                 'license and requirement disclosure exceeds 64 KiB')
+    def records(paths):
+        return [{'path': path.relative_to(root).as_posix(), 'sha256': flow.sha(path.read_bytes()),
+                 'text': path.read_text()} for path in paths]
+    return {'licenses': records(licenses), 'requirements': records(requirements),
+            'dependency_installation': 'The collector installs no third-party dependencies. Preserve original-import runtime failures; do not rewrite package requirements.'}
+
+
 def checked_coverage(record, value, source, frozen):
     declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'coverage'}
     expected = set(declared)
@@ -305,6 +320,7 @@ def collect(args):
         coverage = coverage_result(args.coverage_run, output, source, frozen)
     result = {'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
               'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
+              'python': sys.version, 'platform': sys.platform,
               'implementation': frozen, 'coverage_run': args.coverage_run,
               'scope': 'Original package imports and stated source models; no general Python, proof or cost-saving claim.',
               'projects': [], 'milestones_complete': False}
@@ -330,11 +346,12 @@ def collect(args):
             upstream = directory / 'upstream'
             upstream.mkdir()
             row['source_files'] = flow.snapshot(data, project, upstream)
+            row['admission'] = admission(upstream)
             scope = upstream / project['python_root']
             if role == 'held-out':
                 row['selection'] = inspect_unread(scope)
                 project.update({key: row['selection'][key] for key in ('module', 'function')})
-                project.update(expression='relay(VALUE)', overwrite=0, values=[17, 31], expected=[17, 31], blocked=0, standard_library=[])
+                project.update(expression='relay(VALUE)', overwrite=0, values=[17, 31], expected=[17, 31], blocked=0)
             for variant in ('original', 'renamed-relocated'):
                 for case in ('positive', 'overwritten', 'unknown', 'steps'):
                     path, entry, adapter = prepare(scope, project, variant, case)

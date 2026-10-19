@@ -7,6 +7,9 @@ Milestones 1 and 2 belong in one pull request. The pull request is not ready jus
 because its regression tests pass. It must retain results demonstrating the user
 outcomes below with one frozen implementation.
 
+Here, a freeze means recording the code used for the check, then keeping it
+unchanged while examining unfamiliar projects.
+
 The question is concrete: after importing a real package, can an input passed to
 one of its helpers reach a selected output? For example, if a helper adds one,
 `record_value(helper(emit_value()))` carries the input to the output.
@@ -65,7 +68,7 @@ answered both original package questions and their renamed callers correctly.
 Dateutil passed all saved-answer controls. Boltons' combined cache worker reached
 its existing ten-second CPU limit and left a temporary helper edit. Keep that
 failure. Each cache stage now runs separately with the same limits, carries the
-verified saved-answer manifest to the next stage, and restores package source
+saved answer and the files needed to verify it to the next stage, and restores package source
 outside the bounded worker. The record retains every stage and its resource use;
 splitting the work does not establish lower total cost.
 

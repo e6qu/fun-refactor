@@ -1,10 +1,87 @@
 {
   "purpose": "Complete original package imports, with Python outcomes checked independently.",
-  "selection": "Boltons and dateutil are development coverage. Jaraco.functools and fn.py stay unread until the native analyzer, SDK and selection rule are frozen. For unread projects choose the first plain top-level function returning its only positional argument directly, ordered by source path and declaration location. Record failure if none exists.",
+  "selection": "Boltons and dateutil are development coverage. Jaraco.functools and fn.py stay unread until the native analyzer, SDK and selection rule are frozen. For unread projects choose the first plain top-level function returning its only positional argument directly, ordered by source path and declaration location. Record failure if none exists. Both unread projects use the same explicit union of the already implemented standard-library models, fixed before opening either project.",
   "projects": [
-    {"id": "boltons", "repository": "mahmoud/boltons", "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c", "role": "coverage", "python_root": ".", "module": "boltons.mathutils", "function": "clamp", "expression": "relay(VALUE, 0, 50)", "overwrite": 0, "values": [17, 31], "expected": [17, 31], "blocked": 0, "standard_library": ["builtins", "math", "bisect", "binascii"]},
-    {"id": "dateutil", "repository": "dateutil/dateutil", "revision": "2642afacc33fb839c404b75b230fff58b79793f2", "role": "coverage", "python_root": "src", "module": "dateutil.easter", "function": "easter", "expression": "relay(VALUE, 3)", "overwrite": 2000, "values": [2024, 2025], "expected": ["2024-03-31", "2025-04-20"], "blocked": "2000-04-23", "standard_library": ["builtins", "datetime", "sys"]},
-    {"id": "jaraco-functools", "repository": "jaraco/jaraco.functools", "revision": "f7f4f3bcac8f70e01064dee9a8bde6cc8f997a17", "role": "held-out", "python_root": "."},
-    {"id": "fn", "repository": "kachayev/fn.py", "revision": "df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26", "role": "held-out", "python_root": "."}
+    {
+      "id": "boltons",
+      "repository": "mahmoud/boltons",
+      "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+      "role": "coverage",
+      "python_root": ".",
+      "module": "boltons.mathutils",
+      "function": "clamp",
+      "expression": "relay(VALUE, 0, 50)",
+      "overwrite": 0,
+      "values": [
+        17,
+        31
+      ],
+      "expected": [
+        17,
+        31
+      ],
+      "blocked": 0,
+      "standard_library": [
+        "builtins",
+        "math",
+        "bisect",
+        "binascii"
+      ]
+    },
+    {
+      "id": "dateutil",
+      "repository": "dateutil/dateutil",
+      "revision": "2642afacc33fb839c404b75b230fff58b79793f2",
+      "role": "coverage",
+      "python_root": "src",
+      "module": "dateutil.easter",
+      "function": "easter",
+      "expression": "relay(VALUE, 3)",
+      "overwrite": 2000,
+      "values": [
+        2024,
+        2025
+      ],
+      "expected": [
+        "2024-03-31",
+        "2025-04-20"
+      ],
+      "blocked": "2000-04-23",
+      "standard_library": [
+        "builtins",
+        "datetime",
+        "sys"
+      ]
+    },
+    {
+      "id": "jaraco-functools",
+      "repository": "jaraco/jaraco.functools",
+      "revision": "f7f4f3bcac8f70e01064dee9a8bde6cc8f997a17",
+      "role": "held-out",
+      "python_root": ".",
+      "standard_library": [
+        "builtins",
+        "math",
+        "bisect",
+        "binascii",
+        "datetime",
+        "sys"
+      ]
+    },
+    {
+      "id": "fn",
+      "repository": "kachayev/fn.py",
+      "revision": "df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26",
+      "role": "held-out",
+      "python_root": ".",
+      "standard_library": [
+        "builtins",
+        "math",
+        "bisect",
+        "binascii",
+        "datetime",
+        "sys"
+      ]
+    }
   ]
 }
