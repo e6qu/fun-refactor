@@ -114,7 +114,8 @@ This fresh checkout has no SDK bytecode. The `-B` flag prevents saving it, so ea
 Existing standard-library bytecode stays available.
 An installed SDK with saved bytecode needs a separate measurement.
 
-Compilation, checkout, dependency installation and fixture edits happen outside those timers.
+Building the Rust executables, checkout, dependency installation and fixture edits happen outside those timers.
+The report's excluded compilation means that Rust build; Python source compilation remains inside the timed process launch.
 Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.
 An empty saved-data store therefore does not mean an empty operating-system cache.

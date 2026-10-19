@@ -142,7 +142,8 @@ The runner exposed four CPU threads from an AMD EPYC 7763 and about 15.6 GiB of 
 One GiB is 1,073,741,824 bytes.
 It used Python 3.14.8 and Rust 1.99.1 on Linux, with Rust's optimized release build and normal language features.
 Timers include shared measurement imports and counters, native calls, client validation and saved-data I/O.
-They exclude compilation, installation, fixture edits, inventories and answer comparisons.
+They exclude building the Rust executables, installation, fixture edits, inventories and answer comparisons.
+Python source compilation during imports remains included.
 Memory counters record separate lifetime peaks for the Python worker and its native children, rather than simultaneous total memory.
 
 Twenty-eight ordinary Python executions checked concrete results once, with submitted input represented by 17.
