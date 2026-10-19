@@ -75,7 +75,7 @@ Use the [import explanation](explain-python-imports.md) to locate unread files, 
 Choose a general language rule from the actual statement, then compare its behavior with Python.
 Do not teach the checker library names or expected answers, increase limits, or assume unknown setup has no effect.
 Any future split into smaller checks must record how the results depend on one another.
-That connected package-checking capability remains unimplemented.
+Combining smaller checks to finish these full-package questions remains unimplemented.
 
 The [Python behavior guide](python-contract.md) owns supported language rules and runnable examples.
 It covers stored function defaults, explicit replacements, several names assigned together, and simple settings shared between files.
@@ -117,14 +117,14 @@ Jaraco.functools remains unread. Keep it that way during development, then freez
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-loops-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-19-registration-loops-python-contract/manifest.json)
-covers 468 programs and 936 original or renamed cases, including bounded startup registration loops.
-It preserves 356 incomplete cases, 18 refusals and 132 documented differences between the checker's model and Python's observed behavior.
-Six differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
+The [checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-scalar-collection/manifest.json) identifies the current analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/manifest.json)
+covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
+It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
+These include programs where startup replaces a helper or raises before the application runs.
 Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
-The Python interface check passed 1,560 cases, including 75 cases for saving preparation between requests.
-Another 76 cases check bounded loops, source mutations, local names and saved answers after edits.
+The Python interface check passed 1,656 cases, including 75 cases for saving preparation between requests.
+Within that suite, 76 cases check bounded loops and 96 check dictionary arguments, stored references and unsafe aliases.
 Those cases compare saved and fresh answers, ordinary Python, source edits, competing imports, damaged records and unchanged limits.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.

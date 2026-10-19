@@ -1436,3 +1436,34 @@ The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/r
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
 Jaraco.functools remains unopened for a later independent evaluation.
+
+## Pass dictionaries to a startup function
+
+Importing a helper can first call `register(labels, table)` to fill a dictionary.
+The checker now follows those dictionary arguments, including when two parameters refer to one object.
+A default such as `output=table` stores the earlier dictionary; an explicit argument can replace it for one call.
+The [complete lesson](check-python-startup.md) introduces these terms and compares the result with Python.
+Changed source contents, rebinding a stored default's name, imported shared dictionaries and unknown effects leave the answer unfinished.
+All existing limits remain unchanged.
+
+The [first collection](https://github.com/e6qu/fun-refactor/actions/runs/39261124279) passed 171 focused tests and 1,655 Python interface tests.
+It failed two source-location expectations for an example and its renamed copy.
+Python evaluated `source()` in a startup argument, then raised `TypeError` before entering the application.
+The unfinished analysis reported a possible connection from the separate `source()` inside `entry`.
+The new test expectation mistakenly selected the startup call instead.
+Inspecting the retained trace confirmed the distinction; the correction selects the application's call and adds a runtime/location regression.
+The required `TypeError`, incomplete answer and exact source-to-output check remain intact.
+The failed collection is not passing evidence.
+
+The [corrected collection](https://github.com/e6qu/fun-refactor/actions/runs/39263253753) passed 952 original and renamed report cases and 1,656 interface tests.
+Its 172 focused cases comprise 96 argument/reference tests and 76 loop tests; all 58 altered-report controls passed too.
+The [receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/manifest.json) preserves 476 programs,
+364 incomplete cases, eighteen refusals and 134 documented differences from Python's observed behavior.
+Those counts describe checked examples, not universal Python support.
+
+The [fresh familiar-library replay](../tests/agent-eval/results/2026-10-19-registration-arguments-fixed-arity-probes/result.json) checked 100 helper cases and 200 Python executions.
+All forty full-package cases remain unfinished or refused: 32 incomplete and eight deliberately invalid requests.
+Sixteen copied-declaration cases and eight standalone-module cases complete in their smaller contexts.
+Toolz still needs conditional imports, function-argument inspection and other setup this rule cannot establish.
+There is no separate time or memory measurement for this language change.
+The [continuation notes](continuity.md#continue-python-work-from-actual-library-failures) now lead with the user question and remaining package obstacles.
