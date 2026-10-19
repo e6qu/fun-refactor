@@ -59,6 +59,7 @@ on:
           - package-questions-development
           - package-questions-coverage
           - package-questions-held-out
+          - retain-package-questions
           - docs-review
           - freeze-repository-flow
           - retain-scalar
@@ -103,7 +104,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -529,6 +530,43 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_flow_together.py sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+
+  retain-package-questions:
+    if: inputs.group == 'retain-package-questions' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Reject substituted package records
+        run: python3 -B tools/test-retain-package-questions.py
+      - name: Save familiar and first unfamiliar outcomes unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+          HELD_OUT_RUN: ${{ inputs.held_out_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/retain-package-questions.py --coverage-run "$COVERAGE_RUN"
+          --held-out-run "$HELD_OUT_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the original package records
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-"*
+          git commit -m 'test: retain frozen package comparisons and first unfamiliar outcomes'
+          git push origin "HEAD:refs/heads/$BRANCH"
 
   package-questions:
     if: startsWith(inputs.group, 'package-questions-')
