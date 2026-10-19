@@ -71,6 +71,10 @@ if [ "$slice" = study ]; then
     python3 -B tools/test-python-startup-cost.py
     python3 -B tools/test-python-process-cost.py
     python3 -B tools/test-python-together-cost.py
+    (
+        cd tests/agent-eval/results/2026-10-19-python-together-cost
+        sha256sum --check SHA256SUMS
+    )
     python3 -B tools/python-process-cost.py --audit tests/agent-eval/results/2026-10-19-python-process-cost/result.json
     (
         cd tests/agent-eval/results/2026-10-19-python-process-cost

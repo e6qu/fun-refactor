@@ -31,7 +31,14 @@ STAGES = (
     ('restored-helper', 'original', ['forwards', 'stopped']),
 )
 BINDINGS = ('tools/python-together-cost.py', 'tools/python-together-worker.py',
-            'tools/test-python-together-cost.py', '.github/workflows/python-together-cost.yml')
+            'tools/test-python-together-cost.py', '.github/workflows/python-together-cost.yml',
+            'tests/agent-eval/results/2026-10-19-python-together-cost/failed-audit.zip')
+# Rust hashes the serialized Rules struct in declaration order, rather than a
+# sorted JSON object. Include all five fields, including empty propagators.
+RULES_DIGEST = hashlib.sha256(json.dumps({
+    'version': 'startup-cost', 'sources': ['source'], 'sinks': ['sink'],
+    'propagators': [], 'sanitizers': {},
+}, separators=(',', ':')).encode()).hexdigest()
 SCOPE = {
     'baseline': 'Two separate fresh dataflow questions in one running installed Python process. Compared with the existing analyze_together API in the same installed client and interpreter. Both find both functions before analysis; no saved setup or whole-answer store.',
     'limits': 'Each separate question receives 4096 steps (1 in the exhausted case) and 1048576 response bytes. The combined request shares that same cap between both answers, not twice the cap. Depth 8, html context, summaries enabled, imports explicit per case. Timings are comparable as equal-answer work only when answers actually agree.',
@@ -128,10 +135,10 @@ def audit(report):
             files = process.sources(case, state)
             for index, (name, answer) in enumerate(zip(names, answers)):
                 inputs = answer['inputs']
+                require(inputs['rules'] == RULES_DIGEST, 'normalized rule fingerprint changed')
                 require(answer['schema'] == 'fr-dataflow-1'
                         and inputs['source'] == {'path': 'app.py', 'digest': digest(files['app.py'])}
                         and inputs['selection']['name'] == name and inputs['configuration'] == digest({})
-                        and inputs['rules'] == digest(json.loads(files['rules.json']) | {'propagators': []})
                         and inputs['budget'] == {'steps': CASES[case]['steps'], 'depth': 8, 'bytes': 1_048_576}
                         and inputs['context'] == 'html' and inputs['summary_mode'] is True
                         and ('modules' in inputs) is CASES[case]['imports']
@@ -142,7 +149,7 @@ def audit(report):
                 work = answer['execution']['analysis_steps']
                 require(answer['execution']['kind'] == 'analyzed'
                         and type(work) is int and 0 <= work <= CASES[case]['steps']
-                        and answer['budget'] == {'steps': CASES[case]['steps'], 'used': work,
+                        and answer['budget'] == {'steps': CASES[case]['steps'], 'used': work, 'call_depth': 8,
                                                  'response_bytes': 1_048_576}, 'answer work changed')
                 complete = case != 'unfinished-budget' and state != 'unknown'
                 require(answer['complete'] is complete, 'unfinished answer disguised as finished')

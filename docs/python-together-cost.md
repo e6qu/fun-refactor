@@ -49,6 +49,10 @@ The existing [SDK test](../sdk/python/tests/test_flow_together.py) separately ch
 
 ## Which questions repeat?
 
+Startup is code Python executes while loading a file, before you call the selected helper.
+That code can replace a helper or change a value it uses.
+When the checker cannot understand a startup call, its answer must stay unfinished.
+
 Each Python process answers seven pairs, rather than the seven individual questions in the earlier experiment:
 
 1. Ask about both helpers with their original definitions.
@@ -60,7 +64,7 @@ Each Python process answers seven pairs, rather than the seven individual questi
 7. Restore the original definitions. `discard` must stop the input again.
 
 The four examples have local helpers, imported helpers, 200 unused declarations or an exhausted step allowance.
-Five repetitions of both approaches produce 40 Python processes, 280 pairs and 560 function answers.
+Five repetitions of both approaches produce 40 measured Python processes, 280 pairs and 560 function answers.
 Both approaches find both functions for every pair.
 Separate requests make four native calls per pair; together makes three.
 A **native call** here means starting the compiled `fr` program once.
@@ -76,17 +80,18 @@ These runtime checks occur outside the timed sequences and do not compare Python
 ## Which costs count?
 
 The recurring total adds the first process start through its ready reply, all seven submitted pairs through parsed replies, and shutdown through process exit.
-It includes client loading, both function searches, native startup, analysis, client validation, measurement code and JSON serialization and parsing.
+It includes client loading, both function searches, native startup, analysis, client validation and measurement code.
+Writing and reading replies in JSON, a structured text format, also counts.
 Each process stays alive for its whole sequence in both approaches.
 The controller changes the example files, checks loaded module paths and saves progress between those intervals.
 A separate session wall-time record includes that controller work.
-The installation inventory and ordinary-Python correctness checks run outside every session's timers.
+The controller's own startup, installation inventory and ordinary-Python correctness checks run outside every session's timers.
 
 The installation record lists building a wheel, installing it and compiling checked-hash bytecode separately.
 A **wheel** is a Python package archive.
 **Bytecode** is compiled Python instructions saved for later starts.
 Checked-hash bytecode lets Python verify source contents before accepting those saved instructions.
-Every module's source and saved bytecode are checked before and after the experiment.
+The collector checks every client file's source and saved bytecode before and after the experiment.
 Each process records which client files it loaded.
 Runner preparation, interpreter setup, installing build tools and compiling `fr` remain outside these installation timers.
 Both approaches use isolated Python with `-I -B`: user import paths are isolated, new bytecode writes are disabled, and existing bytecode can still load.
@@ -112,8 +117,8 @@ python3 -B tools/python-together-cost.py \
 `result.json` retains all reports and sample timings, file identities, settings, hardware and installation costs.
 The artifact also contains progress records, the built wheel and any failure trace.
 The independent audit checks every stage, selected function, source edit, unfinished reason, work allocation, cost sum and native report byte count.
-For sufficient work, full semantic answers must agree between approaches and repetitions.
-Only execution accounting and the enclosing command's project identity leave that comparison.
+With enough work available, full answers must agree between approaches and repetitions.
+Only records of how each command ran (`execution`) and its project identity (`context_basis`) leave that comparison.
 The one-step case compares the first answer across approaches and keeps the second answers separate because their work differs.
 
 These are disclosed examples used during development.

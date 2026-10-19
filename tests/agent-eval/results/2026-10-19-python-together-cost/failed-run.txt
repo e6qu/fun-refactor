@@ -1,0 +1,20 @@
+Original failed collection: https://github.com/e6qu/fun-refactor/actions/runs/39233464634
+Producer: 4eebf1892b7399bbd52956c98ef8c936e1921660
+Measurement job: 118008464472
+Artifact: 12179723390, python-together-cost, 1578497 bytes
+Official uploaded SHA256: c2e878c3ed8874ab965f4dc8ecde0fc130557154182c80648deae30b000ffd28
+The original GitHub artifact is retained byte-for-byte as failed-audit.zip.
+
+All 40 sessions finished. The independent audit then rejected the first answer
+with "source or explicit settings changed". The measurement is failed evidence,
+not the source of a passing timing claim.
+
+The audit incorrectly hashed normalized rules as a sorted JSON object. Rust's
+Rules struct hashes fields in declaration order: version, sources, sinks,
+propagators, sanitizers. It also expected an answer budget without call_depth,
+although the native report includes call_depth: 8. Both assumptions are fixed
+in the audit and its synthetic controls. A regression reads this unchanged real
+reply to check the expected fingerprint and budget fields against native output.
+
+The archived report keeps its original bindings. It is not rewritten or accepted
+as a current measurement. The corrected collector must run again on GitHub.

@@ -5,6 +5,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+import zipfile
 
 spec = importlib.util.spec_from_file_location('together_cost', Path(__file__).with_name('python-together-cost.py'))
 cost = importlib.util.module_from_spec(spec)
@@ -25,7 +26,7 @@ def fixture():
                     for index, name in enumerate(names):
                         inputs = {'source': {'path': 'app.py', 'digest': cost.digest(files['app.py'])},
                                   'configuration': cost.digest({}), 'selection': {'name': name},
-                                  'rules': cost.digest(cost.json.loads(files['rules.json']) | {'propagators': []}),
+                                  'rules': cost.RULES_DIGEST,
                                   'budget': {'steps': steps, 'depth': 8, 'bytes': 1_048_576},
                                   'context': 'html', 'summary_mode': True}
                         if cost.CASES[case]['imports']:
@@ -41,7 +42,8 @@ def fixture():
                         answers.append({'schema': 'fr-dataflow-1', 'inputs': inputs,
                                         'revision': revision, 'target': target,
                                         'input_digest': cost.digest(inputs), 'complete': complete,
-                                        'budget': {'steps': steps, 'used': work, 'response_bytes': 1_048_576},
+                                        'budget': {'steps': steps, 'used': work, 'call_depth': 8,
+                                                   'response_bytes': 1_048_576},
                                         'witnesses': [17] if name == 'forwards' or state == 'edited' else [],
                                         'cutoffs': [] if complete else [
                                             'step-budget' if case == 'unfinished-budget' else 'module-effects-unchecked'],
@@ -117,6 +119,16 @@ class Controls(unittest.TestCase):
 
     def test_complete_comparison_passes(self):
         cost.audit(self.report)
+
+    def test_expected_rules_and_budget_match_the_preserved_real_reply(self):
+        archive = cost.ROOT / 'tests/agent-eval/results/2026-10-19-python-together-cost/failed-audit.zip'
+        with zipfile.ZipFile(archive) as stream:
+            captured = cost.json.loads(stream.read('result.json'))
+        actual = captured['reports'][captured['sessions'][0]['requests'][0]['report_digest']][0]
+        example = self.report['reports'][self.report['sessions'][0]['requests'][0]['report_digest']][0]
+        self.assertEqual(actual['inputs']['rules'], example['inputs']['rules'])
+        self.assertEqual(set(actual['budget']), set(example['budget']))
+        self.assertEqual(actual['budget']['call_depth'], example['budget']['call_depth'])
 
     def test_missing_duplicate_and_reordered_sessions_fail(self):
         self.reject(lambda r: r['sessions'].pop(), 'sessions')
@@ -199,6 +211,16 @@ class Controls(unittest.TestCase):
         self.reject(lambda r: r['sessions'][0]['requests'][0]['lookups'].pop(), 'search receipts')
         self.reject(lambda r: r['sessions'][0]['requests'][0]['lookups'][0]['rows'][0].__setitem__(1, 'other'),
                     'selected function')
+
+    def test_rule_fingerprint_and_call_depth_cannot_change(self):
+        def rules(r):
+            row = r['sessions'][0]['requests'][0]
+            change_raw(r, row, lambda raw: raw[0]['inputs'].update(rules='0' * 64))
+        self.reject(rules, 'rule fingerprint')
+        def depth(r):
+            row = r['sessions'][0]['requests'][0]
+            change_raw(r, row, lambda raw: raw[0]['budget'].update(call_depth=9))
+        self.reject(depth, 'answer work')
 
 
 if __name__ == '__main__':
