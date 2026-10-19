@@ -248,6 +248,9 @@ record `process_seconds`: the time to start the Python worker, import its code,
 perform the analysis, write its answer and exit. `elapsed_seconds` covers the
 analysis and storage work measured inside that worker. The reports keep both
 intervals and their native-analysis and storage components.
+The whole-process interval also includes this benchmark's file counts and
+metric collection. Saving more files makes that bookkeeping slower too, so
+the difference between the two intervals cannot isolate Python startup cost.
 
 Both cache arms run the same `fr` analyzer. Ordinary Python executions check
 the answers; this benchmark does not time them as an alternative to `fr`.

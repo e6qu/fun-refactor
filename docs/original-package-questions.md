@@ -10,7 +10,7 @@ def entry():
 ```
 
 Here `emit_value()` supplies an input and `record_value()` receives the output.
-The question is whether that input can affect the output. For example, Python
+The check follows that input through supported operations to the output. Python
 returns 17 for input 17 and 31 for input 31. This checks a possible connection;
 it does not establish that every input produces a different output.
 
@@ -73,14 +73,30 @@ an imported module's name.
 ## Read the result
 
 In the JSON answer, `complete: true` means the question finished within the
-recorded rules and assumptions. A witness is a recorded possible connection
-between the chosen input and output. A finished answer without a witness means
-the analysis found no connection within those rules.
+recorded rules and assumptions. A witness records a route through the checker's
+rules from the chosen input to the output. A finished answer without a witness
+means the analysis found no such value route within those rules.
 
 `complete: false` means some part remains unchecked. Its `cutoffs` explain why.
 An unfinished answer with no witness does not establish that the input is
 blocked. For example, an unknown call might transform or replace a value in a
 way the analyzer cannot check.
+
+A recorded route does not prove that changing the input changes the output.
+For an integer `value`, `value - value` always produces zero, but the checker
+can still record a route through the subtraction.
+
+The check also leaves out the effect of a condition choosing between constants:
+
+```python
+def entry():
+    return record_value(1 if emit_value() > 0 else 0)
+```
+
+Inputs -1 and 1 produce different outputs, zero and one. The checker does not
+count that choice as carrying the input's value into the output. A finished
+answer without a witness therefore stays within these value-tracking rules;
+it does not establish that the output is independent of the input in every way.
 
 This is also separate from numeric correctness. Knowing that the input reaches
 `clamp` does not prove that its bounds are in the right order. That requires a

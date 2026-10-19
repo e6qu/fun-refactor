@@ -33,14 +33,15 @@ Easter date from its year. These exercise arithmetic and immutable date values,
 respectively. Boltons is familiar coverage, including prior delivery tests.
 Neither project is a reserved unread evaluation.
 
-In addition to the existing jaraco.functools reservation, reserve fn.py at
-`df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26`. Only its repository and commit
-metadata have been read. Keep both reserved implementations unopened until the
-analyzer freezes. For their helper question, inspect for plain top-level
-functions returning an argument directly; preserve an unsuccessful inspection
-if there is no such function. Do not manufacture one or copy it out of its
-package. Preserve every planned project result, including any that do not
-qualify for the three-project milestone.
+The first unfamiliar-project comparison reserved jaraco.functools and fn.py,
+the latter at `df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26`. Both stayed
+unread until the analyzer and question-selection rule were recorded. That rule
+looks for plain top-level functions returning their only argument directly,
+such as `def identity(value): return value`. It excludes `@decorator` markers
+and type labels such as `value: int` or `-> int`. An unsuccessful inspection
+remains a result; do not manufacture
+a helper or copy one out of its package. Keep every planned project outcome,
+including those that do not qualify for the three-project milestone.
 
 ## Milestone 1: complete the original package question
 
@@ -74,6 +75,11 @@ program that starts these checks restores the original source even if a check
 process stops. The record retains every check and its resource use; splitting
 the work does not establish lower total cost.
 
+[Frozen familiar-project coverage](https://github.com/e6qu/fun-refactor/actions/runs/39296005764)
+passed all of these checks for both Boltons and dateutil. The complete original
+records are retained with their
+[source and artifact identities](../tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-coverage/receipt.json).
+
 ## Milestone 2: work beyond a familiar package
 
 With the same frozen implementation, demonstrate the reaching-input and
@@ -82,11 +88,18 @@ At least one implementation must remain unread until the implementation and
 question-selection rule are frozen. Choose projects before using their source
 to guide changes. Keep the familiar Toolz, Funcy and Pydash failures visible.
 
-The existing reservation is
-[jaraco.functools](../tests/agent-eval/python-repository-flow/replacement-holdout.json).
-Its source remains unopened. Inspect its license and requirements on admission;
-do not assume that a desired helper exists. Record the first admission,
-inspection, runtime and analysis outcomes, including failures.
+The [first unfamiliar-project run](https://github.com/e6qu/fun-refactor/actions/runs/39304111929)
+used the same recorded analyzer as the successful familiar-project coverage.
+Jaraco.functools stopped at admission: its pinned archive has no license file
+required by that check. fn.py passed admission, but inspection found no helper
+matching the selection rule. Neither question reached analysis or ordinary
+Python execution. Both original outcomes and inputs remain in the
+[first-comparison record](../tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json).
+
+This comparison does not demonstrate milestone 2. A qualifying third project
+is still required, including an implementation kept unread before evaluation.
+The [jaraco.functools reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json)
+records its original selection; it must not be read as a successful result.
 
 A failure can inform another fix in this same pull request, but that project
 then becomes a development example. Reserve another unread project before the
