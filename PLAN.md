@@ -125,6 +125,8 @@ For local helpers, seven pairs took 0.444 seconds separately and 0.429 seconds t
 The three examples with matching answers showed 2.7–9.0% lower totals together, while their report text grew by 6.6–10.2%.
 A one-step combined request leaves zero steps for its second answer; that separate measurement performs different work.
 The experiment used the existing analyzer and client.
+These timing studies predate bounded loop support.
+Their original code still audits them; this language change has no separate cost measurement.
 
 Return to the real libraries' remaining import and startup gaps.
 For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.

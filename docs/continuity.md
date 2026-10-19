@@ -58,6 +58,8 @@ The three examples with matching answers showed 2.7–9.0% lower totals together
 With one shared step, the second answer gets zero; that measurement performs different work and supports no equal-answer saving claim.
 The original failed audit is preserved; its mistaken rule fingerprint and missing call-depth field are fixed with a real-reply regression.
 The experiment used the existing analyzer, client and limits.
+These timing studies predate bounded loop support.
+Their original code still audits them; this language change has no separate cost measurement.
 Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
 
 A small registration function can now copy entries between dictionaries created in the same file.
