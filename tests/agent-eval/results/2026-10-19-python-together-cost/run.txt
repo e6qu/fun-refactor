@@ -1,0 +1,39 @@
+Passing collection: https://github.com/e6qu/fun-refactor/actions/runs/39238028286
+Producer: cff5df81c2abc3189bfd189149a3a5c2d0885ac5
+Controls job: 118011769663, 16 tests passed
+Optimized build job: 118012457203, passed; cargo build took 2m 29s
+Measurement job: 118013886162, collection and separate audit passed
+Artifact: 12181000548, python-together-cost, 1580833 bytes
+Official uploaded SHA256: 4e70c2a7ebce8ec59c82a38dc5d2a1b209b27c6e34ff28549fa631ac7a6161cb
+Original GitHub archive: artifact.zip, unchanged
+result.json: extracted unchanged from that archive
+
+40 measured Python sessions, 280 pairs, 560 function answers, 980 native calls.
+Each approach uses one installed Python process for seven pairs per session.
+Five repetitions per approach and example; order alternates by repetition.
+Separate questions each receive 4096 steps and 1048576 response bytes; together
+they share that same cap. The exhausted example uses one step instead of 4096.
+Full answers agree except the exhausted second answers, whose work differs.
+Unknown startup remains unfinished. Ordinary Python returns [17,0] originally,
+[17,17] after the helper edit, and raises NameError for unknown startup.
+
+AMD EPYC 9V74 80-Core Processor, four available CPU threads, 16373452 KiB visible
+memory; Python 3.14.8, Rust 1.99.1, Linux 6.17 Azure, glibc 2.39.
+31 SDK source files match the installed wheel; checked-hash bytecode verified.
+Optimized binary SHA256: 221659d1827eb6345332ecf80fc2cc64ebe2151ad11bb0441dbe7d6f3fa4ae02
+Wheel SHA256: 1fe3eaa8928e561b413f880a721f736647ec9037c95051274a97a4b1c273e65e
+
+Median seven-pair seconds, including first start, all replies and shutdown:
+local: separate 0.4436536079999769, together 0.42932687799992664
+imported: separate 0.4797090970000113, together 0.46696666999991976
+many-declarations: separate 0.5258718940001472, together 0.47857528200006527
+unfinished-budget: separate 0.3914430580001067, together 0.3601830439999958
+The last comparison does different work and does not establish equal-answer savings.
+One-time wheel build/install/bytecode costs: 0.6652236729999572,
+0.3646226029999866, 0.2143424029999892 seconds, respectively.
+Controller startup, interpreter/runner provisioning, build dependencies and Rust
+compilation are outside recurring totals. Session wall times additionally count
+fixture edits, loaded-module checks and progress persistence.
+
+The first failed audit and its original producer remain in failed-audit.zip and
+failed-run.txt. No report bindings or samples were rewritten to rescue that run.

@@ -52,9 +52,13 @@ Keeping that installed client running reduced totals by another 64.1–69.1% rel
 Seven local questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process, including startup and shutdown.
 Building and installing the Python package and compiling its modules added 1.144 seconds separately.
 Full environment setup remains unmeasured.
-Use that running installed client as the next baseline.
-Compare the existing two-helper request with separate questions in that program, counting function lookups, reply checks and source edits.
-Explain that a combined request shares a work limit, while separate requests each receive their own limit.
+The [paired-question comparison](python-together-cost-results.md) then checked 560 function answers in running installed clients.
+Seven local pairs took 0.444 seconds separately and 0.429 seconds together, including first startup and shutdown.
+The three examples with matching answers showed 2.7–9.0% lower totals together and 6.6–10.2% more report text.
+With one shared step, the second answer gets zero; that measurement performs different work and supports no equal-answer saving claim.
+The original failed audit is preserved; its mistaken rule fingerprint and missing call-depth field are fixed with a real-reply regression.
+The experiment used the existing analyzer, client and limits.
+Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
 The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
@@ -65,6 +69,8 @@ Only audit jobs that use external compilers install them.
 The [complete deep recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) passed all audits and external replays at the same deadlines.
 The [merged-main recheck](https://github.com/e6qu/fun-refactor/actions/runs/39210593046) also passed all 17 jobs.
 Its impact test took 537 seconds and the complete job took 667 seconds, within the unchanged 15-minute limit.
+The [next merged-main run](https://github.com/e6qu/fun-refactor/actions/runs/39231454941) passed all 17 checks too.
+Its impact test took 639 seconds and the complete job took 764 seconds at the same deadline.
 
 Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
 Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.

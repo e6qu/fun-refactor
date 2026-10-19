@@ -101,6 +101,11 @@ Its [560-question result](python-process-cost-results.md) found 26.7–33.0% low
 Keeping that installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
 The comparisons check the same seven answers after the same source edits; they do not measure complete agent tasks.
 Separate native-operation timers locate work; their diagnostic totals do not substitute for ordinary request times.
+The [two-helper comparison](python-together-cost.md) uses one running installed client for both approaches.
+It compares a combined request with separate fresh answers, including searches, edits and validation.
+Its shared work limit can leave less work for the second answer; those unfinished cases need separate interpretation.
+The [recorded paired results](python-together-cost-results.md) show 2.7–9.0% lower seven-pair totals in the three examples with matching answers.
+Their compact native reports grew by 6.6–10.2%. The exhausted one-step case performs different work and supports no equal-answer saving claim.
 The roughly 242 ms outside one repeated question's inner worker includes launch, imports and reply handling, without identifying their individual costs.
 
 The [saved cache report](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains three repetitions on one host.
