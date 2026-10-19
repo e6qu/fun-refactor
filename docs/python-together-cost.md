@@ -11,6 +11,7 @@ Here `source()` represents submitted input and `sink(value)` represents an outpu
 The checker follows possible connections; a reported connection does not prove that execution takes that path.
 
 The [earlier process comparison](python-process-cost-results.md) found lower costs with an installed Python client kept running.
+The [paired-question results](python-together-cost-results.md) found a further 2.7–9.0% reduction in these examples, with larger reports and shared work limits.
 This experiment uses that arrangement for both approaches:
 
 | Approach | What happens for each pair of questions |

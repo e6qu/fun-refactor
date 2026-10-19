@@ -120,10 +120,16 @@ Both totals include the first start, fresh analysis after edits and final shutdo
 Building and installing the Python package and compiling its modules added 1.144 seconds separately.
 Complete environment setup remains unmeasured.
 
-Use one running installed client for the next comparison.
-Measure the existing two-helper request against separate questions in that same Python program, including finding both functions and checking replies.
-State their different work allocations: one combined request shares a limit, while separate requests each receive a limit.
-Keep unknown answers visible, then return to the real libraries' remaining import and startup gaps.
+The [two-helper comparison](docs/python-together-cost-results.md) checked 560 function answers in running installed clients.
+For local helpers, seven pairs took 0.444 seconds separately and 0.429 seconds together, including first startup and shutdown.
+The three examples with matching answers showed 2.7–9.0% lower totals together, while their report text grew by 6.6–10.2%.
+A one-step combined request leaves zero steps for its second answer; that separate measurement performs different work.
+The experiment used the existing analyzer and client.
+
+Return to the real libraries' remaining import and startup gaps.
+For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.
+Choose the next concrete statement from the import explanation and check its behavior against Python.
+Aim for a complete helper answer through the original package import while preserving the existing limits and unfinished answers.
 
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
