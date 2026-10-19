@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""Retain original-package answers and independent Python checks, including failures."""
+import argparse
+import ast
+import datetime
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT / 'sdk/python/src'))
+from agent_eval.bounded_host import run
+from fr_ir.context import MemoryObjectStore
+from fr_ir.flow import FlowCache
+from fr_ir.runtime import FrClient
+
+spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/python-repository-flow.py')
+flow = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(flow)
+PLAN = json.loads((ROOT / 'tools/package-question-projects.json').read_text())
+RULES = {'version': 'package-question', 'sources': ['emit_value'], 'sinks': ['record_value'],
+         'sanitizers': {}, 'propagators': []}
+LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
+              cpu_limit_seconds=10, transcript_bytes=1024**2)
+
+
+def save(path, value):
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def prepare(scope, project, variant, case):
+    entry = 'entry' if variant == 'original' else 'renamed_entry'
+    path = 'question.py' if variant == 'original' else 'moved_question/adapter.py'
+    if variant != 'original':
+        (scope / 'moved_question').mkdir(exist_ok=True)
+        (scope / 'moved_question/__init__.py').write_text('')
+    expression = project['expression'].replace('VALUE', 'emit_value()')
+    body = f'return record_value({expression})'
+    if case == 'overwritten':
+        body = f'value = emit_value()\nvalue = {project["overwrite"]}\nreturn record_value({project["expression"].replace("VALUE", "value")})'
+    elif case == 'unknown':
+        body = f'return record_value(opaque({expression}))'
+    source = f'from {project["module"]} import {project["function"]} as relay\n\ndef {entry}():\n'
+    source += ''.join('    ' + line + '\n' for line in body.splitlines())
+    (scope / path).write_text(source)
+    (scope / 'rules.json').write_text(json.dumps(RULES))
+    return path, entry, source
+
+
+def runtime(request):
+    scope = Path(request['scope'])
+    sys.path.insert(0, str(scope))
+    spec = importlib.util.spec_from_file_location('package_question', scope / request['path'])
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.emit_value = lambda: request['value']
+    module.record_value = lambda value: value
+    module.opaque = lambda value: value
+    value = getattr(module, request['entry'])()
+    if type(value) is datetime.date:
+        value = value.isoformat()
+    flow.require(value is None or type(value) in (int, float, bool, str), 'runtime result is outside the declared scalar/date contract')
+    print(json.dumps({'value': value}))
+
+
+def analysis(request):
+    scope = Path(request['scope'])
+    client = FrClient(scope, executable=request['fr'], max_output_bytes=1048576)
+    handle = client.project('find', request['entry'], '--in', request['path']).definition_target().handle
+    project = request['project']
+    settings = dict(standard_library=tuple(project['standard_library']), rules=scope / 'rules.json',
+                    summaries=True, imports=True, context='html', depth=8, steps=1 if request['case'] == 'steps' else 4096,
+                    max_bytes=1048576)
+    cache = FlowCache(MemoryObjectStore())
+    result = cache.analyze(client, handle, **settings)
+    report = result.report.to_data()
+    save(Path(request['report']), report)
+    if request['case'] in ('unknown', 'steps'):
+        flow.require(not report['complete'] and report['cutoffs'], 'unchecked behavior claimed a complete answer')
+    elif report['complete']:
+        flow.require(not report['cutoffs'] and bool(result.witnesses) == (request['case'] == 'positive'),
+                     'complete answer disagrees with independently declared connection')
+    print(json.dumps({'complete': report['complete'], 'witnesses': len(result.witnesses), 'cutoffs': report['cutoffs']}))
+
+
+def cache_controls(request):
+    scope = Path(request['scope'])
+    project = request['project']
+    client = FrClient(scope, executable=request['fr'], max_output_bytes=1048576)
+    store = MemoryObjectStore()
+    cache = FlowCache(store)
+    settings = dict(standard_library=tuple(project['standard_library']), rules=scope / 'rules.json',
+                    summaries=True, imports=True, context='html', depth=8, steps=4096, max_bytes=1048576)
+    output = Path(request['reports'])
+    stages = []
+
+    def check(label, reused, reaches):
+        handle = client.project('find', request['entry'], '--in', request['path']).definition_target().handle
+        retained = cache.analyze(client, handle, **settings)
+        fresh = FlowCache(MemoryObjectStore()).analyze(client, handle, **settings)
+        left, right = retained.report.to_data(), fresh.report.to_data()
+        save(output / (label + '-saved.json'), left)
+        save(output / (label + '-fresh.json'), right)
+        for value in (left, right):
+            value.pop('execution')
+            value.pop('context_basis', None)
+        flow.require(left == right and retained.reused == reused, 'saved/fresh answer or reuse decision disagrees: ' + label)
+        flow.require(left['complete'] and bool(retained.witnesses) == reaches, 'cache control did not finish with the declared connection: ' + label)
+        stages.append({'stage': label, 'reused': retained.reused, 'complete': True, 'reaches': reaches})
+
+    check('cold', False, True)
+    cache = FlowCache.restore(store, cache.persist())
+    check('restored', True, True)
+    (scope / 'unrelated_question_note.py').write_text('value = 42\n')
+    check('unrelated-edit', True, True)
+    module = scope.joinpath(*project['module'].split('.')).with_suffix('.py')
+    if not module.is_file():
+        module = scope.joinpath(*project['module'].split('.'), '__init__.py')
+    original = module.read_text()
+    declaration, = [node for node in ast.parse(original).body if isinstance(node, ast.FunctionDef) and node.name == project['function']]
+    returns = [node for node in ast.walk(declaration) if isinstance(node, ast.Return)]
+    flow.require(returns, 'selected helper has no return to edit')
+    try:
+        edited = original
+        for node in reversed(sorted(returns, key=lambda item: (item.lineno, item.col_offset))):
+            fragment = ast.get_source_segment(original, node)
+            flow.require(edited.count(fragment) == 1, 'relevant edit cannot select a unique return')
+            edited = edited.replace(fragment, 'return 0', 1)
+        module.write_text(edited)
+        check('helper-replaced', False, False)
+        module.write_text(original)
+        check('helper-restored', True, True)
+        flow.require(module.name != '__init__.py', 'package initializer replacement requires a separately declared control')
+        hidden = module.with_suffix('.question-original')
+        replacement = module.with_suffix('')
+        flow.require(not replacement.exists(), 'replacement package already exists')
+        module.rename(hidden)
+        replacement.mkdir()
+        parameters = ', '.join(arg.arg for arg in declaration.args.posonlyargs + declaration.args.args)
+        (replacement / '__init__.py').write_text(f'def {project["function"]}({parameters}):\n    return 0\n')
+        try:
+            check('import-replaced', False, False)
+        finally:
+            (replacement / '__init__.py').unlink()
+            replacement.rmdir()
+            hidden.rename(module)
+    finally:
+        module.write_text(original)
+    print(json.dumps({'stages': stages, 'complete': True}))
+
+
+def execute(output, name, request, scope):
+    directory = output / name
+    directory.mkdir()
+    save(directory / 'request.json', request)
+    environment = {'PATH': os.environ['PATH'], 'HOME': str(directory), 'LANG': 'C.UTF-8',
+                   'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'}
+    command = [sys.executable, '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')]
+    with (directory / 'stdout').open('wb') as stdout, (directory / 'stderr').open('wb') as stderr:
+        observation = run(command, b'', stdout, stderr, scope, env=environment, cwd=scope, **LIMITS)
+    observation['command'] = command
+    observation['stdout_sha256'] = flow.sha((directory / 'stdout').read_bytes())
+    observation['stderr_sha256'] = flow.sha((directory / 'stderr').read_bytes())
+    observation['result'] = None
+    if observation['exit_code'] == 0 and not observation['stop_reason']:
+        observation['result'] = json.loads((directory / 'stdout').read_text())
+    save(directory / 'observation.json', observation)
+    return observation
+
+
+def inspect_unread(scope):
+    candidates = []
+    for path in sorted(scope.rglob('*.py')):
+        relative = path.relative_to(scope)
+        if any(part.startswith('.') or part in ('tests', 'test', 'docs', 'examples') for part in relative.parts):
+            continue
+        for node in ast.parse(path.read_bytes()).body:
+            if not isinstance(node, ast.FunctionDef) or node.decorator_list or node.returns:
+                continue
+            args = node.args.posonlyargs + node.args.args
+            body = list(node.body)
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                body.pop(0)
+            if (len(args) == 1 and not args[0].annotation and not node.args.kwarg and not node.args.kwonlyargs
+                    and len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name)
+                    and body[0].value.id == args[0].arg):
+                parts = list(relative.with_suffix('').parts)
+                if parts[-1] == '__init__':
+                    parts.pop()
+                if parts and all(part.isidentifier() for part in parts):
+                    candidates.append({'path': relative.as_posix(), 'line': node.lineno, 'module': '.'.join(parts),
+                                       'function': node.name, 'source_sha256': flow.sha(path.read_bytes())})
+    flow.require(candidates, 'no helper satisfies the frozen selection rule')
+    return candidates[0]
+
+
+def collect(args):
+    flow.require(sys.platform == 'linux', 'package collection belongs on the declared Linux runner')
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    if args.phase != 'development':
+        frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
+        flow.verify_analyzer(ROOT, frozen)
+        flow.require(frozen['plan_sha256'] == flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
+                     and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
+    if args.phase == 'held-out':
+        flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
+        run_record = json.loads(flow.command(['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{args.coverage_run}']).stdout)
+        flow.require(run_record['head_sha'] == source and run_record['conclusion'] == 'success'
+                     and run_record['path'] == '.github/workflows/package-questions.yml', 'coverage must pass at the same frozen commit')
+    result = {'source_commit': source, 'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
+              'scope': 'Original package imports and stated source models; no general Python, proof or cost-saving claim.',
+              'projects': [], 'milestones_complete': False}
+    save(output / 'result.json', result)
+    role = 'held-out' if args.phase == 'held-out' else 'coverage'
+    for declared in PLAN['projects']:
+        if declared['role'] != role:
+            continue
+        project = dict(declared)
+        directory = output / project['id']
+        directory.mkdir()
+        row = {'project': project, 'cases': [], 'error': None, 'complete': False}
+        result['projects'].append(row)
+        try:
+            if project['id'] == 'boltons':
+                data = (ROOT / 'tests/agent-eval/python-repositories/boltons.tar.gz').read_bytes()
+            else:
+                url = f'https://codeload.github.com/{project["repository"]}/tar.gz/{project["revision"]}'
+                with urllib.request.urlopen(url, timeout=30) as response:
+                    data = response.read(4 * 1024**2 + 1)
+            (directory / 'source.tar.gz').write_bytes(data)
+            row['archive_sha256'] = flow.sha(data)
+            upstream = directory / 'upstream'
+            upstream.mkdir()
+            row['source_files'] = flow.snapshot(data, project, upstream)
+            scope = upstream / project['python_root']
+            if role == 'held-out':
+                row['selection'] = inspect_unread(scope)
+                project.update({key: row['selection'][key] for key in ('module', 'function')})
+                project.update(expression='relay(VALUE)', overwrite=0, values=[17, 31], expected=[17, 31], blocked=0, standard_library=[])
+            for variant in ('original', 'renamed-relocated'):
+                for case in ('positive', 'overwritten', 'unknown', 'steps'):
+                    path, entry, adapter = prepare(scope, project, variant, case)
+                    name = f'{variant}-{case}'
+                    cell = {'variant': variant, 'case': case, 'path': path, 'entry': entry, 'adapter': adapter, 'runtime': []}
+                    row['cases'].append(cell)
+                    request = {'mode': 'analysis', 'scope': str(scope), 'path': path, 'entry': entry, 'project': project,
+                               'case': case, 'fr': str(args.fr.resolve()), 'report': str(directory / (name + '.json'))}
+                    cell['analysis'] = execute(directory, name, request, scope)
+                    for index, value in enumerate(project['values']):
+                        request = {'mode': 'runtime', 'scope': str(scope), 'path': path, 'entry': entry, 'value': value}
+                        observed = execute(directory, f'{name}-python-{index}', request, scope)
+                        expected = project['blocked'] if case == 'overwritten' else project['expected'][index]
+                        cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
+                        flow.require(observed['result'] == {'value': expected}, 'ordinary Python disagrees with the independent example')
+                    save(output / 'result.json', result)
+            if role == 'coverage':
+                path, entry, _ = prepare(scope, project, 'original', 'positive')
+                request = {'mode': 'cache', 'scope': str(scope), 'path': path, 'entry': entry,
+                           'project': project, 'fr': str(args.fr.resolve()), 'reports': str(directory)}
+                row['cache'] = execute(directory, 'cache-controls', request, scope)
+            row['complete'] = all(cell['analysis']['result'] is not None
+                                   and (cell['analysis']['result']['complete'] if cell['case'] in ('positive', 'overwritten')
+                                        else not cell['analysis']['result']['complete']) for cell in row['cases'])
+            if role == 'coverage':
+                row['complete'] &= row['cache']['result'] is not None and row['cache']['result']['complete']
+        except (OSError, ValueError, SyntaxError, KeyError) as error:
+            row['error'] = f'{type(error).__name__}: {error}'
+        save(output / 'result.json', result)
+    print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']]}))
+    if not all(row['complete'] for row in result['projects']):
+        raise SystemExit(1)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--worker', type=Path)
+    parser.add_argument('--phase', choices=('development', 'coverage', 'held-out'))
+    parser.add_argument('--coverage-run')
+    parser.add_argument('--output', type=Path)
+    parser.add_argument('--fr', type=Path)
+    arguments = parser.parse_args()
+    if arguments.worker:
+        request = json.loads(arguments.worker.read_text())
+        {'analysis': analysis, 'runtime': runtime, 'cache': cache_controls}[request['mode']](request)
+    else:
+        collect(arguments)

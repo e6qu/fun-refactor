@@ -1,0 +1,54 @@
+name: Original package questions
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Development uses familiar projects; held-out requires the implementation freeze
+        required: true
+        type: choice
+        options: [development, coverage, held-out]
+      coverage_run:
+        description: Successful coverage run at this exact commit before opening unread projects
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: package-questions-${{ github.ref }}-${{ inputs.phase }}
+  cancel-in-progress: false
+jobs:
+  collect:
+    name: Package questions (${{ inputs.phase }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Collect original imports and independent Python answers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ inputs.phase }}
+          COVERAGE_RUN: ${{ inputs.coverage_run }}
+        run: >-
+          python3 -B tools/package-questions.py --phase "$PHASE"
+          --coverage-run "$COVERAGE_RUN" --fr target/debug/fr
+          --output "$RUNNER_TEMP/package-questions"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: package-questions-${{ inputs.phase }}
+          path: ${{ runner.temp }}/package-questions/
+          retention-days: 30
+          if-no-files-found: error
