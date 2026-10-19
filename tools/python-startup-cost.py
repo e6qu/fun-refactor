@@ -50,8 +50,8 @@ BUILD = 'cargo build --locked --release --bin fr --example project-profile'
 SCOPE = {
     'elapsed_seconds': 'Parent timer around a new Python worker through parsed JSON reply. Includes Python/SDK startup, finding the function, native process startup, file checks, import resolution, parsing, analysis or validation, saved-record reads/writes and manifest pointer I/O.',
     'excluded': 'Checkout, compilation, dependency installation, fixture edits, ordinary Python observation, store inventory, report comparison and audit. Worker reply serialization/transfer, shared measurement imports and instrumentation are included. Each sequence explicitly enables or disables the project cache, isolated by approach and repetition and initially empty. No uncounted priming. OS file caches are neither flushed nor controlled.',
-    'attribution': 'Ordinary CLI calls time finding the function, input identity and answering separately, including client parsing. Separate profiling sequences use the existing library profiler with construction timers. Their phase times exclude process startup, argument parsing and outer reply output. Index includes extraction or cached facts and resolution; query includes import loading, parsing and analysis or validation, without separate import/parser timers. Profiling totals are diagnostic, not CLI latency.',
-    'bytes': 'Canonical JSON reply bytes, not exact wire bytes. Store reads and offered writes count repeated object operations. Added bytes count unique object files; offered writes can verify existing objects. Manifest pointer bytes are outside object totals but their I/O is timed. Temporary native reuse files are timed but not retained in the object inventory.',
+    'attribution': 'Ordinary CLI calls time finding the function, input identity and answering separately, including client parsing. Separate profiling sequences use the existing library profiler with construction timers. Their phase times exclude process startup, argument parsing and outer reply output. The profiling client constructs the current required project identity before strict SDK validation, outside native phase timers. Index includes extraction or cached facts and resolution; query includes import loading, parsing and analysis or validation, without separate import/parser timers. Profiling totals are diagnostic, not CLI latency.',
+    'bytes': 'Canonical JSON reply bytes, not exact wire bytes. Profiling counts the adapted SDK report including its constructed project identity, excluding the diagnostic envelope. Store reads and offered writes count repeated object operations. Added bytes count unique object files; offered writes can verify existing objects. Manifest pointer bytes are outside object totals but their I/O is timed. Temporary native reuse files are timed but not retained in the object inventory.',
     'memory': 'Separate worker and largest-child lifetime RSS high-water marks, not sampled aggregate RSS. Python runtime and fr are separate processes.',
     'python': 'Ordinary Python executes the same selected function with source returning 17 and sink returning its argument. It checks one concrete result, not all input-flow paths. Its elapsed time is contextual, not an equivalent analysis baseline.',
     'claims': 'Optimized build, disclosed synthetic development examples only. No unfamiliar package, agent task, paid study, full-package acceptance or general speedup claim. The earlier development-build collection is historical, not a controlled build-profile comparison.',
@@ -141,7 +141,11 @@ class MeasuredClient(FrClient):
             require(len(process.stdout) <= self.max_output_bytes
                     and len(process.stderr) <= self.max_output_bytes, 'profiler output exceeds budget')
             profile = json.loads(process.stdout)
-            report = FrReport(json.loads(profile.pop('report_stdout')), ('project', *arguments))
+            value = json.loads(profile.pop('report_stdout'))
+            require('context_basis' not in value, 'profiler unexpectedly packaged a CLI project identity')
+            value['context_basis'] = 'frcb1:' + digest([
+                'fr-context-1', value['revision'], value['handle_prefix'], value['coverage']])
+            report = FrReport(value, ('project', *arguments))
         elapsed = time.perf_counter() - started
         self.seconds += elapsed
         self.calls += 1

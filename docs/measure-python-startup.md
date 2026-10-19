@@ -83,7 +83,7 @@ Saved data passes between requests through a directory on disk.
 The ordinary command-line measurement repeats each sequence five times for each project-cache setting.
 That makes 840 requests. A separate diagnostic measurement repeats both settings three times, adding 504 requests.
 It uses the existing profiling program: a program that records time spent in individual operations.
-The diagnostic times help locate work; they do not substitute for ordinary command-line latency.
+The diagnostic times help locate work; they do not substitute for ordinary request elapsed time.
 The measurement rotates approach order and reverses cache-setting order between repetitions.
 It also reverses whether the ordinary or diagnostic sequences run first.
 Five repetitions cannot divide evenly between two starting orders or three approaches; the raw rows retain their positions.
@@ -102,6 +102,10 @@ It includes:
 - Starting `fr`, checking files, resolving imports, parsing and analyzing or validating the answer.
 - Reading saved records, writing new records and saving the pointer used by the next process.
 - Client validation, report serialization and the measurement's worker reply.
+
+The inner `worker_seconds` timer starts after Python imports and command parsing.
+Its difference from outer elapsed time also includes interpreter launch and final reply output.
+That difference cannot assign a separate cost to importing the client.
 
 Compilation, checkout, dependency installation and fixture edits happen outside those timers.
 Store inventories and answer comparisons also happen outside them.
@@ -127,12 +131,17 @@ Those operations still have no individual timers, so their separate costs remain
 Profiler phases exclude process startup, argument parsing and writing its outer diagnostic reply.
 Subtracting those phases from elapsed time does not isolate operating-system process startup.
 The ordinary CLI also packages an identity for the project behind the answer.
-The profiler omits that packaging and adds diagnostic output. Its totals therefore cannot stand in for CLI request times.
+The library profiler omits that packaging and adds diagnostic output.
+The diagnostic Python client constructs the current identity before handing the report to the same strict SDK checks.
+That construction contributes to its elapsed call time, outside native phase timers.
+Diagnostic totals therefore cannot stand in for CLI request times.
 Native-call counts include finding the function and the saved-answer client's preliminary request.
 Canonical JSON bytes measure the equivalent compact report, rather than exact bytes on the process pipe.
 Canonical JSON uses consistent key order and compact punctuation, giving equivalent data the same representation.
+For profiling calls, that count includes the identity added by Python and excludes the diagnostic envelope.
 
 Storage counters show repeated reads, offered writes and newly retained bytes separately.
+The store timer also includes the JSON encoding used to count bytes, so it does not isolate filesystem cost.
 An offered write can verify an existing immutable object without adding another file.
 An immutable object's contents stay fixed; saving it again checks the existing contents.
 Temporary reuse files contribute to elapsed time but do not remain in the saved-object inventory.

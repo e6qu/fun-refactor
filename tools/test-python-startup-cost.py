@@ -10,6 +10,7 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('startup_cost', Path(__file__).with_name('python-startup-cost.py'))
 cost = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cost)
+from fr_ir.flow_startup import _digest as startup_digest
 
 
 def fixture(engine, cache_mode, repetitions):
@@ -139,6 +140,21 @@ class Controls(unittest.TestCase):
 
     def test_fractional_counts_are_rejected(self):
         self.check(lambda report: report['samples'][0]['metrics'].update(analysis_steps=0.5))
+
+    def test_profile_supplies_the_current_identity_required_by_the_sdk(self):
+        value = {'revision': 'a' * 64, 'handle_prefix': 'frp1:' + 'a' * 32 + ':', 'coverage': {'files': 2}}
+        completed = cost.subprocess.CompletedProcess([], 0, cost.encode({'report_stdout': json.dumps(value)}), b'')
+        with patch.object(cost.subprocess, 'run', return_value=completed):
+            client = cost.MeasuredClient(cost.ROOT, 'profile', 'profile', 'enabled')
+            actual = client.project('find', 'helper').to_data()
+        self.assertEqual(actual, {**value, 'context_basis': 'frcb1:' + startup_digest([
+            'fr-context-1', value['revision'], value['handle_prefix'], value['coverage']])})
+
+    def test_profile_format_changes_fail_instead_of_getting_a_fallback(self):
+        value = {'context_basis': 'already-present'}
+        completed = cost.subprocess.CompletedProcess([], 0, cost.encode({'report_stdout': json.dumps(value)}), b'')
+        with patch.object(cost.subprocess, 'run', return_value=completed), self.assertRaisesRegex(ValueError, 'unexpectedly'):
+            cost.MeasuredClient(cost.ROOT, 'profile', 'profile', 'enabled').project('find', 'helper')
 
     def test_each_native_operation_is_accounted_for(self):
         self.check(lambda report: report['samples'][0]['calls'].pop())
