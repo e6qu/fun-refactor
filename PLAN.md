@@ -117,7 +117,8 @@ In these examples, installing the client with saved compiled Python modules redu
 Keeping the installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
 For the local helper, seven questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process.
 Both totals include the first start, fresh analysis after edits and final shutdown.
-Wheel building, installation and bytecode compilation added 1.144 seconds separately; complete environment setup remains unmeasured.
+Building and installing the Python package and compiling its modules added 1.144 seconds separately.
+Complete environment setup remains unmeasured.
 
 Use one running installed client for the next comparison.
 Measure the existing two-helper request against separate questions in that same Python program, including finding both functions and checking replies.

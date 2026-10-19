@@ -29,6 +29,7 @@ Both approaches use the same Python interpreter. This does not compare different
 
 Each question finds its function and requests a fresh analysis through the ordinary optimized `fr` executable.
 Every question starts two native processes, even when Python stays running.
+A native process here means one start of the compiled `fr` executable.
 Every sequence starts with an empty project cache in its own directory, then retains that cache through later questions and edits.
 A project cache saves facts extracted from files. This experiment saves no Python preparation or whole answers.
 
@@ -51,8 +52,11 @@ Four examples contain local helpers, imported helpers, 200 unused declarations o
 The first three allow 4,096 analysis steps; the unfinished example allows one.
 An analysis step is one unit of work counted by the checker.
 All allow eight nested calls and 1,048,576 output bytes, with context `html` and summaries enabled.
+Summaries describe how values pass through called helpers.
+The context label selects the output use for cleaning rules; these examples declare no functions that clean input.
 The imported example enables import checking; the others disable it.
 Import limits remain 16 files, 256 KiB of source and 128 searches.
+One KiB means 1,024 bytes.
 
 The collector repeats every sequence five times and rotates the four approaches' order.
 That makes 560 questions and 1,120 native requests.
@@ -67,12 +71,15 @@ The recurring total includes each Python start through its ready reply, every su
 It counts SDK loading, finding functions, native startup, source checks, analysis, SDK validation, measurement work and final JSON replies.
 The first request populates the project cache inside that total. There is no earlier analysis to warm it.
 
+The controller is the program that changes example files and starts the timed Python programs.
+A worker is one of those timed programs.
 The controller changes files between questions and saves evidence outside those timed intervals.
 It also records elapsed wall time, which includes that extra controller work.
 Adding deliberate waiting between questions would change wall time without changing the measured work total.
 The collector neither flushes nor controls operating-system file caches.
 
 Separate worker timers cover ordinary imports, reading command options, loading the SDK and answering each question.
+Worker bootstrap means its initialization before the ready reply.
 The parent startup timer also includes interpreter startup, output transfer and scheduling.
 Subtracting worker bootstrap time leaves those costs mixed together; that remainder cannot establish pure interpreter or pure SDK overhead.
 This worker imports its small measurement code separately from the controller.

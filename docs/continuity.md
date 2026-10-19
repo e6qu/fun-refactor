@@ -46,11 +46,12 @@ Project caching reduced fresh-check totals by about 22–23% in these examples.
 With that cache on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% to total time.
 Neither saved approach reduced median sequence time in either setting.
 
-The [installed-client comparison](python-process-cost-results.md) checked 560 questions with matching answers across SDK copies and process choices.
+The [installed-client comparison](python-process-cost-results.md) checked 560 questions with matching answers across client copies and process choices.
 Installing the client reduced fresh-process sequence totals by 26.7–33.0% in these examples.
 Keeping that installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
 Seven local questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process, including startup and shutdown.
-Building the wheel, installing it and compiling Python bytecode added 1.144 seconds separately; full environment setup remains unmeasured.
+Building and installing the Python package and compiling its modules added 1.144 seconds separately.
+Full environment setup remains unmeasured.
 Use that running installed client as the next baseline.
 Compare the existing two-helper request with separate questions in that program, counting function lookups, reply checks and source edits.
 Explain that a combined request shares a work limit, while separate requests each receive their own limit.
