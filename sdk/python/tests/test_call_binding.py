@@ -374,7 +374,7 @@ def test_normalized_function_and_local_collisions_cannot_establish_absence(tmp_p
     client, rules = workspace(tmp_path)
     (tmp_path / "subject.py").write_text(source)
     handle = client.project("find", "entry").definition_target().handle
-    result = FlowCache(MemoryObjectStore()).analyze(client, handle, rules=rules,
+    result = FlowCache(MemoryObjectStore()).analyze(client, handle, standard_library=(), rules=rules,
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert not result.report.at("/complete")
     assert ("module-effects-unchecked" in result.report.at("/cutoffs")
@@ -392,7 +392,7 @@ def test_normalized_unicode_function_and_local_names_remain_supported(tmp_path, 
     client, rules = workspace(tmp_path)
     (tmp_path / "subject.py").write_text(source)
     handle = client.project("find", "entry").definition_target().handle
-    result = FlowCache(MemoryObjectStore()).analyze(client, handle, rules=rules,
+    result = FlowCache(MemoryObjectStore()).analyze(client, handle, standard_library=(), rules=rules,
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert result.report.at("/complete"), result.report.at("/cutoffs")
     assert result.witnesses and observe(tmp_path)["result"] == 17

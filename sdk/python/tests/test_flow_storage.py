@@ -22,7 +22,7 @@ def workspace(root):
 
 def analyze(cache, client, rules):
     target = client.project("find", "entry").definition_target().handle
-    return cache.analyze(client, target, rules=rules, max_bytes=1_048_576)
+    return cache.analyze(client, target, standard_library=(), rules=rules, max_bytes=1_048_576)
 
 
 @pytest.mark.parametrize("disk", [False, True])

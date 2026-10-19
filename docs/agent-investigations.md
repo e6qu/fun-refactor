@@ -237,7 +237,7 @@ from fr_ir.flow import FlowCache
 
 store = DirectoryObjectStore("/tmp/flow-objects")
 cache = FlowCache(store)
-analysis = cache.analyze(client, fresh_handle, steps=1024)
+analysis = cache.analyze(client, fresh_handle, standard_library=(), steps=1024)
 root = cache.persist()
 restored = FlowCache.restore(store, root)
 ```

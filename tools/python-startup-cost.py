@@ -188,11 +188,11 @@ def worker(args):
         pointer = args.work / 'head'
         cache = cache_type.restore(store, pointer.read_text()) if pointer.exists() else cache_type(store)
         if args.strategy == 'saved-startup':
-            prepared = cache.analyze(client, target, **options)
+            prepared = cache.analyze(client, target, standard_library=(), **options)
             result = prepared.answer
             startup_checks, startup_reused = prepared.checks, prepared.reused
         else:
-            result = cache.analyze(client, target, summaries=True, **options)
+            result = cache.analyze(client, target, standard_library=(), summaries=True, **options)
             answer_reused = result.reused
         pointer.write_text(cache.persist())
     value = result.report.to_data()

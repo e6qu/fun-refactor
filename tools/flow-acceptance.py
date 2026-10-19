@@ -56,7 +56,7 @@ def worker(args):
     client = MeasuredClient(args.work / "project", executable=str(args.fr.resolve()), max_output_bytes=1_048_576)
     start = time.perf_counter()
     target = client.project("find", "delayed").definition_target().handle
-    analysis = cache.analyze(client, target, rules=args.work / "rules.json", steps=1024, max_bytes=1_048_576)
+    analysis = cache.analyze(client, target, standard_library=(), rules=args.work / "rules.json", steps=1024, max_bytes=1_048_576)
     elapsed = time.perf_counter() - start
     report = analysis.report.to_data()
     native_steps = report["execution"]["analysis_steps"]

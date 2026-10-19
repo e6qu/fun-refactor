@@ -47,7 +47,7 @@ def client_for(work, executable):
 
 def analyze(client, work, name, cache):
     target = client.project("find", name).definition_target().handle
-    return cache.analyze(client, target, rules=work / "rules.json", context="html",
+    return cache.analyze(client, target, standard_library=(), rules=work / "rules.json", context="html",
                          steps=4096, summaries=True, max_bytes=1_048_576)
 
 

@@ -10,9 +10,11 @@ from typing import Any
 
 from .investigation import Dependency, DependencyKind
 from .runtime import FrReport, FrRuntimeError
+from .flow_standard_library import MEMBERS, selected_contract
 
-MODULE_POLICY = ("Single-root modules/packages; from-import names share a provider search. "
-                 "Child searches use the same budget. Cycles require available names in execution order. "
+MODULE_POLICY = ("Single-root modules/packages; local from-import names share a provider search. "
+                 "Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. "
+                 "Cycles require available names in execution order. "
                  "Annotation directives need absent local __future__ candidates. "
                  "Dynamic imports, merged namespaces and search paths stay unchecked.")
 
@@ -106,6 +108,15 @@ class ImportResolution:
     candidates: tuple[ImportCandidate, ...]
     admitted: bool
     namespaces: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class StandardImport:
+    importer: str
+    module: str
+    alias: str
+    member: str | None
+    candidates: tuple[ImportCandidate, ...]
 
 
 def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
@@ -336,6 +347,8 @@ class FlowDependencies:
     entry: ImportResolution
     namespaces: tuple[str, ...]
     lookup_count: int
+    standard_library: tuple[str, ...]
+    standard_imports: tuple[StandardImport, ...]
 
     @property
     def dependency(self) -> Dependency:
@@ -432,11 +445,37 @@ class FlowDependencies:
                     or len(files) + len(namespaces) > 16):
                 raise FrRuntimeError("namespace closure exceeds its budget or repeats a module")
             namespace_paths = frozenset(namespaces)
+            standard_library = selected_contract(modules['standard_library'])
+            raw_standard = modules['standard_imports']
+            if not isinstance(raw_standard, list) or len(raw_standard) > 128:
+                raise FrRuntimeError('standard-library import count exceeds its budget')
+            standard_imports = []
+            standard_bindings = set()
+            for item in raw_standard:
+                if (not isinstance(item, dict) or set(item) != {'module', 'candidates', 'packages', 'namespaces', 'target',
+                        'admitted', 'importer', 'alias', 'member', 'prefix'}
+                        or item['module'] not in standard_library or item['importer'] not in paths
+                        or not isinstance(item['alias'], str) or re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', item['alias']) is None
+                        or _special_attribute(item['alias']) or item['prefix'] != item['alias']
+                        or item['member'] is not None and item['member'] not in MEMBERS[item['module']]):
+                    raise FrRuntimeError('malformed standard-library import')
+                selected = _resolution(item, paths, False, namespace_paths)
+                if (selected.admitted or selected.target is not None or selected.packages or selected.namespaces
+                        or any(candidate.status != 'missing' for candidate in selected.candidates)):
+                    raise FrRuntimeError('standard-library import hides a competing local candidate')
+                binding = item['importer'], item['alias']
+                if modules['complete'] and binding in standard_bindings:
+                    raise FrRuntimeError('complete standard-library imports repeat a binding')
+                standard_bindings.add(binding)
+                standard_imports.append(StandardImport(item['importer'], selected.module, item['alias'], item['member'], selected.candidates))
             entry = _resolution(modules["entry"], paths, modules["complete"], namespace_paths=namespace_paths)
             if modules["complete"] and any(
                     _special_attribute(part) for part in entry.module.split(".")[1:]):
                 raise FrRuntimeError("complete closure includes a special child module")
             records, lookup_count = _expanded_lookups(modules)
+            lookup_count += len(standard_imports)
+            if lookup_count > 128:
+                raise FrRuntimeError('combined standard and local import count exceeds its budget')
             lookups = []
             for item in records:
                 future = item["future"]
@@ -497,6 +536,8 @@ class FlowDependencies:
                                             _path(item["terminal_module"]) if item["terminal_module"] is not None else None,
                                             selected.namespaces, star, tuple(exports) if exports is not None else None, future))
             for index, anchor in enumerate(lookups):
+                if modules['complete'] and (anchor.importer, anchor.alias) in standard_bindings:
+                    raise FrRuntimeError('standard-library binding overlaps a local import')
                 if anchor.star is not None:
                     declaration = lookups[anchor.star]
                     if (declaration.alias != "*" or declaration.exports is None
@@ -525,9 +566,10 @@ class FlowDependencies:
                 raise FrRuntimeError("entry source differs from its module resolution")
             rules = inputs["rule_file"]
             query = {"path": _path(source["path"]), "function": inputs["selection"]["name"],
-                     "rules": rules, "context": inputs["context"], **inputs["budget"]}
+                     "rules": rules, "context": inputs["context"], **inputs["budget"],
+                     "standard_library": list(standard_library)}
             dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
                                     _digest(data["input_digest"]))
-            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count)
+            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count, standard_library, tuple(standard_imports))
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed flow dependencies") from error

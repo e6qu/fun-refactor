@@ -116,7 +116,7 @@ fn flow_dependency_rejects_nonlocal_queries_before_reading_rules() {
         ("app.py", Some("../rules.json")),
         ("app.py", Some("/tmp/rules.json")),
     ] {
-        let query = json!({"path":path,"function":"entry","rules":rules,"context":"generic","steps":256,"depth":8,"bytes":65536});
+        let query = json!({"path":path,"function":"entry","rules":rules,"context":"generic","steps":256,"depth":8,"bytes":65536,"standard_library":[]});
         let plan = json!({"schema":"fr-investigation-plan-1","goal":"read","acceptance":["done"],"steps":[
             {"id":"flow","question":"flow?","inputs":[{"kind":"flow-inputs","key":query.to_string()}]}]});
         let file = root.path().join("plan.json");

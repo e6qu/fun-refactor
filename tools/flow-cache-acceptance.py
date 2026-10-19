@@ -120,7 +120,7 @@ def worker(args):
         manifest = None
     else:
         cache = cache_type.restore(store, args.cache_root) if args.cache_root else cache_type(store)
-        report = cache.analyze(client, target, rules=args.project / "rules.json", steps=4096,
+        report = cache.analyze(client, target, standard_library=(), rules=args.project / "rules.json", steps=4096,
                                depth=32, max_bytes=1_048_576, summaries=True, imports=True).report
         manifest = cache.persist()
     elapsed = time.perf_counter() - start

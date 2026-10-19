@@ -493,6 +493,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_standard_library.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python

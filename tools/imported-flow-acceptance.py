@@ -61,7 +61,7 @@ def client_for(work, executable):
 def analyze(client, name="positive", cache=None, context="html"):
     target = client.project("find", name).definition_target().handle
     return (cache or FlowCache(MemoryObjectStore())).analyze(client, target,
-        rules=client.root / "rules.json", context=context, steps=4096,
+        standard_library=(), rules=client.root / "rules.json", context=context, steps=4096,
         summaries=True, imports=True, max_bytes=1_048_576)
 
 

@@ -77,7 +77,7 @@ client = FrClient(Path.cwd(), executable='fr', timeout=120, max_output_bytes=1_0
 store = DirectoryObjectStore(Path('saved-startup'))
 cache = StartupCache(store)
 handle = client.project('find', 'forwards').definition_target().handle
-result = cache.analyze(client, handle, rules=Path('rules.json'), context='generic',
+result = cache.analyze(client, handle, standard_library=(), rules=Path('rules.json'), context='generic',
                        steps=4096, depth=8, max_bytes=1_048_576, imports=True)
 Path('startup-id.txt').write_text(cache.persist(), encoding='utf-8')
 print('Preparation checks:', result.checks)
@@ -110,7 +110,7 @@ store = DirectoryObjectStore(Path('saved-startup'))
 digest = Path('startup-id.txt').read_text(encoding='utf-8')
 cache = StartupCache.restore(store, digest)
 handle = client.project('find', 'stopped').definition_target().handle
-result = cache.analyze(client, handle, rules=Path('rules.json'), context='generic',
+result = cache.analyze(client, handle, standard_library=(), rules=Path('rules.json'), context='generic',
                        steps=4096, depth=8, max_bytes=1_048_576, imports=True)
 Path('startup-id.txt').write_text(cache.persist(), encoding='utf-8')
 print('Preparation checks:', result.checks)

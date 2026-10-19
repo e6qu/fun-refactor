@@ -22,7 +22,7 @@ def workspace(tmp_path):
 def analyze(client, rules, name="positive", cache=None, **options):
     handle = client.project("find", name).definition_target().handle
     return (cache or FlowCache(MemoryObjectStore())).analyze(
-        client, handle, rules=rules, steps=options.pop("steps", 4096),
+        client, handle, standard_library=options.pop("standard_library", ()), rules=rules, steps=options.pop("steps", 4096),
         max_bytes=options.pop("max_bytes", 1_048_576), summaries=True,
         context=options.pop("context", "html"), **options)
 
@@ -123,6 +123,6 @@ def test_modes_do_not_share_cache_entries(tmp_path):
     cache = FlowCache(MemoryObjectStore())
     fresh = analyze(client, rules, cache=cache)
     handle = client.project("find", "positive").definition_target().handle
-    old = cache.analyze(client, handle, rules=rules, steps=4096, max_bytes=1_048_576, context="html")
+    old = cache.analyze(client, handle, standard_library=(), rules=rules, steps=4096, max_bytes=1_048_576, context="html")
     assert not old.reused and old.report.at("/complete") is False
     assert old.report.at("/input_digest") != fresh.report.at("/input_digest")

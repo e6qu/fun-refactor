@@ -82,7 +82,7 @@ from fr_ir.runtime import FrClient
 client = FrClient(".")
 target = client.project("find", "entry", "--in", "app.py").definition_target().handle
 analysis = FlowCache(MemoryObjectStore()).analyze(
-    client, target, rules=Path("rules.json"), summaries=True, imports=True,
+    client, target, standard_library=(), rules=Path("rules.json"), summaries=True, imports=True,
     steps=4096, max_bytes=1048576,
 )
 Path("answer.json").write_text(json.dumps(analysis.report.to_data()))

@@ -11,6 +11,31 @@ Replacing the intermediate value with zero must remove that connection.
 Here `emit_value` supplies the tracked input and `record_value` is the output
 selected by the user. Neither name gives permission to ignore package startup.
 
+## Analysis choice
+
+Keep the answer based on source. Use ordinary Python execution as an independent
+check, without treating one observed startup as proof about other executions.
+Supported standard-library operations need explicit models selected for the
+question. Record those assumptions and all competing local import candidates;
+a same-named local module must not inherit a standard-library model.
+
+For broader development coverage, pin Boltons at
+`55dfe5077bcb5fa76611b5f2a557ea6c442ad87c` and python-dateutil at
+`2642afacc33fb839c404b75b230fff58b79793f2` before changing the analyzer.
+The questions concern limiting an integer to specified bounds and computing an
+Easter date from its year. These exercise arithmetic and immutable date values,
+respectively. Boltons is familiar coverage, including prior delivery tests.
+Neither project is a reserved unread evaluation.
+
+In addition to the existing jaraco.functools reservation, reserve fn.py at
+`df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26`. Only its repository and commit
+metadata have been read. Keep both reserved implementations unopened until the
+analyzer freezes. For their helper question, inspect for plain top-level
+functions returning an argument directly; preserve an unsuccessful inspection
+if there is no such function. Do not manufacture one or copy it out of its
+package. Preserve every planned project result, including any that do not
+qualify for the three-project milestone.
+
 ## Milestone 1: complete the original package question
 
 Use an original, pinned package snapshot and its original import. Keep its

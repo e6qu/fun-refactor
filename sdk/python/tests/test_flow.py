@@ -35,16 +35,16 @@ def test_cold_warm_and_unrelated_edit_reuse_equal_clean_analysis(tmp_path):
     client, rules = workspace(tmp_path)
     store = MemoryObjectStore()
     cache = FlowCache(store)
-    cold = cache.analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
+    cold = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
     assert not cold.reused
     assert cold.graphs and cold.witnesses
     restored = FlowCache.restore(store, cache.persist())
-    warm = restored.analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
+    warm = restored.analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
     assert warm.reused
     assert evidence(cold) == evidence(warm)
     (tmp_path / "aaa.py").write_text("def earlier():\n    return 123\n")
-    reused = restored.analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
-    clean = FlowCache(store).analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
+    reused = restored.analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
+    clean = FlowCache(store).analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
     assert reused.reused
     assert evidence(reused) == evidence(clean)
     assert reused.report.at("/revision") != cold.report.at("/revision")
@@ -56,7 +56,7 @@ def test_cold_warm_and_unrelated_edit_reuse_equal_clean_analysis(tmp_path):
 def test_relevant_changes_force_clean_analysis(tmp_path, change):
     client, rules = workspace(tmp_path)
     cache = FlowCache(MemoryObjectStore())
-    cache.analyze(client, target(client), rules=rules, steps=1024)
+    cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024)
     steps, context = 1024, "generic"
     if change == "source":
         file = tmp_path / "subject.py"
@@ -72,9 +72,9 @@ def test_relevant_changes_force_clean_analysis(tmp_path, change):
     else:
         with (tmp_path / "subject.py").open("a") as stream:
             stream.write("\ndef new_helper():\n    return 1\n")
-    fresh = cache.analyze(client, target(client), rules=rules, steps=steps, context=context)
+    fresh = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=steps, context=context)
     assert not fresh.reused
-    clean = FlowCache(MemoryObjectStore()).analyze(client, target(client), rules=rules, steps=steps, context=context)
+    clean = FlowCache(MemoryObjectStore()).analyze(client, target(client), standard_library=(), rules=rules, steps=steps, context=context)
     assert evidence(fresh) == evidence(clean)
 
 
@@ -82,7 +82,7 @@ def test_tampered_cache_manifest_refuses_and_graphs_check_revisions_and_edges(tm
     client, rules = workspace(tmp_path)
     store = MemoryObjectStore()
     cache = FlowCache(store)
-    result = cache.analyze(client, target(client), rules=rules, steps=1024)
+    result = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024)
     graph = result.report.at("/control_flow/run")
     with pytest.raises(FrRuntimeError, match="revision"):
         ControlGraph.from_data(graph, revision="0" * 64)
@@ -113,11 +113,11 @@ def test_rebinding_covers_multiple_origins_and_unused_helper_arguments(tmp_path)
     )
     store = MemoryObjectStore()
     cache = FlowCache(store)
-    cache.analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
+    cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
     for index in range(4):
         (tmp_path / "aaa.py").write_text(f"def unrelated():\n    return {index}\n")
-        reused = cache.analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
-        clean = FlowCache(store).analyze(client, target(client), rules=rules, steps=1024, max_bytes=1_048_576)
+        reused = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
+        clean = FlowCache(store).analyze(client, target(client), standard_library=(), rules=rules, steps=1024, max_bytes=1_048_576)
         assert reused.reused
         assert evidence(reused) == evidence(clean)
 
@@ -126,7 +126,7 @@ def test_incomplete_analyses_are_recomputed(tmp_path):
     client, rules = workspace(tmp_path)
     cache = FlowCache(MemoryObjectStore())
     for _ in range(2):
-        result = cache.analyze(client, target(client), rules=rules, steps=1)
+        result = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1)
         assert not result.reused
         assert result.report.at("/complete") is False
 
@@ -135,16 +135,16 @@ def test_moves_deletions_and_stale_handles_do_not_rebind_actions(tmp_path):
     client, rules = workspace(tmp_path)
     cache = FlowCache(MemoryObjectStore())
     old = target(client)
-    cache.analyze(client, old, rules=rules, steps=1024)
+    cache.analyze(client, old, standard_library=(), rules=rules, steps=1024)
     (tmp_path / "subject.py").rename(tmp_path / "moved.py")
     with pytest.raises(FrRuntimeError):
-        cache.analyze(client, old, rules=rules, steps=1024)
-    moved = cache.analyze(client, target(client), rules=rules, steps=1024)
+        cache.analyze(client, old, standard_library=(), rules=rules, steps=1024)
+    moved = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024)
     assert not moved.reused
     old = target(client)
     (tmp_path / "moved.py").unlink()
     with pytest.raises(FrRuntimeError):
-        cache.analyze(client, old, rules=rules, steps=1024)
+        cache.analyze(client, old, standard_library=(), rules=rules, steps=1024)
 
 
 def test_unreadable_configuration_forces_incomplete_rebuild(tmp_path):
@@ -152,6 +152,6 @@ def test_unreadable_configuration_forces_incomplete_rebuild(tmp_path):
     (tmp_path / "pyproject.toml").write_bytes(b"\xff")
     cache = FlowCache(MemoryObjectStore())
     for _ in range(2):
-        result = cache.analyze(client, target(client), rules=rules, steps=1024)
+        result = cache.analyze(client, target(client), standard_library=(), rules=rules, steps=1024)
         assert not result.reused
         assert "configuration-snapshot-incomplete" in result.report.at("/cutoffs")

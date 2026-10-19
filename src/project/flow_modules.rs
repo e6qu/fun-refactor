@@ -8,7 +8,7 @@ mod order;
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
-const POLICY: &str = "Single-root modules/packages; from-import names share a provider search. Child searches use the same budget. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
+const POLICY: &str = "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -25,6 +25,8 @@ pub(super) struct Modules {
     pub parsed: BTreeMap<PathBuf, Parsed>,
     namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
+    standard_library: BTreeSet<String>,
+    standard_bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     pub function_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
     pub value_aliases: BTreeMap<PathBuf, BTreeMap<usize, String>>,
     import_names: BTreeMap<PathBuf, BTreeMap<usize, BTreeSet<String>>>,
@@ -870,7 +872,10 @@ impl Modules {
         })
     }
 
-    pub fn load(project: &Project<'_>, entry: &Path) -> Result<Self> {
+    pub fn load(project: &Project<'_>, entry: &Path, standard: &[String]) -> Result<Self> {
+        let standard_library: BTreeSet<_> = standard.iter().cloned().collect();
+        ensure!(standard_library.len() == standard.len(), "standard-library models must be unique.");
+        let standard_contract = standard_library::contract(&standard_library)?;
         let name = entry_name(entry.strip_prefix(&project.root)?)
             .context("imported flow requires a root-local Python source entry.")?;
         let entry_resolution = resolve_module(project, &name)?;
@@ -887,6 +892,8 @@ impl Modules {
             parsed: BTreeMap::new(),
             namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
+            standard_library,
+            standard_bindings: BTreeMap::new(),
             function_aliases: BTreeMap::new(),
             value_aliases: BTreeMap::new(),
             import_names: BTreeMap::new(),
@@ -907,6 +914,7 @@ impl Modules {
         let mut queued = BTreeSet::from([entry.to_owned()]);
         let mut files = BTreeMap::new();
         let mut lookups = Vec::new();
+        let mut standard_imports = Vec::new();
         let mut star_resolutions: BTreeMap<usize, Resolution> = BTreeMap::new();
         let mut named_members = BTreeMap::new();
         let mut named_declarations = BTreeMap::new();
@@ -1176,6 +1184,8 @@ impl Modules {
                     .iter()
                     .map(|(alias, binding)| (alias, &binding.member))
                     .collect::<Vec<_>>());
+                let standard_members_known = imports.iter().all(|(_, binding)| binding.member.as_ref().is_none_or(|member|
+                    standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str()))));
                 let mut named_provider: Option<(usize, Resolution)> = None;
                 let mut startup_imports = Vec::new();
                 let mut startup_exports = None;
@@ -1213,6 +1223,28 @@ impl Modules {
                     if named_import && named_provider.is_none() {
                         named_provider = Some((lookups.len(), resolution.clone()));
                         named_declarations.insert(lookups.len(), requested.clone());
+                    }
+                    let modeled = result.standard_library.contains(&binding.module)
+                        && standard_members_known
+                        && alias != "*"
+                        && resolution.candidates.values().all(|value| value["status"] == "missing")
+                        && binding.member.as_ref().is_none_or(|member| standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str())));
+                    if modeled {
+                        // Standard bindings have their own source-free model. They do
+                        // not invent workspace files or enter local re-export chains.
+                        let mut lookup = serde_json::to_value(&resolution)?;
+                        lookup["importer"] = json!(file.strip_prefix(&project.root)?);
+                        lookup["alias"] = json!(alias);
+                        lookup["member"] = json!(binding.member);
+                        lookup["prefix"] = json!(binding.prefix);
+                        standard_imports.push(lookup);
+                        result.standard_bindings.entry(file.clone()).or_default().insert(alias.clone(), binding);
+                        result.import_names.entry(file.clone()).or_default().entry(node.start_byte()).or_default().insert(alias.clone());
+                        startup.push(order::Step::Bind(vec![alias]));
+                        // A standard record does not own a compact local anchor.
+                        named_provider = None;
+                        named_declarations.remove(&lookups.len());
+                        continue;
                     }
                     binding.future = future_nodes.contains(&node.start_byte())
                         && resolution
@@ -1564,6 +1596,7 @@ impl Modules {
             }
         }
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
+            "standard_library":standard_contract,"standard_imports":standard_imports,
             "function_aliases":aliases,
             "value_aliases":value_aliases,
             "value_bindings":value_bindings,
@@ -1628,10 +1661,12 @@ impl Modules {
     }
 
     pub fn is_module(&self, file: &Path, name: &str) -> bool {
+        if self.standard_bindings.get(file).and_then(|bindings| bindings.get(name)).is_some_and(|binding| !binding.ambiguous && binding.member.is_none()) { return true; }
         self.member_chain(file, name).0 == "module"
     }
 
     pub fn is_value(&self, file: &Path, name: &str) -> bool {
+        if self.standard_bindings.get(file).and_then(|bindings| bindings.get(name)).is_some_and(|binding| !binding.ambiguous && binding.member.is_some()) { return true; }
         self.member_chain(file, name).0 == "value"
     }
 
@@ -1676,5 +1711,33 @@ impl Modules {
                 .expect("module belongs to workspace")
                 .display()
         )
+    }
+
+    pub fn standard_enabled(&self, module: &str) -> bool { self.standard_library.contains(module) }
+
+    pub fn has_binding(&self, file: &Path, name: &str) -> bool {
+        self.bindings.get(file).is_some_and(|bindings| bindings.contains_key(name))
+            || self.standard_bindings.get(file).is_some_and(|bindings| bindings.contains_key(name))
+    }
+
+    pub fn has_imported_name(&self, name: &str) -> bool {
+        self.bindings.values().any(|bindings| bindings.contains_key(name))
+            || self.standard_bindings.values().any(|bindings| bindings.contains_key(name))
+    }
+
+    pub fn standard_names<'a>(&'a self, file: &Path) -> impl Iterator<Item = &'a str> {
+        self.standard_bindings.get(file).into_iter().flat_map(|bindings| bindings.keys().map(String::as_str))
+    }
+
+    pub fn standard_callee(&self, file: &Path, name: &str) -> Option<String> {
+        let base = name.split('.').next()?;
+        let binding = self.standard_bindings.get(file)?.get(base)?;
+        if binding.ambiguous { return None; }
+        let member = match &binding.member {
+            Some(member) if name == base => member.as_str(),
+            None => name.strip_prefix(&format!("{}.", binding.prefix))?,
+            _ => return None,
+        };
+        standard_library::members(&binding.module)?.contains(&member).then(|| format!("{}.{member}", binding.module))
     }
 }

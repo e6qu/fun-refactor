@@ -85,6 +85,9 @@ jobs:
         run: >-
           python3 -B tools/check-review-collection.py check target/review-collection
           --fr target/review-fr/fr --opencode target/opencode/opencode
+      - name: Record processes before runner cleanup
+        if: always()
+        run: ps -eo pid,ppid,pgid,stat,etimes,comm
       - uses: actions/upload-artifact@v7
         if: always()
         with:

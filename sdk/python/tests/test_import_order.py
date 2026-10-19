@@ -102,7 +102,7 @@ def test_parent_package_initializes_before_its_child_entry(tmp_path, early, answ
         'app.py': 'from pkg.child import positive\n',
     })
     handle = client.project('find', 'positive').definition_target().handle
-    result = FlowCache(MemoryObjectStore()).analyze(client, handle, rules=rules, steps=4096,
+    result = FlowCache(MemoryObjectStore()).analyze(client, handle, standard_library=(), rules=rules, steps=4096,
                                                    max_bytes=1_048_576, summaries=True, imports=True)
     assert result.report.at('/complete') == early
     if early:

@@ -37,7 +37,7 @@ def install(tmp_path, route='local', setup=SETUP):
 
 def together(client, rules, names=('forwards', 'stopped'), **options):
     handles = [client.project('find', name).definition_target().handle for name in names]
-    return analyze_together(client, handles, rules=rules, steps=options.pop('steps', 4096),
+    return analyze_together(client, handles, standard_library=(), rules=rules, steps=options.pop('steps', 4096),
                             context='html', max_bytes=options.pop('max_bytes', 1_048_576), **options)
 
 
@@ -234,7 +234,7 @@ def test_native_group_count_and_mode_controls_cannot_be_bypassed(tmp_path):
         client.project(*base, '--summaries', '--also', handles[1], '--inputs-only')
     with pytest.raises(FrRuntimeError, match='distinct functions'):
         client.project(*base, '--summaries', '--also', handles[0])
-    accepted = analyze_together(client, handles[:16], steps=4096, max_bytes=1_048_576)
+    accepted = analyze_together(client, handles[:16], standard_library=(), steps=4096, max_bytes=1_048_576)
     assert len(accepted.answers) == 16
     assert all(answer.report.at('/complete') for answer in accepted.answers)
 
