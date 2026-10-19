@@ -1492,7 +1492,10 @@ fn module_attribute_hooks_defer_only_when_plain_and_unused() {
     for (source, complete) in [
         ("def __getattr__(name):\n    return 0\n", true),
         ("def __dir__():\n    return []\n", true),
-        ("from archive.transform import clean_value as __getattr__\n", false),
+        (
+            "from archive.transform import clean_value as __getattr__\n",
+            false,
+        ),
         ("def __path__(value):\n    return value\n", false),
     ] {
         let root = fixture();
