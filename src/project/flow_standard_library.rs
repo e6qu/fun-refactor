@@ -8,8 +8,6 @@ pub(super) fn is_module_name(name: &str) -> bool {
     STANDARD_MODULES.lines().any(|module| module == first)
 }
 
-// These are language-model assumptions, like standard scalar arithmetic. They
-// neither execute Python nor replace a workspace module with the same name.
 pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {
     Some(match module {
         "builtins" => &["abs", "int", "float", "bool", "round", "min", "max", "ValueError", "TypeError"],

@@ -329,8 +329,6 @@ fn directory_over_limit(limit: usize) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, format!("directory exceeds {limit} entries"))
 }
 
-/// Refuse an oversized directory before retaining more than `limit` entries.
-/// Virtual workspaces include their implied immediate child directories.
 pub fn read_dir_bounded(dir: impl AsRef<Path>, limit: usize) -> io::Result<Vec<std::path::PathBuf>> {
     let dir = dir.as_ref();
     through_memory!(read_dir_bounded(dir, limit));

@@ -1348,8 +1348,6 @@ impl Modules {
                         && resolution.opaque_candidates.is_empty()
                         && binding.member.as_ref().is_none_or(|member| standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str())));
                     if modeled {
-                        // Standard bindings have their own source-free model. They do
-                        // not invent workspace files or enter local re-export chains.
                         let mut lookup = serde_json::to_value(&resolution)?;
                         lookup["importer"] = json!(file.strip_prefix(&project.root)?);
                         lookup["alias"] = json!(alias);
@@ -1359,7 +1357,6 @@ impl Modules {
                         result.standard_bindings.entry(file.clone()).or_default().insert(alias.clone(), binding);
                         result.import_names.entry(file.clone()).or_default().entry(node.start_byte()).or_default().insert(alias.clone());
                         startup.push(order::Step::Bind(vec![alias]));
-                        // A standard record does not own a compact local anchor.
                         named_provider = None;
                         named_declarations.remove(&lookups.len());
                         continue;

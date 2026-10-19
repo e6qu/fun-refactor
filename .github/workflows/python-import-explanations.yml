@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   saved-reports:
-    name: Explain saved Python reports
+    name: Explain the historical Python answer
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -22,17 +22,16 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - run: python3 -m pip install 'pytest==9.1.1'
-      - name: Check saved reports before the native build finishes
-        env:
-          PYTHONPATH: sdk/python/src
-        # The full SDK lane also runs these cases and every live-analysis case.
-        run: >-
-          python3 -m pytest -q sdk/python/tests/test_flow_import_explanation.py
-          -k 'not fresh_analysis and not complete_reader'
+      - name: Use the reader that matches the historical answer
+        uses: actions/checkout@v7
+        with:
+          ref: 7ce2e0a2e582cc827188795458bb0d164ba03314
+          path: historical-reader
+          sparse-checkout: sdk/python/src
+          persist-credentials: false
       - name: Save reviewable explanations of the retained package answer
         env:
-          PYTHONPATH: sdk/python/src
+          PYTHONPATH: historical-reader/sdk/python/src
         run: |
           python3 - <<'PY'
           import hashlib
@@ -59,7 +58,7 @@ jobs:
               print(f'Explanation with a {budget}-byte limit:\n{text}')
           (output / 'source.json').write_text(json.dumps({
               'recorded_analysis': receipt,
-              'explanation_commit': os.environ['GITHUB_SHA'],
+              'explanation_commit': '7ce2e0a2e582cc827188795458bb0d164ba03314',
               'scope': 'Explanation of an unchanged historical answer; no new native analysis or savings measurement.',
           }, indent=2) + '\n')
           PY
