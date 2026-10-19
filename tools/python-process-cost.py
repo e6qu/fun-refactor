@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 from evidence_basis import native_bindings
 from python_repository_basis import file_digest
@@ -147,6 +148,8 @@ def audit(report):
             for c in report['binary_sha256']), 'invalid binary identity')
     copies = report['sdk_files']
     require(copies['source'] == copies['installed'] and bool(copies['source']), 'SDK copies differ')
+    require(all(isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+                for value in copies['source'].values()), 'invalid SDK source digest')
     current = {path.relative_to(ROOT / 'sdk/python/src').as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
                for path in (ROOT / 'sdk/python/src/fr_ir').rglob('*.py')}
     require(set(copies['source']) == set(current) and all(
@@ -178,7 +181,8 @@ def audit(report):
                     'sdk_import_seconds')) <= launch['timing']['bootstrap_seconds']
                     <= launch['startup_seconds'] <= 30, 'startup timing boundaries changed')
             require(launch['shutdown_seconds'] <= 30, 'shutdown exceeded deadline')
-            require(launch['module_files'] and set(launch['module_files']) <= set(copies['source'])
+            require({'fr_ir/__init__.py', 'fr_ir/flow.py', 'fr_ir/runtime.py'} <= set(launch['module_files'])
+                    <= set(copies['source'])
                     and launch['sdk_copy'] == condition.split('-')[0]
                     and launch['bytecode'] is condition.startswith('installed'), 'SDK import receipt changed')
         requests = row['requests']
@@ -258,6 +262,9 @@ def collect(args):
         sdk_roots = {'source': ROOT / 'sdk/python/src', 'installed': installed}
         copies = {name: sdk_inventory(path, name == 'installed') for name, path in sdk_roots.items()}
         require(copies['source'] == copies['installed'], 'wheel changed SDK source')
+        wheel_digest = hashlib.sha256(wheels[0].read_bytes()).hexdigest()
+        (args.output / 'setup.json').write_bytes(encode({
+            'seconds': setup, 'sdk_files': copies, 'wheel_sha256': wheel_digest}) + b'\n')
         sessions, answers = [], {}
         project = base / 'project'
         for case in CASES:
@@ -335,6 +342,7 @@ def collect(args):
     report = {'schema': 'fr-python-process-cost', 'bindings': before, 'scope': SCOPE,
               'cases': CASES, 'stages': json.loads(encode(STAGES)), 'conditions': list(CONDITIONS),
               'repetitions': 5, 'sdk_files': copies, 'setup_seconds': setup,
+              'wheel_sha256': wheel_digest,
               'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),
               'environment': {'build': BUILD, 'python': sys.version, 'platform': platform.platform(),
                               'python_cache_tag': sys.implementation.cache_tag,
@@ -365,7 +373,12 @@ def main():
         print('checked every process, question, source change, budget and cross-condition answer')
     else:
         require(args.fr is not None and args.repetitions is not None, 'supply --fr and --repetitions')
-        collect(args)
+        try:
+            collect(args)
+        except Exception:
+            if args.output.is_dir():
+                (args.output / 'error.txt').write_text(traceback.format_exc())
+            raise
 
 
 if __name__ == '__main__':

@@ -73,6 +73,8 @@ The collector neither flushes nor controls operating-system file caches.
 Separate worker timers cover ordinary imports, reading command options, loading the SDK and answering each question.
 The parent startup timer also includes interpreter startup, output transfer and scheduling.
 Subtracting worker bootstrap time leaves those costs mixed together; that remainder cannot establish pure interpreter or pure SDK overhead.
+This worker imports its small measurement code separately from the controller.
+Its timings cannot isolate a change from the earlier, differently instrumented experiment.
 
 Both copies run with `-I -B`.
 `-I` isolates Python from user import paths and environment settings.

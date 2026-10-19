@@ -42,7 +42,7 @@ def fixture():
                         launches.append({'ready': True, 'stopped': True, 'startup_seconds': 0.1,
                                          'shutdown_seconds': 0.01, 'sdk_copy': condition.split('-')[0],
                                          'bytecode': condition.startswith('installed'),
-                                         'module_files': ['fr_ir/runtime.py'],
+                                         'module_files': ['fr_ir/__init__.py', 'fr_ir/flow.py', 'fr_ir/runtime.py'],
                                          'timing': {'base_import_seconds': 0.01, 'arguments_seconds': 0.001,
                                                     'sdk_import_seconds': 0.05, 'bootstrap_seconds': 0.07}})
                 total = sum(item['startup_seconds'] + item['shutdown_seconds'] for item in launches)
@@ -97,6 +97,8 @@ class Controls(unittest.TestCase):
 
     def test_source_cannot_claim_installed_bytecode(self):
         self.reject(lambda r: r['sessions'][0]['launches'][0].update(bytecode=True), 'import receipt')
+        self.reject(lambda r: r['sessions'][0]['launches'][0]['module_files'].remove('fr_ir/flow.py'),
+                    'import receipt')
 
     def test_import_timing_must_fit_parent_startup(self):
         self.reject(lambda r: r['sessions'][0]['launches'][0].update(startup_seconds=0.01), 'timing boundaries')
