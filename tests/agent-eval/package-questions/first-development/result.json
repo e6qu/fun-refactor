@@ -1,0 +1,2330 @@
+{
+  "binary_sha256": "4e5e27b96cf2f9ec9d780784332c613de22be8c06591bc2c08399b000afed4d2",
+  "coverage_run": "",
+  "implementation": null,
+  "limits": {
+    "cpu_limit_seconds": 10,
+    "disk_bytes": 16777216,
+    "rss_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "wall_seconds": 20
+  },
+  "milestone_1_demonstrated": false,
+  "milestone_2_demonstrated": false,
+  "milestones_complete": false,
+  "phase": "development",
+  "plan": {
+    "projects": [
+      {
+        "blocked": 0,
+        "expected": [
+          17,
+          31
+        ],
+        "expression": "relay(VALUE, 0, 50)",
+        "function": "clamp",
+        "id": "boltons",
+        "module": "boltons.mathutils",
+        "overwrite": 0,
+        "python_root": ".",
+        "repository": "mahmoud/boltons",
+        "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+        "role": "coverage",
+        "standard_library": [
+          "builtins",
+          "math",
+          "bisect",
+          "binascii"
+        ],
+        "values": [
+          17,
+          31
+        ]
+      },
+      {
+        "blocked": "2000-04-23",
+        "expected": [
+          "2024-03-31",
+          "2025-04-20"
+        ],
+        "expression": "relay(VALUE, 3)",
+        "function": "easter",
+        "id": "dateutil",
+        "module": "dateutil.easter",
+        "overwrite": 2000,
+        "python_root": "src",
+        "repository": "dateutil/dateutil",
+        "revision": "2642afacc33fb839c404b75b230fff58b79793f2",
+        "role": "coverage",
+        "standard_library": [
+          "builtins",
+          "datetime",
+          "sys"
+        ],
+        "values": [
+          2024,
+          2025
+        ]
+      },
+      {
+        "id": "jaraco-functools",
+        "python_root": ".",
+        "repository": "jaraco/jaraco.functools",
+        "revision": "f7f4f3bcac8f70e01064dee9a8bde6cc8f997a17",
+        "role": "held-out"
+      },
+      {
+        "id": "fn",
+        "python_root": ".",
+        "repository": "kachayev/fn.py",
+        "revision": "df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26",
+        "role": "held-out"
+      }
+    ],
+    "purpose": "Complete original package imports, with Python outcomes checked independently.",
+    "selection": "Boltons and dateutil are development coverage. Jaraco.functools and fn.py stay unread until the native analyzer, SDK and selection rule are frozen. For unread projects choose the first plain top-level function returning its only positional argument directly, ordered by source path and declaration location. Record failure if none exists."
+  },
+  "projects": [
+    {
+      "archive_sha256": "38b62bedd6dbffb8be615777c8f45eca60b2b8d9a664eeb51e712489b781d7e6",
+      "cache": {
+        "command": [
+          "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+          "-B",
+          "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+          "--worker",
+          "/home/runner/work/_temp/package-questions/boltons/cache-controls/request.json"
+        ],
+        "elapsed_seconds": 8.922990142000003,
+        "exit_code": 125,
+        "launch_error": null,
+        "limits": {
+          "cpu_seconds": 10,
+          "disk_bytes": 16777216,
+          "rss_bytes": 536870912,
+          "transcript_bytes": 1048576,
+          "wall_seconds": 20
+        },
+        "monitor_error": null,
+        "process_exit_code": -9,
+        "result": null,
+        "sampled_aggregate_rss_bytes": 115728384,
+        "sampled_cpu_seconds": 11.0,
+        "sampled_disk_growth_bytes": 11,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stop_reason": "cpu_seconds",
+        "timed_out": false,
+        "transcript_bytes": 0
+      },
+      "cases": [
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef entry():\n    return record_value(relay(emit_value(), 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/original-positive/request.json"
+            ],
+            "elapsed_seconds": 4.406729388999992,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 114741248,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "9ab7096d4a80af9777932afab4efcc71155e45be518f5a9bcfd1a5510638c297",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "positive",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-positive-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30098684400002185,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36429824,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-positive-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30440110200001413,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36474880,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef entry():\n    value = emit_value()\n    value = 0\n    return record_value(relay(value, 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/original-overwritten/request.json"
+            ],
+            "elapsed_seconds": 4.330492309000022,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 118697984,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8d0bae607c9dfd0e79c8a3ba198ebaefd58a8816066e59d7e1857f5fdb562177",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "overwritten",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": 0,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-overwritten-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30428876499999546,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 0
+                },
+                "sampled_aggregate_rss_bytes": 36421632,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "61397909752404bf5731f7d3ead7d4dcf21941a0c7be56c74d300b3fa79b84ad",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 13
+              }
+            },
+            {
+              "expected": 0,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-overwritten-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30482142099998555,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 0
+                },
+                "sampled_aggregate_rss_bytes": 36503552,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "61397909752404bf5731f7d3ead7d4dcf21941a0c7be56c74d300b3fa79b84ad",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 13
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef entry():\n    return record_value(opaque(relay(emit_value(), 0, 50)))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/original-unknown/request.json"
+            ],
+            "elapsed_seconds": 4.3437761449999925,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "unknown-external-call:opaque"
+              ],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 118284288,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "92132a29658fd3674c15a9777aba0fe06657950d522a2c896b23b3aa50b0be1c",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 81
+          },
+          "case": "unknown",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-unknown-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30464575999999965,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36401152,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-unknown-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3103941390000102,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36564992,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef entry():\n    return record_value(relay(emit_value(), 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/original-steps/request.json"
+            ],
+            "elapsed_seconds": 4.333221584,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "step-budget"
+              ],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 115412992,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8181d349aece76ab8048934e2edcaa5415ec3569fe7636309d9d3bac42b887fc",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 64
+          },
+          "case": "steps",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-steps-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30158775399999627,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36433920,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/original-steps-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3072773140000038,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36532224,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef renamed_entry():\n    return record_value(relay(emit_value(), 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-positive/request.json"
+            ],
+            "elapsed_seconds": 4.326832419999988,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 113369088,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "9ab7096d4a80af9777932afab4efcc71155e45be518f5a9bcfd1a5510638c297",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "positive",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-positive-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.31032528700001194,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36401152,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-positive-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3059017180000012,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36511744,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef renamed_entry():\n    value = emit_value()\n    value = 0\n    return record_value(relay(value, 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-overwritten/request.json"
+            ],
+            "elapsed_seconds": 4.315705182999977,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 112627712,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8d0bae607c9dfd0e79c8a3ba198ebaefd58a8816066e59d7e1857f5fdb562177",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "overwritten",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": 0,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-overwritten-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3047049099999981,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 0
+                },
+                "sampled_aggregate_rss_bytes": 36577280,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "61397909752404bf5731f7d3ead7d4dcf21941a0c7be56c74d300b3fa79b84ad",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 13
+              }
+            },
+            {
+              "expected": 0,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-overwritten-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30119267999998556,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 0
+                },
+                "sampled_aggregate_rss_bytes": 36577280,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "61397909752404bf5731f7d3ead7d4dcf21941a0c7be56c74d300b3fa79b84ad",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 13
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef renamed_entry():\n    return record_value(opaque(relay(emit_value(), 0, 50)))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-unknown/request.json"
+            ],
+            "elapsed_seconds": 4.348986513,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "unknown-external-call:opaque"
+              ],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 118611968,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "92132a29658fd3674c15a9777aba0fe06657950d522a2c896b23b3aa50b0be1c",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 81
+          },
+          "case": "unknown",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-unknown-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3072990210000057,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36466688,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-unknown-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3095269680000001,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36495360,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from boltons.mathutils import clamp as relay\n\ndef renamed_entry():\n    return record_value(relay(emit_value(), 0, 50))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-steps/request.json"
+            ],
+            "elapsed_seconds": 4.33685258600002,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "step-budget"
+              ],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 116715520,
+            "sampled_cpu_seconds": 9.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8181d349aece76ab8048934e2edcaa5415ec3569fe7636309d9d3bac42b887fc",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 64
+          },
+          "case": "steps",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": 17,
+              "input": 17,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-steps-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30678824099999247,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 17
+                },
+                "sampled_aggregate_rss_bytes": 36372480,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ccdd60a286d9b39d8cc56b7c3fd7cc02d8c70149383a86bdbca8e42744469e30",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            },
+            {
+              "expected": 31,
+              "input": 31,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/boltons/renamed-relocated-steps-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3039965870000003,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": 31
+                },
+                "sampled_aggregate_rss_bytes": 36392960,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "ca4344d7e15b74654b7ad72d10bed4c611276adbff498f33a3e36f8ff3457df3",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 14
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        }
+      ],
+      "complete": false,
+      "error": "ValueError: a worker left an original package file changed",
+      "original_sources_unchanged": false,
+      "project": {
+        "blocked": 0,
+        "expected": [
+          17,
+          31
+        ],
+        "expression": "relay(VALUE, 0, 50)",
+        "function": "clamp",
+        "id": "boltons",
+        "module": "boltons.mathutils",
+        "overwrite": 0,
+        "python_root": ".",
+        "repository": "mahmoud/boltons",
+        "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+        "role": "coverage",
+        "standard_library": [
+          "builtins",
+          "math",
+          "bisect",
+          "binascii"
+        ],
+        "values": [
+          17,
+          31
+        ]
+      },
+      "source_files": {
+        ".github/workflows/publish.yml": "05ef15ed05388fafc001f54dbe94dbf3f9c383933999c652d466a5c5bc13ad5f",
+        ".github/workflows/tests.yaml": "9ed80d7d3107b23a8fc87b4e21d04d08b99499ba4ff232b02dd4d3b84ebdfdc7",
+        ".gitignore": "b91fe92c26e9437f321e134844e3170f2418a2adfa6e1cb746ce719071842210",
+        ".omp/skills/release/SKILL.md": "19e14bc18588dd7368cf69db47ca5383d2fc75ab8b8d39942f3a14363f11e770",
+        ".readthedocs.yaml": "ea2fbace132782241e2914de3960b827a0d4d6cce40f259c8e65799b8fedd59a",
+        "CHANGELOG.md": "30d08d1eec0df384279779bb8c7137dc90f0fa71f5ae104674b60fccc2d225f6",
+        "LICENSE": "c301912653a8d8c99eab6212aa3aea8d164ea249d8ad53c941e0558a0a5ac1e3",
+        "README.md": "125d653ce15f442d8cafb2b43b4ddc01f443807a4a782e035528cfd75c4388f9",
+        "TODO.rst": "0ee9e94498718650529370c292a65586b920191c5e4dcdee397ef9e88f9c3611",
+        "boltons/__init__.py": "bc65b003e91e1580b6deb48f9c11fc5702756f7acaeeed894dabcb02873bc452",
+        "boltons/cacheutils.py": "cb22998f46013d91c96b28e141bfc75de274f793e384b3db9a9db59b0c820ea5",
+        "boltons/debugutils.py": "e701ab82126836aa661f7e9272a9a8b339814ae602977b47213f0aebacfda283",
+        "boltons/deprutils.py": "d8f2c0fdce9d8276466127f093771e1a0a8844bcd1bd92e6880f30d2782e0151",
+        "boltons/dictutils.py": "2c943d9ae5830a858a6aa3ce91a592f1c039ce2ef8512da6bbd1e64d598e0500",
+        "boltons/easterutils.py": "1bfc6e9e05606689ab4087b00585c183ff4fcc4eb4a423f9be153a0be6818d40",
+        "boltons/ecoutils.py": "38a6c2f045d28ac06c8d9b971185bd8bb9196cf84fa1b9f16cc1f6730b122d9f",
+        "boltons/excutils.py": "6a2eddd26f46dbdceeda125bd20379d52ffc98a941fe867e3434d17b93119957",
+        "boltons/fileutils.py": "0c2025cf1e649eabd511a84303b491c19ea59cdcac2f958f9a90b7e39e0a8b0e",
+        "boltons/formatutils.py": "15c7963d5c97b11ec7a419e9e4aec7c20ca765bcf701306510c9c57c7eaeb1a4",
+        "boltons/funcutils.py": "27b7ed2d38096c988a646f9e7a6211ada2d5f464480fea21b06a3039a5c8f08a",
+        "boltons/gcutils.py": "e82a32093560c14bb8298532681a3338d2ec6f48d20ccf2f1a4496dd67a17f97",
+        "boltons/ioutils.py": "36727e503a7483d1f91efc7cd837e502dc4b560e1bff5f7f9e66cda09421b6bc",
+        "boltons/iterutils.py": "c5cf8da7231fcb72f14f7f5507ff7c0b8778e5c495d69c596c4eb2ef48e8cfda",
+        "boltons/jsonutils.py": "f71876a97e818d3988b3296cf2a11788d0513cf251f269f8eb7fd42aab591094",
+        "boltons/listutils.py": "13a9a7b530a9238e7f6f0860a46846be9887903beb1db8eb4197b3282042e4e0",
+        "boltons/mathutils.py": "298f80d272dd69510a3c6ed50e6ad76f28ac5e9f92aec0aab81322f7c88369a4",
+        "boltons/mboxutils.py": "426b5211f7b3ce6ee9d1c80d794b56d9544435865b48a016d1955cd0a1e0320d",
+        "boltons/namedutils.py": "13f1273386f5695c474099cf22fcc00dcfcccda3719e1ff30df8a138c3dcdf96",
+        "boltons/pathutils.py": "667a4bb46ed79f66af83b07fac419f3f91576c2e7ed404e11f28cd68b4645fbd",
+        "boltons/queueutils.py": "a60f04f5f27803429c7a79f3f51f9b286cba3bd997f122161f252c66ca0499bb",
+        "boltons/setutils.py": "6f769deb50e40210887c7a90300ccdce6722ecde7a2dd66be17a62c777c5b28b",
+        "boltons/socketutils.py": "b2d5da2d58dd3d05c14153a83f36da928fe6285a4a44850c2eab9877c1959adc",
+        "boltons/statsutils.py": "cfd6dd5fe727c4b168beeeeaf1ff9736e73dd195037fc8d1ad03c106d1579745",
+        "boltons/strutils.py": "750672889e90fbf924d874092202f9b56fb3693f08a446391feaa0d1faa62c08",
+        "boltons/tableutils.py": "b3f7caaf5e384a9e9cafee67f414eeaa725c212cd8b129f67e6ba6ebf16ebc39",
+        "boltons/tbutils.py": "ad9e3b3002301252d519b54ea36842c2f53b0475af8b992b27aafe5648e224d7",
+        "boltons/timeutils.py": "fdefe22ae394666b95195e5b290c9969cdb5ce979cc9c37805cefcc02abe2df5",
+        "boltons/typeutils.py": "4da2b26d71386ee9010dfb52104e461ecba486ba5544a8cf50d9e26cd34e9c09",
+        "boltons/urlutils.py": "966346d1505036d76c200c9347f5007b9df065806605d4f31de8b3b61f1a9ca2",
+        "docs/Makefile": "8f500268ab397297e6645f9b4c89fcc09f4292effedd09801e3f2411db98e921",
+        "docs/_templates/page.html": "d2ed50f2199cd0af386f201d4db4f76d8bc2c0bcdd8435ed402db747ec200a56",
+        "docs/architecture.rst": "905b2359ba36dae554ecbc49f301faf1b181a7454eadd42c189f9d10557982f4",
+        "docs/cacheutils.rst": "1c876fcaca68b47b80422be5f9ac495a6ef6af1f31eeb034bcc3c0b45bcf1c79",
+        "docs/conf.py": "8a633a9176781b213eb2fa557205d4d4a2a63f415e38cf99a81181c5c9a40af7",
+        "docs/debugutils.rst": "63ab9d7ab0b5fa4250927e53832adad303d8ae2b7cdf22853528a3f65f69b6c7",
+        "docs/dictutils.rst": "61e9ce1513233b863908280bcde721c8640ab13e448cd83d25aae797685edd8a",
+        "docs/ecoutils.rst": "57b078bbd17e9c779644a806e331dfdc0297aa96bee4978c01259d93aaa924c9",
+        "docs/fileutils.rst": "8cb06eb53a2f1b943f17f2ece22b5a07c7a0049cc6e4590c7895a018dd5b9094",
+        "docs/formatutils.rst": "a5a84066778ac2ccb7d9cf8f397590418c3a73280fdc72c4ddb6910f08636f1d",
+        "docs/funcutils.rst": "4039b3ff05396bee1a6bb72260672c72767f4dd51909b6c289f57a24bddefdcd",
+        "docs/gcutils.rst": "0f03ba96685585087ee0a88e6bb1f2a0adbde641674a73773c46b8f7b4c86878",
+        "docs/index.rst": "264639571dc583bb297d03b0b626e0e54bc4e79f14367b9250c2a0bcec138446",
+        "docs/ioutils.rst": "270898d8d139d735afbf657a74b78fa0f4e9971222b555e4d48a60dec4157bc4",
+        "docs/iterutils.rst": "4a1e11f1380a13f798d41fd2a821f1ad8e775e737bf88e7db3bfdfc5f4e294d6",
+        "docs/jsonutils.rst": "d92c73c649de819d52b7214c89ea898962e7b7ccc5a27f2fd8d80d0df4210412",
+        "docs/listutils.rst": "ea97bb06fba6e5933b573b7f8a5c4a60d3136329df54e5f965569a0f9c5fd9db",
+        "docs/make.bat": "60ef34ac76affe07ca2dfc3a9666a142eee0b998a7f4a550c2b375d79d96d6c8",
+        "docs/mathutils.rst": "3ac9cca1497bfa70f4eacda8fa7c66061a2005729b5a7d65ebe72af0ad29bfe1",
+        "docs/mboxutils.rst": "dca326ab25046a1186e248bbefd6610b131fb73774bbf76481cbea50ac949621",
+        "docs/namedutils.rst": "4e794d23836ecbe21cbe8220c7f855f59ddd16219b0b293dd319f242e54de8c8",
+        "docs/pathutils.rst": "8451c052f97924d63f2b21b33ff07490515a8418e00f2328f0d6f6f0441b36b0",
+        "docs/queueutils.rst": "5d8993231c4976f7db64e80f8d81d3313e5e6d5cdc0fa94150211df0ce2b5f41",
+        "docs/requirements-rtd.txt": "6033fe7b04426ab99217ddc542b6c27ca75d056989046c48d12f0e03bf027031",
+        "docs/setutils.rst": "aaa648aa36d5b252540319769bdc49180164df96430a7286ec9a3c3febceb5c8",
+        "docs/socketutils.rst": "767284b545e4521ecbf2056d1708c5add728e2969aa25c42cea5f9c7b2306adc",
+        "docs/statsutils.rst": "a92d11717a0baeebe7b9ac0af5e32ee989bc1a01f2cf1c4507d4ef597fc66e11",
+        "docs/strutils.rst": "d27d1caeabe2217cde0185d6279fc4ba3b787b56b0b336f541ab95d72185f200",
+        "docs/tableutils.rst": "aad44b925fcf84b6a11f3669fc4fe741d2ee176e0166f4a4ca51b2083e907ea6",
+        "docs/tbutils.rst": "ddb9eb58b41da00fb76c359a674b3d827dae2404c00cf98f71c13852b4a89229",
+        "docs/timeutils.rst": "90b8f03d667ed5fc4dd1902bef13e4ea30fe150e069b94a94f08373caf24d3da",
+        "docs/typeutils.rst": "240793f5417b70bc9d922680308c860c9598982e9e768cb073a4841cf8491cd9",
+        "docs/urlutils.rst": "5aa9fa0a4908a161a8c7b1867936fd00dca99a2a860ec0e445bc6998681e4d1d",
+        "misc/bench_omd.py": "86a29952b3dfc1002f3311166e35bea0090f7459dc02a40712332a033677700b",
+        "misc/linkify_changelog.py": "4abda6ffb41a90de9a4056aabf62e0225bb91431d6fa36429efbb431ffd5feba",
+        "misc/table_html_app.py": "f401a03dc79d9e3ed9328962bf0ad3aa768223a4455f45af275445656c5105cc",
+        "pyproject.toml": "23d689cf1d468c6af6442869eb7483402aaea8b3cabdbfb2d7aa9df3a293aa04",
+        "setup.cfg": "4024bbca7672ce6a9cebfee0e4cd4017582ca0787dc1f603e859cd9c861147ac",
+        "tests/.coveragerc": "efe15fd9a92177c465290b3f0511e20e7a55151e6c720bec09bd2be161811288",
+        "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests/conftest.py": "91934bf3791e19404372fe5a9aeb4470c2f0bc3afb592eb2df2f6ffca1df1a2a",
+        "tests/jsonl_test_data.txt": "ddefe7742bdcc1eb0e372bd0649eedd51254d0ffa7ba71cbd23a37e509c5dd90",
+        "tests/newlines_test_data.txt": "ec5ff35d69ce2c804c09975171cedfa5fc6fcb70d324f5d7b20f4dece4591861",
+        "tests/test_cacheutils.py": "11a940de1b4a23d883b2efaacf1ade3b522f1b8ada5ca308de970fa02cc2ebb0",
+        "tests/test_debugutils_trace.py": "b4235e0cfbc84ae1dd0a423590a8901b6eaa46d41e8e1e342c2693887fa4ce55",
+        "tests/test_dictutils.py": "2d912261b6a61feb4f4c757ceec582b738dbe34305f1f7b7b8ed6c1e9501e174",
+        "tests/test_ecoutils.py": "d934e044d4be16e1e673bf540997806e43fb83a5bb6439004c1c19a530f3f542",
+        "tests/test_fileutils.py": "7eafa18f331092063a3a404b5fbf178a3f132ff12406271c8f29fbb2a4571975",
+        "tests/test_formatutils.py": "7dcee16a8e23f6a78311af4f7d91c5621a5988f00b92133cde258e5714441c7e",
+        "tests/test_funcutils.py": "d1ff81590f22afe49ef2752a16cc59a59eaa880e44aed182c9d8a5bf1035df4c",
+        "tests/test_funcutils_fb.py": "2f25f13c9b12e0b7ae80fcfa8c370ca15f47e162afefe3c8800df07692af59dc",
+        "tests/test_funcutils_fb_py3.py": "3279a85658d8b40b1e0ea534e1d7f056f79b6a169240d16276c07d10b1e73c74",
+        "tests/test_gcutils.py": "af77f6b9954a8eab25359846fa7feb3af5089b1afced1dd21c02f58e4e213df9",
+        "tests/test_ioutils.py": "b6248a0d49a8610915acb1907d3c5f5e0540d281f23a51f7f9ccb8802c0491db",
+        "tests/test_iterutils.py": "80fb5dbf42da8ffcbf829c694d46d9fc8a7abd4ea8ca2b14342b573c619a00d2",
+        "tests/test_jsonutils.py": "f8e6acb01441cd23056fad01613d6165092d5db90dcc0b32bf6e6edc537eef7a",
+        "tests/test_listutils.py": "64c368b1668a7b63d805b5813f9ff0f2892f0f0880fa8926bf9c58cb518743ee",
+        "tests/test_mathutils.py": "665225fa67ebee0138250d45023ccc0ed434fc85675b9213024f849f8997665c",
+        "tests/test_namedutils.py": "77195d808abd5595b871c3a461f658ed66fc643f6ecfbd303c7e583185b6168f",
+        "tests/test_queueutils.py": "e7140dcde4a96340ce29cfba5c26ee0a3a0e380b145d4e8b848a1970b374062c",
+        "tests/test_setutils.py": "aa32facb1cea98281fb2b6fec4915b12aa102b832b4ccbbe4d349c76c29b945b",
+        "tests/test_socketutils.py": "edfead38b00d1133b7cb33cd72cb411a3cfeb384137a206cd7db7e5d142b9cd5",
+        "tests/test_statsutils.py": "94ab55d70ce3f9e63243fc1e8a099317a17113b96a92d8de11f1ef8f41f83520",
+        "tests/test_statsutils_histogram.py": "9d91f83fe983c91823ffb61595bb6e91785ddbf36bb5385b99f62a75ae4c263a",
+        "tests/test_strutils.py": "699483e9e16e1929b88fc6eb6a925cc802435434f00d79c87a13f1857147739e",
+        "tests/test_tableutils.py": "e0567acf08e42ac9882762c172bb049f3b911831d3cd131b9c7ddd45925ae4a8",
+        "tests/test_tbutils.py": "c1a9d5ef6303d55f51484517d7fa6b820adbd38e0777d474ccf5114b3feb5d3a",
+        "tests/test_tbutils_parsed_exc.py": "67b00c3c8310165dd415c5a393ebe6b3e48c9ea2054d5532b2e78fe38de04813",
+        "tests/test_timeutils.py": "1657b7da8184839667f50c1f260ad348398af9ce06e49b001778ffd200048c91",
+        "tests/test_typeutils.py": "e8b3f2187ff3dffc3151f33667e9baba6e33b72f134c0383968db649e0a19661",
+        "tests/test_urlutils.py": "58780eba5f2d88bb74152869aefab68a45fcf73fa9d3e9d492d4e0e47caf9c5d",
+        "tox.ini": "70e31d3c3aee330493ffed40d540a55fc46a5db61dcb610e3359b05eda4f7e6c"
+      }
+    },
+    {
+      "archive_sha256": "ead9c975c9fc6b393250a749894cb8f5160582640e7d2b442f9090ce5f3cc594",
+      "cache": {
+        "command": [
+          "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+          "-B",
+          "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+          "--worker",
+          "/home/runner/work/_temp/package-questions/dateutil/cache-controls/request.json"
+        ],
+        "elapsed_seconds": 7.775594986000016,
+        "exit_code": 0,
+        "launch_error": null,
+        "limits": {
+          "cpu_seconds": 10,
+          "disk_bytes": 16777216,
+          "rss_bytes": 536870912,
+          "transcript_bytes": 1048576,
+          "wall_seconds": 20
+        },
+        "monitor_error": null,
+        "process_exit_code": 0,
+        "result": {
+          "complete": true,
+          "stages": [
+            {
+              "complete": true,
+              "reaches": true,
+              "reused": false,
+              "stage": "cold"
+            },
+            {
+              "complete": true,
+              "reaches": true,
+              "reused": true,
+              "stage": "restored"
+            },
+            {
+              "complete": true,
+              "reaches": true,
+              "reused": true,
+              "stage": "unrelated-edit"
+            },
+            {
+              "complete": true,
+              "reaches": false,
+              "reused": false,
+              "stage": "helper-replaced"
+            },
+            {
+              "complete": true,
+              "reaches": true,
+              "reused": true,
+              "stage": "helper-restored"
+            },
+            {
+              "complete": true,
+              "reaches": false,
+              "reused": false,
+              "stage": "import-replaced"
+            }
+          ]
+        },
+        "sampled_aggregate_rss_bytes": 99778560,
+        "sampled_cpu_seconds": 5.0,
+        "sampled_disk_growth_bytes": 50,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "b574edff28b0b9206509eb3e7829ada931e965b6ac4f8c71b3fbc6db6fa08aa5",
+        "stop_reason": null,
+        "timed_out": false,
+        "transcript_bytes": 503
+      },
+      "cases": [
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef entry():\n    return record_value(relay(emit_value(), 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/original-positive/request.json"
+            ],
+            "elapsed_seconds": 2.2278817430000117,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 91353088,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "9ab7096d4a80af9777932afab4efcc71155e45be518f5a9bcfd1a5510638c297",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "positive",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-positive-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.30684505700000386,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36483072,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-positive-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3058125050000058,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36470784,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef entry():\n    value = emit_value()\n    value = 2000\n    return record_value(relay(value, 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/original-overwritten/request.json"
+            ],
+            "elapsed_seconds": 2.251529118999997,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 95309824,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8d0bae607c9dfd0e79c8a3ba198ebaefd58a8816066e59d7e1857f5fdb562177",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "overwritten",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": "2000-04-23",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-overwritten-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3060580570000013,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2000-04-23"
+                },
+                "sampled_aggregate_rss_bytes": 36495360,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "107253526cfeea4263e8daa8244ffe0b479b501a590389cea6a9a3470cb389e1",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2000-04-23",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-overwritten-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30944923299998095,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2000-04-23"
+                },
+                "sampled_aggregate_rss_bytes": 36507648,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "107253526cfeea4263e8daa8244ffe0b479b501a590389cea6a9a3470cb389e1",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef entry():\n    return record_value(opaque(relay(emit_value(), 3)))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/original-unknown/request.json"
+            ],
+            "elapsed_seconds": 2.181095002999996,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "unknown-external-call:opaque"
+              ],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 91832320,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "92132a29658fd3674c15a9777aba0fe06657950d522a2c896b23b3aa50b0be1c",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 81
+          },
+          "case": "unknown",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-unknown-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3046927720000099,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36433920,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-unknown-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30535284999999135,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36466688,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef entry():\n    return record_value(relay(emit_value(), 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/original-steps/request.json"
+            ],
+            "elapsed_seconds": 2.1077784919999942,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "step-budget"
+              ],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 92000256,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8181d349aece76ab8048934e2edcaa5415ec3569fe7636309d9d3bac42b887fc",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 64
+          },
+          "case": "steps",
+          "entry": "entry",
+          "path": "question.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-steps-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3120782129999782,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36544512,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/original-steps-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3115099169999951,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36425728,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "original"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef renamed_entry():\n    return record_value(relay(emit_value(), 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-positive/request.json"
+            ],
+            "elapsed_seconds": 2.2403369680000083,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 91996160,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "9ab7096d4a80af9777932afab4efcc71155e45be518f5a9bcfd1a5510638c297",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "positive",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-positive-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3050549090000061,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36401152,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-positive-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3092379739999842,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36392960,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef renamed_entry():\n    value = emit_value()\n    value = 2000\n    return record_value(relay(value, 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-overwritten/request.json"
+            ],
+            "elapsed_seconds": 2.278976749999998,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": true,
+              "cutoffs": [],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 95047680,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8d0bae607c9dfd0e79c8a3ba198ebaefd58a8816066e59d7e1857f5fdb562177",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 50
+          },
+          "case": "overwritten",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": "2000-04-23",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-overwritten-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.31764989399999877,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2000-04-23"
+                },
+                "sampled_aggregate_rss_bytes": 36409344,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "107253526cfeea4263e8daa8244ffe0b479b501a590389cea6a9a3470cb389e1",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2000-04-23",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-overwritten-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3304487320000078,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2000-04-23"
+                },
+                "sampled_aggregate_rss_bytes": 36474880,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "107253526cfeea4263e8daa8244ffe0b479b501a590389cea6a9a3470cb389e1",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef renamed_entry():\n    return record_value(opaque(relay(emit_value(), 3)))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-unknown/request.json"
+            ],
+            "elapsed_seconds": 2.4667727579999905,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "unknown-external-call:opaque"
+              ],
+              "witnesses": 1
+            },
+            "sampled_aggregate_rss_bytes": 91643904,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "92132a29658fd3674c15a9777aba0fe06657950d522a2c896b23b3aa50b0be1c",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 81
+          },
+          "case": "unknown",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-unknown-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3141192700000204,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36511744,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-unknown-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.3064204559999837,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36528128,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        },
+        {
+          "adapter": "from dateutil.easter import easter as relay\n\ndef renamed_entry():\n    return record_value(relay(emit_value(), 3))\n",
+          "analysis": {
+            "command": [
+              "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+              "-B",
+              "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+              "--worker",
+              "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-steps/request.json"
+            ],
+            "elapsed_seconds": 2.0797132929999975,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 10,
+              "disk_bytes": 16777216,
+              "rss_bytes": 536870912,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 20
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "result": {
+              "complete": false,
+              "cutoffs": [
+                "step-budget"
+              ],
+              "witnesses": 0
+            },
+            "sampled_aggregate_rss_bytes": 95842304,
+            "sampled_cpu_seconds": 4.0,
+            "sampled_disk_growth_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "8181d349aece76ab8048934e2edcaa5415ec3569fe7636309d9d3bac42b887fc",
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 64
+          },
+          "case": "steps",
+          "entry": "renamed_entry",
+          "path": "moved_question/adapter.py",
+          "runtime": [
+            {
+              "expected": "2024-03-31",
+              "input": 2024,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-steps-python-0/request.json"
+                ],
+                "elapsed_seconds": 0.3118490530000031,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2024-03-31"
+                },
+                "sampled_aggregate_rss_bytes": 36597760,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "d3dc41da0521516b09fa062a861a2fbc3689a550ffdbaad766e19bbe3a201d1c",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            },
+            {
+              "expected": "2025-04-20",
+              "input": 2025,
+              "observation": {
+                "command": [
+                  "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+                  "-B",
+                  "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+                  "--worker",
+                  "/home/runner/work/_temp/package-questions/dateutil/renamed-relocated-steps-python-1/request.json"
+                ],
+                "elapsed_seconds": 0.30718443099999604,
+                "exit_code": 0,
+                "launch_error": null,
+                "limits": {
+                  "cpu_seconds": 10,
+                  "disk_bytes": 16777216,
+                  "rss_bytes": 536870912,
+                  "transcript_bytes": 1048576,
+                  "wall_seconds": 20
+                },
+                "monitor_error": null,
+                "process_exit_code": 0,
+                "result": {
+                  "value": "2025-04-20"
+                },
+                "sampled_aggregate_rss_bytes": 36438016,
+                "sampled_cpu_seconds": 0,
+                "sampled_disk_growth_bytes": 0,
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+                "stop_reason": null,
+                "timed_out": false,
+                "transcript_bytes": 24
+              }
+            }
+          ],
+          "variant": "renamed-relocated"
+        }
+      ],
+      "complete": true,
+      "error": null,
+      "original_sources_unchanged": true,
+      "project": {
+        "blocked": "2000-04-23",
+        "expected": [
+          "2024-03-31",
+          "2025-04-20"
+        ],
+        "expression": "relay(VALUE, 3)",
+        "function": "easter",
+        "id": "dateutil",
+        "module": "dateutil.easter",
+        "overwrite": 2000,
+        "python_root": "src",
+        "repository": "dateutil/dateutil",
+        "revision": "2642afacc33fb839c404b75b230fff58b79793f2",
+        "role": "coverage",
+        "standard_library": [
+          "builtins",
+          "datetime",
+          "sys"
+        ],
+        "values": [
+          2024,
+          2025
+        ]
+      },
+      "source_files": {
+        ".gitattributes": "009888744f1a6a9186868eedb0dbbe77e644463272bc87916066f0e9576adf57",
+        ".github/pull_request_template.md": "a524c3bd98c75d79bdc54888fd39c8588610ceee99f45b437b896ac33ef2fd2b",
+        ".github/workflows/publish.yml": "b90c2fad15538a374724560e7d344af5cfb5593b185fdb84553812c9a42fbe24",
+        ".github/workflows/validate.yml": "09d6fe069cf03f1a06052595c12f2f9e3178a196c0b9f32bd3d90bceafb4297b",
+        ".gitignore": "4ba2cdbd91900341dd3183bed639027a35bb56d33ed8623508a203d70a294a18",
+        ".pre-commit-config.yaml": "89ef277c76933ffcbdd5094c8f5adf52bc7c49102dad65ad24b4cd2471d92355",
+        ".readthedocs.yml": "10da2a172579c66c3a4a234c535f44eb7e2a2c9149edf6f326d0a0668a640101",
+        "AUTHORS.md": "bd9aba84270380454439c54e83d83f179e34d2722a74d6ed8e7a108d215da83a",
+        "CONTRIBUTING.md": "4671411c414ff29fd8ea6f3b9eb773b73d7130ef471f706b8159a2e914a0adee",
+        "LICENSE": "ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e",
+        "MANIFEST.in": "872e0cd73221fac5dadc75df9b70777776d2f5cc216e753b810080d8b4d459f2",
+        "NEWS": "2619c43f820d1f8f8cf3c2ad698ceaf2529baf88482a83164471d9f4d00d6a6e",
+        "README.rst": "c339b62a68687029b8f1c0c2b9524300e1b45097253103df33750d64a7685127",
+        "RELEASING": "87553abd052b0e4068d7060e4ce3aee59763878d02ffb37c8dc2813f53d61545",
+        "appveyor.yml": "f6b306d3d8a561db0ec6d18be50c0b515c2d4fd5fb2a4dd95efa297d997be793",
+        "changelog.d/.gitignore": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changelog.d/1417.misc.rst": "0b2ae7dd19378a931bbbf3ae2f32843437b0d77a88bb7e92f01ec2a724ea74c8",
+        "changelog.d/1424.bugfix.rst": "777a241c011587bac1d218361112f3bbf9d6f020fb3822e12adeff77231b33e7",
+        "changelog.d/1462.misc.rst": "754cb8f3b681669c153ccaa43b45694191e5bb6290cdd073a2f4d3bfd486693e",
+        "changelog.d/1463.docs.rst": "062b738e3d6ac8684545d5b8148ba634013b8a40793c6eac968e753dbc53c6a6",
+        "changelog.d/1464.misc.rst": "d2522e762be385e8c4029494a0c517e085e62b5078d9de8e944be70535bb0330",
+        "changelog.d/1465.misc.rst": "f2a744ab7296a3e0475f75f550b518ce5548da6641d521f24cbb9d4e45cc7aa7",
+        "changelog.d/1466.misc.rst": "f3ef181f70ac2dbc469445d6f0ff19251884336a75f125503d67d0dc6e12d0e5",
+        "changelog.d/1467.misc.rst": "f9af76b7a6c096809302b8d55c9941e6d8b8444ecbd13d164cfb86c075a24fbc",
+        "changelog.d/1468.misc.rst": "250b6e9a2ff6a1c1323892d7e1029363d531e996efc7fc3ff6f95dc855fc5c27",
+        "changelog.d/1469.misc.rst": "bddec327c457d638b91d3f45d9693a0aa45da58211289306be6fcb031c3d2944",
+        "changelog.d/1470.misc.rst": "51a9069d80286c15e95bc429d709dd9bd6ebb060b76afdc7276ad90416846c08",
+        "changelog.d/1499.misc.rst": "075f8e8cabf0e6c370fb6d2fa26d29ee387c699ba210dd1bf86a4efbac8bad3b",
+        "changelog.d/1501.misc.rst": "e785cd9348034d58a923c8643bea97da044bfc4c337ca2961c5ea7c71d7d363d",
+        "changelog.d/1504.misc.rst": "24462a6d838447bd8d0756be2845ea530fc8b0a2c95b4c051f13fd1a1c110646",
+        "changelog.d/1576.misc.rst": "b8912baa945c0cc5fea5c3fc12dce855808fd50606d55b0845252140b8314bb3",
+        "changelog.d/1577.misc.rst": "4b7f7defbc17a17084539fb50208a3f6ec9f3b93744b6e9bb857a091cf5951a6",
+        "changelog.d/1578.misc.rst": "e0ed8f41e7de80f4927c2dfa617f743a330067726f572d863955f83e2b282121",
+        "changelog.d/1581.misc.rst": "0d3efa5afea2172b2c829e44eff6e0ad16dca973c766a7b3adba98be38f41ab5",
+        "changelog.d/template.rst": "09fe16c8ab7aa077fbd3fc58cb1ec4a90b7d566ac47b24bf6b263f4dd2b60b14",
+        "ci_tools/make_zonefile_metadata.py": "ea2fb310b23eccd9d666c6d1b4544d6b636b64f88a2e71d92009a780668188c0",
+        "ci_tools/retry.bat": "796427537d031da9c757d813135ce427bc573858d79215cfa223e5f90ab31bbd",
+        "ci_tools/retry.sh": "d73d06f088e5d3a62a1b405aad39b319b8bf198961ca26700d15213a2a87a1fd",
+        "ci_tools/run_tz_master_env.sh": "5c1bd2d94e71501a9845358de3b8c60b1835fddfa006cf9c54b15ccb332250c8",
+        "codecov.yml": "0b8da762686ef54a4b53050f31c1509ae86f06cad207727b88ea25313aab4907",
+        "docs/Makefile": "bb2961dba2826ede73fcd1d939b4d9f72bfd5a4d8709feb4389d1af2b61eeac6",
+        "docs/changelog.rst": "03bc190dbf1d63b00aaa41b106ba83304b8cec7630fd6f9f942538dd3b0d618b",
+        "docs/conf.py": "fb36c12821c2fb96207cc4c576fd3f215274734f6818d27c49cc94f6e52595c9",
+        "docs/easter.rst": "16db83eb4bb469f04ad3cde08f9461c2620bf8bafad3b32ce90d9da0cc204c95",
+        "docs/examples.rst": "45f29214f094d7b1e558fe5642d141abe482fa533fc0cca9e4a067d54b01a444",
+        "docs/exercises/index.rst": "1cbba04f9082938f78d1f173f10c12505888e7ef16f8c58855a4b1c66268b19a",
+        "docs/exercises/solutions/mlk-day-rrule.rst": "f61a6d51275a7e36ff0bae69fb000db33143418ce7c69177667945dbd1525360",
+        "docs/exercises/solutions/mlk_day_rrule_solution.py": "13e8b974e8139a36769ad71427cf15f40b28f85dd432d0403bb73db862ea2d18",
+        "docs/index.rst": "f3f01b84ab4e39e0f1c3c3f6c19ab8a0fec1fcdf7aae12ce1aff98a8e1f272b3",
+        "docs/make.bat": "85cb8f97fa68e42e6bf11747fae73a7ed0a52a4cfb98d9909d4ba91e41b8cd4a",
+        "docs/parser.rst": "0d76afaffd78070ec101d6401ab6ed17c11eaef7bafbee58f2ad8f91c4942519",
+        "docs/relativedelta.rst": "39fb09a3a243bb6ec851f8613550fb22ba803c12e9406235a4e388591d90c501",
+        "docs/requirements-docs.txt": "474951dfe594066ef4d94688d6d4d802b13906b8517a676bfe233964afd83048",
+        "docs/rrule.rst": "04c8cd700915f510c6a28b630df09951e05557ae33db7e4e4129b84b0b62fbed",
+        "docs/samples/EST5EDT.ics": "510507245902dde930be880b09afce94881a192f2d48c7e389b55f10f679e6bb",
+        "docs/tz.rst": "2e8492a9dd925f0e8e0acb9a99584a0c11543a30ed23eb4f4536d4bb288b0514",
+        "docs/tzwin.rst": "8d1c162741ac0dfed6e377e5f5032f9f773b2282d9749fb90a93ec7d92cc8d56",
+        "docs/utils.rst": "0266c539ff37ca12dfb9ad66de571a1650cecf8de6be0cf7dc693c199e2d65fe",
+        "docs/zoneinfo.rst": "6f1cdbd06a3375ef3fbc3f160dc3d1fb033027c42613fff7117b3656b234be51",
+        "pyproject.toml": "7d5f6eca3b4584f90f9b880ed4f4a6c699a687535babdf911052473df62fa582",
+        "requirements-dev.txt": "ebafe20472049f491b01f8e8e30c60bf941fabb4c7c5896f2b0c25c0d2174e5d",
+        "requirements/3.3/constraints.txt": "92b9980b9b89058137c063e03bcebefea442b6fc57edb08dc8baa05a25e67f89",
+        "requirements/3.3/requirements-dev.txt": "1480681c3267e14710b64ac23e5a769422415826823f44ed57240098ce1fdc35",
+        "setup.cfg": "cc7d4c0c2b3862fa49083178fd630751f3b782b628743ac1c30e964ae8515760",
+        "setup.py": "d94405eec2b79875768247834d9423acdab22488f499ebca957038b3ff2174c7",
+        "src/dateutil/__init__.py": "32a6a6ebb58ef4891399417223aeaf4ba2284974e9f46dfcf0369d1f62c230b6",
+        "src/dateutil/_common.py": "efbc34cb2b64af19586d29fefa50d53d431a6d45d147d237941bffbd0454a946",
+        "src/dateutil/easter.py": "772062fa52af8a61f5bbf93aa7b6742492bbd9086a56d541b2a072be910f2af7",
+        "src/dateutil/parser/__init__.py": "c1693a185bb14e98e8820086b6091c789a2d8b8a558e5e3f7c7417a4d39a4988",
+        "src/dateutil/parser/_parser.py": "ee494377289c92c401fd7825fb7500981c33098a2bd40219aa4948713e9d1fff",
+        "src/dateutil/parser/isoparser.py": "f05cbdf7d6e709dd5fad274e62e3ab6967c94ed7795bba90e7537036e1ff8573",
+        "src/dateutil/relativedelta.py": "218fe6825323a196d87ebbe5a1363671ed366a25633c892265faa03536517ee0",
+        "src/dateutil/rrule.py": "289cca95a09dd6311bbb8037f1996db256a801487d9d26dd6ce15d8e9ef429ec",
+        "src/dateutil/tz/__init__.py": "17e333d77bfa8d8b1e92541ff537bd27a9f370b0e6ab8ee03916bad4adf9fc50",
+        "src/dateutil/tz/_common.py": "720cc34c036c397bc473ce9c605efb12c962b9269bf0fbb0a6c979f9b5f7fd2e",
+        "src/dateutil/tz/_factories.py": "ba76fa5d0357acf32f7a4b13094f8083c8e6559b384a88e83d47001e95a7aef5",
+        "src/dateutil/tz/tz.py": "1149c474c7de4e15e263a978b21f7205a6d9eb7fcf3b3cb4d734ac87db619f5a",
+        "src/dateutil/tz/win.py": "c49b335a04b0135c4fc7f1c98f86647a9cae902fe1372d35e9631c5e16d1681f",
+        "src/dateutil/tzwin.py": "ec0af8bdd4029e733498a4773148db20ab19ac155f1e0770b0965cfe619845ec",
+        "src/dateutil/utils.py": "74a09c844c3c78e6e2d25a064f1f75ba70719bfed41a5537bff16314c76ac183",
+        "src/dateutil/zoneinfo/__init__.py": "298834a6d842323729e4c5d21220499f79cc8d978d65abfbae5270e7eb73d52e",
+        "src/dateutil/zoneinfo/rebuild.py": "322a98cc2207bcd6cc1fe2dd4582effb84f410803b8432ade462d1d084532dd2",
+        "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests/_common.py": "1990c6c30da9f971e9857ed137c81d68a416886f4fce96da582dc44cbdc72a78",
+        "tests/conftest.py": "f5c208b4d3bffc8ca66e8aaaee260cf38baf5f07094e322cfbcd7d9212903dbe",
+        "tests/property/test_isoparse_prop.py": "323e713a85a7eb1b9aa1633ef7adaf384715495e57fe539a902c8fe38a27dbd7",
+        "tests/property/test_parser_prop.py": "6549faa3720da69cf8157bfe6be3209d4496ce1a73d87036783414c04bd47497",
+        "tests/property/test_tz_prop.py": "96d7fc6bc1ac0620ff478c0d44ffde55a5334f0e3dda21263169bb5a2aa90f2e",
+        "tests/test_easter.py": "33b9166e2f2ea227c7aa00957b7b51e70c025330d80e916616d009b0337b45c3",
+        "tests/test_import_star.py": "05feb2985d5079e71483a9189623360ff1c8bf9e8c29a8beae316d4266bfe031",
+        "tests/test_imports.py": "a3402c42bf4f1727e3f0f98eb3247f4707c8eadb7a930e73c3b8fb6660806f3b",
+        "tests/test_internals.py": "fd939626dce9fab59fb19f897bf39e837c75fbb4449f7dced26e276ebf60054e",
+        "tests/test_isoparser.py": "9af865d21bed49281ed7a37071ad1b9b9e8d7c10a71bf4c27486c974660808f2",
+        "tests/test_parser.py": "95b9f01f8d2f4091fea049f90f9ebc05991ccf0c3455144d50778a888ceeefb0",
+        "tests/test_relativedelta.py": "631046822ad924aad5a7ab780504c1f22258932d15841d4c7dd97218f755ffbe",
+        "tests/test_rrule.py": "6b8336530d7954f05df72436c3aeef5acb3060587739bdade3c48a02a53001ea",
+        "tests/test_tz.py": "8bcc3845eaba222bf169d7e0550f56411c1d578e7e03800a29a33b878d2aacac",
+        "tests/test_utils.py": "1b48d0e7d6eb2fe7b69f9190fd9ac858c1a1db159f9fa5f41a50c5466295b194",
+        "tox.ini": "6c9d0c0cd02f2e41e2608b208e49bddf2219672b973881acf2acd196f711b033",
+        "updatezinfo.py": "a1aafae76613135bfee9bc90e39bf3008e48512f0c5ea8a5f380b20089cd8ad2",
+        "zonefile_metadata.json": "44fb147a7b918480efe24be37eda0901c75cf59d4f26898119eb823b03363367"
+      }
+    }
+  ],
+  "scope": "Original package imports and stated source models; no general Python, proof or cost-saving claim.",
+  "source_commit": "e01f1ea05691f84ff71e3d9141c9cb30f040abe9"
+}

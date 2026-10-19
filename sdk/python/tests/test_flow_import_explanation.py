@@ -38,11 +38,13 @@ def current_reports(tmp_path_factory):
         scope = upstream / "src" if context == "full-package" else root / context
         scope.mkdir(exist_ok=True)
         client, rules = workspace(scope)
+        rules.write_text(json.dumps({'version': 'current-import-explanation', 'sources': ['emit_value'],
+                                     'sinks': ['record_value'], 'sanitizers': {}, 'propagators': []}))
         if context == "isolated-declaration":
             declaration = ast.get_source_segment(source, node)
             (scope / "pinned_clamp.py").write_text("def clamp(x, lower, upper=None):\n" + declaration.split("\n", 1)[1] + "\n")
         module = "pydash.numerical" if context == "full-package" else "pinned_clamp"
-        (scope / "app.py").write_text(f"from {module} import clamp\ndef entry():\n    return sink(clamp(source(), 1, 10))\n")
+        (scope / "app.py").write_text(f"from {module} import clamp\ndef entry():\n    return record_value(clamp(emit_value(), 1, 10))\n")
         REPORTS[context] = analyze(client, rules, "entry").report
 
 

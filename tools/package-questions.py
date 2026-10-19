@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from agent_eval.bounded_host import run
-from fr_ir.context import MemoryObjectStore
+from fr_ir.context import DirectoryObjectStore, MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
 
@@ -29,6 +29,8 @@ RULES = {'version': 'package-question', 'sources': ['emit_value'], 'sinks': ['re
          'sanitizers': {}, 'propagators': []}
 LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
               cpu_limit_seconds=10, transcript_bytes=1024**2)
+CACHE_STAGES = [('cold', False, True), ('restored', True, True), ('unrelated-edit', True, True),
+                ('helper-replaced', False, False), ('helper-restored', True, True), ('import-replaced', False, False)]
 
 
 def save(path, value):
@@ -94,66 +96,77 @@ def cache_controls(request):
     scope = Path(request['scope'])
     project = request['project']
     client = FrClient(scope, executable=request['fr'], max_output_bytes=1048576)
-    store = MemoryObjectStore()
-    cache = FlowCache(store)
+    store = DirectoryObjectStore(request['objects'])
+    manifest = request['previous_manifest']
+    cache = FlowCache(store) if manifest is None else FlowCache.restore(store, manifest)
     settings = dict(standard_library=tuple(project['standard_library']), rules=scope / 'rules.json',
                     summaries=True, imports=True, context='html', depth=8, steps=4096, max_bytes=1048576)
     output = Path(request['reports'])
-    stages = []
+    label, reused, reaches = CACHE_STAGES[request['stage']]
+    flow.require((manifest is None) == (label == 'cold'), 'cache stage lacks its predecessor')
+    handle = client.project('find', request['entry'], '--in', request['path']).definition_target().handle
+    retained = cache.analyze(client, handle, **settings)
+    fresh = FlowCache(MemoryObjectStore()).analyze(client, handle, **settings)
+    left, right = retained.report.to_data(), fresh.report.to_data()
+    save(output / (label + '-saved.json'), left)
+    save(output / (label + '-fresh.json'), right)
+    for value in (left, right):
+        value.pop('execution')
+        value.pop('context_basis', None)
+    flow.require(left == right and retained.reused == reused, 'saved/fresh answer or reuse decision disagrees: ' + label)
+    flow.require(left['complete'] and bool(retained.witnesses) == reaches, 'cache control did not finish with the declared connection: ' + label)
+    print(json.dumps({'stage': label, 'reused': retained.reused, 'complete': True, 'reaches': reaches,
+                      'previous_manifest': manifest, 'manifest': cache.persist()}))
 
-    def check(label, reused, reaches):
-        handle = client.project('find', request['entry'], '--in', request['path']).definition_target().handle
-        retained = cache.analyze(client, handle, **settings)
-        fresh = FlowCache(MemoryObjectStore()).analyze(client, handle, **settings)
-        left, right = retained.report.to_data(), fresh.report.to_data()
-        save(output / (label + '-saved.json'), left)
-        save(output / (label + '-fresh.json'), right)
-        for value in (left, right):
-            value.pop('execution')
-            value.pop('context_basis', None)
-        flow.require(left == right and retained.reused == reused, 'saved/fresh answer or reuse decision disagrees: ' + label)
-        flow.require(left['complete'] and bool(retained.witnesses) == reaches, 'cache control did not finish with the declared connection: ' + label)
-        stages.append({'stage': label, 'reused': retained.reused, 'complete': True, 'reaches': reaches})
 
-    check('cold', False, True)
-    cache = FlowCache.restore(store, cache.persist())
-    check('restored', True, True)
-    (scope / 'unrelated_question_note.py').write_text('value = 42\n')
-    check('unrelated-edit', True, True)
+def collect_cache_controls(scope, project, directory, binary, row, result, output):
+    path, entry, _ = prepare(scope, project, 'original', 'positive')
     module = scope.joinpath(*project['module'].split('.')).with_suffix('.py')
     if not module.is_file():
         module = scope.joinpath(*project['module'].split('.'), '__init__.py')
-    original = module.read_text()
+    original_bytes = module.read_bytes()
+    original = original_bytes.decode()
     declaration, = [node for node in ast.parse(original).body if isinstance(node, ast.FunctionDef) and node.name == project['function']]
     returns = [node for node in ast.walk(declaration) if isinstance(node, ast.Return)]
     flow.require(returns, 'selected helper has no return to edit')
-    try:
-        edited = original
-        for node in reversed(sorted(returns, key=lambda item: (item.lineno, item.col_offset))):
-            fragment = ast.get_source_segment(original, node)
-            flow.require(edited.count(fragment) == 1, 'relevant edit cannot select a unique return')
-            edited = edited.replace(fragment, 'return 0', 1)
-        module.write_text(edited)
-        check('helper-replaced', False, False)
-        module.write_text(original)
-        check('helper-restored', True, True)
-        flow.require(module.name != '__init__.py', 'package initializer replacement requires a separately declared control')
-        hidden = module.with_suffix('.question-original')
-        replacement = module.with_suffix('')
-        flow.require(not replacement.exists(), 'replacement package already exists')
-        module.rename(hidden)
-        replacement.mkdir()
-        parameters = ', '.join(arg.arg for arg in declaration.args.posonlyargs + declaration.args.args)
-        (replacement / '__init__.py').write_text(f'def {project["function"]}({parameters}):\n    return 0\n')
+    edited = original
+    for node in reversed(sorted(returns, key=lambda item: (item.lineno, item.col_offset))):
+        fragment = ast.get_source_segment(original, node)
+        flow.require(edited.count(fragment) == 1, 'relevant edit cannot select a unique return')
+        edited = edited.replace(fragment, 'return 0', 1)
+    flow.require(module.name != '__init__.py', 'package initializer replacement requires a separately declared control')
+    hidden = module.with_suffix('.question-original')
+    replacement = module.with_suffix('')
+    flow.require(not replacement.exists() and not hidden.exists(), 'replacement paths already exist')
+    row['cache'] = {'stages': [], 'result': {'complete': False}}
+    manifest = None
+    for index, (label, _, _) in enumerate(CACHE_STAGES):
+        if label == 'unrelated-edit':
+            (scope / 'unrelated_question_note.py').write_text('value = 42\n')
+        if label == 'helper-replaced':
+            module.write_text(edited)
+        if label == 'import-replaced':
+            module.rename(hidden)
+            replacement.mkdir()
+            parameters = ', '.join(arg.arg for arg in declaration.args.posonlyargs + declaration.args.args)
+            (replacement / '__init__.py').write_text(f'def {project["function"]}({parameters}):\n    return 0\n')
         try:
-            check('import-replaced', False, False)
+            request = {'mode': 'cache', 'scope': str(scope), 'path': path, 'entry': entry, 'project': project,
+                       'fr': str(binary.resolve()), 'reports': str(directory), 'objects': str(directory / 'cache-objects'),
+                       'stage': index, 'previous_manifest': manifest}
+            observation = execute(directory, 'cache-' + label, request, scope)
+            row['cache']['stages'].append(observation)
+            save(output / 'result.json', result)
+            flow.require(observation['result'] is not None and observation['result']['complete'],
+                         'cache stage failed or reached its resource budget: ' + label)
+            manifest = observation['result']['manifest']
         finally:
-            (replacement / '__init__.py').unlink()
-            replacement.rmdir()
-            hidden.rename(module)
-    finally:
-        module.write_text(original)
-    print(json.dumps({'stages': stages, 'complete': True}))
+            if label == 'import-replaced':
+                (replacement / '__init__.py').unlink()
+                replacement.rmdir()
+                hidden.rename(module)
+            module.write_bytes(original_bytes)
+    row['cache']['result'] = {'complete': True}
 
 
 def execute(output, name, request, scope):
@@ -164,7 +177,7 @@ def execute(output, name, request, scope):
                    'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'}
     command = [sys.executable, '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')]
     with (directory / 'stdout').open('wb') as stdout, (directory / 'stderr').open('wb') as stderr:
-        observation = run(command, b'', stdout, stderr, scope, env=environment, cwd=scope, **LIMITS)
+        observation = run(command, b'', stdout, stderr, output, env=environment, cwd=scope, **LIMITS)
     observation['command'] = command
     observation['stdout_sha256'] = flow.sha((directory / 'stdout').read_bytes())
     observation['stderr_sha256'] = flow.sha((directory / 'stderr').read_bytes())
@@ -221,6 +234,18 @@ def checked_coverage(record, value, source, frozen):
         flow.require(row['project'] == project, 'coverage changed a declared project or its Python examples')
         flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True
                      and row['cache']['result']['complete'] is True, 'coverage includes an unfinished project')
+        stages = row['cache']['stages']
+        flow.require(len(stages) == len(CACHE_STAGES), 'coverage omits a saved-answer stage')
+        previous = None
+        for observation, (label, reused, reaches) in zip(stages, CACHE_STAGES):
+            stage = observation['result']
+            flow.require(observation['exit_code'] == 0 and observation['stop_reason'] is None
+                         and stage['stage'] == label and stage['reused'] is reused and stage['reaches'] is reaches
+                         and stage['complete'] is True and stage['previous_manifest'] == previous
+                         and isinstance(stage['manifest'], str) and len(stage['manifest']) == 64
+                         and all(character in '0123456789abcdef' for character in stage['manifest']),
+                         'saved-answer stages lost their verified connection')
+            previous = stage['manifest']
         cells = row['cases']
         planned = {(variant, case) for variant in ('original', 'renamed-relocated')
                    for case in ('positive', 'overwritten', 'unknown', 'steps')}
@@ -327,21 +352,21 @@ def collect(args):
                         flow.require(observed['result'] == {'value': expected}, 'ordinary Python disagrees with the independent example')
                     save(output / 'result.json', result)
             if role == 'coverage':
-                path, entry, _ = prepare(scope, project, 'original', 'positive')
-                request = {'mode': 'cache', 'scope': str(scope), 'path': path, 'entry': entry,
-                           'project': project, 'fr': str(args.fr.resolve()), 'reports': str(directory)}
-                row['cache'] = execute(directory, 'cache-controls', request, scope)
+                collect_cache_controls(scope, project, directory, args.fr, row, result, output)
             row['complete'] = all(cell['analysis']['result'] is not None
                                    and (cell['analysis']['result']['complete'] if cell['case'] in ('positive', 'overwritten')
                                         else not cell['analysis']['result']['complete']) for cell in row['cases'])
             if role == 'coverage':
                 row['complete'] &= row['cache']['result'] is not None and row['cache']['result']['complete']
+        except (OSError, ValueError, SyntaxError, KeyError) as error:
+            row['error'] = f'{type(error).__name__}: {error}'
+        if 'source_files' in row:
             row['original_sources_unchanged'] = all(
                 (upstream / path).is_file() and flow.sha((upstream / path).read_bytes()) == digest
                 for path, digest in row['source_files'].items())
-            flow.require(row['original_sources_unchanged'], 'a worker left an original package file changed')
-        except (OSError, ValueError, SyntaxError, KeyError) as error:
-            row['error'] = f'{type(error).__name__}: {error}'
+            if not row['original_sources_unchanged']:
+                row['complete'] = False
+                row['error'] = (row['error'] + '; ' if row['error'] else '') + 'original package files changed'
         save(output / 'result.json', result)
     finished = [row for row in result['projects'] if row['complete'] and row['error'] is None]
     familiar = coverage['projects'] if coverage is not None else result['projects'] if role == 'coverage' else []

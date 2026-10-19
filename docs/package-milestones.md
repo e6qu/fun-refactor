@@ -60,6 +60,15 @@ connection is not a complete answer establishing that the input is blocked.
 Keep existing resource limits. If checking is split into smaller steps, retain
 the checked connection and dependencies between them.
 
+The [first development attempt](../tests/agent-eval/package-questions/first-development/receipt.json)
+answered both original package questions and their renamed callers correctly.
+Dateutil passed all saved-answer controls. Boltons' combined cache worker reached
+its existing ten-second CPU limit and left a temporary helper edit. Keep that
+failure. Each cache stage now runs separately with the same limits, carries the
+verified saved-answer manifest to the next stage, and restores package source
+outside the bounded worker. The record retains every stage and its resource use;
+splitting the work does not establish lower total cost.
+
 ## Milestone 2: work beyond a familiar package
 
 With the same frozen implementation, demonstrate the reaching-input and

@@ -62,7 +62,14 @@ class CoverageBeforeUnread(unittest.TestCase):
             if project['role'] != 'coverage':
                 continue
             row = {'project': copy.deepcopy(project), 'complete': True, 'error': None,
-                   'original_sources_unchanged': True, 'cache': {'result': {'complete': True}}, 'cases': []}
+                   'original_sources_unchanged': True, 'cache': {'result': {'complete': True}, 'stages': []}, 'cases': []}
+            previous = None
+            for index, (label, reused, reaches) in enumerate(questions.CACHE_STAGES):
+                manifest = str(index) * 64
+                row['cache']['stages'].append({'exit_code': 0, 'stop_reason': None, 'result': {
+                    'stage': label, 'reused': reused, 'reaches': reaches, 'complete': True,
+                    'previous_manifest': previous, 'manifest': manifest}})
+                previous = manifest
             value['projects'].append(row)
             for variant in ('original', 'renamed-relocated'):
                 for case in ('positive', 'overwritten', 'unknown', 'steps'):
@@ -84,7 +91,7 @@ class CoverageBeforeUnread(unittest.TestCase):
         self.check(*self.example())
 
     def test_missing_questions_wrong_answers_and_unfrozen_results_refuse(self):
-        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'expected', 'changed-source', 'cache'):
+        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'expected', 'changed-source', 'cache', 'stage-link', 'stage-missing'):
             with self.subTest(mutation=mutation):
                 record, value = self.example()
                 row = value['projects'][0]
@@ -101,8 +108,45 @@ class CoverageBeforeUnread(unittest.TestCase):
                     row['cases'][0]['runtime'][0]['observation']['result']['value'] = 0
                 elif mutation == 'changed-source': row['original_sources_unchanged'] = False
                 elif mutation == 'cache': row['cache']['result']['complete'] = False
+                elif mutation == 'stage-link': row['cache']['stages'][1]['result']['previous_manifest'] = 'f' * 64
+                elif mutation == 'stage-missing': row['cache']['stages'].pop()
                 with self.assertRaises(ValueError):
                     self.check(record, value)
+
+
+class CacheWorkerStops(unittest.TestCase):
+    def test_stopped_workers_preserve_the_failure_and_restore_original_source(self):
+        for stopped in ('helper-replaced', 'import-replaced'):
+            with self.subTest(stage=stopped), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                scope, output = root / 'workspace', root / 'output'
+                scope.mkdir()
+                output.mkdir()
+                (scope / 'library').mkdir()
+                helper = scope / 'library/helper.py'
+                original = b'def relay(value):\n    return value\n'
+                helper.write_bytes(original)
+                project = {'module': 'library.helper', 'function': 'relay', 'expression': 'relay(VALUE)'}
+                row = {}
+                collection = {'projects': [row]}
+                seen = []
+
+                def worker(_output, _name, request, _scope):
+                    label = questions.CACHE_STAGES[request['stage']][0]
+                    seen.append(label)
+                    return {'exit_code': 125 if label == stopped else 0,
+                            'stop_reason': 'cpu_seconds' if label == stopped else None,
+                            'result': None if label == stopped else {'complete': True, 'manifest': str(request['stage']) * 64}}
+
+                with patch.object(questions, 'execute', side_effect=worker):
+                    with self.assertRaisesRegex(ValueError, 'resource budget: ' + stopped):
+                        questions.collect_cache_controls(scope, project, output, Path('/unused/fr'), row, collection, output)
+                self.assertEqual(helper.read_bytes(), original)
+                self.assertFalse(helper.with_suffix('').exists())
+                self.assertFalse(helper.with_suffix('.question-original').exists())
+                self.assertEqual(seen[-1], stopped)
+                self.assertEqual(row['cache']['stages'][-1]['stop_reason'], 'cpu_seconds')
+                self.assertFalse(row['cache']['result']['complete'])
 
 
 if __name__ == '__main__':
