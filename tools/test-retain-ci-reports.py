@@ -28,6 +28,8 @@ class ReportRetention(unittest.TestCase):
         catalog.parent.mkdir(parents=True)
         catalog.write_text(json.dumps({'evidence': [{'id': 'host-recovery'}]}))
         (catalog.parent / 'results').mkdir()
+        (root / 'tests/retained_proofs.rs').write_text(
+            '"tests/agent-eval/results/previous-retained-proofs/result.json"\n')
         def execute(command, **_):
             if reject and '--audit' in command:
                 raise subprocess.CalledProcessError(1, command)
@@ -53,6 +55,8 @@ class ReportRetention(unittest.TestCase):
             receipt = manifest['groups']['host-recovery']
             self.assertEqual(receipt['collection']['source_commit'], 'a' * 40)
             self.assertEqual(receipt['sha256'], hashlib.sha256(original).hexdigest())
+            self.assertEqual((root / 'tests/retained_proofs.rs').read_text(),
+                             '"tests/agent-eval/results/test-reports-retained-proofs/result.json"\n')
 
     def test_mixed_collection_sources_are_rejected_before_saving(self):
         with tempfile.TemporaryDirectory() as directory:

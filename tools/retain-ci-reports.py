@@ -79,6 +79,13 @@ def main():
     directory.mkdir()
     (directory / 'manifest.json').write_text(json.dumps(
         {'schema': 'fr-ci-report-collection', 'groups': receipts}, indent=2) + '\n')
+    proof_test = ROOT / 'tests/retained_proofs.rs'
+    text, count = re.subn(
+        r'"tests/agent-eval/results/[^"/]+-retained-proofs/result\.json"',
+        f'"tests/agent-eval/results/{args.prefix}-retained-proofs/result.json"',
+        proof_test.read_text())
+    require(count == 1, 'expected one active retained-proof replay reference')
+    proof_test.write_text(text)
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True, timeout=60)
 
 
