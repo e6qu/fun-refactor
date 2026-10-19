@@ -49,7 +49,7 @@ Neither saved approach reduced median sequence time in either setting.
 One repeated local question took about 0.258 seconds overall and 0.016 seconds after loading code and reading options.
 Next, measure starting Python, loading client and measurement code, reading options and returning the final reply separately.
 Compare several questions from one Python program with separate process starts, and measure the existing two-helper request against separate questions.
-The source-bound setup lesson needs the fresh hosted Python receipt after its updated cost explanation.
+The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
 
 The impact audit previously passed its test but exhausted the 15-minute job budget during cleanup.
@@ -191,7 +191,7 @@ Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
 The [checker collection receipt](../tests/agent-eval/results/2026-10-18-saved-startup-scalar-collection/manifest.json) identifies the current analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-18-startup-cost-docs-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-19-optimized-cost-docs-python-contract/manifest.json)
 covers 464 programs and 928 original or renamed cases, including small startup registration functions.
 It preserves 352 incomplete cases, 18 refusals and 130 documented differences between the checker's model and Python's observed behavior.
 Four differences cover original and renamed programs where startup replaces a helper or raises before the application runs.
