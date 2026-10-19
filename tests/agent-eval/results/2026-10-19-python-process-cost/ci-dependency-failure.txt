@@ -1,0 +1,15 @@
+Run: https://github.com/e6qu/fun-refactor/actions/runs/39214145764
+Job: https://github.com/e6qu/fun-refactor/actions/runs/39214145764/job/117933990993
+Source: c0e569fc45c56fcb38fc50c6ce819c82c5461bbf
+Step: Install Python checks and the FastAPI runtime fixture
+The job failed before running tests.
+
+2026-10-19T07:14:07.2289668Z   Downloading ty-0.0.80-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.4 kB)
+2026-10-19T07:14:07.3210569Z Collecting fastapi==0.141.1
+2026-10-19T07:14:07.3425708Z   Downloading fastapi-0.141.1-py3-none-any.whl.metadata (27 kB)
+2026-10-19T07:14:07.4278750Z ERROR: Could not install packages due to an OSError: ("Connection broken: ConnectionResetError(104, 'Connection reset by peer')", ConnectionResetError(104, 'Connection reset by peer'))
+
+Correction: Pin the nineteen exact wheel files and hashes from successful job 117925672737 in run 39211486762.
+Download those files directly within a two-minute bound on cache misses; share their cache across jobs.
+Install only local hash-checked files, then check dependency consistency.
+This removes the failing metadata-resolution request without increasing deadlines, repeating whole test jobs or omitting tests.

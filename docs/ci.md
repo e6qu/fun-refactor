@@ -113,6 +113,20 @@ PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
 the Python SDK runs on four more. Each runner executes tests serially with one
 Lean worker. Local builds and resource limits do not change.
 
+Python test dependencies come from an exact list of package files and SHA-256 fingerprints.
+For example, a test job needs FastAPI and the packages that FastAPI imports.
+Previously, eleven jobs each asked the package index which files to use.
+A [recorded failure](https://github.com/e6qu/fun-refactor/actions/runs/39214145764/job/117933990993) stopped during a FastAPI metadata download after the connection reset.
+Metadata describes a package before installation; no test had started in that job.
+
+The [current file list](../.github/actions/native-tools/python-wheels.txt) pins all nineteen packages from a passing job, including their dependencies.
+Jobs share a cache of those exact wheels, which are installable Python package archives.
+A cold cache downloads the pinned files directly, without package-index searches or separate metadata requests.
+Downloads have a two-minute bound. Every install reads local files, checks their fingerprints and verifies dependency consistency.
+Missing or damaged files fail visibly. Installation never switches to an online package search.
+Jobs still queue independently and retain the complete test inventories and existing 15-minute deadlines.
+The commands use pip's [hashed requirements](https://pip.pypa.io/en/stable/topics/secure-installs/) and [offline installation](https://pip.pypa.io/en/stable/topics/repeatable-installs/).
+
 Go validation installs Go 1.27.2 from its official Linux archive and checks its
 [published SHA-256 digest](https://go.dev/dl/?mode=json) before extraction.
 This is the same release used by the successful audit jobs. Three other jobs could not start
