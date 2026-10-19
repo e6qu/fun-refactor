@@ -41,6 +41,8 @@ def test_dictionary_arguments_and_defaults_preserve_answers(tmp_path, signature,
     ("table.update(state='ready')", 'table=table', 'register()'),
     ("first['state'] = 'ready'\nsecond.update(count=2)", 'first, second', 'register(table, table)'),
     ("for key in ('state',):\n    output[key] = dict()", 'output', 'register(table)'),
+    ('for key, item in table.items():\n    labels[key] = item',
+     'table=labels, labels=table', 'register()'),
 ])
 def test_parameter_shadowing_and_safe_alias_writes(tmp_path, body, signature, call):
     client, rules = install(tmp_path, setup(body, call, signature, PREFIX), 'value')
@@ -78,8 +80,11 @@ def test_unchecked_binding_and_argument_evaluation_stay_unfinished(tmp_path, sig
     (COPY, 'inputs, output', 'register(labels, labels)'),
     (COPY, 'inputs=labels, output=labels', 'register()'),
     (COPY + "\nlabels['state'] = 'changed'", 'inputs, output', 'register(labels, table)\nregister(labels, table)'),
+    (COPY + "\ninputs['state'] = 'changed'", 'inputs, output', 'register(labels, table)\nregister(labels, table)'),
     ("for key, item in inputs.items():\n    labels[key] = item", 'inputs', 'register(labels)'),
     ("first['state'] = 'changed'\nfor key, item in second.items():\n    table[key] = item",
+     'first, second', 'register(labels, labels)'),
+    ('for key, item in first.items():\n    for other, value in second.items():\n        table[other] = value',
      'first, second', 'register(labels, labels)'),
     ("output['state'] = source()", 'output', 'register(table)'),
     ("output['state'] = inputs", 'inputs, output', 'register(labels, table)'),
@@ -108,6 +113,15 @@ def test_an_explicit_argument_replaces_the_stored_reference(tmp_path):
                                            'output=labels', PREFIX), 'value')
     assert analyze(client, rules, 'entry', imports=True).report.at('/complete')
     assert dictionary_observation(tmp_path) == [{'state': 'ready'}, {'state': 'ready', 'count': 2}]
+
+
+def test_passing_an_imported_dictionary_does_not_make_it_owned(tmp_path):
+    source = setup("output['state'] = 'changed'", 'register(table)', 'output',
+                   'from shared import table\n')
+    client, rules = install(tmp_path, source, 'value')
+    (tmp_path / 'shared.py').write_text('table = {}\n')
+    assert not analyze(client, rules, 'entry', imports=True).report.at('/complete')
+    assert observe(tmp_path)['result'] == 17
 
 
 def test_rebinding_does_not_move_a_python_default_to_the_new_object(tmp_path):
