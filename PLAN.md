@@ -115,6 +115,7 @@ Neither saved approach reduced median sequence time in either cache setting.
 One repeated local question took about a quarter of a second, including starting Python and returning the final reply.
 Running the check after loading code and reading options took about 0.016 seconds.
 Next, measure starting Python, loading client and measurement code, reading options and returning the reply separately.
+The measurement loads client source without saved compiled Python modules; compare an installed client before choosing changes.
 Compare several questions from one running Python program with starting Python for each question.
 Also measure the existing two-helper request against separate questions with explicit limits.
 Use those full costs before adding another saved-work mechanism.

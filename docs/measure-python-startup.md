@@ -108,6 +108,12 @@ The inner `worker_seconds` timer starts after Python imports and command parsing
 Its difference from outer elapsed time also includes interpreter launch and final reply output.
 That difference cannot assign a separate cost to importing the client.
 
+Workers load the SDK and measurement modules from the repository.
+Python can save a compiled form of a module, called bytecode, to avoid compiling its source again.
+This fresh checkout has no SDK bytecode. The `-B` flag prevents saving it, so each process compiles those SDK sources again.
+Existing standard-library bytecode stays available.
+An installed SDK with saved bytecode needs a separate measurement.
+
 Compilation, checkout, dependency installation and fixture edits happen outside those timers.
 Store inventories and answer comparisons also happen outside them.
 The operating system's file caches stay in their observed state; the experiment does not flush them.

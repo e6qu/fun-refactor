@@ -118,13 +118,20 @@ The audit checks those observations and requires the answers to agree across cac
 Index time includes fact extraction or loading and reference resolution; it does not isolate each operation.
 Answering still includes Python parsing, import work and analysis or validation, without separate timers for those parts.
 
+These workers load the SDK from repository source.
+Python can save a compiled form of a module, called bytecode, to avoid compiling that source again.
+The checkout has no SDK bytecode, and `-B` prevents saving it. Each worker compiles those SDK sources again.
+Existing standard-library bytecode stays available.
+An installed SDK with saved compiled modules needs a separate comparison.
+
 Another large part lies outside the inner Python worker timer.
 For the repeated local fresh request, that gap has a median of about 242 ms, even with project caching on.
-It includes interpreter launch, SDK and measurement imports, command parsing and final reply output.
+It includes interpreter launch, loading and compiling SDK and measurement code, command parsing and final reply output.
 It cannot identify the client import cost separately.
 The inner worker itself takes about 16 ms in that case; the entire request takes about 258 ms.
 
 The next investigation should separate those startup and reply costs.
+Compare an installed client with saved bytecode against this source-checkout setup before choosing code changes.
 For example, compare an agent asking several questions from one running Python program with starting Python for every question.
 Also measure [asking about two helpers together](check-python-together.md) against separate questions with explicit limits.
 Use those full costs before adding another saved-work mechanism.
