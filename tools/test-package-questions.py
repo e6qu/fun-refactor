@@ -149,5 +149,22 @@ class CacheWorkerStops(unittest.TestCase):
                 self.assertFalse(row['cache']['result']['complete'])
 
 
+class MilestoneOutcome(unittest.TestCase):
+    def test_three_independent_projects_include_one_unread_success_and_preserve_the_other_failure(self):
+        familiar = [{'project': {'repository': name}, 'complete': True, 'error': None} for name in ('one', 'two')]
+        rows = [{'project': {'repository': 'three'}, 'complete': True, 'error': None},
+                {'project': {'repository': 'four'}, 'complete': False, 'error': 'no eligible helper'}]
+        self.assertTrue(questions.milestone_outcome(rows, {'projects': familiar}, 'held-out', {'frozen': True})['milestones_complete'])
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1]['error'], 'no eligible helper')
+        for phase, frozen, coverage in [('development', None, None), ('held-out', None, {'projects': familiar}),
+                                       ('held-out', {'frozen': True}, None)]:
+            self.assertFalse(questions.milestone_outcome(rows, coverage, phase, frozen)['milestones_complete'])
+        rows[0]['project']['repository'] = 'one'
+        self.assertFalse(questions.milestone_outcome(rows, {'projects': familiar}, 'held-out', {'frozen': True})['milestones_complete'])
+        rows[0]['complete'] = False
+        self.assertFalse(questions.milestone_outcome(rows, {'projects': familiar}, 'held-out', {'frozen': True})['milestones_complete'])
+
+
 if __name__ == '__main__':
     unittest.main()

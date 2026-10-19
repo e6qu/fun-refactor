@@ -303,6 +303,16 @@ def coverage_result(run_id, output, source, frozen):
     return value
 
 
+def milestone_outcome(rows, coverage, phase, frozen):
+    finished = [row for row in rows if row['complete'] is True and row['error'] is None]
+    familiar = coverage['projects'] if coverage is not None else rows if phase in ('coverage', 'development') else []
+    first = frozen is not None and any(row['complete'] is True and row['error'] is None for row in familiar)
+    second = (frozen is not None and phase == 'held-out' and coverage is not None and bool(finished)
+              and len({row['project']['repository'] for row in [*familiar, *finished]}) >= 3)
+    return {'milestone_1_demonstrated': first, 'milestone_2_demonstrated': second,
+            'milestones_complete': first and second}
+
+
 def collect(args):
     flow.require(sys.platform == 'linux', 'package collection belongs on the declared Linux runner')
     output = args.output.resolve()
@@ -385,16 +395,13 @@ def collect(args):
                 row['complete'] = False
                 row['error'] = (row['error'] + '; ' if row['error'] else '') + 'original package files changed'
         save(output / 'result.json', result)
-    finished = [row for row in result['projects'] if row['complete'] and row['error'] is None]
-    familiar = coverage['projects'] if coverage is not None else result['projects'] if role == 'coverage' else []
-    result['milestone_1_demonstrated'] = frozen is not None and any(row['complete'] and row['error'] is None for row in familiar)
-    result['milestone_2_demonstrated'] = (args.phase == 'held-out' and bool(finished)
-                                        and len({row['project']['repository'] for row in [*familiar, *finished]}) >= 3)
-    result['milestones_complete'] = result['milestone_1_demonstrated'] and result['milestone_2_demonstrated']
+    result.update(milestone_outcome(result['projects'], coverage, args.phase, frozen))
     save(output / 'result.json', result)
     print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']],
                       'milestone_1_demonstrated': result['milestone_1_demonstrated'], 'milestone_2_demonstrated': result['milestone_2_demonstrated']}))
-    if not all(row['complete'] for row in result['projects']):
+    accepted = (result['milestones_complete'] if args.phase == 'held-out' else
+                bool(result['projects']) and all(row['complete'] is True and row['error'] is None for row in result['projects']))
+    if not accepted:
         raise SystemExit(1)
 
 
