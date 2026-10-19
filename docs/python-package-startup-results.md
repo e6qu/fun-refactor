@@ -100,6 +100,15 @@ Keep existing file, source, search and execution limits throughout that work.
 Splitting a large question into smaller checked steps requires an explicit dependency connection between those steps.
 Running more unchecked source elsewhere would not solve the correctness problem.
 
+The [fresh library replay](../tests/agent-eval/results/2026-10-19-registration-loops-fixed-arity-probes/result.json) checked 100 helper cases and 200 Python executions.
+All 40 cases using the original full packages stayed unfinished or refused.
+Sixteen cases completed with isolated declarations and eight with a whole helper module copied outside its package.
+Those smaller contexts do not establish original-package support.
+The [Python receipt](../tests/agent-eval/results/2026-10-19-registration-loops-python-contract/manifest.json) records the supported loop examples and their unfinished controls.
+The focused interface suite passed 76 loop cases; the broader Python suite passed 1,560 cases.
+Both the function's syntax and its repeated work keep the existing 128-node limit.
+No separate measurement establishes this rule's time or memory cost.
+
 These observations identify a design question, not an implemented package-summary capability.
 They do not establish a safe minimal dependency set or general support for Toolz, Funcy or Pydash.
 Jaraco.functools remains unread until an implementation freezes before its first evaluation.
