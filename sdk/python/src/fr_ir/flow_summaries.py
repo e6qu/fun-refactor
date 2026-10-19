@@ -109,7 +109,7 @@ _CALL_BINDING = {
     "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
     "boundary": "No omitted object defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra/unpacked arguments, async/generator calls, external-rule keywords or non-normalized names.",
     "definitions": "Bodies defer. Defaults capture literals, prior values/functions or unshadowed builtins. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
-    "initialization": "Setup: literals, aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat and zero-arg own-dict registration with literal loops <=128 syntax/expanded nodes; fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
+    "initialization": "Setup: literals, aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat, own-dict registration with explicit dictionary args or captured dictionary defaults, literal loops <=128 syntax/expanded nodes; fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
     "implicit_exceptions": False,
     "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
     "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",

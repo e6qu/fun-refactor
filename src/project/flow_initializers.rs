@@ -47,13 +47,18 @@ pub(super) fn unchecked_reason(node: Node<'_>) -> &'static str {
 #[derive(Default)]
 pub(super) struct Allocations<'s, 't> {
     dictionaries: BTreeSet<&'s str>,
-    registrations: BTreeMap<&'s str, Node<'t>>,
+    registrations: BTreeMap<&'s str, RegistrationFunction<'s, 't>>,
     known_dictionaries: BTreeMap<&'s str, Node<'t>>,
 }
 
 pub(super) enum Statement<'s> {
     Declaration(&'s str),
     Population,
+}
+
+struct RegistrationFunction<'s, 't> {
+    definition: Node<'t>,
+    parameters: Vec<(&'s str, Option<&'s str>)>,
 }
 
 fn children(node: Node<'_>) -> Vec<Node<'_>> {
@@ -173,6 +178,7 @@ fn key_value(node: Node<'_>, source: &str, locals: &BTreeMap<&str, Node<'_>>) ->
 
 struct Registration<'s, 't> {
     locals: BTreeMap<&'s str, Node<'t>>,
+    roots: BTreeMap<&'s str, &'s str>,
     names: BTreeSet<&'s str>,
     reading: BTreeSet<&'s str>,
     written: BTreeSet<&'s str>,
@@ -215,7 +221,9 @@ impl<'s, 't> Allocations<'s, 't> {
             }
         }
         if calls::initialization_fits(node) {
-            if let Some(name) = self.population(node, source, &shadowed, &BTreeMap::new()) {
+            if let Some(name) =
+                self.population(node, source, &shadowed, &BTreeMap::new(), &BTreeMap::new())
+            {
                 self.known_dictionaries.remove(name);
                 return Some(Statement::Population);
             }
@@ -226,7 +234,14 @@ impl<'s, 't> Allocations<'s, 't> {
                 return Some(Statement::Population);
             }
         }
-        if node.kind() == "function_definition" && calls::definition_is_inert(node, source, false) {
+        if node.kind() == "function_definition" && {
+            let defaults = self
+                .dictionaries
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect();
+            calls::definition_is_inert_with_values(node, source, false, &defaults)
+        } {
             if let Some(name) = node.child_by_field_name("name") {
                 let name = &source[name.byte_range()];
                 self.dictionaries.remove(name);
@@ -236,14 +251,19 @@ impl<'s, 't> Allocations<'s, 't> {
                     && !(name.starts_with("__") && name.ends_with("__"))
                     && !shadowed(name)
                     && calls::initialization_fits(node)
-                    && node
-                        .child_by_field_name("parameters")
-                        .is_some_and(|parameters| children(parameters).is_empty())
                     && !node
                         .children(&mut node.walk())
                         .any(|child| child.kind() == "async")
                 {
-                    self.registrations.insert(name, node);
+                    if let Some(parameters) = self.registration_parameters(node, source) {
+                        self.registrations.insert(
+                            name,
+                            RegistrationFunction {
+                                definition: node,
+                                parameters,
+                            },
+                        );
+                    }
                 }
             }
             return None;
@@ -260,6 +280,56 @@ impl<'s, 't> Allocations<'s, 't> {
         None
     }
 
+    fn registration_parameters(
+        &self,
+        node: Node<'t>,
+        source: &'s str,
+    ) -> Option<Vec<(&'s str, Option<&'s str>)>> {
+        let mut parameters = Vec::new();
+        let mut names = BTreeSet::new();
+        let mut optional = false;
+        for parameter in children(node.child_by_field_name("parameters")?) {
+            let (name, default) = match parameter.kind() {
+                "identifier" if !optional => (parameter, None),
+                "default_parameter" => {
+                    optional = true;
+                    let value = calls::unparenthesized(parameter.child_by_field_name("value")?)?;
+                    if value.kind() != "identifier" {
+                        return None;
+                    }
+                    let root = *self.dictionaries.get(&source[value.byte_range()])?;
+                    (parameter.child_by_field_name("name")?, Some(root))
+                }
+                _ => return None,
+            };
+            let name_text = &source[name.byte_range()];
+            if name.kind() != "identifier"
+                || !name_text.is_ascii()
+                || name_text.starts_with("__") && name_text.ends_with("__")
+                || !names.insert(name_text)
+            {
+                return None;
+            }
+            parameters.push((name_text, default));
+        }
+        Some(parameters)
+    }
+
+    fn dictionary_root(
+        &self,
+        node: Node<'_>,
+        source: &'s str,
+        roots: &BTreeMap<&str, &'s str>,
+    ) -> Option<&'s str> {
+        let node = calls::unparenthesized(node)?;
+        if node.kind() != "identifier" {
+            return None;
+        }
+        let name = &source[node.byte_range()];
+        let root = roots.get(name).copied().unwrap_or(name);
+        self.dictionaries.get(root).copied()
+    }
+
     fn registration_call(
         &self,
         node: Node<'t>,
@@ -271,19 +341,52 @@ impl<'s, 't> Allocations<'s, 't> {
         }
         let call = calls::unparenthesized(node.named_child(0)?)?;
         let function = calls::unparenthesized(call.child_by_field_name("function")?)?;
-        if call.kind() != "call"
-            || function.kind() != "identifier"
-            || !children(call.child_by_field_name("arguments")?).is_empty()
-        {
+        if call.kind() != "call" || function.kind() != "identifier" {
             return None;
         }
-        let body = self
-            .registrations
-            .get(&source[function.byte_range()])?
-            .child_by_field_name("body")?;
+        let function = self.registrations.get(&source[function.byte_range()])?;
+        let body = function.definition.child_by_field_name("body")?;
+        let mut roots = BTreeMap::new();
+        let mut keyword = false;
+        for (index, argument) in children(call.child_by_field_name("arguments")?)
+            .into_iter()
+            .enumerate()
+        {
+            let (parameter, value) = if argument.kind() == "keyword_argument" {
+                keyword = true;
+                let name = argument.child_by_field_name("name")?;
+                if name.kind() != "identifier" {
+                    return None;
+                }
+                let name = &source[name.byte_range()];
+                (
+                    function
+                        .parameters
+                        .iter()
+                        .find(|(parameter, _)| *parameter == name)?
+                        .0,
+                    argument.child_by_field_name("value")?,
+                )
+            } else {
+                if keyword {
+                    return None;
+                }
+                (function.parameters.get(index)?.0, argument)
+            };
+            let root = self.dictionary_root(value, source, &BTreeMap::new())?;
+            if roots.insert(parameter, root).is_some() {
+                return None;
+            }
+        }
+        for (parameter, default) in &function.parameters {
+            if !roots.contains_key(parameter) {
+                roots.insert(*parameter, *self.dictionaries.get(default.as_ref()?)?);
+            }
+        }
         let mut state = Registration {
             locals: BTreeMap::new(),
-            names: BTreeSet::new(),
+            names: roots.keys().copied().collect(),
+            roots,
             reading: BTreeSet::new(),
             written: BTreeSet::new(),
             remaining: 128,
@@ -369,6 +472,7 @@ impl<'s, 't> Allocations<'s, 't> {
                 source,
                 &|name| shadowed(name) || state.names.contains(name),
                 &state.locals,
+                &state.roots,
             ) else {
                 return false;
             };
@@ -448,7 +552,9 @@ impl<'s, 't> Allocations<'s, 't> {
                 let Some(object) = function.child_by_field_name("object") else {
                     return false;
                 };
-                let name = &source[object.byte_range()];
+                let Some(name) = self.dictionary_root(object, source, &state.roots) else {
+                    return false;
+                };
                 if function.kind() != "attribute"
                     || object.kind() != "identifier"
                     || !function
@@ -508,6 +614,7 @@ impl<'s, 't> Allocations<'s, 't> {
         source: &'s str,
         shadowed: &impl Fn(&str) -> bool,
         locals: &BTreeMap<&str, Node<'_>>,
+        roots: &BTreeMap<&str, &'s str>,
     ) -> Option<&'s str> {
         if node.kind() != "expression_statement" || node.named_child_count() != 1 {
             return None;
@@ -518,9 +625,9 @@ impl<'s, 't> Allocations<'s, 't> {
             let object = left
                 .child_by_field_name("value")
                 .and_then(calls::unparenthesized)?;
+            let root = self.dictionary_root(object, source, roots)?;
             return (left.kind() == "subscript"
                 && object.kind() == "identifier"
-                && self.dictionaries.contains(&source[object.byte_range()])
                 && children(left).len() == 2
                 && left
                     .child_by_field_name("subscript")
@@ -528,7 +635,7 @@ impl<'s, 't> Allocations<'s, 't> {
                 && expression
                     .child_by_field_name("right")
                     .is_some_and(|node| value(node, source, shadowed, locals)))
-            .then_some(&source[object.byte_range()]);
+            .then_some(root);
         }
         let function = expression
             .child_by_field_name("function")
@@ -536,16 +643,16 @@ impl<'s, 't> Allocations<'s, 't> {
         let object = function
             .child_by_field_name("object")
             .and_then(calls::unparenthesized)?;
+        let root = self.dictionary_root(object, source, roots)?;
         (expression.kind() == "call"
             && function.kind() == "attribute"
             && object.kind() == "identifier"
-            && self.dictionaries.contains(&source[object.byte_range()])
             && function
                 .child_by_field_name("attribute")
                 .is_some_and(|name| &source[name.byte_range()] == "update")
             && expression
                 .child_by_field_name("arguments")
                 .is_some_and(|args| arguments(args, source, shadowed, locals)))
-        .then_some(&source[object.byte_range()])
+        .then_some(root)
     }
 }

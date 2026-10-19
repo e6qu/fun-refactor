@@ -276,6 +276,12 @@ and never change local cgroups or start Docker.
 The same study job runs the OpenCode rehearsal's offline parser, evidence and private-grader tests.
 It does not launch OpenCode or contact model providers; live local attempts use the workstation guard.
 
+Fresh grading of saved code changes runs separately in `Code-change grader controls`.
+That job checks the same controls and saved submissions, writes the comparison report and uploads `native-code-change-grades`.
+Accounting and grading each keep a five-minute deadline; the final native/SDK gate requires both.
+The [earlier combined job](https://github.com/e6qu/fun-refactor/actions/runs/39268191916) passed its test steps but exceeded five minutes during final cleanup.
+Separating those independent workloads keeps every check and leaves room for checkout, upload and cleanup.
+
 After merging a release PR, wait for release creation before advancing main again. GitHub can reject
 release creation against an older commit without an existing branch or tag, even with `contents: write`.
 See its [workflow-scope rule](https://github.blog/changelog/2023-11-02-github-actions-enforcing-workflow-scope-when-creating-a-release/).

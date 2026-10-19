@@ -87,6 +87,17 @@ jobs:
           bash tools/check.sh study
       - name: Check pinned explanation behavior independently of the rubric
         run: python3 tools/check-explanation-repositories.py
+
+  code-change-graders:
+    name: Code-change grader controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/grading-registry
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
       - name: Check code-change graders and retained submissions
         run: python3 tools/check-code-change-trials.py
       - name: Report all native attempts and observed costs
@@ -220,19 +231,26 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, toolchain, go-toolchain]
+    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require every shard and static check
+      - name: Require every native group and independent check
         env:
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
+          CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
-        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success && test "$TOOLCHAIN" = success && test "$GO_TOOLCHAIN" = success
+        run: |
+          test "$NATIVE" = success &&
+          test "$STATIC" = success &&
+          test "$AGENT_STUDY" = success &&
+          test "$CODE_CHANGE_GRADERS" = success &&
+          test "$TOOLCHAIN" = success &&
+          test "$GO_TOOLCHAIN" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

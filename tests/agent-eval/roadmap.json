@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-loops-flow-facts/result.json",
-      "sha256": "6d9b95d0d49dd751d27462d65dc2608a1915ec928ee3b9b4f5f3a1b0cee53110"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-flow-facts/result.json",
+      "sha256": "abba4eb8590f3f0ef5c62f3d6f9bfe560d14fb48020a2e43435f5a748f8d5b79"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-loops-package-flow/result.json",
-      "sha256": "e15b6fd156543cd2e8c38a2c18221e38799295f347671351ab94cde5b198279a"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-package-flow/result.json",
+      "sha256": "1386894644dab4ddd271bd86b89fbb8bc0374b9ee6d40559fdae8b454990c43c"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-loops-python-repositories",
-      "sha256": "98f5c3d34d7e1ceb9ba08fa13f4826c755a171a205bcfd97e386da781f4f8fae"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-python-repositories",
+      "sha256": "61114d87deeb214fb5143f826bbb15c1e398cd836fb916d57cca91da3ee9f9c9"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-loops-flow-cache/result.json",
-      "sha256": "e5474434125a8ed1056271fb489c9a0767feb0d88064f9e6c746f719d25f48de"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-flow-cache/result.json",
+      "sha256": "4543182414874b961d0e74fe5eace4ca2edd89ba5a72cc1989b34935c3ae7f5a"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-registration-loops-compiler-profile/result.json",
-      "sha256": "70c1aab5f91bf452fb384a3c2d1ef76f50e714feac76fa88df51f6889f9a2e87"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-compiler-profile/result.json",
+      "sha256": "31f10fba43ed734f8e8b22eb88bab978b018843c1b5a05eb995fbf7559cd15fc"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/result.json",
       "kind": "semantic-contract",
-      "scope": "14 declared Python rules; 468 authored programs and 936 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-registration-loops-python-contract/result.json",
-      "sha256": "cbe07e685d3ff3e5d09b24eecbd6058889d711f11e1aa53350210ea6d4d73242"
+      "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/result.json",
+      "sha256": "c30e8795a1da79b29ddbdf010d84855bd08cdbd862dc463f94b07dbba2b2aa5e"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-19-registration-loops-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-19-registration-arguments-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-registration-loops-index-resolution/result.json",
-      "sha256": "d72832c3083bfefede47e7951449161eb3e4fe425bce0e5aaf02eac0e4ad23c9"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-registration-arguments-index-resolution/result.json",
+      "sha256": "2c1af2a25c79483dd72e160c4602b5fcc8318c5ac48cba4cee381c4512d8a64f"
     },
     {
       "id": "repository-flow",

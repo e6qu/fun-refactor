@@ -1312,11 +1312,12 @@ These checks establish consistency with recorded inputs. They do not establish c
 Importing a helper can call another function before the application starts.
 The [complete startup lesson](check-python-startup.md) first fills a local dictionary and then follows submitted input through a helper.
 Its control changes startup to replace that helper: Python returns zero instead of the submitted value, and the analysis must remain unfinished.
-The supported setup function takes no parameters and writes only to dictionaries created earlier in its own file.
+The supported setup function writes only to dictionaries created earlier in its own file.
+It can receive them as arguments or stored dictionary defaults; the lesson explains both using `register(labels)` and `output=table`.
 The whole function must fit the existing 128-node syntax limit, where a node represents a piece of parsed code.
-Unknown calls, imported shared dictionaries, loops and helper replacement remain unchecked.
+Unknown calls, imported shared dictionaries, unknown loops and helper replacement remain unchecked.
 Changing the setup source invalidates the existing saved answer.
-Reusing setup checks separately remains unfinished.
+The [saved-startup lesson](save-python-startup.md) now shows reusing setup checks separately.
 
 The [first focused check](https://github.com/e6qu/fun-refactor/actions/runs/39080162868) exceeded its fifteen-minute job deadline.
 All native tests passed, followed by Python groups of 617, 722 and 815 passing cases.
@@ -1435,3 +1436,43 @@ The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/r
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
 Jaraco.functools remains unopened for a later independent evaluation.
+
+## Pass dictionaries to a startup function
+
+Importing a helper can first call `register(labels, table)` to fill a dictionary.
+The checker now follows those dictionary arguments, including when two parameters refer to one object.
+A default such as `output=table` stores the earlier dictionary; an explicit argument can replace it for one call.
+The [complete lesson](check-python-startup.md) introduces these terms and compares the result with Python.
+Changed source contents, rebinding a stored default's name, imported shared dictionaries and unknown effects leave the answer unfinished.
+All existing limits remain unchanged.
+
+The [first collection](https://github.com/e6qu/fun-refactor/actions/runs/39261124279) passed 171 focused tests and 1,655 Python interface tests.
+It failed two source-location expectations for an example and its renamed copy.
+Python evaluated `source()` in a startup argument, then raised `TypeError` before entering the application.
+The unfinished analysis reported a possible connection from the separate `source()` inside `entry`.
+The new test expectation mistakenly selected the startup call instead.
+Inspecting the retained trace confirmed the distinction; the correction selects the application's call and adds a runtime/location regression.
+The required `TypeError`, incomplete answer and exact source-to-output check remain intact.
+The failed collection is not passing evidence.
+
+The [corrected collection](https://github.com/e6qu/fun-refactor/actions/runs/39263253753) passed 952 original and renamed report cases and 1,656 interface tests.
+Its 172 focused cases comprise 96 argument/reference tests and 76 loop tests; all 58 altered-report controls passed too.
+The [receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/manifest.json) preserves 476 programs,
+364 incomplete cases, eighteen refusals and 134 documented differences from Python's observed behavior.
+Those counts describe checked examples, not universal Python support.
+
+The [fresh familiar-library replay](../tests/agent-eval/results/2026-10-19-registration-arguments-fixed-arity-probes/result.json) checked 100 helper cases and 200 Python executions.
+All forty full-package cases remain unfinished or refused: 32 incomplete and eight deliberately invalid requests.
+Sixteen copied-declaration cases and eight standalone-module cases complete in their smaller contexts.
+Toolz still needs conditional imports, function-argument inspection and other setup this rule cannot establish.
+There is no separate time or memory measurement for this language change.
+The [continuation notes](continuity.md#continue-python-work-from-actual-library-failures) now lead with the user question and remaining package obstacles.
+
+The [first full PR gate](https://github.com/e6qu/fun-refactor/actions/runs/39268191916) then found a separate CI timeout.
+The accounting job finished its tests near the five-minute deadline, but upload and cleanup took the job to 302 seconds.
+GitHub marked the job cancelled even though every test step passed; this is not a passing CI result.
+Its work included a sixty-second checkout, about 84 seconds of accounting checks and 118 seconds of saved-code-change grading.
+The independent grading checks now run in their own five-minute job, with the same commands, report and artifact.
+The final gate requires both accounting and grading to pass.
+Both five-minute deadlines remain unchanged, and every check remains required.
+Use [PR #543's checks](https://github.com/e6qu/fun-refactor/pull/543/checks) for the corrected run.

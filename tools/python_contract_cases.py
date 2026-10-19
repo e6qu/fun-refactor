@@ -1221,6 +1221,41 @@ EXAMPLES.extend([
             difference='Python uses the helper replaced inside the loop; startup stays unchecked and the possible original connection is not a complete answer.'),
 ])
 
+for stored in (False, True):
+    for returned in ('value', '0'):
+        signature = 'inputs=labels, output=table' if stored else 'inputs, output'
+        call = 'register()' if stored else 'register(labels, output=table)'
+        EXAMPLES.append(example('registration-dictionary-' + ('default-' if stored else 'argument-') +
+            ('forward' if returned == 'value' else 'discard'),
+            'imports calls defaults names returns boundaries', 'return sink(relay(source()))',
+            [S, T if returned == 'value' else ZERO], 17 if returned == 'value' else 0,
+            witness=returned == 'value', prelude='from helper import relay\n', files={
+                'helper.py': "table = {}\nlabels = {'state': 'ready'}\ndef register(" + signature + "):\n"
+                             "    for key, item in inputs.items():\n        output[key] = item\n" + call + '\n'
+                             'def relay(value):\n    return ' + returned + '\n'}))
+
+EXAMPLES.extend([
+    example('registration-dictionary-evaluated-argument', 'calls defaults names boundaries',
+            'return sink(source())', [S], None, 'TypeError', phase='definition', witness=True, source_index=1,
+            prelude="table = {}\ndef register(output):\n    output['state'] = 'ready'\nregister(source())\n",
+            complete=False, cutoff='module-effects-unchecked',
+            difference='Python evaluates the startup argument and fails on the integer write before entering the application; the unfinished analysis reports a possible connection from the separate source inside entry.'),
+    example('registration-dictionary-aliased-source', 'calls defaults names boundaries',
+            'return sink(source())', [S, T], 17, witness=True,
+            prelude="labels = {'state': 'ready'}\ndef register(inputs, output):\n"
+                    "    for key, item in inputs.items():\n        output[key] = item\nregister(labels, labels)\n",
+            complete=False, cutoff='module-effects-unchecked'),
+    example('registration-dictionary-rebound-default', 'calls defaults names boundaries',
+            'return sink(source())', [S, T], 17, witness=True,
+            prelude="table = {}\ndef register(output=table):\n    output['state'] = 'ready'\n"
+                    "table = {}\nregister()\n", complete=False, cutoff='module-effects-unchecked'),
+    example('registration-dictionary-changed-default', 'calls defaults names boundaries',
+            'return sink(source())', [S, T], 17, witness=True,
+            prelude="table = {}\nlabels = {'state': 'ready'}\ndef register(inputs=labels, output=table):\n"
+                    "    for key, item in inputs.items():\n        output[key] = item\n"
+                    "labels['state'] = 'changed'\nregister()\n", complete=False, cutoff='module-effects-unchecked'),
+])
+
 RENAMES = {'entry': 'compute', 'relay': 'transfer', '_relay': '_transfer', 'stop': 'halt', 'source': 'read_value',
            'sink': 'emit', 'clean': 'escape_value', 'forward': 'pass_value',
            'value': 'payload', 'other': 'extra', 'left': 'first', 'right': 'second', 'café': 'thé', 'flag': 'condition',
