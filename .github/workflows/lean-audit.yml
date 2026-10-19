@@ -55,20 +55,25 @@ jobs:
         run: rustup toolchain install stable --profile minimal
 
       - uses: actions/setup-node@v7
+        if: matrix.target == 'conformance'
         with:
           node-version: 26
           package-manager-cache: false
       - uses: ./.github/actions/go-toolchain
+        if: matrix.target == 'conformance'
       - uses: actions/setup-java@v6
+        if: matrix.target == 'conformance'
         with:
           distribution: temurin
           java-version: "26"
 
       - name: Install Zig for the conformance matrix
+        if: matrix.target == 'conformance'
         timeout-minutes: 5
         uses: ./.github/actions/zig-toolchain
 
       - name: Cache the Lean toolchain
+        if: matrix.target == 'conformance' || matrix.target == 'lean_kernels'
         id: lean-cache
         uses: actions/cache@v6
         with:
@@ -76,7 +81,7 @@ jobs:
           key: lean-4.28.0-linux-x86_64
 
       - name: Install Lean
-        if: steps.lean-cache.outputs.cache-hit != 'true'
+        if: (matrix.target == 'conformance' || matrix.target == 'lean_kernels') && steps.lean-cache.outputs.cache-hit != 'true'
         timeout-minutes: 15
         run: |
           set -euo pipefail
@@ -91,6 +96,7 @@ jobs:
           sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
 
       - name: Put Lean on the path
+        if: matrix.target == 'conformance' || matrix.target == 'lean_kernels'
         run: |
           echo "/opt/lean/bin" >> "$GITHUB_PATH"
           /opt/lean/bin/lean --version
