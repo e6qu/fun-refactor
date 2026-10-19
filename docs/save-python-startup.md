@@ -213,9 +213,9 @@ Reusing preparation grants no extra analysis steps or larger source allowance.
 This lesson compares behavior with ordinary Python and checks against fresh answers.
 It does not measure elapsed time or claim a speedup.
 File checks, import resolution, parsing, process startup and storage costs still apply.
-The separate [complete-request comparison](python-startup-cost-results.md) measures four disclosed examples using this API.
-Saving preparation did not reduce total elapsed time in that development build.
-Optimized-release and enabled-cache costs remain unmeasured.
+The separate [optimized-build comparison](python-optimized-cost-results.md) measures four disclosed examples using this API.
+With project caching on, saving setup added 0.9–4.1% to the time of fresh checks.
+Those measurements include populating and checking saved data.
 
 The command-line mode is `fr project dataflow HANDLE --summaries --with-startup` with your explicit analysis settings.
 It returns an answer, preparation counts and a saved startup record when eligible.

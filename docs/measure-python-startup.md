@@ -6,8 +6,8 @@ For example, a file can create a dictionary and fill it by calling `register()` 
 Saving work also costs time: the client writes a record, reopens it and checks whether it still applies.
 This measurement compares those costs with checking the same questions from scratch.
 
-The [earlier development-build result](python-startup-cost-results.md) found no reduction in total time for these four examples.
-The current measurement uses an optimized executable and tests project caching both off and on.
+The [optimized-build result](python-optimized-cost-results.md) found that project caching helped, while saving setup or whole answers added total time.
+The current measurement tests project caching both off and on.
 Rust's release settings spend more compilation time producing an optimized executable that aims to run faster.
 
 A **baseline** is the alternative used for comparison.
@@ -95,6 +95,7 @@ Their medians come from per-sequence sums; summing the seven separate medians ca
 
 ## What the timers include
 
+The Python client library, called the SDK here, starts `fr` and checks its replies.
 The outer timer starts before launching Python and ends after reading its answer.
 It includes:
 
