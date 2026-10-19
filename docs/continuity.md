@@ -34,186 +34,82 @@ Do not change recorded fingerprints to disguise outdated results.
 
 ## Continue Python work from actual library failures
 
-You can now save checked setup and ask about another function from the same file in a later process.
-The [complete lesson](save-python-startup.md) checks a forwarding function first, then a function returning zero.
-Every call supplies its settings explicitly and still verifies source files and import choices.
-Edits to those files force fresh preparation. Damaged saved records fail visibly.
-Unknown startup effects keep the answer unfinished and add no saved entry.
+The goal is to answer a question such as “does submitted input reach `send` through this package's helper?”
+Use the helper through its original package imports. Copying it into a smaller file changes the question.
+Importing a package can run setup code before making its helper available.
+That code can replace a helper, so ignoring it can give the wrong answer.
 
-The [optimized comparison](python-optimized-cost-results.md) measures project caching off and on across 1,344 ordinary and diagnostic requests.
-Answers agreed, including edits and unfinished questions.
-Project caching reduced fresh-check totals by about 22–23% in these examples.
-With that cache on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% to total time.
-Neither saved approach reduced median sequence time in either setting.
+A small setup function can now fill dictionaries created earlier in its own file.
+For example, `register(labels, table)` can copy known labels into the table.
+The [complete startup lesson](check-python-startup.md) introduces arguments, parameters and defaults before checking this example against Python.
+Its `output=table` parameter stores a reference to the earlier dictionary when Python defines the function.
+Leaving `output` out uses that stored object; supplying another dictionary replaces it for that call.
 
-The [installed-client comparison](python-process-cost-results.md) checked 560 questions with matching answers across client copies and process choices.
-Installing the client reduced fresh-process sequence totals by 26.7–33.0% in these examples.
-Keeping that installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
-Seven local questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process, including startup and shutdown.
-Building and installing the Python package and compiling its modules added 1.144 seconds separately.
-Full environment setup remains unmeasured.
-The [paired-question comparison](python-together-cost-results.md) then checked 560 function answers in running installed clients.
-Seven local pairs took 0.444 seconds separately and 0.429 seconds together, including first startup and shutdown.
-The three examples with matching answers showed 2.7–9.0% lower totals together and 6.6–10.2% more report text.
-With one shared step, the second answer gets zero; that measurement performs different work and supports no equal-answer saving claim.
-The original failed audit is preserved; its mistaken rule fingerprint and missing call-depth field are fixed with a real-reply regression.
-The experiment used the existing analyzer, client and limits.
-These timing studies predate bounded loop support.
-Their original code still audits them; this language change has no separate cost measurement.
-Return to concrete package startup statements, such as Toolz's argument-table builder, before choosing another language rule.
+The checker follows which dictionary each parameter refers to.
+Passing the source dictionary as the destination cannot hide a write during iteration.
+Changed source contents, rebound defaults, shared dictionaries imported from other files and unknown calls leave the answer unfinished.
+Replacing a helper during setup also stays unfinished: the lesson makes Python return zero instead of the submitted input.
+Both the function's code and its repeated loop work keep the existing 128-node limit.
+A node is a piece of parsed code, such as a name or call, rather than a line of text.
+Ordinary helper calls still cannot consume stored function or object defaults.
+This allowance covers the small setup functions described above.
 
-A small registration function can now copy entries between dictionaries created in the same file.
-The source must list its entries directly in code and stay unchanged.
-For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
-records the label without running unknown code.
-The [startup lesson](check-python-startup.md) supplies the complete example.
-The function and its repeated work each keep the 128-node limit.
-Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
-Dictionary arguments and stored dictionary defaults now work in these bounded startup functions.
-For example, `register(labels, table)` can copy entries into the table without relying on global names.
-Passing the same dictionary as both source and destination stays unfinished, as do changed source contents and rebound defaults.
-Toolz still needs module-valued keys, conditional imports and function-argument inspection, among other unchecked setup.
-These rules do not complete its package answer.
+Saved answers depend on the source files and places searched for imports.
+Editing a file or adding a competing import file requires another check.
+The [two-question lesson](check-python-together.md) prepares shared setup once within a request, then answers each helper question separately.
+The [saved-startup lesson](save-python-startup.md) reuses checked preparation in a later process while those inputs and settings match.
+It supplies all settings explicitly. Damaged saved records fail visibly, and unknown setup effects create no reusable entry.
+These features do not establish complete package support.
 
-The setup lesson's examples passed again after the updated cost explanation; the current Python receipt below preserves that check.
-Full-package support and savings on unfamiliar agent tasks remain unproven.
+The [package startup findings](python-package-startup-results.md) identify the remaining obstacles.
+A module is a loaded Python file or package.
 
-The impact audit previously passed its test but exhausted the 15-minute job budget during cleanup.
-It now avoids reports for sampled declarations without rewritable references and reuses each test file's line index.
-Every sampled rewritable-reference assertion remains, and source or analysis errors now fail visibly.
-Only audit jobs that use external compilers install them.
-The [complete deep recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) passed all audits and external replays at the same deadlines.
-The [merged-main recheck](https://github.com/e6qu/fun-refactor/actions/runs/39210593046) also passed all 17 jobs.
-Its impact test took 537 seconds and the complete job took 667 seconds, within the unchanged 15-minute limit.
-The [next merged-main run](https://github.com/e6qu/fun-refactor/actions/runs/39231454941) passed all 17 checks too.
-Its impact test took 639 seconds and the complete job took 764 seconds at the same deadline.
-
-Read the [numeric investigation](python-symbolic-investigation.md) before choosing more language rules.
-Read the [package startup findings](python-package-startup-results.md) before another isolated syntax extension.
-Python observed sixteen Funcy package files plus the caller, and about 420 KiB of Pydash package source.
-Those complete observed executions exceed the existing single-analysis budgets.
-Toolz fits the observed local file set but still runs its argument-table builder and imported introspection code.
-The [small startup-call lesson](check-python-startup.md) checks a bounded function filling its own file's dictionaries, including dictionary arguments and defaults.
-Tests compare it with Python and keep helper replacement, shared writes and unknown calls unfinished.
-Changing its source invalidates a saved answer through the existing source and import dependencies.
-This keeps the existing limits for each package question.
-Two helper questions in one request now share one startup preparation.
-The [two-question lesson](check-python-together.md) shows the API, ordinary Python comparison and shared limits.
-Its inputs bind the files and import candidates; its record lists checked names and dictionary statements.
-A fresh request checks changed dependencies again; unknown startup effects keep both questions unfinished.
-The [method and runnable lesson](python-package-startup.md) show why skipping startup can change an answer.
-This investigation adds no analyzer behavior or package acceptance; keep all existing limits.
-The [import explanation](explain-python-imports.md) can show, for example, a helper file found but left unread.
-It also shows names the checker cannot resolve and code left unchecked during import.
-It explains saved reports, keeps unfinished answers explicit and adds no supported Python behavior.
-
-The [default replacement lesson](replace-python-defaults.md) closes one call-checking gap exposed by the library declarations.
-Funcy's `iffy` stores `identity` as a function default, for example.
-Explicit replacements can now bind checked object defaults; omitted object defaults stay unfinished.
-Calls through callback parameters remain unchecked, so this does not establish support for `iffy` or its package.
-
-Ordinary tests and symbolic execution found the same missing input assumption for Pydash's quantity limits.
-Its original-package trace still reaches the source limit and leaves startup operations unchecked; the copied-function trace finishes.
-Use the simpler tests for this question. The experiment adds no analyzer support and cannot establish agent savings.
-
-Importing a Python package can execute its startup code before exposing a helper.
-Use the reported unchecked statements to choose a general language rule; do not special-case library names or expected answers.
-The [Python guide](python-contract.md) owns supported behavior. The [library results](python-repository-flow.md) own detailed measurements.
-
-| User question still unanswered | What currently stops the answer | Next investigation |
+| Question | What still stops an answer | Next step |
 | --- | --- | --- |
-| Does input pass through Toolz's helper? | Startup calls and imported code remain unchecked | Inspect the startup call that records function arguments, and imports needed by the helper |
-| Does input pass through Funcy's `inc`? | The search reaches its existing 16-file limit | Check which remaining imports and startup statements affect the selected helper within that bound |
-| Does input pass through Pydash's `add`? | The search reaches its existing 256 KiB source limit | Investigate checking the helper and relevant startup code within that bound |
+| Does input pass through Toolz's helper? | Setup builds an argument table using module objects, conditional imports and code that reads functions' accepted arguments | Follow that setup call and establish what it reads and changes |
+| Does input pass through Funcy's `inc`? | Python observes sixteen package files plus the caller, beyond the sixteen-file limit | Identify the imports and setup needed for this helper within the limit |
+| Does input pass through Pydash's `add`? | Python observes about 420 KiB of package source, beyond the 256 KiB limit | Establish which source and setup affect this helper within the limit |
 
-The earlier import-search change shares one provider search among names in the same `from` statement.
-For `from helpers import add, subtract`, it finds `helpers` once while retaining both names and their binding order.
-Child-module searches still count separately. No search or source limit increased.
+A KiB is 1,024 bytes. The [findings](python-package-startup-results.md) explain how Python's observed files differ from the analyzer's loaded files.
+Use the [import explanation](explain-python-imports.md) to locate unread files, unresolved names and unchecked setup statements.
+Choose a general language rule from the actual statement, then compare its behavior with Python.
+Do not teach the checker library names or expected answers, increase limits, or assume unknown setup has no effect.
+Any future split into smaller checks must record how the results depend on one another.
+That connected package-checking capability remains unimplemented.
 
-In the [audited comparison](https://github.com/e6qu/fun-refactor/actions/runs/38739064758), Funcy uses 75 searches instead of 120.
-Pydash uses 47, clears its former repeated-search obstacle, and reaches the separate source-size limit.
-Pydash has 420 unchecked startup statements instead of 510 across the same eight loaded files.
-Funcy still has 80 across 16 files; Toolz still has 92 across 14.
-All 40 full-package cases remain unfinished: 32 incomplete analyses and eight deliberate invalid-output-budget refusals.
-These earlier counts describe analysis progress, not complete package support or lower agent cost.
+The [Python behavior guide](python-contract.md) owns supported language rules and runnable examples.
+It covers stored function defaults, explicit replacements, several names assigned together, and simple settings shared between files.
+The [library results](python-repository-flow.md) keep earlier progress counts and distinguish full packages from copied helpers.
+Fewer unchecked statements alone do not establish a complete answer.
 
-The callback-table change checks harmless registry construction and local dictionary writes.
-A registry is a table holding values or functions for later use.
-For example, `handlers = dict(send=lambda value: value)` creates a function without calling it.
-The [callback-table example](python-contract.md#prepare-a-callback-table-without-calling-its-entries)
-compares that setup with an evaluated default or an imported shared dictionary.
-Reading the table's contents, calling its stored functions and arbitrary package startup remain unfinished.
-Keep those limits visible when reviewing the fresh package replay; more supported syntax alone does not close the real-project requirement.
+The earlier timing studies concern examples and earlier code, not the new dictionary-argument rule:
 
-The import-order change checks imports that return to a file already loading.
-For example, a second file can import a function already defined by the first file.
-Moving that definition below the import makes Python raise `ImportError`; the analysis must remain incomplete.
-The [import-order lesson](python-contract.md#follow-imports-that-return-to-a-file-already-loading) introduces this case before showing the files.
-The command-line and Python interface tests compare successful and failing orders with Python execution.
-They include package startup, requested child files, written export order and saved answers after a change.
-For `from helpers import *`, the file's `__all__` list names what to import.
-Reordering that list can change whether Python loads the package successfully.
+- The [optimized comparison](python-optimized-cost-results.md) found that caching the parsed project helped fresh checks in its examples.
+  Saving setup or complete answers did not reduce median sequence time there.
+- The [installed-client comparison](python-process-cost-results.md) found lower totals from keeping an installed client running between questions.
+  Its baseline restarted the same installed client for each question; totals included first startup and final shutdown.
+- The [two-helper comparison](python-together-cost-results.md) compared separate and combined questions in running installed clients.
+  Three matching-answer examples had lower totals together and larger reports. Its one-step example performed different work and cannot establish a saving.
 
-The fresh familiar-library replay still has no complete full-package answers: 32 analyses remain incomplete and eight deliberately invalid requests are refused.
-Copying selected library functions into smaller files gives 16 complete answers.
-A separate test file of simple comparison functions gives eight.
-Those smaller successes do not establish support for the original packages. Next, investigate their remaining startup operations and imports within the existing limits.
+The guides state setup costs, missing measurements and the original source used to audit each study.
+No separate measurement establishes the new language rule's time or memory cost, complete environment setup cost, or savings on unfamiliar agent tasks.
 
-Startup reports now distinguish calls, assigned values, writes, class setup, decorators and control flow.
-For example, `metadata = read_input()` reports an unchecked startup call instead of the generic module-statement reason.
-Per-file counts include statements beyond the sixteen displayed locations, so later loaded files remain visible.
-The [guide](python-contract.md#find-the-statement-that-prevents-an-answer) explains these reasons and their limits.
-These reports improve the investigation; they do not add supported Python behavior or check files that the import search could not load.
-Use the counts to choose the next general language rule, then compare runtime behavior before changing completeness.
+The [numeric investigation](python-symbolic-investigation.md) used ordinary tests and an existing symbolic checker to search for failing inputs.
+Both found the same missing assumption: callers must order the lower and upper quantity limits.
+That example does not justify another execution engine inside `fr`; use the simpler tests for this question.
+The investigation adds no package support and does not restart stopped studies.
 
-An unused function can now store an earlier function or a built-in object as a default.
-A default supplies an argument when the caller leaves it out.
-For example, `def unused(value, factory=dict): ...` stores the dictionary constructor without calling it.
-Likewise, `follow=selected` stores an earlier function; `follow=selected(0)` calls it during definition and remains unchecked.
-An alias gives an existing function another name. Checked aliases and ordinary function imports can supply the reference; later or missing names cannot.
-Built-in names must still refer to their original objects or an earlier checked local declaration.
-The [default example](python-contract.md#store-a-function-as-a-default-without-calling-it) introduces the two-file case and its commands.
-Ordinary helper calls that consume stored function or object defaults remain unfinished.
-Bounded startup registration is a separate allowance for dictionary defaults, explained in the startup lesson.
-An [explicit replacement](replace-python-defaults.md) can supply a supported scalar while leaving the stored object unused.
-Replay full packages after further changes; fewer unchecked statements alone do not establish complete package support.
-That replay removed ten unchecked Toolz declarations, including nine `factory=dict` defaults.
-For the original identity-helper question, Toolz fell from 92 to 82 unchecked statements across the same loaded source files.
-At that stage, Funcy stayed at 98 and Pydash at 461 for their separate identity-helper questions.
-The full-package answers remain unfinished; the [library results](python-repository-flow.md) keep those counts separate from `inc` and `add`.
+A previous impact audit passed its assertions but exhausted the fifteen-minute job deadline during cleanup.
+The test now avoids building reports for sampled names without editable uses.
+It also reuses each file's table of line positions.
+Every existing behavior check remains; file and analysis errors fail visibly.
+The [complete recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) and two merged-main runs passed at the same deadlines.
+Those main runs took [667 seconds](https://github.com/e6qu/fun-refactor/actions/runs/39210593046) and
+[764 seconds](https://github.com/e6qu/fun-refactor/actions/runs/39231454941) for the complete impact job.
+These diagnose CI execution, not analyzer speed or language overhead.
 
-Flat assignments can now give several existing functions new names without calling them.
-For example, `_map, _filter = map, filter` stores Python's built-in functions while a module loads.
-All values on the right must be available before any new destination is written.
-This prevents a newly created name from supplying another value in that same assignment.
-The [two-file lesson](python-contract.md#save-several-helper-names-in-one-assignment)
-shows a complete trace, a helper swap that removes the input connection and a mismatched assignment that fails in Python.
-Each destination must be a new name using ordinary ASCII characters, such as `forwarded`.
-The names and values must form fixed, flat pairs, such as `forwarded, stopped = relay, discard`.
-The existing limits stay in place: 128 parsed syntax elements per assignment and 128 shared value/function alias slots per analysis.
-Syntax elements include names, strings and surrounding expression structure; this is not a line count.
-Reusing an existing destination, nesting a pattern or unpacking an arbitrary iterable remains unchecked.
-That replay reduced Funcy's original identity-helper query from 98 unchecked startup statements to 94.
-In `funcy/seqs.py`, the count fell from 22 to 18. Toolz stayed at 82 and Pydash at 461 for their original identity-helper questions.
-The full-package answers still cannot finish; see the [library results](python-repository-flow.md) for the separate helper questions and remaining limits.
-Continue from the remaining assignments in `seqs.py` and Toolz's calls that execute while modules load.
-Their behavior needs separate investigation; this rule only stores already checked functions and values.
-
-Functions can now capture a simple default imported from another checked file.
-For example, `settings.py` defines `LIMIT = 0`; `helpers.py` imports it and defines `choose(value=LIMIT)`.
-Omitting the argument uses the stored zero, while supplying an input keeps that input's connection.
-The [three-file lesson](python-contract.md#share-a-default-value-between-files) supplies the files, rules and commands before comparing those calls.
-It also shows why a list default or an import placed after the function definition leaves the answer incomplete.
-This support follows checked local imports; it does not evaluate arbitrary shared objects or ordinary global reads in function bodies.
-
-Checked settings can also have another name before they supply a default.
-For example, `BASE = 0; LIMIT = BASE` keeps the original scalar, including when another file imports `LIMIT` and gives it a new name.
-The [complete alias lesson](python-contract.md#give-a-shared-setting-another-name) introduces the terms and compares omitted arguments, supplied input, lists and missing earlier names.
-An alias preserves the original kind and declaration; it does not add calls through objects or reads of global values in function bodies.
-Unknown native imports still prevent a complete answer. In particular, another name for an unresolved imported object does not resolve its behavior.
-
-Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) and template ask for a user example, limits and relevant checks.
-Link detailed test inventories and failure history from the short description.
+Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) asks for a concrete example, limits and relevant checks.
+Link detailed inventories and failed attempts from that short description.
 
 ## Keep the next unfamiliar test useful
 
