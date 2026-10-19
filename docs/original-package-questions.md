@@ -46,20 +46,28 @@ call still leaves an unfinished answer.
 
 In the command line, use `--summaries --imports --standard-library builtins,math,bisect,binascii`
 alongside the selected function, caller rules and explicit search budgets. In the
-SDK, supply the same names as the `standard_library` tuple to `FlowCache.analyze`.
+Python client library, supply the same names as the `standard_library` tuple to
+`FlowCache.analyze`.
 With `builtins` selected, definition-time defaults can include `float()` and the
 checked literal infinity or NaN forms, such as `float('-inf')`. Other evaluated
-defaults remain unchecked.
+defaults remain unchecked. A default supplies a value when a caller leaves out
+an argument. For example, a package may define `def scan(lower=float('-inf')):`
+to use negative infinity as its lower bound. NaN means "not a number," such as
+the result represented by `float('nan')`.
 
-These models assume standard CPython behavior, scalar inputs and no replacement
-import hooks or monkey patches. Scalar inputs here mean ordinary numbers,
+These models describe CPython, the Python implementation used to run the
+independent examples. They assume scalar inputs. Program code must not replace
+the selected standard-library operations or change how Python
+loads them. For example, assigning a custom function to `math.floor` falls
+outside these assumptions. Scalar inputs here mean ordinary numbers,
 strings and booleans rather than objects with custom operator methods. The
 answer records these assumptions. It also records competing project files,
-including stubs, bytecode and native extensions. A local `math.py` prevents
-treating that import as the trusted standard-library module.
+including type descriptions (`.pyi` files), compiled Python files (`.pyc`) and
+modules compiled from other languages (`.so` or `.pyd`). A local `math.py`
+prevents treating that import as the trusted standard-library module.
 
 An empty selection, `standard_library=()`, requests no standard-library models.
-The Python SDK requires this setting explicitly. It does not infer models from
+The Python client requires this setting explicitly. It does not infer models from
 an imported module's name.
 
 ## Read the result

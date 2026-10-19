@@ -65,12 +65,14 @@ the checked connection and dependencies between them.
 
 The [first development attempt](../tests/agent-eval/package-questions/first-development/receipt.json)
 answered both original package questions and their renamed callers correctly.
-Dateutil passed all saved-answer controls. Boltons' combined cache worker reached
-its existing ten-second CPU limit and left a temporary helper edit. Keep that
-failure. Each cache stage now runs separately with the same limits, carries the
-saved answer and the files needed to verify it to the next stage, and restores package source
-outside the bounded worker. The record retains every stage and its resource use;
-splitting the work does not establish lower total cost.
+Dateutil passed all saved-answer controls. Boltons tried all six saved-answer
+checks in one Python process and reached its existing ten-second CPU limit.
+Stopping that process prevented its cleanup from restoring a temporary helper
+edit. Keep that failure. Each check now runs in a separate process with the same
+limits and passes its saved answer and supporting files to the next check. The
+program that starts these checks restores the original source even if a check
+process stops. The record retains every check and its resource use; splitting
+the work does not establish lower total cost.
 
 ## Milestone 2: work beyond a familiar package
 
