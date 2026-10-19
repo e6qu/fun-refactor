@@ -213,7 +213,7 @@ def collect(args):
         flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
         run_record = json.loads(flow.command(['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{args.coverage_run}']).stdout)
         flow.require(run_record['head_sha'] == source and run_record['conclusion'] == 'success'
-                     and run_record['path'] == '.github/workflows/package-questions.yml', 'coverage must pass at the same frozen commit')
+                     and run_record['path'] == '.github/workflows/refinement-evidence.yml', 'coverage must pass at the same frozen commit')
     result = {'source_commit': source, 'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
               'scope': 'Original package imports and stated source models; no general Python, proof or cost-saving claim.',
               'projects': [], 'milestones_complete': False}
