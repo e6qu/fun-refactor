@@ -1,0 +1,97 @@
+name: Installed and running Python costs
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/python-process-cost.py'
+      - 'tools/python-process-worker.py'
+      - 'tools/test-python-process-cost.py'
+      - 'tests/agent-eval/python-startup-cost/**'
+      - '.github/workflows/python-process-cost.yml'
+permissions:
+  contents: read
+concurrency:
+  group: python-process-cost-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -B tools/test-python-process-cost.py
+  build:
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: python-process-cost
+      - run: cargo build --locked --release --bin fr
+      - run: |
+          git rev-parse HEAD > target/release/source.txt
+          rustc --version > target/release/rustc.txt
+          cd target/release
+          sha256sum fr > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-process-cost-binary
+          path: |
+            target/release/fr
+            target/release/source.txt
+            target/release/rustc.txt
+            target/release/SHA256SUMS
+          retention-days: 7
+          if-no-files-found: error
+  measure:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -m pip install 'build==1.6.1' 'setuptools==84.0.0'
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-process-cost-binary
+          path: target/release
+      - run: |
+          chmod +x target/release/fr
+          test "$(cat target/release/source.txt)" = "$(git rev-parse HEAD)"
+          test "$(cat target/release/rustc.txt)" = "$(rustc --version)"
+          cd target/release
+          sha256sum --check SHA256SUMS
+      - name: Measure identical questions with source and installed clients
+        run: >-
+          python3 -B tools/python-process-cost.py --fr target/release/fr
+          --repetitions 5 --output "$RUNNER_TEMP/python-process-cost"
+      - name: Independently audit process accounting and every answer
+        run: >-
+          python3 -B tools/python-process-cost.py
+          --audit "$RUNNER_TEMP/python-process-cost/result.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-process-cost
+          path: ${{ runner.temp }}/python-process-cost/
+          retention-days: 30
+          if-no-files-found: error
