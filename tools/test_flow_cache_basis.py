@@ -3,8 +3,10 @@
 
 import importlib.util
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from evidence_basis import cargo_lock_basis, cargo_manifest_basis, file_digest
 
@@ -53,6 +55,12 @@ checksum = "first"
 
 
 class FlowCacheBasisTests(unittest.TestCase):
+    def test_worker_failures_expose_the_underlying_error(self):
+        failed = subprocess.CompletedProcess([], 1, stdout='', stderr='TypeError: unsupported setting')
+        with patch.object(evaluator.subprocess, 'run', return_value=failed):
+            with self.assertRaisesRegex(RuntimeError, 'TypeError: unsupported setting'):
+                evaluator.invoke(Path('fr'), Path('pipeline-8'), Path('work'), 'legacy', 'cached')
+
     def test_coordinated_release_is_stable(self):
         self.assertEqual(cargo_manifest_basis(manifest()),
                          cargo_manifest_basis(manifest("0.34.1")))

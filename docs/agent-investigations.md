@@ -272,6 +272,9 @@ root as prior analysis. Tampering refuses; mismatched inputs and incomplete reco
 Reuse remains opt-in and coarse. It avoids flow transfer while retaining parsing, indexing, dependency
 checks and occurrence renewal. Small inputs may cost more to restore than to analyze.
 The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) measures six scalar workloads and six edit types.
+Its saved timings cover the September 25 code and exclude Python process startup.
+The [comparison limits](evaluations.md#current-matched-results) explain the
+startup and validation costs recorded by new collections.
 Its baseline is the earlier SDK's per-node storage, already warm from a previous analysis.
 The compared storage uses chunks of a complete report, also warm.
 This percentage compares two cache representations, not cached analysis against fresh analysis.

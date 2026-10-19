@@ -38,7 +38,7 @@ BINDINGS = ["sdk/python/src/fr_ir/flow_initialization.py", "src/project/flow_ass
             "Cargo.toml", "Cargo.lock"] + [f"tests/agent-eval/flow-cache/{name}" for name in
                 ("corpus.py", "task.json", "baseline_flow.py", "storage-probe.py", "storage-probe.json")]
 STRATEGIES = ("legacy", "chunks")
-FIELDS = ("elapsed_seconds", "native_seconds", "store_seconds", "context_bytes", "native_calls",
+FIELDS = ("process_seconds", "elapsed_seconds", "native_seconds", "store_seconds", "context_bytes", "native_calls",
           "analysis_steps", "worker_peak_rss_bytes", "native_peak_rss_bytes", "store_gets", "store_puts",
           "stored_files", "stored_bytes", "added_files", "added_bytes")
 
@@ -115,13 +115,18 @@ def worker(args):
     target = client.project("find", "entry").definition_target().handle
     if args.worker == "clean":
         report = client.project("dataflow", target, "--rules", str(args.project / "rules.json"),
-                                "--summaries", "--imports", "--steps", "4096", "--depth", "32",
+                                "--summaries", "--imports", "--context", "generic", "--steps", "4096", "--depth", "32",
                                 "--bytes", "1048576")
         manifest = None
     else:
         cache = cache_type.restore(store, args.cache_root) if args.cache_root else cache_type(store)
-        report = cache.analyze(client, target, standard_library=(), rules=args.project / "rules.json", steps=4096,
-                               depth=32, max_bytes=1_048_576, summaries=True, imports=True).report
+        if args.strategy == "legacy":
+            report = cache.analyze(client, target, rules=args.project / "rules.json", context="generic",
+                                   steps=4096, depth=32, max_bytes=1_048_576, summaries=True, imports=True).report
+        else:
+            report = cache.analyze(client, target, standard_library=(), rules=args.project / "rules.json",
+                                   context="generic", steps=4096, depth=32, max_bytes=1_048_576,
+                                   summaries=True, imports=True).report
         manifest = cache.persist()
     elapsed = time.perf_counter() - start
     after = inventory(args.work / "objects")
@@ -147,8 +152,14 @@ def invoke(fr, project, work, strategy, mode, cache_root=None):
             "--work", str(work), "--strategy", strategy, "--fr", str(fr)]
     if cache_root:
         args += ["--cache-root", cache_root]
-    process = subprocess.run(args, check=True, capture_output=True, text=True, timeout=180)
-    return json.loads(process.stdout)
+    start = time.perf_counter()
+    process = subprocess.run(args, capture_output=True, text=True, timeout=180)
+    elapsed = time.perf_counter() - start
+    if process.returncode:
+        raise RuntimeError(f"flow-cache {project.name}/{strategy}/{mode} worker failed ({process.returncode}):\n{process.stderr}")
+    value = json.loads(process.stdout)
+    value["metrics"]["process_seconds"] = elapsed
+    return value
 
 
 def summary(samples):
@@ -231,7 +242,7 @@ def measure(args):
             "runtime": {"platform": platform.platform(), "python": platform.python_version(), "cpus": os.cpu_count()},
             "repetitions": args.repetitions, "samples": samples, "reports": references, "oracles": oracles,
             "boundaries": boundaries, "summary": summary(samples), "task": json.loads((FIXTURE / "task.json").read_text()),
-            "scope": "Six finite scalar workloads. Cold means empty flow store; native fact cache disabled. OS caches are uncontrolled. Isolated worker RSS includes startup; child RSS is the largest native child, not aggregate memory. Context bytes count canonical JSON responses, not model tokens. No general latency or partial-summary reuse claim."}
+            "scope": "Six finite scalar workloads. Both cache implementations use the same current native analyzer and dependency parsers with no standard-library models. The pinned cache uses its original API; the current cache also validates initialization and model settings. Timings compare these complete implementations and cannot isolate storage granularity alone. Process seconds include Python startup, imports, output serialization and shutdown; elapsed seconds cover the worker's measured analysis and storage work. Cold means empty flow store; native fact cache disabled. OS caches are uncontrolled. Isolated worker RSS includes startup; child RSS is the largest native child, not aggregate memory. Context bytes count canonical JSON responses, not model tokens. Ordinary Python execution checks correctness and is not a timed comparison arm. No language-overhead, general latency or partial-summary reuse claim."}
 
 
 def audit(value):
@@ -269,6 +280,7 @@ def audit(value):
                 assert all(type(number) in (int, float) and 0 <= number < float("inf") for number in metrics.values())
                 assert metrics["native_calls"] == 3 and metrics["context_bytes"] > 0
                 assert metrics["native_seconds"] + metrics["store_seconds"] <= metrics["elapsed_seconds"]
+                assert metrics["elapsed_seconds"] <= metrics["process_seconds"]
                 assert (metrics["analysis_steps"] == 0) == row["reused"]
     assert set(value["boundaries"]) == {"pipeline-24", "recursive-24"}
     for result in value["boundaries"].values():
