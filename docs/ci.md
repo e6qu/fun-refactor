@@ -300,3 +300,19 @@ The focused runner changes source, grammar, query and dependency inputs in tempo
 It also checks file additions, deletions, renames, build-setting changes and ignored build outputs.
 The full native gate runs these controls alongside the existing cache tests.
 When these inputs change, `fr` computes fresh answers using the current checking code.
+
+
+## Recheck completed timing studies with their original code
+
+A language change makes an earlier timing report historical.
+It cannot establish the new checker's cost, and changing its recorded source fingerprints would hide that difference.
+The study job checks out commit `8ca25c2d72484b7e66f49b279f8b5009c68f3d6e` separately for the three completed Python cost comparisons.
+It requires a clean checkout at that exact commit before and after running the original checks.
+It also compares the six published reports byte for byte with the original committed records.
+The current checker keeps its own tests; historical audits use the original SDK and checking scripts.
+This introduces no alternate format reader in the current SDK.
+
+The first [source-preservation attempt](https://github.com/e6qu/fun-refactor/actions/runs/39244309260) stopped at the archive reader's existing 64 MiB expansion limit.
+One generated grammar file alone expands to about 83 MiB.
+A separate Git checkout handles these original tracked inputs without increasing the archive limit.
+No measurement or recorded fingerprint changed.

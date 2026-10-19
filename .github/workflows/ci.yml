@@ -72,10 +72,8 @@ jobs:
             tests/agent-eval/results/2026-10-19-python-together-cost
           sparse-checkout-cone-mode: false
           persist-credentials: false
-      - name: Isolate historical source from the current project
-        run: |
-          mv historical-python-cost "$RUNNER_TEMP/fr-python-cost-source"
-          echo "FR_PYTHON_COST_SOURCE=$RUNNER_TEMP/fr-python-cost-source" >> "$GITHUB_ENV"
+      - name: Select the separate historical source checkout
+        run: echo "FR_PYTHON_COST_SOURCE=$GITHUB_WORKSPACE/historical-python-cost" >> "$GITHUB_ENV"
       - name: Prepare the isolated grader test image
         timeout-minutes: 2
         run: |

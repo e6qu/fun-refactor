@@ -288,8 +288,7 @@ impl<'s, 't> Allocations<'s, 't> {
             written: BTreeSet::new(),
             remaining: 128,
         };
-        // Python treats every loop target as a local throughout the function.
-        if !self.loop_names(body, source, shadowed, &mut state.names) {
+        if !self.local_targets(body, source, shadowed, &mut state.names) {
             return None;
         }
         if self.block(body, source, shadowed, &mut state, true) && !state.written.is_empty() {
@@ -299,7 +298,7 @@ impl<'s, 't> Allocations<'s, 't> {
         }
     }
 
-    fn loop_names(
+    fn local_targets(
         &self,
         node: Node<'t>,
         source: &'s str,
@@ -330,7 +329,7 @@ impl<'s, 't> Allocations<'s, 't> {
         }
         children(node)
             .into_iter()
-            .all(|child| self.loop_names(child, source, shadowed, names))
+            .all(|child| self.local_targets(child, source, shadowed, names))
     }
 
     fn block(
@@ -513,19 +512,12 @@ impl<'s, 't> Allocations<'s, 't> {
         if node.kind() != "expression_statement" || node.named_child_count() != 1 {
             return None;
         }
-        let Some(expression) = node.named_child(0) else {
-            return None;
-        };
+        let expression = node.named_child(0)?;
         if expression.kind() == "assignment" && expression.child_by_field_name("type").is_none() {
-            let Some(left) = expression.child_by_field_name("left") else {
-                return None;
-            };
-            let Some(object) = left
+            let left = expression.child_by_field_name("left")?;
+            let object = left
                 .child_by_field_name("value")
-                .and_then(calls::unparenthesized)
-            else {
-                return None;
-            };
+                .and_then(calls::unparenthesized)?;
             return (left.kind() == "subscript"
                 && object.kind() == "identifier"
                 && self.dictionaries.contains(&source[object.byte_range()])
@@ -538,18 +530,12 @@ impl<'s, 't> Allocations<'s, 't> {
                     .is_some_and(|node| value(node, source, shadowed, locals)))
             .then_some(&source[object.byte_range()]);
         }
-        let Some(function) = expression
+        let function = expression
             .child_by_field_name("function")
-            .and_then(calls::unparenthesized)
-        else {
-            return None;
-        };
-        let Some(object) = function
+            .and_then(calls::unparenthesized)?;
+        let object = function
             .child_by_field_name("object")
-            .and_then(calls::unparenthesized)
-        else {
-            return None;
-        };
+            .and_then(calls::unparenthesized)?;
         (expression.kind() == "call"
             && function.kind() == "attribute"
             && object.kind() == "identifier"
