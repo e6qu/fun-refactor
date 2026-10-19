@@ -105,16 +105,20 @@ Every request still resolves imports and checks their declaration and execution 
 Edits and competing import files trigger fresh preparation. Corrupt records fail visibly.
 The new API requires explicit rules, context, analysis limits and import settings.
 Keep saved preparation separate from whole-answer reuse and full-package acceptance.
+
 The [optimized comparison](docs/python-optimized-cost-results.md) now measures ordinary requests and separate diagnostic runs with project caching off and on.
 Across 1,344 requests, answers agreed for the same question, including edits and unfinished work.
 Project caching reduced fresh-check totals by about 22–23% in these four examples.
 With that cache on, saved setup added 0.9–4.1% and saved answers added 2.7–6.2% to total time.
 Neither saved approach reduced median sequence time in either cache setting.
-For a repeated local fresh question, about 242 ms of the 258 ms request lies outside the inner worker timer.
-Next, measure interpreter launch, client and measurement imports, command parsing and reply handling separately.
+
+One repeated local question took about a quarter of a second, including starting Python and returning the final reply.
+Running the check after loading code and reading options took about 0.016 seconds.
+Next, measure starting Python, loading client and measurement code, reading options and returning the reply separately.
 Compare several questions from one running Python program with starting Python for each question.
 Also measure the existing two-helper request against separate questions with explicit limits.
 Use those full costs before adding another saved-work mechanism.
+
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 

@@ -79,8 +79,8 @@ The saved-answer client also starts a process to request the current input ident
 An input identity records the files, function, rules and work limits that determine an answer.
 Reusing the whole answer removes function analysis steps while keeping this preliminary request and the record checks.
 
-The ordinary-call timers show these median costs, in milliseconds:
 The object store is the directory of saved records; each object's contents stay fixed.
+The ordinary-call timers show these median costs, in milliseconds:
 
 | Approach | Find the function | Request input identity | Answer or validate | Object-store operations |
 | --- | ---: | ---: | ---: | ---: |

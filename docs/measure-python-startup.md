@@ -125,17 +125,21 @@ The outer timer also includes the shared measurement imports and counters.
 Ordinary native-call timers separate finding the function, requesting its input identity and answering.
 The separate profiling sequences divide each call into scanning, indexing, constructing the project, answering,
 verifying files and serializing the reply. Indexing includes loading or extracting facts and resolving references.
+
 Project-construction timers further separate source reads, source identities and declaration/reference identities.
 An identity here means the content-derived value used to detect changed inputs.
 The answering phase includes parsing Python, resolving Python imports, and analysis or saved-answer validation.
 Those operations still have no individual timers, so their separate costs remain unknown.
+
 Profiler phases exclude process startup, argument parsing and writing its outer diagnostic reply.
 Subtracting those phases from elapsed time does not isolate operating-system process startup.
+
 The ordinary CLI also packages an identity for the project behind the answer.
 The library profiler omits that packaging and adds diagnostic output.
 The diagnostic Python client constructs the current identity before handing the report to the same strict SDK checks.
 That construction contributes to its elapsed call time, outside native phase timers.
 Diagnostic totals therefore cannot stand in for CLI request times.
+
 Native-call counts include finding the function and the saved-answer client's preliminary request.
 Canonical JSON bytes measure the equivalent compact report, rather than exact bytes on the process pipe.
 Canonical JSON uses consistent key order and compact punctuation, giving equivalent data the same representation.
@@ -147,6 +151,7 @@ An offered write can verify an existing immutable object without adding another 
 An immutable object's contents stay fixed; saving it again checks the existing contents.
 Temporary reuse files contribute to elapsed time but do not remain in the saved-object inventory.
 The small manifest pointer also contributes time; object-byte totals exclude that pointer.
+
 Memory figures show separate lifetime peaks for the Python worker and its largest native child.
 They do not measure aggregate simultaneous memory use.
 

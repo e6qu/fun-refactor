@@ -45,7 +45,9 @@ Answers agreed, including edits and unfinished questions.
 Project caching reduced fresh-check totals by about 22–23% in these examples.
 With that cache on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% to total time.
 Neither saved approach reduced median sequence time in either setting.
-Next, separate the roughly 242 ms outside the inner worker timer into interpreter launch, imports, command parsing and reply handling.
+
+One repeated local question took about 0.258 seconds overall and 0.016 seconds after loading code and reading options.
+Next, measure starting Python, loading client and measurement code, reading options and returning the final reply separately.
 Compare several questions from one Python program with separate process starts, and measure the existing two-helper request against separate questions.
 The source-bound setup lesson needs the fresh hosted Python receipt after its updated cost explanation.
 Full-package support and savings on unfamiliar agent tasks remain unproven.
