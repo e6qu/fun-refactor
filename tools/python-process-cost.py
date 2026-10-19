@@ -257,7 +257,8 @@ def collect(args):
                 commands[name] = [sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-compile',
                                   '--target', str(installed), str(wheels[0])]
             started = time.perf_counter()
-            subprocess.run(commands[name], check=True, timeout=120, stdout=sys.stderr)
+            subprocess.run(commands[name], check=True, timeout=120, stdout=sys.stderr,
+                           env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
             setup[name] = time.perf_counter() - started
         sdk_roots = {'source': ROOT / 'sdk/python/src', 'installed': installed}
         copies = {name: sdk_inventory(path, name == 'installed') for name, path in sdk_roots.items()}
@@ -373,10 +374,11 @@ def main():
         print('checked every process, question, source change, budget and cross-condition answer')
     else:
         require(args.fr is not None and args.repetitions is not None, 'supply --fr and --repetitions')
+        output_existed = args.output.exists()
         try:
             collect(args)
         except Exception:
-            if args.output.is_dir():
+            if not output_existed and args.output.is_dir():
                 (args.output / 'error.txt').write_text(traceback.format_exc())
             raise
 
