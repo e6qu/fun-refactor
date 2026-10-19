@@ -113,6 +113,29 @@ fn byte_reads_preserve_disk_content_and_follow_the_active_workspace() {
 }
 
 #[test]
+fn bounded_directory_reads_count_files_and_child_directories_in_both_backings() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path();
+    std::fs::write(root.join("one.py"), "source").unwrap();
+    std::fs::create_dir(root.join("package")).unwrap();
+    std::fs::write(root.join("package/leaf.py"), "nested").unwrap();
+    let mut files = fun_refactor::vfs::read_dir_bounded(root, 2).unwrap();
+    files.sort();
+    assert_eq!(files, vec![root.join("one.py"), root.join("package")]);
+    assert!(fun_refactor::vfs::read_dir_bounded(root, 1).is_err());
+    let handle = fun_refactor::vfs::new_handle([
+        (root.join("one.py"), "source".into()),
+        (root.join("package/leaf.py"), "nested".into()),
+        (root.join("package/other.py"), "same child directory".into()),
+    ]);
+    fun_refactor::vfs::with_handle(&handle, || {
+        assert_eq!(fun_refactor::vfs::read_dir_bounded(root, 2).unwrap(), files);
+        assert!(fun_refactor::vfs::read_dir_bounded(root, 1).is_err());
+        assert!(fun_refactor::vfs::read_dir_bounded(root, 0).is_err());
+    });
+}
+
+#[test]
 fn byte_writes_preserve_disk_content_and_follow_the_active_workspace() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("asset.bin");

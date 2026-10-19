@@ -10,9 +10,9 @@ import pytest
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
-from fr_ir.flow_standard_library import contract
+from fr_ir.flow_standard_library import NAMESPACE_DIGEST, contract
 from fr_ir.runtime import FrReport, FrRuntimeError
-from test_flow_summaries import analyze, evidence, workspace
+from test_flow_summaries import ROOT, analyze, evidence, workspace
 from test_postponed_annotations import observe
 
 
@@ -111,9 +111,12 @@ def test_a_new_local_module_invalidates_the_standard_model(tmp_path):
     assert analyze(client, rules, 'entry', cache, imports=True, standard_library=('math',)).reused
     (tmp_path / 'math.py').write_text('def ceil(value):\n    return 0\n')
     changed = analyze(client, rules, 'entry', cache, imports=True, standard_library=('math',))
-    assert not changed.reused and changed.report.at('/complete') and not changed.witnesses
+    assert not changed.reused and not changed.report.at('/complete')
+    assert changed.dependencies.standard_shadowing == ('math.py',)
     assert not changed.dependencies.standard_imports
     assert evidence(changed) == evidence(analyze(client, rules, 'entry', imports=True, standard_library=('math',)))
+    local = analyze(client, rules, 'entry', imports=True, standard_library=())
+    assert local.report.at('/complete') and not local.witnesses
     assert observe(tmp_path)['events'] == [['source', 17], ['sink', 0]]
 
 
@@ -128,6 +131,53 @@ def test_stubs_and_namespace_directories_cannot_inherit_a_standard_model(tmp_pat
         path.write_text('')
     result = analyze(client, rules, 'entry', imports=True, standard_library=('math',))
     assert not result.report.at('/complete') and not result.dependencies.standard_imports
+
+
+@pytest.mark.parametrize('candidate', ['math.pyc', 'math.abi3.so', 'math.pyd', 'math.dll', 'operator.py', 'datetime'])
+def test_transitive_and_compiled_candidates_invalidate_the_model_premise(tmp_path, candidate):
+    client, rules = install(tmp_path, 'import math\n', 'return sink(math.ceil(source()))')
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, 'entry', cache, imports=True, standard_library=('math',))
+    assert first.report.at('/complete') and first.witnesses
+    path = tmp_path / candidate
+    if candidate == 'datetime':
+        path.mkdir()
+    else:
+        path.write_bytes(b'not inspected or executed')
+    changed = analyze(client, rules, 'entry', cache, imports=True, standard_library=('math',))
+    assert not changed.reused and not changed.report.at('/complete')
+    assert changed.dependencies.standard_shadowing == (candidate,)
+
+
+@pytest.mark.parametrize('candidate', ['helpers.pyc', 'helpers.abi3.so', 'helpers/__init__.pyc', 'helpers/__init__.abi3.so'])
+def test_opaque_imports_prevent_a_false_source_only_answer(tmp_path, candidate):
+    package = candidate.startswith('helpers/')
+    helper = tmp_path / ('helpers/__init__.py' if package else 'helpers.py')
+    helper.parent.mkdir(exist_ok=True)
+    helper.write_text('def relay(value):\n    return value\n')
+    client, rules = install(tmp_path, 'from helpers import relay\n', 'return sink(relay(source()))')
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, 'entry', cache, imports=True, standard_library=())
+    assert first.report.at('/complete') and first.witnesses
+    (tmp_path / candidate).write_bytes(b'not inspected or executed')
+    changed = analyze(client, rules, 'entry', cache, imports=True, standard_library=())
+    assert not changed.reused and not changed.report.at('/complete')
+    lookup = next(item for item in changed.dependencies.lookups if item.module == 'helpers')
+    assert lookup.opaque_candidates == (candidate,)
+
+
+@pytest.mark.parametrize('module', ['sys', 'builtins'])
+def test_intrinsic_modules_are_not_replaced_by_a_same_named_source_file(tmp_path, module):
+    (tmp_path / (module + '.py')).write_text('def relay(value):\n    return value\n')
+    client, rules = install(tmp_path, 'from ' + module + ' import relay\n', 'return sink(relay(source()))')
+    result = analyze(client, rules, 'entry', imports=True, standard_library=())
+    assert not result.report.at('/complete')
+    assert 'intrinsic-standard-import-unchecked' in result.report.at('/cutoffs')
+    assert observe(tmp_path)['raised'] == 'ImportError'
+
+
+def test_namespace_contract_names_come_from_the_pinned_inventory():
+    assert hashlib.sha256((ROOT / 'src/project/python_standard_modules.txt').read_bytes()).hexdigest() == NAMESPACE_DIGEST
 
 
 @pytest.mark.parametrize('decorator', ['classmethod', 'staticmethod', 'property'])

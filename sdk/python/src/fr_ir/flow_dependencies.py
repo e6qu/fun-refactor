@@ -29,7 +29,7 @@ def _expanded_lookups(modules: dict[str, Any]) -> tuple[list[dict[str, Any]], in
     records = modules["lookups"]
     if not isinstance(records, list) or len(records) > 128:
         raise FrRuntimeError("import lookup count exceeds its budget")
-    fields = {"module", "candidates", "packages", "namespaces", "target", "admitted", "importer", "alias",
+    fields = {"module", "candidates", "opaque_candidates", "packages", "namespaces", "target", "admitted", "importer", "alias",
               "member", "prefix", "exports", "future", "submodule", "resolution", "binding_chain", "terminal_module", "members", "names"}
     member_fields = {"name", "resolution", "binding_chain", "submodule", "terminal_module"}
     named_fields = {"alias", "member", "prefix", "resolution", "binding_chain", "submodule", "terminal_module"}
@@ -108,6 +108,7 @@ class ImportResolution:
     candidates: tuple[ImportCandidate, ...]
     admitted: bool
     namespaces: tuple[str, ...]
+    opaque_candidates: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -139,6 +140,17 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
             raise FrRuntimeError("import candidate differs from its source input")
     statuses = {candidate.path: candidate.status for candidate in candidates}
     parts = name.split(".")
+    raw_opaque = item['opaque_candidates']
+    if not isinstance(raw_opaque, list) or len(raw_opaque) > 128:
+        raise FrRuntimeError('opaque import candidate count exceeds its budget')
+    opaque = tuple(_path(path) for path in raw_opaque)
+    if tuple(sorted(set(opaque))) != opaque:
+        raise FrRuntimeError('opaque import candidates repeat or reorder a path')
+    stems = ['/'.join(parts[:count]) for count in range(1, len(parts) + 1)]
+    stems += [stem + '/__init__' for stem in stems]
+    if any(not any(path == stem + '.pyc' or path.startswith(stem + '.') and '/' not in path[len(stem) + 1:]
+                   and path.endswith(('.so', '.pyd', '.dll')) for stem in stems) for path in opaque):
+        raise FrRuntimeError('opaque candidate lies outside its imported name')
     expected: set[str] = set()
     packages = []
     namespaces = []
@@ -162,6 +174,7 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
                 packages.append(package)
         else:
             target = package if is_package else module if is_module else stem if is_namespace else None
+    admitted = admitted and not opaque
     if not admitted:
         target = None
     if set(statuses) != expected:
@@ -174,7 +187,7 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
     if complete and (not admitted or target not in known or not set(packages) <= files.keys()
                      or not set(namespaces) <= namespace_paths):
         raise FrRuntimeError("complete dependency closure omits an import")
-    return ImportResolution(name, target, tuple(packages), tuple(candidates), admitted, tuple(namespaces))
+    return ImportResolution(name, target, tuple(packages), tuple(candidates), admitted, tuple(namespaces), opaque)
 
 
 @dataclass(frozen=True)
@@ -202,6 +215,7 @@ class ImportLookup:
     star: int | None
     exports: tuple[str, ...] | None
     future: bool
+    opaque_candidates: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -349,6 +363,7 @@ class FlowDependencies:
     lookup_count: int
     standard_library: tuple[str, ...]
     standard_imports: tuple[StandardImport, ...]
+    standard_shadowing: tuple[str, ...]
 
     @property
     def dependency(self) -> Dependency:
@@ -446,13 +461,22 @@ class FlowDependencies:
                 raise FrRuntimeError("namespace closure exceeds its budget or repeats a module")
             namespace_paths = frozenset(namespaces)
             standard_library = selected_contract(modules['standard_library'])
+            raw_shadows = modules['standard_shadowing']
+            if not isinstance(raw_shadows, list) or len(raw_shadows) > 4096:
+                raise FrRuntimeError('malformed standard-library namespace guard')
+            standard_shadowing = tuple(_path(path) for path in raw_shadows)
+            if (tuple(sorted(set(standard_shadowing))) != standard_shadowing
+                    or any(len(PurePosixPath(path).parts) != 1 for path in standard_shadowing)
+                    or standard_shadowing and not any(name != 'builtins' for name in standard_library)
+                    or modules['complete'] and standard_shadowing):
+                raise FrRuntimeError('standard-library namespace guard hides a competing candidate')
             raw_standard = modules['standard_imports']
             if not isinstance(raw_standard, list) or len(raw_standard) > 128:
                 raise FrRuntimeError('standard-library import count exceeds its budget')
             standard_imports = []
             standard_bindings = set()
             for item in raw_standard:
-                if (not isinstance(item, dict) or set(item) != {'module', 'candidates', 'packages', 'namespaces', 'target',
+                if (not isinstance(item, dict) or set(item) != {'module', 'candidates', 'opaque_candidates', 'packages', 'namespaces', 'target',
                         'admitted', 'importer', 'alias', 'member', 'prefix'}
                         or item['module'] not in standard_library or item['importer'] not in paths
                         or not isinstance(item['alias'], str) or re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', item['alias']) is None
@@ -460,7 +484,7 @@ class FlowDependencies:
                         or item['member'] is not None and item['member'] not in MEMBERS[item['module']]):
                     raise FrRuntimeError('malformed standard-library import')
                 selected = _resolution(item, paths, False, namespace_paths)
-                if (selected.admitted or selected.target is not None or selected.packages or selected.namespaces
+                if (selected.admitted or selected.target is not None or selected.packages or selected.namespaces or selected.opaque_candidates
                         or any(candidate.status != 'missing' for candidate in selected.candidates)):
                     raise FrRuntimeError('standard-library import hides a competing local candidate')
                 binding = item['importer'], item['alias']
@@ -503,7 +527,7 @@ class FlowDependencies:
                 if future and (selected.module != "__future__"
                         or item["alias"] != "annotations" or item["member"] != "annotations"
                         or item["prefix"] != "annotations" or item["resolution"] != "future"
-                        or any(candidate.status != "missing" for candidate in selected.candidates)
+                        or any(candidate.status != "missing" for candidate in selected.candidates) or selected.opaque_candidates
                         or item["binding_chain"] or item["submodule"] is not None
                         or item["terminal_module"] is not None or star is not None or exports is not None):
                     raise FrRuntimeError("postponed annotations lack an unshadowed future directive")
@@ -534,7 +558,7 @@ class FlowDependencies:
                                             _resolution(item["submodule"], paths, modules["complete"], namespace_paths)
                                             if item["submodule"] is not None else None,
                                             _path(item["terminal_module"]) if item["terminal_module"] is not None else None,
-                                            selected.namespaces, star, tuple(exports) if exports is not None else None, future))
+                                            selected.namespaces, star, tuple(exports) if exports is not None else None, future, selected.opaque_candidates))
             for index, anchor in enumerate(lookups):
                 if modules['complete'] and (anchor.importer, anchor.alias) in standard_bindings:
                     raise FrRuntimeError('standard-library binding overlaps a local import')
@@ -570,6 +594,6 @@ class FlowDependencies:
                      "standard_library": list(standard_library)}
             dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
                                     _digest(data["input_digest"]))
-            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count, standard_library, tuple(standard_imports))
+            return cls(files, tuple(lookups), function_aliases, value_aliases, value_bindings, modules["complete"], tuple(modules["cutoffs"]), dependency, entry, namespaces, lookup_count, standard_library, tuple(standard_imports), standard_shadowing)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed flow dependencies") from error

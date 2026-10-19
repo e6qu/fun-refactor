@@ -6,6 +6,8 @@ from typing import Any
 from .runtime import FrRuntimeError
 
 
+NAMESPACE_DIGEST = 'd566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7'
+
 MEMBERS = {
     'builtins': ['abs', 'int', 'float', 'bool', 'round', 'min', 'max', 'ValueError', 'TypeError'],
     'math': ['ceil', 'floor', 'trunc', 'sqrt', 'fabs', 'isfinite', 'isinf', 'isnan', 'inf', 'nan', 'pi', 'e', 'tau'],
@@ -16,19 +18,25 @@ MEMBERS = {
 }
 
 
-def contract(selection: tuple[str, ...]) -> dict[str, Any]:
+def contract(selection: tuple[str, ...]) -> dict[str, Any] | None:
     if (not isinstance(selection, tuple) or any(not isinstance(name, str) or name not in MEMBERS for name in selection)
             or len(set(selection)) != len(selection)):
         raise FrRuntimeError('standard-library models must be an explicit tuple of unique supported module names')
+    if not selection:
+        return None
     return {
         'schema': 'fr-python-standard-library', 'modules': {name: MEMBERS[name] for name in selection},
-        'imports': 'Explicit selected standard modules; all competing local source, package, stub and directory candidates must be absent.',
+        'runtime': 'CPython 3.14.8',
+        'namespace_digest': NAMESPACE_DIGEST,
+        'imports': 'Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.',
         'calls': 'Scalar abs/int/float/bool/round and multi-argument min/max; ValueError/TypeError construction in raise; math scalar functions and datetime.date. Other calls remain unchecked.',
         'boundary': 'Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching, overloaded protocols or implicit exception model.',
     }
 
 
 def selected_contract(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
     if not isinstance(value, dict) or not isinstance(value.get('modules'), dict):
         raise FrRuntimeError('missing explicit standard-library contract')
     names = tuple(value['modules'])

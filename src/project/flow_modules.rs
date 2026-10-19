@@ -195,10 +195,46 @@ fn candidate(project: &Project<'_>, path: &Path) -> Result<Value> {
 struct Resolution {
     module: String,
     candidates: BTreeMap<PathBuf, Value>,
+    opaque_candidates: BTreeSet<PathBuf>,
     packages: Vec<PathBuf>,
     namespaces: Vec<PathBuf>,
     target: Option<PathBuf>,
     admitted: bool,
+}
+
+fn opaque_candidates(project: &Project<'_>, stem: &str) -> Result<BTreeSet<PathBuf>> {
+    let relative = Path::new(stem);
+    let parent = relative.parent().unwrap_or(Path::new(""));
+    let name = relative.file_name().and_then(|name| name.to_str()).context("import has no basename")?;
+    let directory = project.root.join(parent);
+    if !crate::vfs::is_in_memory() {
+        let mut ancestor = project.root.clone();
+        for component in parent.components() {
+            ancestor.push(component);
+            match std::fs::symlink_metadata(&ancestor) {
+                Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => return Ok(BTreeSet::new()),
+                Ok(_) => (),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+                Err(error) => return Err(error.into()),
+            }
+        }
+    }
+    let entries = match crate::vfs::read_dir_bounded(&directory, 4096) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeSet::new()),
+        Err(error) => return Err(error.into()),
+    };
+    let mut found = BTreeSet::new();
+    for entry in entries {
+        let Some(filename) = entry.file_name() else { continue };
+        let filename = filename.to_string_lossy();
+        if filename == format!("{name}.pyc") || filename.starts_with(&format!("{name}."))
+            && [".so", ".pyd", ".dll"].iter().any(|suffix| filename.ends_with(suffix)) {
+            found.insert(entry.strip_prefix(&project.root)?.to_path_buf());
+            ensure!(found.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
+        }
+    }
+    Ok(found)
 }
 
 fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
@@ -210,6 +246,7 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
     let mut result = Resolution {
         module: name.into(),
         candidates: BTreeMap::new(),
+        opaque_candidates: BTreeSet::new(),
         packages: Vec::new(),
         namespaces: Vec::new(),
         target: None,
@@ -217,6 +254,8 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
     };
     for count in 1..=parts.len() {
         let stem = parts[..count].join("/");
+        result.opaque_candidates.extend(opaque_candidates(project, &stem)?);
+        ensure!(result.opaque_candidates.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
         let module = PathBuf::from(format!("{stem}.py"));
         let package = PathBuf::from(format!("{stem}/__init__.py"));
         let stub = PathBuf::from(format!("{stem}.pyi"));
@@ -229,6 +268,10 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
         }
         let status = |path: &Path, expected| result.candidates[path]["status"] == expected;
         let stubs_missing = status(&stub, "missing") && status(&package_stub, "missing");
+        if status(&directory, "directory") || status(&package, "source") {
+            result.opaque_candidates.extend(opaque_candidates(project, &format!("{stem}/__init__"))?);
+            ensure!(result.opaque_candidates.len() <= IMPORT_LIMIT, "opaque import candidate budget exceeds 128.");
+        }
         let is_package = local_module_admitted(
             status(&package, "source"),
             status(&module, "missing"),
@@ -259,6 +302,7 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
             result.target = Some(directory);
         }
     }
+    result.admitted &= result.opaque_candidates.is_empty();
     if !result.admitted {
         result.target = None;
     }
@@ -441,6 +485,7 @@ fn expanded_lookups(modules: &Value) -> Option<Vec<Value>> {
     let fields = [
         "module",
         "candidates",
+        "opaque_candidates",
         "packages",
         "namespaces",
         "target",
@@ -876,8 +921,12 @@ impl Modules {
         let standard_library: BTreeSet<_> = standard.iter().cloned().collect();
         ensure!(standard_library.len() == standard.len(), "standard-library models must be unique.");
         let standard_contract = standard_library::contract(&standard_library)?;
+        let standard_shadowing = if standard_library.iter().any(|module| module != "builtins") {
+            standard_library::shadow_candidates(&project.root)?
+        } else { BTreeSet::new() };
         let name = entry_name(entry.strip_prefix(&project.root)?)
             .context("imported flow requires a root-local Python source entry.")?;
+        ensure!(!matches!(name.split('.').next(), Some("sys" | "builtins")), "entry import would select an intrinsic Python module rather than workspace source.");
         let entry_resolution = resolve_module(project, &name)?;
         ensure!(
             entry_resolution.admitted
@@ -906,6 +955,9 @@ impl Modules {
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
+        if !standard_shadowing.is_empty() {
+            result.cutoffs.insert("standard-library-shadowing-unchecked".into());
+        }
         result.retain_namespaces(&project.root, &entry_resolution.namespaces);
         if name.split('.').skip(1).any(special_attribute) {
             result.cutoffs.insert("special-module-attributes".into());
@@ -1228,6 +1280,7 @@ impl Modules {
                         && standard_members_known
                         && alias != "*"
                         && resolution.candidates.values().all(|value| value["status"] == "missing")
+                        && resolution.opaque_candidates.is_empty()
                         && binding.member.as_ref().is_none_or(|member| standard_library::members(&binding.module).is_some_and(|members| members.contains(&member.as_str())));
                     if modeled {
                         // Standard bindings have their own source-free model. They do
@@ -1246,7 +1299,11 @@ impl Modules {
                         named_declarations.remove(&lookups.len());
                         continue;
                     }
+                    if matches!(binding.module.split('.').next(), Some("sys" | "builtins")) {
+                        result.cutoffs.insert("intrinsic-standard-import-unchecked".into());
+                    }
                     binding.future = future_nodes.contains(&node.start_byte())
+                        && resolution.opaque_candidates.is_empty()
                         && resolution
                             .candidates
                             .values()
@@ -1596,7 +1653,7 @@ impl Modules {
             }
         }
         result.inputs = json!({"schema":"fr-flow-modules", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":compact,
-            "standard_library":standard_contract,"standard_imports":standard_imports,
+            "standard_library":standard_contract,"standard_imports":standard_imports,"standard_shadowing":standard_shadowing,
             "function_aliases":aliases,
             "value_aliases":value_aliases,
             "value_bindings":value_bindings,

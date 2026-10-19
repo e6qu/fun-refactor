@@ -153,6 +153,20 @@ mod memory {
                 .collect()
         }))
     }
+
+    pub fn read_dir_bounded(dir: &Path, limit: usize) -> io::Result<Vec<PathBuf>> {
+        with_active(|files| {
+            let mut entries = std::collections::BTreeSet::new();
+            for path in files.range(dir.to_path_buf()..).map(|(path, _)| path).take_while(|path| path.starts_with(dir)) {
+                let Ok(relative) = path.strip_prefix(dir) else { continue };
+                let Some(component) = relative.components().next() else { continue };
+                let entry = dir.join(component);
+                if !entries.contains(&entry) && entries.len() == limit { return Err(super::directory_over_limit(limit)); }
+                entries.insert(entry);
+            }
+            Ok(entries.into_iter().collect())
+        })
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -202,6 +216,15 @@ mod backing {
     pub fn read_dir(dir: &Path) -> io::Result<Vec<std::path::PathBuf>> {
         let mut out = Vec::new();
         for entry in std::fs::read_dir(dir)? {
+            out.push(entry?.path());
+        }
+        Ok(out)
+    }
+
+    pub fn read_dir_bounded(dir: &Path, limit: usize) -> io::Result<Vec<std::path::PathBuf>> {
+        let mut out = Vec::new();
+        for entry in std::fs::read_dir(dir)? {
+            if out.len() == limit { return Err(super::directory_over_limit(limit)); }
             out.push(entry?.path());
         }
         Ok(out)
@@ -300,6 +323,18 @@ pub fn read_dir(dir: impl AsRef<Path>) -> io::Result<Vec<std::path::PathBuf>> {
     let dir = dir.as_ref();
     through_memory!(read_dir(dir));
     backing::read_dir(dir)
+}
+
+fn directory_over_limit(limit: usize) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, format!("directory exceeds {limit} entries"))
+}
+
+/// Refuse an oversized directory before retaining more than `limit` entries.
+/// Virtual workspaces include their implied immediate child directories.
+pub fn read_dir_bounded(dir: impl AsRef<Path>, limit: usize) -> io::Result<Vec<std::path::PathBuf>> {
+    let dir = dir.as_ref();
+    through_memory!(read_dir_bounded(dir, limit));
+    backing::read_dir_bounded(dir, limit)
 }
 
 /// Every file the workspace holds, where that is a knowable thing.
