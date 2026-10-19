@@ -551,6 +551,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
+      - name: Check original-package collector controls
+        run: python3 -B tools/test-package-questions.py
       - run: cargo build --locked --bin fr
       - name: Collect original imports and independent Python answers
         env:
@@ -561,6 +563,13 @@ jobs:
           python3 -B tools/package-questions.py --phase "${EVIDENCE_GROUP#package-questions-}"
           --coverage-run "$COVERAGE_RUN" --fr target/debug/fr
           --output "$RUNNER_TEMP/package-questions"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: package-questions-summary
+          path: ${{ runner.temp }}/package-questions/result.json
+          retention-days: 30
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:

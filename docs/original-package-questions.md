@@ -44,6 +44,13 @@ the last three modules; its helper uses built-in numeric operations. Selecting
 a module does not support every call in it. For example, an unmodeled `bisect`
 call still leaves an unfinished answer.
 
+In the command line, use `--summaries --imports --standard-library builtins,math,bisect,binascii`
+alongside the selected function, caller rules and explicit search budgets. In the
+SDK, supply the same names as the `standard_library` tuple to `FlowCache.analyze`.
+With `builtins` selected, definition-time defaults can include `float()` and the
+checked literal infinity or NaN forms, such as `float('-inf')`. Other evaluated
+defaults remain unchecked.
+
 These models assume standard CPython behavior, scalar inputs and no replacement
 import hooks or monkey patches. Scalar inputs here mean ordinary numbers,
 strings and booleans rather than objects with custom operator methods. The

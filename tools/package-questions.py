@@ -4,12 +4,14 @@ import argparse
 import ast
 import datetime
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import urllib.request
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -199,11 +201,75 @@ def inspect_unread(scope):
     return candidates[0]
 
 
+def checked_coverage(record, value, source, frozen):
+    declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'coverage'}
+    expected = set(declared)
+    flow.require(record['head_sha'] == source and record['status'] == 'completed' and record['conclusion'] == 'success'
+                 and record['path'] == '.github/workflows/refinement-evidence.yml'
+                 and record['event'] == 'workflow_dispatch'
+                 and record['repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+                 and record['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY'],
+                 'coverage must pass at the same frozen commit in this repository')
+    flow.require(value['source_commit'] == source and value['phase'] == 'coverage'
+                 and value['implementation'] == frozen and value['plan'] == PLAN,
+                 'coverage artifact uses a different phase, implementation or project plan')
+    rows = value['projects']
+    flow.require(len(rows) == len(expected) and {row['project']['id'] for row in rows} == expected,
+                 'coverage artifact omits or duplicates a planned project')
+    for row in rows:
+        project = declared[row['project']['id']]
+        flow.require(row['project'] == project, 'coverage changed a declared project or its Python examples')
+        flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True
+                     and row['cache']['result']['complete'] is True, 'coverage includes an unfinished project')
+        cells = row['cases']
+        planned = {(variant, case) for variant in ('original', 'renamed-relocated')
+                   for case in ('positive', 'overwritten', 'unknown', 'steps')}
+        flow.require(len(cells) == len(planned) and {(cell['variant'], cell['case']) for cell in cells} == planned,
+                     'coverage omits a planned question')
+        for cell in cells:
+            analysis = cell['analysis']
+            answer = analysis['result']
+            complete = cell['case'] in ('positive', 'overwritten')
+            flow.require(analysis['exit_code'] == 0 and analysis['stop_reason'] is None
+                         and answer['complete'] is complete
+                         and (not answer['cutoffs'] and bool(answer['witnesses']) == (cell['case'] == 'positive') if complete else bool(answer['cutoffs'])),
+                         'coverage contains an incorrect answer or resource stop')
+            expected_values = [project['blocked']] * 2 if cell['case'] == 'overwritten' else project['expected']
+            flow.require(len(cell['runtime']) == 2 and all(
+                item['input'] == project['values'][index] and item['expected'] == expected_values[index]
+                and item['observation']['exit_code'] == 0 and item['observation']['stop_reason'] is None
+                and item['observation']['result'] == {'value': expected_values[index]}
+                for index, item in enumerate(cell['runtime'])),
+                'coverage includes an incorrect Python example')
+
+
+def coverage_result(run_id, output, source, frozen):
+    repository = os.environ['GITHUB_REPOSITORY']
+    record = json.loads(flow.command(['gh', 'api', f'repos/{repository}/actions/runs/{run_id}']).stdout)
+    artifacts = json.loads(flow.command(['gh', 'api', f'repos/{repository}/actions/runs/{run_id}/artifacts']).stdout)['artifacts']
+    artifact, = [item for item in artifacts if item['name'] == 'package-questions-summary' and not item['expired']]
+    flow.require(artifact['size_in_bytes'] <= 4 * 1024**2, 'coverage summary archive exceeds its admission limit')
+    downloaded = subprocess.run(['gh', 'api', '--allow-escape-sequences',
+                                  f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'],
+                                 capture_output=True, timeout=30)
+    flow.require(downloaded.returncode == 0 and len(downloaded.stdout) <= 4 * 1024**2, 'coverage summary download failed or exceeded its limit')
+    with zipfile.ZipFile(io.BytesIO(downloaded.stdout)) as archive:
+        member = archive.getinfo('result.json')
+        flow.require(member.file_size <= 1024**2, 'coverage summary exceeds 1 MiB')
+        value = json.loads(archive.read(member))
+    checked_coverage(record, value, source, frozen)
+    save(output / 'coverage-result.json', value)
+    save(output / 'coverage-run.json', {'run': record, 'artifact': artifact, 'download_sha256': flow.sha(downloaded.stdout)})
+    return value
+
+
 def collect(args):
     flow.require(sys.platform == 'linux', 'package collection belongs on the declared Linux runner')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    frozen = None
+    coverage = None
     if args.phase != 'development':
         frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
         flow.verify_analyzer(ROOT, frozen)
@@ -211,10 +277,10 @@ def collect(args):
                      and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
     if args.phase == 'held-out':
         flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
-        run_record = json.loads(flow.command(['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{args.coverage_run}']).stdout)
-        flow.require(run_record['head_sha'] == source and run_record['conclusion'] == 'success'
-                     and run_record['path'] == '.github/workflows/refinement-evidence.yml', 'coverage must pass at the same frozen commit')
-    result = {'source_commit': source, 'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
+        coverage = coverage_result(args.coverage_run, output, source, frozen)
+    result = {'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
+              'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
+              'implementation': frozen, 'coverage_run': args.coverage_run,
               'scope': 'Original package imports and stated source models; no general Python, proof or cost-saving claim.',
               'projects': [], 'milestones_complete': False}
     save(output / 'result.json', result)
@@ -270,10 +336,22 @@ def collect(args):
                                         else not cell['analysis']['result']['complete']) for cell in row['cases'])
             if role == 'coverage':
                 row['complete'] &= row['cache']['result'] is not None and row['cache']['result']['complete']
+            row['original_sources_unchanged'] = all(
+                (upstream / path).is_file() and flow.sha((upstream / path).read_bytes()) == digest
+                for path, digest in row['source_files'].items())
+            flow.require(row['original_sources_unchanged'], 'a worker left an original package file changed')
         except (OSError, ValueError, SyntaxError, KeyError) as error:
             row['error'] = f'{type(error).__name__}: {error}'
         save(output / 'result.json', result)
-    print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']]}))
+    finished = [row for row in result['projects'] if row['complete'] and row['error'] is None]
+    familiar = coverage['projects'] if coverage is not None else result['projects'] if role == 'coverage' else []
+    result['milestone_1_demonstrated'] = frozen is not None and any(row['complete'] and row['error'] is None for row in familiar)
+    result['milestone_2_demonstrated'] = (args.phase == 'held-out' and bool(finished)
+                                        and len({row['project']['repository'] for row in [*familiar, *finished]}) >= 3)
+    result['milestones_complete'] = result['milestone_1_demonstrated'] and result['milestone_2_demonstrated']
+    save(output / 'result.json', result)
+    print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']],
+                      'milestone_1_demonstrated': result['milestone_1_demonstrated'], 'milestone_2_demonstrated': result['milestone_2_demonstrated']}))
     if not all(row['complete'] for row in result['projects']):
         raise SystemExit(1)
 
@@ -290,4 +368,6 @@ if __name__ == '__main__':
         request = json.loads(arguments.worker.read_text())
         {'analysis': analysis, 'runtime': runtime, 'cache': cache_controls}[request['mode']](request)
     else:
+        flow.require(arguments.phase is not None and arguments.output is not None and arguments.fr is not None,
+                     'collection requires explicit phase, output and analyzer binary')
         collect(arguments)

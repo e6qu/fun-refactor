@@ -403,6 +403,10 @@ resumed = plan.resume(client)
 ```
 
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
+Select standard-library assumptions explicitly: `standard_library=()` uses none;
+`standard_library=('builtins', 'math')` selects the checked built-in and math operations.
+See the [original-package examples](../../docs/original-package-questions.md) for the number
+and date questions, supported operations and competing local imports.
 `FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
 The SDK independently derives admission from all candidate statuses and checks closure coverage.
 It requires the current `fr-flow-modules` record and all declared fields.
