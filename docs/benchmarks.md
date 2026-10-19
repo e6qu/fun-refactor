@@ -93,6 +93,13 @@ The [optimized follow-up](python-optimized-cost-results.md) adds project caching
 Project caching reduced fresh-check sequence totals by 21.9–23.3% relative to the same optimized executable with caching off.
 With project caching on, saved setup added 0.9–4.1% and saved whole answers added 2.7–6.2% relative to fresh checks.
 Those totals include the initial cache fill, later questions, edits, unfinished replies and source restoration.
+
+The [installed-client and running-process comparison](python-process-cost.md) separates two remaining questions.
+Does saved Python bytecode reduce client loading costs? Does one running Python program avoid repeated startup across several questions?
+It counts the initial start, every fresh analysis and process shutdown, and records wheel installation separately.
+Its [560-question result](python-process-cost-results.md) found 26.7–33.0% lower fresh-process totals with the installed client.
+Keeping that installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
+The comparisons check the same seven answers after the same source edits; they do not measure complete agent tasks.
 Separate native-operation timers locate work; their diagnostic totals do not substitute for ordinary request times.
 The roughly 242 ms outside one repeated question's inner worker includes launch, imports and reply handling, without identifying their individual costs.
 

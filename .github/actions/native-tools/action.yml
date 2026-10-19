@@ -36,17 +36,32 @@ runs:
     - uses: actions/setup-python@v7
       with:
         python-version: "3.14"
-    - name: Install Python checks and the FastAPI runtime fixture
+    - name: Cache the exact Python test wheels
+      id: python-wheels
+      uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/native-python-wheels
+        key: native-python-wheels-linux-x64-cpython314-${{ hashFiles('.github/actions/native-tools/python-wheels.txt') }}
+    - name: Download the pinned wheel files without index metadata
+      if: steps.python-wheels.outputs.cache-hit != 'true'
       shell: bash
       run: >-
-        pip install
-        "ty==0.0.80"
-        "fastapi==0.141.1"
-        "pydantic==2.13.5"
-        "starlette==1.6.0"
-        "pytest==9.1.1"
-        "build==1.6.1"
-        "setuptools==84.0.0"
+        timeout 120 python -m pip --disable-pip-version-check download
+        --no-index --no-deps --only-binary=:all: --require-hashes
+        --requirement .github/actions/native-tools/python-wheels.txt
+        --dest "$RUNNER_TEMP/native-python-wheels"
+    - name: Install Python checks and the FastAPI runtime fixture
+      shell: bash
+      run: |
+        sed -E "s@https://files.pythonhosted.org/[^ ]*/@$RUNNER_TEMP/native-python-wheels/@" \
+          .github/actions/native-tools/python-wheels.txt > "$RUNNER_TEMP/native-python-offline.txt"
+        if grep -q 'https://' "$RUNNER_TEMP/native-python-offline.txt"; then
+          echo 'Python installation requires local wheel paths only' >&2
+          exit 1
+        fi
+        python -m pip install --no-index --no-deps --force-reinstall --require-hashes \
+          --requirement "$RUNNER_TEMP/native-python-offline.txt"
+        python -m pip check
     - uses: actions/setup-node@v7
       with:
         node-version: 26

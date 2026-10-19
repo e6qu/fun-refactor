@@ -130,11 +130,9 @@ It includes interpreter launch, loading and compiling SDK and measurement code, 
 It cannot identify the client import cost separately.
 The inner worker itself takes about 16 ms in that case; the entire request takes about 258 ms.
 
-The next investigation should separate those startup and reply costs.
-Compare an installed client with saved bytecode against this source-checkout setup before choosing code changes.
-For example, compare an agent asking several questions from one running Python program with starting Python for every question.
-Also measure [asking about two helpers together](check-python-together.md) against separate questions with explicit limits.
-Use those full costs before adding another saved-work mechanism.
+The [installed-client follow-up](python-process-cost-results.md) now compares saved bytecode and several questions from one running Python program.
+It uses smaller measurement code and another runner, so its controlled comparisons apply within that new collection.
+Next measure [asking about two helpers together](check-python-together.md) against separate questions in the same running program with explicit limits.
 
 ## Limits and retained unsuccessful work
 
