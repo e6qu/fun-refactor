@@ -1451,7 +1451,8 @@ No timeout, resource limit or writing budget increased.
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
-Jaraco.functools remains unopened for a later independent evaluation.
+Jaraco.functools was still reserved at the time of this capture. Its later unsuccessful
+first admission is retained in the [package milestone record](package-milestones.md).
 
 ## Pass dictionaries to a startup function
 

@@ -831,7 +831,11 @@ pub(super) fn future_annotation_nodes(root: Node<'_>, source: &str) -> BTreeSet<
 }
 
 pub(super) const FUTURE_DIRECTIVES: &[&str] = &[
-    "annotations", "division", "print_function", "absolute_import", "unicode_literals",
+    "annotations",
+    "division",
+    "print_function",
+    "absolute_import",
+    "unicode_literals",
 ];
 
 pub(super) fn future_directive_nodes(

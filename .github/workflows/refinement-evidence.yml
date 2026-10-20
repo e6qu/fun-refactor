@@ -625,6 +625,7 @@ jobs:
           python3 -m pip install 'pytest==9.1.1'
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_imported_program_guards.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_standard_library.py
       - name: Collect original imports and independent Python answers
+        id: collect
         env:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_GROUP: ${{ inputs.group }}
@@ -634,14 +635,14 @@ jobs:
           --coverage-run "$COVERAGE_RUN" --fr target/debug/fr
           --output "$RUNNER_TEMP/package-questions"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.collect.outcome != 'skipped'
         with:
           name: package-questions-summary
           path: ${{ runner.temp }}/package-questions/result.json
           retention-days: 30
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.collect.outcome != 'skipped'
         with:
           name: package-questions
           path: ${{ runner.temp }}/package-questions/

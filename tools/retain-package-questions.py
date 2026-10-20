@@ -188,6 +188,8 @@ def main():
             {'pointer': '/milestones_complete', 'equals': True},
             {'pointer': '/independent_projects', 'equals': held['independent_projects']},
         ]}]
+        obligation['next'] = ('Keep the three original-package questions reproducible. '
+                              'Broader project changes, effects and total agent costs remain separate requirements.')
         catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
         audit(ROOT / relative)
         scalar.retain.command(['python3', '-B', 'tools/roadmap-status.py', '--write'])

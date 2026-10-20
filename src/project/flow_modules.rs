@@ -440,14 +440,24 @@ fn imported_main_guards(root: Node<'_>, source: &str) -> BTreeSet<usize> {
     root.named_children(&mut root.walk())
         .filter(|node| {
             if node.kind() != "if_statement"
-                || node.named_children(&mut node.walk()).filter(|child| child.kind() != "comment").count() != 2
+                || node
+                    .named_children(&mut node.walk())
+                    .filter(|child| child.kind() != "comment")
+                    .count()
+                    != 2
             {
                 return false;
             }
-            let Some(condition) = node.child_by_field_name("condition").and_then(calls::unparenthesized) else {
+            let Some(condition) = node
+                .child_by_field_name("condition")
+                .and_then(calls::unparenthesized)
+            else {
                 return false;
             };
-            let values: Vec<_> = condition.named_children(&mut condition.walk()).filter(|child| child.kind() != "comment").collect();
+            let values: Vec<_> = condition
+                .named_children(&mut condition.walk())
+                .filter(|child| child.kind() != "comment")
+                .collect();
             if condition.kind() != "comparison_operator" || values.len() != 2 {
                 return false;
             }
@@ -1256,16 +1266,12 @@ impl Modules {
             let mut opaque_bindings = BTreeSet::new();
             let declared_exports = calls::declared_exports(parsed.root(), source);
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
-            let directive_nodes = calls::future_directive_nodes(
-                parsed.root(),
-                source,
-                calls::FUTURE_DIRECTIVES,
-            );
+            let directive_nodes =
+                calls::future_directive_nodes(parsed.root(), source, calls::FUTURE_DIRECTIVES);
             if file != entry && file.file_name().is_some_and(|name| name != "__main__.py") {
-                result.imported_main_guards.insert(
-                    file.clone(),
-                    imported_main_guards(parsed.root(), source),
-                );
+                result
+                    .imported_main_guards
+                    .insert(file.clone(), imported_main_guards(parsed.root(), source));
             }
             let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
             let mut allocations = initializers::Allocations::default();
