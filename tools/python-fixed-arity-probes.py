@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import re
 import sys
 import tempfile
 
@@ -19,19 +20,9 @@ spec.loader.exec_module(flow)
 flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
-# Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = 'd04c9301bb703eeaaddd06ecffc0cacd52f9fbd9'
-flow.COHORT['analyzer_trees'] = {
-    'src': 'eb346b104f6673ff92339249a3462af3445259fa',
-    'grammars': 'b8bc6a3ec7a8f795d9f5f568f8d5f88ab2f2f679',
-    'crates': 'a60b1885cefb662a5a1db26458d384bb75f049ea',
-    'queries': '465c5e1e81c76abac02baec561fff07168b3cea2',
-    'build.rs': 'f58ae81bfa48f7a5a48950329b941ff0f13ccb51',
-    'Cargo.toml': '7e1313a0a61b1f23018f61eda984ea0a1a42bb5b',
-    'Cargo.lock': 'ec836be638d3d685712cbf15d904237c1fdf593a',
-    'native-source-inputs.txt': 'e7ba79122be183f8d827d3bc2c262f7b63e58bc4',
-    'sdk/python/src': '8315c5ca01170651ede95992f6f6fa1d340edf5b',
-}
+del flow.COHORT['analyzer_revision']
+del flow.COHORT['analyzer_trees']
+flow.COHORT['analyzer_policy'] = 'Current committed native and SDK inputs, recorded before collection and verified again during audit. All projects are familiar maintenance cases; no new unread-project claim.'
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Unfamiliar projects are evaluated separately by tools/package-questions.py and do not participate in this regression collection.'
 for project in flow.COHORT['projects']:
     project['role'] = 'coverage'
@@ -339,10 +330,19 @@ def main():
     args = parser.parse_args()
     if args.audit:
         value = json.loads(args.audit.read_bytes())
+        revision = value['cohort']['analyzer_revision']
+        flow.require(isinstance(revision, str) and re.fullmatch('[0-9a-f]{40}', revision)
+            and revision == value['source_commit'], 'probe analyzer must identify its actual collection commit')
+        flow.COHORT.update(analyzer_revision=revision, analyzer_trees=value['cohort']['analyzer_trees'])
+        flow.verify_analyzer(ROOT, flow.COHORT)
         flow.audit(value, args.audit.parent)
         declarations(value, args.audit.parent)
     else:
         flow.require(args.output, 'choose collection or an offline audit')
+        revision = flow.command(['git', 'rev-parse', 'HEAD'], cwd=ROOT).stdout.strip()
+        trees = {path: flow.command(['git', 'rev-parse', revision + ':' + path], cwd=ROOT).stdout.strip()
+                 for path in flow.ANALYZER_PATHS}
+        flow.COHORT.update(analyzer_revision=revision, analyzer_trees=trees)
         args.phase, args.coverage_run = 'coverage', None
         flow.measure(args)
         value = json.loads((args.output / 'result.json').read_bytes())
