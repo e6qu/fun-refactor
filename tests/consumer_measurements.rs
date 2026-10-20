@@ -6,7 +6,7 @@ fn consumer_measurements_match_their_source_and_baseline() {
         .args([
             "tools/index-consumers-acceptance.py",
             "--verify",
-            "tests/agent-eval/results/2026-10-18-ci-repairs-index-consumers/result.json",
+            "tests/agent-eval/results/2026-10-20-project-ci-index-consumers/result.json",
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
