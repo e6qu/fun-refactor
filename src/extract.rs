@@ -653,15 +653,23 @@ fn rust_reference_kind(root: Node<'_>, span: Span, kind: ReferenceKind) -> Refer
         if current.kind() == "attribute" {
             return ReferenceKind::Attribute;
         }
-        if matches!(current.kind(), "scoped_identifier" | "scoped_type_identifier" | "scoped_use_list")
-            && current.child_by_field_name("path").is_some_and(|path| Span::from(path).contains(span))
+        if matches!(
+            current.kind(),
+            "scoped_identifier" | "scoped_type_identifier" | "scoped_use_list"
+        ) && current
+            .child_by_field_name("path")
+            .is_some_and(|path| Span::from(path).contains(span))
             || current.kind() == "extern_crate_declaration"
         {
             namespace = true;
         }
         node = current.parent();
     }
-    if namespace { ReferenceKind::Namespace } else { kind }
+    if namespace {
+        ReferenceKind::Namespace
+    } else {
+        kind
+    }
 }
 
 /// Compiled queries, cached per language.
@@ -936,7 +944,11 @@ impl Extractor {
                     true => ReferenceKind::Call,
                     false => r.kind,
                 };
-                let kind = if lang == Language::Rust { rust_reference_kind(root, span, kind) } else { kind };
+                let kind = if lang == Language::Rust {
+                    rust_reference_kind(root, span, kind)
+                } else {
+                    kind
+                };
                 references.push(Reference {
                     name: span.text(source).to_string(),
                     span,

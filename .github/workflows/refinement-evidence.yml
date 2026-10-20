@@ -71,6 +71,8 @@ on:
           - project-change-development
           - project-change-delivery
           - project-change-findings
+          - project-change-freeze
+          - project-change-held-out
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -133,6 +135,8 @@ jobs:
             tests/agent-eval/project-changes
             tests/native_fingerprint.rs
             tests/common
+            tests/fixtures
+            recipes
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -167,7 +171,7 @@ jobs:
           cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Prepare original project checks
-        if: inputs.group == 'project-change-delivery'
+        if: contains(fromJSON('["project-change-delivery", "project-change-freeze"]'), inputs.group)
         run: python3 -m pip install 'pytest==9.1.1'
       - name: Deliver original Rust and Python renames through fr
         id: delivery
@@ -177,7 +181,7 @@ jobs:
           --output "$RUNNER_TEMP/project-change-delivery"
       - name: Build and demonstrate the real checker difference
         id: checkers
-        if: inputs.group == 'project-change-findings'
+        if: contains(fromJSON('["project-change-findings", "project-change-freeze", "project-change-held-out"]'), inputs.group)
         run: >-
           python3 -B tools/project_change_checkers.py --fr target/debug/fr
           --output "$RUNNER_TEMP/project-change-checkers"
@@ -189,6 +193,24 @@ jobs:
           --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
           --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
           --output "$RUNNER_TEMP/project-change-findings"
+      - name: Record the checked procedure before opening unread source
+        id: freeze
+        if: inputs.group == 'project-change-freeze'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.evidence_runs }}
+        run: >-
+          python3 -B tools/project_change_gate.py --runs "$RUNS"
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+      - name: Run the first reserved unread-project evaluation
+        id: held-out
+        if: inputs.group == 'project-change-held-out'
+        run: >-
+          python3 -B tools/project-changes.py held-out
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          --output "$RUNNER_TEMP/project-change-held-out"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -230,6 +252,48 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.freeze.outcome != 'skipped'
+        with:
+          name: project-change-freeze
+          path: |
+            tests/agent-eval/project-changes/freeze.json
+            tests/agent-eval/project-changes/qualification/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.held-out.outcome != 'skipped'
+        with:
+          name: project-change-held-out
+          path: ${{ runner.temp }}/project-change-held-out/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+  record-project-change-freeze:
+    if: inputs.group == 'project-change-freeze' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: project-change-freeze
+          path: tests/agent-eval/project-changes
+      - name: Commit the qualified implementation and original familiar records
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/agent-eval/project-changes/freeze.json tests/agent-eval/project-changes/qualification
+          git commit -m 'test: freeze project changes before the unread evaluation'
+          git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
     if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')

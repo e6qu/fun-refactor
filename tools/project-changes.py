@@ -48,7 +48,12 @@ def collect(args):
     tasks = json.loads(tasks_path.read_text())
     args.output.mkdir(parents=True, exist_ok=False)
     save(args.output / 'tasks.json', tasks)
-    selected = [task for task in tasks['projects'] if task['role'] == 'development']
+    selected = [task for task in tasks['projects'] if task['role'] == ('unread' if args.phase == 'held-out' else 'development')]
+    frozen = None
+    if args.phase == 'held-out':
+        from project_change_gate import admit
+        frozen = admit(args.fr, args.alternate)
+        save(args.output / 'freeze.json', frozen)
     results = []
     for task in selected:
         output = args.output / task['id']
@@ -66,13 +71,13 @@ def collect(args):
     save(args.output / 'result.json', {'passed': True, 'phase': args.phase, 'projects': results,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
-        'unread_project_opened': False, 'binary_sha256': digest(args.fr),
+        'unread_project_opened': args.phase == 'held-out', 'implementation': frozen, 'binary_sha256': digest(args.fr),
         'limits': tasks['limits'], 'claim': tasks['scope']})
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase', choices=('inspect', 'delivery', 'findings', 'reopen'))
+    parser.add_argument('phase', choices=('inspect', 'delivery', 'findings', 'held-out', 'reopen'))
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--alternate', type=Path)
@@ -87,7 +92,7 @@ def main():
     elif args.phase == 'reopen':
         reopen(args)
     else:
-        if args.phase == 'findings' and args.alternate is None:
+        if args.phase in ('findings', 'held-out') and args.alternate is None:
             parser.error('findings requires the recorded alternate checker')
         collect(args)
 

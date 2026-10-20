@@ -683,7 +683,7 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ a78dc61062d79d3d053c6137333ecdcea1afac60000928b77c69950b464a7f8e
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 1a178f5d73144c12f4cd359bdbd9a7d387d7d9d4da16df5c35ad837b77d3d0eb
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with

@@ -272,11 +272,18 @@ impl Reference {
     pub fn may_name(&self, symbol: &Symbol) -> bool {
         self.expects.is_none_or(|expected| symbol.kind == expected)
             && match self.kind {
-                ReferenceKind::Namespace => matches!(symbol.kind,
-                    SymbolKind::Module | SymbolKind::Struct | SymbolKind::Enum
-                    | SymbolKind::Trait | SymbolKind::TypeAlias),
+                ReferenceKind::Namespace => matches!(
+                    symbol.kind,
+                    SymbolKind::Module
+                        | SymbolKind::Struct
+                        | SymbolKind::Enum
+                        | SymbolKind::Trait
+                        | SymbolKind::TypeAlias
+                ),
                 ReferenceKind::Attribute => symbol.kind == SymbolKind::Function,
-                ReferenceKind::Call if self.language == Language::Rust => symbol.kind != SymbolKind::Module,
+                ReferenceKind::Call if self.language == Language::Rust => {
+                    symbol.kind != SymbolKind::Module
+                }
                 _ => true,
             }
     }

@@ -92,22 +92,28 @@ def audit_findings(task, retained, limits, binary, alternate):
 def equivalent(actual, recorded, path=()):
     if isinstance(actual, dict) and isinstance(recorded, dict):
         assert actual.keys() == recorded.keys()
+        if 'columns' in actual and 'rows' in actual:
+            assert actual['columns'] == recorded['columns']
+            actual = {**actual, 'rows': [dict(zip(actual['columns'], row)) for row in actual['rows']]}
+            recorded = {**recorded, 'rows': [dict(zip(recorded['columns'], row)) for row in recorded['rows']]}
         for key in actual:
             pair = (actual[key], recorded[key])
-            if key == 'root':
-                assert all(isinstance(value, str) and Path(value).is_absolute() for value in pair)
-                continue
             if key in ('revision', 'input_digest') or (key == 'digest' and path[-1:] == ('dependency',)):
                 assert all(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) for value in pair)
-                continue
-            if key in ('handle', 'id') and all(isinstance(value, str) and value.startswith(('frp1:', 'fro1:')) for value in pair):
-                assert actual[key].split(':')[0] == recorded[key].split(':')[0]
                 continue
             if not equivalent(actual[key], recorded[key], path + (key,)):
                 return False
         return True
     if isinstance(actual, list) and isinstance(recorded, list):
         return len(actual) == len(recorded) and all(equivalent(a, b, path) for a, b in zip(actual, recorded))
+    if isinstance(actual, str) and isinstance(recorded, str):
+        handles = [re.fullmatch(r'frp1:[0-9a-f]{28}:([0-9a-f]*)', value) for value in (actual, recorded)]
+        if all(handles):
+            return handles[0][1] == handles[1][1]
+        if path[-1:] in (('id',), ('context_basis',)):
+            prefix = 'fro1' if path[-1] == 'id' else 'frcb1'
+            if all(re.fullmatch(prefix + r':[0-9a-f]{64}', value) for value in (actual, recorded)):
+                return True
     return actual == recorded
 
 

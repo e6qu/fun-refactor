@@ -696,7 +696,10 @@ impl Index {
             return (None, Confidence::NameOnly);
         }
         let (target, confidence) = self.resolve_by_evidence(reference, path, info, by_name);
-        if target.and_then(|id| self.symbol(id)).is_some_and(|symbol| !reference.may_name(symbol)) {
+        if target
+            .and_then(|id| self.symbol(id))
+            .is_some_and(|symbol| !reference.may_name(symbol))
+        {
             return (None, Confidence::NameOnly);
         }
 
@@ -1725,8 +1728,11 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
-        self.references.matching(&sym.name, symbol).into_iter()
-            .filter(|reference| reference.may_name(sym)).collect()
+        self.references
+            .matching(&sym.name, symbol)
+            .into_iter()
+            .filter(|reference| reference.may_name(sym))
+            .collect()
     }
 
     /// Every definition site of the entity `symbol` belongs to.
@@ -2150,8 +2156,14 @@ mod tests {
         let source = "mod shared { pub fn run() {} }\nfn shared() {}\nmod test {}\n#[test]\nfn check() { shared::run(); shared(); }\n";
         let (_tmp, index) = index_of(&[("a.rs", source)]);
         let values = index.find_symbols("shared", None);
-        let function = values.iter().find(|symbol| symbol.kind == SymbolKind::Function).unwrap();
-        let module = values.iter().find(|symbol| symbol.kind == SymbolKind::Module).unwrap();
+        let function = values
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Function)
+            .unwrap();
+        let module = values
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Module)
+            .unwrap();
         let calls = index.references_to(function.id);
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].kind, ReferenceKind::Call);

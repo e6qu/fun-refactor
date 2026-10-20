@@ -12,6 +12,7 @@ def bindings(root):
         'tools/project_change_delivery.py', 'tools/project_change_findings.py',
         'tools/project_change_checkers.py', 'tools/evidence_basis.py',
         'tools/project_change_records.py',
+        'tools/project_change_gate.py',
         'kernels/FrKernels/Project.lean',
         'tools/agent_eval/bounded_host.py', 'tools/agent_eval/study.py',
         'tests/agent-eval/project-changes/tasks.json', 'tests/agent-eval/project-changes/oracle.py',
