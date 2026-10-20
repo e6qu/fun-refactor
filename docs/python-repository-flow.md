@@ -275,7 +275,7 @@ This change has no timing measurements and does not finish the original packages
 The remaining import and startup boundaries require general language rules.
 The [earlier reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json)
 pinned jaraco.functools; its first admission failed. The [package milestones](package-milestones.md)
-own that outcome and the next question selected before opening its implementation.
+own that outcome and the subsequent passing JDcal comparison, selected before opening its implementation.
 
 To inspect an incomplete answer, use the initialization locations described in the
 [Python guide](python-contract.md#find-the-statement-that-prevents-an-answer).

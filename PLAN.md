@@ -48,8 +48,9 @@ Those unused declarations can now coexist with a supported trace through `public
 The trace points back to `relay`. Using or changing `registry`, or calling the stored `sorter`,
 still needs behavior the analyzer does not support. That question remains unfinished.
 
-The [original-package checks](docs/package-milestones.md) now finish selected questions in Boltons
-and dateutil, including overwriting the input, moved callers and saved answers after edits.
+The [original-package checks](docs/package-milestones.md) now finish selected questions in Boltons,
+dateutil and JDcal with one unchanged analyzer. JDcal's implementation stayed unread until the freeze.
+The checks include overwritten inputs and moved callers, plus saved answers after edits in the two familiar packages.
 Importing other packages can still execute code that `fr` does not understand.
 The current tests in Toolz, funcy and pydash leave their package answers incomplete.
 Moving the same helper into a small isolated file sometimes produces a complete answer. That
@@ -69,17 +70,18 @@ Explain each performance comparison's baseline and included costs; the [measurem
 Keep exact commands and data fields available for readers who need them. Keep one current format;
 reject missing or old data without adding compatibility readers or migration fallbacks.
 
-## Next large chunk
+## Completed package milestones and next work
 
-Complete [the original-package question and the unfamiliar-project check](docs/package-milestones.md)
-with the remaining unfamiliar-project work and tracking reconciliation in one pull request.
-Milestone 1 has passing original-package results for Boltons and dateutil. Milestone 2 still
-needs a third independent project. Keep that project's implementation unread while developing the analyzer.
-These are near-term steps within the broader goals below, not completion of those larger goals.
-Their acceptance conditions include complete reaching-input and
-blocked-input answers, independent Python checks, changed-input tests and a frozen
-implementation tested across three independently maintained projects. Passing
-small examples or collecting incomplete package answers does not complete this work.
+Both [near-term package milestones](docs/package-milestones.md) now have passing original records.
+Boltons limits an integer, dateutil computes an Easter date, and JDcal checks a leap year.
+All three finish the input-to-output question and its overwritten-input counterpart with one unchanged analyzer.
+Ordinary Python agrees with the declared examples. Renamed callers, unknown calls and search budgets retain their expected outcomes.
+The two familiar packages also pass the saved-answer checks after source and import changes.
+
+These results complete the selected package questions, while the broader goals below remain open.
+Next, select a useful question whose original package still gives an incomplete answer.
+Explain the exact unsupported startup operation before extending a language rule.
+Keep independent project selection and a fresh unread project for any new claim about unfamiliar code.
 
 Choose work by a useful question that we can answer from beginning to end.
 For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
@@ -167,9 +169,10 @@ The first unfamiliar checks of jaraco.functools and fn.py stopped before analysi
 Jaraco's archive lacked the license file required by admission.
 fn.py had no function matching the fixed selection rule.
 Keep both original failures. They do not count as successful unfamiliar-project coverage.
-The next question is [JDcal's documented leap-year check](docs/leap-year-package-question.md).
+The next comparison used [JDcal's documented leap-year check](docs/leap-year-package-question.md).
 We chose its function and examples from the public README before opening its implementation or tests.
-Record the analyzer and question plan before the first evaluation.
+Its first evaluation passed after the analyzer and question plan were frozen.
+JDcal is now familiar; a later unfamiliar-project test needs a new reservation.
 Toolz, funcy and pydash are already familiar development examples. The earlier Boltons reservation
 was unsuitable because prior work had already used it. Keep that mistake in the recorded history.
 
@@ -221,7 +224,7 @@ records. Detailed run history belongs with those records, not in the current wor
 Checkboxes track implementation only. The [status report](docs/roadmap-status.md) lists the behavior
 each milestone must demonstrate, its supporting tests and what is missing.
 The catalog is the machine-readable list of those requirements. Its identifier is `agent-analysis-v2`.
-Open requirements include unfamiliar projects and complete agent-cost accounting;
+Open requirements include project-wide changes, unsupported effects and complete agent-cost accounting;
 demonstrated items retain their original, limited scope.
 
 ### A. Find relevant code and explain the evidence
@@ -262,8 +265,8 @@ Check whether an earlier assignment overwrites it. Report possible paths separat
 - [x] Separate possible callees, possible input-to-output connections and statements established by a proof.
   See the [analysis contract](docs/agent-investigations.md).
 
-Still needed: useful reaching-input and blocked-input answers across independently selected projects.
-Shared mutable objects and implicit exceptions also need honest handling.
+The selected questions now finish across three independently maintained projects, including one unread during development.
+Still needed: broader project questions and honest handling of shared mutable objects and implicit exceptions.
 An implicit exception is an error an operation can raise without an explicit `raise`. The two recent
 repository delivery tasks still report incomplete or refused flow analysis.
 

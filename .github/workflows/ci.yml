@@ -20,6 +20,22 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  original-package-questions:
+    name: Original package questions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Fetch the source recorded before the unfamiliar-project evaluation
+        run: git fetch --no-tags --depth=1 origin d04c9301bb703eeaaddd06ecffc0cacd52f9fbd9
+      - name: Audit the original results and reject false completion records
+        run: >-
+          python3 -B tools/test-package-milestone-audit.py
+          tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json
+
   toolchain:
     name: Pinned Zig toolchain
     runs-on: ubuntu-latest

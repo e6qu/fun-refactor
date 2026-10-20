@@ -4,10 +4,10 @@ Start with the [number and date examples](original-package-questions.md) for
 the user questions, the meaning of a finished answer and its assumptions.
 
 Milestone 1 was demonstrated in [PR #545](https://github.com/e6qu/fun-refactor/pull/545).
-That PR merged before milestone 2 was complete. The next pull request must finish
-the unfamiliar-project comparison and reconcile the tracking together. Passing
-regression tests alone does not demonstrate either outcome. The final comparison
-must use one unchanged analyzer across all qualifying projects.
+That PR merged before milestone 2 was complete. The follow-up comparison now passes
+for Boltons, dateutil and JDcal with one unchanged analyzer. This completes both
+near-term package milestones. The original run records below support that conclusion;
+regression tests alone would not establish either outcome.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.
@@ -98,17 +98,27 @@ matching the selection rule. Neither question reached analysis or ordinary
 Python execution. Both original outcomes and inputs remain in the
 [first-comparison record](../tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json).
 
-This comparison does not demonstrate milestone 2. A qualifying third project
-is still required, including an implementation kept unread before evaluation.
+That first comparison did not demonstrate milestone 2. It supplied no qualifying third project.
 The [jaraco.functools reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json)
 records its original selection; it must not be read as a successful result.
 
-The next comparison selects [JDcal's leap-year question](leap-year-package-question.md)
-from its public README before opening its implementation or tests. The stated
-examples are 2000 returning true and 2100 returning false. Overwriting the year
-with 2000 must remove the original input's value route while Python returns true
-for either original input. Familiar-project coverage must pass again with the
-same frozen implementation before opening this third project.
+The next comparison selected [JDcal's leap-year question](leap-year-package-question.md)
+from its public README before opening its implementation or tests.
+[Fresh familiar coverage](https://github.com/e6qu/fun-refactor/actions/runs/39382493915)
+passed before the [first JDcal evaluation](https://github.com/e6qu/fun-refactor/actions/runs/39388270081)
+at the exact same commit. Both use the recorded analyzer and question plan.
+
+JDcal finished the original and renamed or moved callers: the year can reach the answer,
+while overwriting it with 2000 blocks the original value route.
+Ordinary Python returned `True` for 2000 and `False` for 2100, as declared before inspection.
+Overwriting the year produced `True` in both examples. Unknown calls and exhausted search budgets stayed unfinished.
+All original package files stayed unchanged, and no worker reached a resource limit.
+
+The [familiar-package receipt](../tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage/receipt.json)
+and [JDcal receipt](../tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/receipt.json)
+retain the complete original archives, commands, observations and source identities.
+Together they demonstrate milestone 2 across three independently maintained projects.
+JDcal is now familiar; it cannot serve as another unread test.
 
 A failure can inform another fix, but that project
 then becomes a development example. Reserve another unread project before the

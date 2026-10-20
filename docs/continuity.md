@@ -12,8 +12,10 @@ Small Python examples can also follow a configured input through a helper to an 
 The [original-package checks](package-milestones.md) now pass for Boltons' integer bounds
 and dateutil's Easter dates. They use the original imports, independently stated Python
 results, renamed and moved callers, and saved versus fresh answers after relevant changes.
-This completes the first near-term package milestone. The second still needs a third
-independent project, including a successful question chosen before reading its implementation.
+JDcal's leap-year question also passed on its first evaluation after the analyzer freeze.
+This completes both near-term package milestones across three independent projects.
+The same analyzer handled all three. JDcal's README supplied the question before we read its implementation.
+The [milestone record](package-milestones.md) links the original results and limits.
 
 For example, “does customer input reach `send(value)`?” can return a possible connection with source locations.
 If importing the helper runs unsupported startup code, the question stays partly unanswered.
@@ -122,13 +124,14 @@ Link detailed inventories and failed attempts from that short description.
 Jaraco.functools and fn.py have already had their first evaluation. Both stopped before
 analysis, for the admission and selection reasons recorded in the [package milestones](package-milestones.md).
 Do not describe either as an unused reservation or a successful result.
-The next reserved question is [JDcal's leap-year check](leap-year-package-question.md),
-chosen from its public README. Keep implementation and tests unread until the new freeze.
+The next comparison, [JDcal's leap-year check](leap-year-package-question.md), passed after the new freeze.
+Its public README supplied the question before we read its implementation. JDcal is now a familiar project.
+Reserve another unread project before using any later comparison to claim progress on unfamiliar code.
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [earlier checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-scalar-collection/manifest.json) records the preceding analysis results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/manifest.json)
+The [current checker collection receipt](../tests/agent-eval/results/2026-10-20-leap-year-scalar-collection/manifest.json) records the refreshed analysis results.
+The [Python example receipt](../tests/agent-eval/results/2026-10-20-leap-year-python-contract/manifest.json)
 covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
 It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
 These include programs where startup replaces a helper or raises before the application runs.

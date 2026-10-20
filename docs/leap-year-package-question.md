@@ -23,10 +23,16 @@ input's value route. Python must then return `True` for either original input.
 
 We chose the function name and examples from the
 [public README at the pinned revision](https://github.com/phn/jdcal/blob/c82c3cfb7f814b2ab79fd597e3f8aa87c3390fbb/README.rst).
-The implementation file `jdcal.py` and tests `test_jdcal.py` remain unread during
-development. Record the analyzer, client library, question plan and collector
-before the first evaluation. A failure stays a failure; do not choose a simpler
-function after opening the code.
+The implementation file `jdcal.py` and tests `test_jdcal.py` stayed unread during
+development. We recorded the analyzer, client library, question plan and collector
+before the first evaluation, which passed. A failure must stay a failure;
+choosing a simpler function after opening the code would change the test.
+
+Inspection after the freeze found that `is_leap` computes the year's remainders
+after division by 4, 100 and 400. Its return expression uses those remainders.
+For 2000 all three are zero, giving `True`. For 2100 the remainder after division by 400 is 100, giving `False`.
+The input therefore affects the selected return expression. Replacing it with 2000 removes that connection.
+These two examples return booleans; they do not establish the return type for every year.
 
 ## Check imported-module behavior first
 
@@ -51,7 +57,7 @@ that an inactive block cannot replace the selected helper.
 
 The checker also admits explicitly supported Python 3 future directives, such as
 `from __future__ import division`. These request behavior already mandatory in
-the declared Python 3 runtime. They do not enable postponed annotations;
+the declared Python 3 runtime. They do not enable postponed annotations.
 The checker handles `annotations` separately. A competing local `__future__` file still
 prevents trusting the directive.
 The [Python future-statement reference](https://docs.python.org/3.14/library/__future__.html)
@@ -67,13 +73,12 @@ calls to it. Calling an unmodeled operation still leaves the answer unfinished.
 
 ## What counts as finishing
 
-Use one unchanged analyzer for Boltons, dateutil and the reserved JDcal question.
+The passing comparison used one unchanged analyzer for Boltons, dateutil and JDcal.
 Check the original and renamed or moved callers, the overwritten input, unknown
 calls and exhausted work budgets. Keep the original package files unchanged.
 The familiar-project saved-answer checks must agree with fresh analysis after
 helper and import changes.
 
 The [milestone record](package-milestones.md) owns the outcome and original run
-receipts. Passing this finite comparison would establish three-project coverage
-for these questions. It would not prove the calendar algorithms correct, support
-all Python packages or establish lower agent costs.
+receipts. This finite comparison establishes three-project coverage for these questions.
+It does not prove the calendar algorithms correct, support all Python packages or establish lower agent costs.
