@@ -37,15 +37,19 @@ def inspect(args):
         if report['page']['next'] is not None or not report['rows']:
             raise ValueError('fr inspection is unfinished or missing: ' + path)
         save(args.output / (Path(path).stem + '-' + name + '.json'), report)
+    changes = subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'],
+        cwd=ROOT, text=True).splitlines()
     save(args.output / 'scope.json', {
-        'passed': True,
+        'passed': not changes,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
-        'source_clean': not subprocess.check_output(['git', 'diff', '--name-only', '--',
-            'src', 'kernels', 'tests', 'sdk/python'], cwd=ROOT, text=True).strip(),
+        'source_clean': not changes,
+        'changed_inputs': changes,
         'scope': 'fr inspected the explicitly selected original source files. File-scoped reads do not establish repository-wide caller discovery.',
         'selections': selections,
     })
+    if changes:
+        raise ValueError('Commit the runner corrections before qualification: ' + '; '.join(changes))
 
 
 def collect(args):
