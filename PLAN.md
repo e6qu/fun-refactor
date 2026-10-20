@@ -166,7 +166,8 @@ Passing the same dictionary as both source and destination stays unfinished, as 
 Toolz still needs module-valued keys, conditional imports and function-argument inspection, among other unchecked setup.
 These rules do not complete its package answer.
 
-Aim for a complete helper answer through the original package import while preserving the existing limits and unfinished answers.
+When a selected change task needs a helper answer, use its original package import.
+Keep the existing limits and unfinished answers.
 
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
