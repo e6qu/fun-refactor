@@ -128,11 +128,13 @@ def measure(task, original, output, binary):
             '--matches', '1', '--save-plan').to_data()
         save(output / 'documentation-review.json', preview)
         assert preview['saved'] is True and preview['applied'] is False and preview['changed'] == 1
+        assert [entry['path'] for entry in preview['entries']] == ['docs/mathutils.rst']
         transaction = preview['transaction']
-        save(output / 'documentation-patch.json', client.call('history', 'patch', str(transaction),
-            '--output', 'artifacts/documentation.patch').to_data())
+        exported = client.call('history', 'patch', str(transaction),
+            '--output', 'artifacts/documentation.patch').to_data()
+        save(output / 'documentation-patch.json', exported)
         documentation_patch = (project / 'artifacts/documentation.patch').read_bytes()
-        assert b'--- a/docs/mathutils.rst\n' in documentation_patch
+        assert exported['files'] == 1 and exported['patch_sha256'] == digest(project / 'artifacts/documentation.patch')
         assert ('-.. autofunction:: boltons.mathutils.' + task['function'] + '\n').encode() in documentation_patch
         assert ('+.. autofunction:: boltons.mathutils.' + task['renamed'] + '\n').encode() in documentation_patch
         save(output / 'documentation-apply.json',
