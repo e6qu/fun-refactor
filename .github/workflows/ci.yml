@@ -80,10 +80,10 @@ jobs:
             tests/agent-eval/project-changes
             tests/agent-eval/package-questions
             tests/agent-eval/python-repository-flow
-            tests/agent-eval/python-repositories/boltons.tar.gz
+            tests/agent-eval/python-repositories
             tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage
             tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out
-            tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json
+            tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out
             recipes
       - name: Restore the authenticated result beside its original auditor
         run: |
