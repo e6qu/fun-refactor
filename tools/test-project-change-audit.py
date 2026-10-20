@@ -28,6 +28,17 @@ def reject(original, mutation, binary, alternate):
             report['unread']['qualified'] = False
         elif mutation == 'removed-failure':
             report['failures'].remove(next(iter(json.loads(retained.FREEZE.read_text())['development_failures'])))
+        elif mutation == 'removed-attempt':
+            inventory = directory / 'attempts.json'
+            attempts = json.loads(inventory.read_text())
+            removed = report['failures'][0]
+            inventory.write_text(json.dumps([row for row in attempts if row['run']['id'] != removed]))
+        elif mutation == 'changed-failure-archive':
+            archives = sorted((directory / 'failures').rglob('*.zip'))
+            assert archives, 'the preserved development failures must include their original artifacts'
+            archive = archives[0]
+            data = archive.read_bytes()
+            archive.write_bytes(bytes([data[0] ^ 1]) + data[1:])
         elif mutation == 'changed-published-package-result':
             package = directory / 'prior-questions/files/result.json'
             value = json.loads(package.read_text())
@@ -53,5 +64,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     retained.audit(args.report.parent, args.fr, args.alternate)
     for mutation in ('integer-for-boolean', 'missing-project', 'missing-language',
-                     'unread-not-qualified', 'removed-failure', 'changed-published-package-result'):
+                     'unread-not-qualified', 'removed-failure', 'removed-attempt',
+                     'changed-failure-archive', 'changed-published-package-result'):
         reject(args.report.parent, mutation, args.fr, args.alternate)

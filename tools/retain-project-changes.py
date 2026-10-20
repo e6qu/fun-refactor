@@ -47,6 +47,10 @@ def audit(directory, binary, alternate):
     identity = json.loads((directory / 'held-out/identity.json').read_text())
     assert opened and min(opened) == int(identity['collection']['run_id']), 'this was not the first unread evaluation'
     assert report['failures'] and len(report['failures']) == len(set(report['failures']))
+    assert all(type(run_id) is int and run_id > 0 for run_id in report['failures'])
+    failed_attempts = {row['run']['id']: row['run'] for row in inventory
+        if row['run']['conclusion'] in ('failure', 'cancelled')}
+    assert set(report['failures']) == set(failed_attempts), 'the attempt inventory and retained failures differ'
     assert set(frozen['development_failures']) <= set(report['failures']), 'a recorded failure disappeared'
     for name, expected in report['files'].items():
         path = directory / name
@@ -89,6 +93,12 @@ def audit(directory, binary, alternate):
         metadata = json.loads((directory / 'failures' / str(run_id) / 'metadata.json').read_text())
         assert metadata['run']['id'] == run_id and metadata['run']['status'] == 'completed'
         assert metadata['run']['conclusion'] in ('failure', 'cancelled')
+        for field in ('id', 'conclusion', 'head_sha', 'run_attempt'):
+            assert metadata['run'][field] == failed_attempts[run_id][field]
+        for artifact in metadata['artifacts']:
+            archive = directory / 'failures' / str(run_id) / (str(artifact['id']) + '.zip')
+            assert 'sha256:' + digest(archive) == artifact['digest'], 'retained failure artifact changed'
+            scalar.files(archive.read_bytes(), artifact['digest'])
     return {'passed': True, 'projects': 3, 'change_controls': 21, 'delivered_languages': ['Rust', 'Python']}
 
 
