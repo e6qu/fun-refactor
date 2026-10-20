@@ -10,6 +10,8 @@ use std::path::Path;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Query, QueryCursor};
 
+mod rust_cfg;
+
 /// The query source for a language, for callers that need to fingerprint them.
 pub fn query_source_for(lang: Language) -> Option<&'static str> {
     query_source(lang)
@@ -991,6 +993,7 @@ impl Extractor {
             kubernetes_objects,
             gaps: parsed.gaps.clone(),
             unreadable: None,
+            conditional_groups: if lang == Language::Rust { rust_cfg::groups(root, source, &symbols) } else { Vec::new() },
             symbols,
             references,
             scopes,

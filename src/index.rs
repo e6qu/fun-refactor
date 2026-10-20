@@ -62,6 +62,7 @@ pub struct Index {
     /// All references; `target` holds a global [`SymbolId`].
     pub references: References,
     files: BTreeMap<PathBuf, FileInfo>,
+    conditional_groups: HashMap<SymbolId, Vec<SymbolId>>,
     /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
     /// Hash of each file's text as this index read it.
@@ -401,6 +402,12 @@ impl Index {
         }
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
+        for group in facts.conditional_groups {
+            let global: Vec<_> = group.into_iter().map(remap).collect();
+            for member in &global {
+                self.conditional_groups.insert(*member, global.clone());
+            }
+        }
 
         let mut symbol_ids = Vec::with_capacity(facts.symbols.len());
         for mut symbol in facts.symbols {
@@ -990,6 +997,7 @@ impl Index {
         // An explicit Rust path cannot use the unqualified in-file fallback.
         if reference.language == Language::Rust
             && reference.receiver_is_path
+            && reference.receiver.is_some()
             && !matches!(
                 reference.receiver.as_deref(),
                 Some("Self" | "crate" | "self" | "super")
@@ -1740,6 +1748,9 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
+        if let Some(group) = self.conditional_groups.get(&symbol) {
+            return group.clone();
+        }
         if !sym.kind.allows_multiple_definitions() {
             // `self.count = 0` in `__init__` and `self.count = n` in another method are one
             // attribute declared twice, and Python declares attributes only that way.
@@ -2183,6 +2194,38 @@ mod tests {
         let unresolved = index.unresolved_matching(custom.id);
         assert_eq!(unresolved.len(), 1);
         assert_eq!(unresolved[0].kind, ReferenceKind::Attribute);
+    }
+
+    #[test]
+    fn rust_complementary_cfg_definitions_rename_both_branches_and_the_call() {
+        let source = "#[cfg(chosen)]\nfn answer() -> i64 { 11 }\n#[cfg(not(chosen))]\nfn answer() -> i64 { 22 }\nfn caller() -> i64 { answer() }\n";
+        let (_tmp, index) = index_of(&[("a.rs", source)]);
+        let definitions = index.find_symbols("answer", None);
+        assert_eq!(definitions.len(), 2);
+        for definition in &definitions {
+            assert_eq!(index.definition_group(definition.id).len(), 2);
+            let references = index.references_to(definition.id);
+            assert_eq!(references.len(), 1);
+            assert_eq!(references[0].confidence, Confidence::Exact);
+        }
+        let plan = crate::refactor::rename::plan(&index, definitions[0].id, "result").unwrap();
+        assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
+        let spans: Vec<_> = plan.edits.iter().flat_map(|(_, edits)| edits.iter().map(|edit| edit.span)).collect();
+        assert_eq!(spans.len(), 3);
+        assert!(spans.iter().all(|span| span.text(source) == "answer"));
+    }
+
+    #[test]
+    fn rust_complementary_cfg_support_keeps_unknown_conditions_ambiguous() {
+        for attributes in [("#[cfg(first)]", "#[cfg(not(second))]"),
+            ("#[cfg(all(first,second))]", "#[cfg(not(all(first,second)))]"),
+            ("#[cfg(first)]\n#[inline]", "#[cfg(not(first))]")] {
+            let source = format!("{}\nfn answer() {{}}\n{}\nfn answer() {{}}\nfn caller() {{ answer(); }}\n", attributes.0, attributes.1);
+            let (_tmp, index) = index_of(&[("a.rs", &source)]);
+            for definition in index.find_symbols("answer", None) {
+                assert_eq!(index.definition_group(definition.id).len(), 1);
+            }
+        }
     }
 
     #[test]

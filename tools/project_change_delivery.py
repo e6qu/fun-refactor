@@ -82,7 +82,7 @@ def measure(task, original, output, binary):
         {'name': 'syntax', 'paths': paths}]})
     scope = ChangeScope.inspect(client, [selected['handle']], max_bytes=262144)
     save(output / 'scope.json', scope.report.to_data())
-    assert scope.ready, scope.report.to_data()
+    assert scope.ready, 'Discovery is not ready; inspect the retained scope.json for gaps and weak references'
     store = DirectoryObjectStore(output / 'objects')
     scope_root = scope.persist(store)
     names = [check['name'] for check in checks if check['name'] != 'syntax']

@@ -23,7 +23,7 @@ def discovery(client, question):
     candidates = rows(report)
     scopes = [ChangeScope.inspect(client, [row['handle']], depth=question['depth'],
         nodes=128, references=512, max_bytes=262144).report.to_data() for row in candidates]
-    added = client.project('find', question['added_name'], '--bytes', '65536')
+    added = client.project('find', question['added_name'], '--source', '--bytes', '65536')
     rows(added)
     return {'request': question, 'find': report.to_data(), 'added_lookup': added.to_data(), 'scopes': scopes,
         'scope': 'Indexed declarations and consumers only. Scope gaps and unresolved references remain in the returned reports.'}
@@ -54,7 +54,8 @@ def reopen(args):
         save(args.output / 'resumed.json', resumed.report.to_data())
         observed = discovery(client, request)
         save(args.output / 'observation.json', observed)
-        finished = satisfy(resumed.plan, client, 'selected', 'sha256:' + digest(args.output / 'observation.json'))
+        reset = resumed.plan.resume(client, transition='selected:reset')
+        finished = satisfy(reset.plan, client, 'selected', 'sha256:' + digest(args.output / 'observation.json'))
         assert finished.resume(client).complete
         save(args.output / 'plan.json', {'root': finished.store(store), 'independent_retained': True})
     else:
@@ -113,11 +114,13 @@ def measure(task, original, output, binary, alternate):
     configure(baseline_root, selected)
     save(output / 'discovery.json', found)
     suffix = '.rs' if task['language'] == 'Rust' else '.py'
-    independent = next(path for path in sorted(baseline_root.rglob('*'))
-        if path.is_file() and path.suffix in ('.rs', '.py', '.md')
+    inventory = client.call('scan').to_data()
+    save(output / 'source-inventory.json', inventory)
+    independent = next(path for path in (Path(item['file']) for item in inventory['files'])
+        if path.suffix in ('.rs', '.py', '.md')
         and str(path.relative_to(baseline_root)) != selected['path']
         and task['function'].encode() not in path.read_bytes()
-        and (suffix != '.py' or Path(selected['path']).stem.encode() not in path.read_bytes()))
+        and (path.suffix != '.py' or Path(selected['path']).stem.encode() not in path.read_bytes()))
     relative = str(independent.relative_to(baseline_root))
     question = {'name': task['function'], 'added_name': 'fr_added_' + task['function'],
                 'depth': 4, 'scope': task['question']}

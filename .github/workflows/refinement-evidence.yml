@@ -169,6 +169,7 @@ jobs:
           cargo test --locked --test native_fingerprint
           cargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
           cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
+          cargo test --locked --lib rust_complementary_cfg
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Prepare original project checks
         if: contains(fromJSON('["project-change-delivery", "project-change-freeze"]'), inputs.group)

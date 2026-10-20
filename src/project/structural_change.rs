@@ -144,6 +144,8 @@ fn literal(node: Node<'_>) -> bool {
 }
 
 fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
+    ensure!(project.index.definition_group(symbol.id).len() == 1,
+        "signature changes require one declaration; conditional variants need a separate reviewed migration.");
     let source = &project.sources[&symbol.file];
     let parsed = Parsers::new().parse(Language::Rust, source)?;
     let function = ancestor(&parsed, symbol.name_span, "function_item")?;

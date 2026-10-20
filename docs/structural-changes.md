@@ -8,6 +8,16 @@ A change scope lists the callers and tests found for the requested change.
 For `subtotal(price)`, adding a required `tax` slot means updating calls that previously supplied only `price`.
 Inspect missing relationships before promising every caller is updated; after applying the change, run the behavior test.
 
+For a local source question, select the original file explicitly:
+
+```sh
+fr --json -C src/project/structural_change.rs project find plan --source --bytes 65536
+```
+
+The Python SDK accepts the same selection with `FrClient(path_to_source_file, ...)`.
+This reads that file. Select the project directory when discovering callers across files.
+`--in` filters a directory query's results; it does not narrow the files indexed for that query.
+
 ## Commands, results and limits
 
 `refactor` author operations reuse the native rename and signature planners through revision-bound

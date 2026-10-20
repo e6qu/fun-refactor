@@ -434,6 +434,8 @@ pub struct FileFacts {
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
+    /// Declarations selected by a flag and its negation, without choosing a build target.
+    pub conditional_groups: Vec<Vec<SymbolId>>,
     pub references: Vec<Reference>,
     pub scopes: Vec<Scope>,
     pub imports: Vec<Import>,
