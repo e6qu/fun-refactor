@@ -17,7 +17,9 @@ For example, Boltons' renamed integer-bounds function must preserve its outputs,
 
 The replay uses the recorded source, Rust 1.99.1 and Python 3.14.8.
 It preserves the meaning of Humanize's first evaluation; a replay makes no new unread-project claim.
-The ordinary native and Python suites check the current code separately.
+Another required job checks the current replay with both current checker builds.
+It repeats all 21 change checks and both deliveries; all three projects are familiar during this maintenance run.
+The ordinary native and Python suites also check the current code.
 The final required gate includes these records and the earlier original-package checks.
 
 The development collector also requires a clean checkout: its files must match the commit named in its result.
