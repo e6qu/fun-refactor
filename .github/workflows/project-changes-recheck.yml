@@ -1,5 +1,8 @@
 name: Recheck familiar project changes
 on:
+  push:
+    branches: [feat/real-project-changes]
+    paths: [.github/workflows/project-changes-recheck.yml]
   workflow_dispatch:
     inputs:
       prefix:
@@ -22,7 +25,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
-      PREFIX: ${{ inputs.prefix }}
+      PREFIX: ${{ github.event_name == 'push' && '2026-10-21-current' || inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
