@@ -104,8 +104,12 @@ class ReportRetention(unittest.TestCase):
             self.assertEqual(set(manifest['groups']), {'retained-proofs'})
             for group, name in reports.ACTIVE_REFERENCES.items():
                 if group != 'retained-proofs':
-                    self.assertIn(f'"tests/agent-eval/results/previous-{group}/result.json"',
+                    suffix = '' if group == 'structural-change' else '/result.json'
+                    self.assertIn(f'"tests/agent-eval/results/previous-{group}{suffix}"',
                         (root / name).read_text())
+            for group in reports.ACTIVE_FUNCTIONS:
+                self.assertIn(f'"tests/agent-eval/previous-{group}.json"',
+                              (root / 'tests/python_sdk.rs').read_text())
 
     def test_empty_refresh_refuses_before_any_report_is_saved(self):
         with tempfile.TemporaryDirectory() as directory:
