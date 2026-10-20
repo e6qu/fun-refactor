@@ -1,6 +1,8 @@
 use super::{author::Plan, Project};
 use crate::lang::Language;
 use crate::model::{ReferenceKind, Symbol, SymbolKind};
+use crate::edit::Edit;
+use crate::refactor::WarningKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
@@ -11,9 +13,70 @@ use tree_sitter::Node;
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
-    Rename { name: String },
+    Rename { name: String, documentation: Documentation },
     RemoveParameter { index: usize },
     MoveParameter { from: usize, to: usize },
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum Documentation {
+    Preserve,
+    Update,
+}
+
+fn documentation_node(mut node: Node<'_>, language: Language, source: &str) -> bool {
+    loop {
+        if node.kind().contains("comment") || language == Language::Markdown {
+            return true;
+        }
+        if language == Language::Python && node.kind() == "string" {
+            let text = &source[node.byte_range()];
+            let literal = text.trim_start_matches(['r', 'R', 'u', 'U']);
+            if (literal.starts_with('"') || literal.starts_with('\''))
+                && node.parent().is_some_and(|statement| {
+                    statement.kind() == "expression_statement"
+                        && statement.named_child_count() == 1
+                        && statement.parent().is_some_and(|body| {
+                            (body.kind() == "module" || body.kind() == "block"
+                                && body.parent().is_some_and(|owner| matches!(owner.kind(), "function_definition" | "class_definition")))
+                                && body.named_children(&mut body.walk())
+                                    .find(|child| child.kind() != "comment")
+                                    .is_some_and(|first| first.id() == statement.id())
+                        })
+                })
+            {
+                return true;
+            }
+        }
+        let Some(parent) = node.parent() else { return false; };
+        node = parent;
+    }
+}
+
+fn update_documentation(project: &Project<'_>, symbol: &Symbol, name: &str,
+                        plan: &mut crate::refactor::rename::RenamePlan) -> Result<usize> {
+    let mentions = crate::mentions::of(project.index, &symbol.name)?;
+    let mut updated = Vec::new();
+    for mention in mentions {
+        if plan.edits.iter().any(|(file, edits)| file == &mention.file
+            && edits.iter().any(|edit| edit.span.overlaps(mention.span))) {
+            continue;
+        }
+        let source = project.sources.get(&mention.file).context("documentation is outside the captured source scope")?;
+        let language = project.index.file(&mention.file).context("documentation has no indexed language")?.language;
+        let parsed = Parsers::new().parse(language, source)?;
+        let node = parsed.root().descendant_for_byte_range(mention.span.start, mention.span.end)
+            .context("documentation mention has no syntax")?;
+        if documentation_node(node, language, source) {
+            plan.edits.add(mention.file.clone(), Edit::new(mention.span, name,
+                format!("rename explicit documentation reference to {}", symbol.name)));
+            updated.push((mention.file, mention.line, mention.col));
+        }
+    }
+    plan.warnings.retain(|warning| warning.kind != WarningKind::TextualOccurrence
+        || !updated.contains(&(warning.file.clone(), warning.line, warning.col)));
+    Ok(updated.len())
 }
 
 fn ancestor<'a>(parsed: &'a Parsed, span: Span, kind: &str) -> Result<Node<'a>> {
@@ -109,21 +172,27 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         .and_then(|id| project.index.symbol(id))
         .context("structural refactor requires a declaration.")?;
     ensure!(
-        symbol.language == Language::Rust && symbol.kind == SymbolKind::Function,
-        "structural refactor requires a Rust free function."
+        matches!(symbol.language, Language::Rust | Language::Python) && symbol.kind == SymbolKind::Function,
+        "structural refactor requires a Rust or Python free function."
     );
     let (edits, detail) = match request {
-        Request::Rename { name } => {
+        Request::Rename { name, documentation } => {
             ensure!(name.len() <= 256, "rename name exceeds 256 bytes.");
-            let plan = crate::refactor::rename::plan(project.index, symbol.id, &name)?;
+            let mut plan = crate::refactor::rename::plan(project.index, symbol.id, &name)?;
+            let documentation_edits = match documentation {
+                Documentation::Preserve => 0,
+                Documentation::Update => update_documentation(project, symbol, &name, &mut plan)?,
+            };
             ensure!(plan.warnings.is_empty(), "structural rename has unresolved, dispatch or textual warnings; resolve them first.");
             (
                 plan.edits,
                 json!({"operation": "rename", "old_name": plan.old_name,
-                "new_name": plan.new_name, "reference_edits": plan.reference_edits}),
+                "new_name": plan.new_name, "reference_edits": plan.reference_edits,
+                "documentation_edits": documentation_edits}),
             )
         }
         request => {
+            ensure!(symbol.language == Language::Rust, "signature changes require a Rust free function.");
             let (change, detail) = match request {
                 Request::RemoveParameter { index } => {
                     ensure!(index < 64, "parameter index must be below 64.");
@@ -172,6 +241,6 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         report: json!({"operation": "refactor", "handle": handle,
         "detail": detail, "changed": true, "behavior_checked": false,
         "preservation": "bytes outside planned edits; source behavior requires independent checks.",
-        "scope": "Rust free functions and indexed references; external consumers and dynamic dispatch excluded."}),
+        "scope": "Rust/Python free-function renames and Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
     })
 }

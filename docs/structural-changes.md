@@ -23,7 +23,7 @@ from fr_ir.structural_change import RefactorRequest
 handle = client.project("find", "subtotal").definition_target().handle
 scope = ChangeScope.inspect(client, [handle])
 change = scope.bind(TaskChange([], [
-    RefactorRequest.rename("sum_values").target("rename", handle),
+    RefactorRequest.rename("sum_values", documentation="preserve").target("rename", handle),
     RefactorRequest.remove_parameter(2).target("remove-legacy", handle),
 ], {"files-changed": 2}, ["behavior"], TaskDelivery(patch="artifacts/migration.patch"),
     acceptance_checks=["behavior"]))
@@ -34,7 +34,7 @@ result = client.execute(review)
 
 The fragment for a `refactor` target is JSON. It accepts one of these shapes:
 
-- `{"operation":"rename","name":"sum_values"}`
+- `{"operation":"rename","name":"sum_values","documentation":"preserve"}`
 - `{"operation":"remove-parameter","index":2}`
 - `{"operation":"move-parameter","from":0,"to":1}`
 
@@ -45,7 +45,10 @@ mutation; scope-bound task delivery adds the required discovery and check select
 
 ## Which changes this route can handle
 
-Targets are Rust free functions. Renames retain the existing collision and capture checks and refuse
+Renames support Rust and Python free functions. They require an explicit documentation policy: `preserve` or `update`.
+`update` includes matching comments and documentation strings; ordinary executable strings remain unresolved.
+For example, a docstring showing `subtotal(2, 3)` can follow the new name, while `getattr(module, "subtotal")` still refuses.
+Signature changes remain limited to Rust. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
 Signature changes retain unused-parameter and function-value refusals from the native planner.
 Every parameter must have an explicit primitive integer, Boolean or character type. Every indexed

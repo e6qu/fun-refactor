@@ -75,7 +75,7 @@ def deliver(binary, project, output, scope_root):
     store = DirectoryObjectStore(output/"objects")
     scope = ChangeScope.restore(store, scope_root)
     handle = client.project("find", "subtotal").definition_target().handle
-    targets = [RefactorRequest.rename("sum_values").target("rename", handle),
+    targets = [RefactorRequest.rename("sum_values", documentation="preserve").target("rename", handle),
                RefactorRequest.remove_parameter(2).target("remove", handle)]
     change = scope.bind(TaskChange([], targets, {"files-changed": 2,
         "paths-changed": ["pricing.rs", "api.rs"], "changed-operations": 2},
@@ -130,7 +130,7 @@ def measure(binary, output):
                 metrics = json.loads(run(args, ROOT).stdout)
                 plan = TaskPlan.restore(DirectoryObjectStore(output/"objects"), metrics["plan_root"])
                 assert plan.resume(FrClient(root, executable=binary)).complete
-                old_target = RefactorRequest.rename("another").target("stale", handle)
+                old_target = RefactorRequest.rename("another", documentation="preserve").target("stale", handle)
                 stale = scope.bind(TaskChange([], [old_target], {"files-changed": 2}, ["behavior"]))
                 try:
                     client.review(stale)

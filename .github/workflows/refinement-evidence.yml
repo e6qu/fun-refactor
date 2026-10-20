@@ -68,6 +68,7 @@ on:
           - fixed-arity-probes
           - go-toolchain
           - project-change-inspect
+          - project-change-development
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -123,6 +124,7 @@ jobs:
             crates
             queries
             sdk/python/src
+            sdk/python/tests
             tools
             tests/agent-eval/project-changes
       - uses: actions/setup-python@v7
@@ -132,11 +134,29 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
+      - name: Format project-change support on the runner
+        if: inputs.group == 'project-change-development'
+        run: |
+          cargo fmt --all
+          git diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - run: cargo build --locked --bin fr
+      - name: Check reviewed Python and Rust changes and saved findings
+        if: inputs.group == 'project-change-development'
+        run: |
+          python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+          ty check sdk/python/src
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Use fr to inspect its own change and invalidation code
         run: >-
           python3 -B tools/project-changes.py inspect --fr target/debug/fr
           --output "$RUNNER_TEMP/project-change-inspection"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: project-change-rustfmt
+          path: ${{ runner.temp }}/project-change-rustfmt.patch
+          if-no-files-found: ignore
+          retention-days: 30
       - uses: actions/upload-artifact@v7
         if: always()
         with:
