@@ -123,6 +123,8 @@ jobs:
             grammars
             crates
             queries
+            catalogs
+            kernels
             sdk/python/src
             sdk/python/tests
             tools
@@ -147,6 +149,7 @@ jobs:
           ty check sdk/python/src
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Use fr to inspect its own change and invalidation code
+        id: inspection
         run: >-
           python3 -B tools/project-changes.py inspect --fr target/debug/fr
           --output "$RUNNER_TEMP/project-change-inspection"
@@ -158,7 +161,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.inspection.outcome != 'skipped'
         with:
           name: project-change-inspection
           path: ${{ runner.temp }}/project-change-inspection/
