@@ -28,8 +28,11 @@ class ReportRetention(unittest.TestCase):
         catalog.parent.mkdir(parents=True)
         catalog.write_text(json.dumps({'evidence': [{'id': 'host-recovery'}]}))
         (catalog.parent / 'results').mkdir()
-        (root / 'tests/retained_proofs.rs').write_text(
-            '"tests/agent-eval/results/previous-retained-proofs/result.json"\n')
+        for group, name in reports.ACTIVE_REFERENCES.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            previous = path.read_text() if path.exists() else ''
+            path.write_text(previous + f'"tests/agent-eval/results/previous-{group}/result.json"\n')
         def execute(command, **_):
             if reject and '--audit' in command:
                 raise subprocess.CalledProcessError(1, command)
@@ -59,6 +62,9 @@ class ReportRetention(unittest.TestCase):
             self.assertEqual(receipt['sha256'], hashlib.sha256(original).hexdigest())
             self.assertEqual((root / 'tests/retained_proofs.rs').read_text(),
                              '"tests/agent-eval/results/test-reports-retained-proofs/result.json"\n')
+            for group, name in reports.ACTIVE_REFERENCES.items():
+                self.assertIn(f'"tests/agent-eval/results/test-reports-{group}/result.json"',
+                    (root / name).read_text())
 
     def test_mixed_collection_sources_are_rejected_before_saving(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -78,6 +84,10 @@ class ReportRetention(unittest.TestCase):
                              {'evidence': [{'id': 'host-recovery'}]})
             manifest = json.loads((saved / 'test-reports-ci-collection/manifest.json').read_text())
             self.assertEqual(set(manifest['groups']), {'retained-proofs'})
+            for group, name in reports.ACTIVE_REFERENCES.items():
+                if group != 'retained-proofs':
+                    self.assertIn(f'"tests/agent-eval/results/previous-{group}/result.json"',
+                        (root / name).read_text())
 
     def test_empty_refresh_refuses_before_any_report_is_saved(self):
         with tempfile.TemporaryDirectory() as directory:

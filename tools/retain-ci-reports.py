@@ -27,6 +27,15 @@ SCRIPTS = {
     'resumable-correspondence': 'correspondence-acceptance',
     'index-consumers': 'index-consumers-acceptance',
 }
+ACTIVE_REFERENCES = {
+    'project-batch-context': 'tests/agent_acceptance.rs',
+    'task-bundle-context': 'tests/agent_acceptance.rs',
+    'task-change-context': 'tools/agent_eval/test_harness.py',
+    'workflow-context': 'tests/agent_acceptance.rs',
+    'retained-proofs': 'tests/retained_proofs.rs',
+    'resumable-correspondence': 'tests/correspondence.rs',
+    'index-consumers': 'tests/consumer_measurements.rs',
+}
 
 
 def main():
@@ -82,14 +91,13 @@ def main():
     directory.mkdir()
     (directory / 'manifest.json').write_text(json.dumps(
         {'schema': 'fr-ci-report-collection', 'groups': receipts}, indent=2) + '\n')
-    if 'retained-proofs' in receipts:
-        proof_test = ROOT / 'tests/retained_proofs.rs'
+    for group in receipts.keys() & ACTIVE_REFERENCES.keys():
+        test = ROOT / ACTIVE_REFERENCES[group]
         text, count = re.subn(
-            r'"tests/agent-eval/results/[^"/]+-retained-proofs/result\.json"',
-            f'"tests/agent-eval/results/{args.prefix}-retained-proofs/result.json"',
-            proof_test.read_text())
-        require(count == 1, 'expected one active retained-proof replay reference')
-        proof_test.write_text(text)
+            r'"tests/agent-eval/results/[^"/]+-' + re.escape(group) + r'/result\.json"',
+            f'"tests/agent-eval/results/{args.prefix}-{group}/result.json"', test.read_text())
+        require(count == 1, 'expected one active replay reference for ' + group)
+        test.write_text(text)
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True, timeout=60)
 
 
