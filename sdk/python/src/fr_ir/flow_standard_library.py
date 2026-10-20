@@ -10,7 +10,7 @@ NAMESPACE_DIGEST = 'd566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b42
 
 MEMBERS = {
     'builtins': ['abs', 'int', 'float', 'bool', 'round', 'min', 'max', 'ValueError', 'TypeError'],
-    'math': ['ceil', 'floor', 'trunc', 'sqrt', 'fabs', 'isfinite', 'isinf', 'isnan', 'inf', 'nan', 'pi', 'e', 'tau'],
+    'math': ['ceil', 'floor', 'trunc', 'sqrt', 'fabs', 'isfinite', 'isinf', 'isnan', 'inf', 'nan', 'pi', 'e', 'tau', 'modf'],
     'bisect': ['bisect', 'bisect_left', 'bisect_right', 'insort', 'insort_left', 'insort_right'],
     'binascii': ['Error', 'Incomplete', 'hexlify', 'unhexlify', 'b2a_hex', 'a2b_hex', 'b2a_base64', 'a2b_base64', 'crc32', 'crc_hqx'],
     'datetime': ['date', 'datetime', 'time', 'timedelta', 'timezone', 'tzinfo', 'MINYEAR', 'MAXYEAR', 'UTC'],

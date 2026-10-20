@@ -16,7 +16,8 @@ MODULE_POLICY = ("Single-root modules/packages; local from-import names share a 
                  "Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. "
                  "Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. "
                  "Cycles require available names in execution order. "
-                 "Annotation directives need absent local __future__ candidates. "
+                 "Supported future directives need absent local __future__ candidates. "
+                 "Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. "
                  "Dynamic imports, merged namespaces and search paths stay unchecked.")
 
 
@@ -567,12 +568,12 @@ class FlowDependencies:
                     raise FrRuntimeError("malformed import lookup")
                 selected = _resolution(item, paths, modules["complete"] and not future, namespace_paths)
                 if future and (selected.module != "__future__"
-                        or item["alias"] != "annotations" or item["member"] != "annotations"
-                        or item["prefix"] != "annotations" or item["resolution"] != "future"
+                        or item["member"] not in {"annotations", "division", "print_function", "absolute_import", "unicode_literals"}
+                        or item["alias"] != item["member"] or item["prefix"] != item["member"] or item["resolution"] != "future"
                         or any(candidate.status != "missing" for candidate in selected.candidates) or selected.opaque_candidates
                         or item["binding_chain"] or item["submodule"] is not None
                         or item["terminal_module"] is not None or star is not None or exports is not None):
-                    raise FrRuntimeError("postponed annotations lack an unshadowed future directive")
+                    raise FrRuntimeError("future directive lacks its unshadowed standard binding")
                 if wildcard and exports is not None and (not selected.admitted or not any(
                         candidate.path == selected.target and candidate.status == "source" for candidate in selected.candidates)):
                     raise FrRuntimeError("star export list lacks a source module")

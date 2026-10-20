@@ -585,13 +585,32 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Check formatting before the frozen package comparison
+        if: inputs.group == 'package-questions-development'
+        run: |
+          if cargo fmt --all --check; then exit 0; fi
+          cargo fmt --all
+          git diff > "$RUNNER_TEMP/rustfmt.patch"
+          exit 1
+      - uses: actions/upload-artifact@v7
+        if: failure() && inputs.group == 'package-questions-development'
+        with:
+          name: rustfmt-correction
+          path: ${{ runner.temp }}/rustfmt.patch
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
       - name: Check original-package collector controls
         run: python3 -B tools/test-package-questions.py
       - run: cargo build --locked --bin fr
+      - name: Compare imported-module rules with ordinary Python
+        if: inputs.group == 'package-questions-development'
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_imported_program_guards.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_standard_library.py
       - name: Collect original imports and independent Python answers
         env:
           GH_TOKEN: ${{ github.token }}

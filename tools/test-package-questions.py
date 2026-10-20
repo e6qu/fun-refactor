@@ -1,6 +1,9 @@
 """Protect the unread helper selection and retain an empty selection as a failure."""
 import importlib.util
 import copy
+import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,43 +15,19 @@ questions = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(questions)
 
 
-class UnreadSelection(unittest.TestCase):
-    def test_selection_uses_path_then_declaration_order(self):
+class IndependentRuntime(unittest.TestCase):
+    def test_project_imports_do_not_reuse_the_collectors_sdk_or_tools(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'z.py').write_text('def z(value):\n    return value\n')
-            (root / 'a.py').write_text('def first(item):\n    """User docs."""\n    return item\ndef second(value):\n    return value\n')
-            selected = questions.inspect_unread(root)
-            self.assertEqual((selected['module'], selected['function'], selected['line']), ('a', 'first', 1))
-            self.assertEqual(selected['source_sha256'], questions.flow.sha((root / 'a.py').read_bytes()))
-
-    def test_copied_examples_decorators_methods_and_nonidentity_bodies_do_not_qualify(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'tests').mkdir()
-            (root / 'tests/identity.py').write_text('def identity(value):\n    return value\n')
-            (root / 'library.py').write_text('''@replace
-def decorated(value):
-    return value
-def arithmetic(value):
-    return value + 1
-def two(value, other):
-    return value
-class Wrapper:
-    def method(value):
-        return value
-''')
-            with self.assertRaisesRegex(ValueError, 'no helper satisfies'):
-                questions.inspect_unread(root)
-
-    def test_package_initializer_keeps_the_original_import(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'library').mkdir()
-            (root / 'library/__init__.py').write_text('def identity(value):\n    return value\n')
-            selected = questions.inspect_unread(root)
-            self.assertEqual(selected['module'], 'library')
-            self.assertEqual(selected['path'], 'library/__init__.py')
+            (root / 'fr_ir.py').write_text('def relay(value):\n    return value + 1\n')
+            (root / 'evidence_basis.py').write_text('amount = 2\n')
+            (root / 'sitecustomize.py').write_text("raise RuntimeError('project startup hook ran before the explicit import')\n")
+            (root / 'question.py').write_text('import sys\nassert not any(name.startswith("fr_ir") for name in sys.modules)\nfrom fr_ir import relay\nfrom evidence_basis import amount\ndef entry():\n    return relay(emit_value()) + amount\n')
+            request = root / 'request.json'
+            request.write_text(json.dumps({'scope': str(root), 'path': 'question.py', 'entry': 'entry', 'value': 17}))
+            result = subprocess.run([sys.executable, '-I', '-B', '-c', questions.RUNTIME_SOURCE, str(request)],
+                                    cwd=root, capture_output=True, text=True, check=True, timeout=10)
+            self.assertEqual(json.loads(result.stdout), {'value': 20})
 
 
 class CoverageBeforeUnread(unittest.TestCase):
@@ -91,7 +70,7 @@ class CoverageBeforeUnread(unittest.TestCase):
         self.check(*self.example())
 
     def test_missing_questions_wrong_answers_and_unfrozen_results_refuse(self):
-        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'expected', 'changed-source', 'cache', 'stage-link', 'stage-missing'):
+        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'runtime-type', 'expected', 'changed-source', 'cache', 'stage-link', 'stage-missing'):
             with self.subTest(mutation=mutation):
                 record, value = self.example()
                 row = value['projects'][0]
@@ -103,6 +82,7 @@ class CoverageBeforeUnread(unittest.TestCase):
                 elif mutation == 'false-blocked': row['cases'][1]['analysis']['result']['witnesses'] = 1
                 elif mutation == 'stop': row['cases'][0]['analysis']['stop_reason'] = 'cpu_seconds'
                 elif mutation == 'runtime': row['cases'][0]['runtime'][0]['observation']['result']['value'] = 0
+                elif mutation == 'runtime-type': row['cases'][0]['runtime'][0]['observation']['result']['value'] = float(row['cases'][0]['runtime'][0]['expected'])
                 elif mutation == 'expected':
                     row['cases'][0]['runtime'][0]['expected'] = 0
                     row['cases'][0]['runtime'][0]['observation']['result']['value'] = 0

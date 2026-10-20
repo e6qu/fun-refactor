@@ -8,7 +8,7 @@ mod order;
 const MODULE_LIMIT: usize = 16;
 const BYTE_LIMIT: usize = 262_144;
 const IMPORT_LIMIT: usize = 128;
-const POLICY: &str = "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Annotation directives need absent local __future__ candidates. Dynamic imports, merged namespaces and search paths stay unchecked.";
+const POLICY: &str = "Single-root modules/packages; local from-import names share a provider search. Child searches use the same budget. Explicit standard model bindings each use one lookup and require absent local candidates. Proved missing sibling imports may select literal metadata handlers. Unused plain module attribute hooks defer; required missing-member hooks stay unchecked. Cycles require available names in execution order. Supported future directives need absent local __future__ candidates. Imported non-entry modules may omit one exact main guard without other __name__ uses or alternatives. Dynamic imports, merged namespaces and search paths stay unchecked.";
 
 #[derive(Clone, Serialize)]
 pub(super) struct Binding {
@@ -36,6 +36,8 @@ pub(super) struct Modules {
     scalar_values: BTreeSet<(PathBuf, usize)>,
     opaque_bindings: BTreeMap<PathBuf, BTreeSet<String>>,
     future_nodes: BTreeMap<PathBuf, BTreeSet<usize>>,
+    future_directives: BTreeMap<PathBuf, BTreeSet<usize>>,
+    imported_main_guards: BTreeMap<PathBuf, BTreeSet<usize>>,
     startup_choices: BTreeMap<PathBuf, BTreeMap<usize, usize>>,
     pub cutoffs: BTreeSet<String>,
     pub inputs: Value,
@@ -420,6 +422,44 @@ fn opaque_names<'s>(node: Node<'_>, source: &'s str) -> Vec<&'s str> {
         _ => (),
     }
     names
+}
+
+fn imported_main_guards(root: Node<'_>, source: &str) -> BTreeSet<usize> {
+    let mut occurrences = Vec::new();
+    let mut pending = vec![root];
+    while let Some(node) = pending.pop() {
+        if node.kind() == "identifier" && &source[node.byte_range()] == "__name__" {
+            occurrences.push(node.start_byte());
+        }
+        pending.extend(node.named_children(&mut node.walk()));
+    }
+    // Reject every other use, including rebinding, imports and attribute access.
+    if occurrences.len() != 1 {
+        return BTreeSet::new();
+    }
+    root.named_children(&mut root.walk())
+        .filter(|node| {
+            if node.kind() != "if_statement"
+                || node.named_children(&mut node.walk()).filter(|child| child.kind() != "comment").count() != 2
+            {
+                return false;
+            }
+            let Some(condition) = node.child_by_field_name("condition").and_then(calls::unparenthesized) else {
+                return false;
+            };
+            let values: Vec<_> = condition.named_children(&mut condition.walk()).filter(|child| child.kind() != "comment").collect();
+            if condition.kind() != "comparison_operator" || values.len() != 2 {
+                return false;
+            }
+            let (left, right) = (values[0], values[1]);
+            left.kind() == "identifier"
+                && &source[left.byte_range()] == "__name__"
+                && right.kind() == "string"
+                && matches!(&source[right.byte_range()], "'__main__'" | "\"__main__\"")
+                && source[left.end_byte()..right.start_byte()].trim() == "=="
+        })
+        .map(|node| node.start_byte())
+        .collect()
 }
 
 fn declares_member(
@@ -828,6 +868,13 @@ impl Modules {
     pub(super) fn statement_nodes<'t>(&self, file: &Path, parsed: &'t Parsed) -> Vec<Node<'t>> {
         let mut nodes = Vec::new();
         for node in parsed.root().named_children(&mut parsed.root().walk()) {
+            if self
+                .imported_main_guards
+                .get(file)
+                .is_some_and(|nodes| nodes.contains(&node.start_byte()))
+            {
+                continue;
+            }
             if let Some(start) = self
                 .startup_choices
                 .get(file)
@@ -973,7 +1020,7 @@ impl Modules {
     }
 
     pub(super) fn future_statement_is_inert(&self, file: &Path, start: usize) -> bool {
-        self.future_nodes
+        self.future_directives
             .get(file)
             .is_some_and(|nodes| nodes.contains(&start))
     }
@@ -1144,6 +1191,8 @@ impl Modules {
             scalar_values: BTreeSet::new(),
             opaque_bindings: BTreeMap::new(),
             future_nodes: BTreeMap::new(),
+            future_directives: BTreeMap::new(),
+            imported_main_guards: BTreeMap::new(),
             startup_choices: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
@@ -1207,6 +1256,17 @@ impl Modules {
             let mut opaque_bindings = BTreeSet::new();
             let declared_exports = calls::declared_exports(parsed.root(), source);
             let future_nodes = calls::future_annotation_nodes(parsed.root(), source);
+            let directive_nodes = calls::future_directive_nodes(
+                parsed.root(),
+                source,
+                calls::FUTURE_DIRECTIVES,
+            );
+            if file != entry && file.file_name().is_some_and(|name| name != "__main__.py") {
+                result.imported_main_guards.insert(
+                    file.clone(),
+                    imported_main_guards(parsed.root(), source),
+                );
+            }
             let explicit_builtins = calls::explicit_builtins(parsed.root(), source);
             let mut allocations = initializers::Allocations::default();
             let mut startup = Vec::new();
@@ -1542,13 +1602,20 @@ impl Modules {
                             .cutoffs
                             .insert("standard-library-import-collision".into());
                     }
-                    binding.future = future_nodes.contains(&node.start_byte())
+                    binding.future = directive_nodes.contains(&node.start_byte())
                         && resolution.opaque_candidates.is_empty()
                         && resolution
                             .candidates
                             .values()
                             .all(|value| value["status"] == "missing");
                     if binding.future {
+                        result
+                            .future_directives
+                            .entry(file.clone())
+                            .or_default()
+                            .insert(node.start_byte());
+                    }
+                    if binding.future && future_nodes.contains(&node.start_byte()) {
                         result
                             .future_nodes
                             .entry(file.clone())

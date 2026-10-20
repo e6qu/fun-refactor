@@ -2,7 +2,6 @@
 """Retain original-package answers and independent Python checks, including failures."""
 import argparse
 import ast
-import datetime
 import importlib.util
 import io
 import json
@@ -32,6 +31,27 @@ LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
 CACHE_STAGES = [('cold', False, True), ('restored', True, True), ('unrelated-edit', True, True),
                 ('helper-replaced', False, False), ('helper-restored', True, True), ('import-replaced', False, False)]
 
+# This reference process imports neither the SDK nor the evaluation framework.
+# -I prevents project startup hooks from running before the explicit import root.
+RUNTIME_SOURCE = '''import datetime, importlib.util, json, sys
+from pathlib import Path
+request = json.loads(Path(sys.argv[1]).read_text())
+scope = Path(request['scope'])
+sys.path.insert(0, str(scope))
+spec = importlib.util.spec_from_file_location('package_question', scope / request['path'])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.emit_value = lambda: request['value']
+module.record_value = lambda value: value
+module.opaque = lambda value: value
+value = getattr(module, request['entry'])()
+if type(value) is datetime.date:
+    value = value.isoformat()
+if value is not None and type(value) not in (int, float, bool, str):
+    raise ValueError('runtime result is outside the declared scalar/date contract')
+print(json.dumps({'value': value}))
+'''
+
 
 def save(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
@@ -54,22 +74,6 @@ def prepare(scope, project, variant, case):
     (scope / path).write_text(source)
     (scope / 'rules.json').write_text(json.dumps(RULES))
     return path, entry, source
-
-
-def runtime(request):
-    scope = Path(request['scope'])
-    sys.path.insert(0, str(scope))
-    spec = importlib.util.spec_from_file_location('package_question', scope / request['path'])
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    module.emit_value = lambda: request['value']
-    module.record_value = lambda value: value
-    module.opaque = lambda value: value
-    value = getattr(module, request['entry'])()
-    if type(value) is datetime.date:
-        value = value.isoformat()
-    flow.require(value is None or type(value) in (int, float, bool, str), 'runtime result is outside the declared scalar/date contract')
-    print(json.dumps({'value': value}))
 
 
 def analysis(request):
@@ -175,7 +179,9 @@ def execute(output, name, request, scope):
     save(directory / 'request.json', request)
     environment = {'PATH': os.environ['PATH'], 'HOME': str(directory), 'LANG': 'C.UTF-8',
                    'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'}
-    command = [sys.executable, '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')]
+    command = ([sys.executable, '-I', '-B', '-c', RUNTIME_SOURCE, str(directory / 'request.json')]
+               if request['mode'] == 'runtime' else
+               [sys.executable, '-I', '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')])
     with (directory / 'stdout').open('wb') as stdout, (directory / 'stderr').open('wb') as stderr:
         observation = run(command, b'', stdout, stderr, output, env=environment, cwd=scope, **LIMITS)
     observation['command'] = command
@@ -186,32 +192,6 @@ def execute(output, name, request, scope):
         observation['result'] = json.loads((directory / 'stdout').read_text())
     save(directory / 'observation.json', observation)
     return observation
-
-
-def inspect_unread(scope):
-    candidates = []
-    for path in sorted(scope.rglob('*.py')):
-        relative = path.relative_to(scope)
-        if any(part.startswith('.') or part in ('tests', 'test', 'docs', 'examples') for part in relative.parts):
-            continue
-        for node in ast.parse(path.read_bytes()).body:
-            if not isinstance(node, ast.FunctionDef) or node.decorator_list or node.returns:
-                continue
-            args = node.args.posonlyargs + node.args.args
-            body = list(node.body)
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
-                body.pop(0)
-            if (len(args) == 1 and not args[0].annotation and not node.args.kwarg and not node.args.kwonlyargs
-                    and len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name)
-                    and body[0].value.id == args[0].arg):
-                parts = list(relative.with_suffix('').parts)
-                if parts[-1] == '__init__':
-                    parts.pop()
-                if parts and all(part.isidentifier() for part in parts):
-                    candidates.append({'path': relative.as_posix(), 'line': node.lineno, 'module': '.'.join(parts),
-                                       'function': node.name, 'source_sha256': flow.sha(path.read_bytes())})
-    flow.require(candidates, 'no helper satisfies the frozen selection rule')
-    return candidates[0]
 
 
 def admission(root):
@@ -278,6 +258,7 @@ def checked_coverage(record, value, source, frozen):
             flow.require(len(cell['runtime']) == 2 and all(
                 item['input'] == project['values'][index] and item['expected'] == expected_values[index]
                 and item['observation']['exit_code'] == 0 and item['observation']['stop_reason'] is None
+                and type(item['observation']['result']['value']) is type(expected_values[index])
                 and item['observation']['result'] == {'value': expected_values[index]}
                 for index, item in enumerate(cell['runtime'])),
                 'coverage includes an incorrect Python example')
@@ -359,9 +340,7 @@ def collect(args):
             row['admission'] = admission(upstream)
             scope = upstream / project['python_root']
             if role == 'held-out':
-                row['selection'] = inspect_unread(scope)
-                project.update({key: row['selection'][key] for key in ('module', 'function')})
-                project.update(expression='relay(VALUE)', overwrite=0, values=[17, 31], expected=[17, 31], blocked=0)
+                row['selection'] = project['public_question']
             for variant in ('original', 'renamed-relocated'):
                 for case in ('positive', 'overwritten', 'unknown', 'steps'):
                     path, entry, adapter = prepare(scope, project, variant, case)
@@ -376,7 +355,10 @@ def collect(args):
                         observed = execute(directory, f'{name}-python-{index}', request, scope)
                         expected = project['blocked'] if case == 'overwritten' else project['expected'][index]
                         cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
-                        flow.require(observed['result'] == {'value': expected}, 'ordinary Python disagrees with the independent example')
+                        flow.require(observed['result'] is not None
+                                     and type(observed['result']['value']) is type(expected)
+                                     and observed['result'] == {'value': expected},
+                                     'ordinary Python disagrees with the independent example')
                     save(output / 'result.json', result)
             if role == 'coverage':
                 collect_cache_controls(scope, project, directory, args.fr, row, result, output)
@@ -415,7 +397,7 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
     if arguments.worker:
         request = json.loads(arguments.worker.read_text())
-        {'analysis': analysis, 'runtime': runtime, 'cache': cache_controls}[request['mode']](request)
+        {'analysis': analysis, 'cache': cache_controls}[request['mode']](request)
     else:
         flow.require(arguments.phase is not None and arguments.output is not None and arguments.fr is not None,
                      'collection requires explicit phase, output and analyzer binary')
