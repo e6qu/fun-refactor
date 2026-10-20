@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**8 of 18 specific test requirements have matching recorded results; 10 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**9 of 18 specific test requirements have matching recorded results; 9 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -36,7 +36,7 @@ The implementation column counts completed code changes. The test column counts 
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
 | B. Explain how values move through code | 4/5 | 2/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
-| D. Make checked changes and useful proofs | 1/6 | 1/6 | open |
+| D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
 
 ## Finite acceptance obligations
 
@@ -222,9 +222,9 @@ Next: Choose a useful function and exact property before writing it; reuse the g
 
 User example: Resume or undo an interrupted edit without overwriting someone else’s newer work.
 
-**State: open.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
+**State: demonstrated.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
 
-Recorded results or remaining work: host-recovery: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [host-recovery](../tests/agent-eval/results/2026-10-20-recovery-ci-host-recovery/result.json).
 
 Next: Keep the process-interruption tests passing and preserve the limit on what they establish.
 
@@ -238,7 +238,7 @@ The entries below identify the stored test results. “Current” means their re
 | [package-flow](../tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json) / scripted behavior checks | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json` |
 | [repository-tasks](../tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json) / measured tool operations | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json` |
-| [host-recovery](../tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json) / deliberately interrupted operations | checked | stale (2 changed inputs) | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json` |
+| [host-recovery](../tests/agent-eval/results/2026-10-20-recovery-ci-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-recovery-ci-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / scripted behavior checks | checked | historical | Rust rename/signature migration with 49 calls; frozen recorded input fingerprints. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three Boolean model relations; no source implementation connection between the descriptions. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
