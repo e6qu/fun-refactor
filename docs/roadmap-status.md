@@ -25,7 +25,7 @@ A requirement is one specific behavior we promise to check. A recorded result de
 
 Keep the guides understandable from the user’s task. Next, improve Python tracing from the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects after freezing the implementation, and compare complete agent tasks when independent task selection and cost limits are ready.
 
-See the [plan](../PLAN.md#next-large-chunk) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
+See the [plan](../PLAN.md#completed-package-milestones-and-next-work) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
 ## Milestones
 

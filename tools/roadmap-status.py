@@ -219,7 +219,7 @@ def markdown(report):
         'the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects '
         'after freezing the implementation, and compare complete agent tasks when independent '
         'task selection and cost limits are ready.', '',
-        'See the [plan](../PLAN.md#next-large-chunk) for the work sequence and '
+        'See the [plan](../PLAN.md#completed-package-milestones-and-next-work) for the work sequence and '
         '[generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.', '',
         '## Milestones', '',
         'The implementation column counts completed code changes. The test column counts specific '

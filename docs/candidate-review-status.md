@@ -69,7 +69,7 @@ Evidence: [flat-grammar counterexample](../tests/agent-eval/opencode/reviews/202
 
 ## Before another comparison
 
-Follow the [current work sequence](../PLAN.md#next-large-chunk). First resolve resource admission
+Follow the [current work sequence](../PLAN.md#completed-package-milestones-and-next-work). First resolve resource admission
 with representative scripted checks. A new collection must freeze its task, grader, tool surface,
 models, source, budgets and stop rule before calls. Keep ordinary tools available and report actual
 fr use separately. Preserve every historical failure and stopped cell.
