@@ -69,6 +69,7 @@ on:
           - go-toolchain
           - project-change-inspect
           - project-change-development
+          - project-change-consumer-scope
           - project-change-delivery
           - project-change-findings
           - project-change-freeze
@@ -135,6 +136,7 @@ jobs:
             sdk/python/tests
             tools
             tests/agent-eval/project-changes
+            tests/agent-eval/change-scope
             tests/agent-eval/package-questions
             tests/agent-eval/python-repository-flow
             tests/agent-eval/python-repositories/boltons.tar.gz
@@ -191,6 +193,12 @@ jobs:
       - name: Prepare original project checks
         if: contains(fromJSON('["project-change-delivery", "project-change-freeze", "project-change-retain"]'), inputs.group)
         run: python3 -m pip install 'pytest==9.1.1'
+      - name: Replay consumer discovery and delivery with the current report
+        id: consumer-scope
+        if: inputs.group == 'project-change-consumer-scope'
+        run: >-
+          python3 -B tools/change-scope-acceptance.py --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-consumer-scope"
       - name: Deliver original Rust and Python renames through fr
         id: delivery
         if: inputs.group == 'project-change-delivery'
@@ -323,6 +331,66 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.consumer-scope.outcome != 'skipped'
+        with:
+          name: project-change-consumer-scope
+          path: ${{ runner.temp }}/project-change-consumer-scope/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+  record-consumer-scope:
+    if: inputs.group == 'project-change-consumer-scope' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/download-artifact@v8
+        with:
+          name: project-change-consumer-scope
+          path: tests/agent-eval/results/${{ inputs.prefix }}-change-scope
+      - name: Verify the new record and point CI at it
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          prefix = os.environ['EVIDENCE_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          directory = 'tests/agent-eval/results/' + prefix + '-change-scope'
+          subprocess.run(['python3', '-B', 'tools/change-scope-acceptance.py', '--audit', directory], check=True)
+          test = Path('tests/agent_acceptance.rs')
+          text, count = re.subn(r'"tests/agent-eval/results/[^"/]+-change-scope"',
+              '"' + directory + '"', test.read_text())
+          assert count == 1
+          test.write_text(text)
+          for name in ('docs/change-scopes.md', 'docs/evaluations.md'):
+              path = Path(name)
+              text, count = re.subn(r'\.\./tests/agent-eval/results/[^/()]+-change-scope/manifest\.json',
+                  '../' + directory + '/manifest.json', path.read_text())
+              assert count == 1
+              path.write_text(text)
+          PY
+      - name: Commit the checked record and its references
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-change-scope" tests/agent_acceptance.rs docs/change-scopes.md docs/evaluations.md
+          git commit -m 'test: retain current consumer discovery and checked delivery'
+          git push origin "HEAD:refs/heads/$BRANCH"
 
   record-project-change-freeze:
     if: inputs.group == 'project-change-freeze' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
