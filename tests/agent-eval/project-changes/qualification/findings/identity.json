@@ -1,0 +1,571 @@
+{
+  "artifact": {
+    "archive_download_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/artifacts/12289314078/zip",
+    "created_at": "2026-10-20T18:50:14Z",
+    "digest": "sha256:27faa7295c7cfda56b51ba8dbee05dec4ea84356c1bc1ed165fa68c02d7f55e2",
+    "expired": false,
+    "expires_at": "2026-11-19T18:50:12Z",
+    "id": 12289314078,
+    "name": "project-change-findings",
+    "node_id": "MDg6QXJ0aWZhY3QxMjI4OTMxNDA3OA==",
+    "size_in_bytes": 1160229,
+    "updated_at": "2026-10-20T18:50:14Z",
+    "url": "https://api.github.com/repos/e6qu/fun-refactor/actions/artifacts/12289314078",
+    "workflow_run": {
+      "head_branch": "feat/real-project-changes",
+      "head_repository_id": 1320212072,
+      "head_sha": "16d93af09631f69054261a7bfdc7ab85d718d0a0",
+      "id": 39477284851,
+      "repository_id": 1320212072
+    }
+  },
+  "collection": {
+    "artifact_digest": "sha256:27faa7295c7cfda56b51ba8dbee05dec4ea84356c1bc1ed165fa68c02d7f55e2",
+    "artifact_id": 12289314078,
+    "attempt": 1,
+    "producer_job_id": 118816420544,
+    "run_id": "39477284851",
+    "source_commit": "16d93af09631f69054261a7bfdc7ab85d718d0a0",
+    "url": "https://github.com/e6qu/fun-refactor/actions/runs/39477284851"
+  },
+  "producer": {
+    "check_run_url": "https://api.github.com/repos/e6qu/fun-refactor/check-runs/118816420544",
+    "completed_at": "2026-10-20T18:50:16Z",
+    "conclusion": "success",
+    "created_at": "2026-10-20T18:43:48Z",
+    "head_branch": "feat/real-project-changes",
+    "head_sha": "16d93af09631f69054261a7bfdc7ab85d718d0a0",
+    "html_url": "https://github.com/e6qu/fun-refactor/actions/runs/39477284851/job/118816420544",
+    "id": 118816420544,
+    "labels": [
+      "ubuntu-latest"
+    ],
+    "name": "project-changes",
+    "node_id": "CR_kwDOTrDWaM8AAAAbqgKywA",
+    "run_attempt": 1,
+    "run_id": 39477284851,
+    "run_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions",
+    "runner_id": 1000344823,
+    "runner_name": "GitHub Actions 1000344823",
+    "started_at": "2026-10-20T18:47:11Z",
+    "status": "completed",
+    "steps": [
+      {
+        "completed_at": "2026-10-20T18:47:14Z",
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "started_at": "2026-10-20T18:47:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:47:20Z",
+        "conclusion": "success",
+        "name": "Run actions/checkout@v7",
+        "number": 2,
+        "started_at": "2026-10-20T18:47:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:47:20Z",
+        "conclusion": "success",
+        "name": "Run actions/setup-python@v7",
+        "number": 3,
+        "started_at": "2026-10-20T18:47:20Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:47:30Z",
+        "conclusion": "success",
+        "name": "Run rustup toolchain install stable --profile minimal --component rustfmt",
+        "number": 4,
+        "started_at": "2026-10-20T18:47:20Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:47:32Z",
+        "conclusion": "success",
+        "name": "Run Swatinem/rust-cache@v2",
+        "number": 5,
+        "started_at": "2026-10-20T18:47:30Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:47:32Z",
+        "conclusion": "skipped",
+        "name": "Format project-change support on the runner",
+        "number": 6,
+        "started_at": "2026-10-20T18:47:32Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:28Z",
+        "conclusion": "success",
+        "name": "Run cargo build --locked --bin fr",
+        "number": 7,
+        "started_at": "2026-10-20T18:47:32Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:28Z",
+        "conclusion": "skipped",
+        "name": "Synchronize the reviewed admission rule through fr",
+        "number": 8,
+        "started_at": "2026-10-20T18:48:28Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "success",
+        "name": "Use fr to inspect its own change and invalidation code",
+        "number": 9,
+        "started_at": "2026-10-20T18:48:28Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "skipped",
+        "name": "Check reviewed Python and Rust changes and saved findings",
+        "number": 10,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "skipped",
+        "name": "Recheck earlier package questions with the current checker",
+        "number": 11,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "skipped",
+        "name": "Prepare original project checks",
+        "number": 12,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "skipped",
+        "name": "Replay consumer discovery and delivery with the current report",
+        "number": 13,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:48:37Z",
+        "conclusion": "skipped",
+        "name": "Deliver original Rust and Python renames through fr",
+        "number": 14,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:49:17Z",
+        "conclusion": "success",
+        "name": "Build and demonstrate the real checker difference",
+        "number": 15,
+        "started_at": "2026-10-20T18:48:37Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:10Z",
+        "conclusion": "success",
+        "name": "Reopen findings after changes to original familiar projects",
+        "number": 16,
+        "started_at": "2026-10-20T18:49:17Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:10Z",
+        "conclusion": "skipped",
+        "name": "Record the checked procedure before opening unread source",
+        "number": 17,
+        "started_at": "2026-10-20T18:50:10Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:10Z",
+        "conclusion": "skipped",
+        "name": "Run the first reserved unread-project evaluation",
+        "number": 18,
+        "started_at": "2026-10-20T18:50:10Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:10Z",
+        "conclusion": "skipped",
+        "name": "Audit and retain every original project outcome",
+        "number": 19,
+        "started_at": "2026-10-20T18:50:10Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:10Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 20,
+        "started_at": "2026-10-20T18:50:10Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:11Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 21,
+        "started_at": "2026-10-20T18:50:10Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:11Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 22,
+        "started_at": "2026-10-20T18:50:11Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:12Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 23,
+        "started_at": "2026-10-20T18:50:11Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "success",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 24,
+        "started_at": "2026-10-20T18:50:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 25,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 26,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 27,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 28,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "skipped",
+        "name": "Run actions/upload-artifact@v7",
+        "number": 29,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "success",
+        "name": "Post Run Swatinem/rust-cache@v2",
+        "number": 56,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "success",
+        "name": "Post Run actions/setup-python@v7",
+        "number": 57,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "success",
+        "name": "Post Run actions/checkout@v7",
+        "number": 58,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-20T18:50:14Z",
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 59,
+        "started_at": "2026-10-20T18:50:14Z",
+        "status": "completed"
+      }
+    ],
+    "url": "https://api.github.com/repos/e6qu/fun-refactor/actions/jobs/118816420544",
+    "workflow_name": "Refresh refinement evidence"
+  },
+  "run": {
+    "actor": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/2966430?v=4",
+      "events_url": "https://api.github.com/users/e6qu/events{/privacy}",
+      "followers_url": "https://api.github.com/users/e6qu/followers",
+      "following_url": "https://api.github.com/users/e6qu/following{/other_user}",
+      "gists_url": "https://api.github.com/users/e6qu/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/e6qu",
+      "id": 2966430,
+      "login": "e6qu",
+      "node_id": "MDQ6VXNlcjI5NjY0MzA=",
+      "organizations_url": "https://api.github.com/users/e6qu/orgs",
+      "received_events_url": "https://api.github.com/users/e6qu/received_events",
+      "repos_url": "https://api.github.com/users/e6qu/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/e6qu/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/e6qu/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/e6qu",
+      "user_view_type": "public"
+    },
+    "artifacts_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851/artifacts",
+    "cancel_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851/cancel",
+    "check_suite_id": 106981569740,
+    "check_suite_node_id": "CS_kwDOTrDWaM8AAAAY6Jk0zA",
+    "check_suite_url": "https://api.github.com/repos/e6qu/fun-refactor/check-suites/106981569740",
+    "conclusion": "success",
+    "created_at": "2026-10-20T18:43:46Z",
+    "display_title": "Refresh refinement evidence",
+    "event": "workflow_dispatch",
+    "head_branch": "feat/real-project-changes",
+    "head_commit": {
+      "author": {
+        "email": "2966430+e6qu@users.noreply.github.com",
+        "name": "e6qu"
+      },
+      "committer": {
+        "email": "2966430+e6qu@users.noreply.github.com",
+        "name": "e6qu"
+      },
+      "id": "16d93af09631f69054261a7bfdc7ab85d718d0a0",
+      "message": "fix: reject dirty qualification and commit runner formatting",
+      "timestamp": "2026-10-20T18:43:11Z",
+      "tree_id": "3d0b6c792c8aaf2462d04ba4d63ca4e13755227f"
+    },
+    "head_repository": {
+      "archive_url": "https://api.github.com/repos/e6qu/fun-refactor/{archive_format}{/ref}",
+      "assignees_url": "https://api.github.com/repos/e6qu/fun-refactor/assignees{/user}",
+      "blobs_url": "https://api.github.com/repos/e6qu/fun-refactor/git/blobs{/sha}",
+      "branches_url": "https://api.github.com/repos/e6qu/fun-refactor/branches{/branch}",
+      "collaborators_url": "https://api.github.com/repos/e6qu/fun-refactor/collaborators{/collaborator}",
+      "comments_url": "https://api.github.com/repos/e6qu/fun-refactor/comments{/number}",
+      "commits_url": "https://api.github.com/repos/e6qu/fun-refactor/commits{/sha}",
+      "compare_url": "https://api.github.com/repos/e6qu/fun-refactor/compare/{base}...{head}",
+      "contents_url": "https://api.github.com/repos/e6qu/fun-refactor/contents/{+path}",
+      "contributors_url": "https://api.github.com/repos/e6qu/fun-refactor/contributors",
+      "deployments_url": "https://api.github.com/repos/e6qu/fun-refactor/deployments",
+      "description": "Multi-language refactoring and code-intelligence CLI on tree-sitter",
+      "downloads_url": "https://api.github.com/repos/e6qu/fun-refactor/downloads",
+      "events_url": "https://api.github.com/repos/e6qu/fun-refactor/events",
+      "fork": false,
+      "forks_url": "https://api.github.com/repos/e6qu/fun-refactor/forks",
+      "full_name": "e6qu/fun-refactor",
+      "git_commits_url": "https://api.github.com/repos/e6qu/fun-refactor/git/commits{/sha}",
+      "git_refs_url": "https://api.github.com/repos/e6qu/fun-refactor/git/refs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/e6qu/fun-refactor/git/tags{/sha}",
+      "hooks_url": "https://api.github.com/repos/e6qu/fun-refactor/hooks",
+      "html_url": "https://github.com/e6qu/fun-refactor",
+      "id": 1320212072,
+      "issue_comment_url": "https://api.github.com/repos/e6qu/fun-refactor/issues/comments{/number}",
+      "issue_events_url": "https://api.github.com/repos/e6qu/fun-refactor/issues/events{/number}",
+      "issues_url": "https://api.github.com/repos/e6qu/fun-refactor/issues{/number}",
+      "keys_url": "https://api.github.com/repos/e6qu/fun-refactor/keys{/key_id}",
+      "labels_url": "https://api.github.com/repos/e6qu/fun-refactor/labels{/name}",
+      "languages_url": "https://api.github.com/repos/e6qu/fun-refactor/languages",
+      "merges_url": "https://api.github.com/repos/e6qu/fun-refactor/merges",
+      "milestones_url": "https://api.github.com/repos/e6qu/fun-refactor/milestones{/number}",
+      "name": "fun-refactor",
+      "node_id": "R_kgDOTrDWaA",
+      "notifications_url": "https://api.github.com/repos/e6qu/fun-refactor/notifications{?since,all,participating}",
+      "owner": {
+        "avatar_url": "https://avatars.githubusercontent.com/u/2966430?v=4",
+        "events_url": "https://api.github.com/users/e6qu/events{/privacy}",
+        "followers_url": "https://api.github.com/users/e6qu/followers",
+        "following_url": "https://api.github.com/users/e6qu/following{/other_user}",
+        "gists_url": "https://api.github.com/users/e6qu/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/e6qu",
+        "id": 2966430,
+        "login": "e6qu",
+        "node_id": "MDQ6VXNlcjI5NjY0MzA=",
+        "organizations_url": "https://api.github.com/users/e6qu/orgs",
+        "received_events_url": "https://api.github.com/users/e6qu/received_events",
+        "repos_url": "https://api.github.com/users/e6qu/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/e6qu/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/e6qu/subscriptions",
+        "type": "User",
+        "url": "https://api.github.com/users/e6qu",
+        "user_view_type": "public"
+      },
+      "private": false,
+      "pulls_url": "https://api.github.com/repos/e6qu/fun-refactor/pulls{/number}",
+      "releases_url": "https://api.github.com/repos/e6qu/fun-refactor/releases{/id}",
+      "stargazers_url": "https://api.github.com/repos/e6qu/fun-refactor/stargazers",
+      "statuses_url": "https://api.github.com/repos/e6qu/fun-refactor/statuses/{sha}",
+      "subscribers_url": "https://api.github.com/repos/e6qu/fun-refactor/subscribers",
+      "subscription_url": "https://api.github.com/repos/e6qu/fun-refactor/subscription",
+      "tags_url": "https://api.github.com/repos/e6qu/fun-refactor/tags",
+      "teams_url": "https://api.github.com/repos/e6qu/fun-refactor/teams",
+      "trees_url": "https://api.github.com/repos/e6qu/fun-refactor/git/trees{/sha}",
+      "url": "https://api.github.com/repos/e6qu/fun-refactor"
+    },
+    "head_sha": "16d93af09631f69054261a7bfdc7ab85d718d0a0",
+    "html_url": "https://github.com/e6qu/fun-refactor/actions/runs/39477284851",
+    "id": 39477284851,
+    "jobs_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851/jobs",
+    "logs_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851/logs",
+    "name": "Refresh refinement evidence",
+    "node_id": "WFR_kwLOTrDWaM8AAAAJMQeP8w",
+    "path": ".github/workflows/refinement-evidence.yml",
+    "previous_attempt_url": null,
+    "pull_requests": [
+      {
+        "base": {
+          "ref": "main",
+          "repo": {
+            "id": 1320212072,
+            "name": "fun-refactor",
+            "url": "https://api.github.com/repos/e6qu/fun-refactor"
+          },
+          "sha": "06294a686ef7ebe29987787bd2ef29b441ac0147"
+        },
+        "head": {
+          "ref": "feat/real-project-changes",
+          "repo": {
+            "id": 1320212072,
+            "name": "fun-refactor",
+            "url": "https://api.github.com/repos/e6qu/fun-refactor"
+          },
+          "sha": "16d93af09631f69054261a7bfdc7ab85d718d0a0"
+        },
+        "id": 4937066041,
+        "number": 551,
+        "url": "https://api.github.com/repos/e6qu/fun-refactor/pulls/551"
+      }
+    ],
+    "referenced_workflows": [],
+    "repository": {
+      "archive_url": "https://api.github.com/repos/e6qu/fun-refactor/{archive_format}{/ref}",
+      "assignees_url": "https://api.github.com/repos/e6qu/fun-refactor/assignees{/user}",
+      "blobs_url": "https://api.github.com/repos/e6qu/fun-refactor/git/blobs{/sha}",
+      "branches_url": "https://api.github.com/repos/e6qu/fun-refactor/branches{/branch}",
+      "collaborators_url": "https://api.github.com/repos/e6qu/fun-refactor/collaborators{/collaborator}",
+      "comments_url": "https://api.github.com/repos/e6qu/fun-refactor/comments{/number}",
+      "commits_url": "https://api.github.com/repos/e6qu/fun-refactor/commits{/sha}",
+      "compare_url": "https://api.github.com/repos/e6qu/fun-refactor/compare/{base}...{head}",
+      "contents_url": "https://api.github.com/repos/e6qu/fun-refactor/contents/{+path}",
+      "contributors_url": "https://api.github.com/repos/e6qu/fun-refactor/contributors",
+      "deployments_url": "https://api.github.com/repos/e6qu/fun-refactor/deployments",
+      "description": "Multi-language refactoring and code-intelligence CLI on tree-sitter",
+      "downloads_url": "https://api.github.com/repos/e6qu/fun-refactor/downloads",
+      "events_url": "https://api.github.com/repos/e6qu/fun-refactor/events",
+      "fork": false,
+      "forks_url": "https://api.github.com/repos/e6qu/fun-refactor/forks",
+      "full_name": "e6qu/fun-refactor",
+      "git_commits_url": "https://api.github.com/repos/e6qu/fun-refactor/git/commits{/sha}",
+      "git_refs_url": "https://api.github.com/repos/e6qu/fun-refactor/git/refs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/e6qu/fun-refactor/git/tags{/sha}",
+      "hooks_url": "https://api.github.com/repos/e6qu/fun-refactor/hooks",
+      "html_url": "https://github.com/e6qu/fun-refactor",
+      "id": 1320212072,
+      "issue_comment_url": "https://api.github.com/repos/e6qu/fun-refactor/issues/comments{/number}",
+      "issue_events_url": "https://api.github.com/repos/e6qu/fun-refactor/issues/events{/number}",
+      "issues_url": "https://api.github.com/repos/e6qu/fun-refactor/issues{/number}",
+      "keys_url": "https://api.github.com/repos/e6qu/fun-refactor/keys{/key_id}",
+      "labels_url": "https://api.github.com/repos/e6qu/fun-refactor/labels{/name}",
+      "languages_url": "https://api.github.com/repos/e6qu/fun-refactor/languages",
+      "merges_url": "https://api.github.com/repos/e6qu/fun-refactor/merges",
+      "milestones_url": "https://api.github.com/repos/e6qu/fun-refactor/milestones{/number}",
+      "name": "fun-refactor",
+      "node_id": "R_kgDOTrDWaA",
+      "notifications_url": "https://api.github.com/repos/e6qu/fun-refactor/notifications{?since,all,participating}",
+      "owner": {
+        "avatar_url": "https://avatars.githubusercontent.com/u/2966430?v=4",
+        "events_url": "https://api.github.com/users/e6qu/events{/privacy}",
+        "followers_url": "https://api.github.com/users/e6qu/followers",
+        "following_url": "https://api.github.com/users/e6qu/following{/other_user}",
+        "gists_url": "https://api.github.com/users/e6qu/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/e6qu",
+        "id": 2966430,
+        "login": "e6qu",
+        "node_id": "MDQ6VXNlcjI5NjY0MzA=",
+        "organizations_url": "https://api.github.com/users/e6qu/orgs",
+        "received_events_url": "https://api.github.com/users/e6qu/received_events",
+        "repos_url": "https://api.github.com/users/e6qu/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/e6qu/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/e6qu/subscriptions",
+        "type": "User",
+        "url": "https://api.github.com/users/e6qu",
+        "user_view_type": "public"
+      },
+      "private": false,
+      "pulls_url": "https://api.github.com/repos/e6qu/fun-refactor/pulls{/number}",
+      "releases_url": "https://api.github.com/repos/e6qu/fun-refactor/releases{/id}",
+      "stargazers_url": "https://api.github.com/repos/e6qu/fun-refactor/stargazers",
+      "statuses_url": "https://api.github.com/repos/e6qu/fun-refactor/statuses/{sha}",
+      "subscribers_url": "https://api.github.com/repos/e6qu/fun-refactor/subscribers",
+      "subscription_url": "https://api.github.com/repos/e6qu/fun-refactor/subscription",
+      "tags_url": "https://api.github.com/repos/e6qu/fun-refactor/tags",
+      "teams_url": "https://api.github.com/repos/e6qu/fun-refactor/teams",
+      "trees_url": "https://api.github.com/repos/e6qu/fun-refactor/git/trees{/sha}",
+      "url": "https://api.github.com/repos/e6qu/fun-refactor"
+    },
+    "rerun_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851/rerun",
+    "run_attempt": 1,
+    "run_number": 1033,
+    "run_started_at": "2026-10-20T18:43:46Z",
+    "status": "completed",
+    "triggering_actor": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/2966430?v=4",
+      "events_url": "https://api.github.com/users/e6qu/events{/privacy}",
+      "followers_url": "https://api.github.com/users/e6qu/followers",
+      "following_url": "https://api.github.com/users/e6qu/following{/other_user}",
+      "gists_url": "https://api.github.com/users/e6qu/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/e6qu",
+      "id": 2966430,
+      "login": "e6qu",
+      "node_id": "MDQ6VXNlcjI5NjY0MzA=",
+      "organizations_url": "https://api.github.com/users/e6qu/orgs",
+      "received_events_url": "https://api.github.com/users/e6qu/received_events",
+      "repos_url": "https://api.github.com/users/e6qu/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/e6qu/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/e6qu/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/e6qu",
+      "user_view_type": "public"
+    },
+    "updated_at": "2026-10-20T18:50:17Z",
+    "url": "https://api.github.com/repos/e6qu/fun-refactor/actions/runs/39477284851",
+    "workflow_id": 368941393,
+    "workflow_url": "https://api.github.com/repos/e6qu/fun-refactor/actions/workflows/368941393"
+  }
+}
