@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import tomllib
 import urllib.request
 import zipfile
 
@@ -17,7 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from agent_eval.bounded_host import run
-from evidence_basis import native_bindings
+from evidence_basis import native_bindings, native_source_bindings, cargo_manifest_basis, cargo_lock_basis
+from python_repository_basis import file_digest as repository_digest
 from fr_ir.context import DirectoryObjectStore, MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
@@ -28,7 +31,8 @@ spec.loader.exec_module(flow)
 PLAN = json.loads((ROOT / 'tools/package-question-projects.json').read_text())
 COLLECTOR_INPUTS = (
     'tools/package-questions.py', 'tools/package-question-projects.json',
-    'tools/evidence_basis.py', 'tools/python-repository-flow.py', 'tools/compiler-profile.py',
+    'tools/evidence_basis.py', 'tools/python_repository_basis.py',
+    'tools/python-repository-flow.py', 'tools/compiler-profile.py',
     'tools/agent_eval/bounded_host.py', 'tests/agent-eval/python-repository-flow/cohort.json',
     'tests/agent-eval/python-repositories/boltons.tar.gz', *PLAN['previous_attempts'],
 )
@@ -66,10 +70,46 @@ def save(path, value):
 
 
 def bindings():
-    return native_bindings(ROOT, [
-        *COLLECTOR_INPUTS, 'tests/agent-eval/package-questions/freeze.json',
-        *(path.relative_to(ROOT).as_posix() for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))),
-    ])
+    return {**native_bindings(ROOT, [*COLLECTOR_INPUTS, 'tests/agent-eval/package-questions/freeze.json']),
+            **{path.relative_to(ROOT).as_posix(): repository_digest(path)
+               for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))}}
+
+
+def verify_analyzer(root, frozen):
+    paths = flow.ANALYZER_PATHS
+    revision = frozen['analyzer_revision']
+    recorded = {path: flow.command(['git', 'rev-parse', revision + ':' + path], cwd=root).stdout.strip()
+                for path in paths}
+    flow.require(recorded == frozen['analyzer_trees'], 'frozen source identifiers differ from their recorded commit')
+    status = flow.command(['git', 'status', '--porcelain', '--untracked-files=all', '--', *paths], cwd=root).stdout
+    flow.require(not status, 'analyzer and client source must be committed before checking the freeze')
+    native = native_source_bindings(root)
+    sdk = {path.relative_to(root).as_posix(): repository_digest(path)
+           for path in (root / 'sdk/python/src').rglob('*.py')}
+    tracked = set(flow.command(['git', 'ls-files', '-z', '--', *paths], cwd=root).stdout.split('\0'))
+    flow.require(set(native) | set(sdk) <= tracked, 'analyzer input is absent from the committed source inventory')
+    changed = flow.command(['git', 'diff', '--name-only', '-z', revision, 'HEAD', '--', *paths], cwd=root).stdout.split('\0')
+    members = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['members']
+    manifests = {'Cargo.toml' if member == '.' else member + '/Cargo.toml' for member in members}
+    for name in filter(None, changed):
+        flow.require(name in manifests or name in ('Cargo.lock', 'sdk/python/src/fr_ir/_version.py'),
+                     'frozen analyzer code changed: ' + name)
+        source = subprocess.run(['git', 'show', revision + ':' + name], cwd=root, check=True,
+                                capture_output=True, timeout=30).stdout
+        if name in manifests:
+            expected = flow.sha(cargo_manifest_basis(source))
+            actual = native[name]
+        elif name == 'Cargo.lock':
+            expected = flow.sha(cargo_lock_basis(source))
+            actual = native[name]
+        else:
+            with tempfile.TemporaryDirectory() as directory:
+                original = Path(directory) / name
+                original.parent.mkdir(parents=True)
+                original.write_bytes(source)
+                expected = repository_digest(original)
+            actual = sdk[name]
+        flow.require(actual == expected, 'frozen analyzer behavior or dependencies changed: ' + name)
 
 
 def prepare(scope, project, variant, case):
@@ -344,7 +384,7 @@ def collect(args):
     coverage = None
     if args.phase != 'development':
         frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
-        flow.verify_analyzer(ROOT, frozen)
+        verify_analyzer(ROOT, frozen)
         flow.require(frozen['repository'] == os.environ['GITHUB_REPOSITORY'], 'freeze belongs to another evaluation repository')
         actual = bindings()
         flow.require(frozen['collector_inputs'] == {name: actual[name] for name in COLLECTOR_INPUTS},

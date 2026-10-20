@@ -30,6 +30,64 @@ class IndependentRuntime(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout), {'value': 20})
 
 
+class FrozenImplementation(unittest.TestCase):
+    def fixture(self, root):
+        def git(*args):
+            return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True, text=True, timeout=10).stdout.strip()
+        def commit():
+            git('add', '.')
+            git('commit', '-qm', 'Record the source fixture')
+        git('init', '-q')
+        git('config', 'user.name', 'Fixture')
+        git('config', 'user.email', 'fixture@example.invalid')
+        (root / 'src').mkdir()
+        (root / 'src/lib.rs').write_text('pub fn value() -> i32 { 1 }\n')
+        (root / 'native-source-inputs.txt').write_text('Cargo.toml\nCargo.lock\nnative-source-inputs.txt\nsrc/\n')
+        (root / 'Cargo.toml').write_text('[workspace]\nmembers=["."]\n[package]\nname="fixture"\nversion="1.0.0"\n[dependencies]\nremote="2.0.0"\n')
+        (root / 'Cargo.lock').write_text('version=4\n[[package]]\nname="fixture"\nversion="1.0.0"\n')
+        sdk = root / 'sdk/python/src/fr_ir'
+        sdk.mkdir(parents=True)
+        (sdk / '_version.py').write_text('VERSION = "1.0.0"  # x-release-please-version\n')
+        (sdk / 'flow.py').write_text('value = 1\n')
+        commit()
+        paths = ('Cargo.toml', 'Cargo.lock', 'native-source-inputs.txt', 'src', 'sdk/python/src')
+        frozen = {'analyzer_revision': git('rev-parse', 'HEAD'),
+                  'analyzer_trees': {name: git('rev-parse', 'HEAD:' + name) for name in paths}}
+        return paths, frozen, commit
+
+    def test_merge_release_labels_preserve_the_frozen_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths, frozen, commit = self.fixture(root)
+            for name in ('Cargo.toml', 'Cargo.lock', 'sdk/python/src/fr_ir/_version.py'):
+                path = root / name
+                path.write_text(path.read_text().replace('1.0.0', '1.1.0'))
+            commit()
+            with patch.object(questions.flow, 'ANALYZER_PATHS', paths):
+                questions.verify_analyzer(root, frozen)
+
+    def test_code_dependencies_and_uncommitted_inputs_do_not_inherit_the_freeze(self):
+        for mutation in ('native-code', 'sdk-code', 'dependency', 'version-code', 'uncommitted'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                paths, frozen, commit = self.fixture(root)
+                if mutation in ('native-code', 'uncommitted'):
+                    (root / 'src/lib.rs').write_text('pub fn value() -> i32 { 2 }\n')
+                elif mutation == 'sdk-code':
+                    (root / 'sdk/python/src/fr_ir/flow.py').write_text('value = 2\n')
+                elif mutation == 'dependency':
+                    path = root / 'Cargo.toml'
+                    path.write_text(path.read_text().replace('2.0.0', '2.1.0'))
+                elif mutation == 'version-code':
+                    path = root / 'sdk/python/src/fr_ir/_version.py'
+                    path.write_text(path.read_text() + 'extra_behavior = True\n')
+                if mutation != 'uncommitted':
+                    commit()
+                with patch.object(questions.flow, 'ANALYZER_PATHS', paths):
+                    with self.assertRaises(ValueError):
+                        questions.verify_analyzer(root, frozen)
+
+
 class CoverageBeforeUnread(unittest.TestCase):
     def example(self):
         record = {'head_sha': 'a' * 40, 'status': 'completed', 'conclusion': 'success',

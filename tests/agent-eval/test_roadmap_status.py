@@ -186,6 +186,16 @@ class RoadmapStatusTests(unittest.TestCase):
             path.write_text('[package]\nname="external"\nversion="1.1.0"\n')
             self.assertNotEqual(expected, status.binding_digest(path, schema, self.root))
 
+    def test_package_client_release_label_does_not_reopen_a_checked_requirement(self):
+        path = self.root / 'sdk/python/src/fr_ir/_version.py'
+        path.parent.mkdir(parents=True)
+        path.write_text('VERSION = "1.0.0"  # x-release-please-version\n')
+        expected = status.binding_digest(path, 'fr-original-package-questions', self.root)
+        path.write_text('VERSION = "1.1.0"  # x-release-please-version\n')
+        self.assertEqual(expected, status.binding_digest(path, 'fr-original-package-questions', self.root))
+        path.write_text(path.read_text() + 'extra_behavior = True\n')
+        self.assertNotEqual(expected, status.binding_digest(path, 'fr-original-package-questions', self.root))
+
     def test_plan_checkbox_changes_require_catalog_review(self):
         path = self.root / 'PLAN.md'
         path.write_text(path.read_text().replace('[x]', '[ ]', 1))

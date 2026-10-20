@@ -597,6 +597,8 @@ jobs:
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'

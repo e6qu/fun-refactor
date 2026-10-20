@@ -38,7 +38,7 @@ def audit(path):
             and receipt['source_commit'] == value['source_commit'] and receipt['conclusion'] == 'success',
             'package completion no longer matches its declared inputs')
     frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
-    questions.flow.verify_analyzer(ROOT, frozen)
+    questions.verify_analyzer(ROOT, frozen)
     require(value['implementation'] == frozen and value['limits'] == questions.LIMITS,
             'package implementation or resource limits changed')
     coverage = json.loads(data['coverage-result.json'])
@@ -122,7 +122,7 @@ def main():
             'declare distinct coverage and unfamiliar-project collections')
     repository = os.environ['GITHUB_REPOSITORY']
     frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
-    questions.flow.verify_analyzer(ROOT, frozen)
+    questions.verify_analyzer(ROOT, frozen)
     current = questions.bindings()
     require(frozen['collector_inputs'] == {name: current[name] for name in questions.COLLECTOR_INPUTS},
             'retain against the original frozen collector and project plan')
