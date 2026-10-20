@@ -1,0 +1,97 @@
+name: Preserve original project record files
+on:
+  push:
+    branches: [feat/real-project-changes]
+    paths: [.github/workflows/project-record-files.yml]
+  workflow_dispatch:
+    inputs:
+      collection_run:
+        description: Successful project-change retention run
+        required: true
+        type: string
+      prefix:
+        description: Existing project record directory prefix
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: project-record-files-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  preserve:
+    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      COLLECTION_RUN: ${{ github.event_name == 'push' && '39483490662' || inputs.collection_run }}
+      EVIDENCE_PREFIX: ${{ github.event_name == 'push' && '2026-10-20-projects' || inputs.prefix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Restore declared bytes and verify every staged file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json, os, re, subprocess, sys
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          sys.path.insert(0, str(root / 'tools'))
+          spec = importlib.util.spec_from_file_location('scalar', root / 'tools/retain-scalar-evidence.py')
+          scalar = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(scalar)
+          prefix = os.environ['EVIDENCE_PREFIX']
+          scalar.require(re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix), 'declare a plain record prefix')
+          run = int(os.environ['COLLECTION_RUN'])
+          scalar.require(run > 0, 'declare the original successful retention run')
+          data, identity = scalar.collect(run, 'retained-project-changes', 'project-changes', os.environ['GITHUB_REPOSITORY'])
+          relative = Path('tests/agent-eval/results') / (prefix + '-project-changes')
+          directory = root / relative
+          scalar.require(directory.resolve().is_relative_to(root.resolve()) and not directory.is_symlink(), 'unsafe record directory')
+          artifact_root = 'results/' + directory.name + '/'
+          original = data[artifact_root + 'result.json']
+          scalar.require((directory / 'result.json').read_bytes() == original, 'preserve the original result bytes')
+          report = json.loads(original)
+          catalog = json.loads((root / 'tests/agent-eval/roadmap.json').read_text())
+          entry, = [item for item in catalog['evidence'] if item['id'] == 'project-changes']
+          scalar.require(entry['path'] == str(relative / 'result.json') and entry['sha256'] == hashlib.sha256(original).hexdigest(),
+                         'the current catalog must authenticate this original record')
+          expected = {artifact_root + name for name in report['files']} | {artifact_root + 'result.json', 'roadmap.json'}
+          scalar.require(set(data) == expected, 'the authenticated artifact inventory changed')
+          contents = {name: data[artifact_root + name] for name in report['files']}
+          contents['result.json'] = original
+          restored = []
+          for name, content in contents.items():
+              if name != 'result.json':
+                  scalar.require(hashlib.sha256(content).hexdigest() == report['files'][name], 'original file changed: ' + name)
+              destination = directory / name
+              scalar.require(destination.resolve().is_relative_to(directory.resolve()) and not destination.is_symlink(), 'unsafe record path')
+              if destination.exists():
+                  scalar.require(destination.read_bytes() == content, 'existing record changed: ' + name)
+              else:
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(content)
+                  restored.append(name)
+          paths = b''.join(str(relative / name).encode() + b'\0' for name in contents)
+          subprocess.run(['git', '--literal-pathspecs', 'add', '--force', '--pathspec-from-file=-', '--pathspec-file-nul'],
+                         input=paths, cwd=root, check=True)
+          for name, content in contents.items():
+              staged = subprocess.check_output(['git', 'show', ':' + str(relative / name)], cwd=root)
+              scalar.require(staged == content, 'Git did not retain the declared bytes: ' + name)
+          print(json.dumps({'original_collection': identity, 'restored': restored, 'verified_staged_files': len(contents)}))
+          PY
+      - name: Commit the complete original record
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: preserve every declared original project record file'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi

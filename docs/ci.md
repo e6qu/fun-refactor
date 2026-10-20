@@ -24,6 +24,12 @@ The development collector also requires a clean checkout: its files must match t
 If formatting or preparation changes files, the job fails and saves those corrections.
 Commit the corrections before qualification. Successful source reads alone do not qualify the experiment.
 
+An original source snapshot can contain its own `.gitignore`, a list of filenames Git should omit.
+JDcal's list names `MANIFEST`, even though its recorded source archive includes that file.
+The `project-record-files.yml` packaging workflow authenticates the original collection and force-adds every file declared by its result.
+It checks each staged file against the original bytes before committing. Ordinary validation continues to fail when a declared file is missing.
+This packaging step preserves the fixed evaluation inputs and their original fingerprints.
+
 ## Save Python test progress without repeating earlier work
 
 The Python collector runs small programs through Python itself and through `fr`, then saves both observations for comparison.
