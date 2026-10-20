@@ -9,6 +9,21 @@ The final gate checks that all required portions ran and passed; a passing small
 Queue time is time waiting for a runner. Execution time starts when a runner begins work.
 For a slow PR, inspect those times separately before deciding which operation needs repair.
 
+## Keep completed project checks reproducible
+
+CI replays the [recorded project changes](project-change-milestone.md) and checks that altered completion claims fail.
+The record covers saved answers after seven changes on three projects, plus complete Rust and Python renames.
+For example, Boltons' renamed integer-bounds function must preserve its outputs, documentation references, undo and patch delivery.
+
+The replay uses the recorded source, Rust 1.99.1 and Python 3.14.8.
+It preserves the meaning of Humanize's first evaluation; a replay makes no new unread-project claim.
+The ordinary native and Python suites check the current code separately.
+The final required gate includes these records and the earlier original-package checks.
+
+The development collector also requires a clean checkout: its files must match the commit named in its result.
+If formatting or preparation changes files, the job fails and saves those corrections.
+Commit the corrections before qualification. Successful source reads alone do not qualify the experiment.
+
 ## Save Python test progress without repeating earlier work
 
 The Python collector runs small programs through Python itself and through `fr`, then saves both observations for comparison.

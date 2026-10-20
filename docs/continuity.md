@@ -25,34 +25,40 @@ Toolz, funcy and pydash still give incomplete answers when used through their fu
 Some helpers work when copied into small isolated files. That tests a simpler question with different import behavior.
 We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
-## Next: change a project and keep the answers trustworthy
+## Checked project changes
 
-The [next milestone](project-change-milestone.md) shifts work from questions about unchanged packages to changes across a project.
-Its two outcomes are correct saved answers after edits and a complete function change in Rust and Python.
-For example, renaming `subtotal` must update the required callers and imports, invalidate affected findings and preserve unrelated ones.
-The changed program must pass its checks. Its patch must also work in another checkout.
+The [project-change milestone](project-change-milestone.md) now has passing original records for both selected outcomes.
+Saved answers agree with fresh checks after seven changes on each of glob, Boltons and Humanize.
+The cases cover renames, moves, deletion, competing imports, project configuration, question settings and an actual checker implementation change.
+An unrelated source finding remains usable in every case.
 
-The tasks were selected before support was added: rename `glob_with` in Rust glob,
-rename `clamp` in Python Boltons, and keep Humanize discovery current through the
-declared project changes. The [task record](../tests/agent-eval/project-changes/tasks.json)
-pins the original projects and expected behavior. Humanize's implementation and
-tests remain unread while developing the checker and procedure.
+The Rust task renames `glob_with` to `glob_with_options` while preserving the declared filesystem matching cases.
+The Python task renames `clamp` to `clamp_value` through the original Boltons imports, callers, tests and documentation.
+For example, limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50.
+Both tasks pass behavior checks, undo and patch application in a separate checkout.
 
-The implementation is in [draft PR #551](https://github.com/e6qu/fun-refactor/pull/551).
-It adds Python function renames through original imports, preserves local import
-names, distinguishes same-named Rust declarations, and ties saved findings to the
-actual checker implementation. Documentation joins the reviewed scope as separate
-text mentions. An exact `fr file replace` transaction handles Boltons' documentation
-instruction, with its own check and undo history.
+Humanize's implementation and tests stayed unread until the checker, procedure and both checker builds were fixed.
+It passed its first evaluation. The [original record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json)
+includes that result and all 32 failed or cancelled development attempts.
+The earlier Boltons, dateutil and JDcal questions also pass with the current checker.
+Their original unread result still has its own audit against its original source.
 
-Next, finish the hosted development gate and the two familiar projects' deliveries
-and saved-answer comparisons. Apply any runner formatting corrections and fix
-failures before recording the implementation freeze. Only then run Humanize's first
-evaluation. Keep every failure and resource stop, retain the original results,
-recheck the earlier package questions, refresh affected reports and reconcile tracking.
-Full validation and the unread-project evaluation are still pending.
-The tracking requirements for project changes and complete function edits remain open.
-Language work should address an obstacle in a selected task. Broader support and cost savings need their own results.
+[PR #551](https://github.com/e6qu/fun-refactor/pull/551) contains the implementation and results.
+The fixes preserve local Python import names, distinguish same-named Rust declarations and expire saved answers when checker code changes.
+Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
+The recurring CI check replays the recorded experiment and rejects altered completion claims.
+
+## Next: measure the cost of continuing work
+
+After moving Boltons' helper to another file, how much work does it take to find the current function and callers again?
+Compare continuing a saved task with asking the same questions from scratch about the same changed files.
+Repeat the measurements and include preparation, input checking, analysis, memory, disk and text returned.
+Choose the projects and comparison before tuning code; reserve an independent project from that tuning.
+Treat glob, Boltons and Humanize as familiar projects from now on.
+
+Use the results to choose a cache change. Check its answers against fresh analysis before claiming lower costs.
+Broader agent-cost trials, translation and proofs connected to source code remain separate work.
+Language changes should address a concrete obstacle in a chosen task.
 
 ## The current reader review
 

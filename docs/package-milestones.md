@@ -9,8 +9,9 @@ for Boltons, dateutil and JDcal with one unchanged analyzer. This completes both
 near-term package milestones. The original run records below support that conclusion;
 regression tests alone would not establish either outcome.
 
-These package milestones remain complete. The [next milestone](project-change-milestone.md)
-asks whether answers stay correct while projects change and whether a function change reaches all its required callers.
+These package milestones remain complete. The [project-change milestone](project-change-milestone.md)
+now also has passing original records for saved answers after edits and complete Rust/Python rename delivery.
+The [next work](continuity.md#next-measure-the-cost-of-continuing-work) measures the cost of continuing a task against asking again from scratch.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.

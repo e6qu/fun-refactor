@@ -1,7 +1,8 @@
 # Change a project and keep the answers trustworthy
 
-The next milestone asks whether `fr` helps carry a change through a project without trusting answers about old code.
-The [two package milestones](package-milestones.md) are complete. This milestone is open.
+This milestone checks whether `fr` carries a change through a project without trusting answers about old code.
+The [two package milestones](package-milestones.md) and these two selected project-change outcomes now have passing original records.
+The [combined record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) covers 21 change comparisons and both language deliveries.
 
 Suppose a project uses a function named `subtotal`. The requested change renames it to `order_subtotal`.
 An import makes that function available in another file; a caller invokes it.
@@ -13,7 +14,7 @@ For an argument change, imagine requiring `format_total(amount, currency)` where
 Every required caller must supply its currency explicitly. The checks must verify the requested behavior.
 These examples explain the task; they are not selected project results.
 
-## Two outcomes to complete together
+## Two outcomes checked together
 
 | Outcome | What must work | Existing tracking requirement |
 | --- | --- | --- |
@@ -33,11 +34,12 @@ They were committed before adding language support or opening the reserved imple
 | --- | --- | --- |
 | Rust glob library | Rename `glob_with` to `glob_with_options` | The same files match the same patterns, with case sensitivity and other matching options supplied explicitly |
 | Python Boltons library | Rename `clamp` to `clamp_value` | Import the original math module; limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50 |
-| Python Humanize library | Keep discovery current through project changes | Find the implementation and uses of `intcomma`, which formats 12345 as `12,345`; its implementation and tests remain unread during development |
+| Python Humanize library | Keep discovery current through project changes | Find the implementation and uses of `intcomma`, shown in its public README as formatting 12345 as `12,345`; implementation and tests stayed unread until qualification |
 
 All three projects have pinned source revisions. Glob and Boltons are development projects.
-Humanize is reserved for the first evaluation after the implementation and procedure are fixed.
-The checks are being implemented and run on GitHub; this milestone remains open until original results qualify both outcomes.
+Humanize's implementation and tests stayed unread until the implementation, procedure and both checker builds were fixed.
+Its first evaluation passed all seven change cases. The independent audit retained its original result and every failed or cancelled development attempt.
+The catalog now links qualifying records for both outcomes.
 
 Record each request, expected behavior, public interfaces in scope, required checks and reasons for selecting the project.
 Use existing functions through their original project structure. A newly invented helper or copied package cannot qualify as a real project task.
@@ -124,17 +126,20 @@ is saved. A one-file inspection must select that file before indexing; filtering
 an entire source tree afterward caused a timeout. The fixes address these causes
 and keep the original deadlines.
 
-## When this milestone is complete
+## Completion and continuing checks
 
 Both outcomes need qualifying original results. The three projects must pass the full change procedure, including the first unread-project evaluation.
 The Rust and Python tasks must pass their behavior, undo and separate-checkout delivery checks.
 The catalog must link those results before either tracking requirement can close.
 Passing unit tests or writing this plan does not finish the milestone.
+The retained record now meets those criteria for the three selected projects and two rename tasks.
+It preserves 32 failed or cancelled development attempts alongside the successful original results.
 
 The recurring CI check replays the original result with its recorded source,
 Rust 1.99.1 and Python 3.14.8. It also rejects altered completion records.
 Later source changes need fresh results before tracking can call them checked.
 The full test suite checks the current implementation separately.
+Repeating this recorded experiment makes no new unread-project claim.
 
 Run builds, full tests and result collection on GitHub under the [workstation policy](development.md#working-on-a-shared-desktop).
 This milestone checks correctness through changes. Measure speed and storage separately against fresh checks doing the same work, including setup costs.

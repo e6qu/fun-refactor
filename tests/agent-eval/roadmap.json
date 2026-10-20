@@ -8,7 +8,7 @@
     "Current evidence means the recorded input hashes still match. It does not establish that every dependency was recorded; the independent behavior checks must also run.",
     "Parsing a language does not imply full analysis or editing support. Dynamic imports, package initialization effects, runtime dispatch, merging namespace packages from multiple roots and wildcard export insertion remain limits of the current Python analysis or writer.",
     "A proof about a model, a correct source location and a passing runtime test establish different things. Proofs about the source implementation require an explicit checked connection.",
-    "Unindexed RST documents cannot be source dependencies. The recorded more-itertools task reports that limitation and uses its unchanged public Python module as an independent observation."
+    "Saved findings about source code cannot track reStructuredText (RST) files directly. Boltons' documentation uses an exact text replacement with a saved review, undo and an explicit check of every named Python object. The earlier more-itertools task used an unchanged Python module as its independent observation."
   ],
   "engineering": {
     "A": {
@@ -24,7 +24,7 @@
       "total": 6
     },
     "D": {
-      "done": 1,
+      "done": 2,
       "total": 6
     }
   },
@@ -423,7 +423,7 @@
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
       "id": "C.performance",
       "kind": "measurement",
-      "next": "First complete the project-change correctness milestone. Then measure fresh, reused and post-edit work before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
+      "next": "Compare continuing a saved task with asking the same questions from scratch on the same changed files. Repeat fresh, reused and post-edit measurements three times on three independently selected projects, including one reserved from tuning. Count setup, input checking, analysis, aggregate memory, disk and text returned before choosing a cache change. Keep full agent costs separate.",
       "requires": [],
       "title": "Measure useful work, memory and disk at project scale"
     },
