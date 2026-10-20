@@ -86,13 +86,15 @@ def measure(task, original, output, binary):
     changed_paths = sorted({selected['path']} | {str(Path(row['file']).relative_to(project))
         for row in references['references'] if row['rewritable']} | {
         str(Path(row['file']).relative_to(project)) for row in usages['in_text']})
-    initial = ChangeScope.inspect(client, [selected['handle']], max_bytes=262144)
+    initial = ChangeScope.inspect(client, [selected['handle']], depth=4,
+        nodes=128, references=512, max_bytes=262144)
     save(output / 'scope-before-mapping.json', initial.report.to_data())
     paths = initial.report.at('/affected_paths')
     assert 0 < len(paths) <= 64
     save(project / '.fr/check-scopes.json', {'schema': 1, 'checks': [
         {'name': 'syntax', 'paths': paths}]})
-    scope = ChangeScope.inspect(client, [selected['handle']], max_bytes=262144)
+    scope = ChangeScope.inspect(client, [selected['handle']], depth=4,
+        nodes=128, references=512, max_bytes=262144)
     save(output / 'scope.json', scope.report.to_data())
     assert scope.ready, 'Discovery is not ready; inspect the retained scope.json for gaps and weak references'
     store = DirectoryObjectStore(output / 'objects')

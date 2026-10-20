@@ -23,7 +23,8 @@ from evidence_basis import native_source_bindings
 def verify(binary, root, accepted):
     client = FrClient(root, executable=binary, timeout=20, max_output_bytes=1048576)
     handle = client.project('find', 'original').definition_target().handle
-    scope = ChangeScope.inspect(client, [handle])
+    scope = ChangeScope.inspect(client, [handle], depth=4, nodes=128,
+        references=512, max_bytes=65536)
     assert scope.ready, scope.report.to_data()
     change = TaskChange([], [RefactorRequest.rename('n' * 256, documentation='preserve').target('rename', handle)],
                         {'files-changed': 1}, ['syntax'])

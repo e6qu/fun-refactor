@@ -32,10 +32,25 @@ Its two outcomes are correct saved answers after edits and a complete function c
 For example, renaming `subtotal` must update the required callers and imports, invalidate affected findings and preserve unrelated ones.
 The changed program must pass its checks. Its patch must also work in another checkout.
 
-Start by choosing three independent projects and recording their tasks, expected behavior and required checks before implementation.
-Keep one project's implementation unread until the checker and test procedure are fixed.
-Boltons, dateutil and JDcal are already familiar; none can supply that new unread test.
-Compare fresh and saved answers after each declared change. Keep every failure and resource stop.
+The tasks were selected before support was added: rename `glob_with` in Rust glob,
+rename `clamp` in Python Boltons, and keep Humanize discovery current through the
+declared project changes. The [task record](../tests/agent-eval/project-changes/tasks.json)
+pins the original projects and expected behavior. Humanize's implementation and
+tests remain unread while developing the checker and procedure.
+
+The implementation is in [draft PR #551](https://github.com/e6qu/fun-refactor/pull/551).
+It adds Python function renames through original imports, preserves local import
+names, distinguishes same-named Rust declarations, and ties saved findings to the
+actual checker implementation. Documentation joins the reviewed scope as separate
+text mentions. An exact `fr file replace` transaction handles Boltons' documentation
+instruction, with its own check and undo history.
+
+Next, finish the hosted development gate and the two familiar projects' deliveries
+and saved-answer comparisons. Apply any runner formatting corrections and fix
+failures before recording the implementation freeze. Only then run Humanize's first
+evaluation. Keep every failure and resource stop, retain the original results,
+recheck the earlier package questions, refresh affected reports and reconcile tracking.
+Full validation and the unread-project evaluation are still pending.
 The tracking requirements for project changes and complete function edits remain open.
 Language work should address an obstacle in a selected task. Broader support and cost savings need their own results.
 
