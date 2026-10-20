@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**1 of 18 specific test requirements have matching recorded results; 17 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**2 of 18 specific test requirements have matching recorded results; 16 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -34,7 +34,7 @@ The implementation column counts completed code changes. The test column counts 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 0/4 | open |
-| B. Explain how values move through code | 4/5 | 0/4 | open |
+| B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 0/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 1/6 | open |
 
@@ -104,7 +104,7 @@ User example: A helper returns its left argument; check selected, ignored and ov
 
 **State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
-Recorded results or remaining work: python-contract: recorded source inputs changed; collect and check a new result. python-contract: the recorded value at `/summary/examples` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/renamed_relocated_cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/incomplete_cases` differs from this requirement; review the inventory and result. python-contract: the recorded value at `/summary/documented_difference_cases` differs from this requirement; review the inventory and result.
+Recorded results or remaining work: python-contract: recorded source inputs changed; collect and check a new result.
 
 Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.
 
@@ -112,11 +112,11 @@ Next: Keep all fourteen declared rules, independent runtime/model outcomes, CLI 
 
 User example: Trace an input through a real imported library without mistaking an unfinished answer for safety.
 
-**State: open.** With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.
+**State: demonstrated.** With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.
 
-Recorded results or remaining work: No saved result yet meets this requirement.
+Recorded results or remaining work: [original-package-questions](../tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json).
 
-Next: Choose the coverage and held-out projects before implementation. Apply the same public analysis commands and explicit source/sink configuration everywhere; preserve all failures.
+Next: Keep the three original-package questions reproducible. Broader project changes, effects and total agent costs remain separate requirements.
 
 ### B.effects: Handle exceptions and shared mutable values honestly
 
@@ -234,18 +234,19 @@ The entries below identify the stored test results. “Current” means their re
 
 | Saved result / kind of test | File fingerprints | Do recorded inputs still match? | What it checked and how to check it again |
 |---|---|---|---|
-| [exact-facts](../tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json) / scripted behavior checks | checked | stale (9 changed inputs) | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json` |
-| [package-flow](../tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json) / scripted behavior checks | checked | stale (9 changed inputs) | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories/result.json) / scripted behavior checks | checked | stale (9 changed inputs) | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories` |
-| [cache-measurements](../tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json) / measured tool operations | checked | stale (1 changed inputs) | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json` |
+| [exact-facts](../tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json) / scripted behavior checks | checked | stale (4 changed inputs) | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json` |
+| [package-flow](../tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json) / scripted behavior checks | checked | stale (4 changed inputs) | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories/result.json) / scripted behavior checks | checked | stale (5 changed inputs) | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories` |
+| [cache-measurements](../tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json) / measured tool operations | checked | stale (4 changed inputs) | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-18-ci-repairs-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / scripted behavior checks | checked | historical | Rust rename/signature migration with 49 calls; frozen recorded input fingerprints. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three Boolean model relations; no source implementation connection between the descriptions. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
-| [compiler-profile](../tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json) / compiler and execution comparisons | checked | stale (1 changed inputs) | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json` |
-| [python-contract](../tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json) / Python rule comparisons | checked | stale (1 changed inputs) | 14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json` |
-| [index-resolution](../tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json) / measured tool operations | checked | stale (1 changed inputs) | Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json` |
+| [compiler-profile](../tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json) / compiler and execution comparisons | checked | stale (3 changed inputs) | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json` |
+| [python-contract](../tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json) / Python rule comparisons | checked | stale (5 changed inputs) | 14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json` |
+| [index-resolution](../tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json) / measured tool operations | checked | stale (3 changed inputs) | Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json` |
 | [repository-flow](../tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json) / scripted behavior checks | checked | stale (16 changed inputs) | Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow. Audit: `python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json` |
+| [original-package-questions](../tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json) / scripted behavior checks | checked | current | Three independent original packages, including the predeclared unread leap-year question; finite value routes, not general Python or agent savings. Audit: `python3 tools/retain-package-questions.py --audit tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 

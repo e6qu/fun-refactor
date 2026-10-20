@@ -116,6 +116,15 @@
       "kind": "deterministic",
       "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow.",
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json"
+    },
+    {
+      "id": "original-package-questions",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json",
+      "kind": "deterministic",
+      "audit": "python3 tools/retain-package-questions.py --audit tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json",
+      "scope": "Three independent original packages, including the predeclared unread leap-year question; finite value routes, not general Python or agent savings.",
+      "sha256": "99719841fb97db846d2dbb2b12e5a64367c4cc3418c83cbd67879c6d0cde6291",
+      "receipt_sha256": "2819e18f6c7399840cd274a4ea047d541e3ae117cf49ea4594f4be692bc285a3"
     }
   ],
   "obligations": [
@@ -285,8 +294,34 @@
       "id": "B.repository-flow",
       "kind": "deterministic",
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "next": "Choose the coverage and held-out projects before implementation. Apply the same public analysis commands and explicit source/sink configuration everywhere; preserve all failures.",
-      "requires": [],
+      "next": "Keep the three original-package questions reproducible. Broader project changes, effects and total agent costs remain separate requirements.",
+      "requires": [
+        {
+          "evidence": "original-package-questions",
+          "assertions": [
+            {
+              "pointer": "/milestone_1_demonstrated",
+              "equals": true
+            },
+            {
+              "pointer": "/milestone_2_demonstrated",
+              "equals": true
+            },
+            {
+              "pointer": "/milestones_complete",
+              "equals": true
+            },
+            {
+              "pointer": "/independent_projects",
+              "equals": [
+                "dateutil/dateutil",
+                "mahmoud/boltons",
+                "phn/jdcal"
+              ]
+            }
+          ]
+        }
+      ],
       "title": "Trace values in unfamiliar projects"
     },
     {
