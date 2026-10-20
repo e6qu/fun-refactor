@@ -4,12 +4,20 @@ mod retained;
 #[test]
 fn original_resolution_comparison_is_checked_against_its_original_source() {
     let output = std::process::Command::new("python3")
-        .args(["tools/audit-historical-index-resolution.py", "--source-commit",
-            "06294a686ef7ebe29987787bd2ef29b441ac0147"])
+        .args([
+            "tools/audit-historical-index-resolution.py",
+            "--source-commit",
+            "06294a686ef7ebe29987787bd2ef29b441ac0147",
+        ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .output().expect("original index comparison auditor");
-    assert!(output.status.success(), "{}{}", String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr));
+        .output()
+        .expect("original index comparison auditor");
+    assert!(
+        output.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]

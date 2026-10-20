@@ -1173,8 +1173,13 @@ impl Index {
 
         // 3.
         let import = if reference.language == Language::Python && in_an_import {
-            info.imports.iter().find(|import| import.span.contains(reference.span)
-                && import.names.iter().any(|name| name.original == reference.name))
+            info.imports.iter().find(|import| {
+                import.span.contains(reference.span)
+                    && import
+                        .names
+                        .iter()
+                        .any(|name| name.original == reference.name)
+            })
         } else {
             self.import_binding(info, &reference.name)
         };
@@ -2405,12 +2410,17 @@ mod tests {
             .find(|r| r.file.ends_with("app.py") && r.kind == ReferenceKind::Call)
             .unwrap_or_else(|| panic!("the aliased call is a reference: {refs:?}"));
         assert_eq!(call.confidence, Confidence::ImportQualified);
-        let imported = refs.iter().find(|reference| reference.file.ends_with("app.py")
-            && reference.name == "helper").expect("original name in the import is a reference");
+        let imported = refs
+            .iter()
+            .find(|reference| reference.file.ends_with("app.py") && reference.name == "helper")
+            .expect("original name in the import is a reference");
         assert_eq!(imported.confidence, Confidence::ImportQualified);
         let rename = crate::refactor::rename::plan(&index, helper[0].id, "renamed_helper").unwrap();
         assert!(rename.warnings.is_empty(), "{:?}", rename.warnings);
-        assert_eq!(rename.reference_edits, 1, "only the original import name changes; h2 stays local");
+        assert_eq!(
+            rename.reference_edits, 1,
+            "only the original import name changes; h2 stays local"
+        );
     }
 
     #[test]

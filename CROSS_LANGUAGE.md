@@ -23,7 +23,7 @@ Review the relationship's confidence and test the endpoint after changing it.
 
 The bundled corpus exercises multiple languages in one workspace:
 
-    web/sample (27 files, 17 languages, 593 resolved references)
+    web/sample (27 files, 17 languages, 596 resolved references)
             html -> css          18   selector
              tsx -> css           2   selector
              tsx -> typescript    8   function 6, interface 2

@@ -65,7 +65,10 @@ def test_python_import_alias_and_documentation_rename_executes_and_replays(tmp_p
     root, client = fixture(tmp_path, original)
     before = {name: (root / name).read_bytes() for name in ('helper.py', 'caller.py')}
     result = client.execute(client.review(change(client, 'update')))
-    assert result.at('/checks/passed') is True
+    assert result.passed
+    acceptance = [stage for stage in result.at('/workflow/stages') if stage['stage'] == 'check-acceptance']
+    assert acceptance and all(stage['status'] == 'passed' and stage['result']['passed'] is True
+        for stage in acceptance)
     assert 'price as charge' not in (root / 'caller.py').read_text().replace('line_price as charge', '')
     assert 'line_price(3)' in (root / 'helper.py').read_text()
     assert 'return charge(3)' in (root / 'caller.py').read_text()

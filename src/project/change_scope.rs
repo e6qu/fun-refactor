@@ -162,7 +162,9 @@ impl Project<'_> {
                     .symbols
                     .iter()
                     .filter(|s| {
-                        s.file == path && s.name == target.name && s.kind.as_str() == target.kind
+                        s.file == path
+                            && s.name == target.name
+                            && s.kind.as_str() == target.kind
                             && s.name_span == target.name_span
                     })
                     .collect();
@@ -315,7 +317,10 @@ impl Project<'_> {
             }
         }
         let mut textual_mentions = Vec::new();
-        let names: BTreeSet<_> = seeds.iter().map(|id| self.index.symbol(*id).unwrap().name.as_str()).collect();
+        let names: BTreeSet<_> = seeds
+            .iter()
+            .map(|id| self.index.symbol(*id).unwrap().name.as_str())
+            .collect();
         for name in names {
             for mention in crate::mentions::of(self.index, name)? {
                 if edges.len() + unresolved.len() + textual_mentions.len() == query.references {
