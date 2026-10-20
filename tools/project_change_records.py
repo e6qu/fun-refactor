@@ -38,6 +38,10 @@ def audit_findings(task, retained, limits, binary, alternate):
     assert report['seconds'] <= limits['task_seconds']
     base = retained / 'findings'
     baseline = read(base, 'baseline-plan.json')
+    selected = read(base, 'discovery.json')
+    selected_rows = [dict(zip(selected['columns'], row)) for row in selected['rows']]
+    assert len(selected_rows) == 1 and selected_rows[0]['name'] == task['function']
+    selected_path = selected_rows[0]['path']
     store = DirectoryObjectStore(base / 'objects')
     before = TaskPlan.restore(store, baseline['root'])
     assert all(step.state == StepState.SATISFIED for step in before.steps)
@@ -83,9 +87,28 @@ def audit_findings(task, retained, limits, binary, alternate):
                 shutil.copyfile(source, destination)
             assert digest(root / baseline['independent_path']) == baseline['independent_sha256']
             question = read(base, name + '/request.json')
+            assert question == {'name': task['function'], 'added_name': 'fr_added_' + task['function'],
+                'depth': 1 if name == 'question-settings' else 4, 'scope': task['question']}
             fresh = discovery(FrClient(root, executable=executable, timeout=20,
                 max_output_bytes=2097152), question)
             assert equivalent(fresh, saved), (task['id'], name, 'independent replay differs')
+            found = [dict(zip(fresh['find']['columns'], row)) for row in fresh['find']['rows']]
+            if name in ('rename', 'delete'):
+                assert not found, 'the old declaration survived its declared removal'
+            if name == 'rename':
+                target(FrClient(root, executable=binary), task['renamed'], task['language'])
+            elif name == 'move':
+                assert len(found) == 1 and found[0]['path'] != selected_path
+            elif name == 'delete':
+                assert not (root / selected_path).exists()
+            elif name == 'competing-import':
+                assert len(found) >= 2 and fresh['added_lookup']['rows']
+            elif name == 'project-configuration':
+                assert read(root, '.fr/checks.json')['checks'][0]['covers'] == [
+                    'Require the selected source to be present and nonempty']
+            old_analyzer, = [item.digest for item in before.steps[0].inputs if item.kind.value == 'analyzer']
+            new_analyzer, = [item.digest for item in after.steps[0].inputs if item.kind.value == 'analyzer']
+            assert (old_analyzer != new_analyzer) == (name == 'analyzer')
     return True
 
 

@@ -39,6 +39,7 @@ KINDS = {
     'fr-python-repository-acceptance-2': 'deterministic',
     'fr-python-repository-flow-cohort-result-1': 'deterministic',
     'fr-original-package-questions': 'deterministic',
+    'fr-project-changes': 'deterministic',
 }
 
 

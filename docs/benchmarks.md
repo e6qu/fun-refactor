@@ -75,6 +75,20 @@ They measure data movement, not an agent finding a solution.
 “Exposed” or “agent-visible” means text sent to the agent's conversation.
 Moving work inside Python changes that boundary; it does not make the work free.
 
+## Measuring indexing as language support changes
+
+Indexing reads declarations and works out what each name refers to. For example, in `item.pick()`, the tool must find the method that belongs to `item`'s type.
+The [indexing task](../tests/agent-eval/index-resolution/task.json) repeats four fixed workloads: Rust methods on 128 and 256 types, 128 Python assignments to the same name, and the repository at commit `3fdba43036f4fac2a6e73a659c5dbf7e907c48cf`.
+It measures fresh extraction and name resolution with one worker, an unoptimized build, and no saved facts. Process memory includes writing the answer; operating-system caches remain active.
+
+The earlier speed comparison required exactly the same complete answers before and after an ambiguity-counting optimization.
+Its original baseline and audit remain attached to the original checker.
+The project-change work adds Rust path, attribute and conditional-declaration rules, which intentionally change some answers on that repository.
+Current runs therefore keep exact comparisons for the smaller unchanged workloads, retain the repository's declaration/reference counts, and require its complete answers to repeat exactly.
+Their timings include the new language support. They cannot isolate the cost of the earlier optimization.
+
+These measurements concern the tool reading code. Measuring translated-program overhead requires running the original and generated functions on equivalent inputs, with the same declared build settings and matching outputs.
+
 ## Faster parts can still make the whole operation slower
 
 The [cache measurements](evaluations.md#fixed-point-and-reuse-acceptance) include storage and validation costs.

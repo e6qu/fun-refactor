@@ -176,6 +176,8 @@ def main():
                 entry.update(path=str(relative / 'result.json'), sha256=receipt['files']['result.json'])
                 argument = relative if group == 'python-repositories' else relative / 'result.json'
                 entry['audit'] = 'python3 ' + ' '.join(audit_arguments(group, argument))
+                if group == 'index-resolution':
+                    entry['scope'] = 'Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.'
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
     require(not directory.exists(), 'preserve previous collection receipts')

@@ -73,6 +73,7 @@ on:
           - project-change-findings
           - project-change-freeze
           - project-change-held-out
+          - project-change-retain
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -170,9 +171,10 @@ jobs:
           cargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
           cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
           cargo test --locked --lib rust_complementary_cfg
+          cargo test --locked --lib a_call_through_an_import_alias_resolves_to_the_original
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Prepare original project checks
-        if: contains(fromJSON('["project-change-delivery", "project-change-freeze"]'), inputs.group)
+        if: contains(fromJSON('["project-change-delivery", "project-change-freeze", "project-change-retain"]'), inputs.group)
         run: python3 -m pip install 'pytest==9.1.1'
       - name: Deliver original Rust and Python renames through fr
         id: delivery
@@ -182,7 +184,7 @@ jobs:
           --output "$RUNNER_TEMP/project-change-delivery"
       - name: Build and demonstrate the real checker difference
         id: checkers
-        if: contains(fromJSON('["project-change-findings", "project-change-freeze", "project-change-held-out"]'), inputs.group)
+        if: contains(fromJSON('["project-change-findings", "project-change-freeze", "project-change-held-out", "project-change-retain"]'), inputs.group)
         run: >-
           python3 -B tools/project_change_checkers.py --fr target/debug/fr
           --output "$RUNNER_TEMP/project-change-checkers"
@@ -212,6 +214,19 @@ jobs:
           --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
           --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
           --output "$RUNNER_TEMP/project-change-held-out"
+      - name: Audit and retain every original project outcome
+        id: retention
+        if: inputs.group == 'project-change-retain'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          FAILURES: ${{ inputs.failure_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/retain-project-changes.py --run "$COLLECTION_RUN"
+          --failures "$FAILURES" --prefix "$EVIDENCE_PREFIX"
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -271,6 +286,16 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.retention.outcome != 'skipped'
+        with:
+          name: retained-project-changes
+          path: |
+            tests/agent-eval/results/${{ inputs.prefix }}-project-changes/
+            tests/agent-eval/roadmap.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
 
   record-project-change-freeze:
     if: inputs.group == 'project-change-freeze' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
@@ -294,6 +319,31 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add tests/agent-eval/project-changes/freeze.json tests/agent-eval/project-changes/qualification
           git commit -m 'test: freeze project changes before the unread evaluation'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  record-project-change-results:
+    if: inputs.group == 'project-change-retain' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: retained-project-changes
+          path: tests/agent-eval
+      - name: Commit the audited results and tracking requirements
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-project-changes" tests/agent-eval/roadmap.json
+          git commit -m 'test: retain checked real project changes and reconcile tracking'
           git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
@@ -1513,7 +1563,7 @@ jobs:
           python3 -c 'import runpy; runpy.run_path("tools/check-agent-skill.py")["check_bundle"]()'
       - name: Check independent source and relationship pagination
         run: cargo test --locked --test project_explore_pages --test project_explore_budgets -- --test-threads 1
-      - name: Compare complete index outputs with the pinned baseline
+      - name: Measure current indexing and verify the unchanged smaller workloads
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7
         if: always()

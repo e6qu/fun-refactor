@@ -26,6 +26,23 @@ def retained_tools():
     return scalar
 
 
+def attempts(repository, branch, through):
+    scalar = retained_tools()
+    from urllib.parse import urlencode
+    query = urlencode({'branch': branch, 'per_page': 100})
+    listing = scalar.retain.api(f'repos/{repository}/actions/workflows/refinement-evidence.yml/runs?{query}')
+    assert listing['total_count'] <= 100, 'read every project-change attempt before qualification'
+    result = []
+    for run in listing['workflow_runs']:
+        if run['id'] > through:
+            continue
+        jobs = scalar.retain.api(f'repos/{repository}/actions/runs/{run["id"]}/jobs?filter=all&per_page=100')['jobs']
+        project_jobs = [job for job in jobs if job['name'] == 'project-changes' and job['conclusion'] != 'skipped']
+        if project_jobs:
+            result.append({'run': run, 'jobs': project_jobs})
+    return sorted(result, key=lambda row: row['run']['id'])
+
+
 def capture(run_id, name, destination, repository, result_name):
     scalar = retained_tools()
     retain = scalar.retain
@@ -88,14 +105,19 @@ def freeze(args):
         audit_findings(task, destination / 'findings/files' / task['id'], tasks['limits'], args.fr, args.alternate)
     assert len({development_identity['source_commit'], delivery_identity['source_commit'],
                 findings_identity['source_commit']}) == 1, 'qualify one committed implementation and procedure'
+    inventory = attempts(repository, os.environ['GITHUB_REF_NAME'], int(os.environ['GITHUB_RUN_ID']))
+    failed = [row['run']['id'] for row in inventory if row['run']['conclusion'] in ('failure', 'cancelled')]
+    save(destination / 'attempts.json', inventory)
     save(FREEZE, {'implementation_commit': development_identity['source_commit'],
         'input_bindings': bindings(ROOT), 'production_sha256': checkers['production']['sha256'],
         'alternate_sha256': checkers['alternate']['sha256'], 'repository': repository,
         'successful_runs': {'development': development_identity, 'delivery': delivery_identity,
                             'findings': findings_identity, 'checkers': checkers_identity},
+        'development_failures': failed,
         'unread_project': 'humanize', 'unread_implementation_opened': False})
     for directory in destination.iterdir():
-        shutil.rmtree(directory / 'files')
+        if directory.is_dir():
+            shutil.rmtree(directory / 'files')
 
 
 def admit(binary, alternate):
