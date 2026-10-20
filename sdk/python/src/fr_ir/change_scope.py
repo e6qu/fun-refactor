@@ -24,11 +24,11 @@ class ChangeScope:
                 or not isinstance(data.get("revision"), str)
                 or any(type(data.get(name)) is not bool for name in ("indexed_complete", "review_ready"))):
             raise FrRuntimeError("malformed change scope report")
-        for name in ("targets", "consumers", "references", "unresolved", "test_candidates",
+        for name in ("targets", "consumers", "references", "unresolved", "textual_mentions", "test_candidates",
                      "check_candidates", "affected_paths", "unmapped_paths", "missing_mapped_paths", "cutoffs"):
             if not isinstance(data.get(name), list):
                 raise FrRuntimeError("change scope needs bounded result arrays")
-        for item in (*data["references"], *data["unresolved"]):
+        for item in (*data["references"], *data["unresolved"], *data["textual_mentions"]):
             occurrence = Occurrence.from_data(item["occurrence"])
             if occurrence.revision != data["revision"]:
                 raise FrRuntimeError("change scope occurrence has another revision")

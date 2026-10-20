@@ -24,9 +24,13 @@ Illustration: `checkout` calls `subtotal`, and a test calls `checkout`. The sear
 `subtotal` to both declarations. If it stops at a limit, read `cutoffs` before changing the arguments.
 A caller in another repository or a call selected at runtime may remain outside this search.
 
-The selected handles must identify distinct declarations. Stable resumption selectors use exact file,
-name and declaration kind. Multiple matching declarations refuse; this route does not select an overload
-or same-named class method by position. Textual mentions do not create consumer edges.
+The selected handles must identify distinct declarations. Resumption selectors retain the exact file,
+name, declaration kind and identifier byte range. For example, `selected` at the top of a Rust file
+and `selected` inside a module retain different selectors. A changed declaration invalidates the
+saved scope; resumption cannot silently choose the other one.
+Textual mentions appear separately and do not create consumer edges. Their files also require check
+associations. For example, a README showing `subtotal(2, 3)` needs review during a rename even though
+it does not execute that call. A text match alone does not authorize rewriting an executable string.
 Unresolved same-name references remain separate candidates. Weak resolved references keep their confidence
 and prevent review readiness. Module-level references retain their file even without a containing declaration.
 

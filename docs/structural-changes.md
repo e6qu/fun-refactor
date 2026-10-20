@@ -56,8 +56,11 @@ mutation; scope-bound task delivery adds the required discovery and check select
 ## Which changes this route can handle
 
 Renames support Rust and Python free functions. They require an explicit documentation policy: `preserve` or `update`.
-`update` includes matching comments and documentation strings; ordinary executable strings remain unresolved.
+`update` includes matching comments, Markdown and documentation strings; ordinary executable strings remain unresolved.
 For example, a docstring showing `subtotal(2, 3)` can follow the new name, while `getattr(module, "subtotal")` still refuses.
+Text mentions and their file check associations must be included in the reviewed change scope.
+Other document formats can use a separate [exact text transaction](file-transactions.md#exact-text-replacements)
+with their own check, then contribute to the complete delivered patch.
 Signature changes remain limited to Rust. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
 Signature changes retain unused-parameter and function-value refusals from the native planner.

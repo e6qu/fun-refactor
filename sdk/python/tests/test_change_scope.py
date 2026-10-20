@@ -13,6 +13,7 @@ from fr_ir.investigation import Dependency, DependencyKind, TaskPlan, TaskStep, 
 from fr_ir.investigation_delivery import run_delivery
 from fr_ir.ir import TaskChange, TaskTarget, TaskDelivery
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
+from fr_ir.structural_change import RefactorRequest
 
 FR = Path(__file__).resolve().parents[3]/"target/debug/fr"
 
@@ -100,6 +101,41 @@ def test_json_usages_exposes_documentation_separately_from_code(tmp_path):
     assert len(result['usages']) == 1
     assert len(result['in_text']) == 1
     assert Path(result['in_text'][0]['file']).name == 'README.md'
+
+
+def test_documentation_paths_need_review_and_checks_before_scoped_rename(tmp_path):
+    root = tmp_path / 'project'
+    root.mkdir()
+    (root / '.fr').mkdir()
+    (root / 'artifacts').mkdir()
+    (root / 'lib.rs').write_text('pub fn selected() -> i64 { 3 }\n')
+    (root / 'README.md').write_text('Call `selected` to perform the operation.\n')
+    (root / '.fr/checks.json').write_text(json.dumps({'schema': 1, 'checks': [
+        {'name': 'syntax', 'argv': ['rustc', '--crate-type', 'lib', '--emit=metadata',
+            'lib.rs', '-o', '.fr/library.rmeta'], 'cwd': '.', 'timeout_seconds': 30,
+            'covers': ['Compile the complete library']},
+        {'name': 'documentation', 'argv': [sys.executable, '-B', '-c',
+            "import pathlib; assert pathlib.Path('README.md').read_text() == "
+            "'Call `renamed` to perform the operation.\\n'"],
+            'cwd': '.', 'timeout_seconds': 10, 'covers': ['Check the renamed public function example']},
+    ]}))
+    mapping = {'schema': 1, 'checks': [{'name': 'syntax', 'paths': ['lib.rs']}]}
+    (root / '.fr/check-scopes.json').write_text(json.dumps(mapping))
+    client = FrClient(root, executable=FR, timeout=20, max_output_bytes=1048576)
+    handle = client.project('find', 'selected').definition_target().handle
+    incomplete = ChangeScope.inspect(client, [handle], depth=4, nodes=128, references=512, max_bytes=65536)
+    assert not incomplete.ready and incomplete.report.at('/unmapped_paths') == ['README.md']
+    assert incomplete.report.at('/textual_mentions/0/occurrence/path') == 'README.md'
+    assert len(incomplete.report.at('/consumers')) == 1
+    mapping['checks'].append({'name': 'documentation', 'paths': ['README.md']})
+    (root / '.fr/check-scopes.json').write_text(json.dumps(mapping))
+    complete = ChangeScope.inspect(client, [handle], depth=4, nodes=128, references=512, max_bytes=65536)
+    assert complete.ready
+    change = complete.bind(TaskChange([], [RefactorRequest.rename('renamed', documentation='update')
+        .target('rename', handle)], {'files-changed': 2, 'paths-changed': ['lib.rs', 'README.md']},
+        ['syntax'], TaskDelivery(patch='artifacts/change.patch'), acceptance_checks=['documentation']))
+    assert client.execute(client.review(change)).passed
+    assert (root / 'README.md').read_text() == 'Call `renamed` to perform the operation.\n'
 
 
 @pytest.mark.parametrize("budget", [{"depth": 0}, {"nodes": 1}, {"references": 1}, {"max_bytes": 5000}])

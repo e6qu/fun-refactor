@@ -314,6 +314,20 @@ impl Project<'_> {
                 }
             }
         }
+        let mut textual_mentions = Vec::new();
+        let names: BTreeSet<_> = seeds.iter().map(|id| self.index.symbol(*id).unwrap().name.as_str()).collect();
+        for name in names {
+            for mention in crate::mentions::of(self.index, name)? {
+                if edges.len() + unresolved.len() + textual_mentions.len() == query.references {
+                    cutoffs.insert("text-mention-budget");
+                    break;
+                }
+                let occurrence = self.occurrence(&mention.file, mention.span, "textual-mention")?;
+                files.insert(occurrence.path.clone());
+                textual_mentions.push(json!({"name": name, "occurrence": occurrence,
+                    "status": "textual-candidate"}));
+            }
+        }
         let catalog = Catalog::builtin()?.tests_in_snapshot(self.index, &self.sources);
         let tests = catalog
             .entries
@@ -370,13 +384,13 @@ impl Project<'_> {
             "input_digest": digest, "dependency": {"kind": "change-scope", "key": serde_json::to_string(&query)?, "digest": digest},
             "targets": seeds.iter().map(|id| self.endpoint(*id)).collect::<Result<Vec<_>>>()?,
             "consumers": reached.iter().map(|(id, distance)| Ok(json!({"declaration": self.endpoint(*id)?, "distance": distance}))).collect::<Result<Vec<_>>>()?,
-            "references": edges, "unresolved": unresolved, "test_candidates": tests,
+            "references": edges, "unresolved": unresolved, "textual_mentions": textual_mentions, "test_candidates": tests,
             "affected_paths": files, "check_candidates": checks, "unmapped_paths": uncovered,
             "missing_mapped_paths": missing, "check_configuration_basis": check_basis, "map_digest": map_digest,
             "coverage": coverage, "catalog_gaps": catalog.gaps.len(), "cutoffs": cutoffs,
             "indexed_complete": complete, "review_ready": ready, "runtime_coverage": false,
             "limits": {"depth": query.depth, "nodes": query.nodes, "references": query.references, "bytes": query.bytes},
-            "scope": "Indexed references and lexical containing declarations; textual mentions excluded. Test and check candidates do not establish execution or behavioral coverage.",
+            "scope": "Indexed references and lexical containing declarations. Selected names' text mentions are separate candidates whose files require check associations; they do not create consumer edges. Test and check candidates do not establish execution or behavioral coverage.",
             "limitations": "Dynamic dispatch, reflection, external consumers and unindexed files remain outside this relation. Exact-file check associations are user declarations. Resumption revalidates the whole selected workspace; no mutation is authorized."});
         let mut omitted = 0;
         while serde_json::to_vec(&report)?.len() + 128 > query.bytes {
@@ -384,6 +398,7 @@ impl Project<'_> {
             for name in [
                 "references",
                 "unresolved",
+                "textual_mentions",
                 "consumers",
                 "test_candidates",
                 "check_candidates",
