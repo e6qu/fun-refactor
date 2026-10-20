@@ -640,9 +640,28 @@ fn reference_specificity(kind: ReferenceKind) -> u8 {
         ReferenceKind::Field => 1,
         ReferenceKind::Type => 2,
         ReferenceKind::StringRef => 3,
-        ReferenceKind::Identifier => 4,
-        ReferenceKind::Textual => 5,
+        ReferenceKind::Namespace | ReferenceKind::Attribute => 4,
+        ReferenceKind::Identifier => 5,
+        ReferenceKind::Textual => 6,
     }
+}
+
+fn rust_reference_kind(root: Node<'_>, span: Span, kind: ReferenceKind) -> ReferenceKind {
+    let mut node = root.descendant_for_byte_range(span.start, span.end);
+    let mut namespace = false;
+    while let Some(current) = node {
+        if current.kind() == "attribute" {
+            return ReferenceKind::Attribute;
+        }
+        if matches!(current.kind(), "scoped_identifier" | "scoped_type_identifier" | "scoped_use_list")
+            && current.child_by_field_name("path").is_some_and(|path| Span::from(path).contains(span))
+            || current.kind() == "extern_crate_declaration"
+        {
+            namespace = true;
+        }
+        node = current.parent();
+    }
+    if namespace { ReferenceKind::Namespace } else { kind }
 }
 
 /// Compiled queries, cached per language.
@@ -917,6 +936,7 @@ impl Extractor {
                     true => ReferenceKind::Call,
                     false => r.kind,
                 };
+                let kind = if lang == Language::Rust { rust_reference_kind(root, span, kind) } else { kind };
                 references.push(Reference {
                     name: span.text(source).to_string(),
                     span,

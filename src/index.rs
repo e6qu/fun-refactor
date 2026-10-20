@@ -692,7 +692,13 @@ impl Index {
         info: &FileInfo,
         by_name: &HashMap<&str, Vec<SymbolId>>,
     ) -> (Option<SymbolId>, Confidence) {
+        if reference.kind == ReferenceKind::Attribute {
+            return (None, Confidence::NameOnly);
+        }
         let (target, confidence) = self.resolve_by_evidence(reference, path, info, by_name);
+        if target.and_then(|id| self.symbol(id)).is_some_and(|symbol| !reference.may_name(symbol)) {
+            return (None, Confidence::NameOnly);
+        }
 
         // Only a member access asks a question about a receiver.
         let Some(receiver) = reference
@@ -812,10 +818,8 @@ impl Index {
             }
             // Markup writes the namespace down: `class="x"` names a class and `href="#x"` names
             // an element id.
-            if let Some(expected) = reference.expects {
-                if s.kind != expected {
-                    return false;
-                }
+            if !reference.may_name(s) {
+                return false;
             }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
             if in_an_import {
@@ -1721,7 +1725,8 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
-        self.references.matching(&sym.name, symbol)
+        self.references.matching(&sym.name, symbol).into_iter()
+            .filter(|reference| reference.may_name(sym)).collect()
     }
 
     /// Every definition site of the entity `symbol` belongs to.
@@ -2138,6 +2143,34 @@ mod tests {
         let refs = index.references_to(helper[0].id);
         assert_eq!(refs.len(), 1, "got {refs:?}");
         assert_eq!(refs[0].confidence, Confidence::Exact);
+    }
+
+    #[test]
+    fn rust_path_prefixes_and_attributes_do_not_name_same_spelled_values() {
+        let source = "mod shared { pub fn run() {} }\nfn shared() {}\nmod test {}\n#[test]\nfn check() { shared::run(); shared(); }\n";
+        let (_tmp, index) = index_of(&[("a.rs", source)]);
+        let values = index.find_symbols("shared", None);
+        let function = values.iter().find(|symbol| symbol.kind == SymbolKind::Function).unwrap();
+        let module = values.iter().find(|symbol| symbol.kind == SymbolKind::Module).unwrap();
+        let calls = index.references_to(function.id);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].kind, ReferenceKind::Call);
+        let paths = index.references_to(module.id);
+        assert_eq!(paths.len(), 1);
+        assert_eq!(paths[0].kind, ReferenceKind::Namespace);
+        let test = index.find_symbols("test", None)[0];
+        assert!(index.references_to(test.id).is_empty());
+        assert!(index.unresolved_matching(test.id).is_empty());
+    }
+
+    #[test]
+    fn unresolved_procedural_attributes_still_block_same_named_function_edits() {
+        let (_tmp, index) = index_of(&[("a.rs", "fn custom() {}\n#[custom]\nfn checked() {}\n")]);
+        let custom = index.find_symbols("custom", None)[0];
+        assert!(index.references_to(custom.id).is_empty());
+        let unresolved = index.unresolved_matching(custom.id);
+        assert_eq!(unresolved.len(), 1);
+        assert_eq!(unresolved[0].kind, ReferenceKind::Attribute);
     }
 
     #[test]
