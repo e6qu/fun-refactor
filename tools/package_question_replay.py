@@ -56,7 +56,11 @@ def audit(output):
 
 def collect(binary, output):
     output.mkdir(parents=True, exist_ok=False)
+    save(output / 'setup.json', {'stage': 'original historical audit', 'passed': False,
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()})
     historical.audit(historical.REVISION)
+    save(output / 'setup.json', {'stage': 'original historical audit', 'passed': True,
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()})
     before = bindings()
     archives = {}
     scalar = load('retain-scalar-evidence')

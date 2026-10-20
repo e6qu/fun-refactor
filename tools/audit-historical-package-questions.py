@@ -15,15 +15,28 @@ def audit(revision):
     for commit in (revision, FROZEN):
         subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', commit], cwd=ROOT,
             check=True, capture_output=True, timeout=60)
+    def recorded(name):
+        return subprocess.check_output(['git', 'show', revision + ':' + name], cwd=ROOT, timeout=30)
+    catalog = json.loads(recorded('tests/agent-eval/roadmap.json'))
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
+    report = json.loads(recorded(entry['path']))
+    # Check out the original audit and all its declared inputs, without expanding
+    # unrelated retained experiments, compiler corpora or browser dependencies.
+    paths = {'tools/', 'sdk/python/src/', 'tests/agent-eval/roadmap.json',
+        str(Path(entry['path']).parent) + '/', 'tests/agent-eval/package-questions/freeze.json',
+        *report['source_bindings']}
+    assert all(not Path(name).is_absolute() and '..' not in Path(name).parts
+        and not any(char in name for char in '\\!*?[]') for name in paths)
     with tempfile.TemporaryDirectory(prefix='fr-original-package-audit-') as temporary:
         source = Path(temporary) / 'original'
-        subprocess.run(['git', 'worktree', 'add', '--detach', str(source), revision],
+        subprocess.run(['git', 'worktree', 'add', '--no-checkout', '--detach', str(source), revision],
             cwd=ROOT, check=True, capture_output=True, timeout=60)
         try:
-            subprocess.run(['git', 'sparse-checkout', 'disable'], cwd=source,
-                check=True, capture_output=True, timeout=60)
-            catalog = json.loads((source / 'tests/agent-eval/roadmap.json').read_text())
-            entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
+            subprocess.run(['git', 'sparse-checkout', 'set', '--no-cone', '--stdin'], cwd=source,
+                input=''.join('/' + name + '\n' for name in sorted(paths)), text=True,
+                check=True, timeout=60)
+            subprocess.run(['git', 'checkout', '--force', '--detach', revision], cwd=source,
+                check=True, timeout=60)
             subprocess.run(['python3', '-B', 'tools/test-package-milestone-audit.py', entry['path']],
                 cwd=source, check=True, timeout=120)
         finally:
