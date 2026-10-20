@@ -21,7 +21,7 @@ Separately, ordinary Python executes both examples and checks their stated resul
 Overwriting the year with 2000 before calling `is_leap` must remove the original
 input's value route. Python must then return `True` for either original input.
 
-The function name and examples were chosen from the
+We chose the function name and examples from the
 [public README at the pinned revision](https://github.com/phn/jdcal/blob/c82c3cfb7f814b2ab79fd597e3f8aa87c3390fbb/README.rst).
 The implementation file `jdcal.py` and tests `test_jdcal.py` remain unread during
 development. Record the analyzer, client library, question plan and collector
@@ -52,7 +52,7 @@ that an inactive block cannot replace the selected helper.
 The checker also admits explicitly supported Python 3 future directives, such as
 `from __future__ import division`. These request behavior already mandatory in
 the declared Python 3 runtime. They do not enable postponed annotations;
-`annotations` is checked separately. A competing local `__future__` file still
+The checker handles `annotations` separately. A competing local `__future__` file still
 prevents trusting the directive.
 The [Python future-statement reference](https://docs.python.org/3.14/library/__future__.html)
 records which behavior is mandatory in the selected runtime and explains that

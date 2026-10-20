@@ -517,9 +517,14 @@ jobs:
         with:
           key: default
       - name: Check native binding and summary controls
+        id: native
         run: cargo test --locked --no-fail-fast --test native_fingerprint --test cache --test package_flow --test imported_flow --test vfs_choke_point --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
+      - name: Build the CLI required by the Python controls
+        id: sdk-binary
+        if: always() && steps.native.outcome != 'skipped'
+        run: cargo build --locked --bin fr
       - name: Check Python runtime and SDK controls
-        if: always()
+        if: always() && steps.sdk-binary.outcome == 'success'
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src

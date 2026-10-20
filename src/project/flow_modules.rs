@@ -433,7 +433,6 @@ fn imported_main_guards(root: Node<'_>, source: &str) -> BTreeSet<usize> {
         }
         pending.extend(node.named_children(&mut node.walk()));
     }
-    // Reject every other use, including rebinding, imports and attribute access.
     if occurrences.len() != 1 {
         return BTreeSet::new();
     }

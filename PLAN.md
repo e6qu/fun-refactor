@@ -74,7 +74,7 @@ reject missing or old data without adding compatibility readers or migration fal
 Complete [the original-package question and the unfamiliar-project check](docs/package-milestones.md)
 with the remaining unfamiliar-project work and tracking reconciliation in one pull request.
 Milestone 1 has passing original-package results for Boltons and dateutil. Milestone 2 still
-needs a third independent project that was not used to guide the implementation.
+needs a third independent project. Keep that project's implementation unread while developing the analyzer.
 These are near-term steps within the broader goals below, not completion of those larger goals.
 Their acceptance conditions include complete reaching-input and
 blocked-input answers, independent Python checks, changed-input tests and a frozen
@@ -163,12 +163,13 @@ Aim for a complete helper answer through the original package import while prese
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 
-The first unfamiliar checks of jaraco.functools and fn.py stopped before analysis: the archive
-lacked the license file required by admission, or no function matched the fixed selection rule.
+The first unfamiliar checks of jaraco.functools and fn.py stopped before analysis.
+Jaraco's archive lacked the license file required by admission.
+fn.py had no function matching the fixed selection rule.
 Keep both original failures. They do not count as successful unfamiliar-project coverage.
 The next question is [JDcal's documented leap-year check](docs/leap-year-package-question.md).
-Its function and examples were chosen from the public README before opening its implementation
-or tests. Record the analyzer and question plan before the first evaluation.
+We chose its function and examples from the public README before opening its implementation or tests.
+Record the analyzer and question plan before the first evaluation.
 Toolz, funcy and pydash are already familiar development examples. The earlier Boltons reservation
 was unsuitable because prior work had already used it. Keep that mistake in the recorded history.
 
