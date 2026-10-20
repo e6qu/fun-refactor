@@ -15,7 +15,7 @@ def check(project, root, name):
         module = importlib.import_module('boltons.mathutils')
         function = getattr(module, name)
         actual = [function(value, lower=0, upper=50) for value in (-5, 17, 70)]
-        assert actual == [0, 17, 50], actual
+        assert all(type(value) is int for value in actual) and actual == [0, 17, 50], actual
         obsolete = 'clamp_value' if name == 'clamp' else 'clamp'
         assert not hasattr(module, obsolete), obsolete
         return {'results': actual, 'original_import': 'boltons.mathutils'}
