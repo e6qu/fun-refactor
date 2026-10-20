@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-facts/result.json",
-      "sha256": "14a23933af8c1e16d31b6e158ac24d864a242d95a2921db31c20f1a22b2db06c"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-flow-facts/result.json",
+      "sha256": "36304584c44c156043c382586d64f1936230bef59985b7e8f07e24bf6fcbc693"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-package-flow/result.json",
-      "sha256": "8bdb14ec7b0c95d35020b6698866b41fa7ab77bff8d3e4976771c69c32ab2543"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-package-flow/result.json",
+      "sha256": "56a7048409f52627f6c1d2abbd741f16d5fefc57df5b8eb811336b4e332b75c7"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-repositories",
-      "sha256": "f09cdc248c1d4821936a59fc0f654a5e05162ad42f6146630dffe16f34b00235"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-python-repositories",
+      "sha256": "be13520e40ff611694aea5253184940977caaa318e13ff5e0f85e1a161a8ca34"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-flow-cache/result.json",
-      "sha256": "64abeebf73ccb2a127cb4f935eb0d4ed0f2f1d711f099db1d26f020ab2255f8c"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-flow-cache/result.json",
+      "sha256": "19ac0e7465537875e8ee02d86c7cd4ea8500cdeb08101d693a05c26068ef8d82"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-compiler-profile/result.json",
-      "sha256": "f3184bbb7ecbf7cf4da19b1c5a8881707eb024e61b345538f1f42a663b8665fe"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-leap-year-compiler-profile/result.json",
+      "sha256": "dd9ac80dcba5379dd59d673d24041c39354abd62808e1ddf4607934cfea7890d"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-python-contract/result.json",
       "kind": "semantic-contract",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-19-original-package-questions-python-contract/result.json",
-      "sha256": "96de3f19ae1e5bd27dc7da352845413c7310ba27b76e3b278f2bcf887dcdb317"
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-leap-year-python-contract/result.json",
+      "sha256": "73007ff8160c59cd1eb381c147347c0a79c98ea6bbfa5d6c0e03da6b4feb71ff"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-leap-year-index-resolution/result.json",
       "kind": "measurement",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-19-original-package-questions-index-resolution/result.json",
-      "sha256": "97ef517f2fad2f2426dc64e465651aea4146d04d9e6bf25143570ba1996c8b69"
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-20-leap-year-index-resolution/result.json",
+      "sha256": "ddcda587cbf41a8761590c2193c0960284b8921948a57acee28c104624215e24"
     },
     {
       "id": "repository-flow",
