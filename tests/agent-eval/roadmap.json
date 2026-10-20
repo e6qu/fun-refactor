@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-final-ci-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-09-28-structural-change/manifest.json",
-      "scope": "Rust rename/signature migration with 49 calls; frozen recorded input fingerprints.",
-      "sha256": "a13ec41ab37f60dd3cc0da5daf553b7673f2b222fcd7fa3be39e92580ebc5a41"
+      "path": "tests/agent-eval/results/2026-10-21-final-ci-structural-change/manifest.json",
+      "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
+      "sha256": "961d263a9c415bc9cb4dd96d5ff215bcab3ad26589a5c9302540499ce1d81aa0"
     },
     {
       "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",

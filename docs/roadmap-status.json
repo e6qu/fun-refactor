@@ -62,14 +62,14 @@
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-final-ci-structural-change",
       "changed_sources": [],
-      "freshness": "historical",
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-09-28-structural-change/manifest.json",
-      "scope": "Rust rename/signature migration with 49 calls; frozen recorded input fingerprints."
+      "path": "tests/agent-eval/results/2026-10-21-final-ci-structural-change/manifest.json",
+      "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
       "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
