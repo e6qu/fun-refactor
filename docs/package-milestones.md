@@ -9,6 +9,9 @@ for Boltons, dateutil and JDcal with one unchanged analyzer. This completes both
 near-term package milestones. The original run records below support that conclusion;
 regression tests alone would not establish either outcome.
 
+These package milestones remain complete. The [next milestone](project-change-milestone.md)
+asks whether answers stay correct while projects change and whether a function change reaches all its required callers.
+
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.
 

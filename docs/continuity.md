@@ -25,6 +25,20 @@ Toolz, funcy and pydash still give incomplete answers when used through their fu
 Some helpers work when copied into small isolated files. That tests a simpler question with different import behavior.
 We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
+## Next: change a project and keep the answers trustworthy
+
+The [next milestone](project-change-milestone.md) shifts work from questions about unchanged packages to changes across a project.
+Its two outcomes are correct saved answers after edits and a complete function change in Rust and Python.
+For example, renaming `subtotal` must update the required callers and imports, invalidate affected findings and preserve unrelated ones.
+The changed program must pass its checks. Its patch must also work in another checkout.
+
+Start by choosing three independent projects and recording their tasks, expected behavior and required checks before implementation.
+Keep one project's implementation unread until the checker and test procedure are fixed.
+Boltons, dateutil and JDcal are already familiar; none can supply that new unread test.
+Compare fresh and saved answers after each declared change. Keep every failure and resource stop.
+The tracking requirements for project changes and complete function edits remain open.
+Language work should address an obstacle in a selected task. Broader support and cost savings need their own results.
+
 ## The current reader review
 
 The reader review covered 120 guides and references, including tutorials, agent instructions and project trackers.
@@ -42,7 +56,7 @@ Do not change recorded fingerprints to disguise outdated results.
 
 ## Continue Python work from actual library failures
 
-The goal is to answer a question such as “does submitted input reach `send` through this package's helper?”
+These findings remain useful when a selected change task asks whether submitted input reaches `send` through a package helper.
 Use the helper through its original package imports. Copying it into a smaller file changes the question.
 Importing a package can run setup code before making its helper available.
 That code can replace a helper, so ignoring it can give the wrong answer.

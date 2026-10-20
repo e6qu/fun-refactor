@@ -79,9 +79,15 @@ Ordinary Python agrees with the declared examples. Renamed callers, unknown call
 The two familiar packages also pass the saved-answer checks after source and import changes.
 
 These results complete the selected package questions, while the broader goals below remain open.
-Next, select a useful question whose original package still gives an incomplete answer.
-Explain the exact unsupported startup operation before extending a language rule.
-Keep independent project selection and a fresh unread project for any new claim about unfamiliar code.
+The next milestone is [changing projects while keeping answers trustworthy](docs/project-change-milestone.md).
+For example, rename a helper, update its callers and resume a saved task against the changed code.
+Discard conclusions that depended on the old helper, keep unrelated findings and check the delivered patch in another checkout.
+
+Complete two outcomes together: correct answers through project changes, and a complete function change in both Rust and Python.
+Use three independently selected projects for the change checks. Keep at least one implementation unread until the checker and test procedure are fixed.
+Test renames, moves, deletions, competing imports, project configuration, explicit question settings and a real analyzer change.
+Compare each resumed or reused answer with a fresh check of the same changed project.
+The [milestone guide](docs/project-change-milestone.md) defines selection, examples and completion criteria. Both requirements remain open until their original results qualify.
 
 Choose work by a useful question that we can answer from beginning to end.
 For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
@@ -101,7 +107,7 @@ Use ordinary tests for this question; consider the existing checker again when a
 Keep original package imports separate from copied-function results, count setup and checking costs, and reproduce reported failing inputs in Python.
 The experiment adds no analyzer support and does not restart the stopped agent studies.
 
-Continue the Python work from the actual library failures. For example, importing a helper can
+Extend Python support when a chosen project-change task needs it. For example, importing a helper can
 run a package's setup code before the helper is available. Explain which statement prevents an
 answer, then improve the language rule needed to handle it.
 The [startup investigation](docs/python-package-startup-results.md) shows why another declaration rule alone cannot finish these package questions.
@@ -143,9 +149,9 @@ The experiment used the existing analyzer and client.
 These timing studies predate bounded loop support.
 Their original code still audits them; this language change has no separate cost measurement.
 
-Return to the real libraries' remaining import and startup gaps.
+Keep the real libraries' remaining import and startup gaps visible.
 For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.
-Choose the next concrete statement from the import explanation and check its behavior against Python.
+If one blocks a selected change task, explain the concrete statement and check any new rule against Python.
 
 A small registration function can now copy entries between dictionaries created in the same file.
 The source must list its entries directly in code and stay unchanged.
