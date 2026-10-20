@@ -1,0 +1,87 @@
+"""Build a recorded implementation control before any unread project is opened."""
+import argparse
+import difflib
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'sdk/python/src'))
+from fr_ir.runtime import FrClient, FrRuntimeError
+from fr_ir.change_scope import ChangeScope
+from fr_ir.ir import TaskChange
+from fr_ir.structural_change import RefactorRequest
+from project_change_sources import digest, save
+from evidence_basis import native_source_bindings
+
+
+def verify(binary, root, accepted):
+    client = FrClient(root, executable=binary)
+    handle = client.project('find', 'original').definition_target().handle
+    scope = ChangeScope.inspect(client, [handle])
+    assert scope.ready, scope.report.to_data()
+    change = TaskChange([], [RefactorRequest.rename('n' * 256, documentation='preserve').target('rename', handle)],
+                        {'files-changed': 1}, ['syntax'])
+    try:
+        report = client.review(scope.bind(change)).to_data()
+    except FrRuntimeError as error:
+        assert not accepted and '255' in str(error), str(error)
+        return {'accepted': False, 'error': str(error), 'report': error.report}
+    assert accepted, 'alternate checker did not change real rename admission'
+    return {'accepted': True, 'report': report}
+
+
+def build(output, binary):
+    output.mkdir(parents=True, exist_ok=False)
+    source = ROOT / 'src/project/structural_change.rs'
+    original = source.read_text()
+    old = 'name.len() <= 256, "rename name exceeds 256 bytes."'
+    new = 'name.len() <= 255, "rename name exceeds 255 bytes."'
+    assert original.count(old) == 1
+    changed = original.replace(old, new)
+    (output / 'implementation.patch').write_text(''.join(difflib.unified_diff(
+        original.splitlines(keepends=True), changed.splitlines(keepends=True),
+        fromfile='a/src/project/structural_change.rs', tofile='b/src/project/structural_change.rs')))
+    shutil.copyfile(binary, output / 'production-fr')
+    (output / 'production-fr').chmod(0o755)
+    production = native_source_bindings(ROOT)
+    investigation = digest(ROOT / 'src/project/investigation.rs')
+    try:
+        source.write_text(changed)
+        alternate = native_source_bindings(ROOT)
+        completed = subprocess.run(['cargo', 'build', '--locked', '--bin', 'fr'], cwd=ROOT,
+            capture_output=True, text=True, timeout=180)
+        save(output / 'build.json', {'returncode': completed.returncode,
+            'stdout': completed.stdout, 'stderr': completed.stderr})
+        assert completed.returncode == 0
+        shutil.copyfile(binary, output / 'alternate-fr')
+        (output / 'alternate-fr').chmod(0o755)
+    finally:
+        source.write_text(original)
+    assert digest(ROOT / 'src/project/investigation.rs') == investigation
+    assert production != alternate
+    with tempfile.TemporaryDirectory(prefix='fr-checker-control-') as temporary:
+        root = Path(temporary)
+        (root / 'control.rs').write_text('fn original() -> i64 { 1 }\n')
+        (root / '.fr').mkdir()
+        save(root / '.fr/checks.json', {'schema': 1, 'checks': [{'name': 'syntax',
+            'argv': ['rustc', '--crate-type', 'lib', '--emit=metadata', 'control.rs', '-o', '.fr/control.rmeta'],
+            'cwd': '.', 'timeout_seconds': 30, 'covers': ['Compile the control library']}]})
+        save(root / '.fr/check-scopes.json', {'schema': 1,
+            'checks': [{'name': 'syntax', 'paths': ['control.rs']}]})
+        controls = {name: verify(output / (name + '-fr'), root, name == 'production')
+                    for name in ('production', 'alternate')}
+    save(output / 'checkers.json', {'production': {'sha256': digest(output / 'production-fr'),
+        'source_bindings': production}, 'alternate': {'sha256': digest(output / 'alternate-fr'),
+        'source_bindings': alternate}, 'unchanged_investigation_sha256': investigation,
+        'control': controls, 'scope': 'Same public format and investigation source. The alternate implementation admits names up to 255 bytes; production admits 256. No production limit was raised.'})
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--fr', type=Path, required=True)
+    args = parser.parse_args()
+    build(args.output.resolve(), args.fr.resolve())

@@ -69,6 +69,8 @@ on:
           - go-toolchain
           - project-change-inspect
           - project-change-development
+          - project-change-delivery
+          - project-change-findings
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -148,6 +150,29 @@ jobs:
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
+      - name: Prepare original project checks
+        if: inputs.group == 'project-change-delivery'
+        run: python3 -m pip install 'pytest==9.1.1'
+      - name: Deliver original Rust and Python renames through fr
+        id: delivery
+        if: inputs.group == 'project-change-delivery'
+        run: >-
+          python3 -B tools/project-changes.py delivery --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-delivery"
+      - name: Build and demonstrate the real checker difference
+        id: checkers
+        if: inputs.group == 'project-change-findings'
+        run: >-
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-checkers"
+      - name: Reopen findings after changes to original familiar projects
+        id: findings
+        if: inputs.group == 'project-change-findings'
+        run: >-
+          python3 -B tools/project-changes.py findings
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          --output "$RUNNER_TEMP/project-change-findings"
       - name: Use fr to inspect its own change and invalidation code
         id: inspection
         run: >-
@@ -165,6 +190,29 @@ jobs:
         with:
           name: project-change-inspection
           path: ${{ runner.temp }}/project-change-inspection/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.delivery.outcome != 'skipped'
+        with:
+          name: project-change-delivery
+          path: ${{ runner.temp }}/project-change-delivery/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.checkers.outcome != 'skipped'
+        with:
+          name: project-change-checkers
+          path: |
+            ${{ runner.temp }}/project-change-checkers/*.json
+            ${{ runner.temp }}/project-change-checkers/*.patch
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.findings.outcome != 'skipped'
+        with:
+          name: project-change-findings
+          path: ${{ runner.temp }}/project-change-findings/
           if-no-files-found: error
           retention-days: 30
 
