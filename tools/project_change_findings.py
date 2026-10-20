@@ -68,7 +68,10 @@ def mutate(task, root, selected, case):
     suffix = path.suffix
     if case == 'rename':
         for source in root.rglob('*' + suffix):
-            source.write_text(source.read_text().replace(name, task['renamed']))
+            original = source.read_bytes()
+            changed = original.replace(name.encode(), task['renamed'].encode())
+            if changed != original:
+                source.write_bytes(changed)
     elif case == 'move':
         destination = path.with_name('fr_moved_' + path.name)
         path.rename(destination)
@@ -78,10 +81,13 @@ def mutate(task, root, selected, case):
         else:
             old_module, new_module = path.stem, destination.stem
             for source in root.rglob('*.py'):
-                text = source.read_text()
+                original = source.read_bytes()
+                text = original
                 for prefix in ('from .', 'from ', '.'):
-                    text = text.replace(prefix + old_module + ' import', prefix + new_module + ' import')
-                source.write_text(text)
+                    text = text.replace((prefix + old_module + ' import').encode(),
+                        (prefix + new_module + ' import').encode())
+                if text != original:
+                    source.write_bytes(text)
     elif case == 'delete':
         path.unlink()
     elif case == 'competing-import':

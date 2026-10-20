@@ -76,15 +76,17 @@ def documentation(project, root):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('behavior', 'documentation'))
-    parser.add_argument('project', choices=('glob', 'boltons'))
-    parser.add_argument('root', type=Path)
-    parser.add_argument('--name')
+    commands = parser.add_subparsers(dest='operation', required=True)
+    behavior = commands.add_parser('behavior')
+    behavior.add_argument('project', choices=('glob', 'boltons'))
+    behavior.add_argument('root', type=Path)
+    behavior.add_argument('--name', required=True)
+    docs = commands.add_parser('documentation')
+    docs.add_argument('project', choices=('boltons',))
+    docs.add_argument('root', type=Path)
     args = parser.parse_args()
     if args.operation == 'behavior':
-        assert args.name is not None, 'behavior requires an explicit public function name'
         result = check(args.project, args.root.resolve(), args.name)
     else:
-        assert args.name is None, 'documentation resolves the names written in the original document'
         result = documentation(args.project, args.root.resolve())
     print(json.dumps(result))

@@ -127,12 +127,16 @@ def measure(task, original, output, binary):
         save(output / 'documentation-review.json', preview)
         assert preview['saved'] is True and preview['applied'] is False and preview['changed'] == 1
         transaction = preview['transaction']
+        save(output / 'documentation-patch.json', client.call('history', 'patch', str(transaction),
+            '--output', 'artifacts/documentation.patch').to_data())
+        documentation_patch = (project / 'artifacts/documentation.patch').read_bytes()
+        assert b'--- a/docs/mathutils.rst\n' in documentation_patch
+        assert ('-.. autofunction:: boltons.mathutils.' + task['function'] + '\n').encode() in documentation_patch
+        assert ('+.. autofunction:: boltons.mathutils.' + task['renamed'] + '\n').encode() in documentation_patch
         save(output / 'documentation-apply.json',
             client.call('history', 'apply', str(transaction), '--write').to_data())
         transactions.append(transaction)
-        save(output / 'documentation-patch.json', client.call('history', 'patch', str(transaction),
-            '--output', 'artifacts/documentation.patch').to_data())
-        patch.write_bytes(code_patch.read_bytes() + (project / 'artifacts/documentation.patch').read_bytes())
+        patch.write_bytes(code_patch.read_bytes() + documentation_patch)
         run(doc_command, project, output / 'documentation-after.json', success=True)
         checks.append({'name': 'documentation',
             'argv': [sys.executable, '-B', '.fr/oracle.py', 'documentation', task['id'], '.'],

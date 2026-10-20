@@ -132,7 +132,7 @@ def equivalent(actual, recorded, path=()):
     if isinstance(actual, list) and isinstance(recorded, list):
         return len(actual) == len(recorded) and all(equivalent(a, b, path) for a, b in zip(actual, recorded))
     if isinstance(actual, str) and isinstance(recorded, str):
-        handles = [re.fullmatch(r'frp1:[0-9a-f]{28}:([0-9a-f]*)', value) for value in (actual, recorded)]
+        handles = [re.fullmatch(r'frp1:[0-9a-f]{32}:([0-9a-f]*)', value) for value in (actual, recorded)]
         if all(handles):
             return handles[0][1] == handles[1][1]
         if path[-1:] in (('id',), ('context_basis',)):
