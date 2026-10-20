@@ -328,7 +328,7 @@
       "id": "B.effects",
       "kind": "deterministic",
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
-      "next": "Prioritize effects that repeatedly block user tasks; add general rules and independent reaching-input and blocked-input tests.",
+      "next": "Prioritize unsupported effects exposed by the selected project-change tasks. Add general rules and independent reaching-input and blocked-input tests without treating unknown startup behavior as harmless.",
       "requires": [],
       "title": "Handle exceptions and shared mutable values honestly"
     },
@@ -384,7 +384,7 @@
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "next": "Apply one reusable change matrix across projects and compare each result with a fresh analysis.",
+      "next": "Follow docs/project-change-milestone.md: choose three independent projects, keep one unread during development, and record the questions and changes before implementation. Compare each saved or resumed answer with a fresh check; preserve unrelated findings and every failed attempt.",
       "requires": [],
       "title": "Keep answers correct through common project changes"
     },
@@ -392,7 +392,7 @@
       "id": "C.performance",
       "kind": "measurement",
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "next": "Measure the current system before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
+      "next": "First complete the project-change correctness milestone. Then measure fresh, reused and post-edit work before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
       "requires": [],
       "title": "Measure useful work, memory and disk at project scale"
     },
@@ -422,7 +422,7 @@
       "id": "D.structural",
       "kind": "deterministic",
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "next": "Add an independently chosen Python task using the same general discovery and edit operations; unsupported export forms must still be reported.",
+      "next": "Follow docs/project-change-milestone.md: select a real Rust task and a real Python task before adding support. Discover required callers, imports, configuration and checks; verify behavior, undo and patch replay. Report unresolved uses explicitly.",
       "requires": [],
       "title": "Change a declaration and update its callers"
     },

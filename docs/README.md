@@ -14,6 +14,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | Trace a Python call that replaces a stored default | [Default replacement example](replace-python-defaults.md) |
 | Fix one function | [Change its implementation](body-authoring.md), then [test the requested behavior](checked-outcomes.md) |
 | Rename a function or change its arguments | [Find affected callers](change-scopes.md) and [review the related changes](structural-changes.md) |
+| Understand the next development milestone | [Change projects and keep answers trustworthy](project-change-milestone.md) |
 | Undo a mistake or continue interrupted work | [Recovery](host-recovery.md) and [correcting a failed edit](source-repair.md) |
 | Move a route to another framework | [Route migration](feature-migration.md) |
 | Check a stated property of a small function | [Proof support](lean-specs.md) |

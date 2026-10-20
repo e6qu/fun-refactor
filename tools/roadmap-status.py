@@ -206,7 +206,7 @@ def markdown(report):
         '## What works and what still gets in the way', '',
         '| User task | What we have now | What remains |', '|---|---|---|',
         '| Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |',
-        '| Trace input to an output | Supported small Python examples | Real-package imports and other behavior still leave many answers incomplete |',
+        '| Trace input to an output | Selected original-package questions in Boltons, dateutil and JDcal, plus small Python examples | Other imports and unsupported behavior still leave many answers incomplete |',
         '| Continue after a failed attempt | Saved changes, undo, checks and recovery tests | Useful resumed work and handoffs at project scale |',
         '| Deliver a repair or check a property | Reviewed edits, behavior checks and small supported proofs | Independent task success and a checked connection between proofs and actual code |', '',
         '**We have not demonstrated general time or cost savings.** The older two-task comparison '
@@ -215,10 +215,11 @@ def markdown(report):
         'the repair. The [measurement guide](benchmarks.md) explains baselines, included costs and '
         'unmeasured overhead. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
         '## What happens next', '',
-        'Keep the guides understandable from the user’s task. Next, improve Python tracing from '
-        'the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects '
-        'after freezing the implementation, and compare complete agent tasks when independent '
-        'task selection and cost limits are ready.', '',
+        'The [next milestone](project-change-milestone.md) is to change projects while keeping answers trustworthy. '
+        'Compare saved and fresh answers after renames, moves, deletions, competing imports, configuration changes, question settings changes and analyzer changes. '
+        'Complete a function change with its required callers, checks, undo and patch replay in both Rust and Python. '
+        'Choose three independent projects and keep one implementation unread until the checker and test procedure are fixed. '
+        'Both requirements remain open. Measure project costs after correctness; broader agent savings and proofs remain separate work.', '',
         'See the [plan](../PLAN.md#completed-package-milestones-and-next-work) for the work sequence and '
         '[generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.', '',
         '## Milestones', '',

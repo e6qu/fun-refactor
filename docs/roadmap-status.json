@@ -438,7 +438,7 @@
       ],
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "Prioritize effects that repeatedly block user tasks; add general rules and independent reaching-input and blocked-input tests.",
+      "next": "Prioritize unsupported effects exposed by the selected project-change tasks. Add general rules and independent reaching-input and blocked-input tests without treating unknown startup behavior as harmless.",
       "requires": [],
       "state": "open",
       "title": "Handle exceptions and shared mutable values honestly"
@@ -502,7 +502,7 @@
       ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
-      "next": "Apply one reusable change matrix across projects and compare each result with a fresh analysis.",
+      "next": "Follow docs/project-change-milestone.md: choose three independent projects, keep one unread during development, and record the questions and changes before implementation. Compare each saved or resumed answer with a fresh check; preserve unrelated findings and every failed attempt.",
       "requires": [],
       "state": "open",
       "title": "Keep answers correct through common project changes"
@@ -514,7 +514,7 @@
       ],
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Measure the current system before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
+      "next": "First complete the project-change correctness milestone. Then measure fresh, reused and post-edit work before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
       "requires": [],
       "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
@@ -550,7 +550,7 @@
       ],
       "id": "D.structural",
       "kind": "deterministic",
-      "next": "Add an independently chosen Python task using the same general discovery and edit operations; unsupported export forms must still be reported.",
+      "next": "Follow docs/project-change-milestone.md: select a real Rust task and a real Python task before adding support. Discover required callers, imports, configuration and checks; verify behavior, undo and patch replay. Report unresolved uses explicitly.",
       "requires": [],
       "state": "open",
       "title": "Change a declaration and update its callers"

@@ -15,7 +15,7 @@ A requirement is one specific behavior we promise to check. A recorded result de
 | User task | What we have now | What remains |
 |---|---|---|
 | Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |
-| Trace input to an output | Supported small Python examples | Real-package imports and other behavior still leave many answers incomplete |
+| Trace input to an output | Selected original-package questions in Boltons, dateutil and JDcal, plus small Python examples | Other imports and unsupported behavior still leave many answers incomplete |
 | Continue after a failed attempt | Saved changes, undo, checks and recovery tests | Useful resumed work and handoffs at project scale |
 | Deliver a repair or check a property | Reviewed edits, behavior checks and small supported proofs | Independent task success and a checked connection between proofs and actual code |
 
@@ -23,7 +23,7 @@ A requirement is one specific behavior we promise to check. A recorded result de
 
 ## What happens next
 
-Keep the guides understandable from the user’s task. Next, improve Python tracing from the real-library failures, keeping unanswered questions explicit. Test unfamiliar projects after freezing the implementation, and compare complete agent tasks when independent task selection and cost limits are ready.
+The [next milestone](project-change-milestone.md) is to change projects while keeping answers trustworthy. Compare saved and fresh answers after renames, moves, deletions, competing imports, configuration changes, question settings changes and analyzer changes. Complete a function change with its required callers, checks, undo and patch replay in both Rust and Python. Choose three independent projects and keep one implementation unread until the checker and test procedure are fixed. Both requirements remain open. Measure project costs after correctness; broader agent savings and proofs remain separate work.
 
 See the [plan](../PLAN.md#completed-package-milestones-and-next-work) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
@@ -126,7 +126,7 @@ User example: A helper mutates a shared list; the answer must account for later 
 
 Recorded results or remaining work: No saved result yet meets this requirement.
 
-Next: Prioritize effects that repeatedly block user tasks; add general rules and independent reaching-input and blocked-input tests.
+Next: Prioritize unsupported effects exposed by the selected project-change tasks. Add general rules and independent reaching-input and blocked-input tests without treating unknown startup behavior as harmless.
 
 ### C.resume: Resume work without trusting outdated conclusions
 
@@ -156,7 +156,7 @@ User example: Move a helper or add a previously missing module and check the con
 
 Recorded results or remaining work: No saved result yet meets this requirement.
 
-Next: Apply one reusable change matrix across projects and compare each result with a fresh analysis.
+Next: Follow docs/project-change-milestone.md: choose three independent projects, keep one unread during development, and record the questions and changes before implementation. Compare each saved or resumed answer with a fresh check; preserve unrelated findings and every failed attempt.
 
 ### C.performance: Measure useful work, memory and disk at project scale
 
@@ -166,7 +166,7 @@ User example: Measure whether saved answers reduce total work and storage on a r
 
 Recorded results or remaining work: No saved result yet meets this requirement.
 
-Next: Measure the current system before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.
+Next: First complete the project-change correctness milestone. Then measure fresh, reused and post-edit work before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.
 
 ### D.checked: Check and replay a delivered change
 
@@ -186,7 +186,7 @@ User example: Add an argument to subtotal and update every caller that the promi
 
 Recorded results or remaining work: No saved result yet meets this requirement.
 
-Next: Add an independently chosen Python task using the same general discovery and edit operations; unsupported export forms must still be reported.
+Next: Follow docs/project-change-milestone.md: select a real Rust task and a real Python task before adding support. Discover required callers, imports, configuration and checks; verify behavior, undo and patch replay. Report unresolved uses explicitly.
 
 ### D.translation: Translate a function without changing its promised behavior
 
