@@ -150,10 +150,9 @@ impl Project<'_> {
                 }
                 Err(error) => return Err(error),
             },
-            DependencyKind::Analyzer => hash((
-                ANALYZER,
-                env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT"),
-            ))?,
+            DependencyKind::Analyzer => {
+                hash((ANALYZER, env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT")))?
+            }
             DependencyKind::DeclarationAnalyzer => super::correspondence::analyzer_digest()?,
             DependencyKind::FlowInputs => match self.flow_dependency(&dependency.key) {
                 Ok(digest) => digest,

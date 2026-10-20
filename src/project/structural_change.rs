@@ -1,9 +1,9 @@
 use super::{author::Plan, Project};
+use crate::edit::Edit;
 use crate::lang::Language;
 use crate::model::{ReferenceKind, Symbol, SymbolKind};
-use crate::edit::Edit;
-use crate::refactor::WarningKind;
 use crate::parse::{Parsed, Parsers};
+use crate::refactor::WarningKind;
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
 use serde::Deserialize;
@@ -13,9 +13,17 @@ use tree_sitter::Node;
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
-    Rename { name: String, documentation: Documentation },
-    RemoveParameter { index: usize },
-    MoveParameter { from: usize, to: usize },
+    Rename {
+        name: String,
+        documentation: Documentation,
+    },
+    RemoveParameter {
+        index: usize,
+    },
+    MoveParameter {
+        from: usize,
+        to: usize,
+    },
 }
 
 #[derive(Deserialize)]
@@ -38,9 +46,16 @@ fn documentation_node(mut node: Node<'_>, language: Language, source: &str) -> b
                     statement.kind() == "expression_statement"
                         && statement.named_child_count() == 1
                         && statement.parent().is_some_and(|body| {
-                            (body.kind() == "module" || body.kind() == "block"
-                                && body.parent().is_some_and(|owner| matches!(owner.kind(), "function_definition" | "class_definition")))
-                                && body.named_children(&mut body.walk())
+                            (body.kind() == "module"
+                                || body.kind() == "block"
+                                    && body.parent().is_some_and(|owner| {
+                                        matches!(
+                                            owner.kind(),
+                                            "function_definition" | "class_definition"
+                                        )
+                                    }))
+                                && body
+                                    .named_children(&mut body.walk())
                                     .find(|child| child.kind() != "comment")
                                     .is_some_and(|first| first.id() == statement.id())
                         })
@@ -49,33 +64,57 @@ fn documentation_node(mut node: Node<'_>, language: Language, source: &str) -> b
                 return true;
             }
         }
-        let Some(parent) = node.parent() else { return false; };
+        let Some(parent) = node.parent() else {
+            return false;
+        };
         node = parent;
     }
 }
 
-fn update_documentation(project: &Project<'_>, symbol: &Symbol, name: &str,
-                        plan: &mut crate::refactor::rename::RenamePlan) -> Result<usize> {
+fn update_documentation(
+    project: &Project<'_>,
+    symbol: &Symbol,
+    name: &str,
+    plan: &mut crate::refactor::rename::RenamePlan,
+) -> Result<usize> {
     let mentions = crate::mentions::of(project.index, &symbol.name)?;
     let mut updated = Vec::new();
     for mention in mentions {
-        if plan.edits.iter().any(|(file, edits)| file == &mention.file
-            && edits.iter().any(|edit| edit.span.overlaps(mention.span))) {
+        if plan.edits.iter().any(|(file, edits)| {
+            file == &mention.file && edits.iter().any(|edit| edit.span.overlaps(mention.span))
+        }) {
             continue;
         }
-        let source = project.sources.get(&mention.file).context("documentation is outside the captured source scope")?;
-        let language = project.index.file(&mention.file).context("documentation has no indexed language")?.language;
+        let source = project
+            .sources
+            .get(&mention.file)
+            .context("documentation is outside the captured source scope")?;
+        let language = project
+            .index
+            .file(&mention.file)
+            .context("documentation has no indexed language")?
+            .language;
         let parsed = Parsers::new().parse(language, source)?;
-        let node = parsed.root().descendant_for_byte_range(mention.span.start, mention.span.end)
+        let node = parsed
+            .root()
+            .descendant_for_byte_range(mention.span.start, mention.span.end)
             .context("documentation mention has no syntax")?;
         if documentation_node(node, language, source) {
-            plan.edits.add(mention.file.clone(), Edit::new(mention.span, name,
-                format!("rename explicit documentation reference to {}", symbol.name)));
+            plan.edits.add(
+                mention.file.clone(),
+                Edit::new(
+                    mention.span,
+                    name,
+                    format!("rename explicit documentation reference to {}", symbol.name),
+                ),
+            );
             updated.push((mention.file, mention.line, mention.col));
         }
     }
-    plan.warnings.retain(|warning| warning.kind != WarningKind::TextualOccurrence
-        || !updated.contains(&(warning.file.clone(), warning.line, warning.col)));
+    plan.warnings.retain(|warning| {
+        warning.kind != WarningKind::TextualOccurrence
+            || !updated.contains(&(warning.file.clone(), warning.line, warning.col))
+    });
     Ok(updated.len())
 }
 
@@ -172,11 +211,15 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         .and_then(|id| project.index.symbol(id))
         .context("structural refactor requires a declaration.")?;
     ensure!(
-        matches!(symbol.language, Language::Rust | Language::Python) && symbol.kind == SymbolKind::Function,
+        matches!(symbol.language, Language::Rust | Language::Python)
+            && symbol.kind == SymbolKind::Function,
         "structural refactor requires a Rust or Python free function."
     );
     let (edits, detail) = match request {
-        Request::Rename { name, documentation } => {
+        Request::Rename {
+            name,
+            documentation,
+        } => {
             ensure!(name.len() <= 256, "rename name exceeds 256 bytes.");
             let mut plan = crate::refactor::rename::plan(project.index, symbol.id, &name)?;
             let documentation_edits = match documentation {
@@ -192,7 +235,10 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
             )
         }
         request => {
-            ensure!(symbol.language == Language::Rust, "signature changes require a Rust free function.");
+            ensure!(
+                symbol.language == Language::Rust,
+                "signature changes require a Rust free function."
+            );
             let (change, detail) = match request {
                 Request::RemoveParameter { index } => {
                     ensure!(index < 64, "parameter index must be below 64.");

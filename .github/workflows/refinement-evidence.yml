@@ -146,6 +146,11 @@ jobs:
           cargo fmt --all
           git diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - run: cargo build --locked --bin fr
+      - name: Synchronize the reviewed admission rule through fr
+        if: inputs.group == 'project-change-development'
+        run: |
+          target/debug/fr --json -C . spec sync kernels/FrKernels/Project.lean --write > "$RUNNER_TEMP/project-change-spec-sync.json"
+          git diff -- src kernels > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - name: Use fr to inspect its own change and invalidation code
         id: inspection
         run: >-
@@ -158,6 +163,8 @@ jobs:
           ty check sdk/python/src
           python3 -B tools/test-native-source-inputs.py
           cargo test --locked --test native_fingerprint
+          cargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
+          cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Prepare original project checks
         if: inputs.group == 'project-change-delivery'
@@ -186,7 +193,9 @@ jobs:
         if: always()
         with:
           name: project-change-rustfmt
-          path: ${{ runner.temp }}/project-change-rustfmt.patch
+          path: |
+            ${{ runner.temp }}/project-change-rustfmt.patch
+            ${{ runner.temp }}/project-change-spec-sync.json
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v7

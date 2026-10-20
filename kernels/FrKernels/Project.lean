@@ -692,7 +692,7 @@ def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) 
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
   | 2 => decide ((language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0))
   | 3 => decide (target = 0)
-  | 10 => decide (language = 0 ∧ target = 1)
+  | 10 => decide ((language = 0 ∨ language = 6) ∧ target = 1)
   | _ => false
 
 theorem replace_declaration_target_iff (language target : Nat) :
@@ -913,7 +913,7 @@ theorem handle_selection_returns_declaration (isLocal includeLocals : Bool)
     simp [handleSelectionStatus, *]
 
 theorem structural_refactor_target_iff (language target : Nat) :
-    taskAuthorTargetCandidate 10 language target = true ↔ language = 0 ∧ target = 1 := by
+    taskAuthorTargetCandidate 10 language target = true ↔ (language = 0 ∨ language = 6) ∧ target = 1 := by
   simp [taskAuthorTargetCandidate]
 
 end FrKernels.Project

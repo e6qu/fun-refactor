@@ -14,6 +14,19 @@ from fr_ir.structural_change import RefactorRequest
 FR = Path(__file__).resolve().parents[3] / 'target/debug/fr'
 
 
+def test_file_scoped_discovery_ignores_neighboring_declarations_and_edits(tmp_path):
+    selected = tmp_path / 'selected.py'
+    selected.write_text('def price():\n    return 3\n')
+    neighbor = tmp_path / 'neighbor.py'
+    neighbor.write_text('def price():\n    return 100\n')
+    client = FrClient(selected, executable=FR, timeout=20, max_output_bytes=65536)
+    before = client.project('find', 'price', '--source', '--bytes', '65536')
+    assert before.definition_target().path == 'selected.py'
+    neighbor.write_text('def changed():\n    return 200\n')
+    assert client.project('find', 'price', '--source', '--bytes', '65536').to_data() == before.to_data()
+    assert client.project('find', 'changed').at('/rows') == []
+
+
 def fixture(tmp_path, text):
     root = tmp_path / 'project'
     root.mkdir()

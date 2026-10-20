@@ -26,7 +26,8 @@ def inspect(args):
         ('index', 'resolve_one', 'index.rs'),
     ]
     for directory, name, path in selections:
-        root = ROOT / 'src/project' if directory == 'project' else ROOT / 'src'
+        directory_root = ROOT / 'src/project' if directory == 'project' else ROOT / 'src'
+        root = directory_root / path
         client = FrClient(root, executable=args.fr.resolve(), timeout=20, max_output_bytes=1048576)
         report = client.project('find', name, '--in', path, '--source', '--bytes', '65536').to_data()
         if report['page']['next'] is not None or not report['rows']:
@@ -37,7 +38,7 @@ def inspect(args):
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
         'source_clean': not subprocess.check_output(['git', 'diff', '--name-only', '--', 'src'], cwd=ROOT, text=True).strip(),
-        'scope': 'fr inspected its original src/project and src directories. These bounded reads do not establish repository-wide caller discovery.',
+        'scope': 'fr inspected the explicitly selected original source files. File-scoped reads do not establish repository-wide caller discovery.',
         'selections': selections,
     })
 
