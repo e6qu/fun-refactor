@@ -14,7 +14,9 @@ def entry():
 ```
 
 Here `emit_value()` supplies the selected input, and `record_value()` receives
-the answer. The analyzer follows a possible value route through the calculation.
+the answer. The comparison collector supplies both functions and places the pinned
+package in a prepared directory before running this caller.
+The analyzer follows a possible value route through the calculation.
 Separately, ordinary Python executes both examples and checks their stated results.
 Overwriting the year with 2000 before calling `is_leap` must remove the original
 input's value route. Python must then return `True` for either original input.
@@ -40,6 +42,8 @@ contains the module's name, so this block is inactive. The analyzer now recogniz
 this exact guard in an imported dependency when the file contains no other
 `__name__` use and the guard has no alternative branch. The selected entry file
 does not receive this allowance: its execution mode is unknown.
+The [Python module guide](https://docs.python.org/3.14/library/__main__.html)
+describes the distinction between importing a module and running it directly.
 
 Rebinding `__name__`, importing it from another file, using a different comparison
 or adding `else` keeps the question unfinished. Ordinary Python tests also check
@@ -50,9 +54,13 @@ The checker also admits explicitly supported Python 3 future directives, such as
 the declared Python 3 runtime. They do not enable postponed annotations;
 `annotations` is checked separately. A competing local `__future__` file still
 prevents trusting the directive.
+The [Python future-statement reference](https://docs.python.org/3.14/library/__future__.html)
+records which behavior is mandatory in the selected runtime and explains that
+the statement still performs a module import.
 
 The question explicitly selects the `builtins` and `math` standard-library models.
-These describe supported operations under the assumptions in the
+A model is an explicit description of operations the checker knows how to handle.
+These models use the assumptions in the
 [number and date guide](original-package-questions.md).
 An unused imported name such as `math.modf` may be recognized without supporting
 calls to it. Calling an unmodeled operation still leaves the answer unfinished.

@@ -63,8 +63,7 @@ class CoverageBeforeUnread(unittest.TestCase):
         return record, value
 
     def check(self, record, value):
-        with patch.dict(questions.os.environ, {'GITHUB_REPOSITORY': 'example/project'}):
-            questions.checked_coverage(record, value, 'a' * 40, {'frozen': True})
+        questions.checked_coverage(record, value, 'a' * 40, {'frozen': True}, 'example/project')
 
     def test_complete_declared_examples_allow_the_next_phase(self):
         self.check(*self.example())

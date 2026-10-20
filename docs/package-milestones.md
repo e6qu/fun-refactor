@@ -3,9 +3,11 @@
 Start with the [number and date examples](original-package-questions.md) for
 the user questions, the meaning of a finished answer and its assumptions.
 
-Milestones 1 and 2 belong in one pull request. The pull request is not ready just
-because its regression tests pass. It must retain results demonstrating the user
-outcomes below with one frozen implementation.
+Milestone 1 was demonstrated in [PR #545](https://github.com/e6qu/fun-refactor/pull/545).
+That PR merged before milestone 2 was complete. The next pull request must finish
+the unfamiliar-project comparison and reconcile the tracking together. Passing
+regression tests alone does not demonstrate either outcome. The final comparison
+must use one unchanged analyzer across all qualifying projects.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.
@@ -101,7 +103,14 @@ is still required, including an implementation kept unread before evaluation.
 The [jaraco.functools reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json)
 records its original selection; it must not be read as a successful result.
 
-A failure can inform another fix in this same pull request, but that project
+The next comparison selects [JDcal's leap-year question](leap-year-package-question.md)
+from its public README before opening its implementation or tests. The stated
+examples are 2000 returning true and 2100 returning false. Overwriting the year
+with 2000 must remove the original input's value route while Python returns true
+for either original input. Familiar-project coverage must pass again with the
+same frozen implementation before opening this third project.
+
+A failure can inform another fix, but that project
 then becomes a development example. Reserve another unread project before the
 next evaluation. A renamed adapter or a new revision of a familiar package does
 not supply an independent project.

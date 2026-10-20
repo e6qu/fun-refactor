@@ -80,3 +80,15 @@ def test_unused_math_member_does_not_grant_call_support(tmp_path):
     assert analyze(client, rules, 'entry', imports=True, standard_library=('math',)).report.at('/complete')
     (tmp_path / 'helpers.py').write_text('from math import modf\ndef relay(value):\n    return modf(value)\n')
     assert not analyze(client, rules, 'entry', imports=True, standard_library=('math',)).report.at('/complete')
+
+
+@pytest.mark.parametrize('value,reaches,expected', [('source()', True, True), ('0', False, False)])
+def test_boolean_arithmetic_keeps_a_value_route_through_imported_guards(tmp_path, value, reaches, expected):
+    helper = ("from __future__ import division, print_function\nfrom math import modf\n"
+              "def relay(value):\n    return value % 2 == 1 and value > 0\n"
+              "if __name__ == '__main__':\n    unknown()\n")
+    client, rules = install(tmp_path, helper, value)
+    result = analyze(client, rules, 'entry', imports=True, standard_library=('math',))
+    assert result.report.at('/complete'), result.report.at('/cutoffs')
+    assert bool(result.witnesses) is reaches
+    assert observe(tmp_path)['result'] is expected

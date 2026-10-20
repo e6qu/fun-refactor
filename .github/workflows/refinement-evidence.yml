@@ -548,6 +548,7 @@ jobs:
       - name: Reject substituted package records
         run: python3 -B tools/test-retain-package-questions.py
       - name: Save familiar and first unfamiliar outcomes unchanged
+        id: retained
         env:
           GH_TOKEN: ${{ github.token }}
           COVERAGE_RUN: ${{ inputs.collection_run }}
@@ -556,6 +557,13 @@ jobs:
         run: >-
           python3 -B tools/retain-package-questions.py --coverage-run "$COVERAGE_RUN"
           --held-out-run "$HELD_OUT_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Reject false completion records even with coherent fingerprints
+        if: steps.retained.outputs.milestones_complete == 'true'
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/test-package-milestone-audit.py
+          "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-held-out/result.json"
       - name: Commit the original package records
         env:
           BRANCH: ${{ github.ref_name }}
@@ -637,6 +645,7 @@ jobs:
         with:
           name: package-questions
           path: ${{ runner.temp }}/package-questions/
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
 

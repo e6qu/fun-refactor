@@ -219,13 +219,13 @@ def admission(root):
             'dependency_installation': 'The collector installs no third-party dependencies. Preserve original-import runtime failures; do not rewrite package requirements.'}
 
 
-def checked_coverage(record, value, source, frozen):
+def checked_coverage(record, value, source, frozen, repository):
     declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'coverage'}
     flow.require(record['head_sha'] == source and record['status'] == 'completed' and record['conclusion'] == 'success'
                  and record['path'] == '.github/workflows/refinement-evidence.yml'
                  and record['event'] == 'workflow_dispatch'
-                 and record['repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
-                 and record['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY'],
+                 and record['repository']['full_name'] == repository
+                 and record['head_repository']['full_name'] == repository,
                  'coverage must pass at the same frozen commit in this repository')
     flow.require(value['source_commit'] == source and value['phase'] == 'coverage'
                  and value['implementation'] == frozen and value['plan'] == PLAN,
@@ -273,7 +273,9 @@ def checked_questions(rows, declared, require_cache):
                          'coverage contains an incorrect answer or resource stop')
             expected_values = [project['blocked']] * 2 if cell['case'] == 'overwritten' else project['expected']
             flow.require(len(cell['runtime']) == 2 and all(
-                item['input'] == project['values'][index] and item['expected'] == expected_values[index]
+                type(item['input']) is type(project['values'][index])
+                and item['input'] == project['values'][index]
+                and type(item['expected']) is type(expected_values[index]) and item['expected'] == expected_values[index]
                 and item['observation']['exit_code'] == 0 and item['observation']['stop_reason'] is None
                 and type(item['observation']['result']['value']) is type(expected_values[index])
                 and item['observation']['result'] == {'value': expected_values[index]}
@@ -295,7 +297,7 @@ def coverage_result(run_id, output, source, frozen):
         member = archive.getinfo('result.json')
         flow.require(member.file_size <= 1024**2, 'coverage summary exceeds 1 MiB')
         value = json.loads(archive.read(member))
-    checked_coverage(record, value, source, frozen)
+    checked_coverage(record, value, source, frozen, repository)
     save(output / 'coverage-result.json', value)
     save(output / 'coverage-run.json', {'run': record, 'artifact': artifact, 'download_sha256': flow.sha(downloaded.stdout)})
     return value
@@ -314,6 +316,20 @@ def milestone_outcome(rows, coverage, phase, frozen):
             'milestones_complete': first and second}
 
 
+def checked_completion(value, coverage, frozen):
+    declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'held-out'}
+    rows = value['projects']
+    flow.require(len(rows) == len(declared) and {row['project']['id'] for row in rows} == set(declared)
+                 and all(row['project'] == declared[row['project']['id']] for row in rows),
+                 'unfamiliar comparison omitted or changed a planned project')
+    finished = [row for row in rows if row['complete'] is True and row['error'] is None]
+    checked_questions(finished, {row['project']['id']: declared[row['project']['id']] for row in finished}, False)
+    outcome = milestone_outcome(rows, coverage, 'held-out', frozen)
+    flow.require(outcome['milestones_complete'] is True and all(value[key] == expected for key, expected in outcome.items()),
+                 'package completion differs from its checked questions')
+    return outcome
+
+
 def collect(args):
     flow.require(sys.platform == 'linux', 'package collection belongs on the declared Linux runner')
     output = args.output.resolve()
@@ -324,6 +340,7 @@ def collect(args):
     if args.phase != 'development':
         frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
         flow.verify_analyzer(ROOT, frozen)
+        flow.require(frozen['repository'] == os.environ['GITHUB_REPOSITORY'], 'freeze belongs to another evaluation repository')
         flow.require(frozen['plan_sha256'] == flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
                      and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
     if args.phase == 'held-out':
@@ -402,6 +419,8 @@ def collect(args):
                 row['error'] = (row['error'] + '; ' if row['error'] else '') + 'original package files changed'
         save(output / 'result.json', result)
     result.update(milestone_outcome(result['projects'], coverage, args.phase, frozen))
+    if args.phase == 'held-out' and result['milestones_complete']:
+        checked_completion(result, coverage, frozen)
     save(output / 'result.json', result)
     print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']],
                       'milestone_1_demonstrated': result['milestone_1_demonstrated'], 'milestone_2_demonstrated': result['milestone_2_demonstrated']}))

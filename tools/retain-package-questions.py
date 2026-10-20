@@ -43,13 +43,17 @@ def audit(path):
             'package implementation or resource limits changed')
     coverage = json.loads(data['coverage-result.json'])
     coverage_run = json.loads(data['coverage-run.json'])['run']
-    questions.checked_coverage(coverage_run, coverage, value['source_commit'], frozen)
-    declared = {project['id']: project for project in questions.PLAN['projects'] if project['role'] == 'held-out'}
-    questions.checked_questions(value['projects'], declared, False)
-    outcome = questions.milestone_outcome(value['projects'], coverage, 'held-out', frozen)
-    require(outcome['milestones_complete'] is True and all(value[key] == expected for key, expected in outcome.items()),
-            'package completion differs from its checked questions')
+    questions.checked_coverage(coverage_run, coverage, value['source_commit'], frozen, frozen['repository'])
+    outcome = questions.checked_completion(value, coverage, frozen)
     for row in value['projects']:
+        if row['complete'] is not True or row['error'] is not None:
+            continue
+        prefix = row['project']['id'] + '/'
+        require(hashlib.sha256(data[prefix + 'source.tar.gz']).hexdigest() == row['archive_sha256'],
+                'original package archive changed')
+        for name, expected in row['source_files'].items():
+            require(hashlib.sha256(data[prefix + 'upstream/' + name]).hexdigest() == expected,
+                    'original package source changed: ' + name)
         for cell in row['cases']:
             name = cell['variant'] + '-' + cell['case']
             observations = [(name, cell['analysis'])] + [(f'{name}-python-{index}', item['observation'])
@@ -137,7 +141,7 @@ def main():
         collected.append((phase, run, artifact, producer, archive, data, value))
     _, coverage_run, _, _, _, _, coverage = collected[0]
     _, held_run, _, _, _, held_data, held = collected[1]
-    questions.checked_coverage(coverage_run, coverage, held['source_commit'], frozen)
+    questions.checked_coverage(coverage_run, coverage, held['source_commit'], frozen, repository)
     require(held['coverage_run'] == str(args.coverage_run)
             and json.loads(held_data['coverage-result.json']) == coverage,
             'unfamiliar-project collection did not use the declared familiar-project results')
@@ -145,9 +149,7 @@ def main():
     require(all(held[key] == expected for key, expected in outcome.items()),
             'unfamiliar-project outcome differs from its recorded questions')
     if held_run['conclusion'] == 'success':
-        declared = {project['id']: project for project in questions.PLAN['projects'] if project['role'] == 'held-out'}
-        questions.checked_questions(held['projects'], declared, False)
-        require(held['milestones_complete'] is True, 'successful collection did not complete both milestones')
+        questions.checked_completion(held, coverage, frozen)
     scalar.retain.command(['git', 'fetch', '--no-tags', '--depth=1', 'origin', held_run['head_sha']],
                           capture_output=True)
     scalar.verify_sources(ROOT, {held_run['head_sha']})
@@ -190,6 +192,8 @@ def main():
         audit(ROOT / relative)
         scalar.retain.command(['python3', '-B', 'tools/roadmap-status.py', '--write'])
         scalar.retain.command(['python3', '-B', 'tools/roadmap-status.py', '--check'])
+    with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+        output.write('milestones_complete=' + str(held['milestones_complete']).lower() + '\n')
 
 
 if __name__ == '__main__':
