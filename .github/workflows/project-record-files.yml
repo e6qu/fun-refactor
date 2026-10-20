@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - name: Restore declared bytes and verify every staged file
+      - name: Restore declared bytes and verify every checkout round trip
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -78,14 +78,19 @@ jobs:
                   restored.append(name)
           index = []
           for name, content in contents.items():
-              oid = subprocess.check_output(['git', 'hash-object', '-w', '--stdin', '--no-filters'],
+              oid = subprocess.check_output(['git', 'hash-object', '-w', '--stdin', '--path=' + str(relative / name)],
                                             input=content, cwd=root).strip()
+              checkout_bytes = subprocess.check_output(['git', 'cat-file', '--filters', '--path=' + str(relative / name),
+                                                       oid.decode()], cwd=root)
+              scalar.require(checkout_bytes == content, 'Git checkout would change the declared bytes: ' + name)
               index.append(b'100644 ' + oid + b'\t' + str(relative / name).encode() + b'\0')
           subprocess.run(['git', 'update-index', '--add', '-z', '--index-info'],
                          input=b''.join(index), cwd=root, check=True)
           for name, content in contents.items():
-              staged = subprocess.check_output(['git', 'show', ':' + str(relative / name)], cwd=root)
-              scalar.require(staged == content, 'Git did not retain the declared bytes: ' + name)
+              staged = subprocess.check_output(['git', 'cat-file', '--filters', '--path=' + str(relative / name),
+                                               ':' + str(relative / name)], cwd=root)
+              scalar.require(staged == content, 'Git checkout did not retain the declared bytes: ' + name)
+          subprocess.run(['git', 'diff', '--exit-code', '--', str(relative)], cwd=root, check=True)
           print(json.dumps({'original_collection': identity, 'restored': restored, 'verified_staged_files': len(contents)}))
           PY
       - name: Prepare the pinned documentation counter

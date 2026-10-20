@@ -26,7 +26,8 @@ Commit the corrections before qualification. Successful source reads alone do no
 
 An original source snapshot can contain its own `.gitignore`, a list of filenames Git should omit.
 JDcal's list names `MANIFEST`, even though its recorded source archive includes that file.
-The `project-record-files.yml` packaging workflow authenticates the original collection and stores every declared file as an exact Git blob.
+The `project-record-files.yml` packaging workflow authenticates the original collection and checks every file after Git's storage and checkout conversions.
+The checked-out bytes must match the original collection, including line endings. Git must also report no uncommitted file changes after staging.
 This also preserves bytes when a snapshot's own text-conversion rules would otherwise change them.
 It checks each staged file against the original bytes before committing. Ordinary validation continues to fail when a declared file is missing.
 This packaging step preserves the fixed evaluation inputs and their original fingerprints.
