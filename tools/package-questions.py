@@ -26,6 +26,12 @@ spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/p
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
 PLAN = json.loads((ROOT / 'tools/package-question-projects.json').read_text())
+COLLECTOR_INPUTS = (
+    'tools/package-questions.py', 'tools/package-question-projects.json',
+    'tools/evidence_basis.py', 'tools/python-repository-flow.py', 'tools/compiler-profile.py',
+    'tools/agent_eval/bounded_host.py', 'tests/agent-eval/python-repository-flow/cohort.json',
+    'tests/agent-eval/python-repositories/boltons.tar.gz', *PLAN['previous_attempts'],
+)
 RULES = {'version': 'package-question', 'sources': ['emit_value'], 'sinks': ['record_value'],
          'sanitizers': {}, 'propagators': []}
 LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
@@ -61,8 +67,7 @@ def save(path, value):
 
 def bindings():
     return native_bindings(ROOT, [
-        'tools/package-questions.py', 'tools/package-question-projects.json',
-        *PLAN['previous_attempts'],
+        *COLLECTOR_INPUTS, 'tests/agent-eval/package-questions/freeze.json',
         *(path.relative_to(ROOT).as_posix() for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))),
     ])
 
@@ -343,6 +348,9 @@ def collect(args):
         flow.require(frozen['repository'] == os.environ['GITHUB_REPOSITORY'], 'freeze belongs to another evaluation repository')
         flow.require(frozen['plan_sha256'] == flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
                      and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
+        actual = bindings()
+        flow.require(frozen['collector_inputs'] == {name: actual[name] for name in COLLECTOR_INPUTS},
+                     'collector helpers, source archive or earlier outcome differs from freeze')
     if args.phase == 'held-out':
         flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
         coverage = coverage_result(args.coverage_run, output, source, frozen)
@@ -418,6 +426,7 @@ def collect(args):
                 row['complete'] = False
                 row['error'] = (row['error'] + '; ' if row['error'] else '') + 'original package files changed'
         save(output / 'result.json', result)
+    flow.require(bindings() == result['source_bindings'], 'evaluation inputs changed during collection')
     result.update(milestone_outcome(result['projects'], coverage, args.phase, frozen))
     if args.phase == 'held-out' and result['milestones_complete']:
         checked_completion(result, coverage, frozen)

@@ -42,6 +42,9 @@ def audit(path):
     require(value['implementation'] == frozen and value['limits'] == questions.LIMITS,
             'package implementation or resource limits changed')
     coverage = json.loads(data['coverage-result.json'])
+    require(coverage['schema'] == 'fr-original-package-questions'
+            and coverage['source_bindings'] == value['source_bindings'],
+            'familiar and unfamiliar records used different evaluation inputs')
     coverage_run = json.loads(data['coverage-run.json'])['run']
     questions.checked_coverage(coverage_run, coverage, value['source_commit'], frozen, frozen['repository'])
     outcome = questions.checked_completion(value, coverage, frozen)
