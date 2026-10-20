@@ -89,11 +89,11 @@ Test renames, moves, deletions, competing imports, project configuration, explic
 Compare each resumed or reused answer with a fresh check of the same changed project.
 The [milestone guide](docs/project-change-milestone.md) defines selection, examples and completion criteria. Both requirements remain open until their original results qualify.
 
-The selected projects are Rust glob, Python Boltons and Python Humanize, recorded
-before support was added. [Draft PR #551](https://github.com/e6qu/fun-refactor/pull/551)
+We selected Rust glob, Python Boltons and Python Humanize before adding support.
+[Draft PR #551](https://github.com/e6qu/fun-refactor/pull/551)
 contains both outcomes. It must finish the familiar-project checks before opening
-Humanize's reserved implementation, preserve every failed attempt, and retain the
-original results before closing either requirement. See the [handoff](docs/continuity.md#next-change-a-project-and-keep-the-answers-trustworthy)
+Humanize's reserved implementation. It must preserve every failed attempt and retain
+the original results before closing either requirement. See the [handoff](docs/continuity.md#next-change-a-project-and-keep-the-answers-trustworthy)
 for current implementation details and remaining checks.
 
 Choose work by a useful question that we can answer from beginning to end.
