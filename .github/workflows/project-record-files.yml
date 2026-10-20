@@ -78,7 +78,7 @@ jobs:
                   restored.append(name)
           index = []
           for name, content in contents.items():
-              oid = subprocess.check_output(['git', 'hash-object', '--write', '--stdin', '--no-filters'],
+              oid = subprocess.check_output(['git', 'hash-object', '-w', '--stdin', '--no-filters'],
                                             input=content, cwd=root).strip()
               index.append(b'100644 ' + oid + b'\t' + str(relative / name).encode() + b'\0')
           subprocess.run(['git', 'update-index', '--add', '-z', '--index-info'],
