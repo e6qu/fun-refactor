@@ -590,7 +590,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/consumer_measurements.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/consumer_measurements.rs tests/completion_workflows.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain fresh workflow and recovery reports'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -783,10 +783,10 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if ! git diff --quiet; then
+          git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
+          if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
             git commit -m 'docs: refresh generated reader guides and writing counts'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi

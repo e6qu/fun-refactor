@@ -20,6 +20,7 @@ GROUPS = {
     'retained-proofs': ['retained-proofs'],
     'resumable-correspondence': ['resumable-correspondence'],
     'index-consumers': ['index-consumers'],
+    'completion-workflows': ['completion-workflows'],
 }
 SCRIPTS = {
     'host-recovery': 'host-recovery-acceptance',
@@ -35,6 +36,7 @@ ACTIVE_REFERENCES = {
     'retained-proofs': 'tests/retained_proofs.rs',
     'resumable-correspondence': 'tests/correspondence.rs',
     'index-consumers': 'tests/consumer_measurements.rs',
+    'completion-workflows': 'tests/completion_workflows.rs',
 }
 
 
