@@ -27,6 +27,7 @@ def bindings(root):
         'tests/agent-eval/python-repositories/boltons.tar.gz',
         'tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json',
         'tools/test-project-change-audit.py',
+        'tools/test-project-change-gate.py',
         'kernels/FrKernels/Project.lean',
         'tools/agent_eval/bounded_host.py', 'tools/agent_eval/study.py',
         'tests/agent-eval/project-changes/tasks.json', 'tests/agent-eval/project-changes/oracle.py',

@@ -29,11 +29,17 @@ def retained_tools():
 def attempts(repository, branch, through):
     scalar = retained_tools()
     from urllib.parse import urlencode
-    query = urlencode({'branch': branch, 'per_page': 100})
-    listing = scalar.retain.api(f'repos/{repository}/actions/workflows/refinement-evidence.yml/runs?{query}')
-    assert listing['total_count'] <= 100, 'read every project-change attempt before qualification'
+    cutoff = scalar.retain.api(f'repos/{repository}/actions/runs/{through}')['created_at']
+    route = f'repos/{repository}/actions/workflows/refinement-evidence.yml/runs'
+    query = urlencode({'branch': branch, 'per_page': 100, 'created': '<=' + cutoff})
+    listing = scalar.retain.api(f'{route}?{query}&page=1')
+    runs = list(listing['workflow_runs'])
+    for page in range(2, (listing['total_count'] + 99) // 100 + 1):
+        runs.extend(scalar.retain.api(f'{route}?{query}&page={page}')['workflow_runs'])
+    assert len({run['id'] for run in runs}) == len(runs) == listing['total_count'], \
+        'the attempt listing changed while reading its pages'
     result = []
-    for run in listing['workflow_runs']:
+    for run in runs:
         if run['id'] > through:
             continue
         jobs = scalar.retain.api(f'repos/{repository}/actions/runs/{run["id"]}/jobs?filter=all&per_page=100')['jobs']

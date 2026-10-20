@@ -176,6 +176,7 @@ jobs:
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
           python3 -B tools/test-native-source-inputs.py
+          python3 -B tools/test-project-change-gate.py
           cargo test --locked --test native_fingerprint
           cargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
           cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
