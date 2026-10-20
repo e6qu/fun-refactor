@@ -572,20 +572,7 @@ jobs:
           python-version: '3.14'
       - name: Check writing and source identity controls
         run: |
-          python3 -B - <<'PY'
-          import runpy, subprocess
-          from pathlib import Path
-          prose = runpy.run_path('tools/check-prose.py')
-          for name in subprocess.check_output(['git', 'diff', '--name-only', '06294a686ef7ebe29987787bd2ef29b441ac0147', 'HEAD'], text=True).splitlines():
-              path = Path(name)
-              if not path.is_file():
-                  continue
-              texts = [path.read_text()] if name in prose['DOCS'] else [prose['comments_of'](path), prose['messages_of'](path)] if path.suffix == '.rs' and 'results' not in path.parts else []
-              for text in texts:
-                  for sentence in prose['sentences'](text):
-                      if '|' not in sentence and not ('`' in sentence and len(sentence.split()) > 40) and len(sentence.split()) > 25:
-                          print(name, len(sentence.split()), sentence)
-          PY
+          python3 -B tools/test-check-prose.py
           python3 -B tools/check-prose.py
           python3 -B tools/test_flow_cache_basis.py
           python3 -B tools/test-retain-ci-reports.py
@@ -783,6 +770,7 @@ jobs:
         run: python3 -B tools/test-python-contract.py
       - name: Check writing counts and exact generated results
         run: |
+          python3 -B tools/test-check-prose.py
           python3 -c 'import runpy; runpy.run_path("tools/check-agent-skill.py")["check_bundle"]()'
           python3 -B tools/check-prose.py
           python3 -B tools/roadmap-status.py --check
