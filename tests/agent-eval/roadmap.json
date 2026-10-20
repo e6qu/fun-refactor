@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-flow-facts/result.json",
-      "sha256": "36304584c44c156043c382586d64f1936230bef59985b7e8f07e24bf6fcbc693"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
+      "sha256": "c132207699750fe23af606854db2a464827ef307eab0c7678d5a176b9b7a93a4"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-package-flow/result.json",
-      "sha256": "56a7048409f52627f6c1d2abbd741f16d5fefc57df5b8eb811336b4e332b75c7"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "sha256": "aa155e51ecf8d68c004555c25ca6a2a61c9dce78217b85b7bd3f443caa4d5bed"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-python-repositories",
-      "sha256": "be13520e40ff611694aea5253184940977caaa318e13ff5e0f85e1a161a8ca34"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories",
+      "sha256": "9fb7fb7fc8d60a211029afd9804403d6012f13d928bc28aba31c5a5dfedeb90b"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-leap-year-flow-cache/result.json",
-      "sha256": "19ac0e7465537875e8ee02d86c7cd4ea8500cdeb08101d693a05c26068ef8d82"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
+      "sha256": "17570533cb3360d8bc14aef0d88976837e91661469008ec2e44e2224b2db279c"
     },
     {
       "id": "host-recovery",
@@ -87,27 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-leap-year-compiler-profile/result.json",
-      "sha256": "dd9ac80dcba5379dd59d673d24041c39354abd62808e1ddf4607934cfea7890d"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
+      "sha256": "9c3d09fa3f1031eaf85f30887f7db3cd40aadfeaf9751b8eeefb1371f91fd74f"
     },
     {
       "id": "python-contract",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
       "kind": "semantic-contract",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-leap-year-python-contract/result.json",
-      "sha256": "73007ff8160c59cd1eb381c147347c0a79c98ea6bbfa5d6c0e03da6b4feb71ff"
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
+      "sha256": "298daf5f1f92db9f0e428d96df534ecc3d6e613a5ffbbfc1f9089ea0896f4917"
     },
     {
       "id": "index-resolution",
-      "path": "tests/agent-eval/results/2026-10-20-leap-year-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
       "kind": "measurement",
-      "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-20-leap-year-index-resolution/result.json",
-      "sha256": "ddcda587cbf41a8761590c2193c0960284b8921948a57acee28c104624215e24"
+      "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
+      "sha256": "fc7da55e19479a66be8bfde53d2a7c0379e3c5449b15946bb66e090ed801ba64"
     },
     {
       "id": "repository-flow",
