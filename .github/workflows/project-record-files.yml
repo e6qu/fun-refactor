@@ -76,9 +76,13 @@ jobs:
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(content)
                   restored.append(name)
-          paths = b''.join(str(relative / name).encode() + b'\0' for name in contents)
-          subprocess.run(['git', '--literal-pathspecs', 'add', '--force', '--pathspec-from-file=-', '--pathspec-file-nul'],
-                         input=paths, cwd=root, check=True)
+          index = []
+          for name, content in contents.items():
+              oid = subprocess.check_output(['git', 'hash-object', '--write', '--stdin', '--no-filters'],
+                                            input=content, cwd=root).strip()
+              index.append(b'100644 ' + oid + b'\t' + str(relative / name).encode() + b'\0')
+          subprocess.run(['git', 'update-index', '--add', '-z', '--index-info'],
+                         input=b''.join(index), cwd=root, check=True)
           for name, content in contents.items():
               staged = subprocess.check_output(['git', 'show', ':' + str(relative / name)], cwd=root)
               scalar.require(staged == content, 'Git did not retain the declared bytes: ' + name)
