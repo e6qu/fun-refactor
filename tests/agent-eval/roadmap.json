@@ -55,11 +55,11 @@
     },
     {
       "id": "host-recovery",
-      "path": "tests/agent-eval/results/2026-10-20-recovery-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
       "kind": "fault-injection",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-recovery-ci-host-recovery/result.json",
-      "sha256": "d3eed1e1df88be452d2414770aea6de99c17379cf65e0e8c269ec6779fc5a3a4"
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
+      "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
       "id": "structural",
