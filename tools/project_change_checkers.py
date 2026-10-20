@@ -13,7 +13,7 @@ from fr_ir.runtime import FrClient, FrRuntimeError
 from fr_ir.change_scope import ChangeScope
 from fr_ir.ir import TaskChange
 from fr_ir.structural_change import RefactorRequest
-from project_change_sources import digest, save
+from project_change_sources import digest, save, bindings
 from evidence_basis import native_source_bindings
 
 
@@ -76,6 +76,8 @@ def build(output, binary):
     save(output / 'checkers.json', {'production': {'sha256': digest(output / 'production-fr'),
         'source_bindings': production}, 'alternate': {'sha256': digest(output / 'alternate-fr'),
         'source_bindings': alternate}, 'unchanged_investigation_sha256': investigation,
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        'source_bindings': bindings(ROOT),
         'control': controls, 'scope': 'Same public format and investigation source. The alternate implementation admits names up to 255 bytes; production admits 256. No production limit was raised.'})
 
 

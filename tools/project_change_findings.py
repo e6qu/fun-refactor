@@ -23,7 +23,9 @@ def discovery(client, question):
     candidates = rows(report)
     scopes = [ChangeScope.inspect(client, [row['handle']], depth=question['depth'],
         nodes=128, references=512, max_bytes=262144).report.to_data() for row in candidates]
-    return {'request': question, 'find': report.to_data(), 'scopes': scopes,
+    added = client.project('find', question['added_name'], '--bytes', '65536')
+    rows(added)
+    return {'request': question, 'find': report.to_data(), 'added_lookup': added.to_data(), 'scopes': scopes,
         'scope': 'Indexed declarations and consumers only. Scope gaps and unresolved references remain in the returned reports.'}
 
 
@@ -83,16 +85,20 @@ def mutate(task, root, selected, case):
         path.unlink()
     elif case == 'competing-import':
         if suffix == '.py':
-            (root / 'fr_competitor.py').write_text(f'def {name}(*args, **kwargs):\n    return None\n')
+            (root / 'fr_competitor.py').write_text(f'def {name}(*args, **kwargs):\n    return None\n'
+                f'\ndef fr_added_{name}(*args, **kwargs):\n    return {name}(*args, **kwargs)\n')
             with path.open('a') as stream:
                 stream.write(f'\nfrom fr_competitor import {name}\n')
         else:
             with path.open('a') as stream:
-                stream.write(f'\nmod fr_competitor {{ pub fn {name}() {{}} }}\nuse fr_competitor::{name};\n')
+                stream.write(f'\nmod fr_competitor {{ pub fn {name}() {{}} pub fn fr_added_{name}() {{ {name}(); }} }}\nuse fr_competitor::{name};\n')
     elif case == 'project-configuration':
-        manifest = root / ('Cargo.toml' if suffix == '.rs' else 'pyproject.toml')
-        with manifest.open('a') as stream:
-            stream.write('\n[tool.fr_project_change]\nquestion_scope = "original-project"\n')
+        manifest = root / '.fr/checks.json'
+        checks = json.loads(manifest.read_text())
+        checks['checks'][0]['argv'] = [sys.executable, '-B', '-c',
+            'import pathlib; p=pathlib.Path(' + repr(selected['path']) + '); assert p.is_file() and p.stat().st_size>0']
+        checks['checks'][0]['covers'] = ['Require the selected source to be present and nonempty']
+        save(manifest, checks)
     elif case not in ('question-settings', 'analyzer'):
         raise ValueError(case)
 
@@ -104,19 +110,25 @@ def measure(task, original, output, binary, alternate):
     shutil.copytree(original, baseline_root)
     client = FrClient(baseline_root, executable=binary, timeout=20, max_output_bytes=2097152)
     selected, found = target(client, task['function'], task['language'])
+    configure(baseline_root, selected)
     save(output / 'discovery.json', found)
     suffix = '.rs' if task['language'] == 'Rust' else '.py'
-    independent = next(path for path in sorted(baseline_root.rglob('*' + suffix))
-        if str(path.relative_to(baseline_root)) != selected['path']
-        and task['function'].encode() not in path.read_bytes())
+    independent = next(path for path in sorted(baseline_root.rglob('*'))
+        if path.is_file() and path.suffix in ('.rs', '.py', '.md')
+        and str(path.relative_to(baseline_root)) != selected['path']
+        and task['function'].encode() not in path.read_bytes()
+        and (suffix != '.py' or Path(selected['path']).stem.encode() not in path.read_bytes()))
     relative = str(independent.relative_to(baseline_root))
-    question = {'name': task['function'], 'depth': 4, 'scope': task['question']}
+    question = {'name': task['function'], 'added_name': 'fr_added_' + task['function'],
+                'depth': 4, 'scope': task['question']}
     configuration = 'Cargo.toml' if suffix == '.rs' else 'pyproject.toml'
     plan = TaskPlan('Keep original-project discovery current', ('selected observed', 'independent observed'), (
         TaskStep('selected', json.dumps(question, sort_keys=True), (
             Dependency(DependencyKind.WORKSPACE, 'original-project'),
             Dependency(DependencyKind.LOOKUP, task['function']),
+            Dependency(DependencyKind.LOOKUP, question['added_name']),
             Dependency(DependencyKind.CONFIGURATION, configuration),
+            Dependency(DependencyKind.CHECK_CONFIGURATION, 'selected-project'),
             Dependency(DependencyKind.ANALYZER, 'native-implementation')),
             satisfies=('selected observed',)),
         TaskStep('independent', 'Retain this unchanged original source observation', (
@@ -124,6 +136,7 @@ def measure(task, original, output, binary, alternate):
     ))
     store = DirectoryObjectStore(output / 'objects')
     observation = discovery(client, question)
+    assert not observation['added_lookup']['rows'], 'missing-name control already exists'
     save(output / 'baseline-observation.json', observation)
     plan = satisfy(plan, client, 'selected', 'sha256:' + digest(output / 'baseline-observation.json'))
     plan = satisfy(plan, client, 'independent', 'sha256:' + digest(independent))
@@ -137,6 +150,7 @@ def measure(task, original, output, binary, alternate):
         # Reuse this exact root path: public handles bind the original workspace.
         shutil.rmtree(baseline_root)
         shutil.copytree(original, baseline_root)
+        configure(baseline_root, selected)
         mutate(task, baseline_root, selected, case)
         request = {**question, 'depth': 1} if case == 'question-settings' else question
         request_path = case_output / 'request.json'
@@ -161,11 +175,24 @@ def measure(task, original, output, binary, alternate):
         saved_observation = json.loads((case_output / 'saved/observation.json').read_text())
         fresh_observation = json.loads((case_output / 'fresh/observation.json').read_text())
         assert saved_observation == fresh_observation, (task['id'], case, 'saved and fresh disagree')
+        if case == 'competing-import':
+            assert fresh_observation['added_lookup']['rows'], 'newly available name was missed'
         assert digest(baseline_root / relative) == digest(original / relative)
-        save(case_output / 'source-changes.json', {
-            str(path.relative_to(baseline_root)): digest(path) for path in baseline_root.rglob('*')
-            if path.is_file() and (not (original / path.relative_to(baseline_root)).is_file()
-                or digest(path) != digest(original / path.relative_to(baseline_root)))})
+        changed = {}
+        for path in baseline_root.rglob('*'):
+            relative_path = path.relative_to(baseline_root)
+            if not path.is_file() or (relative_path.parts[0] == '.fr'
+                    and relative_path.as_posix() not in ('.fr/checks.json', '.fr/check-scopes.json')):
+                continue
+            old = original / relative_path
+            if not old.is_file() or digest(path) != digest(old):
+                destination = case_output / 'changed-sources' / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(path, destination)
+                changed[relative_path.as_posix()] = digest(path)
+        deleted = [str(path.relative_to(original)) for path in original.rglob('*')
+                   if path.is_file() and not (baseline_root / path.relative_to(original)).is_file()]
+        save(case_output / 'source-changes.json', {'changed': changed, 'deleted': deleted})
         results.append({'case': case, 'passed': True, 'identical_saved_and_fresh': True,
             'independent_retained': True, 'binary_sha256': digest(executable)})
     elapsed = time.monotonic() - started
@@ -174,3 +201,12 @@ def measure(task, original, output, binary, alternate):
     save(output / 'result.json', result)
     shutil.rmtree(baseline_root)
     return result
+
+
+def configure(root, selected):
+    (root / '.fr').mkdir(exist_ok=True)
+    save(root / '.fr/checks.json', {'schema': 1, 'checks': [{'name': 'source-present',
+        'argv': [sys.executable, '-B', '-c', 'import pathlib; assert pathlib.Path(' + repr(selected['path']) + ').is_file()'],
+        'cwd': '.', 'timeout_seconds': 10, 'covers': ['Require the selected original source to exist']}]})
+    save(root / '.fr/check-scopes.json', {'schema': 1,
+        'checks': [{'name': 'source-present', 'paths': [selected['path']]}]})

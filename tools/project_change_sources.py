@@ -4,6 +4,19 @@ import json
 from pathlib import Path, PurePosixPath
 import tarfile
 import urllib.request
+from evidence_basis import native_source_bindings, file_digest
+
+
+def bindings(root):
+    names = ['tools/project-changes.py', 'tools/project_change_sources.py',
+        'tools/project_change_delivery.py', 'tools/project_change_findings.py',
+        'tools/project_change_checkers.py', 'tools/evidence_basis.py',
+        'tools/project_change_records.py',
+        'tools/agent_eval/bounded_host.py', 'tools/agent_eval/study.py',
+        'tests/agent-eval/project-changes/tasks.json', 'tests/agent-eval/project-changes/oracle.py',
+        '.github/workflows/refinement-evidence.yml']
+    names.extend(str(path.relative_to(root)) for path in (root / 'sdk/python/src').rglob('*.py'))
+    return {**native_source_bindings(root), **{name: file_digest(root / name) for name in names}}
 
 
 def digest(path):

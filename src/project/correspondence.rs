@@ -62,7 +62,7 @@ pub fn correspondence_status(candidates: usize, shared: bool) -> &'static str {
 }
 
 pub fn analyzer_digest() -> Result<String> {
-    hash((CONTRACT, include_str!("correspondence.rs")))
+    hash((CONTRACT, env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT")))
 }
 
 fn digest_valid(value: &str) -> bool {

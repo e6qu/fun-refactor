@@ -132,6 +132,7 @@ jobs:
             tools
             tests/agent-eval/project-changes
             tests/native_fingerprint.rs
+            tests/common
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -145,6 +146,11 @@ jobs:
           cargo fmt --all
           git diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - run: cargo build --locked --bin fr
+      - name: Use fr to inspect its own change and invalidation code
+        id: inspection
+        run: >-
+          python3 -B tools/project-changes.py inspect --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-inspection"
       - name: Check reviewed Python and Rust changes and saved findings
         if: inputs.group == 'project-change-development'
         run: |
@@ -176,11 +182,6 @@ jobs:
           --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
           --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
           --output "$RUNNER_TEMP/project-change-findings"
-      - name: Use fr to inspect its own change and invalidation code
-        id: inspection
-        run: >-
-          python3 -B tools/project-changes.py inspect --fr target/debug/fr
-          --output "$RUNNER_TEMP/project-change-inspection"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

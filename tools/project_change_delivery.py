@@ -61,7 +61,7 @@ def measure(task, original, output, binary):
     checks = [{'name': 'behavior', 'argv': [sys.executable, '-B', '.fr/oracle.py', task['id'], '.', task['renamed']],
         'cwd': '.', 'timeout_seconds': 30, 'identity_files': ['.fr/oracle.py'], 'covers': [json.dumps(task['behavior'])]}]
     if task['id'] == 'boltons':
-        checks.append({'name': 'upstream', 'argv': [sys.executable, '-B', '-m', 'pytest', '-q', 'tests/test_mathutils.py'],
+        checks.append({'name': 'upstream', 'argv': [sys.executable, '-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_mathutils.py'],
             'cwd': '.', 'timeout_seconds': 120, 'covers': ['original tests/test_mathutils.py']})
         run(checks[-1]['argv'], project, output / 'upstream-before.json', success=True)
     syntax = (['rustc', '--edition=2021', '--crate-name', 'glob', '--crate-type', 'rlib',

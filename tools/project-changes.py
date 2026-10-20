@@ -5,11 +5,12 @@ import json
 from pathlib import Path
 import sys
 import traceback
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from fr_ir.runtime import FrClient
-from project_change_sources import download, save, digest
+from project_change_sources import download, save, digest, bindings
 from project_change_delivery import measure as deliver
 from project_change_findings import measure as findings, reopen
 
@@ -20,6 +21,9 @@ def inspect(args):
         ('project', 'dependency_digest', 'investigation.rs'),
         ('project', 'plan', 'structural_change.rs'),
         ('native', 'fingerprint', 'native_fingerprint.rs'),
+        ('project', 'change_scope', 'change_scope.rs'),
+        ('project', 'consumer', 'change_scope.rs'),
+        ('index', 'resolve_one', 'index.rs'),
     ]
     for directory, name, path in selections:
         root = ROOT / 'src/project' if directory == 'project' else ROOT / 'src'
@@ -29,6 +33,10 @@ def inspect(args):
             raise ValueError('fr inspection is unfinished or missing: ' + path)
         save(args.output / (name + '.json'), report)
     save(args.output / 'scope.json', {
+        'passed': True,
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        'source_bindings': bindings(ROOT),
+        'source_clean': not subprocess.check_output(['git', 'diff', '--name-only', '--', 'src'], cwd=ROOT, text=True).strip(),
         'scope': 'fr inspected its original src/project and src directories. These bounded reads do not establish repository-wide caller discovery.',
         'selections': selections,
     })
@@ -55,6 +63,8 @@ def collect(args):
             save(output / 'failure.json', {'passed': False, 'traceback': traceback.format_exc()})
             raise
     save(args.output / 'result.json', {'passed': True, 'phase': args.phase, 'projects': results,
+        'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        'source_bindings': bindings(ROOT),
         'unread_project_opened': False, 'binary_sha256': digest(args.fr),
         'limits': tasks['limits'], 'claim': tasks['scope']})
 
