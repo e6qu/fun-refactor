@@ -29,6 +29,7 @@ JDcal's list names `MANIFEST`, even though its recorded source archive includes 
 The `project-record-files.yml` packaging workflow authenticates the original collection and force-adds every file declared by its result.
 It checks each staged file against the original bytes before committing. Ordinary validation continues to fail when a declared file is missing.
 This packaging step preserves the fixed evaluation inputs and their original fingerprints.
+It also regenerates and checks the tracking pages before publishing the repaired record.
 
 ## Save Python test progress without repeating earlier work
 

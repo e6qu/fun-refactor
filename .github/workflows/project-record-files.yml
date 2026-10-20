@@ -84,13 +84,36 @@ jobs:
               scalar.require(staged == content, 'Git did not retain the declared bytes: ' + name)
           print(json.dumps({'original_collection': identity, 'restored': restored, 'verified_staged_files': len(contents)}))
           PY
-      - name: Commit the complete original record
+      - name: Prepare the pinned documentation counter
+        run: |
+          python3 -m pip install --only-binary=:all: -r tools/agent_eval/requirements.txt
+          mkdir -p target/agent-eval-tokenizer
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
+            https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+          echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
+      - name: Validate the complete record and reconciled documentation
+        run: |
+          python3 -B tests/agent-eval/test_roadmap_status.py
+          python3 -B tools/review-docs.py --write
+          CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE" rustc --edition=2021 --test tests/docs_links.rs -o "$RUNNER_TEMP/fr-docs-links"
+          "$RUNNER_TEMP/fr-docs-links" --test-threads=1
+          python3 -B tools/test-python-contract.py
+          python3 -B tools/test-check-prose.py
+          python3 -B tools/check-prose.py
+          python3 -B tools/roadmap-status.py --check
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
+          python3 -B tools/agent_eval/test_opencode_native.py Discovery
+          python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence
+          python3 -B tools/test-ci-shards.py
+      - name: Commit the complete original record and checked documentation
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
           if ! git diff --cached --quiet; then
             git commit -m 'fix: preserve every declared original project record file'
             git push origin "HEAD:refs/heads/$BRANCH"
