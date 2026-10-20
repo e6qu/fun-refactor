@@ -200,32 +200,34 @@ The baseline exposes each request and reply separately to the agent.
 The compared approach runs those same requests inside one Python program and sends back its selected result.
 This measures conversation bytes. It does not time Python startup, report validation or the tool's internal execution.
 
-The retained generic fixture performs the same five internal `fr` calls in both arms: find, initial
+The [current Rust example](../tests/agent-eval/results/2026-10-21-final-ci-agent-runtime-context/result.json)
+performs the same five internal `fr` calls in both arms: find, initial
 evidence disclosure, one exact reveal, task-change preview and task-change execution. Both arms
 produce the same final source and patch SHA-256, eight passed apply, check, reversal and delivery stages and applied history
 state.
 
-The direct JSON arm exposes five request/response exchanges totaling 17,689 bytes. The runtime arm
-exposes its complete 1,471-byte Python program and 422-byte result in one exchange, while the four
-intermediate reports stay inside that local process. Text sent to the agent is 1,893 bytes, an 89.3%
+The direct JSON arm exposes five request/response exchanges totaling 18,136 bytes. The runtime arm
+exposes its complete 1,480-byte Python program request and 422-byte result in one exchange, while the four
+intermediate reports stay inside that local process. Text sent to the agent is 1,902 bytes, an 89.5%
 reduction in this fixed task. Internal work remains five `fr` calls in both arms.
 
 ```sh
-python3 tools/agent-runtime-context.py --fr target/debug/fr
-python3 tools/agent-runtime-context.py --audit tests/agent-eval/agent-runtime-context.json
+python3 tools/agent-runtime-context.py --fr target/debug/fr \
+  --output /tmp/fr-runtime-context.json
+python3 tools/agent-runtime-context.py --audit /tmp/fr-runtime-context.json
 ```
 
 The measurement includes the complete program rather than treating SDK orchestration as free. It
 does not run a model or measure hidden reasoning, tokens, billed quota, adoption or a population.
 
-The native intent comparison runs the same three-section trace through both compilers. Both return
-the same selected value digest. Progressive compilation uses 89 subprocesses and receives 302,380
-internal response bytes; native compilation uses one subprocess and receives 4,975 bytes. The final
-native packet is 4,975 bytes versus 3,909 for the locally assembled packet because it also carries
-the project coverage envelope. These are deterministic process and byte measurements, not model,
-token, quota or results across a wider range of tasks.
+The [current single-request comparison](../tests/agent-eval/results/2026-10-21-final-ci-native-intent-context/result.json)
+asks for the same three sections in both approaches. Both return the same selected information.
+Following report pages launches `fr` 111 times and receives 391,001 reply bytes.
+One native request launches `fr` once and receives 5,545 bytes.
+Its final result grows from 4,480 to 5,545 bytes because it adds coverage information: what the tool examined and whether anything remains omitted.
+These counts apply to this prescribed example. They do not measure elapsed time, memory, tokens, billed quota or results across other tasks.
 
 ```sh
-python3 tools/native-intent-context.py --fr target/debug/fr
-python3 tools/native-intent-context.py --audit tests/agent-eval/native-intent-context.json
+python3 tools/native-intent-context.py --fr target/debug/fr > /tmp/fr-native-intent-context.json
+python3 tools/native-intent-context.py --audit /tmp/fr-native-intent-context.json
 ```

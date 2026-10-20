@@ -3,7 +3,7 @@
 This milestone checks whether `fr` carries a change through a project without trusting answers about old code.
 The [two package milestones](package-milestones.md) and these two selected project-change outcomes now have passing original records.
 The [combined record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) covers 21 change comparisons and both language deliveries.
-The [current replay](../tests/agent-eval/results/2026-10-21-current-39499796514-project-changes-recheck/result.json) repeats all of them after integrating the release from the main branch.
+The [current replay](../tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json) repeats all of them after integrating the release from the main branch.
 
 Suppose a project uses a function named `subtotal`. The requested change renames it to `order_subtotal`.
 An import makes that function available in another file; a caller invokes it.

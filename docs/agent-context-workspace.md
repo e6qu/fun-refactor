@@ -135,16 +135,18 @@ The compared approach fetches the same pages inside Python, then returns only th
 Both do the same internal page work. The byte difference includes the complete Python program and result.
 Python memory, validation and elapsed execution overhead are unmeasured in this comparison.
 
-The retained generic fixture materializes the same code map in both arms with 16 internal `fr`
-calls. Exposing every progressive request and response costs 59,825 bytes across 16 agent-visible
-exchanges. The complete 686-byte Python program request and its 3,864-byte selected packet cost 4,550 bytes
-in one exchange, a 92.4% reduction. Both arms retain the same normalized code map, call count,
-packet size and cached-object count.
+The [current Rust example](../tests/agent-eval/results/2026-10-21-final-ci-agent-context-workspace/result.json)
+constructs the same map of files and functions through 24 internal `fr` calls in both approaches.
+Sending every request and reply to the agent costs 89,677 bytes across 24 exchanges.
+The complete program request costs 695 bytes, including its code and invocation.
+Adding the 4,085-byte selected result makes 4,780 bytes in one exchange, a 94.7% reduction.
+Both approaches retain the same map and saved objects.
 
 ```sh
-python3 tools/agent-context-workspace.py --fr target/debug/fr
+python3 tools/agent-context-workspace.py --fr target/debug/fr \
+  --output /tmp/fr-context-workspace.json
 python3 tools/agent-context-workspace.py \
-  --audit tests/agent-eval/agent-context-workspace.json
+  --audit /tmp/fr-context-workspace.json
 ```
 
 This fixed protocol measurement does not run a model or measure tokens, hidden reasoning, billed
