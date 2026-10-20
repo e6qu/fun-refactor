@@ -1,0 +1,55 @@
+name: Check real project changes
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Project-change work to run
+        required: true
+        type: choice
+        options: [inspect]
+permissions:
+  contents: read
+concurrency:
+  group: project-changes-${{ github.ref }}-${{ inputs.phase }}
+  cancel-in-progress: true
+jobs:
+  inspect:
+    if: inputs.phase == 'inspect'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github
+            src
+            grammars
+            crates
+            queries
+            sdk/python/src
+            tools
+            tests/agent-eval/project-changes
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Use fr to inspect its own change and invalidation code
+        run: >-
+          python3 -B tools/project-changes.py inspect --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-inspection"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: project-change-inspection
+          path: ${{ runner.temp }}/project-change-inspection/
+          if-no-files-found: error
+          retention-days: 30
