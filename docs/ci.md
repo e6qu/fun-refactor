@@ -23,6 +23,10 @@ It repeats all 21 change checks and both deliveries; all three projects are fami
 The ordinary native and Python suites also check the current code.
 The final required gate includes these records and the earlier original-package checks.
 
+The migration test also appears in the project-wide test inventory.
+Publishing a replacement result updates that entry after its behavior and patch checks pass.
+The inventory then checks the same test file that CI runs.
+
 The development collector also requires a clean checkout: its files must match the commit named in its result.
 If formatting or preparation changes files, the job fails and saves those corrections.
 Commit the corrections before qualification. Successful source reads alone do not qualify the experiment.
