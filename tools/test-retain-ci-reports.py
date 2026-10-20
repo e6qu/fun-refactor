@@ -36,6 +36,9 @@ class ReportRetention(unittest.TestCase):
         catalog.parent.mkdir(parents=True)
         catalog.write_text(json.dumps({'evidence': [{'id': 'host-recovery'}, {'id': 'structural'}]}))
         (catalog.parent / 'results').mkdir()
+        (catalog.parent / 'representative-acceptance.json').write_text(json.dumps({'cases': [{
+            'id': 'rust-scoped-structural-migration', 'runner': 'tests/structural_change.rs',
+            'runner_sha256': 'previous', 'fixture_revision': 'unchanged-fixture'}]}))
         for group, name in reports.ACTIVE_REFERENCES.items():
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +83,10 @@ class ReportRetention(unittest.TestCase):
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}{suffix}"',
                     (root / name).read_text())
             self.assertEqual((root / 'tests/agent-eval/results/test-reports-structural-change/objects/example.json').read_bytes(), original)
+            registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
+            case, = registry['cases']
+            self.assertEqual(case['runner_sha256'], hashlib.sha256((root / case['runner']).read_bytes()).hexdigest())
+            self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
             for group in reports.ACTIVE_FUNCTIONS:
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}/result.json"',
                               (root / 'tests/python_sdk.rs').read_text())

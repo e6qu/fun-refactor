@@ -156,6 +156,16 @@ def main():
     if receipts.keys() & ACTIVE_FUNCTIONS.keys():
         subprocess.run(['rustup', 'run', '1.99.1', 'rustfmt', '--edition', '2021', 'tests/python_sdk.rs'],
                        cwd=ROOT, check=True, timeout=30)
+    if 'structural-change' in receipts:
+        registry_path = ROOT / 'tests/agent-eval/representative-acceptance.json'
+        registry = json.loads(registry_path.read_text())
+        case, = [row for row in registry['cases'] if row['id'] == 'rust-scoped-structural-migration'
+                 and row['runner'] == 'tests/structural_change.rs']
+        case['runner_sha256'] = hashlib.sha256((ROOT / case['runner']).read_bytes()).hexdigest()
+        registry_path.write_text(json.dumps(registry, indent=2) + '\n')
+        subprocess.run(['python3', '-B', 'tools/representative-acceptance.py', 'audit'],
+                       cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
+        subprocess.run(['git', 'add', '--', 'tests/agent-eval/representative-acceptance.json'], cwd=ROOT, check=True)
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True, timeout=60)
 
 
