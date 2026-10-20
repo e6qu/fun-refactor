@@ -75,6 +75,33 @@ def test_discovers_transitive_consumers_test_candidates_and_exact_references(tmp
     assert result.report.at("/runtime_coverage") is False
 
 
+def test_same_named_nested_declarations_keep_distinct_scope_selectors(tmp_path):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "lib.rs").write_text("fn selected() {}\nmod other { pub fn selected() {} }\n")
+    client = FrClient(root, executable=FR, timeout=20, max_output_bytes=1048576)
+    found = client.project("find", "selected").to_data()
+    handle_column = found['columns'].index('handle')
+    handles = [row[handle_column] for row in found['rows']]
+    assert len(handles) == 2
+    scopes = [ChangeScope.inspect(client, [handle], depth=4, nodes=128,
+        references=512, max_bytes=65536) for handle in handles]
+    assert [scope.report.at('/targets/0/handle') for scope in scopes] == handles
+    assert scopes[0].dependency.key != scopes[1].dependency.key
+
+
+def test_json_usages_exposes_documentation_separately_from_code(tmp_path):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "lib.rs").write_text("fn selected() {}\nfn caller() { selected(); }\n")
+    (root / "README.md").write_text("Call `selected` to perform the operation.\n")
+    client = FrClient(root, executable=FR, timeout=20, max_output_bytes=1048576)
+    result = client.call('usages', 'selected', '--include-unresolved').to_data()
+    assert len(result['usages']) == 1
+    assert len(result['in_text']) == 1
+    assert Path(result['in_text'][0]['file']).name == 'README.md'
+
+
 @pytest.mark.parametrize("budget", [{"depth": 0}, {"nodes": 1}, {"references": 1}, {"max_bytes": 5000}])
 def test_budget_exhaustion_never_admits_scoped_delivery(tmp_path, budget):
     _, client = fixture(tmp_path)

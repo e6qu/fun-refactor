@@ -38,6 +38,7 @@ struct Selector {
     path: String,
     name: String,
     kind: String,
+    name_span: crate::span::Span,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -140,7 +141,8 @@ fn validate(query: &Query) -> Result<()> {
                 && target.path.len() <= 512
                 && !target.name.is_empty()
                 && target.name.len() <= 256
-                && distinct.insert((&target.path, &target.name, &target.kind)),
+                && target.name_span.start < target.name_span.end
+                && distinct.insert((&target.path, &target.name, &target.kind, target.name_span)),
             "change scope requires distinct bounded declaration selectors."
         );
     }
@@ -161,6 +163,7 @@ impl Project<'_> {
                     .iter()
                     .filter(|s| {
                         s.file == path && s.name == target.name && s.kind.as_str() == target.kind
+                            && s.name_span == target.name_span
                     })
                     .collect();
                 ensure!(
@@ -221,6 +224,7 @@ impl Project<'_> {
                 path: self.nodes[node].path.to_string_lossy().into_owned(),
                 name: symbol.name.clone(),
                 kind: symbol.kind.as_str().into(),
+                name_span: symbol.name_span,
             });
         }
         let query = Query {

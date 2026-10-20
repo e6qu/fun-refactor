@@ -13,12 +13,15 @@ from fr_ir.runtime import FrClient, FrRuntimeError
 from fr_ir.change_scope import ChangeScope
 from fr_ir.ir import TaskChange
 from fr_ir.structural_change import RefactorRequest
+from fr_ir.investigation import Dependency, DependencyKind, TaskPlan, TaskStep
+from fr_ir.context import MemoryObjectStore
+from project_change_findings import satisfy
 from project_change_sources import digest, save, bindings
 from evidence_basis import native_source_bindings
 
 
 def verify(binary, root, accepted):
-    client = FrClient(root, executable=binary)
+    client = FrClient(root, executable=binary, timeout=20, max_output_bytes=1048576)
     handle = client.project('find', 'original').definition_target().handle
     scope = ChangeScope.inspect(client, [handle])
     assert scope.ready, scope.report.to_data()
@@ -73,11 +76,32 @@ def build(output, binary):
             'checks': [{'name': 'syntax', 'paths': ['control.rs']}]})
         controls = {name: verify(output / (name + '-fr'), root, name == 'production')
                     for name in ('production', 'alternate')}
+        production_client = FrClient(root, executable=output / 'production-fr', timeout=20, max_output_bytes=1048576)
+        plan = TaskPlan('Check implementation identity without a workspace dependency',
+            ('analyzer checked', 'declarations checked', 'source checked'), (
+                TaskStep('analyzer', 'Which checker implementation was used?', (
+                    Dependency(DependencyKind.ANALYZER, 'implementation'),), satisfies=('analyzer checked',)),
+                TaskStep('declarations', 'Which declaration checker was used?', (
+                    Dependency(DependencyKind.DECLARATION_ANALYZER, 'implementation'),), satisfies=('declarations checked',)),
+                TaskStep('source', 'Is the original source file unchanged?', (
+                    Dependency(DependencyKind.SOURCE, 'control.rs'),), satisfies=('source checked',)),
+            ))
+        for name in ('analyzer', 'declarations', 'source'):
+            plan = satisfy(plan, production_client, name, 'recorded public checker control')
+        store = MemoryObjectStore()
+        saved = plan.store(store)
+        resumed = TaskPlan.restore(store, saved).resume(FrClient(root, executable=output / 'alternate-fr',
+            timeout=20, max_output_bytes=1048576))
+        assert resumed.invalidated == ('analyzer', 'declarations')
+        assert resumed.plan.steps[2] == plan.steps[2]
+        invalidation = {'baseline': plan.to_data(), 'resumed': resumed.report.to_data(),
+            'invalidated': list(resumed.invalidated), 'independent_source_retained': True}
     save(output / 'checkers.json', {'production': {'sha256': digest(output / 'production-fr'),
         'source_bindings': production}, 'alternate': {'sha256': digest(output / 'alternate-fr'),
         'source_bindings': alternate}, 'unchanged_investigation_sha256': investigation,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
+        'invalidation_control': invalidation,
         'control': controls, 'scope': 'Same public format and investigation source. The alternate implementation admits names up to 255 bytes; production admits 256. No production limit was raised.'})
 
 

@@ -43,7 +43,7 @@ def attempts(repository, branch, through):
     return sorted(result, key=lambda row: row['run']['id'])
 
 
-def capture(run_id, name, destination, repository, result_name):
+def capture(run_id, name, destination, repository, result_name, expected_bindings):
     scalar = retained_tools()
     retain = scalar.retain
     run = retain.api(f'repos/{repository}/actions/runs/{run_id}')
@@ -58,7 +58,7 @@ def capture(run_id, name, destination, repository, result_name):
     result = json.loads(data[result_name])
     jobs = retain.api(f'repos/{repository}/actions/runs/{run_id}/jobs?filter=all&per_page=100')['jobs']
     identity = retain.collection(run, artifact, result, repository, jobs, name, 'project-changes')
-    assert result['source_bindings'] == bindings(ROOT), 'collection inputs differ from the committed procedure'
+    assert result['source_bindings'] == expected_bindings, 'collection inputs differ from the committed procedure'
     destination.mkdir(parents=True, exist_ok=False)
     (destination / 'artifact.zip').write_bytes(archive)
     save(destination / 'identity.json', {'collection': identity, 'run': run, 'artifact': artifact,
@@ -78,14 +78,19 @@ def freeze(args):
     repository = os.environ['GITHUB_REPOSITORY']
     destination = ROOT / 'tests/agent-eval/project-changes/qualification'
     development, development_identity = capture(args.development_run, 'project-change-inspection',
-        destination / 'development', repository, 'scope.json')
+        destination / 'development', repository, 'scope.json', bindings(ROOT))
     assert development['passed'] is True and development['source_clean'] is True
     delivery, delivery_identity = capture(args.delivery_run, 'project-change-delivery',
-        destination / 'delivery', repository, 'result.json')
+        destination / 'delivery', repository, 'result.json', bindings(ROOT))
     findings, findings_identity = capture(args.findings_run, 'project-change-findings',
-        destination / 'findings', repository, 'result.json')
+        destination / 'findings', repository, 'result.json', bindings(ROOT))
     checkers, checkers_identity = capture(args.findings_run, 'project-change-checkers',
-        destination / 'checkers', repository, 'checkers.json')
+        destination / 'checkers', repository, 'checkers.json', bindings(ROOT))
+    import package_question_replay
+    prior, prior_identity = capture(args.development_run, 'project-change-prior-questions',
+        destination / 'prior-questions', repository, 'result.json', package_question_replay.bindings())
+    assert prior['complete'] is True and prior['all_projects_familiar'] is True
+    package_question_replay.audit(destination / 'prior-questions/files')
     for phase, result in [('delivery', delivery), ('findings', findings)]:
         assert result['passed'] is True and result['phase'] == phase
         assert result['unread_project_opened'] is False
@@ -95,6 +100,8 @@ def freeze(args):
     assert checkers['production']['sha256'] != checkers['alternate']['sha256']
     assert checkers['control']['production']['accepted'] is True
     assert checkers['control']['alternate']['accepted'] is False
+    assert checkers['invalidation_control']['invalidated'] == ['analyzer', 'declarations']
+    assert checkers['invalidation_control']['independent_source_retained'] is True
     assert digest(args.fr) == checkers['production']['sha256']
     assert digest(args.alternate) == checkers['alternate']['sha256']
     tasks = json.loads((ROOT / 'tests/agent-eval/project-changes/tasks.json').read_text())
@@ -113,6 +120,7 @@ def freeze(args):
         'alternate_sha256': checkers['alternate']['sha256'], 'repository': repository,
         'successful_runs': {'development': development_identity, 'delivery': delivery_identity,
                             'findings': findings_identity, 'checkers': checkers_identity},
+        'prior_questions': prior_identity,
         'development_failures': failed,
         'unread_project': 'humanize', 'unread_implementation_opened': False})
     for directory in destination.iterdir():

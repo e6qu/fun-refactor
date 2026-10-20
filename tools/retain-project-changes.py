@@ -33,9 +33,15 @@ def audit(directory, binary, alternate):
     assert report['freeze_sha256'] == digest(FREEZE) == digest(directory / 'freeze.json')
     frozen = json.loads(FREEZE.read_text())
     assert digest(binary) == frozen['production_sha256'] and digest(alternate) == frozen['alternate_sha256']
-    assert report['saved_findings'] == {'complete': True, 'projects': 3, 'changes_per_project': 7}
-    assert report['deliveries'] == {'Rust': {'complete': True}, 'Python': {'complete': True}}
-    assert report['unread'] == {'project': 'humanize', 'qualified': True, 'first_evaluation': True}
+    assert set(report['saved_findings']) == {'complete', 'projects', 'changes_per_project'}
+    assert report['saved_findings']['complete'] is True
+    assert type(report['saved_findings']['projects']) is int and type(report['saved_findings']['changes_per_project']) is int
+    assert report['saved_findings']['projects'] == 3 and report['saved_findings']['changes_per_project'] == 7
+    assert set(report['deliveries']) == {'Rust', 'Python'}
+    assert all(set(value) == {'complete'} and value['complete'] is True for value in report['deliveries'].values())
+    assert set(report['unread']) == {'project', 'qualified', 'first_evaluation'}
+    assert report['unread']['project'] == 'humanize' and report['unread']['qualified'] is True
+    assert report['unread']['first_evaluation'] is True
     inventory = json.loads((directory / 'attempts.json').read_text())
     opened = [row['run']['id'] for row in inventory if row.get('opened_unread_archive')]
     identity = json.loads((directory / 'held-out/identity.json').read_text())
@@ -50,11 +56,26 @@ def audit(directory, binary, alternate):
     for phase in ('delivery', 'findings'):
         identity = json.loads((directory / phase / 'identity.json').read_text())
         assert identity['collection'] == frozen['successful_runs'][phase]
+    prior_identity = json.loads((directory / 'prior-questions/identity.json').read_text())
+    assert prior_identity['collection'] == frozen['prior_questions']
+    checker_identity = json.loads((directory / 'checkers/identity.json').read_text())
+    assert checker_identity['collection'] == frozen['successful_runs']['checkers']
     with tempfile.TemporaryDirectory(prefix='fr-audit-project-milestone-') as temporary:
         base = Path(temporary)
         records = {}
-        for phase in ('delivery', 'findings', 'held-out'):
+        for phase in ('delivery', 'findings', 'held-out', 'prior-questions', 'checkers'):
             records[phase] = unpack_record(directory / phase, scalar, base / phase)
+        checker = json.loads(records['checkers']['checkers.json'])
+        assert checker['production']['sha256'] == frozen['production_sha256']
+        assert checker['alternate']['sha256'] == frozen['alternate_sha256']
+        assert checker['control']['production']['accepted'] is True and checker['control']['alternate']['accepted'] is False
+        assert checker['invalidation_control']['invalidated'] == ['analyzer', 'declarations']
+        assert checker['invalidation_control']['independent_source_retained'] is True
+        for name, content in records['prior-questions'].items():
+            assert (directory / 'prior-questions/files' / name).read_bytes() == content
+        import package_question_replay
+        package_question_replay.audit(base / 'prior-questions')
+        assert json.loads(records['prior-questions']['result.json'])['binary_sha256'] == frozen['production_sha256']
         held = json.loads(records['held-out']['result.json'])
         assert held['passed'] is True and held['phase'] == 'held-out'
         assert held['implementation'] == frozen and held['unread_project_opened'] is True
@@ -79,13 +100,14 @@ def retain(args):
     frozen = json.loads(FREEZE.read_text())
     assert frozen['input_bindings'] == bindings(ROOT)
     repository = os.environ['GITHUB_REPOSITORY']
-    held, _ = capture(args.run, 'project-change-held-out', directory / 'held-out', repository, 'result.json')
+    held, _ = capture(args.run, 'project-change-held-out', directory / 'held-out', repository, 'result.json', bindings(ROOT))
     assert held['phase'] == 'held-out' and held['implementation'] == frozen
     assert held['passed'] is True and held['unread_project_opened'] is True
-    for phase in ('delivery', 'findings'):
+    for phase in ('delivery', 'findings', 'prior-questions', 'checkers'):
         shutil.copytree(FREEZE.parent / 'qualification' / phase, directory / phase)
     shutil.copyfile(FREEZE, directory / 'freeze.json')
     scalar = retained_tools()
+    unpack_record(directory / 'prior-questions', scalar, directory / 'prior-questions/files')
     failures = json.loads(args.failures)
     assert failures and all(type(run_id) is int and run_id > 0 for run_id in failures)
     assert len(set(failures)) == len(failures)
@@ -119,10 +141,11 @@ def retain(args):
             data = scalar.retain.download_artifact(repository, artifact['id'])
             scalar.files(data, artifact['digest'])
             (output / (str(artifact['id']) + '.zip')).write_bytes(data)
-        with (output / 'failure.log').open('wb') as stream:
-            subprocess.run(['gh', 'run', 'view', str(run_id), '--log-failed'], cwd=ROOT,
-                stdout=stream, check=True, timeout=30)
-        assert (output / 'failure.log').stat().st_size <= 2097152
+        if run['conclusion'] == 'failure':
+            with (output / 'failure.log').open('wb') as stream:
+                subprocess.run(['gh', 'run', 'view', str(run_id), '--log-failed'], cwd=ROOT,
+                    stdout=stream, check=True, timeout=30)
+            assert (output / 'failure.log').stat().st_size <= 2097152
     shutil.rmtree(directory / 'held-out/files')
     save(directory / 'result.json', {'schema': 'fr-project-changes', 'passed': True,
         'source_bindings': bindings(ROOT), 'freeze_sha256': digest(FREEZE),
@@ -141,6 +164,13 @@ def retain(args):
         'sha256': digest(directory / 'result.json'), 'kind': 'deterministic',
         'audit': f'python3 tools/retain-project-changes.py --audit {relative} --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr',
         'scope': 'Three original projects, seven change controls each, and checked Rust and Python rename delivery.'})
+    for entry in catalog['evidence']:
+        if entry['id'] == 'original-package-questions':
+            report = directory / 'prior-questions/files/result.json'
+            entry.update(path=str(report.relative_to(ROOT)), sha256=digest(report),
+                audit='python3 tools/package_question_replay.py --audit ' + str(report.parent.relative_to(ROOT)),
+                scope='Current replay of the three earlier package questions. All are familiar now; the original unread result is checked against its original source.')
+            del entry['receipt_sha256']
     for obligation in catalog['obligations']:
         pointers = {'C.repository-mutations': ['/saved_findings/complete', '/unread/qualified'],
             'D.structural': ['/deliveries/Rust/complete', '/deliveries/Python/complete']}.get(obligation['id'])

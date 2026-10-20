@@ -7487,6 +7487,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "symbol": found.query,
                 "definitions": definitions,
                 "usages": render(&all),
+                "in_text": render(&found.in_text.iter().collect::<Vec<_>>()),
                 "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
                 "skipped_files": skipped_files_json(&index),
                 "unparsed_files": unparsed_files_json(&index),

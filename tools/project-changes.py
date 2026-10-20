@@ -24,20 +24,23 @@ def inspect(args):
         ('project', 'change_scope', 'change_scope.rs'),
         ('project', 'consumer', 'change_scope.rs'),
         ('index', 'resolve_one', 'index.rs'),
+        ('index', 'resolve_by_evidence', 'index.rs'),
+        ('refactor', 'plan', 'refactor/rename.rs'),
     ]
     for directory, name, path in selections:
         directory_root = ROOT / 'src/project' if directory == 'project' else ROOT / 'src'
         root = directory_root / path
         client = FrClient(root, executable=args.fr.resolve(), timeout=20, max_output_bytes=1048576)
-        report = client.project('find', name, '--in', path, '--source', '--bytes', '65536').to_data()
+        report = client.project('find', name, '--source', '--bytes', '65536').to_data()
         if report['page']['next'] is not None or not report['rows']:
             raise ValueError('fr inspection is unfinished or missing: ' + path)
-        save(args.output / (name + '.json'), report)
+        save(args.output / (Path(path).stem + '-' + name + '.json'), report)
     save(args.output / 'scope.json', {
         'passed': True,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(ROOT),
-        'source_clean': not subprocess.check_output(['git', 'diff', '--name-only', '--', 'src'], cwd=ROOT, text=True).strip(),
+        'source_clean': not subprocess.check_output(['git', 'diff', '--name-only', '--',
+            'src', 'kernels', 'tests', 'sdk/python'], cwd=ROOT, text=True).strip(),
         'scope': 'fr inspected the explicitly selected original source files. File-scoped reads do not establish repository-wide caller discovery.',
         'selections': selections,
     })

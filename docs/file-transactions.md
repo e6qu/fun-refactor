@@ -1,4 +1,4 @@
-# Move or delete files with a review and an undo
+# Edit, move or delete files with a review and an undo
 
 Suppose you want to move `old/name.rs` or delete an unused file. Inspect the proposed file operation before writing.
 `fr` checks the files against that review and keeps recovery information for supported operations.
@@ -35,6 +35,34 @@ It does not rewrite imports, references or package declarations.
 For example, moving `old/name.rs` can leave an import pointing at the old path.
 The move preserves the file and supports undo, but you must review the imports and run the build.
 Each move or deletion command records its own transaction; the sequence above contains separate plans.
+
+## Exact text replacements
+
+Suppose you renamed a Python function from `clamp` to `clamp_value`. Its documentation
+contains `.. autofunction:: boltons.mathutils.clamp`, a Sphinx instruction that imports
+the function to show its documentation. That instruction must change too.
+
+```sh
+fr file replace docs/mathutils.rst \
+  --before '.. autofunction:: boltons.mathutils.clamp' \
+  --after '.. autofunction:: boltons.mathutils.clamp_value' --matches 1 --save-plan
+fr history patch 1
+fr history apply 1 --write
+```
+
+Use the returned transaction ID in place of `1`. The saved plan keeps the exact
+replacement; applying it refuses a file that has changed since review. Undo and
+redo preserve the recorded contents and permission bits.
+
+Both texts and the expected number of matches are required. Matches are literal,
+case sensitive and nonoverlapping. A count mismatch refuses the edit. An explicit
+empty `--after ''` deletes the matched text. The source and resulting file are each
+limited to 64 KiB; the two argument texts together are limited to 64 KiB, with
+between 1 and 500 matches. Binary files and symbolic links are refused.
+
+This command checks text and snapshots. It does not resolve Python imports or
+understand Sphinx instructions. Run the project's documentation checks after the
+edit; a misspelled replacement could otherwise leave a broken reference.
 
 ## Executable permissions
 

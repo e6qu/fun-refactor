@@ -118,6 +118,7 @@ jobs:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
@@ -134,6 +135,12 @@ jobs:
             sdk/python/tests
             tools
             tests/agent-eval/project-changes
+            tests/agent-eval/package-questions
+            tests/agent-eval/python-repository-flow
+            tests/agent-eval/python-repositories/boltons.tar.gz
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out
+            tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json
             tests/native_fingerprint.rs
             tests/common
             tests/fixtures
@@ -149,13 +156,13 @@ jobs:
         if: inputs.group == 'project-change-development'
         run: |
           cargo fmt --all
-          git diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"
+          git diff -- src tests > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - run: cargo build --locked --bin fr
       - name: Synchronize the reviewed admission rule through fr
         if: inputs.group == 'project-change-development'
         run: |
           target/debug/fr --json -C . spec sync kernels/FrKernels/Project.lean --write > "$RUNNER_TEMP/project-change-spec-sync.json"
-          git diff -- src kernels > "$RUNNER_TEMP/project-change-rustfmt.patch"
+          git diff -- src kernels tests > "$RUNNER_TEMP/project-change-rustfmt.patch"
       - name: Use fr to inspect its own change and invalidation code
         id: inspection
         run: >-
@@ -172,7 +179,15 @@ jobs:
           cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
           cargo test --locked --lib rust_complementary_cfg
           cargo test --locked --lib a_call_through_an_import_alias_resolves_to_the_original
-          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
+          cargo test --locked --lib text_replacement_
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py sdk/python/tests/test_change_scope.py
+      - name: Recheck earlier package questions with the current checker
+        id: prior-questions
+        if: inputs.group == 'project-change-development'
+        run: |
+          cargo build --locked --bin fr
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          python3 -B tools/package_question_replay.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-prior-questions"
       - name: Prepare original project checks
         if: contains(fromJSON('["project-change-delivery", "project-change-freeze", "project-change-retain"]'), inputs.group)
         run: python3 -m pip install 'pytest==9.1.1'
@@ -222,11 +237,15 @@ jobs:
           COLLECTION_RUN: ${{ inputs.collection_run }}
           FAILURES: ${{ inputs.failure_run }}
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
-        run: >-
-          python3 -B tools/retain-project-changes.py --run "$COLLECTION_RUN"
-          --failures "$FAILURES" --prefix "$EVIDENCE_PREFIX"
-          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
-          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+        run: |
+          python3 -B tools/retain-project-changes.py --run "$COLLECTION_RUN" \
+            --failures "$FAILURES" --prefix "$EVIDENCE_PREFIX" \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          python3 -B tools/test-project-change-audit.py \
+            --report "tests/agent-eval/results/$EVIDENCE_PREFIX-project-changes/result.json" \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -293,6 +312,14 @@ jobs:
           path: |
             tests/agent-eval/results/${{ inputs.prefix }}-project-changes/
             tests/agent-eval/roadmap.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.prior-questions.outcome != 'skipped'
+        with:
+          name: project-change-prior-questions
+          path: ${{ runner.temp }}/project-change-prior-questions/
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 30

@@ -17,11 +17,22 @@ def bindings(root):
         'tools/retain-scalar-evidence.py', 'tools/retain-python-contract.py',
         'tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
         'tools/python_contract_allocations.py', 'tools/compiler-profile.py',
+        'tests/native_fingerprint.rs', 'tools/test-native-source-inputs.py',
+        'tools/package_question_replay.py', 'tools/audit-historical-package-questions.py',
+        'tools/package-questions.py', 'tools/package-question-projects.json',
+        'tools/python-repository-flow.py', 'tools/python_repository_basis.py',
+        'tests/agent-eval/python-repository-flow/cohort.json',
+        'tests/agent-eval/python-repository-flow/runtime-requirements.txt',
+        'tests/agent-eval/package-questions/freeze.json',
+        'tests/agent-eval/python-repositories/boltons.tar.gz',
+        'tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json',
+        'tools/test-project-change-audit.py',
         'kernels/FrKernels/Project.lean',
         'tools/agent_eval/bounded_host.py', 'tools/agent_eval/study.py',
         'tests/agent-eval/project-changes/tasks.json', 'tests/agent-eval/project-changes/oracle.py',
         '.github/workflows/refinement-evidence.yml']
     names.extend(str(path.relative_to(root)) for path in (root / 'sdk/python/src').rglob('*.py'))
+    names.extend(str(path.relative_to(root)) for path in (root / 'sdk/python/tests').rglob('*.py'))
     return {**native_source_bindings(root), **{name: file_digest(root / name) for name in names}}
 
 

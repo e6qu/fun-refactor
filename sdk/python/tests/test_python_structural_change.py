@@ -42,7 +42,7 @@ def fixture(tmp_path, text):
     (root / '.fr/check-scopes.json').write_text(json.dumps({'schema': 1, 'checks': [
         {'name': 'behavior', 'paths': ['helper.py', 'caller.py']},
     ]}))
-    return root, FrClient(root, executable=FR)
+    return root, FrClient(root, executable=FR, timeout=20, max_output_bytes=1048576)
 
 
 def change(client, policy):

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import re
 
 
 def check(project, root, name):
@@ -57,10 +58,33 @@ fn main() {
         return {'results': json.loads(result.stdout), 'complete_library': 'src/lib.rs'}
 
 
+def documentation(project, root):
+    assert project == 'boltons'
+    sys.path.insert(0, str(root))
+    objects = []
+    for line in (root / 'docs/mathutils.rst').read_text().splitlines():
+        match = re.fullmatch(r'\.\. auto(?:function|class):: (\S+)', line)
+        if match is not None:
+            qualified = match[1]
+            module, attribute = qualified.rsplit('.', 1)
+            value = getattr(importlib.import_module(module), attribute)
+            assert callable(value), qualified
+            objects.append(qualified)
+    assert len(objects) == 4, objects
+    return {'resolved_documented_objects': objects}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('operation', choices=('behavior', 'documentation'))
     parser.add_argument('project', choices=('glob', 'boltons'))
     parser.add_argument('root', type=Path)
-    parser.add_argument('name')
+    parser.add_argument('--name')
     args = parser.parse_args()
-    print(json.dumps(check(args.project, args.root.resolve(), args.name)))
+    if args.operation == 'behavior':
+        assert args.name is not None, 'behavior requires an explicit public function name'
+        result = check(args.project, args.root.resolve(), args.name)
+    else:
+        assert args.name is None, 'documentation resolves the names written in the original document'
+        result = documentation(args.project, args.root.resolve())
+    print(json.dumps(result))
