@@ -23,7 +23,7 @@ pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {
         ],
         "math" => &[
             "ceil", "floor", "trunc", "sqrt", "fabs", "isfinite", "isinf", "isnan", "inf", "nan",
-            "pi", "e", "tau",
+            "pi", "e", "tau", "modf",
         ],
         "bisect" => &[
             "bisect",

@@ -78,6 +78,7 @@ def test_annotations_are_not_executed_and_fixed_slots_keep_their_flow(tmp_path, 
 
 
 @pytest.mark.parametrize("prefix", [FUTURE, '# comment\n"module docs"\n' + FUTURE,
+                                     "from __future__ import annotations, division\n",
                                      "from __future__ import ( # comment\n    annotations,\n)\n",
                                      "from __future__ import " + "\\" + "\n    annotations\n"])
 def test_valid_directive_positions_and_spelling(tmp_path, prefix):
@@ -92,7 +93,6 @@ def test_valid_directive_positions_and_spelling(tmp_path, prefix):
     '"first"\n"second"\n' + FUTURE,
     'b"bytes are not a docstring"\n' + FUTURE,
     "from __future__ import annotations as delayed\n",
-    "from __future__ import annotations, division\n",
     "from __future__ import unknown_feature\n" + FUTURE,
     "import __future__\n",
 ])

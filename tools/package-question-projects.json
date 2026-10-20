@@ -1,6 +1,9 @@
 {
   "purpose": "Complete original package imports, with Python outcomes checked independently.",
-  "selection": "Boltons and dateutil are development coverage. Jaraco.functools and fn.py stay unread until the native analyzer, SDK and selection rule are frozen. For unread projects choose the first plain top-level function returning its only positional argument directly, ordered by source path and declaration location. Record failure if none exists. Both unread projects use the same explicit union of the already implemented standard-library models, fixed before opening either project.",
+  "selection": "Boltons and dateutil remain familiar coverage. Choose JDcal's documented public is_leap question, inputs and expected results from its README before opening jdcal.py or test_jdcal.py. Keep implementation and tests unread until the analyzer, SDK and collector are frozen. Do not select a simpler helper after inspection.",
+  "previous_attempts": [
+    "tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json"
+  ],
   "projects": [
     {
       "id": "boltons",
@@ -54,33 +57,28 @@
       ]
     },
     {
-      "id": "jaraco-functools",
-      "repository": "jaraco/jaraco.functools",
-      "revision": "f7f4f3bcac8f70e01064dee9a8bde6cc8f997a17",
+      "id": "jdcal",
+      "repository": "phn/jdcal",
+      "revision": "c82c3cfb7f814b2ab79fd597e3f8aa87c3390fbb",
       "role": "held-out",
       "python_root": ".",
+      "module": "jdcal",
+      "function": "is_leap",
+      "expression": "relay(VALUE)",
+      "overwrite": 2000,
+      "values": [2000, 2100],
+      "expected": [true, false],
+      "blocked": true,
+      "public_question": {
+        "question": "Is the supplied Gregorian calendar year a leap year? Overwriting it with 2000 must remove the original input's value route.",
+        "document": "README.rst",
+        "document_blob": "bde082c81964105919acca8d28b2703273dde0d5",
+        "read_before_freeze": ["repository metadata", "README.rst"],
+        "implementation_and_tests_unread": ["jdcal.py", "test_jdcal.py"]
+      },
       "standard_library": [
         "builtins",
-        "math",
-        "bisect",
-        "binascii",
-        "datetime",
-        "sys"
-      ]
-    },
-    {
-      "id": "fn",
-      "repository": "kachayev/fn.py",
-      "revision": "df53f5d6bf0e94a37f44f6be57d1c87c9b7a6c26",
-      "role": "held-out",
-      "python_root": ".",
-      "standard_library": [
-        "builtins",
-        "math",
-        "bisect",
-        "binascii",
-        "datetime",
-        "sys"
+        "math"
       ]
     }
   ]

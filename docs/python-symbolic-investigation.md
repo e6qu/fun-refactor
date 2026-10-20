@@ -7,7 +7,8 @@ Before trusting this helper with limits supplied by a user, ask what happens whe
 
 This investigation compares ways to answer that question. It adds no language support to `fr`.
 The [current library results](python-repository-flow.md) still leave full-package tracing unfinished.
-Jaraco.functools remains unread; this experiment uses the already familiar Pydash project.
+This experiment used the already familiar Pydash project. The later unfamiliar-project
+attempts and their failures are recorded in the [package milestones](package-milestones.md).
 
 ## State the required behavior first
 

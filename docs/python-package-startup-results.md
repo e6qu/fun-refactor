@@ -116,7 +116,8 @@ No separate measurement establishes this rule's time or memory cost.
 
 These observations identify a design question, not an implemented package-summary capability.
 They do not establish a safe minimal dependency set or general support for Toolz, Funcy or Pydash.
-Jaraco.functools remains unread until an implementation freezes before its first evaluation.
+The later [package milestones](package-milestones.md) record Jaraco.functools' first
+unsuccessful admission and the next unfamiliar-project question. It is no longer an unused reservation.
 
 ## What the timings mean
 

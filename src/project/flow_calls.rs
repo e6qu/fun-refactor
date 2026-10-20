@@ -819,6 +819,30 @@ pub(super) fn declared_export_sequence(root: Node<'_>, source: &str) -> Option<V
 }
 
 pub(super) fn future_annotation_nodes(root: Node<'_>, source: &str) -> BTreeSet<usize> {
+    let directives = future_directive_nodes(root, source, FUTURE_DIRECTIVES);
+    root.named_children(&mut root.walk())
+        .filter(|node| directives.contains(&node.start_byte()))
+        .filter(|node| {
+            node.children_by_field_name("name", &mut node.walk())
+                .any(|name| &source[name.byte_range()] == "annotations")
+        })
+        .map(|node| node.start_byte())
+        .collect()
+}
+
+pub(super) const FUTURE_DIRECTIVES: &[&str] = &[
+    "annotations",
+    "division",
+    "print_function",
+    "absolute_import",
+    "unicode_literals",
+];
+
+pub(super) fn future_directive_nodes(
+    root: Node<'_>,
+    source: &str,
+    admitted: &[&str],
+) -> BTreeSet<usize> {
     let mut result = BTreeSet::new();
     let mut first = true;
     for node in root.named_children(&mut root.walk()) {
@@ -844,9 +868,10 @@ pub(super) fn future_annotation_nodes(root: Node<'_>, source: &str) -> BTreeSet<
         let names: Vec<_> = node
             .children_by_field_name("name", &mut node.walk())
             .collect();
-        if names.len() != 1
-            || names[0].kind() != "dotted_name"
-            || &source[names[0].byte_range()] != "annotations"
+        if names.is_empty()
+            || names.iter().any(|name| {
+                name.kind() != "dotted_name" || !admitted.contains(&&source[name.byte_range()])
+            })
         {
             return BTreeSet::new();
         }

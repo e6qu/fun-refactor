@@ -517,9 +517,14 @@ jobs:
         with:
           key: default
       - name: Check native binding and summary controls
+        id: native
         run: cargo test --locked --no-fail-fast --test native_fingerprint --test cache --test package_flow --test imported_flow --test vfs_choke_point --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
+      - name: Build the CLI required by the Python controls
+        id: sdk-binary
+        if: always() && steps.native.outcome != 'skipped'
+        run: cargo build --locked --bin fr
       - name: Check Python runtime and SDK controls
-        if: always()
+        if: always() && steps.sdk-binary.outcome == 'success'
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
@@ -548,6 +553,7 @@ jobs:
       - name: Reject substituted package records
         run: python3 -B tools/test-retain-package-questions.py
       - name: Save familiar and first unfamiliar outcomes unchanged
+        id: retained
         env:
           GH_TOKEN: ${{ github.token }}
           COVERAGE_RUN: ${{ inputs.collection_run }}
@@ -556,6 +562,13 @@ jobs:
         run: >-
           python3 -B tools/retain-package-questions.py --coverage-run "$COVERAGE_RUN"
           --held-out-run "$HELD_OUT_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Reject false completion records even with coherent fingerprints
+        if: steps.retained.outputs.milestones_complete == 'true'
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/test-package-milestone-audit.py
+          "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-held-out/result.json"
       - name: Commit the original package records
         env:
           BRANCH: ${{ github.ref_name }}
@@ -565,6 +578,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-"*
+          git add tests/agent-eval/roadmap.json
+          git add docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain frozen package comparisons and first unfamiliar outcomes'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -582,17 +597,42 @@ jobs:
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Check formatting before the frozen package comparison
+        if: inputs.group == 'package-questions-development'
+        run: |
+          if cargo fmt --all --check; then exit 0; fi
+          cargo fmt --all
+          git diff > "$RUNNER_TEMP/rustfmt.patch"
+          exit 1
+      - uses: actions/upload-artifact@v7
+        if: failure() && inputs.group == 'package-questions-development'
+        with:
+          name: rustfmt-correction
+          path: ${{ runner.temp }}/rustfmt.patch
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
       - name: Check original-package collector controls
-        run: python3 -B tools/test-package-questions.py
+        run: |
+          python3 -B tools/test-package-questions.py
+          python3 -B tools/test-retain-package-questions.py
+          python3 -B tests/agent-eval/test_roadmap_status.py
       - run: cargo build --locked --bin fr
+      - name: Compare imported-module rules with ordinary Python
+        if: inputs.group == 'package-questions-development'
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_imported_program_guards.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_standard_library.py
       - name: Collect original imports and independent Python answers
+        id: collect
         env:
           GH_TOKEN: ${{ github.token }}
           EVIDENCE_GROUP: ${{ inputs.group }}
@@ -602,17 +642,18 @@ jobs:
           --coverage-run "$COVERAGE_RUN" --fr target/debug/fr
           --output "$RUNNER_TEMP/package-questions"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.collect.outcome != 'skipped'
         with:
           name: package-questions-summary
           path: ${{ runner.temp }}/package-questions/result.json
           retention-days: 30
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.collect.outcome != 'skipped'
         with:
           name: package-questions
           path: ${{ runner.temp }}/package-questions/
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
 

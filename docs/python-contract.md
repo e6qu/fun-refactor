@@ -850,7 +850,11 @@ A local shadow remains subject to the ordinary import and initialization checks.
 
 Defaults still execute: `def relay(value: MissingType = read_input()): ...` leaves the answer unfinished.
 Decorators, type parameters, annotation inspection and annotated class attributes also remain unchecked.
-The supported directive imports only `annotations`, without aliases or other future features.
+The supported directive imports `annotations` without an alias. It may appear alongside
+`division`, `print_function`, `absolute_import` or `unicode_literals`: these request behavior
+already mandatory in the declared Python 3 runtime. Those four features alone do not enable
+postponed annotations. Unknown features, renamed imports and misplaced directives remain unchecked.
+The [imported-module lesson](leap-year-package-question.md) explains the independent Python checks.
 Single-file analysis cannot accept it because that mode does not check the import candidates.
 Annotations containing `await`, `yield`, assignment expressions or type unpacking remain unchecked.
 Each supported annotation contains at most 128 syntax nodes.

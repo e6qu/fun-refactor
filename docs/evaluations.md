@@ -1451,7 +1451,25 @@ No timeout, resource limit or writing budget increased.
 The [familiar-library comparison](https://github.com/e6qu/fun-refactor/actions/runs/39110449189) still has no complete full-package answers.
 Its 100 cases include sixteen complete copied-declaration answers and eight complete standalone-module answers.
 Those smaller results do not establish support for complete Toolz, Funcy or Pydash imports.
-Jaraco.functools remains unopened for a later independent evaluation.
+Jaraco.functools was still reserved at the time of this capture. Its later unsuccessful
+first admission is retained in the [package milestone record](package-milestones.md).
+
+## Finish three original-package questions
+
+The [package milestones](package-milestones.md) now pass for Boltons, dateutil and JDcal with one unchanged analyzer.
+JDcal's README supplied its leap-year question before anyone opened its implementation for this work.
+The [first evaluation](https://github.com/e6qu/fun-refactor/actions/runs/39388270081) passed after
+[fresh familiar-package coverage](https://github.com/e6qu/fun-refactor/actions/runs/39382493915) at the same commit.
+The retained records include original sources, Python outcomes, renamed callers and unfinished answers for unknown calls and exhausted search budgets.
+The familiar packages also pass source-edit and import-replacement controls for saved answers.
+These finite value-route questions establish neither general Python support nor lower agent costs.
+
+The [formatting preflight](https://github.com/e6qu/fun-refactor/actions/runs/39373244802)
+and [writing preflight](https://github.com/e6qu/fun-refactor/actions/runs/39376730312) failed before the new frozen comparison.
+The fixes apply Rust formatting and improve the prose without increasing its budgets.
+An explicit build now supplies the Python checks' executable, preventing secondary missing-binary errors when an earlier step fails.
+The [broader recheck](https://github.com/e6qu/fun-refactor/actions/runs/39380170357) passed at the existing deadlines.
+The freeze records the unsuccessful preflights; earlier Jaraco and fn.py outcomes remain in their original archives.
 
 ## Pass dictionaries to a startup function
 

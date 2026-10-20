@@ -2,7 +2,7 @@
 """Retain original-package answers and independent Python checks, including failures."""
 import argparse
 import ast
-import datetime
+import hashlib
 import importlib.util
 import io
 import json
@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import tomllib
 import urllib.request
 import zipfile
 
@@ -17,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from agent_eval.bounded_host import run
+from evidence_basis import native_bindings, native_source_bindings, cargo_manifest_basis, cargo_lock_basis
+from python_repository_basis import file_digest as repository_digest
 from fr_ir.context import DirectoryObjectStore, MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
@@ -25,6 +29,13 @@ spec = importlib.util.spec_from_file_location('repository_flow', ROOT / 'tools/p
 flow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(flow)
 PLAN = json.loads((ROOT / 'tools/package-question-projects.json').read_text())
+COLLECTOR_INPUTS = (
+    'tools/package-questions.py', 'tools/package-question-projects.json',
+    'tools/evidence_basis.py', 'tools/python_repository_basis.py',
+    'tools/python-repository-flow.py', 'tools/compiler-profile.py',
+    'tools/agent_eval/bounded_host.py', 'tests/agent-eval/python-repository-flow/cohort.json',
+    'tests/agent-eval/python-repositories/boltons.tar.gz', *PLAN['previous_attempts'],
+)
 RULES = {'version': 'package-question', 'sources': ['emit_value'], 'sinks': ['record_value'],
          'sanitizers': {}, 'propagators': []}
 LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
@@ -32,9 +43,73 @@ LIMITS = dict(wall_seconds=20, rss_bytes=512 * 1024**2, disk_bytes=16 * 1024**2,
 CACHE_STAGES = [('cold', False, True), ('restored', True, True), ('unrelated-edit', True, True),
                 ('helper-replaced', False, False), ('helper-restored', True, True), ('import-replaced', False, False)]
 
+# This reference process imports neither the SDK nor the evaluation framework.
+# -I prevents project startup hooks from running before the explicit import root.
+RUNTIME_SOURCE = '''import datetime, importlib.util, json, sys
+from pathlib import Path
+request = json.loads(Path(sys.argv[1]).read_text())
+scope = Path(request['scope'])
+sys.path.insert(0, str(scope))
+spec = importlib.util.spec_from_file_location('package_question', scope / request['path'])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.emit_value = lambda: request['value']
+module.record_value = lambda value: value
+module.opaque = lambda value: value
+value = getattr(module, request['entry'])()
+if type(value) is datetime.date:
+    value = value.isoformat()
+if value is not None and type(value) not in (int, float, bool, str):
+    raise ValueError('runtime result is outside the declared scalar/date contract')
+print(json.dumps({'value': value}))
+'''
+
 
 def save(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def bindings():
+    return {**native_bindings(ROOT, [*COLLECTOR_INPUTS, 'tests/agent-eval/package-questions/freeze.json']),
+            **{path.relative_to(ROOT).as_posix(): repository_digest(path)
+               for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))}}
+
+
+def verify_analyzer(root, frozen):
+    paths = flow.ANALYZER_PATHS
+    revision = frozen['analyzer_revision']
+    recorded = {path: flow.command(['git', 'rev-parse', revision + ':' + path], cwd=root).stdout.strip()
+                for path in paths}
+    flow.require(recorded == frozen['analyzer_trees'], 'frozen source identifiers differ from their recorded commit')
+    status = flow.command(['git', 'status', '--porcelain', '--untracked-files=all', '--', *paths], cwd=root).stdout
+    flow.require(not status, 'analyzer and client source must be committed before checking the freeze')
+    native = native_source_bindings(root)
+    sdk = {path.relative_to(root).as_posix(): repository_digest(path)
+           for path in (root / 'sdk/python/src').rglob('*.py')}
+    tracked = set(flow.command(['git', 'ls-files', '-z', '--', *paths], cwd=root).stdout.split('\0'))
+    flow.require(set(native) | set(sdk) <= tracked, 'analyzer input is absent from the committed source inventory')
+    changed = flow.command(['git', 'diff', '--name-only', '-z', revision, 'HEAD', '--', *paths], cwd=root).stdout.split('\0')
+    members = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['members']
+    manifests = {'Cargo.toml' if member == '.' else member + '/Cargo.toml' for member in members}
+    for name in filter(None, changed):
+        flow.require(name in manifests or name in ('Cargo.lock', 'sdk/python/src/fr_ir/_version.py'),
+                     'frozen analyzer code changed: ' + name)
+        source = subprocess.run(['git', 'show', revision + ':' + name], cwd=root, check=True,
+                                capture_output=True, timeout=30).stdout
+        if name in manifests:
+            expected = flow.sha(cargo_manifest_basis(source))
+            actual = native[name]
+        elif name == 'Cargo.lock':
+            expected = flow.sha(cargo_lock_basis(source))
+            actual = native[name]
+        else:
+            with tempfile.TemporaryDirectory() as directory:
+                original = Path(directory) / name
+                original.parent.mkdir(parents=True)
+                original.write_bytes(source)
+                expected = repository_digest(original)
+            actual = sdk[name]
+        flow.require(actual == expected, 'frozen analyzer behavior or dependencies changed: ' + name)
 
 
 def prepare(scope, project, variant, case):
@@ -54,22 +129,6 @@ def prepare(scope, project, variant, case):
     (scope / path).write_text(source)
     (scope / 'rules.json').write_text(json.dumps(RULES))
     return path, entry, source
-
-
-def runtime(request):
-    scope = Path(request['scope'])
-    sys.path.insert(0, str(scope))
-    spec = importlib.util.spec_from_file_location('package_question', scope / request['path'])
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    module.emit_value = lambda: request['value']
-    module.record_value = lambda value: value
-    module.opaque = lambda value: value
-    value = getattr(module, request['entry'])()
-    if type(value) is datetime.date:
-        value = value.isoformat()
-    flow.require(value is None or type(value) in (int, float, bool, str), 'runtime result is outside the declared scalar/date contract')
-    print(json.dumps({'value': value}))
 
 
 def analysis(request):
@@ -175,7 +234,9 @@ def execute(output, name, request, scope):
     save(directory / 'request.json', request)
     environment = {'PATH': os.environ['PATH'], 'HOME': str(directory), 'LANG': 'C.UTF-8',
                    'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0'}
-    command = [sys.executable, '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')]
+    command = ([sys.executable, '-I', '-B', '-c', RUNTIME_SOURCE, str(directory / 'request.json')]
+               if request['mode'] == 'runtime' else
+               [sys.executable, '-I', '-B', str(Path(__file__).resolve()), '--worker', str(directory / 'request.json')])
     with (directory / 'stdout').open('wb') as stdout, (directory / 'stderr').open('wb') as stderr:
         observation = run(command, b'', stdout, stderr, output, env=environment, cwd=scope, **LIMITS)
     observation['command'] = command
@@ -186,32 +247,6 @@ def execute(output, name, request, scope):
         observation['result'] = json.loads((directory / 'stdout').read_text())
     save(directory / 'observation.json', observation)
     return observation
-
-
-def inspect_unread(scope):
-    candidates = []
-    for path in sorted(scope.rglob('*.py')):
-        relative = path.relative_to(scope)
-        if any(part.startswith('.') or part in ('tests', 'test', 'docs', 'examples') for part in relative.parts):
-            continue
-        for node in ast.parse(path.read_bytes()).body:
-            if not isinstance(node, ast.FunctionDef) or node.decorator_list or node.returns:
-                continue
-            args = node.args.posonlyargs + node.args.args
-            body = list(node.body)
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
-                body.pop(0)
-            if (len(args) == 1 and not args[0].annotation and not node.args.kwarg and not node.args.kwonlyargs
-                    and len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name)
-                    and body[0].value.id == args[0].arg):
-                parts = list(relative.with_suffix('').parts)
-                if parts[-1] == '__init__':
-                    parts.pop()
-                if parts and all(part.isidentifier() for part in parts):
-                    candidates.append({'path': relative.as_posix(), 'line': node.lineno, 'module': '.'.join(parts),
-                                       'function': node.name, 'source_sha256': flow.sha(path.read_bytes())})
-    flow.require(candidates, 'no helper satisfies the frozen selection rule')
-    return candidates[0]
 
 
 def admission(root):
@@ -229,28 +264,35 @@ def admission(root):
             'dependency_installation': 'The collector installs no third-party dependencies. Preserve original-import runtime failures; do not rewrite package requirements.'}
 
 
-def checked_coverage(record, value, source, frozen):
+def checked_coverage(record, value, source, frozen, repository):
     declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'coverage'}
-    expected = set(declared)
     flow.require(record['head_sha'] == source and record['status'] == 'completed' and record['conclusion'] == 'success'
                  and record['path'] == '.github/workflows/refinement-evidence.yml'
                  and record['event'] == 'workflow_dispatch'
-                 and record['repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
-                 and record['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY'],
+                 and record['repository']['full_name'] == repository
+                 and record['head_repository']['full_name'] == repository,
                  'coverage must pass at the same frozen commit in this repository')
     flow.require(value['source_commit'] == source and value['phase'] == 'coverage'
                  and value['implementation'] == frozen and value['plan'] == PLAN,
                  'coverage artifact uses a different phase, implementation or project plan')
-    rows = value['projects']
+    checked_questions(value['projects'], declared, True)
+
+
+def checked_questions(rows, declared, require_cache):
+    expected = set(declared)
     flow.require(len(rows) == len(expected) and {row['project']['id'] for row in rows} == expected,
                  'coverage artifact omits or duplicates a planned project')
     for row in rows:
         project = declared[row['project']['id']]
         flow.require(row['project'] == project, 'coverage changed a declared project or its Python examples')
-        flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True
-                     and row['cache']['result']['complete'] is True, 'coverage includes an unfinished project')
-        stages = row['cache']['stages']
-        flow.require(len(stages) == len(CACHE_STAGES), 'coverage omits a saved-answer stage')
+        flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True,
+                     'package comparison includes an unfinished project')
+        stages = row['cache']['stages'] if require_cache else []
+        if require_cache:
+            flow.require(row['cache']['result']['complete'] is True, 'saved-answer comparison is unfinished')
+        else:
+            flow.require(not row.get('cache'), 'unfamiliar question unexpectedly changes the declared checks')
+        flow.require(not require_cache or len(stages) == len(CACHE_STAGES), 'coverage omits a saved-answer stage')
         previous = None
         for observation, (label, reused, reaches) in zip(stages, CACHE_STAGES):
             stage = observation['result']
@@ -276,8 +318,11 @@ def checked_coverage(record, value, source, frozen):
                          'coverage contains an incorrect answer or resource stop')
             expected_values = [project['blocked']] * 2 if cell['case'] == 'overwritten' else project['expected']
             flow.require(len(cell['runtime']) == 2 and all(
-                item['input'] == project['values'][index] and item['expected'] == expected_values[index]
+                type(item['input']) is type(project['values'][index])
+                and item['input'] == project['values'][index]
+                and type(item['expected']) is type(expected_values[index]) and item['expected'] == expected_values[index]
                 and item['observation']['exit_code'] == 0 and item['observation']['stop_reason'] is None
+                and type(item['observation']['result']['value']) is type(expected_values[index])
                 and item['observation']['result'] == {'value': expected_values[index]}
                 for index, item in enumerate(cell['runtime'])),
                 'coverage includes an incorrect Python example')
@@ -297,7 +342,7 @@ def coverage_result(run_id, output, source, frozen):
         member = archive.getinfo('result.json')
         flow.require(member.file_size <= 1024**2, 'coverage summary exceeds 1 MiB')
         value = json.loads(archive.read(member))
-    checked_coverage(record, value, source, frozen)
+    checked_coverage(record, value, source, frozen, repository)
     save(output / 'coverage-result.json', value)
     save(output / 'coverage-run.json', {'run': record, 'artifact': artifact, 'download_sha256': flow.sha(downloaded.stdout)})
     return value
@@ -309,8 +354,25 @@ def milestone_outcome(rows, coverage, phase, frozen):
     first = frozen is not None and any(row['complete'] is True and row['error'] is None for row in familiar)
     second = (frozen is not None and phase == 'held-out' and coverage is not None and bool(finished)
               and len({row['project']['repository'] for row in [*familiar, *finished]}) >= 3)
+    independent = sorted({row['project']['repository'] for row in [*familiar, *finished]
+                          if row['complete'] is True and row['error'] is None})
     return {'milestone_1_demonstrated': first, 'milestone_2_demonstrated': second,
+            'independent_projects': independent,
             'milestones_complete': first and second}
+
+
+def checked_completion(value, coverage, frozen):
+    declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'held-out'}
+    rows = value['projects']
+    flow.require(len(rows) == len(declared) and {row['project']['id'] for row in rows} == set(declared)
+                 and all(row['project'] == declared[row['project']['id']] for row in rows),
+                 'unfamiliar comparison omitted or changed a planned project')
+    finished = [row for row in rows if row['complete'] is True and row['error'] is None]
+    checked_questions(finished, {row['project']['id']: declared[row['project']['id']] for row in finished}, False)
+    outcome = milestone_outcome(rows, coverage, 'held-out', frozen)
+    flow.require(outcome['milestones_complete'] is True and all(value[key] == expected for key, expected in outcome.items()),
+                 'package completion differs from its checked questions')
+    return outcome
 
 
 def collect(args):
@@ -322,13 +384,16 @@ def collect(args):
     coverage = None
     if args.phase != 'development':
         frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
-        flow.verify_analyzer(ROOT, frozen)
-        flow.require(frozen['plan_sha256'] == flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
-                     and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
+        verify_analyzer(ROOT, frozen)
+        flow.require(frozen['repository'] == os.environ['GITHUB_REPOSITORY'], 'freeze belongs to another evaluation repository')
+        actual = bindings()
+        flow.require(frozen['collector_inputs'] == {name: actual[name] for name in COLLECTOR_INPUTS},
+                     'collector helpers, source archive or earlier outcome differs from freeze')
     if args.phase == 'held-out':
         flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
         coverage = coverage_result(args.coverage_run, output, source, frozen)
-    result = {'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
+    result = {'schema': 'fr-original-package-questions', 'source_bindings': bindings(),
+              'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
               'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
               'python': sys.version, 'platform': sys.platform,
               'implementation': frozen, 'coverage_run': args.coverage_run,
@@ -359,9 +424,10 @@ def collect(args):
             row['admission'] = admission(upstream)
             scope = upstream / project['python_root']
             if role == 'held-out':
-                row['selection'] = inspect_unread(scope)
-                project.update({key: row['selection'][key] for key in ('module', 'function')})
-                project.update(expression='relay(VALUE)', overwrite=0, values=[17, 31], expected=[17, 31], blocked=0)
+                row['selection'] = project['public_question']
+                document = (upstream / row['selection']['document']).read_bytes()
+                blob = hashlib.sha1(b'blob ' + str(len(document)).encode() + b'\0' + document).hexdigest()
+                flow.require(blob == row['selection']['document_blob'], 'public question document changed')
             for variant in ('original', 'renamed-relocated'):
                 for case in ('positive', 'overwritten', 'unknown', 'steps'):
                     path, entry, adapter = prepare(scope, project, variant, case)
@@ -376,7 +442,10 @@ def collect(args):
                         observed = execute(directory, f'{name}-python-{index}', request, scope)
                         expected = project['blocked'] if case == 'overwritten' else project['expected'][index]
                         cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
-                        flow.require(observed['result'] == {'value': expected}, 'ordinary Python disagrees with the independent example')
+                        flow.require(observed['result'] is not None
+                                     and type(observed['result']['value']) is type(expected)
+                                     and observed['result'] == {'value': expected},
+                                     'ordinary Python disagrees with the independent example')
                     save(output / 'result.json', result)
             if role == 'coverage':
                 collect_cache_controls(scope, project, directory, args.fr, row, result, output)
@@ -395,7 +464,10 @@ def collect(args):
                 row['complete'] = False
                 row['error'] = (row['error'] + '; ' if row['error'] else '') + 'original package files changed'
         save(output / 'result.json', result)
+    flow.require(bindings() == result['source_bindings'], 'evaluation inputs changed during collection')
     result.update(milestone_outcome(result['projects'], coverage, args.phase, frozen))
+    if args.phase == 'held-out' and result['milestones_complete']:
+        checked_completion(result, coverage, frozen)
     save(output / 'result.json', result)
     print(json.dumps({'projects': [{'id': row['project']['id'], 'complete': row['complete'], 'error': row['error']} for row in result['projects']],
                       'milestone_1_demonstrated': result['milestone_1_demonstrated'], 'milestone_2_demonstrated': result['milestone_2_demonstrated']}))
@@ -415,7 +487,7 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
     if arguments.worker:
         request = json.loads(arguments.worker.read_text())
-        {'analysis': analysis, 'runtime': runtime, 'cache': cache_controls}[request['mode']](request)
+        {'analysis': analysis, 'cache': cache_controls}[request['mode']](request)
     else:
         flow.require(arguments.phase is not None and arguments.output is not None and arguments.fr is not None,
                      'collection requires explicit phase, output and analyzer binary')

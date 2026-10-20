@@ -20,17 +20,17 @@ flow.SCHEMA = 'fr-python-repository-declarations'
 flow.COHORT = copy.deepcopy(flow.COHORT)
 flow.COHORT['schema'] = 'fr-python-repository-declarations-cohort'
 # Freeze native and SDK code before replaying the familiar libraries.
-flow.COHORT['analyzer_revision'] = 'd8819f882195dd94a5b192893556d6dd9a60e8d5'
+flow.COHORT['analyzer_revision'] = 'd04c9301bb703eeaaddd06ecffc0cacd52f9fbd9'
 flow.COHORT['analyzer_trees'] = {
-    'src': '813aee886a9ebac6753c650afcc8c0476953e8d3',
-    'grammars': '5638340a5a41fbc2f28061f64c493ec8204a70e7',
-    'crates': 'b814cfbc7342c58b55cba62254e9fc7b16fb1991',
+    'src': 'eb346b104f6673ff92339249a3462af3445259fa',
+    'grammars': 'b8bc6a3ec7a8f795d9f5f568f8d5f88ab2f2f679',
+    'crates': 'a60b1885cefb662a5a1db26458d384bb75f049ea',
     'queries': '465c5e1e81c76abac02baec561fff07168b3cea2',
     'build.rs': 'f58ae81bfa48f7a5a48950329b941ff0f13ccb51',
-    'Cargo.toml': '06fe6b47c81018c59f91ded648b19acfd56b02bb',
-    'Cargo.lock': 'c5de8aa7ae8184669a0b21aef8d96e4475a1ad93',
+    'Cargo.toml': '7e1313a0a61b1f23018f61eda984ea0a1a42bb5b',
+    'Cargo.lock': 'ec836be638d3d685712cbf15d904237c1fdf593a',
     'native-source-inputs.txt': 'e7ba79122be183f8d827d3bc2c262f7b63e58bc4',
-    'sdk/python/src': 'c8a35f48764d7e1c366946b1034e3e2bf523f7b0',
+    'sdk/python/src': '8315c5ca01170651ede95992f6f6fa1d340edf5b',
 }
 flow.COHORT['holdout'] = 'All three libraries are already-seen coverage. Unfamiliar projects are evaluated separately by tools/package-questions.py and do not participate in this regression collection.'
 for project in flow.COHORT['projects']:

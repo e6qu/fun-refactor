@@ -25,12 +25,14 @@ must still say the answer is incomplete when those parts remain unchecked.
 
 ## Where the tests leave us
 
-The current tests use Toolz, funcy and pydash. They check helpers through their real packages,
+This page's recorded tests use Toolz, funcy and pydash. They check helpers through their real packages,
 then compare some helpers in small files containing the copied function and a declared control.
 
 The real-package answers still remain incomplete or refuse the deliberately invalid output budget.
 Some isolated helper examples complete. That shows a supported helper can work in a simpler setting;
-it does not show that the original package is understood. Full real-project tracing remains open.
+it does not show that the original package is understood.
+Later [original-package checks](package-milestones.md) finish selected Boltons and dateutil
+questions. Broader project coverage remains a separate requirement.
 
 We also rename helpers and move files to check whether answers depend on the code rather than
 familiar names. Python execution checks the stated inputs separately from the analyzer’s answer.
@@ -266,13 +268,14 @@ The [shared-startup comparison](https://github.com/e6qu/fun-refactor/actions/run
 keeps those same outcomes. You can now ask about several functions in one file with one startup check within that request.
 The [complete lesson](check-python-together.md) follows submitted input through a forwarding helper and a helper returning zero, then runs both in Python.
 The questions share the existing work and output limits; unknown startup effects still leave them unfinished.
-A later request checks startup again. Saving checked setup for later questions remains the next step.
+In that recorded version, a later request checks startup again. The later
+[saved-startup lesson](save-python-startup.md) checks reuse between separate questions.
 This change has no timing measurements and does not finish the original packages' import checks.
 
-Next, address the remaining import and initialization boundaries
-through general language rules. Reserve an unopened holdout before further analyzer edits and
-freeze broader coverage before opening it. The
-[next reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json) pins jaraco.functools.
+The remaining import and startup boundaries require general language rules.
+The [earlier reservation](../tests/agent-eval/python-repository-flow/replacement-holdout.json)
+pinned jaraco.functools; its first admission failed. The [package milestones](package-milestones.md)
+own that outcome and the subsequent passing JDcal comparison, selected before opening its implementation.
 
 To inspect an incomplete answer, use the initialization locations described in the
 [Python guide](python-contract.md#find-the-statement-that-prevents-an-answer).

@@ -1,6 +1,9 @@
 """Protect the unread helper selection and retain an empty selection as a failure."""
 import importlib.util
 import copy
+import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,43 +15,77 @@ questions = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(questions)
 
 
-class UnreadSelection(unittest.TestCase):
-    def test_selection_uses_path_then_declaration_order(self):
+class IndependentRuntime(unittest.TestCase):
+    def test_project_imports_do_not_reuse_the_collectors_sdk_or_tools(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'z.py').write_text('def z(value):\n    return value\n')
-            (root / 'a.py').write_text('def first(item):\n    """User docs."""\n    return item\ndef second(value):\n    return value\n')
-            selected = questions.inspect_unread(root)
-            self.assertEqual((selected['module'], selected['function'], selected['line']), ('a', 'first', 1))
-            self.assertEqual(selected['source_sha256'], questions.flow.sha((root / 'a.py').read_bytes()))
+            (root / 'fr_ir.py').write_text('def relay(value):\n    return value + 1\n')
+            (root / 'evidence_basis.py').write_text('amount = 2\n')
+            (root / 'sitecustomize.py').write_text("raise RuntimeError('project startup hook ran before the explicit import')\n")
+            (root / 'question.py').write_text('import sys\nassert not any(name.startswith("fr_ir") for name in sys.modules)\nfrom fr_ir import relay\nfrom evidence_basis import amount\ndef entry():\n    return relay(emit_value()) + amount\n')
+            request = root / 'request.json'
+            request.write_text(json.dumps({'scope': str(root), 'path': 'question.py', 'entry': 'entry', 'value': 17}))
+            result = subprocess.run([sys.executable, '-I', '-B', '-c', questions.RUNTIME_SOURCE, str(request)],
+                                    cwd=root, capture_output=True, text=True, check=True, timeout=10)
+            self.assertEqual(json.loads(result.stdout), {'value': 20})
 
-    def test_copied_examples_decorators_methods_and_nonidentity_bodies_do_not_qualify(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'tests').mkdir()
-            (root / 'tests/identity.py').write_text('def identity(value):\n    return value\n')
-            (root / 'library.py').write_text('''@replace
-def decorated(value):
-    return value
-def arithmetic(value):
-    return value + 1
-def two(value, other):
-    return value
-class Wrapper:
-    def method(value):
-        return value
-''')
-            with self.assertRaisesRegex(ValueError, 'no helper satisfies'):
-                questions.inspect_unread(root)
 
-    def test_package_initializer_keeps_the_original_import(self):
+class FrozenImplementation(unittest.TestCase):
+    def fixture(self, root):
+        def git(*args):
+            return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True, text=True, timeout=10).stdout.strip()
+        def commit():
+            git('add', '.')
+            git('commit', '-qm', 'Record the source fixture')
+        git('init', '-q')
+        git('config', 'user.name', 'Fixture')
+        git('config', 'user.email', 'fixture@example.invalid')
+        (root / 'src').mkdir()
+        (root / 'src/lib.rs').write_text('pub fn value() -> i32 { 1 }\n')
+        (root / 'native-source-inputs.txt').write_text('Cargo.toml\nCargo.lock\nnative-source-inputs.txt\nsrc/\n')
+        (root / 'Cargo.toml').write_text('[workspace]\nmembers=["."]\n[package]\nname="fixture"\nversion="1.0.0"\n[dependencies]\nremote="2.0.0"\n')
+        (root / 'Cargo.lock').write_text('version=4\n[[package]]\nname="fixture"\nversion="1.0.0"\n')
+        sdk = root / 'sdk/python/src/fr_ir'
+        sdk.mkdir(parents=True)
+        (sdk / '_version.py').write_text('VERSION = "1.0.0"  # x-release-please-version\n')
+        (sdk / 'flow.py').write_text('value = 1\n')
+        commit()
+        paths = ('Cargo.toml', 'Cargo.lock', 'native-source-inputs.txt', 'src', 'sdk/python/src')
+        frozen = {'analyzer_revision': git('rev-parse', 'HEAD'),
+                  'analyzer_trees': {name: git('rev-parse', 'HEAD:' + name) for name in paths}}
+        return paths, frozen, commit
+
+    def test_merge_release_labels_preserve_the_frozen_code(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'library').mkdir()
-            (root / 'library/__init__.py').write_text('def identity(value):\n    return value\n')
-            selected = questions.inspect_unread(root)
-            self.assertEqual(selected['module'], 'library')
-            self.assertEqual(selected['path'], 'library/__init__.py')
+            paths, frozen, commit = self.fixture(root)
+            for name in ('Cargo.toml', 'Cargo.lock', 'sdk/python/src/fr_ir/_version.py'):
+                path = root / name
+                path.write_text(path.read_text().replace('1.0.0', '1.1.0'))
+            commit()
+            with patch.object(questions.flow, 'ANALYZER_PATHS', paths):
+                questions.verify_analyzer(root, frozen)
+
+    def test_code_dependencies_and_uncommitted_inputs_do_not_inherit_the_freeze(self):
+        for mutation in ('native-code', 'sdk-code', 'dependency', 'version-code', 'uncommitted'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                paths, frozen, commit = self.fixture(root)
+                if mutation in ('native-code', 'uncommitted'):
+                    (root / 'src/lib.rs').write_text('pub fn value() -> i32 { 2 }\n')
+                elif mutation == 'sdk-code':
+                    (root / 'sdk/python/src/fr_ir/flow.py').write_text('value = 2\n')
+                elif mutation == 'dependency':
+                    path = root / 'Cargo.toml'
+                    path.write_text(path.read_text().replace('2.0.0', '2.1.0'))
+                elif mutation == 'version-code':
+                    path = root / 'sdk/python/src/fr_ir/_version.py'
+                    path.write_text(path.read_text() + 'extra_behavior = True\n')
+                if mutation != 'uncommitted':
+                    commit()
+                with patch.object(questions.flow, 'ANALYZER_PATHS', paths):
+                    with self.assertRaises(ValueError):
+                        questions.verify_analyzer(root, frozen)
 
 
 class CoverageBeforeUnread(unittest.TestCase):
@@ -84,14 +121,13 @@ class CoverageBeforeUnread(unittest.TestCase):
         return record, value
 
     def check(self, record, value):
-        with patch.dict(questions.os.environ, {'GITHUB_REPOSITORY': 'example/project'}):
-            questions.checked_coverage(record, value, 'a' * 40, {'frozen': True})
+        questions.checked_coverage(record, value, 'a' * 40, {'frozen': True}, 'example/project')
 
     def test_complete_declared_examples_allow_the_next_phase(self):
         self.check(*self.example())
 
     def test_missing_questions_wrong_answers_and_unfrozen_results_refuse(self):
-        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'expected', 'changed-source', 'cache', 'stage-link', 'stage-missing'):
+        for mutation in ('revision', 'phase', 'freeze', 'empty', 'case', 'false-blocked', 'stop', 'runtime', 'runtime-type', 'expected', 'changed-source', 'cache', 'stage-link', 'stage-missing'):
             with self.subTest(mutation=mutation):
                 record, value = self.example()
                 row = value['projects'][0]
@@ -103,6 +139,7 @@ class CoverageBeforeUnread(unittest.TestCase):
                 elif mutation == 'false-blocked': row['cases'][1]['analysis']['result']['witnesses'] = 1
                 elif mutation == 'stop': row['cases'][0]['analysis']['stop_reason'] = 'cpu_seconds'
                 elif mutation == 'runtime': row['cases'][0]['runtime'][0]['observation']['result']['value'] = 0
+                elif mutation == 'runtime-type': row['cases'][0]['runtime'][0]['observation']['result']['value'] = float(row['cases'][0]['runtime'][0]['expected'])
                 elif mutation == 'expected':
                     row['cases'][0]['runtime'][0]['expected'] = 0
                     row['cases'][0]['runtime'][0]['observation']['result']['value'] = 0
@@ -112,6 +149,37 @@ class CoverageBeforeUnread(unittest.TestCase):
                 elif mutation == 'stage-missing': row['cache']['stages'].pop()
                 with self.assertRaises(ValueError):
                     self.check(record, value)
+
+
+class PublicQuestionChecks(unittest.TestCase):
+    def example(self):
+        project, = [project for project in questions.PLAN['projects'] if project['role'] == 'held-out']
+        _, coverage = CoverageBeforeUnread().example()
+        row = copy.deepcopy(coverage['projects'][0])
+        row['project'] = copy.deepcopy(project)
+        row.pop('cache')
+        for cell in row['cases']:
+            for index, item in enumerate(cell['runtime']):
+                expected = project['blocked'] if cell['case'] == 'overwritten' else project['expected'][index]
+                item.update(input=project['values'][index], expected=expected)
+                item['observation']['result'] = {'value': expected}
+        return project, row
+
+    def test_complete_public_question_is_checked_without_source_selection(self):
+        project, row = self.example()
+        questions.checked_questions([row], {project['id']: project}, False)
+
+    def test_missing_questions_changed_helpers_and_integer_booleans_cannot_close_the_milestone(self):
+        for mutation in ('helper', 'missing', 'boolean', 'unknown', 'renamed'):
+            with self.subTest(mutation=mutation):
+                project, row = self.example()
+                if mutation == 'helper': row['project']['function'] = 'simpler'
+                elif mutation == 'missing': row['cases'].pop()
+                elif mutation == 'boolean': row['cases'][0]['runtime'][0]['observation']['result']['value'] = 1
+                elif mutation == 'unknown': row['cases'][2]['analysis']['result']['complete'] = True
+                elif mutation == 'renamed': row['cases'][4]['analysis']['result']['witnesses'] = 0
+                with self.assertRaises(ValueError):
+                    questions.checked_questions([row], {project['id']: project}, False)
 
 
 class CacheWorkerStops(unittest.TestCase):

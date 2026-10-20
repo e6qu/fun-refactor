@@ -102,7 +102,7 @@ consumer review and reproducible retrieval; measure storage, build time and runt
 
 The configured packaging pilot stopped when its first live call hit the CPU cap.
 The later resource investigation found no justified client configuration fix and is closed.
-Keep the failed and three unstarted cells. The [current plan](../PLAN.md#next-large-chunk)
+Keep the failed and three unstarted cells. The [current plan](../PLAN.md#completed-package-milestones-and-next-work)
 continues tool work; it does not authorize restarting that pilot.
 
 The [source-reading report](native-read-outcomes.md) has no successful ordinary/fr pair.
