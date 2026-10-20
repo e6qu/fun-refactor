@@ -21,7 +21,7 @@ env:
 
 jobs:
   project-changes:
-    name: Saved findings and delivered project changes
+    name: Original saved findings and delivered project changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -113,6 +113,51 @@ jobs:
             --report tests/agent-eval/results/2026-10-20-projects-project-changes/result.json \
             --fr target/project-change-checkers/production-fr \
             --alternate target/project-change-checkers/alternate-fr
+
+  current-project-changes:
+    name: Current saved findings and delivered project changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Prepare the package behavior checks
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Build both current checker implementations
+        run: |
+          cargo build --locked --bin fr
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output target/project-change-checkers
+      - name: Replay the current result and reject altered completion records
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
+          path = Path(entry['path'])
+          assert path.resolve().is_relative_to(Path.cwd())
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+          spec = importlib.util.spec_from_file_location('recheck', 'tools/recheck-project-changes.py')
+          recheck = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(recheck)
+          binary = Path('target/project-change-checkers/production-fr').resolve()
+          alternate = Path('target/project-change-checkers/alternate-fr').resolve()
+          recheck.audit(path.parent, binary, alternate)
+          recheck.reject_false_claims(path.parent, binary, alternate)
+          PY
 
   original-package-questions:
     name: Original package questions
@@ -342,7 +387,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes]
+    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -357,6 +402,7 @@ jobs:
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
           ORIGINAL_PACKAGES: ${{ needs.original-package-questions.result }}
           PROJECT_CHANGES: ${{ needs.project-changes.result }}
+          CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
         run: |
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
@@ -365,7 +411,8 @@ jobs:
           test "$TOOLCHAIN" = success &&
           test "$GO_TOOLCHAIN" = success &&
           test "$ORIGINAL_PACKAGES" = success &&
-          test "$PROJECT_CHANGES" = success
+          test "$PROJECT_CHANGES" = success &&
+          test "$CURRENT_PROJECT_CHANGES" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

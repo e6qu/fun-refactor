@@ -40,6 +40,7 @@ KINDS = {
     'fr-python-repository-flow-cohort-result-1': 'deterministic',
     'fr-original-package-questions': 'deterministic',
     'fr-project-changes': 'deterministic',
+    'fr-project-changes-recheck': 'deterministic',
     'fr-rechecked-package-questions': 'deterministic',
 }
 

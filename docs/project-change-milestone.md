@@ -138,8 +138,15 @@ It preserves 32 failed or cancelled development attempts alongside the successfu
 The recurring CI check replays the original result with its recorded source,
 Rust 1.99.1 and Python 3.14.8. It also rejects altered completion records.
 Later source changes need fresh results before tracking can call them checked.
-The full test suite checks the current implementation separately.
-Repeating this recorded experiment makes no new unread-project claim.
+The current replay repeats all 21 changes and both renames with the current
+implementation, then independently checks the results. All three projects are
+familiar during this replay. Its record links the unchanged first Humanize
+evaluation; it makes no new unread-project claim. Tracking requires the fresh
+replay, and CI checks both the original and current results.
+
+The current replay keeps its raw files in a ZIP archive. This preserves original
+line endings and project Git settings without applying those settings to this
+repository. The full test suite also checks the current implementation.
 
 Run builds, full tests and result collection on GitHub under the [workstation policy](development.md#working-on-a-shared-desktop).
 This milestone checks correctness through changes. Measure speed and storage separately against fresh checks doing the same work, including setup costs.

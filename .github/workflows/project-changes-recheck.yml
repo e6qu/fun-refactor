@@ -1,0 +1,71 @@
+name: Recheck familiar project changes
+on:
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: New directory prefix for the current replay
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: project-changes-recheck-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  replay:
+    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      PREFIX: ${{ inputs.prefix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Prepare the recorded behavior checks
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Build both current checker implementations
+        run: |
+          cargo build --locked --bin fr
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output target/project-change-checkers
+      - name: Recheck every familiar project and independently audit the result
+        run: |
+          python3 -B - <<'PY'
+          import os, re
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', os.environ['PREFIX'])
+          PY
+          python3 -B tools/recheck-project-changes.py \
+            --collect "tests/agent-eval/results/$PREFIX-project-changes-recheck" \
+            --fr target/project-change-checkers/production-fr \
+            --alternate target/project-change-checkers/alternate-fr \
+            --checkers target/project-change-checkers/checkers.json
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tests/agent-eval/test_roadmap_status.py
+      - name: Commit only the audited current replay and its tracking
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$PREFIX-project-changes-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: recheck familiar project changes after release integration'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: familiar-project-changes
+          path: tests/agent-eval/results/${{ inputs.prefix }}-project-changes-recheck
+          if-no-files-found: warn
