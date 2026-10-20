@@ -2,6 +2,7 @@
 """Retain original-package answers and independent Python checks, including failures."""
 import argparse
 import ast
+import hashlib
 import importlib.util
 import io
 import json
@@ -16,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
 from agent_eval.bounded_host import run
+from evidence_basis import native_bindings
 from fr_ir.context import DirectoryObjectStore, MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
@@ -55,6 +57,14 @@ print(json.dumps({'value': value}))
 
 def save(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def bindings():
+    return native_bindings(ROOT, [
+        'tools/package-questions.py', 'tools/package-question-projects.json',
+        *PLAN['previous_attempts'],
+        *(path.relative_to(ROOT).as_posix() for path in sorted((ROOT / 'sdk/python/src').rglob('*.py'))),
+    ])
 
 
 def prepare(scope, project, variant, case):
@@ -211,7 +221,6 @@ def admission(root):
 
 def checked_coverage(record, value, source, frozen):
     declared = {project['id']: project for project in PLAN['projects'] if project['role'] == 'coverage'}
-    expected = set(declared)
     flow.require(record['head_sha'] == source and record['status'] == 'completed' and record['conclusion'] == 'success'
                  and record['path'] == '.github/workflows/refinement-evidence.yml'
                  and record['event'] == 'workflow_dispatch'
@@ -221,16 +230,24 @@ def checked_coverage(record, value, source, frozen):
     flow.require(value['source_commit'] == source and value['phase'] == 'coverage'
                  and value['implementation'] == frozen and value['plan'] == PLAN,
                  'coverage artifact uses a different phase, implementation or project plan')
-    rows = value['projects']
+    checked_questions(value['projects'], declared, True)
+
+
+def checked_questions(rows, declared, require_cache):
+    expected = set(declared)
     flow.require(len(rows) == len(expected) and {row['project']['id'] for row in rows} == expected,
                  'coverage artifact omits or duplicates a planned project')
     for row in rows:
         project = declared[row['project']['id']]
         flow.require(row['project'] == project, 'coverage changed a declared project or its Python examples')
-        flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True
-                     and row['cache']['result']['complete'] is True, 'coverage includes an unfinished project')
-        stages = row['cache']['stages']
-        flow.require(len(stages) == len(CACHE_STAGES), 'coverage omits a saved-answer stage')
+        flow.require(row['complete'] is True and row['error'] is None and row['original_sources_unchanged'] is True,
+                     'package comparison includes an unfinished project')
+        stages = row['cache']['stages'] if require_cache else []
+        if require_cache:
+            flow.require(row['cache']['result']['complete'] is True, 'saved-answer comparison is unfinished')
+        else:
+            flow.require(not row.get('cache'), 'unfamiliar question unexpectedly changes the declared checks')
+        flow.require(not require_cache or len(stages) == len(CACHE_STAGES), 'coverage omits a saved-answer stage')
         previous = None
         for observation, (label, reused, reaches) in zip(stages, CACHE_STAGES):
             stage = observation['result']
@@ -290,7 +307,10 @@ def milestone_outcome(rows, coverage, phase, frozen):
     first = frozen is not None and any(row['complete'] is True and row['error'] is None for row in familiar)
     second = (frozen is not None and phase == 'held-out' and coverage is not None and bool(finished)
               and len({row['project']['repository'] for row in [*familiar, *finished]}) >= 3)
+    independent = sorted({row['project']['repository'] for row in [*familiar, *finished]
+                          if row['complete'] is True and row['error'] is None})
     return {'milestone_1_demonstrated': first, 'milestone_2_demonstrated': second,
+            'independent_projects': independent,
             'milestones_complete': first and second}
 
 
@@ -309,7 +329,8 @@ def collect(args):
     if args.phase == 'held-out':
         flow.require(args.coverage_run, 'held-out collection requires successful coverage at the same commit')
         coverage = coverage_result(args.coverage_run, output, source, frozen)
-    result = {'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
+    result = {'schema': 'fr-original-package-questions', 'source_bindings': bindings(),
+              'source_commit': source, 'binary_sha256': flow.sha(args.fr.resolve().read_bytes()),
               'phase': args.phase, 'plan': PLAN, 'limits': LIMITS,
               'python': sys.version, 'platform': sys.platform,
               'implementation': frozen, 'coverage_run': args.coverage_run,
@@ -341,6 +362,9 @@ def collect(args):
             scope = upstream / project['python_root']
             if role == 'held-out':
                 row['selection'] = project['public_question']
+                document = (upstream / row['selection']['document']).read_bytes()
+                blob = hashlib.sha1(b'blob ' + str(len(document)).encode() + b'\0' + document).hexdigest()
+                flow.require(blob == row['selection']['document_blob'], 'public question document changed')
             for variant in ('original', 'renamed-relocated'):
                 for case in ('positive', 'overwritten', 'unknown', 'steps'):
                     path, entry, adapter = prepare(scope, project, variant, case)

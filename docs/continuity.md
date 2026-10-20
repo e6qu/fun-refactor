@@ -9,6 +9,12 @@ An agent can find functions and callers, read selected code, preview an edit and
 Saved changes can be inspected, reversed or continued after a pause.
 Small Python examples can also follow a configured input through a helper to an output.
 
+The [original-package checks](package-milestones.md) now pass for Boltons' integer bounds
+and dateutil's Easter dates. They use the original imports, independently stated Python
+results, renamed and moved callers, and saved versus fresh answers after relevant changes.
+This completes the first near-term package milestone. The second still needs a third
+independent project, including a successful question chosen before reading its implementation.
+
 For example, “does customer input reach `send(value)`?” can return a possible connection with source locations.
 If importing the helper runs unsupported startup code, the question stays partly unanswered.
 An empty trace in that situation cannot establish that the input never reaches the output.
@@ -113,11 +119,15 @@ Link detailed inventories and failed attempts from that short description.
 
 ## Keep the next unfamiliar test useful
 
-Jaraco.functools remains unread. Keep it that way during development, then freeze the implementation before its first evaluation.
+Jaraco.functools and fn.py have already had their first evaluation. Both stopped before
+analysis, for the admission and selection reasons recorded in the [package milestones](package-milestones.md).
+Do not describe either as an unused reservation or a successful result.
+The next reserved question is [JDcal's leap-year check](leap-year-package-question.md),
+chosen from its public README. Keep implementation and tests unread until the new freeze.
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-scalar-collection/manifest.json) identifies the current analysis results.
+The [earlier checker collection receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-scalar-collection/manifest.json) records the preceding analysis results.
 The [Python example receipt](../tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/manifest.json)
 covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
 It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.

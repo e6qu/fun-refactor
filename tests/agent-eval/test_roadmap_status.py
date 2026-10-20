@@ -21,6 +21,7 @@ class RoadmapStatusTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / 'input.py').write_text('def f(): return 1\n')
+        (self.root / 'Cargo.toml').write_text('[package]\nname="sample"\nversion="1.0.0"\n[workspace]\nmembers=["."]\n')
         self.value = {'schema': 'fr-package-flow-acceptance-1', 'complete': True,
                       'source_bindings': {'input.py': status.file_digest(self.root / 'input.py')}}
         (self.root / 'result.json').write_text(json.dumps(self.value))
@@ -142,6 +143,17 @@ class RoadmapStatusTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tampered artifact'):
             self.compute()
 
+    def test_package_completion_keeps_its_original_collection_receipt(self):
+        self.value['schema'] = 'fr-original-package-questions'
+        receipt = self.root / 'receipt.json'
+        receipt.write_text('{"conclusion":"success"}')
+        self.catalog['evidence'][0]['receipt_sha256'] = status.digest(receipt)
+        self.rewrite()
+        self.assertEqual(self.compute()['evidence'][0]['freshness'], 'current')
+        receipt.write_text('{"conclusion":"failure"}')
+        with self.assertRaisesRegex(ValueError, 'collection receipt changed'):
+            self.compute()
+
     def test_path_escape_refuses(self):
         self.value['source_bindings'] = {'../outside': '0' * 64}
         self.rewrite()
@@ -151,17 +163,28 @@ class RoadmapStatusTests(unittest.TestCase):
     def test_release_versions_follow_the_cache_evaluator_normalization(self):
         path = self.root / 'Cargo.toml'
         def contents(version, remote):
-            return (f'[package]\nname="example"\nversion="{version}"\n[dependencies]\n'
+            return (f'[package]\nname="example"\nversion="{version}"\n[workspace]\nmembers=["."]\n[dependencies]\n'
                     f'child={{path="child",version="{version}"}}\nremote="{remote}"\n')
-        for schema in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1',
+        for schema in ('fr-flow-facts-acceptance-1', 'fr-package-flow-acceptance-1', 'fr-python-repository-acceptance-2',
+                       'fr-flow-cache-acceptance-1', 'fr-compiler-profile-1',
                        'fr-python-contract-1', 'fr-index-resolution-result-1',
                        'fr-python-repository-flow-cohort-result-1'):
             path.write_text(contents('1.0.0', '2.0.0'))
-            expected = status.binding_digest(path, schema)
+            expected = status.binding_digest(path, schema, self.root)
             path.write_text(contents('1.1.0', '2.0.0'))
-            self.assertEqual(expected, status.binding_digest(path, schema))
+            self.assertEqual(expected, status.binding_digest(path, schema, self.root))
             path.write_text(contents('1.1.0', '3.0.0'))
-            self.assertNotEqual(expected, status.binding_digest(path, schema))
+            self.assertNotEqual(expected, status.binding_digest(path, schema, self.root))
+
+    def test_nonmember_manifest_keeps_its_exact_bytes(self):
+        path = self.root / 'external/Cargo.toml'
+        path.parent.mkdir()
+        for schema in ('fr-flow-cache-acceptance-1', 'fr-python-repository-acceptance-2', 'fr-python-contract-3'):
+            path.write_text('[package]\nname="external"\nversion="1.0.0"\n')
+            expected = status.binding_digest(path, schema, self.root)
+            self.assertEqual(expected, status.file_digest(path))
+            path.write_text('[package]\nname="external"\nversion="1.1.0"\n')
+            self.assertNotEqual(expected, status.binding_digest(path, schema, self.root))
 
     def test_plan_checkbox_changes_require_catalog_review(self):
         path = self.root / 'PLAN.md'

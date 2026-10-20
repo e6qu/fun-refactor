@@ -565,6 +565,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-"*
+          git add tests/agent-eval/roadmap.json
+          git add docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain frozen package comparisons and first unfamiliar outcomes'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -604,7 +606,10 @@ jobs:
         with:
           key: default
       - name: Check original-package collector controls
-        run: python3 -B tools/test-package-questions.py
+        run: |
+          python3 -B tools/test-package-questions.py
+          python3 -B tools/test-retain-package-questions.py
+          python3 -B tests/agent-eval/test_roadmap_status.py
       - run: cargo build --locked --bin fr
       - name: Compare imported-module rules with ordinary Python
         if: inputs.group == 'package-questions-development'

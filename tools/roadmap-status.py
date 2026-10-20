@@ -14,7 +14,7 @@ import re
 import sys
 import tomllib
 
-from evidence_basis import file_digest
+from evidence_basis import file_digest, cargo_manifest_basis
 from python_repository_basis import file_digest as python_repository_digest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +38,7 @@ KINDS = {
     'fr-python-repository-acceptance-1': 'deterministic',
     'fr-python-repository-acceptance-2': 'deterministic',
     'fr-python-repository-flow-cohort-result-1': 'deterministic',
+    'fr-original-package-questions': 'deterministic',
 }
 
 
@@ -67,25 +68,17 @@ def pointer(value, path):
     return value
 
 
-def binding_digest(path, schema):
-    # The cache evaluator normalizes workspace release versions in Cargo.toml.
-    # Its source bindings otherwise use the shared evidence_basis convention.
+def binding_digest(path, schema, root):
+    # Every current collector normalizes workspace members, not every file
+    # named Cargo.toml. Nonmember manifests retain their original bytes.
+    if path.name == 'Cargo.toml':
+        workspace = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['members']
+        members = {root / ('Cargo.toml' if member == '.' else member + '/Cargo.toml') for member in workspace}
+        if path in members:
+            return hashlib.sha256(cargo_manifest_basis(path.read_bytes())).hexdigest()
     if schema == 'fr-python-repository-acceptance-2':
         return python_repository_digest(path)
-    if schema not in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1', 'fr-python-contract-1', 'fr-python-contract-2',
-                      'fr-python-contract-3', 'fr-python-repository-flow-cohort-result-1',
-                      'fr-index-resolution-result-1') or path.name != 'Cargo.toml':
-        return file_digest(path)
-    manifest = tomllib.loads(path.read_text())
-    version = manifest['package']['version']
-    manifest['package']['version'] = '<workspace>'
-    for container in [manifest, manifest.get('workspace', {}), *manifest.get('target', {}).values()]:
-        for kind in ('dependencies', 'dev-dependencies', 'build-dependencies'):
-            for dependency in container.get(kind, {}).values():
-                if isinstance(dependency, dict) and 'path' in dependency and dependency.get('version') == version:
-                    dependency['version'] = '<workspace>'
-    data = json.dumps(manifest, sort_keys=True, ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode()
-    return hashlib.sha256(data).hexdigest()
+    return file_digest(path)
 
 
 def evidence(root, entry):
@@ -97,6 +90,9 @@ def evidence(root, entry):
     require(digest(path) == entry['sha256'], f"tampered evidence: {entry['id']}")
     value = json.loads(path.read_text())
     require(KINDS.get(value.get('schema')) == entry['kind'], f"evidence kind/schema mismatch: {entry['id']}")
+    if value['schema'] == 'fr-original-package-questions':
+        receipt = path.with_name('receipt.json')
+        require(receipt.is_file() and digest(receipt) == entry['receipt_sha256'], 'package collection receipt changed')
     # Artifact manifests and nested live trial manifests must retain their exact identities.
     files = value.get('artifacts', value.get('files', {}))
     require(isinstance(files, dict), f"invalid artifact table: {entry['id']}")
@@ -113,7 +109,7 @@ def evidence(root, entry):
     changed = []
     for name, expected in bindings.items():
         source = safe(root, name)
-        if not source.is_file() or binding_digest(source, value['schema']) != expected:
+        if not source.is_file() or binding_digest(source, value['schema'], root) != expected:
             changed.append(name)
     base.update(integrity='checked', freshness=('stale' if changed else 'current') if bindings else 'historical',
                 changed_sources=sorted(changed))

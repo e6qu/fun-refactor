@@ -48,8 +48,10 @@ Those unused declarations can now coexist with a supported trace through `public
 The trace points back to `relay`. Using or changing `registry`, or calling the stored `sorter`,
 still needs behavior the analyzer does not support. That question remains unfinished.
 
-Real libraries expose the remaining gap. Importing a package can execute code that `fr` does not
-understand. The current tests in Toolz, funcy and pydash still leave real-package answers incomplete.
+The [original-package checks](docs/package-milestones.md) now finish selected questions in Boltons
+and dateutil, including overwriting the input, moved callers and saved answers after edits.
+Importing other packages can still execute code that `fr` does not understand.
+The current tests in Toolz, funcy and pydash leave their package answers incomplete.
 Moving the same helper into a small isolated file sometimes produces a complete answer. That
 isolated success does not establish that the original package is understood.
 
@@ -70,7 +72,11 @@ reject missing or old data without adding compatibility readers or migration fal
 ## Next large chunk
 
 Complete [the original-package question and the unfamiliar-project check](docs/package-milestones.md)
-in one pull request. Its acceptance conditions include complete reaching-input and
+with the remaining unfamiliar-project work and tracking reconciliation in one pull request.
+Milestone 1 has passing original-package results for Boltons and dateutil. Milestone 2 still
+needs a third independent project that was not used to guide the implementation.
+These are near-term steps within the broader goals below, not completion of those larger goals.
+Their acceptance conditions include complete reaching-input and
 blocked-input answers, independent Python checks, changed-input tests and a frozen
 implementation tested across three independently maintained projects. Passing
 small examples or collecting incomplete package answers does not complete this work.
@@ -157,8 +163,12 @@ Aim for a complete helper answer through the original package import while prese
 Never teach the analyzer the names of test projects or their expected answers.
 An unfinished search must still say the answer is unknown.
 
-The next reserved test project is jaraco.functools. Its implementation remains unopened. Keep it
-unread while developing the next changes, then freeze the implementation before the first evaluation.
+The first unfamiliar checks of jaraco.functools and fn.py stopped before analysis: the archive
+lacked the license file required by admission, or no function matched the fixed selection rule.
+Keep both original failures. They do not count as successful unfamiliar-project coverage.
+The next question is [JDcal's documented leap-year check](docs/leap-year-package-question.md).
+Its function and examples were chosen from the public README before opening its implementation
+or tests. Record the analyzer and question plan before the first evaluation.
 Toolz, funcy and pydash are already familiar development examples. The earlier Boltons reservation
 was unsuitable because prior work had already used it. Keep that mistake in the recorded history.
 

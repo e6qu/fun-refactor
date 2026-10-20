@@ -94,6 +94,37 @@ class CoverageBeforeUnread(unittest.TestCase):
                     self.check(record, value)
 
 
+class PublicQuestionChecks(unittest.TestCase):
+    def example(self):
+        project, = [project for project in questions.PLAN['projects'] if project['role'] == 'held-out']
+        _, coverage = CoverageBeforeUnread().example()
+        row = copy.deepcopy(coverage['projects'][0])
+        row['project'] = copy.deepcopy(project)
+        row.pop('cache')
+        for cell in row['cases']:
+            for index, item in enumerate(cell['runtime']):
+                expected = project['blocked'] if cell['case'] == 'overwritten' else project['expected'][index]
+                item.update(input=project['values'][index], expected=expected)
+                item['observation']['result'] = {'value': expected}
+        return project, row
+
+    def test_complete_public_question_is_checked_without_source_selection(self):
+        project, row = self.example()
+        questions.checked_questions([row], {project['id']: project}, False)
+
+    def test_missing_questions_changed_helpers_and_integer_booleans_cannot_close_the_milestone(self):
+        for mutation in ('helper', 'missing', 'boolean', 'unknown', 'renamed'):
+            with self.subTest(mutation=mutation):
+                project, row = self.example()
+                if mutation == 'helper': row['project']['function'] = 'simpler'
+                elif mutation == 'missing': row['cases'].pop()
+                elif mutation == 'boolean': row['cases'][0]['runtime'][0]['observation']['result']['value'] = 1
+                elif mutation == 'unknown': row['cases'][2]['analysis']['result']['complete'] = True
+                elif mutation == 'renamed': row['cases'][4]['analysis']['result']['witnesses'] = 0
+                with self.assertRaises(ValueError):
+                    questions.checked_questions([row], {project['id']: project}, False)
+
+
 class CacheWorkerStops(unittest.TestCase):
     def test_stopped_workers_preserve_the_failure_and_restore_original_source(self):
         for stopped in ('helper-replaced', 'import-replaced'):

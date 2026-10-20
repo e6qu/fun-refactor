@@ -1,0 +1,71 @@
+# Does the year reach a leap-year answer?
+
+Suppose an application asks whether a user-supplied year has February 29.
+JDcal documents `is_leap(2000)` returning `True` and `is_leap(2100)` returning
+`False`. These are boolean values: yes and no.
+
+The question uses the original package import:
+
+```python
+from jdcal import is_leap
+
+def entry():
+    return record_value(is_leap(emit_value()))
+```
+
+Here `emit_value()` supplies the selected input, and `record_value()` receives
+the answer. The analyzer follows a possible value route through the calculation.
+Separately, ordinary Python executes both examples and checks their stated results.
+Overwriting the year with 2000 before calling `is_leap` must remove the original
+input's value route. Python must then return `True` for either original input.
+
+The function name and examples were chosen from the
+[public README at the pinned revision](https://github.com/phn/jdcal/blob/c82c3cfb7f814b2ab79fd597e3f8aa87c3390fbb/README.rst).
+The implementation file `jdcal.py` and tests `test_jdcal.py` remain unread during
+development. Record the analyzer, client library, question plan and collector
+before the first evaluation. A failure stays a failure; do not choose a simpler
+function after opening the code.
+
+## Check imported-module behavior first
+
+A Python file can contain a block intended only for running that file directly:
+
+```python
+if __name__ == '__main__':
+    run_demonstration()
+```
+
+Python supplies `__name__` when loading a module. During an ordinary import it
+contains the module's name, so this block is inactive. The analyzer now recognizes
+this exact guard in an imported dependency when the file contains no other
+`__name__` use and the guard has no alternative branch. The selected entry file
+does not receive this allowance: its execution mode is unknown.
+
+Rebinding `__name__`, importing it from another file, using a different comparison
+or adding `else` keeps the question unfinished. Ordinary Python tests also check
+that an inactive block cannot replace the selected helper.
+
+The checker also admits explicitly supported Python 3 future directives, such as
+`from __future__ import division`. These request behavior already mandatory in
+the declared Python 3 runtime. They do not enable postponed annotations;
+`annotations` is checked separately. A competing local `__future__` file still
+prevents trusting the directive.
+
+The question explicitly selects the `builtins` and `math` standard-library models.
+These describe supported operations under the assumptions in the
+[number and date guide](original-package-questions.md).
+An unused imported name such as `math.modf` may be recognized without supporting
+calls to it. Calling an unmodeled operation still leaves the answer unfinished.
+
+## What counts as finishing
+
+Use one unchanged analyzer for Boltons, dateutil and the reserved JDcal question.
+Check the original and renamed or moved callers, the overwritten input, unknown
+calls and exhausted work budgets. Keep the original package files unchanged.
+The familiar-project saved-answer checks must agree with fresh analysis after
+helper and import changes.
+
+The [milestone record](package-milestones.md) owns the outcome and original run
+receipts. Passing this finite comparison would establish three-project coverage
+for these questions. It would not prove the calendar algorithms correct, support
+all Python packages or establish lower agent costs.
