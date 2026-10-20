@@ -48,7 +48,12 @@ def fixture(tmp_path, text):
 def change(client, policy):
     handle = client.project('find', 'price', '--in', 'helper.py').definition_target().handle
     scope = ChangeScope.inspect(client, [handle])
-    assert scope.ready, scope.report.to_data()
+    if not scope.ready:
+        data = scope.report.to_data()
+        pytest.fail(json.dumps({'unresolved': data['unresolved'], 'cutoffs': data['cutoffs'],
+            'weak_references': [row for row in data['references'] if row['confidence'] not in ('exact', 'import-qualified')],
+            'unmapped_paths': data['unmapped_paths'], 'missing_mapped_paths': data['missing_mapped_paths'],
+            'coverage': data['coverage']}, indent=2), pytrace=False)
     request = RefactorRequest.rename('line_price', documentation=policy)
     return scope.bind(TaskChange([], [request.target('rename', handle)],
         {'files-changed': 2, 'paths-changed': ['caller.py', 'helper.py']}, ['behavior'],

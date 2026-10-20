@@ -993,7 +993,11 @@ impl Extractor {
             kubernetes_objects,
             gaps: parsed.gaps.clone(),
             unreadable: None,
-            conditional_groups: if lang == Language::Rust { rust_cfg::groups(root, source, &symbols) } else { Vec::new() },
+            conditional_groups: if lang == Language::Rust {
+                rust_cfg::groups(root, source, &symbols)
+            } else {
+                Vec::new()
+            },
             symbols,
             references,
             scopes,

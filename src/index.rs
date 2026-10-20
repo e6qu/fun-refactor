@@ -1172,7 +1172,13 @@ impl Index {
         }
 
         // 3.
-        if let Some(import) = self.import_binding(info, &reference.name) {
+        let import = if reference.language == Language::Python && in_an_import {
+            info.imports.iter().find(|import| import.span.contains(reference.span)
+                && import.names.iter().any(|name| name.original == reference.name))
+        } else {
+            self.import_binding(info, &reference.name)
+        };
+        if let Some(import) = import {
             let mut imported_file = self.resolve_import_path(path, &import.path);
             let mut original = import
                 .names
@@ -2210,17 +2216,29 @@ mod tests {
         }
         let plan = crate::refactor::rename::plan(&index, definitions[0].id, "result").unwrap();
         assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
-        let spans: Vec<_> = plan.edits.iter().flat_map(|(_, edits)| edits.iter().map(|edit| edit.span)).collect();
+        let spans: Vec<_> = plan
+            .edits
+            .iter()
+            .flat_map(|(_, edits)| edits.iter().map(|edit| edit.span))
+            .collect();
         assert_eq!(spans.len(), 3);
         assert!(spans.iter().all(|span| span.text(source) == "answer"));
     }
 
     #[test]
     fn rust_complementary_cfg_support_keeps_unknown_conditions_ambiguous() {
-        for attributes in [("#[cfg(first)]", "#[cfg(not(second))]"),
-            ("#[cfg(all(first,second))]", "#[cfg(not(all(first,second)))]"),
-            ("#[cfg(first)]\n#[inline]", "#[cfg(not(first))]")] {
-            let source = format!("{}\nfn answer() {{}}\n{}\nfn answer() {{}}\nfn caller() {{ answer(); }}\n", attributes.0, attributes.1);
+        for attributes in [
+            ("#[cfg(first)]", "#[cfg(not(second))]"),
+            (
+                "#[cfg(all(first,second))]",
+                "#[cfg(not(all(first,second)))]",
+            ),
+            ("#[cfg(first)]\n#[inline]", "#[cfg(not(first))]"),
+        ] {
+            let source = format!(
+                "{}\nfn answer() {{}}\n{}\nfn answer() {{}}\nfn caller() {{ answer(); }}\n",
+                attributes.0, attributes.1
+            );
             let (_tmp, index) = index_of(&[("a.rs", &source)]);
             for definition in index.find_symbols("answer", None) {
                 assert_eq!(index.definition_group(definition.id).len(), 1);
@@ -2387,6 +2405,12 @@ mod tests {
             .find(|r| r.file.ends_with("app.py") && r.kind == ReferenceKind::Call)
             .unwrap_or_else(|| panic!("the aliased call is a reference: {refs:?}"));
         assert_eq!(call.confidence, Confidence::ImportQualified);
+        let imported = refs.iter().find(|reference| reference.file.ends_with("app.py")
+            && reference.name == "helper").expect("original name in the import is a reference");
+        assert_eq!(imported.confidence, Confidence::ImportQualified);
+        let rename = crate::refactor::rename::plan(&index, helper[0].id, "renamed_helper").unwrap();
+        assert!(rename.warnings.is_empty(), "{:?}", rename.warnings);
+        assert_eq!(rename.reference_edits, 1, "only the original import name changes; h2 stays local");
     }
 
     #[test]
