@@ -131,6 +131,7 @@ jobs:
             sdk/python/tests
             tools
             tests/agent-eval/project-changes
+            tests/native_fingerprint.rs
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -149,6 +150,8 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
+          python3 -B tools/test-native-source-inputs.py
+          cargo test --locked --test native_fingerprint
           PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py
       - name: Prepare original project checks
         if: inputs.group == 'project-change-delivery'
@@ -197,6 +200,7 @@ jobs:
         with:
           name: project-change-delivery
           path: ${{ runner.temp }}/project-change-delivery/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v7
@@ -213,6 +217,7 @@ jobs:
         with:
           name: project-change-findings
           path: ${{ runner.temp }}/project-change-findings/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
 

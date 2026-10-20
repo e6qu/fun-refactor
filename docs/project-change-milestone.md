@@ -26,10 +26,18 @@ Two empty reports cannot establish agreement when one search never finished.
 
 ## Choose the tasks before adding support
 
-No projects or tasks have been reserved for this milestone yet. Selection is the first work item.
-Choose three independently maintained projects with pinned source revisions and concrete change questions.
-Include a Rust task and a Python task; the third project supplies another independent check of the same change procedure.
-The projects may supply both outcomes when they meet all their conditions.
+The tasks are recorded in [the project selection](../tests/agent-eval/project-changes/tasks.json).
+They were committed before adding language support or opening the reserved implementation.
+
+| Project | Requested change | Check from a user's point of view |
+| --- | --- | --- |
+| Rust glob library | Rename `glob_with` to `glob_with_options` | The same files match the same patterns, with case sensitivity and other matching options supplied explicitly |
+| Python Boltons library | Rename `clamp` to `clamp_value` | Import the original math module; limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50 |
+| Python Humanize library | Keep discovery current through project changes | Find the implementation and uses of `intcomma`, which formats 12345 as `12,345`; its implementation and tests remain unread during development |
+
+All three projects have pinned source revisions. Glob and Boltons are development projects.
+Humanize is reserved for the first evaluation after the implementation and procedure are fixed.
+The checks are being implemented and run on GitHub; this milestone remains open until original results qualify both outcomes.
 
 Record each request, expected behavior, public interfaces in scope, required checks and reasons for selecting the project.
 Use existing functions through their original project structure. A newly invented helper or copied package cannot qualify as a real project task.

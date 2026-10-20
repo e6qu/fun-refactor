@@ -11,10 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def fixture(root):
     shutil.copyfile(ROOT / 'native-source-inputs.txt', root / 'native-source-inputs.txt')
-    for name in ('src', 'grammars/python/src', 'crates/local/src', 'queries/python'):
+    for name in ('src', 'grammars/python/src', 'crates/local/src', 'queries/python', 'catalogs', 'kernels/FrKernels'):
         (root / name).mkdir(parents=True, exist_ok=True)
     for path in ('src/rules.rs', 'grammars/python/src/parser.c', 'grammars/python/src/scanner.c',
-                 'queries/python/calls.scm', 'crates/local/src/lib.rs', 'build.rs'):
+                 'queries/python/calls.scm', 'crates/local/src/lib.rs', 'build.rs',
+                 'catalogs/python.yaml', 'kernels/FrKernels/PureKernel.lean'):
         (root / path).write_text('initial input\n')
     (root / 'Cargo.lock').write_text('version=4\n[[package]]\nname="fixture"\nversion="1.0.0"\n'
         '[[package]]\nname="remote"\nversion="2.0.0"\nsource="registry+https://example.invalid/index"\nchecksum="first"\n')
@@ -28,7 +29,8 @@ class NativeInputs(unittest.TestCase):
         self.assertTrue({'build.rs', 'Cargo.toml', 'Cargo.lock', 'native-source-inputs.txt',
                          'src/native_fingerprint.rs', 'src/project/flow_initializers.rs',
                          'src/project/flow_import_order.rs', 'grammars/python/src/parser.c',
-                         'grammars/python/src/scanner.c', 'src/model.rs', 'src/lang.rs'} <= paths)
+                         'grammars/python/src/scanner.c', 'src/model.rs', 'src/lang.rs',
+                         'catalogs/python.yaml', 'kernels/FrKernels/PureKernel.lean'} <= paths)
         self.assertIn('native-source-inputs.txt', native_source_roots(ROOT))
 
     def test_each_input_content_changes_its_retained_binding(self):
@@ -37,7 +39,8 @@ class NativeInputs(unittest.TestCase):
             fixture(root)
             before = native_source_bindings(root)
             for name in ('src/rules.rs', 'grammars/python/src/parser.c', 'queries/python/calls.scm',
-                         'crates/local/src/lib.rs', 'build.rs', 'Cargo.lock'):
+                         'crates/local/src/lib.rs', 'build.rs', 'Cargo.lock',
+                         'catalogs/python.yaml', 'kernels/FrKernels/PureKernel.lean'):
                 old = (root / name).read_bytes()
                 (root / name).write_bytes(old.replace(b'first', b'second') if name == 'Cargo.lock' else old + b'changed\n')
                 self.assertNotEqual(before, native_source_bindings(root), name)
