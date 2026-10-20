@@ -1,0 +1,58 @@
+{
+  "scope": "Correct saved answers through real project changes, plus checked Rust and Python rename delivery. Deterministic tasks; no live-agent savings claim.",
+  "selected_before_implementation": true,
+  "projects": [
+    {
+      "id": "glob",
+      "repository": "rust-lang/glob",
+      "revision": "057cef2824f5a96f738e52d7d8ca3e024381bcc6",
+      "role": "development",
+      "language": "Rust",
+      "function": "glob_with",
+      "renamed": "glob_with_options",
+      "question": "Locate glob_with and its indexed callers in the original project, keeping unfinished discovery explicit.",
+      "delivery": "Rename glob_with to glob_with_options, including required Rust uses and documentation. Preserve filesystem matching behavior and explicit MatchOptions. Keep no old-name wrapper.",
+      "checks": ["Compile the complete original library with rustc using its declared Rust 2021 edition", "Compile and execute an independent filesystem matching driver against that library before, after, after undo and in a patch receiver"],
+      "behavior": "Retain literal, wildcard, recursive and case-sensitive matching over a declared directory tree, empty results and malformed-pattern rejection.",
+      "read_before_implementation": ["repository metadata", "README.md", "Cargo.toml", "src/lib.rs"],
+      "build_dependencies": "The library has no runtime dependencies. Its optional upstream test dependencies are tempfile and doc-comment. The declared required checks compile all library code and run a separate behavior driver; they do not claim the entire upstream suite."
+    },
+    {
+      "id": "boltons",
+      "repository": "mahmoud/boltons",
+      "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+      "role": "development",
+      "language": "Python",
+      "function": "clamp",
+      "renamed": "clamp_value",
+      "question": "Locate clamp and its indexed callers in the original project, keeping unfinished discovery explicit.",
+      "delivery": "Rename clamp to clamp_value through the original boltons.mathutils module, including required imports, callers, tests and documentation. Keep no old-name wrapper.",
+      "checks": ["Run tests/test_mathutils.py with pinned pytest", "Execute independent original-import integer bounds checks before, after, after undo and in a patch receiver"],
+      "behavior": {"lower": 0, "upper": 50, "inputs": [-5, 17, 70], "outputs": [0, 17, 50]},
+      "read_before_implementation": ["Familiar repository used in earlier package and delivery evaluations; not eligible as an unread project"]
+    },
+    {
+      "id": "humanize",
+      "repository": "python-humanize/humanize",
+      "revision": "785e5dcc0d0308ad0dff3f6cc0faa7085ad0375b",
+      "role": "unread",
+      "language": "Python",
+      "function": "intcomma",
+      "renamed": "format_integer_commas",
+      "question": "Locate the intcomma implementation and its indexed uses through the original humanize project. Compare saved and fresh discovery after every declared project change.",
+      "delivery": null,
+      "public_document": {"path": "README.md", "blob": "e14dec698c2f1aec48e800fd1f92211ba3c9777d", "example": "humanize.intcomma(12345) returns '12,345'"},
+      "read_before_freeze": ["repository metadata", "README.md"],
+      "implementation_and_tests_unread": true,
+      "selection": "A separately maintained formatting package exercises imports, public exports and a source layout different from the two familiar projects. Choose intcomma from its public README before using implementation or tests to guide support.",
+      "prior_metadata_only_candidate": "jmoiron/humanize:87dfb1c03f206f01bb9b597b1e290d72f467df9a redirects development in its README; only metadata, root filenames and README.md were read. Use the maintained project's pinned revision above."
+    }
+  ],
+  "changes": ["rename", "move", "delete", "competing-import", "project-configuration", "question-settings", "analyzer"],
+  "reference": "For the same changed files and explicit request, a fresh process without saved findings must agree with the revalidated saved route, including locations, ambiguity, missing inputs and unfinished answers.",
+  "independent_finding": "Retain a source observation unrelated to the selected helper. It must remain usable while its actual inputs still match.",
+  "analyzer_control": "Use two recorded native builds with a real implementation difference, both fixed before the unread implementation opens. Changing a label alone is insufficient.",
+  "limits": {"archive_bytes": 8388608, "expanded_bytes": 33554432, "archive_members": 4096, "task_seconds": 180, "source_reveal_bytes": 65536, "report_bytes": 2097152},
+  "execution": "Builds, complete tests, fr dogfooding and result collection run on GitHub. Keep existing worker and job limits. Preserve all failures; no source-guided unread retry.",
+  "completion": "All three projects pass the declared change controls, including a qualifying first unread evaluation; both language tasks pass behavior, undo and patch replay; retained original records qualify C.repository-mutations and D.structural."
+}
