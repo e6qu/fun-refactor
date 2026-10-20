@@ -586,7 +586,65 @@ pub(super) fn module_class<'s>(
         }
         constructible &= name == "object";
     }
-    for child in body.named_children(&mut body.walk()) {
+    let class_names: BTreeSet<_> = body
+        .named_children(&mut body.walk())
+        .filter_map(|child| {
+            literal_assignment(child, source)
+                .map(|(name, _)| name)
+                .or_else(|| {
+                    let definition = if child.kind() == "decorated_definition" {
+                        child.child_by_field_name("definition")?
+                    } else {
+                        child
+                    };
+                    definition
+                        .child_by_field_name("name")
+                        .map(|name| &source[name.byte_range()])
+                })
+        })
+        .collect();
+    let mut slots = false;
+    for mut child in body.named_children(&mut body.walk()) {
+        if let Some(("__slots__", value)) = literal_assignment(child, source) {
+            if slots || !initialization_fits(value) {
+                return None;
+            }
+            slots = true;
+            let value = unparenthesized(value)?;
+            let parts: Vec<_> = if value.kind() == "string" {
+                vec![value]
+            } else if matches!(value.kind(), "tuple" | "list") {
+                value
+                    .named_children(&mut value.walk())
+                    .filter(|node| node.kind() != "comment")
+                    .collect()
+            } else {
+                return None;
+            };
+            let mut names = BTreeSet::new();
+            for part in parts {
+                let text = &source[part.byte_range()];
+                let name = text
+                    .strip_prefix('\'')
+                    .and_then(|text| text.strip_suffix('\''))
+                    .or_else(|| {
+                        text.strip_prefix('"')
+                            .and_then(|text| text.strip_suffix('"'))
+                    })?;
+                if part.kind() != "string"
+                    || name.is_empty()
+                    || name.starts_with("__")
+                    || class_names.contains(name)
+                    || !name.chars().enumerate().all(|(index, c)| {
+                        c == '_' || c.is_ascii_alphabetic() || index > 0 && c.is_ascii_digit()
+                    })
+                    || !names.insert(name)
+                {
+                    return None;
+                }
+            }
+            continue;
+        }
         if matches!(child.kind(), "comment" | "pass_statement")
             || module_literal(child, source).is_some()
         {
@@ -599,6 +657,27 @@ pub(super) fn module_class<'s>(
                 .is_some_and(|n| n.kind() == "string" && literal_default(n, source))
         {
             continue;
+        }
+        if child.kind() == "decorated_definition" {
+            let decorators: Vec<_> = child
+                .named_children(&mut child.walk())
+                .filter(|node| node.kind() == "decorator")
+                .collect();
+            if decorators.len() != 1 {
+                return None;
+            }
+            let decorator = decorators[0];
+            let expression = decorator.named_child(0)?;
+            let name = &source[expression.byte_range()];
+            if decorator.named_child_count() != 1
+                || expression.kind() != "identifier"
+                || !matches!(name, "classmethod" | "staticmethod" | "property")
+                || shadowed(name)
+                || class_names.contains(name)
+            {
+                return None;
+            }
+            child = child.child_by_field_name("definition")?;
         }
         if child.kind() != "function_definition" || !definition_is_inert(child, source, postponed) {
             return None;
@@ -808,6 +887,9 @@ fn default_name<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
         if node.kind() == "identifier" {
             return Some(&source[node.byte_range()]);
         }
+        if standard_library::numeric_default(node, source) {
+            return Some(&source[calls::unparenthesized(node)?.byte_range()]);
+        }
         if node.kind() != "parenthesized_expression" {
             return None;
         }
@@ -821,6 +903,28 @@ fn default_name<'s>(node: Node<'_>, source: &'s str) -> Option<&'s str> {
         node = children[0];
     }
     None
+}
+
+pub(super) fn numeric_defaults(
+    function: Node<'_>,
+    source: &str,
+    shadowed: impl Fn(&str) -> bool,
+) -> BTreeSet<String> {
+    if shadowed("float") {
+        return BTreeSet::new();
+    }
+    function
+        .child_by_field_name("parameters")
+        .into_iter()
+        .flat_map(|parameters| {
+            parameters
+                .named_children(&mut parameters.walk())
+                .filter_map(|parameter| parameter.child_by_field_name("value"))
+                .filter(|value| standard_library::numeric_default(*value, source))
+                .filter_map(|value| default_name(value, source).map(str::to_owned))
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 pub(super) fn unshadowed_builtin_defaults(
@@ -1035,11 +1139,11 @@ pub(super) fn contract() -> Value {
         "evaluation":"Evaluate explicit values once in source order before binding.",
         "binding":"Bind positions, then exact keyword names; substitute in declaration order.",
         "invalid":"Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-        "boundary":"No omitted object defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra/unpacked arguments, async/generator calls, external-rule keywords or non-normalized names.",
-        "definitions":"Bodies defer. Defaults capture literals, prior values/functions or unshadowed builtins. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
-        "initialization":"Setup: literals, aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat, own-dict registration with explicit dictionary args or captured dictionary defaults, literal loops <=128 syntax/expanded nodes; fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
+        "boundary":"No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+        "definitions":"Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+        "initialization":"Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
         "variadics":"Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
-        "defaults":"Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
+        "defaults":"Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
         "implicit_exceptions":false})
 }
 

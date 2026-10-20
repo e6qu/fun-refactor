@@ -107,11 +107,11 @@ _CALL_BINDING = {
     "evaluation": "Evaluate explicit values once in source order before binding.",
     "binding": "Bind positions, then exact keyword names; substitute in declaration order.",
     "invalid": "Missing, excess, duplicate or unknown arguments leave analysis incomplete; no TypeError model.",
-    "boundary": "No omitted object defaults, evaluated defaults, unpostponed annotations, type parameters, used variadics, extra/unpacked arguments, async/generator calls, external-rule keywords or non-normalized names.",
-    "definitions": "Bodies defer. Defaults capture literals, prior values/functions or unshadowed builtins. Annotations: local future, <=128 nodes; no await/yield/assignment/type unpacking.",
-    "initialization": "Setup: literals, aliases, builtin refs/maps, exports, instances, __doc__. Dict/lambda/flat, own-dict registration with explicit dictionary args or captured dictionary defaults, literal loops <=128 syntax/expanded nodes; fresh ASCII names, RHS first. Bases: unshadowed object/dict/Exception.",
+    "boundary": "No object-default reads, unchecked defaults/annotations, type parameters, used variadics, extra/unpacked args, async/generators, rule keywords or non-normalized names.",
+    "definitions": "Bodies defer; defaults capture literals, prior values/functions, builtins and selected float models. Local future annotations: <=128 nodes; no await/yield/assignment/type unpacking.",
+    "initialization": "Literals/collections, aliases, builtins, exports, instances and docs. Checked dictionary registration and loops <=128 syntax/expanded nodes; fresh ASCII writes, RHS first. Classes: unshadowed object/dict/Exception bases, slots and builtin method decorators.",
     "implicit_exceptions": False,
-    "defaults": "Omitted slots use source-free immutable scalars; explicit arguments override defaults. Definition-time effects stay unchecked.",
+    "defaults": "Omitted defaults supply checked scalars; explicit args replace defaults. Other definition effects stay unchecked.",
     "variadics": "Omit unused ASCII variadics whose names never occur in the body. Calls bind fixed slots; annotations follow definition rules.",
 }
 

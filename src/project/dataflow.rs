@@ -23,6 +23,9 @@ mod assignments;
 #[path = "flow_calls.rs"]
 mod calls;
 
+#[path = "flow_standard_library.rs"]
+mod standard_library;
+
 #[path = "flow_initializers.rs"]
 mod initializers;
 
@@ -45,6 +48,10 @@ mod saved_startup;
 
 pub(super) fn value_bindings_valid(value: &Value) -> bool {
     modules::value_bindings_valid(value)
+}
+
+pub(super) fn standard_imports_valid(value: &Value) -> bool {
+    standard_library::imports_valid(value)
 }
 #[path = "flow_summaries.rs"]
 mod summaries;
@@ -136,6 +143,13 @@ pub struct Options {
         help = "Follow static workspace-local Python modules and regular packages."
     )]
     imports: bool,
+    #[arg(
+        long,
+        requires = "imports",
+        value_delimiter = ',',
+        help = "Select explicit standard-library module models; local candidates must be absent."
+    )]
+    standard_library: Vec<String>,
     #[arg(long)]
     rules: Option<std::path::PathBuf>,
     #[arg(long, default_value_t = 256)]
@@ -175,6 +189,7 @@ impl Options {
             also: Vec::new(),
             summaries: true,
             imports,
+            standard_library: Vec::new(),
             rules,
             steps,
             depth,
@@ -246,6 +261,7 @@ struct Analyzer<'a, 'p, 't> {
     function_aliases: BTreeMap<String, (String, usize)>,
     captured_defaults: BTreeMap<(PathBuf, usize), calls::CapturedDefaults>,
     ambiguous: BTreeSet<String>,
+    inert_bindings: BTreeSet<String>,
     modules: Option<&'a modules::Modules>,
     contexts: BTreeMap<String, (&'a Path, &'a str)>,
     rules: Rules,
@@ -357,6 +373,32 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
             },
             "call" => self.call(node, env),
+            "binary_operator"
+                if self
+                    .modules
+                    .is_some_and(|modules| modules.standard_enabled("builtins"))
+                    && node
+                        .child_by_field_name("operator")
+                        .is_some_and(|operator| self.text(operator) == "%")
+                    && node.child_by_field_name("left").is_some_and(|left| {
+                        left.kind() == "string" && calls::literal_default(left, self.source)
+                    })
+                    && node
+                        .child_by_field_name("right")
+                        .and_then(calls::unparenthesized)
+                        .is_some_and(|right| right.kind() == "tuple") =>
+            {
+                let mut flow = self.expression(node.child_by_field_name("left").unwrap(), env);
+                let right =
+                    calls::unparenthesized(node.child_by_field_name("right").unwrap()).unwrap();
+                for child in right
+                    .named_children(&mut right.walk())
+                    .filter(|node| node.kind() != "comment")
+                {
+                    merge(&mut flow, self.expression(child, env));
+                }
+                self.extend(flow, node, "standard-format-result")
+            }
             "binary_operator"
             | "unary_operator"
             | "boolean_operator"
@@ -475,6 +517,45 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if self.rules.propagators.contains(&name) {
             return self.extend(joined, node, "propagation-rule");
+        }
+        if let Some(modules) = self.modules {
+            let standard = modules.standard_callee(self.file, &name).or_else(|| {
+                let binding = modules.function_name(self.file, &name);
+                (function.kind() == "identifier"
+                    && modules.standard_enabled("builtins")
+                    && !self.functions.contains_key(&binding)
+                    && !self.inert_bindings.contains(&binding)
+                    && !modules.has_binding(self.file, &name)
+                    && self
+                        .active
+                        .last()
+                        .and_then(|name| self.functions.get(name))
+                        .is_some_and(|function| {
+                            function
+                                .parent()
+                                .is_some_and(|root| !calls::explicit_builtins(root, self.source))
+                        }))
+                .then(|| format!("builtins.{name}"))
+            });
+            if let Some(standard) = standard {
+                if let Some((minimum, maximum)) = standard_library::arity(&standard) {
+                    let exception = matches!(
+                        standard.as_str(),
+                        "builtins.ValueError" | "builtins.TypeError"
+                    );
+                    if argument_names.iter().any(Option::is_some)
+                        || !(minimum..=maximum).contains(&arguments.len())
+                        || exception
+                            && node
+                                .parent()
+                                .is_none_or(|parent| parent.kind() != "raise_statement")
+                    {
+                        self.cutoff(format!("unsupported-standard-call:{standard}"));
+                        return joined;
+                    }
+                    return self.extend(joined, node, "standard-call-result");
+                }
+            }
         }
         let Some(function) = self.functions.get(&resolved).copied() else {
             self.cutoff(format!("unknown-external-call:{name}"));
@@ -740,6 +821,7 @@ struct DependencyQuery {
     steps: usize,
     depth: usize,
     bytes: usize,
+    standard_library: Vec<String>,
 }
 
 impl Project<'_> {
@@ -792,6 +874,7 @@ impl Project<'_> {
             also: Vec::new(),
             summaries: true,
             imports: true,
+            standard_library: query.standard_library,
             rules,
             context: query.context,
             steps: query.steps,
@@ -859,7 +942,7 @@ impl Project<'_> {
         ensure!(!parsed.has_errors(), "dataflow refuses syntax errors");
         let modules = options
             .imports
-            .then(|| modules::Modules::load(self, &symbol.file))
+            .then(|| modules::Modules::load(self, &symbol.file, &options.standard_library))
             .transpose()?;
         let basis = options
             .with_startup
@@ -1020,8 +1103,22 @@ impl Project<'_> {
                 .into_iter()
                 .flat_map(|bindings| bindings.keys().map(String::as_str))
                 .filter(|name| !module_aliases.contains(name))
+                .chain(
+                    modules
+                        .into_iter()
+                        .flat_map(|modules| modules.standard_names(file)),
+                )
                 .collect();
-            for node in parsed.root().named_children(&mut parsed.root().walk()) {
+            let statements = modules.map_or_else(
+                || {
+                    parsed
+                        .root()
+                        .named_children(&mut parsed.root().walk())
+                        .collect()
+                },
+                |modules| modules.statement_nodes(file, parsed),
+            );
+            for node in statements {
                 let allocation = summary_mode
                     .then(|| {
                         allocations.statement(node, text, |name| {
@@ -1354,6 +1451,14 @@ impl Project<'_> {
                 if node.kind() == "function_definition" {
                     let mut reasons = Vec::new();
                     let mut definition_values = default_values.clone();
+                    let mut definition_scalars = default_scalars.clone();
+                    if modules.is_some_and(|modules| modules.standard_enabled("builtins")) {
+                        let numeric = calls::numeric_defaults(node, text, |name| {
+                            !builtin_defaults || bound_names.contains(name)
+                        });
+                        definition_values.extend(numeric.iter().cloned());
+                        definition_scalars.extend(numeric);
+                    }
                     definition_values.extend(calls::unshadowed_builtin_defaults(
                         node,
                         text,
@@ -1389,7 +1494,7 @@ impl Project<'_> {
                             text,
                             postponed,
                             &definition_values,
-                            &default_scalars,
+                            &definition_scalars,
                         ),
                     );
                     classes.remove(short);
@@ -1548,10 +1653,9 @@ impl Project<'_> {
                         && !inert_bindings
                             .iter()
                             .any(|key| key.rsplit("::").next() == Some(name.as_str()))
-                        && !modules.as_ref().is_some_and(|m| m
-                            .bindings
-                            .values()
-                            .any(|bindings| bindings.contains_key(name))),
+                        && !modules.as_ref().is_some_and(|m| m.has_imported_name(name)
+                            || m.standard_enabled("builtins")
+                                && standard_library::arity(name).is_some()),
                     "rule overlaps another rule or local definition."
                 );
             }
@@ -1634,6 +1738,7 @@ impl Project<'_> {
             function_aliases,
             captured_defaults,
             ambiguous,
+            inert_bindings,
             modules,
             contexts,
             rules,
@@ -1732,6 +1837,9 @@ impl Project<'_> {
             "initialization":initialization,
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": allowance - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
+        if !options.standard_library.is_empty() {
+            report["assumptions"].as_array_mut().unwrap().push(json!("Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check."));
+        }
         let mut omitted = serde_json::Map::new();
         for field in [
             "initialization",

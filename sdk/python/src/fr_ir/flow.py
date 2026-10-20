@@ -13,6 +13,7 @@ from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .investigation import FlowWitness, flow_witnesses
 from .flow_summaries import FunctionSummaries
 from .flow_dependencies import FlowDependencies
+from .flow_standard_library import contract as standard_contract
 from .flow_initialization import FlowInitialization
 from .flow_storage import restore_flow_report, store_flow_report
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
@@ -141,9 +142,12 @@ class FlowCache:
             raise FrRuntimeError("unsupported flow cache manifest")
         return cls(store, value["entries"])
 
-    def analyze(self, client: FrClient, target: str, *, rules: Path | None = None,
+    def analyze(self, client: FrClient, target: str, *, standard_library: tuple[str, ...], rules: Path | None = None,
                 context: str = "generic", steps: int = 256, depth: int = 8,
                 max_bytes: int = 65_536, summaries: bool = False, imports: bool = False) -> FlowAnalysis:
+        standard_contract(standard_library)
+        if standard_library and not imports:
+            raise FrRuntimeError('standard-library models require imported flow')
         if imports and not summaries:
             raise FrRuntimeError("imported flow requires symbolic summaries")
         arguments = ["dataflow", target, "--steps", str(steps), "--depth", str(depth),
@@ -154,6 +158,8 @@ class FlowCache:
             arguments.append("--summaries")
         if imports:
             arguments.append("--imports")
+        if standard_library:
+            arguments.extend(["--standard-library", ",".join(standard_library)])
         basis = client.project(*arguments, "--inputs-only")
         if basis.schema != "fr-dataflow-inputs-1":
             raise FrRuntimeError("unsupported flow input contract")

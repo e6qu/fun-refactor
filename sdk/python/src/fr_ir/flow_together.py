@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .flow import FlowAnalysis
+from .flow_standard_library import contract as standard_contract
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
 
@@ -97,10 +98,13 @@ class FlowTogether:
             raise FrRuntimeError('missing or malformed shared startup report') from error
 
 
-def analyze_together(client: FrClient, targets: Sequence[str], *, rules: Path | None = None,
+def analyze_together(client: FrClient, targets: Sequence[str], *, standard_library: tuple[str, ...], rules: Path | None = None,
                      context: str = 'generic', steps: int = 256, depth: int = 8,
                      max_bytes: int = 65_536, imports: bool = False) -> FlowTogether:
     """Analyze 2–16 distinct functions in one file; startup stays in this request."""
+    standard_contract(standard_library)
+    if standard_library and not imports:
+        raise FrRuntimeError('standard-library models require imported flow')
     if (isinstance(targets, str) or not 2 <= len(targets) <= 16
             or any(not isinstance(target, str) or not target for target in targets)
             or len(set(targets)) != len(targets)):
@@ -113,6 +117,8 @@ def analyze_together(client: FrClient, targets: Sequence[str], *, rules: Path | 
         arguments.extend(['--rules', str(rules)])
     if imports:
         arguments.append('--imports')
+    if standard_library:
+        arguments.extend(['--standard-library', ','.join(standard_library)])
     result = FlowTogether.from_report(client.project(*arguments))
     if tuple(answer.report.at('/target') for answer in result.answers) != tuple(targets):
         raise FrRuntimeError('shared startup answers differ from the requested questions')

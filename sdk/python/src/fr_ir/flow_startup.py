@@ -11,6 +11,7 @@ from typing import Any
 
 from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .flow import FlowAnalysis
+from .flow_standard_library import contract as standard_contract
 from .runtime import FrClient, FrReport, FrRuntimeError
 
 
@@ -168,15 +169,20 @@ class StartupCache:
         cache._record = record
         return cache
 
-    def analyze(self, client: FrClient, target: str, *, rules: Path | None,
+    def analyze(self, client: FrClient, target: str, *, standard_library: tuple[str, ...], rules: Path | None,
                 context: str, steps: int, depth: int,
                 max_bytes: int, imports: bool) -> PreparedFlow:
+        standard_contract(standard_library)
+        if standard_library and not imports:
+            raise FrRuntimeError('standard-library models require imported flow')
         arguments = ['dataflow', target, '--summaries', '--with-startup', '--steps', str(steps),
                      '--depth', str(depth), '--bytes', str(max_bytes), '--context', context]
         if rules is not None:
             arguments.extend(['--rules', str(rules)])
         if imports:
             arguments.append('--imports')
+        if standard_library:
+            arguments.extend(['--standard-library', ','.join(standard_library)])
         if self._record is None:
             report = client.project(*arguments)
         else:

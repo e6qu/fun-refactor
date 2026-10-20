@@ -68,7 +68,7 @@ from fr_ir.runtime import FrClient
 client = FrClient(Path.cwd(), max_output_bytes=1_048_576)
 names = ('forwards', 'stopped')
 handles = [client.project('find', name).definition_target().handle for name in names]
-result = analyze_together(client, handles, rules=Path('rules.json'),
+result = analyze_together(client, handles, standard_library=(), rules=Path('rules.json'),
                           imports=True, steps=4096, max_bytes=1_048_576)
 print('Startup checks:', result.report.at('/startup/checks'))
 for name, answer in zip(names, result.answers):

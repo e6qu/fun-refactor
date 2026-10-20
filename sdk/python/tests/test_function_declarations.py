@@ -76,7 +76,7 @@ def test_generator_construction_does_not_execute_its_body(tmp_path, body, summar
         "def deferred(value):\n    " + body + "\n"
         "def entry():\n    return deferred(source())\n")
     handle = client.project("find", "entry").definition_target().handle
-    result = FlowCache(MemoryObjectStore()).analyze(client, handle, rules=rules,
+    result = FlowCache(MemoryObjectStore()).analyze(client, handle, standard_library=(), rules=rules,
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert not result.report.at("/complete") and not result.witnesses
     assert "generator-function" in result.report.at("/cutoffs")

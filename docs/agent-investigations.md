@@ -189,13 +189,21 @@ and 16-binding budgets. An initializer may import a local module; its startup mu
 and its imported names available in execution order. A child binding that selects that same module is admitted. Conflicting child bindings
 refuse. Special bindings outside the documented metadata and future-annotation rules remain incomplete.
 Special child-module components also refuse, including direct entry selection.
-This excludes import controls and hooks such as `__getattr__`, whether declared, imported or installed
-by loading a same-named child module.
+An unused plain `__getattr__` or `__dir__` definition defers its body. When an import needs
+a missing package member, `__getattr__` can supply it; that lookup remains unchecked.
+Imported hooks, other import controls and same-named special child modules remain unsupported.
 Implicit child attributes, dynamic attributes and runtime import hooks remain outside this subset.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
 Rule names must be unqualified in import mode.
 They cannot overlap any local function, literal name or import binding in the closure.
+
+Standard-library operations require explicit model selection. For example,
+`standard_library=('builtins', 'math')` permits the checked numeric operations under
+their recorded assumptions; `standard_library=()` selects none. Competing local source,
+stub, directory, bytecode and native-extension candidates prevent a trusted standard import.
+See the [original-package examples](original-package-questions.md) for the user question
+and the difference between an analysis answer and independent Python executions.
 
 Budgets admit at most 16 modules, 256 KiB of module source, 128 import lookups and 16 components per module name.
 Parent initializers count toward the module and source budgets.
@@ -237,7 +245,7 @@ from fr_ir.flow import FlowCache
 
 store = DirectoryObjectStore("/tmp/flow-objects")
 cache = FlowCache(store)
-analysis = cache.analyze(client, fresh_handle, steps=1024)
+analysis = cache.analyze(client, fresh_handle, standard_library=(), steps=1024)
 root = cache.persist()
 restored = FlowCache.restore(store, root)
 ```
@@ -264,6 +272,9 @@ root as prior analysis. Tampering refuses; mismatched inputs and incomplete reco
 Reuse remains opt-in and coarse. It avoids flow transfer while retaining parsing, indexing, dependency
 checks and occurrence renewal. Small inputs may cost more to restore than to analyze.
 The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) measures six scalar workloads and six edit types.
+Its saved timings cover the September 25 code and exclude Python process startup.
+The [comparison limits](evaluations.md#current-matched-results) explain the
+startup and validation costs recorded by new collections.
 Its baseline is the earlier SDK's per-node storage, already warm from a previous analysis.
 The compared storage uses chunks of a complete report, also warm.
 This percentage compares two cache representations, not cached analysis against fresh analysis.

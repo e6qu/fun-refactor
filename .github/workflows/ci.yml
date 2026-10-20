@@ -137,6 +137,9 @@ jobs:
       - name: Preserve Docker host diagnostics after a control failure
         if: failure()
         run: python3 tools/docker-grader-diagnostics.py --output target/candidate-controls/docker-host.json
+      - name: Record processes before runner cleanup
+        if: always()
+        run: ps -eo pid,ppid,pgid,stat,etimes,comm
       - uses: actions/upload-artifact@v7
         if: always()
         with:

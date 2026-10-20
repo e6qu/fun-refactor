@@ -381,7 +381,7 @@ source origins. `TaskStep.from_guide` retains ready guide arguments and structur
 `TaskStep.checked` and `fr_ir.investigation_checks.run_checks` bind reviewed check results to source,
 configuration and executable identities. Failed checks remain available through verified storage.
 
-Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function summaries with bounded recursion.
+Use `FlowCache.analyze(..., standard_library=(), summaries=True, steps=4096)` for symbolic function summaries with bounded recursion.
 `analysis.summaries` exposes typed `FunctionSummary` records, parameter transfer and explicit return, sink and raise effects.
 Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
 Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.
@@ -392,7 +392,7 @@ Use `imports=True` with `summaries=True` for static workspace-local Python modul
 from fr_ir.flow import FlowCache
 from fr_ir.investigation import TaskPlan, TaskStep
 
-analysis = FlowCache(store).analyze(client, target, rules=rules_path,
+analysis = FlowCache(store).analyze(client, target, standard_library=(), rules=rules_path,
                                    summaries=True, imports=True, steps=4096,
                                    max_bytes=1_048_576)
 plan = TaskPlan("Explain imported flow", ("explained",), (
@@ -403,6 +403,10 @@ resumed = plan.resume(client)
 ```
 
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
+Select standard-library assumptions explicitly: `standard_library=()` uses none;
+`standard_library=('builtins', 'math')` selects the checked built-in and math operations.
+See the [original-package examples](../../docs/original-package-questions.md) for the number
+and date questions, supported operations and competing local imports.
 `FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
 The SDK independently derives admission from all candidate statuses and checks closure coverage.
 It requires the current `fr-flow-modules` record and all declared fields.

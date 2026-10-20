@@ -74,7 +74,7 @@ behavior and keep a model result separate from a safety claim.
 | “Which argument does this helper return?” | `choose(right=read_input(), left=0)` | Unpacking, extra arguments through `*args` or `**kwargs`, and reading those variadic values remain incomplete. |
 | “What if the caller omits an argument?” | `def relay(value=0): ...` called as `relay()` uses the literal default. | A default such as `value=read_input()` executes when Python defines the function and remains unchecked. |
 | “Does this expression skip a call?” | `False and send(read_input())` skips both calls. | The model does not decide the truth of arbitrary variables, comparisons or returned values. |
-| “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and evaluated defaults execute during definition. Use the supported future directive for annotations. |
+| “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and defaults execute during definition. Explicit built-in models check the documented numeric defaults. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, names read too early in a cycle and unsupported startup code keep the answer incomplete. |
 | “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions (errors an operation can raise without an explicit `raise`) and handlers exceed this model. |
@@ -647,6 +647,29 @@ Python uses these attributes when loading modules; see its
 [import rules](https://docs.python.org/3.14/reference/import.html#module-spec).
 Other special names remain outside this metadata exception.
 
+A package may already contain this version lookup:
+
+```python
+try:
+    from ._version import version as __version__
+except ImportError:
+    __version__ = 'unknown'
+```
+
+Python runs the `except` block if the import raises `ImportError`.
+
+The analyzer can select the literal handler only after checking that the sibling
+module is absent. The record retains the original statement locations and every
+competing import path. Source, stubs, bytecode, native extensions or a namespace
+directory prevent that selection. Changing one of those paths invalidates reuse.
+This allowance covers one sibling from-import and one unshadowed `ImportError`
+handler containing only literal package metadata assignments. Other handlers and
+evaluated metadata remain unchecked.
+
+Plain, unused `__getattr__` and `__dir__` functions also defer their bodies.
+Python can call `__getattr__` when a module member is missing. An import that
+needs that hook remains unchecked, even when a same-named child file exists.
+
 A library may create an unused marker while it defines a helper:
 
 ```python
@@ -665,6 +688,13 @@ The method body stays deferred. The supported class has no base or one direct, u
 base: `object`, `dict` or `Exception`. Parentheses and comments around that base are allowed.
 Decorators, type parameters, multiple bases, unpacking and explicit metaclasses remain unchecked.
 Its body contains comments, literal strings, `pass`, scalar attributes or supported method declarations with inert defaults.
+It may also declare literal `__slots__`: a string, tuple or list of distinct ASCII
+attribute names that do not conflict with class declarations or start with `__`.
+For example, `__slots__ = ('value',)` reserves one instance attribute named `value`.
+Unshadowed built-in `classmethod`, `staticmethod` and `property` can decorate an
+unused method. These wrap the method during class creation without calling its
+body. Custom decorators, stacks of decorators and calling those methods remain
+outside this allowance.
 Default instance construction requires no base or `object`; constructing a `dict` or `Exception`
 subclass stays unchecked. The call must name an unchanged class defined earlier in the same file
 and pass no arguments.
@@ -691,7 +721,7 @@ access disables this base allowance. A custom base can run `__init_subclass__`, 
 
 For example, adding `def __init__(self): read_input()` makes `EMPTY = Marker()` execute custom code.
 That initialization remains unchecked, as do instances with custom `__new__` or `__del__` methods,
-descriptors and other evaluated class-body statements.
+custom descriptors and other evaluated class-body statements.
 Python's [class creation and construction rules](https://docs.python.org/3.14/reference/datamodel.html#creating-the-class-object)
 explain these calls. Constructing imported classes, special class metadata and rebinding remain incomplete.
 Reading `EMPTY` in a function also remains incomplete: the scalar model does not trace global object values.
@@ -890,7 +920,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Expression selectors | `and`, `or`, `not` and conditional expressions preserve evaluation order. Boolean and None literals can select a path. | Variables, numeric values and call results have unknown truth. |
 | Comparisons | Transfer operands left to right; later operands may be skipped. | Comparison results remain unknown. Overloaded protocols are outside the model. |
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
-| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
+| Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, unchecked evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
 | Defaults | Omitted checked scalars have no source origins; explicit arguments replace checked scalar or object defaults. | Consuming object defaults and unchecked definition-time effects remain unfinished. |
 | Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |

@@ -218,7 +218,7 @@ It does not mean all the experiments below have the same baseline or count the s
 The cache table compares two storage encodings on warm runs; later agent trials compare complete task attempts with different tools.
 Read their setup and units separately. The [measurement guide](benchmarks.md) collects those boundaries and known overheads.
 
-The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains 288 samples across six generated scalar workloads.
+The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) records the September 25 implementation and contains 288 samples across six generated scalar workloads.
 Pipelines, imported fanout and mutual recursion each have two sizes. Three repetitions rotate the
 previous SDK cache and bounded report chunks through cold, warm and six single-edit scenarios.
 Every retained answer agrees with fresh analysis. Independent Python execution, source digests and
@@ -242,6 +242,22 @@ It contains no live-agent trial or token measurement. The pinned baseline SDK an
 are retained beside the [task](../tests/agent-eval/flow-cache/task.json).
 New warm medians still exceed new cold medians on all six workloads. The result improves retained
 storage overhead; it does not establish an overall latency benefit from enabling the optional cache.
+
+Those historical medians exclude Python process startup. New collections also
+record `process_seconds`: the time to start the Python worker, import its code,
+perform the analysis, write its answer and exit. `elapsed_seconds` covers the
+analysis and storage work measured inside that worker. The reports keep both
+intervals and their native-analysis and storage components.
+The whole-process interval also includes this benchmark's file counts and
+metric collection. Saving more files makes that bookkeeping slower too, so
+the difference between the two intervals cannot isolate Python startup cost.
+
+Both cache arms run the same `fr` analyzer. Ordinary Python executions check
+the answers; this benchmark does not time them as an alternative to `fr`.
+The older cache stays pinned to its original source and API. The current cache
+also checks initialization and model settings, so new timings compare two
+complete cache implementations. They cannot isolate the effect of storage
+layout or establish the language's overhead relative to Python execution.
 
 Evidence identities ignore coordinated workspace release versions in the Cargo manifest and lockfile.
 Dependency versions, features, paths and source changes remain bound.

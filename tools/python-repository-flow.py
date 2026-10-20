@@ -229,12 +229,16 @@ def summary(rows):
             metamorphic &= (row['assessment'] == other['assessment']
                             and bool(row['invocations'][1]['report'].get('witnesses'))
                             == bool(other['invocations'][1]['report'].get('witnesses')))
-    return {'repositories': len({row['project'] for row in rows}), 'cases': len(rows),
+    observed = {row['project'] for row in rows}
+    declared = {project['id'] for project in COHORT['projects']}
+    held_out = {project['id'] for project in COHORT['projects'] if project['role'] == 'held-out'}
+    return {'repositories': len(observed), 'cases': len(rows),
             'complete_cases': sum(row['assessment']['status'] == 'complete' for row in rows),
             'incomplete_cases': sum(row['assessment']['status'] == 'incomplete' for row in rows),
             'refused_cases': sum(row['assessment']['status'] == 'refused' for row in rows),
             'metamorphic_agreement': metamorphic,
-            'acceptance_demonstrated': demonstrated and metamorphic and len({row['project'] for row in rows}) == 3}
+            'acceptance_demonstrated': (demonstrated and metamorphic and observed == declared
+                                       and len(observed) >= 3 and bool(observed & held_out))}
 
 
 def check_flow_sources(row, scope):

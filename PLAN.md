@@ -69,6 +69,12 @@ reject missing or old data without adding compatibility readers or migration fal
 
 ## Next large chunk
 
+Complete [the original-package question and the unfamiliar-project check](docs/package-milestones.md)
+in one pull request. Its acceptance conditions include complete reaching-input and
+blocked-input answers, independent Python checks, changed-input tests and a frozen
+implementation tested across three independently maintained projects. Passing
+small examples or collecting incomplete package answers does not complete this work.
+
 Choose work by a useful question that we can answer from beginning to end.
 For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
 The explanation separates a helper file found but left unread from names the checker could not resolve.

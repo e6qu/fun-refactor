@@ -30,7 +30,7 @@ def workspace(tmp_path):
 def analyze(client, rules, name="positive", cache=None, **options):
     handle = client.project("find", name).definition_target().handle
     return (cache or FlowCache(MemoryObjectStore())).analyze(
-        client, handle, rules=rules, steps=options.pop("steps", 4096),
+        client, handle, standard_library=options.pop("standard_library", ()), rules=rules, steps=options.pop("steps", 4096),
         max_bytes=options.pop("max_bytes", 1_048_576), summaries=True, imports=True,
         context=options.pop("context", "html"), **options)
 

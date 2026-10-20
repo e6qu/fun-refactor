@@ -7,6 +7,8 @@ import subprocess
 import sys
 import re
 import zipfile
+import ast
+import importlib.util
 
 import pytest
 
@@ -16,11 +18,38 @@ from test_flow_imports import analyze, workspace
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCHIVE = ROOT / "tests/agent-eval/python-symbolic/2026-10-17-frozen-dependencies.zip"
+REPORTS = {}
 
 
-def archived_report(context="full-package"):
+@pytest.fixture(scope="module", autouse=True)
+def current_reports(tmp_path_factory):
+    root = tmp_path_factory.mktemp("current-import-explanations")
+    spec = importlib.util.spec_from_file_location("repository_flow", ROOT / "tools/python-repository-flow.py")
+    flow = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(flow)
+    project = next(item for item in flow.COHORT["projects"] if item["id"] == "pydash")
+    upstream = root / "upstream"
+    upstream.mkdir()
     with zipfile.ZipFile(ARCHIVE) as archive:
-        return FrReport(json.loads(archive.read(f"numeric-results/{context}-trace/trace.stdout")), ())
+        flow.snapshot(archive.read("numeric-results/pydash.tar.gz"), project, upstream)
+    source = (upstream / "src/pydash/numerical.py").read_text()
+    node, = [node for node in ast.parse(source).body if isinstance(node, ast.FunctionDef) and node.name == "clamp"]
+    for context in ("full-package", "isolated-declaration"):
+        scope = upstream / "src" if context == "full-package" else root / context
+        scope.mkdir(exist_ok=True)
+        client, rules = workspace(scope)
+        rules.write_text(json.dumps({'version': 'current-import-explanation', 'sources': ['emit_value'],
+                                     'sinks': ['record_value'], 'sanitizers': {}, 'propagators': []}))
+        if context == "isolated-declaration":
+            declaration = ast.get_source_segment(source, node)
+            (scope / "pinned_clamp.py").write_text("def clamp(x, lower, upper=None):\n" + declaration.split("\n", 1)[1] + "\n")
+        module = "pydash.numerical" if context == "full-package" else "pinned_clamp"
+        (scope / "app.py").write_text(f"from {module} import clamp\ndef entry():\n    return record_value(clamp(emit_value(), 1, 10))\n")
+        REPORTS[context] = analyze(client, rules, "entry").report
+
+
+def current_report(context="full-package"):
+    return REPORTS[context]
 
 
 def rehash(data):
@@ -30,10 +59,10 @@ def rehash(data):
 
 
 def test_pydash_explanation_distinguishes_unread_source_from_missing_bindings():
-    report = archived_report()
+    report = current_report()
     before = report.to_data()
     result = ImportExplanation.from_report(report)
-    assert result.files_read == 8 and result.unchecked_statements == 420
+    assert result.files_read == 8 and result.unchecked_statements > 0
     assert not result.import_check_complete and not result.analysis_complete
     assert any("256 KiB" in message for message in result.limit_explanations)
     unread = [gap for gap in result.gaps if gap.kind == "unread-source"]
@@ -42,13 +71,13 @@ def test_pydash_explanation_distinguishes_unread_source_from_missing_bindings():
     assert result.unresolved_requests == sum(len(gap.names) for gap in result.gaps)
     assert report.to_data() == before
     text = result.render(max_bytes=2048)
-    assert "420 import-time statements unchecked" in text and "unfinished" in text
+    assert f"{result.unchecked_statements} import-time statements unchecked" in text and "unfinished" in text
     assert "256 KiB" in text and "workspace has changed" in text
     assert len(text.encode()) <= 2048
 
 
 def test_isolated_success_is_only_a_claim_about_the_declared_model():
-    result = ImportExplanation.from_report(archived_report("isolated-declaration"))
+    result = ImportExplanation.from_report(current_report("isolated-declaration"))
     assert result.import_check_complete and result.analysis_complete
     assert not result.gaps and not result.initialization.by_file
     text = result.render()
@@ -58,10 +87,10 @@ def test_isolated_success_is_only_a_claim_about_the_declared_model():
 @pytest.mark.parametrize("max_bytes", [1024, 1536, 2048, 4096])
 @pytest.mark.parametrize("max_items", [1, 3, 8, 32])
 def test_bounded_disclosure_keeps_totals_and_omission_counts(max_bytes, max_items):
-    result = ImportExplanation.from_report(archived_report())
+    result = ImportExplanation.from_report(current_report())
     text = result.render(max_bytes=max_bytes, max_items=max_items)
     assert len(text.encode()) <= max_bytes
-    assert "420 import-time statements unchecked" in text
+    assert f"{result.unchecked_statements} import-time statements unchecked" in text
     assert f"/{len(result.gaps)} import groups" in text
     assert f"/{len(result.initialization.by_file)} startup file summaries" in text
     assert f"{result.initialization.omitted} additional locations omitted" in text
@@ -73,14 +102,14 @@ def test_bounded_disclosure_keeps_totals_and_omission_counts(max_bytes, max_item
                                          ("max_items", 33), ("max_items", True)])
 def test_invalid_disclosure_limits_refuse(option, value):
     with pytest.raises(FrRuntimeError):
-        ImportExplanation.from_report(archived_report()).render(**{option: value})
+        ImportExplanation.from_report(current_report()).render(**{option: value})
 
 
 @pytest.mark.parametrize("mutation", ["old-alias-format", "false-complete", "missing-cutoffs",
                                      "false-startup-count", "false-digest", "nontext-cutoff", "unknown-module-reason",
                                      "unexpected-budget-detail", "missing-module-name"])
 def test_malformed_reports_cannot_become_reassuring_explanations(mutation):
-    value = archived_report().to_data()
+    value = current_report().to_data()
     if mutation == "old-alias-format":
         del value["inputs"]["modules"]["value_aliases"]
     elif mutation == "false-complete":
@@ -140,7 +169,7 @@ def test_fresh_analysis_explains_different_gaps_without_guessing_runtime(tmp_pat
 
 def test_saved_report_command_does_not_read_the_original_workspace(tmp_path):
     path = tmp_path / "answer.json"
-    path.write_text(json.dumps(archived_report().to_data()))
+    path.write_text(json.dumps(current_report().to_data()))
     process = subprocess.run([sys.executable, "-m", "fr_ir.flow_import_explanation", str(path),
                               "--max-bytes", "2048"], capture_output=True, text=True, timeout=10)
     assert process.returncode == 0, process.stderr

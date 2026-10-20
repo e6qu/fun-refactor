@@ -62,7 +62,7 @@ for line in sys.stdin:
     client = TimedClient()
     handles = [client.project('find', name).definition_target().handle for name in request['names']]
     if request['condition'] == 'together':
-        result = analyze_together(client, handles, rules=args.project / 'rules.json',
+        result = analyze_together(client, handles, standard_library=(), rules=args.project / 'rules.json',
                                   context=request['context'], steps=request['steps'], depth=request['depth'],
                                   max_bytes=request['bytes'], imports=request['imports'])
         reports = [result.report.to_data()]

@@ -31,6 +31,11 @@ _MESSAGES = {
     "wildcard": "The names supplied by this wildcard import remain unchecked.",
 }
 _CONDITIONS = {
+    "standard-library-shadowing-unchecked": "A local file or directory competes with a selected standard-library module or one of its dependencies.",
+    "standard-library-import-collision": "A local import name also names a standard-library module; its runtime selection remains unchecked.",
+    "intrinsic-standard-import-unchecked": "This import names a built-in module whose behavior needs an explicit selected model.",
+    "metadata-import-unchecked": "The analyzer could not establish which branch of a metadata import runs.",
+    "import-attribute-hook-unchecked": "A package's attribute hook can supply this imported name; its behavior remains unchecked.",
     "import-syntax-errors": "Some imported source contains syntax the parser could not accept.",
     "unsupported-import-form": "Some import statements are outside the supported syntax.",
     "ambiguous-module-binding": "Repeated or conflicting definitions prevent choosing what a name refers to.",

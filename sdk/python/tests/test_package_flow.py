@@ -30,7 +30,7 @@ def workspace(root):
 def analyze(client, rules, name="render", cache=None):
     target = client.project("find", name).definition_target().handle
     return (cache or FlowCache(MemoryObjectStore())).analyze(
-        client, target, rules=rules, summaries=True, imports=True, steps=4096, max_bytes=1_048_576)
+        client, target, standard_library=(), rules=rules, summaries=True, imports=True, steps=4096, max_bytes=1_048_576)
 
 
 def evidence(result):

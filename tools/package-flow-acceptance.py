@@ -62,7 +62,7 @@ def oracle(root, expected):
 def analyze(client, name, cache=None):
     target = client.project("find", name).definition_target().handle
     return (cache or FlowCache(MemoryObjectStore())).analyze(client, target,
-        rules=client.root / "rules.json", summaries=True, imports=True, steps=4096, max_bytes=1_048_576)
+        standard_library=(), rules=client.root / "rules.json", summaries=True, imports=True, steps=4096, max_bytes=1_048_576)
 
 
 def equivalent(result):

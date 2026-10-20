@@ -1,7 +1,8 @@
 {
   "schema": "fr-flow-cache-task-1",
   "baseline_revision": "baedab23d50582aa9b15991991f7f106973b22e0",
-  "question": "Which storage granularity makes retained scalar analysis useful across representative admitted task shapes?",
+  "question": "How do the pinned per-value cache and current chunk cache compare on the same Python source questions?",
+  "baseline_contract": "The pinned cache file stays unchanged and uses its original API. Both arms run the same current native analyzer and dependency parsers with no standard-library models. The current cache also validates initialization and model settings, so this compares complete implementations rather than isolating storage granularity alone.",
   "corpus": "Pipelines at 8/16 helpers, imported fanout at 8/24 and mutual recursion at 8/12, with twice as many independent source files.",
   "scenarios": [
     "cold",
@@ -15,6 +16,7 @@
   ],
   "oracle": "Independent Python execution and AST byte coordinates; every cached result must agree with clean analysis at the same revision.",
   "measurements": [
+    "whole worker process seconds including Python startup, imports, output and shutdown",
     "isolated elapsed seconds",
     "worker and native child peak RSS",
     "native calls",

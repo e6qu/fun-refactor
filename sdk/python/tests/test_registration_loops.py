@@ -126,17 +126,17 @@ def test_saved_startup_rechecks_a_changed_iteration_source(tmp_path):
     store = MemoryObjectStore()
     cache = StartupCache(store)
     handle = client.project('find', 'entry').definition_target().handle
-    first = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+    first = cache.analyze(client, handle, standard_library=(), rules=rules, context='html', steps=4096,
                           depth=8, max_bytes=1_048_576, imports=True)
     assert first.checks == 1 and first.answer.report.at('/complete')
     cache = StartupCache.restore(store, cache.persist())
-    second = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+    second = cache.analyze(client, handle, standard_library=(), rules=rules, context='html', steps=4096,
                            depth=8, max_bytes=1_048_576, imports=True)
     assert second.reused and second.checks == 0
     path = tmp_path / 'helpers.py'
     path.write_text(path.read_text().replace("'state': 'ready'", "'state': source()"))
     handle = client.project('find', 'entry').definition_target().handle
-    changed = cache.analyze(client, handle, rules=rules, context='html', steps=4096,
+    changed = cache.analyze(client, handle, standard_library=(), rules=rules, context='html', steps=4096,
                             depth=8, max_bytes=1_048_576, imports=True)
     assert not changed.reused and changed.checks == 1
     assert not changed.answer.report.at('/complete') and changed.report.at('/startup') is None

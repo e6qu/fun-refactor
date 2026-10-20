@@ -279,7 +279,8 @@ def test_module_attribute_hooks_cannot_establish_static_child_resolution(tmp_pat
     assert observed.returncode != 0 and 'AttributeError' in observed.stderr
     result = analyze(client, rules)
     assert not result.report.at('/complete')
-    assert 'special-module-attributes' in result.report.at('/cutoffs')
+    reason = 'import-attribute-hook-unchecked' if hook.startswith('def ') else 'special-module-attributes'
+    assert reason in result.report.at('/cutoffs')
     result.dependencies
 
 

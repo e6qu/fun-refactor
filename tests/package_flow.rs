@@ -1488,20 +1488,26 @@ fn module_aliases_acceptance_replays_checked_delivery() {
 }
 
 #[test]
-fn special_module_bindings_refuse_even_when_the_function_body_is_inert() {
-    for source in [
-        "def __getattr__(name):\n    return 0\n",
-        "from archive.transform import clean_value as __getattr__\n",
-        "def __path__(value):\n    return value\n",
+fn module_attribute_hooks_defer_only_when_plain_and_unused() {
+    for (source, complete) in [
+        ("def __getattr__(name):\n    return 0\n", true),
+        ("def __dir__():\n    return []\n", true),
+        (
+            "from archive.transform import clean_value as __getattr__\n",
+            false,
+        ),
+        ("def __path__(value):\n    return value\n", false),
     ] {
         let root = fixture();
         write(root.path(), "portal/__init__.py", source);
         let report = analyze(root.path(), "render");
-        assert_eq!(report["complete"], false, "{report}");
-        assert!(report["cutoffs"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("special-module-attributes")));
+        assert_eq!(report["complete"], complete, "{report}");
+        if !complete {
+            assert!(report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("special-module-attributes")));
+        }
     }
 }
 

@@ -126,6 +126,10 @@ impl Project<'_> {
         );
         if let Some(modules) = report["inputs"].get("modules") {
             ensure!(
+                super::dataflow::standard_imports_valid(modules),
+                "retained flow has malformed standard-library dependencies."
+            );
+            ensure!(
                 modules["function_aliases"]
                     .as_array()
                     .is_some_and(|aliases| {

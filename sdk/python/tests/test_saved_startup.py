@@ -16,7 +16,7 @@ from test_flow_together import ENTRIES, HELPERS, SETUP, install, observe
 
 def ask(cache, client, rules, name, *, imports, steps=4096, max_bytes=1_048_576):
     handle = client.project('find', name).definition_target().handle
-    return cache.analyze(client, handle, rules=rules, context='html', steps=steps,
+    return cache.analyze(client, handle, standard_library=(), rules=rules, context='html', steps=steps,
                          depth=8, max_bytes=max_bytes, imports=imports)
 
 
@@ -208,7 +208,7 @@ def test_every_new_api_setting_is_required(tmp_path, field):
     settings = dict(rules=rules, context='html', steps=4096, depth=8, max_bytes=1_048_576, imports=False)
     del settings[field]
     with pytest.raises(TypeError):
-        StartupCache(MemoryObjectStore()).analyze(client, handle, **settings)
+        StartupCache(MemoryObjectStore()).analyze(client, handle, standard_library=(), **settings)
 
 
 def test_corrupt_storage_refuses_without_running_a_fresh_check(tmp_path):

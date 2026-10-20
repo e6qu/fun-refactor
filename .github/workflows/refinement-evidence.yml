@@ -56,6 +56,10 @@ on:
           - retain-repository-flow
           - flow-contract
           - scalar-development
+          - package-questions-development
+          - package-questions-coverage
+          - package-questions-held-out
+          - retain-package-questions
           - docs-review
           - freeze-repository-flow
           - retain-scalar
@@ -100,7 +104,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-')
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -244,7 +248,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain fresh workflow and recovery reports'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -265,6 +269,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Reject false package answers before compiling
+        run: |
+          python3 -B tools/test-repository-declarations.py
+          python3 -B tools/test-python-repository-flow.py
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
@@ -480,21 +488,133 @@ jobs:
             git commit -m 'style: format module literal controls'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
+      - name: Cache the Lean toolchain
+        id: lean-cache
+        uses: actions/cache@v6
+        with:
+          path: /opt/lean
+          key: lean-4.28.0-linux-x86_64
+      - name: Install Lean
+        if: steps.lean-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          LEAN=4.28.0
+          LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
+            "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
+            || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
+          echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
+          sudo mkdir -p /opt/lean
+          sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
+      - name: Put Lean on the path
+        run: |
+          echo "/opt/lean/bin" >> "$GITHUB_PATH"
+          /opt/lean/bin/lean --version
+
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
       - name: Check native binding and summary controls
-        run: cargo test --locked --no-fail-fast --test native_fingerprint --test cache --test package_flow --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
+        run: cargo test --locked --no-fail-fast --test native_fingerprint --test cache --test package_flow --test imported_flow --test vfs_choke_point --test call_binding --test literal_defaults --test expression_control --test scalar_assignments -- --skip acceptance
       - name: Check Python runtime and SDK controls
+        if: always()
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_flow_together.py sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_standard_library.py sdk/python/tests/test_metadata_imports.py sdk/python/tests/test_flow_import_explanation.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_initialization_locations.py::test_omitted_locations_keep_the_total_and_never_establish_absence
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_default_replacements.py sdk/python/tests/test_function_defaults.py sdk/python/tests/test_parallel_bindings.py sdk/python/tests/test_scalar_named_defaults.py sdk/python/tests/test_imported_scalar_defaults.py sdk/python/tests/test_value_aliases.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_flow_together.py sdk/python/tests/test_startup_registration.py sdk/python/tests/test_startup_diagnostics.py sdk/python/tests/test_initialization_locations.py sdk/python/tests/test_import_order.py sdk/python/tests/test_registry_initialization.py sdk/python/tests/test_collection_initialization.py sdk/python/tests/test_type_registries.py
+
+  retain-package-questions:
+    if: inputs.group == 'retain-package-questions' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Reject substituted package records
+        run: python3 -B tools/test-retain-package-questions.py
+      - name: Save familiar and first unfamiliar outcomes unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+          HELD_OUT_RUN: ${{ inputs.held_out_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/retain-package-questions.py --coverage-run "$COVERAGE_RUN"
+          --held-out-run "$HELD_OUT_RUN" --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the original package records
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-package-questions-"*
+          git commit -m 'test: retain frozen package comparisons and first unfamiliar outcomes'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  package-questions:
+    if: startsWith(inputs.group, 'package-questions-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Check original-package collector controls
+        run: python3 -B tools/test-package-questions.py
+      - run: cargo build --locked --bin fr
+      - name: Collect original imports and independent Python answers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_GROUP: ${{ inputs.group }}
+          COVERAGE_RUN: ${{ inputs.collection_run }}
+        run: >-
+          python3 -B tools/package-questions.py --phase "${EVIDENCE_GROUP#package-questions-}"
+          --coverage-run "$COVERAGE_RUN" --fr target/debug/fr
+          --output "$RUNNER_TEMP/package-questions"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: package-questions-summary
+          path: ${{ runner.temp }}/package-questions/result.json
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: package-questions
+          path: ${{ runner.temp }}/package-questions/
+          retention-days: 30
+          if-no-files-found: error
 
   scalar-import-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
@@ -518,7 +638,7 @@ jobs:
       - name: Check Python imports and saved answers independently
         run: |
           python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_shared_named_imports.py sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_shared_named_imports.py sdk/python/tests/test_shared_star_imports.py sdk/python/tests/test_star_imports.py sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_function_aliases.py sdk/python/tests/test_value_imports.py sdk/python/tests/test_named_default_declarations.py sdk/python/tests/test_postponed_annotations.py sdk/python/tests/test_namespace_packages.py sdk/python/tests/test_package_bindings.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_storage.py sdk/python/tests/test_flow_summaries.py
 
   workflow-routes:
     if: inputs.group == 'workflow-routes'
@@ -551,7 +671,7 @@ jobs:
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_guide.py sdk/python/tests/test_guide_bodies.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_guide.py sdk/python/tests/test_guide_bodies.py
           python3 -B tools/test-guide-body-native.py
       - name: Compare body preparation and applied-state recovery
         run: python3 -B tools/guide-body-context.py --output target/workflow-routes/guide-body-context.json
@@ -943,12 +1063,12 @@ jobs:
       - run: cargo build --locked --bin fr
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Compare registration arguments, loops and mutations with Python
-        run: PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
+        run: PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_registration_arguments.py sdk/python/tests/test_registration_loops.py
       - name: Check documentation examples before collecting reports
         run: |
           python3 -B tools/reader_examples.py --fr target/debug/fr
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py::test_complete_lesson_uses_separate_processes_and_rechecks_edits
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_saved_startup.py::test_complete_lesson_uses_separate_processes_and_rechecks_edits
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_startup_registration.py::test_complete_tutorial_checks_startup_and_then_rejects_helper_replacement sdk/python/tests/test_flow_together.py::test_complete_lesson_runs_both_checker_and_python
       - name: Collect reports alongside interface checks, then reject altered records
         run: python3 -B tools/python-contract-runner.py --output target/python-contract/result.json
       - uses: actions/upload-artifact@v7

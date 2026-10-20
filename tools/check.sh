@@ -61,6 +61,8 @@ if [ "$slice" = study ]; then
     python3 -B tools/test-retain-python-contract.py
     python3 -B tools/test-workflow-evidence-basis.py
     python3 -B tools/test-python-repository-flow.py
+    python3 -B tools/test-package-questions.py
+    python3 -B tools/test-retain-package-questions.py
     python3 -B tools/test-retain-repository-flow.py
     python3 -B tools/test-frozen-repository-flow.py
     python3 -B tools/test-retain-scalar-evidence.py

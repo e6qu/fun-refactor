@@ -51,6 +51,7 @@ print(json.dumps(dict(result=result, raised=raised, events=events)))
 
 PLAIN = [
     ("class Token:\n    pass", ""),
+    ("class Token:\n    @staticmethod\n    def unused():\n        pass", ""),
     ("class Token:\n    pass", "marker = Token()"),
     ("class Token():\n    code = ((0))\n    def unused(self, *values):\n        return values", "marker = Token( # no arguments\n)"),
     ("class Token:\n    def __repr__(self):\n        return str(source())", "marker = Token()"),
@@ -76,7 +77,6 @@ UNCHECKED = [
     "class Token(list):\n    pass",
     "class Token(metaclass=type):\n    pass",
     "def decorate(cls):\n    return cls\n@decorate\nclass Token:\n    pass",
-    "class Token:\n    @staticmethod\n    def unused():\n        pass",
     "class Token:\n    def unused(self, value: int):\n        return value",
     "class Token:\n    def unused(self, value=source()):\n        return value",
     "class Token:\n    values = []",

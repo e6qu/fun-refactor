@@ -39,10 +39,12 @@ def main():
     require(branch.startswith('refs/heads/') and branch != 'refs/heads/main', 'use a working branch')
     require(re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', args.prefix), 'need a plain dated prefix')
     runs = json.loads(args.runs)
-    require(set(runs) == set(GROUPS) and all(type(run) is int and run > 0 for run in runs.values()),
-            'declare the five required hosted collections')
+    require(type(runs) is dict and bool(runs) and set(runs) <= set(GROUPS)
+            and all(type(run) is int and run > 0 for run in runs.values()),
+            'declare the requested hosted collections explicitly')
     collected = []
-    for collection, groups in GROUPS.items():
+    for collection in sorted(runs):
+        groups = GROUPS[collection]
         data, identity = scalar.collect(runs[collection], 'refinement-evidence', 'refresh',
                                         os.environ['GITHUB_REPOSITORY'])
         paths = scalar.report_paths(data, groups)
@@ -69,16 +71,25 @@ def main():
         print(f'Validated {group}', flush=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
-    entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
-    entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'
-    entry['audit'] = 'python3 tools/host-recovery-acceptance.py --audit ' + entry['path']
-    entry['sha256'] = receipts['host-recovery']['sha256']
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+    if 'host-recovery' in receipts:
+        entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
+        entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'
+        entry['audit'] = 'python3 tools/host-recovery-acceptance.py --audit ' + entry['path']
+        entry['sha256'] = receipts['host-recovery']['sha256']
+        catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-ci-collection')
     require(not directory.exists(), 'preserve previous collection receipts')
     directory.mkdir()
     (directory / 'manifest.json').write_text(json.dumps(
         {'schema': 'fr-ci-report-collection', 'groups': receipts}, indent=2) + '\n')
+    if 'retained-proofs' in receipts:
+        proof_test = ROOT / 'tests/retained_proofs.rs'
+        text, count = re.subn(
+            r'"tests/agent-eval/results/[^"/]+-retained-proofs/result\.json"',
+            f'"tests/agent-eval/results/{args.prefix}-retained-proofs/result.json"',
+            proof_test.read_text())
+        require(count == 1, 'expected one active retained-proof replay reference')
+        proof_test.write_text(text)
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True, timeout=60)
 
 
