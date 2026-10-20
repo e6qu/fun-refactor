@@ -131,6 +131,11 @@ The Rust and Python tasks must pass their behavior, undo and separate-checkout d
 The catalog must link those results before either tracking requirement can close.
 Passing unit tests or writing this plan does not finish the milestone.
 
+The recurring CI check replays the original result with its recorded source,
+Rust 1.99.1 and Python 3.14.8. It also rejects altered completion records.
+Later source changes need fresh results before tracking can call them checked.
+The full test suite checks the current implementation separately.
+
 Run builds, full tests and result collection on GitHub under the [workstation policy](development.md#working-on-a-shared-desktop).
 This milestone checks correctness through changes. Measure speed and storage separately against fresh checks doing the same work, including setup costs.
 It does not establish lower agent costs, broad package support, numeric translation or source-connected proofs.
