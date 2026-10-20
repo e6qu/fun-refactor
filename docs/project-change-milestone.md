@@ -65,9 +65,17 @@ A later unfamiliar-project claim then needs another unread project.
 
 Merely editing an analyzer identifier does not exercise the last case.
 Record which changed implementation input should invalidate the answer.
+The recorded control builds two checkers from real code: one accepts a new function
+name up to 256 bytes; the other accepts up to 255 bytes. A 256-byte rename must
+therefore pass one review and fail the other. Saved answers about the checker must
+expire even though the project files and public data format stay the same.
 For each change, also keep a finding about independent code. It must remain usable while its own recorded inputs still match.
 Restore the pinned starting files between independent cases so one change cannot hide another.
 Also test a saved task resumed in another process after an edit.
+
+These comparisons change copies of each project outside `fr`. This checks whether
+`fr` notices edits from another editor too. The delivery tasks below use `fr` to
+review and apply the requested changes, then test the resulting programs.
 
 ## Deliver the Rust and Python changes
 

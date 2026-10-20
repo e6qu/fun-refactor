@@ -26,12 +26,18 @@ candidate check, and reject any resulting file outside that scope. Preview shows
 multi-file diff. Existing history, checked outcomes, reversal and patch delivery apply unchanged.
 
 ```python
+from pathlib import Path
+
 from fr_ir.change_scope import ChangeScope
 from fr_ir.ir import TaskChange, TaskDelivery
+from fr_ir.runtime import FrClient
 from fr_ir.structural_change import RefactorRequest
 
+client = FrClient(Path("/project"), executable=Path("/path/to/fr"),
+                  timeout=20, max_output_bytes=1048576)
 handle = client.project("find", "subtotal").definition_target().handle
-scope = ChangeScope.inspect(client, [handle])
+scope = ChangeScope.inspect(client, [handle], depth=4, nodes=128,
+                            references=512, max_bytes=65536)
 change = scope.bind(TaskChange([], [
     RefactorRequest.rename("sum_values", documentation="preserve").target("rename", handle),
     RefactorRequest.remove_parameter(2).target("remove-legacy", handle),
@@ -41,6 +47,13 @@ review = client.review(change)
 # Inspect the diff, scope and checks before execution.
 result = client.execute(review)
 ```
+
+Replace the two absolute paths with the project and executable you intend to use.
+The example assumes a Rust `subtotal` with an unused third parameter, literal
+arguments at its callers, and a project-declared `behavior` check for both files.
+The client limits each command to 20 seconds and 1 MiB of output. Discovery follows
+at most four caller steps, 128 declarations and 512 references, returning at most
+65,536 bytes. Inspect an unfinished scope before attempting an edit.
 
 The fragment for a `refactor` target is JSON. It accepts one of these shapes:
 

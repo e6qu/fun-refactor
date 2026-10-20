@@ -43,11 +43,11 @@ contains `.. autofunction:: boltons.mathutils.clamp`, a Sphinx instruction that 
 the function to show its documentation. That instruction must change too.
 
 ```sh
-fr file replace docs/mathutils.rst \
+fr -C /project file replace docs/mathutils.rst \
   --before '.. autofunction:: boltons.mathutils.clamp' \
   --after '.. autofunction:: boltons.mathutils.clamp_value' --matches 1 --save-plan
-fr history patch 1
-fr history apply 1 --write
+fr -C /project history patch 1
+fr -C /project history apply 1 --write
 ```
 
 Use the returned transaction ID in place of `1`. The saved plan keeps the exact
@@ -102,7 +102,9 @@ symlink changes. Move reports `source` and `destination`.
 `requested` counts selected paths; `changed` counts recorded changes.
 `applied` and `saved` describe completed actions. Both are false for a no-op, whose `transaction` is null.
 Sorted `entries` include path, changed status, before/after existence, entry kinds, Unix modes and original byte length.
-Regular-file modes are JSON integers; symlink and absent modes are null. Reports contain no source bodies or patch hunks.
+Regular-file modes are JSON integers; symlink and absent modes are null.
+Entries contain no source bodies or patch hunks. A replacement report also includes
+the requested `before` text, `after` text and match count under `replacement`.
 `basis` identifies the changed paths' complete starting snapshots, including full modes.
 
 The validation label is `file-snapshots`.
@@ -136,7 +138,7 @@ Snapshots omit ownership, timestamps, extended attributes and symlink permission
 
 ## Patches and verification
 
-`fr history patch ID` exports both operations from recorded snapshots, including reverse patches.
+`fr history patch ID` exports these operations from recorded snapshots, including reverse patches.
 Git modes encode regular (`100644`), owner-executable (`100755`) and symlink (`120000`) entries. Applying a Git patch does not reproduce other recorded Unix permission bits.
 History apply/undo/redo preserve complete recorded regular-file modes instead.
 See [patch compatibility and checks](git-patches.md) for receiving-workspace validation.
