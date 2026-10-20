@@ -1,0 +1,35 @@
+{
+  "case": "positive",
+  "entry": "renamed_entry",
+  "fr": "/home/runner/work/fun-refactor/fun-refactor/target/debug/fr",
+  "mode": "analysis",
+  "path": "moved_question/adapter.py",
+  "project": {
+    "blocked": 0,
+    "expected": [
+      17,
+      31
+    ],
+    "expression": "relay(VALUE, 0, 50)",
+    "function": "clamp",
+    "id": "boltons",
+    "module": "boltons.mathutils",
+    "overwrite": 0,
+    "python_root": ".",
+    "repository": "mahmoud/boltons",
+    "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+    "role": "coverage",
+    "standard_library": [
+      "builtins",
+      "math",
+      "bisect",
+      "binascii"
+    ],
+    "values": [
+      17,
+      31
+    ]
+  },
+  "report": "/home/runner/work/_temp/project-change-prior-questions/boltons/renamed-relocated-positive.json",
+  "scope": "/home/runner/work/_temp/project-change-prior-questions/boltons/upstream"
+}

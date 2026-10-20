@@ -1,0 +1,46 @@
+{
+  "case": "steps",
+  "entry": "renamed_entry",
+  "fr": "/home/runner/work/fun-refactor/fun-refactor/target/debug/fr",
+  "mode": "analysis",
+  "path": "moved_question/adapter.py",
+  "project": {
+    "blocked": true,
+    "expected": [
+      true,
+      false
+    ],
+    "expression": "relay(VALUE)",
+    "function": "is_leap",
+    "id": "jdcal",
+    "module": "jdcal",
+    "overwrite": 2000,
+    "public_question": {
+      "document": "README.rst",
+      "document_blob": "bde082c81964105919acca8d28b2703273dde0d5",
+      "implementation_and_tests_unread": [
+        "jdcal.py",
+        "test_jdcal.py"
+      ],
+      "question": "Is the supplied Gregorian calendar year a leap year? Overwriting it with 2000 must remove the original input's value route.",
+      "read_before_freeze": [
+        "repository metadata",
+        "README.rst"
+      ]
+    },
+    "python_root": ".",
+    "repository": "phn/jdcal",
+    "revision": "c82c3cfb7f814b2ab79fd597e3f8aa87c3390fbb",
+    "role": "held-out",
+    "standard_library": [
+      "builtins",
+      "math"
+    ],
+    "values": [
+      2000,
+      2100
+    ]
+  },
+  "report": "/home/runner/work/_temp/project-change-prior-questions/jdcal/renamed-relocated-steps.json",
+  "scope": "/home/runner/work/_temp/project-change-prior-questions/jdcal/upstream"
+}
