@@ -84,6 +84,38 @@ Keep settings explicit. Add no compatibility wrappers, old calling forms or impl
 General language support may expand when the chosen task needs it. Check each new rule independently of that project's expected answer.
 Keep existing refusals, source limits and execution deadlines. Fix the cause of a failure or timeout without extending them.
 
+### Include the documentation that users read
+
+Boltons' documentation contains `.. autofunction:: boltons.mathutils.clamp`.
+This is a Sphinx instruction: the documentation builder imports that Python object
+and uses its description. Renaming the function while leaving this instruction
+unchanged would break the documentation even if the Python tests passed.
+
+The procedure reviews the code rename through `fr`, then uses an exact
+[`fr file replace`](file-transactions.md#exact-text-replacements) transaction for
+that instruction. The required match count is one. Both transactions contribute
+to the single delivered patch. A separate check imports all four objects named
+in the original document. It must fail after the code rename, pass after the
+documentation repair, and pass again after undo, redo and patch application.
+This checks those references; it does not claim a complete Sphinx build.
+
+### Use fr while developing fr
+
+The hosted checks use the public Python client to read the actual functions
+responsible for saved answers, import resolution, edits, file transactions and
+discovery. Each request selects its source file explicitly. They also use public
+discovery to list the original projects' declarations and consumers, save and
+reopen findings, review the proposed changes, apply them, run checks and export
+patches. Undo and redo use the same public history commands available to a user.
+
+These runs have already exposed failures that unit examples missed. A Python
+import such as `from helper import price as charge` must rename the imported
+`price` while preserving calls to the local name `charge`. Two Rust functions
+named alike in different modules must remain distinguishable when discovery
+is saved. A one-file inspection must select that file before indexing; filtering
+an entire source tree afterward caused a timeout. The fixes address these causes
+and keep the original deadlines.
+
 ## When this milestone is complete
 
 Both outcomes need qualifying original results. The three projects must pass the full change procedure, including the first unread-project evaluation.

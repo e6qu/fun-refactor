@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--alternate', type=Path, required=True)
     args = parser.parse_args()
     if args.audit is not None:
-        print(json.dumps(audit(args.audit, args.fr, args.alternate)))
+        print(json.dumps(audit(args.audit.parent, args.fr, args.alternate)))
     else:
         assert args.run is not None and args.failures is not None and args.prefix is not None
         retain(args)

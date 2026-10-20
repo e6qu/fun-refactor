@@ -7553,8 +7553,8 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
 
     if !found.in_text.is_empty() {
         println!(
-            "\n{} mention(s) of the name, matched as text. Nothing links these \
-             to the declaration, so no command rewrites them:",
+            "\n{} mention(s) of the name, matched as text. Review these separately: \
+             matching text alone does not establish a code reference:",
             found.in_text.len()
         );
         for usage in found.in_text.iter().take(20) {

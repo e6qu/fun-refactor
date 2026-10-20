@@ -26,6 +26,8 @@ def inspect(args):
         ('index', 'resolve_one', 'index.rs'),
         ('index', 'resolve_by_evidence', 'index.rs'),
         ('refactor', 'plan', 'refactor/rename.rs'),
+        ('native', 'execute', 'history/files.rs'),
+        ('native', 'cmd_usages', 'cli.rs'),
     ]
     for directory, name, path in selections:
         directory_root = ROOT / 'src/project' if directory == 'project' else ROOT / 'src'
