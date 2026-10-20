@@ -16,12 +16,14 @@ on:
           - retained-proofs
           - agent-guide-context
           - completion-workflows
+          - structural-change
           - intent-action-context
           - index-resolution
           - host-recovery
           - flow
           - dependency
           - contexts
+          - sdk-contexts
           - compiler-evidence
           - resumable-correspondence
           - semantic-evidence
@@ -447,7 +449,7 @@ jobs:
   refresh:
     if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
+    timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -576,6 +578,8 @@ jobs:
           python3 -B tools/check-prose.py
           python3 -B tools/test_flow_cache_basis.py
           python3 -B tools/test-retain-ci-reports.py
+      - name: Prepare the recorded Rust formatter for updated test references
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
       - name: Retain and audit fresh CI reports
         env:
           GH_TOKEN: ${{ github.token }}
@@ -590,7 +594,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/consumer_measurements.rs tests/completion_workflows.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/consumer_measurements.rs tests/completion_workflows.rs tests/structural_change.rs tests/python_sdk.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain fresh workflow and recovery reports'
           git push origin "HEAD:refs/heads/$BRANCH"
 

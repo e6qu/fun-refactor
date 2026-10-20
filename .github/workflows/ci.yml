@@ -105,14 +105,14 @@ jobs:
       - name: Build both recorded checker implementations
         run: |
           cargo build --locked --bin fr
-          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output target/project-change-checkers
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
       - name: Replay all projects and reject altered completion records
         run: |
           python3 -B tools/test-project-change-gate.py
           python3 -B tools/test-project-change-audit.py \
             --report tests/agent-eval/results/2026-10-20-projects-project-changes/result.json \
-            --fr target/project-change-checkers/production-fr \
-            --alternate target/project-change-checkers/alternate-fr
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
 
   current-project-changes:
     name: Current saved findings and delivered project changes
@@ -140,11 +140,11 @@ jobs:
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr
-          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output target/project-change-checkers
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
       - name: Replay the current result and reject altered completion records
         run: |
           python3 -B - <<'PY'
-          import hashlib, importlib.util, json
+          import hashlib, importlib.util, json, os
           from pathlib import Path
           catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
           entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
@@ -154,8 +154,9 @@ jobs:
           spec = importlib.util.spec_from_file_location('recheck', 'tools/recheck-project-changes.py')
           recheck = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(recheck)
-          binary = Path('target/project-change-checkers/production-fr').resolve()
-          alternate = Path('target/project-change-checkers/alternate-fr').resolve()
+          checkers = Path(os.environ['RUNNER_TEMP']) / 'project-change-checkers'
+          binary = checkers / 'production-fr'
+          alternate = checkers / 'alternate-fr'
           recheck.audit(path.parent, binary, alternate)
           recheck.reject_false_claims(path.parent, binary, alternate)
           PY

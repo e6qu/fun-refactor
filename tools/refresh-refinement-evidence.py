@@ -29,6 +29,7 @@ def main():
         'retained-proofs': 'proof-evidence-acceptance',
         'agent-guide-context': 'agent-guide-context',
         'completion-workflows': 'completion-workflows',
+        'structural-change': 'structural-change-acceptance',
         'intent-action-context': 'intent-action-context',
         'index-resolution': 'index-resolution-acceptance',
         'host-recovery': 'host-recovery-acceptance',
@@ -60,14 +61,19 @@ def main():
     context_scripts = {name: name for name in (
         'project-batch-context', 'task-bundle-context', 'task-change-context', 'workflow-context'
     )}
+    sdk_context_scripts = {name: name for name in (
+        'agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
+        'native-intent-context', 'intent-action-context'
+    )}
     refinement_names = list(scripts)
     scripts.update(flow_scripts)
     scripts.update(dependency_scripts)
     scripts.update(context_scripts)
-    if group not in ('all', 'flow', 'dependency', 'contexts') and group not in scripts:
+    scripts.update(sdk_context_scripts)
+    if group not in ('all', 'flow', 'dependency', 'contexts', 'sdk-contexts') and group not in scripts:
         raise SystemExit(f'Unknown evidence group: {group}')
     groups = {'all': refinement_names, 'flow': list(flow_scripts), 'dependency': list(dependency_scripts),
-              'contexts': list(context_scripts)}
+              'contexts': list(context_scripts), 'sdk-contexts': list(sdk_context_scripts)}
     names = groups.get(group, [group])
     LOGS.mkdir(parents=True, exist_ok=True)
     fr = str(ROOT / 'target/debug/fr')
@@ -86,7 +92,7 @@ def main():
                               and row['target']['name'] == target and row.get('executable'))
     for name in names:
         directory = OUTPUT / f'{PREFIX}-{name}'
-        path = directory if name == 'model-comparisons' else directory / 'result.json'
+        path = directory if name in ('model-comparisons', 'structural-change') else directory / 'result.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         command = [sys.executable, f'tools/{scripts[name]}.py']
         if name in binaries:
@@ -95,11 +101,11 @@ def main():
             command += ['--fr', fr]
         if name in context_scripts:
             command += ['--tokens', '--repetitions', '3']
-        elif name != 'intent-action-context':
+        elif name not in ('intent-action-context', 'native-intent-context'):
             command += ['--output', str(path)]
         print(f'Refreshing {name}', flush=True)
         with (LOGS / f'{name}.log').open('w') as log:
-            if name == 'intent-action-context' or name in context_scripts:
+            if name in ('intent-action-context', 'native-intent-context') or name in context_scripts:
                 with path.open('w') as output:
                     subprocess.run(command, cwd=ROOT, stdout=output, stderr=log,
                                    check=True, timeout=1800)

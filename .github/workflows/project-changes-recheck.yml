@@ -43,7 +43,7 @@ jobs:
       - name: Build both current checker implementations
         run: |
           cargo build --locked --bin fr
-          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output target/project-change-checkers
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
       - name: Recheck every familiar project and independently audit the result
         run: |
           python3 -B - <<'PY'
@@ -52,9 +52,9 @@ jobs:
           PY
           python3 -B tools/recheck-project-changes.py \
             --collect "tests/agent-eval/results/$PREFIX-project-changes-recheck" \
-            --fr target/project-change-checkers/production-fr \
-            --alternate target/project-change-checkers/alternate-fr \
-            --checkers target/project-change-checkers/checkers.json
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr" \
+            --checkers "$RUNNER_TEMP/project-change-checkers/checkers.json"
           python3 -B tools/roadmap-status.py --write
           python3 -B tests/agent-eval/test_roadmap_status.py
       - name: Commit only the audited current replay and its tracking
