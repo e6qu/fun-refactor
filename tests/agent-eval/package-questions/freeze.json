@@ -1,23 +1,33 @@
 {
-  "analyzer_revision": "d8819f882195dd94a5b192893556d6dd9a60e8d5",
+  "repository": "e6qu/fun-refactor",
+  "analyzer_revision": "0535e26623a7d6baeee7eb4ee56d994e9bd0b5e4",
   "analyzer_trees": {
-    "src": "813aee886a9ebac6753c650afcc8c0476953e8d3",
-    "grammars": "5638340a5a41fbc2f28061f64c493ec8204a70e7",
-    "crates": "b814cfbc7342c58b55cba62254e9fc7b16fb1991",
+    "src": "439faf80265587b112e3b3ce548a76ced90a403e",
+    "grammars": "b8bc6a3ec7a8f795d9f5f568f8d5f88ab2f2f679",
+    "crates": "a60b1885cefb662a5a1db26458d384bb75f049ea",
     "queries": "465c5e1e81c76abac02baec561fff07168b3cea2",
     "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
-    "Cargo.toml": "06fe6b47c81018c59f91ded648b19acfd56b02bb",
-    "Cargo.lock": "c5de8aa7ae8184669a0b21aef8d96e4475a1ad93",
+    "Cargo.toml": "7e1313a0a61b1f23018f61eda984ea0a1a42bb5b",
+    "Cargo.lock": "ec836be638d3d685712cbf15d904237c1fdf593a",
     "native-source-inputs.txt": "e7ba79122be183f8d827d3bc2c262f7b63e58bc4",
-    "sdk/python/src": "c8a35f48764d7e1c366946b1034e3e2bf523f7b0"
+    "sdk/python/src": "8315c5ca01170651ede95992f6f6fa1d340edf5b"
   },
-  "plan_sha256": "5aceaa993ee57f589204204e2ba01547b3b8cf4c6ae7b1723dfd110c7e4a0e9c",
-  "collector_sha256": "0516db892ca3c4abb9e2769b9025aa09d70b6479b4b9939e0ec5a89452c1e47a",
-  "first_development_run": 39292304704,
-  "passing_development_run": 39293953460,
+  "collector_inputs": {
+    "tools/package-questions.py": "ef2d92f23313b3f5fd99f9599885dbd34dbb341dea1b009bc747d1d8ecacfd0d",
+    "tools/package-question-projects.json": "b2a4582a44c2fca04efda396f2be26470cd5a0ca941c0f4c096bfbebfd8f9a02",
+    "tools/evidence_basis.py": "9ea1b27410e70c355088530c07b52795b481a11ee2eca57d76b47a347f68bda6",
+    "tools/python-repository-flow.py": "7150ccfe50595737d22bf32daab303730237e2fc5a05c5aa90f0ccc9b6d8e6db",
+    "tools/compiler-profile.py": "482f132ae1a369ffb7567c4ccbc68d56cc53b655c36515b8d51928dee217051a",
+    "tools/agent_eval/bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+    "tests/agent-eval/python-repository-flow/cohort.json": "026eec767766e58b3699b9b173e9b984b50a8720cd7e8fe2f277b3034249fad4",
+    "tests/agent-eval/python-repositories/boltons.tar.gz": "38b62bedd6dbffb8be615777c8f45eca60b2b8d9a664eeb51e712489b781d7e6",
+    "tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json": "96864e23ff77753f8a087d57ac03be7e85a13531a591216dbf8e7f47f04f1b52"
+  },
+  "first_development_run": 39375459398,
+  "passing_development_run": 39375459398,
+  "preflight_formatting_failure_run": 39373244802,
   "unread_projects": [
-    "jaraco-functools",
-    "fn"
+    "jdcal"
   ],
-  "scope": "Record the native analyzer, SDK, collector and question selection before opening either unread implementation. Development success does not itself complete the frozen comparison. Require fresh familiar-project coverage at the evaluation commit before unread-project admission."
+  "scope": "JDcal's public leap-year question and examples were chosen from README.rst before opening jdcal.py or test_jdcal.py. These analyzer and SDK trees match the passing development run. The final collector additionally binds its helpers and original archive. Require fresh familiar-project coverage at the same evaluation commit before admitting JDcal. Earlier unsuccessful comparisons remain unchanged in their original records."
 }

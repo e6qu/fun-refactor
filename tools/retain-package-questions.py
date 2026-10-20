@@ -123,8 +123,8 @@ def main():
     repository = os.environ['GITHUB_REPOSITORY']
     frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
     questions.flow.verify_analyzer(ROOT, frozen)
-    require(frozen['plan_sha256'] == questions.flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
-            and frozen['collector_sha256'] == questions.flow.sha((ROOT / 'tools/package-questions.py').read_bytes()),
+    current = questions.bindings()
+    require(frozen['collector_inputs'] == {name: current[name] for name in questions.COLLECTOR_INPUTS},
             'retain against the original frozen collector and project plan')
     collected = []
     for phase, run_id in [('coverage', args.coverage_run), ('held-out', args.held_out_run)]:

@@ -346,8 +346,6 @@ def collect(args):
         frozen = json.loads((ROOT / 'tests/agent-eval/package-questions/freeze.json').read_text())
         flow.verify_analyzer(ROOT, frozen)
         flow.require(frozen['repository'] == os.environ['GITHUB_REPOSITORY'], 'freeze belongs to another evaluation repository')
-        flow.require(frozen['plan_sha256'] == flow.sha((ROOT / 'tools/package-question-projects.json').read_bytes())
-                     and frozen['collector_sha256'] == flow.sha(Path(__file__).read_bytes()), 'collector or project selection differs from freeze')
         actual = bindings()
         flow.require(frozen['collector_inputs'] == {name: actual[name] for name in COLLECTOR_INPUTS},
                      'collector helpers, source archive or earlier outcome differs from freeze')
