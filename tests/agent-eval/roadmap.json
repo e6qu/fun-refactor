@@ -30,36 +30,36 @@
   },
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "sha256": "c132207699750fe23af606854db2a464827ef307eab0c7678d5a176b9b7a93a4"
+      "sha256": "2ffc3da00156819eaa70c7f02cf5ca8df873d0ec889ed3610f82c4da770f62be"
     },
     {
-      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "c9225155123ab74ca6d9db0cfe7a430ed54bcac314798fb2c647a317d602957e"
+      "sha256": "7daa2618d027bf8926d2c8f9571f3e68902416568f73e76837b85fe9a5fab86e"
     },
     {
-      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
       "sha256": "f44227cdc1a2462b914336509abf643be2c537ddb13ff838ff65ae1ed21bf20d"
     },
     {
-      "audit": "python3 -B tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "3a62374ac2fe8e40bfd94e121f37ee1ba82fb03a8ae239f2a0c39bcc451056e1"
+      "sha256": "3bd3185db3a7387275680f4f22fa074ffa49f9f144b76c19e5a6417ec17a7161"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
@@ -94,28 +94,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "sha256": "9c3d09fa3f1031eaf85f30887f7db3cd40aadfeaf9751b8eeefb1371f91fd74f"
+      "sha256": "5558462ccd78547118b288a4789faa33e4623a05f11e86fc58f40fd3bb37c983"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-python-contract/result.json",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "298daf5f1f92db9f0e428d96df534ecc3d6e613a5ffbbfc1f9089ea0896f4917"
+      "sha256": "383e561cee50922f3d8453a836e624d636c3055522a537e50b699a3d78c9859d"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-21-saved-answer-final-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "fc7da55e19479a66be8bfde53d2a7c0379e3c5449b15946bb66e090ed801ba64"
+      "sha256": "c01e4fb84ce04d4a686524c4be916027eea20366fd7ff2ffe0eb560f6bb90d92"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
