@@ -1,0 +1,32 @@
+Reserved project	Evaluate the reserved project without changing the frozen procedure	﻿2026-10-21T02:04:27.0631002Z ##[group]Run python3 -B tools/saved-work-cost.py --collect reserved --fr target/release/fr --output "$RUNNER_TEMP/saved-work"
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0631942Z ^[[36;1mpython3 -B tools/saved-work-cost.py --collect reserved --fr target/release/fr --output "$RUNNER_TEMP/saved-work"^[[0m
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0693340Z shell: /usr/bin/bash -e {0}
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0693627Z env:
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0693835Z   CARGO_BUILD_JOBS: 2
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0694084Z   CARGO_INCREMENTAL: 0
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0694335Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0694618Z   RUSTFLAGS: -D warnings
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0694882Z   RUSTUP_TOOLCHAIN: 1.99.1
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0695218Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0695692Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0696147Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0696555Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0697013Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0697460Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0700833Z   GH_TOKEN: ***
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:27.0701085Z ##[endgroup]
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2230706Z Traceback (most recent call last):
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2286310Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 473, in <module>
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2287137Z     collect(args)
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2287430Z     ~~~~~~~^^^^^^
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2288048Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 434, in collect
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2288764Z     attempts = previous_attempts()
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2289701Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 99, in previous_attempts
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2290520Z     require(not any(row['reserved_opened'] for row in attempts),
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2291022Z     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2291713Z         'reserved project was already opened; preserve that result and choose another unread project')
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2292438Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2293212Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 44, in require
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2293889Z     raise ValueError(message)
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2294542Z ValueError: reserved project was already opened; preserve that result and choose another unread project
+Reserved project	Evaluate the reserved project without changing the frozen procedure	2026-10-21T02:04:30.2443097Z ##[error]Process completed with exit code 1.

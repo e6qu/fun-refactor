@@ -1,5 +1,5 @@
 name: Cost of continuing saved work
-# Native cache and edit history count as state; source changes remain explicit.
+# Mark source opening explicitly; pack retained objects without changing limits.
 on:
   push:
     branches: [feat/saved-work-cost]

@@ -8,6 +8,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('saved_cost', Path(__file__).with_name('saved-work-cost.py'))
@@ -113,6 +114,8 @@ def fixture(directory, tasks):
                     'native_report_bytes': sum(item['canonical_report_bytes'] for item in calls),
                     'native_seconds': .05 * len(calls), 'storage_before': previous_storage, 'storage_after': storage})
                 previous_storage = storage
+            if condition == 'saved':
+                cost.pack_state(state, session / 'saved-state.zip')
             result['sessions'].append({'repetition': repetition, 'condition': condition,
                 'position': (tasks['conditions'].index(condition) - repetition) % 2,
                 'copy_seconds': .5, 'copy_cpu_seconds': .01, 'copy_bytes': result['source_bytes'],
@@ -223,23 +226,57 @@ class Accounting(unittest.TestCase):
         value['steps'][0]['inputs'].pop()
         receipt['plan'] = TaskPlan.from_data(value).store(store)
         cost.save(base / 'first/receipt.json', receipt)
+        cost.pack_state(base / 'saved-state', base / 'saved-state.zip')
         with self.assertRaisesRegex(ValueError, 'dependencies'):
             self.audit()
 
     def test_prior_reserved_attempt_blocks_new_first_claim(self):
         environment = {'GITHUB_RUN_ID': '20', 'GITHUB_RUN_ATTEMPT': '1'}
         runs = {'workflow_runs': [{'id': 10, 'head_sha': 'x', 'conclusion': 'failure', 'html_url': 'url'}]}
-        jobs = {'jobs': [{'name': 'Reserved project', 'started_at': 'date', 'conclusion': 'failure'}]}
-        with patch.dict(cost.os.environ, environment), patch.object(cost, 'api', side_effect=[runs, jobs]):
+        jobs = {'jobs': [{'name': 'Reserved project', 'steps': [{'name':
+            'Evaluate the reserved project without changing the frozen procedure', 'started_at': 'date', 'conclusion': 'failure'}]}]}
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, 'w') as archive:
+            archive.writestr('freeze.json', '{}')
+            archive.writestr('reserved.json', '{}')
+        artifacts = {'artifacts': [{'name': 'saved-work-reserved'}]}
+        with patch.dict(cost.os.environ, environment), patch.object(cost, 'api', side_effect=[runs, jobs, artifacts]), \
+                patch.object(cost, 'artifact_bytes', return_value=data.getvalue()):
             with self.assertRaisesRegex(ValueError, 'already opened'):
                 cost.previous_attempts()
 
     def test_failed_development_attempt_is_retained_without_consuming_project(self):
         environment = {'GITHUB_RUN_ID': '20', 'GITHUB_RUN_ATTEMPT': '1'}
         runs = {'workflow_runs': [{'id': 10, 'head_sha': 'x', 'conclusion': 'failure', 'html_url': 'url'}]}
-        jobs = {'jobs': [{'name': 'Reserved project', 'started_at': 'date', 'conclusion': 'skipped'}]}
+        jobs = {'jobs': [{'name': 'Reserved project', 'started_at': 'date', 'conclusion': 'skipped', 'steps': []}]}
         with patch.dict(cost.os.environ, environment), patch.object(cost, 'api', side_effect=[runs, jobs]):
             self.assertEqual(cost.previous_attempts()[0]['reserved_opened'], False)
+
+    def test_queued_job_timestamp_does_not_mean_source_was_opened(self):
+        self.assertFalse(cost.opened_source(10, [{'name': 'Reserved project', 'started_at': 'date',
+            'conclusion': 'cancelled', 'steps': []}]))
+
+    def test_failed_preflight_does_not_consume_unread_project(self):
+        jobs = [{'name': 'Reserved project', 'steps': [{'name':
+            'Evaluate the reserved project without changing the frozen procedure', 'started_at': 'date', 'conclusion': 'failure'}]}]
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, 'w') as archive:
+            archive.writestr('saved-work/freeze.json', '{}')
+            archive.writestr('saved-work/glob/result.json', '{}')
+        with patch.object(cost, 'api', return_value={'artifacts': [{'name': 'saved-work-reserved'}]}), \
+                patch.object(cost, 'artifact_bytes', return_value=data.getvalue()):
+            self.assertFalse(cost.opened_source(10, jobs))
+
+    def test_packed_state_preserves_bytes_with_existing_limits(self):
+        source = self.directory / '0-saved/saved-state'
+        restored = self.directory / 'restored-state'
+        cost.unpack_state(self.directory / '0-saved/saved-state.zip', restored, self.tasks['limits'])
+        self.assertEqual(cost.inventory(source), cost.inventory(restored))
+        bad = self.directory / 'bad-state.zip'
+        with zipfile.ZipFile(bad, 'w') as archive:
+            archive.writestr('../escape', '{}')
+        with self.assertRaisesRegex(ValueError, 'unsafe saved state'):
+            cost.unpack_state(bad, self.directory / 'bad-state', self.tasks['limits'])
 
     def test_rerun_cannot_claim_first_evaluation(self):
         with patch.dict(cost.os.environ, {'GITHUB_RUN_ATTEMPT': '2'}):

@@ -1,12 +1,14 @@
 """Compare saved answers with fresh discovery on identical changed projects."""
 import argparse
 import hashlib
+import io
 import json
 import math
 import os
 from pathlib import Path
 import platform
 import resource
+import re
 import shutil
 import statistics
 import subprocess
@@ -74,6 +76,36 @@ def api(path):
         return json.load(response)
 
 
+def artifact_bytes(artifact):
+    request = urllib.request.Request('https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY']
+        + '/actions/artifacts/' + str(artifact['id']) + '/zip',
+        headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN']})
+    require(artifact['size_in_bytes'] <= 16777216 and artifact['expired'] is False, 'missing bounded attempt artifact')
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = response.read(16777217)
+    require(len(data) <= 16777216 and 'sha256:' + hashlib.sha256(data).hexdigest() == artifact['digest'],
+        'attempt artifact changed')
+    return data
+
+
+def opened_source(run_id, jobs):
+    steps = [step for job in jobs if job['name'] == 'Reserved project' for step in job['steps']
+        if step['name'] == 'Evaluate the reserved project without changing the frozen procedure'
+        and step['started_at'] is not None and step['conclusion'] != 'skipped']
+    if not steps:
+        return False
+    artifacts = api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+    artifact, = [row for row in artifacts if row['name'] == 'saved-work-reserved']
+    with zipfile.ZipFile(io.BytesIO(artifact_bytes(artifact))) as archive:
+        entries = archive.infolist()
+        require(len(entries) <= 8192 and sum(row.file_size for row in entries) <= 67108864,
+            'attempt evidence exceeds admission')
+        paths = [Path(row.filename) for row in entries]
+        require(all(not path.is_absolute() and '..' not in path.parts for path in paths), 'unsafe attempt evidence')
+        require(any(path.name == 'freeze.json' for path in paths), 'attempt is missing its frozen procedure')
+        return any(path.name == 'reserved.json' or 'jmespath' in path.parts for path in paths)
+
+
 def previous_attempts():
     require(os.environ['GITHUB_RUN_ATTEMPT'] == '1', 'a rerun cannot claim a first reserved evaluation')
     current, attempts, page = int(os.environ['GITHUB_RUN_ID']), [], 1
@@ -89,8 +121,7 @@ def previous_attempts():
                 if len(rows) < 100:
                     break
                 job_page += 1
-            consumed = any(job['name'] == 'Reserved project' and job['started_at'] is not None
-                and job['conclusion'] != 'skipped' for job in jobs)
+            consumed = opened_source(run['id'], jobs)
             attempts.append({'run_id': run['id'], 'head_sha': run['head_sha'], 'conclusion': run['conclusion'],
                 'url': run['html_url'], 'reserved_opened': consumed})
         if len(batch) < 100:
@@ -116,6 +147,32 @@ def measured(command, output, workspace, limits):
     cpu = sum(float(value) for value in (output / 'cpu.txt').read_text().split())
     require(finite(cpu), 'invalid process CPU')
     return result, cpu
+
+
+def pack_state(state, destination):
+    with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(state.rglob('*')):
+            if path.is_file():
+                require(not path.is_symlink(), 'saved state contains a link')
+                archive.write(path, str(path.relative_to(state)))
+
+
+def unpack_state(source, destination, limits):
+    destination.mkdir(parents=True, exist_ok=False)
+    with zipfile.ZipFile(source) as archive:
+        entries, seen = archive.infolist(), set()
+        require(0 < len(entries) <= 65536 and sum(row.file_size for row in entries) <= limits['disk_bytes'],
+            'saved state exceeds its existing object or disk budget')
+        for entry in entries:
+            name = entry.filename
+            require((name == 'receipt.json' or re.fullmatch(r'objects/[0-9a-f]{2}/[0-9a-f]{62}\.json', name))
+                and name not in seen and entry.file_size <= 1048576
+                and (entry.external_attr >> 16) & 0o170000 in (0, 0o100000), 'unsafe saved state entry')
+            seen.add(name)
+            path = destination / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(archive.read(entry))
+        require('receipt.json' in seen, 'saved state is missing its receipt')
 
 
 def collect_project(task, output, binary, tasks):
@@ -183,7 +240,7 @@ def collect_project(task, output, binary, tasks):
                         'native_seconds': sum(call['seconds'] for call in value['calls']),
                         'storage_before': value['storage_before'], 'storage_after': value['storage_after']})
                 if condition == 'saved':
-                    shutil.copytree(state, session / 'saved-state')
+                    pack_state(state, session / 'saved-state.zip')
                 cleaned, cleaned_cpu = time.monotonic(), cpu_now()
                 shutil.rmtree(state)
                 shutil.rmtree(project)
@@ -260,6 +317,9 @@ def audit_project(value, directory, tasks):
         require(math.isclose(session['total_seconds'], session['copy_seconds'] + session['cleanup_seconds']
             + edit['measurement']['elapsed_seconds']
             + sum(row['seconds'] for row in session['stages'])), 'total omits preparation or edit')
+        state = directory / f'{repetition}-{condition}/.audit-state'
+        if condition == 'saved':
+            unpack_state(directory / f'{repetition}-{condition}/saved-state.zip', state, tasks['limits'])
         for row in session['stages']:
             stage = row['stage']
             require(row['path'] == f'{repetition}-{condition}/{stage}', 'unsafe stage path')
@@ -326,7 +386,7 @@ def audit_project(value, directory, tasks):
             require(('discovery_seconds' in raw['phases']) is (not raw['retained']), 'discovery timing missing')
             if condition == 'saved':
                 receipt = json.loads((base / 'receipt.json').read_text())
-                objects = DirectoryObjectStore(directory / f'{repetition}-{condition}/saved-state/objects')
+                objects = DirectoryObjectStore(state / 'objects')
                 plan = TaskPlan.restore(objects, receipt['plan'])
                 require(restore_stored_value(objects, receipt['answer']) == raw['answer'], 'stored answer differs')
                 require(plan.goal == tasks['question'] and len(plan.steps) == 1
@@ -352,6 +412,8 @@ def audit_project(value, directory, tasks):
             if condition == 'fresh':
                 require(row['storage_after']['saved_state'] == 0, 'fresh route retained saved objects')
             answers[repetition, condition, stage] = raw['answer']
+        if condition == 'saved':
+            shutil.rmtree(state)
         require(answers[repetition, condition, 'first'] == answers[repetition, condition, 'reuse'], 'unchanged answer differs')
         require(answers[repetition, condition, 'first'] != answers[repetition, condition, 'edit'], 'edit did not affect answer')
     for repetition in range(3):
