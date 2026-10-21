@@ -15,6 +15,8 @@ scalar = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scalar)
 require = scalar.require
 GROUPS = {
+    'checked-outcomes': ['checked-outcomes'],
+    'model-comparisons': ['model-comparisons'],
     'contexts': ['project-batch-context', 'task-bundle-context', 'task-change-context', 'workflow-context'],
     'host-recovery': ['host-recovery'],
     'retained-proofs': ['retained-proofs'],
@@ -29,6 +31,8 @@ GROUPS = {
                      'native-intent-context', 'intent-action-context'],
 }
 SCRIPTS = {
+    'checked-outcomes': 'outcome-acceptance',
+    'model-comparisons': 'refinement-acceptance',
     'host-recovery': 'host-recovery-acceptance',
     'retained-proofs': 'proof-evidence-acceptance',
     'resumable-correspondence': 'correspondence-acceptance',
@@ -39,6 +43,8 @@ SCRIPTS = {
     'compiler-profile': 'compiler-profile',
 }
 ACTIVE_REFERENCES = {
+    'checked-outcomes': 'tests/agent_acceptance.rs',
+    'model-comparisons': 'tests/model_comparisons.rs',
     'project-batch-context': 'tests/agent_acceptance.rs',
     'task-bundle-context': 'tests/agent_acceptance.rs',
     'task-change-context': 'tools/agent_eval/test_harness.py',
@@ -56,6 +62,7 @@ ACTIVE_FUNCTIONS = {
     'native-intent-context': 'native_intent_context_evidence_is_source_bound_and_arithmetically_valid',
     'intent-action-context': 'intent_action_context_evidence_is_source_bound_and_arithmetically_valid',
 }
+DIRECTORY_REPORTS = {'structural-change', 'checked-outcomes', 'model-comparisons'}
 
 
 def main():
@@ -95,26 +102,27 @@ def main():
                     'compiler report source changed')
             collected.append((collection, data, identity))
             continue
-        if collection == 'structural-change':
+        if collection in DIRECTORY_REPORTS:
             matches = [name for name in data if re.fullmatch(
-                r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-structural-change/result.json', name)]
-            require(len(matches) == 1, 'need one structural collection')
+                r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-' + re.escape(collection) + '/result.json', name)]
+            require(len(matches) == 1, 'need one directory collection')
             prefix = str(Path(matches[0]).parent) + '/'
             require(all(name.startswith(prefix) or name.startswith('refinement-refresh-logs/') for name in data),
-                    'structural archive contains unrelated files')
-            paths = {'structural-change': matches[0]}
+                    'directory archive contains unrelated files')
+            paths = {collection: matches[0]}
         else:
             paths = scalar.report_paths(data, groups)
         for group, path in paths.items():
             payload = {'result.json': data[path]}
-            if group == 'structural-change':
+            if group in DIRECTORY_REPORTS:
                 prefix = str(Path(path).parent) + '/'
                 payload = {name[len(prefix):]: content for name, content in data.items() if name.startswith(prefix)}
                 manifest = json.loads(payload['manifest.json'])
-                require(manifest['source_commit'] == identity['source_commit'], 'structural collection source changed')
-                require(set(payload) == {'manifest.json', *manifest['files']}, 'structural archive inventory changed')
+                source_key = 'revision' if group == 'checked-outcomes' else 'source_commit'
+                require(manifest[source_key] == identity['source_commit'], 'directory collection source changed')
+                require(set(payload) == {'manifest.json', *manifest['files']}, 'directory archive inventory changed')
                 for name, expected in manifest['files'].items():
-                    require(hashlib.sha256(payload[name]).hexdigest() == expected, 'structural artifact changed: ' + name)
+                    require(hashlib.sha256(payload[name]).hexdigest() == expected, 'directory artifact changed: ' + name)
             collected.append((group, payload, identity))
     revisions = {identity['source_commit'] for _, _, identity in collected}
     require(len(revisions) == 1, 'collect the repair reports from the same source commit')
@@ -135,13 +143,20 @@ def main():
             path.write_bytes(content)
         script = SCRIPTS.get(group, group)
         flag = '--verify' if group == 'index-consumers' else '--audit'
-        argument = directory if group in ('structural-change', 'python-repositories') else report
+        argument = directory if group in DIRECTORY_REPORTS | {'python-repositories'} else report
         subprocess.run(['python3', '-B', f'tools/{script}.py', flag, str(argument)],
                        cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
         receipts[group] = {'collection': identity, 'sha256': hashlib.sha256(payload['result.json']).hexdigest()}
         print(f'Validated {group}', flush=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
+    if 'model-comparisons' in receipts:
+        entry, = [row for row in catalog['evidence'] if row['id'] == 'model-relations']
+        directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-model-comparisons')
+        entry.update(path=str((directory / 'manifest.json').relative_to(ROOT)),
+                     sha256=hashlib.sha256((directory / 'manifest.json').read_bytes()).hexdigest(),
+                     audit='python3 -B tools/refinement-acceptance.py --audit ' + str(directory.relative_to(ROOT)))
+        catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
                               ('compiler-profile', 'compiler-profile')):
         if group in receipts:
@@ -199,7 +214,7 @@ def main():
         {'schema': 'fr-ci-report-collection', 'groups': receipts}, indent=2) + '\n')
     for group in receipts.keys() & ACTIVE_REFERENCES.keys():
         test = ROOT / ACTIVE_REFERENCES[group]
-        suffix = '' if group == 'structural-change' else '/result.json'
+        suffix = '' if group in DIRECTORY_REPORTS else '/result.json'
         text, count = re.subn(
             r'"tests/agent-eval/results/[^"/]+-' + re.escape(group) + re.escape(suffix) + '"',
             f'"tests/agent-eval/results/{args.prefix}-{group}{suffix}"', test.read_text())

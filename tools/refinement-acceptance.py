@@ -29,7 +29,8 @@ FILES = ("subject.rs", "main.rs", "translation.py")
 BINDINGS = ("grammars/python/src/scanner.c", "src/vfs.rs", "src/spec.rs", "src/spec/refinement.rs", "src/spec/retained.rs", "src/cli.rs",
     "src/formal_kernel.rs", "src/project/investigation.rs", "src/project/task_change.rs",
     "sdk/python/src/fr_ir/refinement.py", "sdk/python/src/fr_ir/investigation_proofs.py",
-    "sdk/python/src/fr_ir/investigation.py", "tools/refinement-acceptance.py")
+    "sdk/python/src/fr_ir/investigation.py", "sdk/python/src/fr_ir/context.py",
+    "sdk/python/src/fr_ir/ir.py", "tools/refinement-acceptance.py")
 
 
 def save(path, value):
@@ -181,6 +182,8 @@ def audit(binary, output):
     for name, digest in manifest["files"].items():
         assert not Path(name).is_absolute() and ".." not in Path(name).parts
         assert sha(output/name) == digest, name
+        if name.startswith("binding-sources/"):
+            assert (output/name).read_bytes() == (ROOT/name.removeprefix("binding-sources/")).read_bytes(), name
     result = json.loads((output/"result.json").read_text())
     assert result["passed"] and result["changed_source_invalidated"] and result["models"]["fresh_process"]
     store = DirectoryObjectStore(output/"objects")

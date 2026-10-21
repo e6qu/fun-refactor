@@ -156,6 +156,8 @@ def audit(output):
         path=output/name
         assert path.resolve().is_relative_to(output.resolve()) and not path.is_symlink()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest,name
+        if name.startswith("binding-sources/"):
+            assert path.read_bytes() == (ROOT/name.removeprefix("binding-sources/")).read_bytes(),name
     value=json.loads((output/"result.json").read_text())
     assert value["live_agent"] is False and value["source_equivalence_proven"] is False
     cases=value["cases"]
