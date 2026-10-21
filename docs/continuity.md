@@ -66,7 +66,7 @@ That hashing comparison still found 27% to 218% overhead against asking again.
 The [storage follow-up](batched-answer-storage.md) replaces separate file writes with one database commit per answer.
 It also uses one database read session to verify or restore an answer.
 Use that comparison's complete session times and fresh baselines when choosing further work.
-Saved sessions take 14% to 54% less time, but still cost 6% to 39% more than asking again.
+Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than asking again.
 The database uses more stored bytes, so preserve that tradeoff in further comparisons.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
