@@ -1,0 +1,580 @@
+project-changes	UNKNOWN STEP	﻿2026-10-20T13:50:15.6978014Z Current runner version: '2.337.0'
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7004352Z ##[group]Runner Image Provisioner
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7005188Z Hosted Compute Agent
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7005772Z Version: 20261012.601
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7006529Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7007258Z Build Date: 2026-10-12T17:48:21Z
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7007960Z Worker ID: {6f7ab964-e219-4781-9357-554e4654ec11}
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7008681Z Region: eastus
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7009226Z Cloud: Azure
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7009883Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7011998Z ##[group]Operating System
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7012705Z Ubuntu
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7013252Z 24.04.5
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7013757Z LTS
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7014359Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7014909Z ##[group]Runner Image
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7015495Z Image: ubuntu-24.04
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7016163Z Version: 20261012.334.1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7017522Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7019149Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7020863Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7022066Z ##[group]GITHUB_TOKEN Permissions
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7024671Z Contents: read
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7025399Z Metadata: read
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7026051Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7028232Z Secret source: Actions
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7029181Z Cache mode: write
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7030434Z Prepare workflow directory
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7422191Z Prepare all required actions
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.7469786Z Getting action download info
+project-changes	UNKNOWN STEP	2026-10-20T13:50:15.9816725Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.0991682Z Download action repository 'actions/setup-python@v7' (SHA:5fda3b95a4ea91299a34e894583c3862153e4b97)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.2199910Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.4200876Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7011350Z Complete job name: project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7835107Z ##[group]Run actions/checkout@v7
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7836012Z with:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7837082Z   sparse-checkout: .github
+project-changes	UNKNOWN STEP	src
+project-changes	UNKNOWN STEP	grammars
+project-changes	UNKNOWN STEP	crates
+project-changes	UNKNOWN STEP	queries
+project-changes	UNKNOWN STEP	catalogs
+project-changes	UNKNOWN STEP	kernels
+project-changes	UNKNOWN STEP	sdk/python/src
+project-changes	UNKNOWN STEP	sdk/python/tests
+project-changes	UNKNOWN STEP	tools
+project-changes	UNKNOWN STEP	tests/agent-eval/project-changes
+project-changes	UNKNOWN STEP	
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7838298Z   repository: e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7842241Z   token: ***
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7842686Z   ssh-strict: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7843123Z   ssh-user: git
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7843571Z   persist-credentials: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7844064Z   clean: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7844517Z   sparse-checkout-cone-mode: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7845042Z   fetch-depth: 1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7845472Z   fetch-tags: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7845913Z   show-progress: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7846353Z   lfs: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7846800Z   submodules: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7847250Z   set-safe-directory: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7847758Z   allow-unsafe-pr-checkout: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7848538Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7848995Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7849472Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7849957Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7850688Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.7851164Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.8911056Z Syncing repository: e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.8914064Z ##[group]Getting Git version info
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.8915510Z Working directory is '/home/runner/work/fun-refactor/fun-refactor'
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.8917382Z [command]/usr/bin/git version
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.8985252Z git version 2.55.0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9014804Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9032489Z Temporarily overriding HOME='/home/runner/work/_temp/ca1e2489-d0c8-455b-88c4-640363a5c834' before making global git config changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9036416Z Adding repository directory to the temporary git global config as a safe directory
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9038254Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9094912Z Deleting the contents of '/home/runner/work/fun-refactor/fun-refactor'
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9099070Z ##[group]Determining repository object format
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9101463Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9102237Z ##[group]Initializing the repository
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9107867Z [command]/usr/bin/git init /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9229759Z hint: Using 'master' as the name for the initial branch. This default branch name
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9231698Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9233313Z hint: to use in all of your new repositories, which will suppress this warning,
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9234611Z hint: call:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9235276Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9236140Z hint: 	git config --global init.defaultBranch <name>
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9237138Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9238152Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9239793Z hint: 'development'. The just-created branch can be renamed via this command:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9241243Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9241923Z hint: 	git branch -m <name>
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9242701Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9243822Z hint: Disable this message with "git config set advice.defaultBranchName false"
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9245904Z Initialized empty Git repository in /home/runner/work/fun-refactor/fun-refactor/.git/
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9249320Z [command]/usr/bin/git remote add origin https://github.com/e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9314595Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9316785Z ##[group]Disabling automatic garbage collection
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9318675Z [command]/usr/bin/git config --local gc.auto 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9357357Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9358712Z ##[group]Setting up auth
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9359651Z Removing SSH command configuration
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9365161Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9402514Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9791061Z Removing HTTP extra header
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9797212Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+project-changes	UNKNOWN STEP	2026-10-20T13:50:16.9834716Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0063505Z Removing includeIf entries pointing to credentials config files
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0068475Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0112207Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0347165Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0389674Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path /home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0425178Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0486835Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0527649Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0562579Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0563955Z ##[group]Fetching the repository
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.0572133Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin +bd63e921e7dffa1ab680ccb228ffe6d358ce70a0:refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3877631Z From https://github.com/e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3878852Z  * [new ref]         bd63e921e7dffa1ab680ccb228ffe6d358ce70a0 -> origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3887073Z [command]/usr/bin/git branch --list --remote origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3919228Z   origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3929307Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3957058Z bd63e921e7dffa1ab680ccb228ffe6d358ce70a0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3962747Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3964277Z ##[group]Determining the checkout info
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3965998Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3967695Z ##[group]Setting up sparse checkout
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.3970640Z [command]/usr/bin/git sparse-checkout set .github src grammars crates queries catalogs kernels sdk/python/src sdk/python/tests tools tests/agent-eval/project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.4031350Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.4033087Z ##[group]Checking out the ref
+project-changes	UNKNOWN STEP	2026-10-20T13:50:17.4036333Z [command]/usr/bin/git checkout --progress --force -B feat/real-project-changes refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.8995366Z Updating files:   0% (1/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9003027Z Updating files:   1% (12/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9032510Z Updating files:   2% (24/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9043152Z Updating files:   3% (36/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9050171Z Updating files:   4% (48/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9056425Z Updating files:   5% (60/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:20.9181252Z Updating files:   6% (72/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0419518Z Updating files:   7% (84/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0505967Z Updating files:   8% (96/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0513632Z Updating files:   9% (108/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0563390Z Updating files:  10% (120/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0678470Z Updating files:  11% (132/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0742793Z Updating files:  12% (144/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0804764Z Updating files:  13% (156/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0935013Z Updating files:  14% (168/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0941517Z Updating files:  15% (180/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0949229Z Updating files:  16% (192/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0958592Z Updating files:  17% (204/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0965835Z Updating files:  18% (216/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0976551Z Updating files:  19% (228/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.0989026Z Updating files:  20% (239/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1001053Z Updating files:  21% (251/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1011384Z Updating files:  22% (263/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1024655Z Updating files:  23% (275/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1034649Z Updating files:  24% (287/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1044032Z Updating files:  25% (299/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1054624Z Updating files:  26% (311/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1065033Z Updating files:  27% (323/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1075419Z Updating files:  28% (335/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1094846Z Updating files:  29% (347/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1119330Z Updating files:  30% (359/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1130702Z Updating files:  31% (371/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1142453Z Updating files:  32% (383/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1153147Z Updating files:  33% (395/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1165604Z Updating files:  34% (407/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1178967Z Updating files:  35% (419/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1197216Z Updating files:  36% (431/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1210768Z Updating files:  37% (443/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1225184Z Updating files:  38% (455/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1236709Z Updating files:  39% (467/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1250885Z Updating files:  40% (478/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1263531Z Updating files:  41% (490/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1285835Z Updating files:  42% (502/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1311147Z Updating files:  43% (514/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1345231Z Updating files:  44% (526/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1375262Z Updating files:  45% (538/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1391006Z Updating files:  46% (550/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1401666Z Updating files:  47% (562/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1416492Z Updating files:  48% (574/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1426382Z Updating files:  49% (586/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1441235Z Updating files:  50% (598/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1452909Z Updating files:  51% (610/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1461183Z Updating files:  52% (622/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1471385Z Updating files:  53% (634/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1482167Z Updating files:  54% (646/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1493654Z Updating files:  55% (658/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1506869Z Updating files:  56% (670/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1518657Z Updating files:  57% (682/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1527797Z Updating files:  58% (694/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1542034Z Updating files:  59% (706/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1553531Z Updating files:  60% (717/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1574826Z Updating files:  61% (729/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1588135Z Updating files:  62% (741/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1596487Z Updating files:  63% (753/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1606668Z Updating files:  64% (765/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1616397Z Updating files:  65% (777/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1627470Z Updating files:  66% (789/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1635877Z Updating files:  67% (801/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1643973Z Updating files:  68% (813/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1652348Z Updating files:  69% (825/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1660752Z Updating files:  70% (837/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1671242Z Updating files:  71% (849/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1683073Z Updating files:  72% (861/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1693932Z Updating files:  73% (873/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1704379Z Updating files:  74% (885/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1714494Z Updating files:  75% (897/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1725638Z Updating files:  76% (909/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1735263Z Updating files:  77% (921/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1745626Z Updating files:  78% (933/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1757622Z Updating files:  79% (945/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1768913Z Updating files:  80% (956/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1781041Z Updating files:  81% (968/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1791274Z Updating files:  82% (980/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1799888Z Updating files:  83% (992/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1809021Z Updating files:  84% (1004/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1821616Z Updating files:  85% (1016/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1830522Z Updating files:  86% (1028/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1839264Z Updating files:  87% (1040/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1849237Z Updating files:  88% (1052/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1858516Z Updating files:  89% (1064/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1870311Z Updating files:  90% (1076/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1885905Z Updating files:  91% (1088/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1897194Z Updating files:  92% (1100/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1907323Z Updating files:  93% (1112/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1917603Z Updating files:  94% (1124/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1926627Z Updating files:  95% (1136/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1934764Z Updating files:  96% (1148/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1945681Z Updating files:  97% (1160/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1954844Z Updating files:  98% (1172/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1965675Z Updating files:  99% (1184/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1966971Z Updating files: 100% (1195/1195)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.1968452Z Updating files: 100% (1195/1195), done.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.2627292Z Switched to a new branch 'feat/real-project-changes'
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.2632795Z branch 'feat/real-project-changes' set up to track 'origin/feat/real-project-changes'.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.2656528Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.2706052Z [command]/usr/bin/git log -1 --format=%H
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.2736806Z bd63e921e7dffa1ab680ccb228ffe6d358ce70a0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3082802Z ##[group]Run actions/setup-python@v7
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3083685Z with:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3084218Z   python-version: 3.14
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3084879Z   check-latest: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3095353Z   token: ***
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3096129Z   update-environment: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3096889Z   allow-prereleases: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3097659Z   freethreaded: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3098322Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3098888Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3099629Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3100766Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3101530Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.3102198Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4300853Z ##[group]Installed versions
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4388237Z Successfully set up CPython (3.14.8)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4389804Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4565370Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4567503Z ^[[36;1mrustup toolchain install stable --profile minimal --component rustfmt^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4905696Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4906574Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4907144Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4907851Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4908578Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4909326Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4910493Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4911983Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4913450Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4914742Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4916033Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4917423Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.4918509Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.7058165Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8061964Z info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8275910Z info: removing previous version of component rustfmt
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8294069Z info: removing previous version of component clippy
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8343525Z info: removing previous version of component cargo
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8390114Z info: removing previous version of component rust-std
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8438834Z info: removing previous version of component rustc
+project-changes	UNKNOWN STEP	2026-10-20T13:50:21.8499367Z info: downloading 5 components
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0629419Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0701624Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.99.1 (58cf8f9c3 2026-10-13) (from rustc 1.99.0 (b940084d7 2026-09-28))
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0702371Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0848450Z ##[group]Run Swatinem/rust-cache@v2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0848789Z with:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0848986Z   key: default
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0849195Z   prefix-key: v0-rust
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0849427Z   add-job-id-key: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0849694Z   add-rust-environment-hash-key: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0850273Z   cache-targets: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0850544Z   cache-all-crates: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0850797Z   cache-workspace-crates: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0851060Z   save-if: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0851272Z   cache-provider: github
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0851500Z   cache-bin: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0851717Z   lookup-only: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0851928Z   cmd-format: {0}
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0852137Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0852326Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0852548Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0852771Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0853017Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0853351Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0853989Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0854418Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0854802Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0855194Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0855582Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.0855908Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5033687Z ##[group]Cache Configuration
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5034687Z Cache Provider:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5035242Z     github
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5035625Z Workspaces:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5036059Z     /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5036759Z Cache Paths:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5037121Z     /home/runner/.cargo/bin
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5037565Z     /home/runner/.cargo/.crates.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5038064Z     /home/runner/.cargo/.crates2.json
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5038545Z     /home/runner/.cargo/registry
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5038972Z     /home/runner/.cargo/git
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5039445Z     /home/runner/work/fun-refactor/fun-refactor/target
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5040170Z Restore Key:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5040636Z     v0-rust-default-project-changes-Linux-x64-d6c49be7
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5041179Z Cache Key:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5041671Z     v0-rust-default-project-changes-Linux-x64-d6c49be7-adb386b3
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5042292Z .. Prefix:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5042624Z   - v0-rust-default-project-changes-Linux-x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5043015Z .. Environment considered:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5043464Z   - Rust Versions:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5043862Z     - 1.99.1 x86_64-unknown-linux-gnu 58cf8f9c35b355199727627d07ae34a4e2846d67
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5044256Z   - CARGO_BUILD_JOBS
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5044486Z   - CARGO_INCREMENTAL
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5044715Z   - CARGO_PROFILE_DEV_DEBUG
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5044945Z   - RUSTFLAGS
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5045160Z .. Lockfiles considered:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5045494Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.lock
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5045934Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5046380Z   - /home/runner/work/fun-refactor/fun-refactor/crates/wasm-libc/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5046865Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/go/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5047329Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/lean/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5047812Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/python/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5048286Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/sass/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5048740Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/scss/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5049222Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/typescript/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5049708Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/zig/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5050945Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5051103Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5051198Z ... Restoring cache ...
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5741999Z No cache found.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5870276Z ##[group]Run cargo fmt --all
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5870605Z ^[[36;1mcargo fmt --all^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5870948Z ^[[36;1mgit diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5934582Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5934843Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5935033Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5935256Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5935481Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5935725Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5936019Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5936454Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5936876Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5937252Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5937816Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5938230Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5938564Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:30.5938785Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.0361799Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.0422404Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.0626040Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1047951Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1049361Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/call_binding.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1050572Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1051048Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1051535Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1051807Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1052850Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1477795Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1479572Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/compiler_evidence.rs:5:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1480951Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1481451Z 5 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1482009Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1482336Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1483479Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1505540Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1598722Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1726445Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1839377Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1851452Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1901066Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1902657Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/expression_control.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1903679Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1904117Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1904603Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1904882Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1906025Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.1925941Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2410665Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2412077Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/flow_cache_measurements.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2412929Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2413467Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2414013Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2414340Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2415368Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2416834Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2418223Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/flow_facts.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2419031Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2419422Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2419855Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2420286Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2421058Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2422198Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2423032Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/flow_fixed_point.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2423580Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2423828Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2424093Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2424248Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2432091Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2434739Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2435749Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/flow_summaries.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2436164Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2436353Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2436557Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2436679Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.2437140Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3253428Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3348090Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3595921Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3596965Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/imported_flow.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3597629Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3597919Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3598241Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3598438Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3599159Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3681574Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.3884985Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4860649Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4861785Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/literal_defaults.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4862471Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4862784Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4863124Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4863366Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4864523Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4924412Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.4937778Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5174898Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5176021Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/namespace_packages.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5176738Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5177040Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5177389Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5177590Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5178364Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5293248Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5321140Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5322211Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/package_flow.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5322882Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5323200Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5323550Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5323757Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5325435Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.5347639Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.6522926Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7002431Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7069841Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7071298Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/resolution_measurements.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7072071Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7072402Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7072763Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7072977Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7073749Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7163052Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7164162Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/retained_evidence.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7164895Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7165203Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7165541Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7165747Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7166539Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7191262Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7220771Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7359482Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7361026Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/scalar_assignments.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7361686Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7361967Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7362285Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7362465Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7363199Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7392803Z error: couldn't find file `/home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs`
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7393980Z  --> /home/runner/work/fun-refactor/fun-refactor/tests/semantic_evidence.rs:2:1
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7394478Z   |
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7394699Z 2 | mod retained;
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7394945Z   | ^^^^^^^^^^^^^
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7395090Z 
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7395640Z Error writing files: failed to resolve mod `retained`: /home/runner/work/fun-refactor/fun-refactor/tests/common/retained.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.7952947Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8001332Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8021225Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8051613Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8081481Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8111394Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8131530Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8151332Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8181396Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8201459Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8231415Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8261377Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8291452Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8321406Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8332048Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8333590Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8335105Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8336586Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8338039Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8339495Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8341264Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8342740Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8344511Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8345968Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8347413Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8348854Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8350491Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8398943Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8406883Z Error writing files: failed to resolve mod `common`: /home/runner/work/fun-refactor/fun-refactor/tests/common.rs does not exist
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8700731Z ##[error]Process completed with exit code 1.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8808794Z ##[group]Run actions/upload-artifact@v7
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8809095Z with:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8809298Z   name: project-change-rustfmt
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8809621Z   path: /home/runner/work/_temp/project-change-rustfmt.patch
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8810247Z   if-no-files-found: ignore
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8810540Z   retention-days: 30
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8810757Z   compression-level: 6
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8810971Z   overwrite: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8811190Z   include-hidden-files: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8811422Z   archive: true
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8811611Z env:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8811791Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8812004Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8812219Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8812458Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8812764Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8813182Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8813632Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8814008Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8814386Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8814764Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8815088Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T13:50:33.8815307Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.0251133Z No files were found with the provided path: /home/runner/work/_temp/project-change-rustfmt.patch. No artifacts will be uploaded.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.0498619Z Post job cleanup.
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1420917Z [command]/usr/bin/git version
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1456500Z git version 2.55.0
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1508816Z Temporarily overriding HOME='/home/runner/work/_temp/c3111582-2c76-464d-b9a8-3e9cfe7810e4' before making global git config changes
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1510540Z Adding repository directory to the temporary git global config as a safe directory
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1516112Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1554004Z Removing SSH command configuration
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1570785Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1613919Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1948253Z Removing HTTP extra header
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.1955230Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2000622Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2335617Z Removing includeIf entries pointing to credentials config files
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2343994Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2387167Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2388018Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2388686Z includeif.gitdir:/github/workspace/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2389195Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2398024Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2432159Z /home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2443704Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-f0ef64be\-8cd3\-44ef\-9c4a\-8bf0495f4164\.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2486381Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2515086Z /home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2523765Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-f0ef64be\-8cd3\-44ef\-9c4a\-8bf0495f4164\.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2572162Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2599582Z /github/runner_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2608623Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-f0ef64be\-8cd3\-44ef\-9c4a\-8bf0495f4164\.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2648561Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2677408Z /github/runner_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2695123Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-f0ef64be\-8cd3\-44ef\-9c4a\-8bf0495f4164\.config
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.2731550Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.3062529Z Removing credentials config '/home/runner/work/_temp/git-credentials-f0ef64be-8cd3-44ef-9c4a-8bf0495f4164.config'
+project-changes	UNKNOWN STEP	2026-10-20T13:50:34.3215141Z Cleaning up orphan processes

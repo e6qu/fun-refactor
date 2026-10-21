@@ -17,6 +17,8 @@ fn fixture() -> tempfile::TempDir {
         "grammars/python/src",
         "queries/python",
         "crates/local/src",
+        "catalogs",
+        "kernels/FrKernels",
     ] {
         fs::create_dir_all(root.path().join(path)).unwrap();
     }
@@ -29,6 +31,8 @@ fn fixture() -> tempfile::TempDir {
         ("Cargo.toml", "first manifest"),
         ("Cargo.lock", "first dependencies"),
         ("build.rs", "first builder"),
+        ("catalogs/python.yaml", "first entry points"),
+        ("kernels/FrKernels/PureKernel.lean", "first kernel"),
     ] {
         fs::write(root.path().join(path), content).unwrap();
     }
@@ -55,6 +59,8 @@ fn every_checking_input_changes_the_namespace() {
         "Cargo.toml",
         "Cargo.lock",
         "build.rs",
+        "catalogs/python.yaml",
+        "kernels/FrKernels/PureKernel.lean",
     ] {
         let root = fixture();
         let before = digest(root.path());

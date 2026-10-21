@@ -1,4 +1,4 @@
-# Move or delete files with a review and an undo
+# Edit, move or delete files with a review and an undo
 
 Suppose you want to move `old/name.rs` or delete an unused file. Inspect the proposed file operation before writing.
 `fr` checks the files against that review and keeps recovery information for supported operations.
@@ -35,6 +35,34 @@ It does not rewrite imports, references or package declarations.
 For example, moving `old/name.rs` can leave an import pointing at the old path.
 The move preserves the file and supports undo, but you must review the imports and run the build.
 Each move or deletion command records its own transaction; the sequence above contains separate plans.
+
+## Exact text replacements
+
+Suppose you renamed a Python function from `clamp` to `clamp_value`. Its documentation
+contains `.. autofunction:: boltons.mathutils.clamp`, a Sphinx instruction that imports
+the function to show its documentation. That instruction must change too.
+
+```sh
+fr -C /project file replace docs/mathutils.rst \
+  --before '.. autofunction:: boltons.mathutils.clamp' \
+  --after '.. autofunction:: boltons.mathutils.clamp_value' --matches 1 --save-plan
+fr -C /project history patch 1
+fr -C /project history apply 1 --write
+```
+
+Use the returned transaction ID in place of `1`. The saved plan keeps the exact
+replacement; applying it refuses a file that has changed since review. Undo and
+redo preserve the recorded contents and permission bits.
+
+Both texts and the expected number of matches are required. Matches are literal,
+case sensitive and nonoverlapping. A count mismatch refuses the edit. An explicit
+empty `--after ''` deletes the matched text. The source and resulting file are each
+limited to 64 KiB; the two argument texts together are limited to 64 KiB, with
+between 1 and 500 matches. Binary files and symbolic links are refused.
+
+This command checks text and snapshots. It does not resolve Python imports or
+understand Sphinx instructions. Run the project's documentation checks after the
+edit; a misspelled replacement could otherwise leave a broken reference.
 
 ## Executable permissions
 
@@ -74,7 +102,9 @@ symlink changes. Move reports `source` and `destination`.
 `requested` counts selected paths; `changed` counts recorded changes.
 `applied` and `saved` describe completed actions. Both are false for a no-op, whose `transaction` is null.
 Sorted `entries` include path, changed status, before/after existence, entry kinds, Unix modes and original byte length.
-Regular-file modes are JSON integers; symlink and absent modes are null. Reports contain no source bodies or patch hunks.
+Regular-file modes are JSON integers; symlink and absent modes are null.
+Entries contain no source bodies or patch hunks. A replacement report also includes
+the requested `before` text, `after` text and match count under `replacement`.
 `basis` identifies the changed paths' complete starting snapshots, including full modes.
 
 The validation label is `file-snapshots`.
@@ -108,7 +138,7 @@ Snapshots omit ownership, timestamps, extended attributes and symlink permission
 
 ## Patches and verification
 
-`fr history patch ID` exports both operations from recorded snapshots, including reverse patches.
+`fr history patch ID` exports these operations from recorded snapshots, including reverse patches.
 Git modes encode regular (`100644`), owner-executable (`100755`) and symlink (`120000`) entries. Applying a Git patch does not reproduce other recorded Unix permission bits.
 History apply/undo/redo preserve complete recorded regular-file modes instead.
 See [patch compatibility and checks](git-patches.md) for receiving-workspace validation.

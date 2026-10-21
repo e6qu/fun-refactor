@@ -49,6 +49,23 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(report['milestones_complete'], 3)
         self.assertEqual(report['milestones']['A']['remaining'], ['A.additional'])
 
+    def test_next_work_changes_only_after_both_project_outcomes_qualify(self):
+        for gate, name in zip(self.catalog['obligations'],
+                              ('A.exact', 'B.scalar', 'C.repository-mutations', 'D.structural')):
+            gate['id'] = name
+        page = status.markdown(self.compute())
+        self.assertIn('project-change milestone](project-change-milestone.md) now has passing original records', page)
+        self.assertIn('measure the cost of continuing a saved task', page)
+        for name in ('C.repository-mutations', 'D.structural'):
+            with self.subTest(missing=name):
+                gate = next(gate for gate in self.catalog['obligations'] if gate['id'] == name)
+                requirements = gate['requires']
+                gate['requires'] = []
+                page = status.markdown(self.compute())
+                self.assertIn('Finish the [project-change checks]', page)
+                self.assertNotIn('now has passing original records', page)
+                gate['requires'] = requirements
+
     def test_demonstrated_gates_do_not_hide_unfinished_engineering(self):
         path = self.root / 'PLAN.md'
         path.write_text(path.read_text().replace('[x]', '[ ]', 1))

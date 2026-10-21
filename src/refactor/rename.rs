@@ -145,6 +145,13 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             if !seen_spans.insert((reference.file.clone(), reference.span)) {
                 continue;
             }
+            if symbol.language == Language::Python
+                && reference.language == Language::Python
+                && reference.confidence == Confidence::ImportQualified
+                && reference.name != symbol.name
+            {
+                continue;
+            }
             if reference.confidence.is_safe_to_rewrite() || declared_receiver_reaches(reference) {
                 // `Facts { count }` reads the local and writes the field in one identifier, so
                 // rewriting that identifier renames both.

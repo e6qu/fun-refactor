@@ -132,7 +132,7 @@ def messages_of(path: Path) -> str:
                 or re.search(r"\blambda\b[^:\n]*:", raw) is not None)
         if len(raw) > 40 and " " in raw and not code and not raw.startswith(("@", "(", "fr ", "http")):
             out.append(raw)
-    return "\n".join(out)
+    return "\n\n".join(out)
 
 
 def sentences(text: str):

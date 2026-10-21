@@ -16,12 +16,14 @@ on:
           - retained-proofs
           - agent-guide-context
           - completion-workflows
+          - structural-change
           - intent-action-context
           - index-resolution
           - host-recovery
           - flow
           - dependency
           - contexts
+          - sdk-contexts
           - compiler-evidence
           - resumable-correspondence
           - semantic-evidence
@@ -67,6 +69,14 @@ on:
           - retain-contract-failure
           - fixed-arity-probes
           - go-toolchain
+          - project-change-inspect
+          - project-change-development
+          - project-change-consumer-scope
+          - project-change-delivery
+          - project-change-findings
+          - project-change-freeze
+          - project-change-held-out
+          - project-change-retain
       collection_run:
         description: Successful collection run ID for Python or workflow retention
         required: false
@@ -103,10 +113,343 @@ concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
-  refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-')
+  project-changes:
+    if: startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github
+            src
+            grammars
+            crates
+            queries
+            catalogs
+            kernels
+            sdk/python/src
+            sdk/python/tests
+            tools
+            tests/agent-eval/project-changes
+            tests/agent-eval/change-scope
+            tests/agent-eval/package-questions
+            tests/agent-eval/python-repository-flow
+            tests/agent-eval/python-repositories/boltons.tar.gz
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out
+            tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/receipt.json
+            tests/native_fingerprint.rs
+            tests/common
+            tests/fixtures
+            recipes
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Format project-change support on the runner
+        if: inputs.group == 'project-change-development'
+        run: |
+          cargo fmt --all
+          git diff -- src tests > "$RUNNER_TEMP/project-change-rustfmt.patch"
+      - run: cargo build --locked --bin fr
+      - name: Synchronize the reviewed admission rule through fr
+        if: inputs.group == 'project-change-development'
+        run: |
+          target/debug/fr --json -C . spec sync kernels/FrKernels/Project.lean --write > "$RUNNER_TEMP/project-change-spec-sync.json"
+          git diff -- src kernels tests > "$RUNNER_TEMP/project-change-rustfmt.patch"
+      - name: Use fr to inspect its own change and invalidation code
+        id: inspection
+        run: >-
+          python3 -B tools/project-changes.py inspect --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-inspection"
+      - name: Check reviewed Python and Rust changes and saved findings
+        if: inputs.group == 'project-change-development'
+        run: |
+          python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+          ty check sdk/python/src
+          python3 -B tools/test-native-source-inputs.py
+          python3 -B tools/test-project-change-gate.py
+          cargo test --locked --test native_fingerprint
+          cargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
+          cargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits
+          cargo test --locked --lib rust_complementary_cfg
+          cargo test --locked --lib a_call_through_an_import_alias_resolves_to_the_original
+          cargo test --locked --lib text_replacement_
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py sdk/python/tests/test_change_scope.py
+      - name: Recheck earlier package questions with the current checker
+        id: prior-questions
+        if: inputs.group == 'project-change-development'
+        run: |
+          cargo build --locked --bin fr
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+          python3 -B tools/package_question_replay.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-prior-questions"
+      - name: Prepare original project checks
+        if: contains(fromJSON('["project-change-delivery", "project-change-freeze", "project-change-retain"]'), inputs.group)
+        run: python3 -m pip install 'pytest==9.1.1'
+      - name: Replay consumer discovery and delivery with the current report
+        id: consumer-scope
+        if: inputs.group == 'project-change-consumer-scope'
+        run: >-
+          python3 -B tools/change-scope-acceptance.py --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-consumer-scope"
+      - name: Deliver original Rust and Python renames through fr
+        id: delivery
+        if: inputs.group == 'project-change-delivery'
+        run: >-
+          python3 -B tools/project-changes.py delivery --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-delivery"
+      - name: Build and demonstrate the real checker difference
+        id: checkers
+        if: contains(fromJSON('["project-change-findings", "project-change-freeze", "project-change-held-out", "project-change-retain"]'), inputs.group)
+        run: >-
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr
+          --output "$RUNNER_TEMP/project-change-checkers"
+      - name: Reopen findings after changes to original familiar projects
+        id: findings
+        if: inputs.group == 'project-change-findings'
+        run: >-
+          python3 -B tools/project-changes.py findings
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          --output "$RUNNER_TEMP/project-change-findings"
+      - name: Record the checked procedure before opening unread source
+        id: freeze
+        if: inputs.group == 'project-change-freeze'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.evidence_runs }}
+        run: >-
+          python3 -B tools/project_change_gate.py --runs "$RUNS"
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+      - name: Run the first reserved unread-project evaluation
+        id: held-out
+        if: inputs.group == 'project-change-held-out'
+        run: >-
+          python3 -B tools/project-changes.py held-out
+          --fr "$RUNNER_TEMP/project-change-checkers/production-fr"
+          --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          --output "$RUNNER_TEMP/project-change-held-out"
+      - name: Audit and retain every original project outcome
+        id: retention
+        if: inputs.group == 'project-change-retain'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          FAILURES: ${{ inputs.failure_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B tools/retain-project-changes.py --run "$COLLECTION_RUN" \
+            --failures "$FAILURES" --prefix "$EVIDENCE_PREFIX" \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+          python3 -B tools/test-project-change-audit.py \
+            --report "tests/agent-eval/results/$EVIDENCE_PREFIX-project-changes/result.json" \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: project-change-rustfmt
+          path: |
+            ${{ runner.temp }}/project-change-rustfmt.patch
+            ${{ runner.temp }}/project-change-spec-sync.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.inspection.outcome != 'skipped'
+        with:
+          name: project-change-inspection
+          path: ${{ runner.temp }}/project-change-inspection/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.delivery.outcome != 'skipped'
+        with:
+          name: project-change-delivery
+          path: ${{ runner.temp }}/project-change-delivery/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.checkers.outcome != 'skipped'
+        with:
+          name: project-change-checkers
+          path: |
+            ${{ runner.temp }}/project-change-checkers/*.json
+            ${{ runner.temp }}/project-change-checkers/*.patch
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.findings.outcome != 'skipped'
+        with:
+          name: project-change-findings
+          path: ${{ runner.temp }}/project-change-findings/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.freeze.outcome != 'skipped'
+        with:
+          name: project-change-freeze
+          path: |
+            tests/agent-eval/project-changes/freeze.json
+            tests/agent-eval/project-changes/qualification/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.held-out.outcome != 'skipped'
+        with:
+          name: project-change-held-out
+          path: ${{ runner.temp }}/project-change-held-out/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.retention.outcome != 'skipped'
+        with:
+          name: retained-project-changes
+          path: |
+            tests/agent-eval/results/${{ inputs.prefix }}-project-changes/
+            tests/agent-eval/roadmap.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.prior-questions.outcome != 'skipped'
+        with:
+          name: project-change-prior-questions
+          path: ${{ runner.temp }}/project-change-prior-questions/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.consumer-scope.outcome != 'skipped'
+        with:
+          name: project-change-consumer-scope
+          path: ${{ runner.temp }}/project-change-consumer-scope/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+  record-consumer-scope:
+    if: inputs.group == 'project-change-consumer-scope' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/download-artifact@v8
+        with:
+          name: project-change-consumer-scope
+          path: tests/agent-eval/results/${{ inputs.prefix }}-change-scope
+      - name: Verify the new record and point CI at it
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          prefix = os.environ['EVIDENCE_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          directory = 'tests/agent-eval/results/' + prefix + '-change-scope'
+          subprocess.run(['python3', '-B', 'tools/change-scope-acceptance.py', '--audit', directory], check=True)
+          test = Path('tests/agent_acceptance.rs')
+          text, count = re.subn(r'"tests/agent-eval/results/[^"/]+-change-scope"',
+              '"' + directory + '"', test.read_text())
+          assert count == 1
+          test.write_text(text)
+          for name in ('docs/change-scopes.md', 'docs/evaluations.md'):
+              path = Path(name)
+              text, count = re.subn(r'\.\./tests/agent-eval/results/[^/()]+-change-scope/manifest\.json',
+                  '../' + directory + '/manifest.json', path.read_text())
+              assert count == 1
+              path.write_text(text)
+          PY
+      - name: Commit the checked record and its references
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-change-scope" tests/agent_acceptance.rs docs/change-scopes.md docs/evaluations.md
+          git commit -m 'test: retain current consumer discovery and checked delivery'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  record-project-change-freeze:
+    if: inputs.group == 'project-change-freeze' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: project-change-freeze
+          path: tests/agent-eval/project-changes
+      - name: Commit the qualified implementation and original familiar records
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/agent-eval/project-changes/freeze.json tests/agent-eval/project-changes/qualification
+          git commit -m 'test: freeze project changes before the unread evaluation'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  record-project-change-results:
+    if: inputs.group == 'project-change-retain' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    needs: project-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: retained-project-changes
+          path: tests/agent-eval
+      - name: Commit the audited results and tracking requirements
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-project-changes" tests/agent-eval/roadmap.json
+          git commit -m 'test: retain checked real project changes and reconcile tracking'
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  refresh:
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -231,9 +574,12 @@ jobs:
           python-version: '3.14'
       - name: Check writing and source identity controls
         run: |
+          python3 -B tools/test-check-prose.py
           python3 -B tools/check-prose.py
           python3 -B tools/test_flow_cache_basis.py
           python3 -B tools/test-retain-ci-reports.py
+      - name: Prepare the recorded Rust formatter for updated test references
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
       - name: Retain and audit fresh CI reports
         env:
           GH_TOKEN: ${{ github.token }}
@@ -248,7 +594,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs docs/roadmap-status.json docs/roadmap-status.md
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-"* tests/agent-eval/roadmap.json tests/retained_proofs.rs tests/agent_acceptance.rs tests/correspondence.rs tests/consumer_measurements.rs tests/completion_workflows.rs tests/structural_change.rs tests/python_sdk.rs tools/agent_eval/test_harness.py docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain fresh workflow and recovery reports'
           git push origin "HEAD:refs/heads/$BRANCH"
 
@@ -428,6 +774,7 @@ jobs:
         run: python3 -B tools/test-python-contract.py
       - name: Check writing counts and exact generated results
         run: |
+          python3 -B tools/test-check-prose.py
           python3 -c 'import runpy; runpy.run_path("tools/check-agent-skill.py")["check_bundle"]()'
           python3 -B tools/check-prose.py
           python3 -B tools/roadmap-status.py --check
@@ -440,10 +787,10 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if ! git diff --quiet; then
+          git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
+          if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
             git commit -m 'docs: refresh generated reader guides and writing counts'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
@@ -1320,7 +1667,7 @@ jobs:
           python3 -c 'import runpy; runpy.run_path("tools/check-agent-skill.py")["check_bundle"]()'
       - name: Check independent source and relationship pagination
         run: cargo test --locked --test project_explore_pages --test project_explore_budgets -- --test-threads 1
-      - name: Compare complete index outputs with the pinned baseline
+      - name: Measure current indexing and verify the unchanged smaller workloads
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7
         if: always()

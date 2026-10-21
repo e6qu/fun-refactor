@@ -8,6 +8,16 @@ A change scope lists the callers and tests found for the requested change.
 For `subtotal(price)`, adding a required `tax` slot means updating calls that previously supplied only `price`.
 Inspect missing relationships before promising every caller is updated; after applying the change, run the behavior test.
 
+For a local source question, select the original file explicitly:
+
+```sh
+fr --json -C src/project/structural_change.rs project find plan --source --bytes 65536
+```
+
+The Python SDK accepts the same selection with `FrClient(path_to_source_file, ...)`.
+This reads that file. Select the project directory when discovering callers across files.
+`--in` filters a directory query's results; it does not narrow the files indexed for that query.
+
 ## Commands, results and limits
 
 `refactor` author operations reuse the native rename and signature planners through revision-bound
@@ -16,14 +26,20 @@ candidate check, and reject any resulting file outside that scope. Preview shows
 multi-file diff. Existing history, checked outcomes, reversal and patch delivery apply unchanged.
 
 ```python
+from pathlib import Path
+
 from fr_ir.change_scope import ChangeScope
 from fr_ir.ir import TaskChange, TaskDelivery
+from fr_ir.runtime import FrClient
 from fr_ir.structural_change import RefactorRequest
 
+client = FrClient(Path("/project"), executable=Path("/path/to/fr"),
+                  timeout=20, max_output_bytes=1048576)
 handle = client.project("find", "subtotal").definition_target().handle
-scope = ChangeScope.inspect(client, [handle])
+scope = ChangeScope.inspect(client, [handle], depth=4, nodes=128,
+                            references=512, max_bytes=65536)
 change = scope.bind(TaskChange([], [
-    RefactorRequest.rename("sum_values").target("rename", handle),
+    RefactorRequest.rename("sum_values", documentation="preserve").target("rename", handle),
     RefactorRequest.remove_parameter(2).target("remove-legacy", handle),
 ], {"files-changed": 2}, ["behavior"], TaskDelivery(patch="artifacts/migration.patch"),
     acceptance_checks=["behavior"]))
@@ -32,9 +48,16 @@ review = client.review(change)
 result = client.execute(review)
 ```
 
+Replace the two absolute paths with the project and executable you intend to use.
+The example assumes a Rust `subtotal` with an unused third parameter, literal
+arguments at its callers, and a project-declared `behavior` check for both files.
+The client limits each command to 20 seconds and 1 MiB of output. Discovery follows
+at most four caller steps, 128 declarations and 512 references, returning at most
+65,536 bytes. Inspect an unfinished scope before attempting an edit.
+
 The fragment for a `refactor` target is JSON. It accepts one of these shapes:
 
-- `{"operation":"rename","name":"sum_values"}`
+- `{"operation":"rename","name":"sum_values","documentation":"preserve"}`
 - `{"operation":"remove-parameter","index":2}`
 - `{"operation":"move-parameter","from":0,"to":1}`
 
@@ -45,7 +68,13 @@ mutation; scope-bound task delivery adds the required discovery and check select
 
 ## Which changes this route can handle
 
-Targets are Rust free functions. Renames retain the existing collision and capture checks and refuse
+Renames support Rust and Python free functions. They require an explicit documentation policy: `preserve` or `update`.
+`update` includes matching comments, Markdown and documentation strings; ordinary executable strings remain unresolved.
+For example, a docstring showing `subtotal(2, 3)` can follow the new name, while `getattr(module, "subtotal")` still refuses.
+Text mentions and their file check associations must be included in the reviewed change scope.
+Other document formats can use a separate [exact text transaction](file-transactions.md#exact-text-replacements)
+with their own check, then contribute to the complete delivered patch.
+Signature changes remain limited to Rust. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
 Signature changes retain unused-parameter and function-value refusals from the native planner.
 Every parameter must have an explicit primitive integer, Boolean or character type. Every indexed

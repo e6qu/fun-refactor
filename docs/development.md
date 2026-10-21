@@ -41,7 +41,8 @@ cargo build --locked
 cargo run --locked --features cli -- --version
 ```
 
-The check script defines the same gates as CI. The default and WASM lanes run on pull requests.
+The check script covers the native, Python and WASM suites. These run on pull requests.
+CI also audits the original package and project-change records in separate required jobs.
 The deep lane runs repository-scale audits, every Lean case and external consumer replays.
 GitHub splits the command-agreement tests into six shards and runs the other audit suites and
 external replay cohorts separately. Each job has a 15-minute limit; runner queue time can make the

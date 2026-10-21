@@ -138,7 +138,6 @@ fn generic_receivers_qualify_by_the_bare_type_name() {
 fn the_receiver_type_is_a_reference_not_a_second_definition() {
     let src = "package p\n\ntype Point struct{}\n\nfunc (p *Point) M() {}\n";
     let f = go(src);
-    // Exactly one definition of Point, so a rename has exactly one definition site.
     let point = sym(&f, "Point");
     assert_eq!(point.kind, SymbolKind::Struct);
 
@@ -211,7 +210,6 @@ fn grouped_declarations_report_one_symbol_per_spec() {
     let f = go(src);
     assert_eq!(names_of(&f, SymbolKind::Constant), vec!["A", "b"]);
     assert_eq!(names_of(&f, SymbolKind::Variable), vec!["C", "d"]);
-    // The definition span is the spec.
     assert_eq!(sym(&f, "A").full_span.text(src), "A = 1");
 }
 
@@ -231,7 +229,6 @@ fn package_clause_is_a_module_definition() {
     let p = sym(&f, "widgets");
     assert_eq!(p.kind, SymbolKind::Module);
     assert_eq!(p.name_span.text(src), "widgets");
-    // Importers can name the package, so it is visible outside the file.
     assert!(p.exported);
 }
 

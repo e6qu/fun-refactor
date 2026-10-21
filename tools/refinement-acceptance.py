@@ -125,7 +125,7 @@ def measure(binary, output):
                 python = client.project("find", "permits").definition_target().handle
                 scope = ChangeScope.inspect(client, [rust, python])
                 assert scope.ready, scope.report.to_data()
-                change = scope.bind(TaskChange([], [RefactorRequest.rename("permits").target("rename", rust),
+                change = scope.bind(TaskChange([], [RefactorRequest.rename("permits", documentation="preserve").target("rename", rust),
                     RefactorRequest.remove_parameter(2).target("remove", rust),
                     TaskTarget("translation", python, "replace-body", fragment="return not b and a")],
                     {"files-changed": 3, "paths-changed": list(FILES)}, ["truth-table"],

@@ -22,6 +22,7 @@ from fr_ir.investigation_delivery import DeliveryReceipt, run_delivery
 from fr_ir.ir import TaskChange, TaskDelivery
 from fr_ir.runtime import FrClient, FrRuntimeError
 from fr_ir.structural_change import RefactorRequest
+from evidence_basis import native_source_bindings
 
 FIXTURE = ROOT/"tests/agent-eval/structural-change"
 FILES = ("pricing.rs", "api.rs", "main.rs")
@@ -41,6 +42,11 @@ def save(path, value):
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bindings():
+    return {**native_source_bindings(ROOT), **{name: sha(ROOT/name) for name in BINDINGS},
+        **{str(path.relative_to(ROOT)): sha(path) for path in (ROOT/'sdk/python/src').rglob('*.py')}}
 
 
 def run(args, root):
@@ -75,7 +81,7 @@ def deliver(binary, project, output, scope_root):
     store = DirectoryObjectStore(output/"objects")
     scope = ChangeScope.restore(store, scope_root)
     handle = client.project("find", "subtotal").definition_target().handle
-    targets = [RefactorRequest.rename("sum_values").target("rename", handle),
+    targets = [RefactorRequest.rename("sum_values", documentation="preserve").target("rename", handle),
                RefactorRequest.remove_parameter(2).target("remove", handle)]
     change = scope.bind(TaskChange([], targets, {"files-changed": 2,
         "paths-changed": ["pricing.rs", "api.rs"], "changed-operations": 2},
@@ -130,7 +136,7 @@ def measure(binary, output):
                 metrics = json.loads(run(args, ROOT).stdout)
                 plan = TaskPlan.restore(DirectoryObjectStore(output/"objects"), metrics["plan_root"])
                 assert plan.resume(FrClient(root, executable=binary)).complete
-                old_target = RefactorRequest.rename("another").target("stale", handle)
+                old_target = RefactorRequest.rename("another", documentation="preserve").target("stale", handle)
                 stale = scope.bind(TaskChange([], [old_target], {"files-changed": 2}, ["behavior"]))
                 try:
                     client.review(stale)
@@ -153,6 +159,7 @@ def measure(binary, output):
     result["rustc"] = run(["rustc", "-vV"], ROOT).stdout
     save(output/"result.json", result)
     save(output/"manifest.json", {"schema": "fr-structural-change-artifacts-1",
+        "source_bindings": bindings(),
         "source_commit": run(["git", "rev-parse", "HEAD"], ROOT).stdout.strip(), "binary_sha256": sha(binary),
         "files": {str(p.relative_to(output)): sha(p) for p in sorted(output.rglob("*")) if p.is_file()}})
     return audit(output)
@@ -161,6 +168,7 @@ def measure(binary, output):
 def audit(output):
     manifest = json.loads((output/"manifest.json").read_text())
     assert manifest["schema"] == "fr-structural-change-artifacts-1"
+    assert manifest['source_bindings'] == bindings(), 'structural migration inputs changed'
     for name, digest in manifest["files"].items():
         assert not Path(name).is_absolute() and ".." not in Path(name).parts
         assert sha(output/name) == digest, name

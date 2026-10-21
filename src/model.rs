@@ -269,6 +269,25 @@ pub struct Reference {
 }
 
 impl Reference {
+    pub fn may_name(&self, symbol: &Symbol) -> bool {
+        self.expects.is_none_or(|expected| symbol.kind == expected)
+            && match self.kind {
+                ReferenceKind::Namespace => matches!(
+                    symbol.kind,
+                    SymbolKind::Module
+                        | SymbolKind::Struct
+                        | SymbolKind::Enum
+                        | SymbolKind::Trait
+                        | SymbolKind::TypeAlias
+                ),
+                ReferenceKind::Attribute => symbol.kind == SymbolKind::Function,
+                ReferenceKind::Call if self.language == Language::Rust => {
+                    symbol.kind != SymbolKind::Module
+                }
+                _ => true,
+            }
+    }
+
     /// This reference's confidence, in the form a refusal requires.
     pub fn resolved_confidence(&self) -> ResolvedConfidence {
         ResolvedConfidence(self.confidence)
@@ -281,6 +300,10 @@ impl Reference {
 pub enum ReferenceKind {
     /// A plain identifier use.
     Identifier,
+    /// A Rust path prefix, which names a module or type rather than a value.
+    Namespace,
+    /// A Rust attribute; procedural macro resolution remains unestablished.
+    Attribute,
     /// The callee of a call expression.
     Call,
     /// A type position.
@@ -411,6 +434,8 @@ pub struct FileFacts {
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
+    /// Declarations selected by a flag and its negation, without choosing a build target.
+    pub conditional_groups: Vec<Vec<SymbolId>>,
     pub references: Vec<Reference>,
     pub scopes: Vec<Scope>,
     pub imports: Vec<Import>,

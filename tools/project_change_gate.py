@@ -1,0 +1,156 @@
+"""Record successful familiar checks before admitting the reserved unread project."""
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import shutil
+
+from project_change_sources import bindings, save
+from project_change_sources import digest
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'sdk/python/src'))
+from project_change_records import audit_delivery, audit_findings
+
+ROOT = Path(__file__).resolve().parents[1]
+FREEZE = ROOT / 'tests/agent-eval/project-changes/freeze.json'
+
+
+def retained_tools():
+    spec = importlib.util.spec_from_file_location('scalar_retention', ROOT / 'tools/retain-scalar-evidence.py')
+    scalar = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scalar)
+    return scalar
+
+
+def attempts(repository, branch, through):
+    scalar = retained_tools()
+    from urllib.parse import urlencode
+    cutoff = scalar.retain.api(f'repos/{repository}/actions/runs/{through}')['created_at']
+    route = f'repos/{repository}/actions/workflows/refinement-evidence.yml/runs'
+    query = urlencode({'branch': branch, 'per_page': 100, 'created': '<=' + cutoff})
+    listing = scalar.retain.api(f'{route}?{query}&page=1')
+    runs = list(listing['workflow_runs'])
+    for page in range(2, (listing['total_count'] + 99) // 100 + 1):
+        runs.extend(scalar.retain.api(f'{route}?{query}&page={page}')['workflow_runs'])
+    assert len({run['id'] for run in runs}) == len(runs) == listing['total_count'], \
+        'the attempt listing changed while reading its pages'
+    result = []
+    for run in runs:
+        if run['id'] > through:
+            continue
+        jobs = scalar.retain.api(f'repos/{repository}/actions/runs/{run["id"]}/jobs?filter=all&per_page=100')['jobs']
+        project_jobs = [job for job in jobs if job['name'] == 'project-changes' and job['conclusion'] != 'skipped']
+        if project_jobs:
+            result.append({'run': run, 'jobs': project_jobs})
+    return sorted(result, key=lambda row: row['run']['id'])
+
+
+def capture(run_id, name, destination, repository, result_name, expected_bindings):
+    scalar = retained_tools()
+    retain = scalar.retain
+    run = retain.api(f'repos/{repository}/actions/runs/{run_id}')
+    assert run['status'] == 'completed' and run['conclusion'] == 'success'
+    assert run['run_attempt'] == 1 and run['event'] == 'workflow_dispatch'
+    artifacts = retain.api(f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+    matches = [item for item in artifacts if item['name'] == name and not item['expired']]
+    assert len(matches) == 1 and matches[0]['size_in_bytes'] <= 16 * 1024**2
+    artifact = matches[0]
+    archive = retain.download_artifact(repository, artifact['id'])
+    data = scalar.files(archive, artifact['digest'])
+    result = json.loads(data[result_name])
+    jobs = retain.api(f'repos/{repository}/actions/runs/{run_id}/jobs?filter=all&per_page=100')['jobs']
+    identity = retain.collection(run, artifact, result, repository, jobs, name, 'project-changes')
+    assert result['source_bindings'] == expected_bindings, 'collection inputs differ from the committed procedure'
+    destination.mkdir(parents=True, exist_ok=False)
+    (destination / 'artifact.zip').write_bytes(archive)
+    save(destination / 'identity.json', {'collection': identity, 'run': run, 'artifact': artifact,
+        'producer': next(job for job in jobs if job['id'] == identity['producer_job_id'])})
+    for name, content in data.items():
+        target = destination / 'files' / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    return result, identity
+
+
+def freeze(args):
+    assert os.environ.get('GITHUB_ACTIONS') == 'true', 'freeze on a GitHub runner'
+    assert not FREEZE.exists(), 'preserve the original implementation freeze'
+    assert not subprocess.check_output(['git', 'status', '--porcelain', '--', *bindings(ROOT)],
+        cwd=ROOT, text=True).strip(), 'commit all evaluation inputs before freezing'
+    repository = os.environ['GITHUB_REPOSITORY']
+    destination = ROOT / 'tests/agent-eval/project-changes/qualification'
+    development, development_identity = capture(args.development_run, 'project-change-inspection',
+        destination / 'development', repository, 'scope.json', bindings(ROOT))
+    assert development['passed'] is True and development['source_clean'] is True
+    delivery, delivery_identity = capture(args.delivery_run, 'project-change-delivery',
+        destination / 'delivery', repository, 'result.json', bindings(ROOT))
+    findings, findings_identity = capture(args.findings_run, 'project-change-findings',
+        destination / 'findings', repository, 'result.json', bindings(ROOT))
+    checkers, checkers_identity = capture(args.findings_run, 'project-change-checkers',
+        destination / 'checkers', repository, 'checkers.json', bindings(ROOT))
+    import package_question_replay
+    prior, prior_identity = capture(args.development_run, 'project-change-prior-questions',
+        destination / 'prior-questions', repository, 'result.json', package_question_replay.bindings())
+    assert prior['complete'] is True and prior['all_projects_familiar'] is True
+    package_question_replay.audit(destination / 'prior-questions/files')
+    for phase, result in [('delivery', delivery), ('findings', findings)]:
+        assert result['passed'] is True and result['phase'] == phase
+        assert result['unread_project_opened'] is False
+        assert [row['project'] for row in result['projects']] == ['glob', 'boltons']
+        assert all(row[phase]['passed'] is True for row in result['projects'])
+    assert delivery['binary_sha256'] == findings['binary_sha256'] == checkers['production']['sha256']
+    assert checkers['production']['sha256'] != checkers['alternate']['sha256']
+    assert checkers['control']['production']['accepted'] is True
+    assert checkers['control']['alternate']['accepted'] is False
+    assert checkers['invalidation_control']['invalidated'] == ['analyzer', 'declarations']
+    assert checkers['invalidation_control']['independent_source_retained'] is True
+    assert digest(args.fr) == checkers['production']['sha256']
+    assert digest(args.alternate) == checkers['alternate']['sha256']
+    tasks = json.loads((ROOT / 'tests/agent-eval/project-changes/tasks.json').read_text())
+    for task in tasks['projects']:
+        if task['role'] != 'development':
+            continue
+        audit_delivery(task, destination / 'delivery/files' / task['id'], tasks['limits'], args.fr)
+        audit_findings(task, destination / 'findings/files' / task['id'], tasks['limits'], args.fr, args.alternate)
+    assert len({development_identity['source_commit'], delivery_identity['source_commit'],
+                findings_identity['source_commit']}) == 1, 'qualify one committed implementation and procedure'
+    inventory = attempts(repository, os.environ['GITHUB_REF_NAME'], int(os.environ['GITHUB_RUN_ID']))
+    failed = [row['run']['id'] for row in inventory if row['run']['conclusion'] in ('failure', 'cancelled')]
+    save(destination / 'attempts.json', inventory)
+    save(FREEZE, {'implementation_commit': development_identity['source_commit'],
+        'input_bindings': bindings(ROOT), 'production_sha256': checkers['production']['sha256'],
+        'alternate_sha256': checkers['alternate']['sha256'], 'repository': repository,
+        'successful_runs': {'development': development_identity, 'delivery': delivery_identity,
+                            'findings': findings_identity, 'checkers': checkers_identity},
+        'prior_questions': prior_identity,
+        'development_failures': failed,
+        'unread_project': 'humanize', 'unread_implementation_opened': False})
+    for directory in destination.iterdir():
+        if directory.is_dir():
+            shutil.rmtree(directory / 'files')
+
+
+def admit(binary, alternate):
+    frozen = json.loads(FREEZE.read_text())
+    assert frozen['input_bindings'] == bindings(ROOT), 'implementation or procedure changed after qualification'
+    assert hashlib.sha256(binary.read_bytes()).hexdigest() == frozen['production_sha256']
+    assert hashlib.sha256(alternate.read_bytes()).hexdigest() == frozen['alternate_sha256']
+    assert frozen['unread_implementation_opened'] is False and frozen['unread_project'] == 'humanize'
+    return frozen
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--runs', required=True, help='JSON map with development, delivery and findings run IDs')
+    parser.add_argument('--fr', type=Path, required=True)
+    parser.add_argument('--alternate', type=Path, required=True)
+    args = parser.parse_args()
+    runs = json.loads(args.runs)
+    assert set(runs) == {'development', 'delivery', 'findings'}
+    assert len(set(runs.values())) == 3 and all(type(value) is int and value > 0 for value in runs.values())
+    args.development_run, args.delivery_run, args.findings_run = (runs[key] for key in ('development', 'delivery', 'findings'))
+    freeze(args)

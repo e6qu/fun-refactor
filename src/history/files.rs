@@ -12,6 +12,24 @@ use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Review exact replacements in one bounded UTF-8 text file.")]
+    Replace {
+        path: PathBuf,
+        #[arg(long, help = "Exact nonempty text to replace.")]
+        before: String,
+        #[arg(
+            long,
+            help = "Literal replacement text, including an explicit empty value for deletion."
+        )]
+        after: String,
+        #[arg(
+            long,
+            help = "Required number of nonoverlapping matches, from 1 through 500."
+        )]
+        matches: usize,
+        #[arg(long)]
+        write: bool,
+    },
     #[command(about = "Record an exact file move to a currently absent path.")]
     Move {
         #[arg(help = "Workspace-relative source file path.")]
@@ -61,6 +79,11 @@ pub enum Executable {
 
 #[derive(Clone, Copy)]
 enum Operation<'a> {
+    Replace {
+        before: &'a str,
+        after: &'a str,
+        matches: usize,
+    },
     Delete,
     Executable(Executable),
     Symlink(&'a str),
@@ -138,6 +161,25 @@ fn plan(root: &Path, paths: &[PathBuf], operation: Operation<'_>) -> Result<Vec<
         if !seen.insert(absolute.clone()) {
             bail!("duplicate file target {}", path.display());
         }
+        if let Operation::Replace {
+            before,
+            after,
+            matches,
+        } = operation
+        {
+            if before.is_empty()
+                || before == after
+                || before.contains('\0')
+                || after.contains('\0')
+                || before.len() + after.len() > 65_536
+                || !(1..=500).contains(&matches)
+            {
+                bail!("replacement needs distinct bounded UTF-8 text and 1 through 500 explicit matches");
+            }
+            if std::fs::symlink_metadata(&absolute)?.len() > 65_536 {
+                bail!("text replacement source exceeds 64 KiB");
+            }
+        }
         let before = snapshot(&absolute)?;
         if before
             .as_ref()
@@ -149,6 +191,30 @@ fn plan(root: &Path, paths: &[PathBuf], operation: Operation<'_>) -> Result<Vec<
             );
         }
         let after = match operation {
+            Operation::Replace {
+                before: expected,
+                after: replacement,
+                matches,
+            } => {
+                let original = before
+                    .as_ref()
+                    .context("text replacement needs an existing file")?;
+                if original.kind != SnapshotKind::Regular {
+                    bail!("text replacement requires a regular file");
+                }
+                let actual = original.content.matches(expected).count();
+                if actual != matches {
+                    bail!("text replacement expected {matches} matches; found {actual}");
+                }
+                let bytes =
+                    original.content.len() - expected.len() * actual + replacement.len() * actual;
+                if bytes > 65_536 {
+                    bail!("text replacement result exceeds 64 KiB");
+                }
+                let mut updated = original.clone();
+                updated.content = original.content.replace(expected, replacement);
+                Some(updated)
+            }
             Operation::Delete => {
                 before
                     .as_ref()
@@ -266,6 +332,27 @@ pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value>
     }
     let one_path;
     let (paths, operation, write, name, set, link_target) = match command {
+        Command::Replace {
+            path,
+            before,
+            after,
+            matches,
+            write,
+        } => {
+            one_path = vec![path.clone()];
+            (
+                &one_path,
+                Operation::Replace {
+                    before,
+                    after,
+                    matches: *matches,
+                },
+                *write,
+                "replace",
+                None,
+                None,
+            )
+        }
         Command::Move { .. } => unreachable!(),
         Command::Delete { paths, write } => {
             (paths, Operation::Delete, *write, "delete", None, None)
@@ -319,12 +406,21 @@ pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value>
     } else {
         None
     };
-    Ok(json!({
+    let mut report = json!({
         "schema": 1, "workspace_root": root, "operation": name,
         "set": set, "target": link_target, "mode_scope": set.map(|_| "owner-execute"), "validation": "file-snapshots",
         "basis": basis, "transaction": transaction, "applied": write && transaction.is_some(),
         "saved": save_plan && transaction.is_some(), "requested": paths.len(), "changed": changed, "entries": entries
-    }))
+    });
+    if let Operation::Replace {
+        before,
+        after,
+        matches,
+    } = operation
+    {
+        report["replacement"] = json!({"before": before, "after": after, "matches": matches});
+    }
+    Ok(report)
 }
 
 #[cfg(test)]
@@ -333,6 +429,128 @@ mod tests {
     use crate::history::{act, Action, FAULT};
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn text_replacement_review_apply_undo_redo_preserves_modes_and_utf8() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("api.rst");
+        fs::write(&path, "λ clamp\nclamp\n").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o1640)).unwrap();
+        let original = snapshot(&path).unwrap();
+        let command = Command::Replace {
+            path: "api.rst".into(),
+            before: "clamp".into(),
+            after: "clamp_value".into(),
+            matches: 2,
+            write: false,
+        };
+        let preview = execute(dir.path(), &command, false).unwrap();
+        assert_eq!(preview["changed"], 1);
+        assert!(preview["transaction"].is_null());
+        assert_eq!(snapshot(&path).unwrap(), original);
+        assert_eq!(
+            execute(dir.path(), &command, true).unwrap()["transaction"],
+            1
+        );
+        assert_eq!(snapshot(&path).unwrap(), original);
+        act(dir.path(), Action::Apply, 1, true).unwrap();
+        let changed = snapshot(&path).unwrap();
+        assert_eq!(
+            changed.as_ref().unwrap().content,
+            "λ clamp_value\nclamp_value\n"
+        );
+        assert_eq!(
+            changed.as_ref().unwrap().mode,
+            original.as_ref().unwrap().mode
+        );
+        act(dir.path(), Action::Undo, 1, true).unwrap();
+        assert_eq!(snapshot(&path).unwrap(), original);
+        act(dir.path(), Action::Redo, 1, true).unwrap();
+        assert_eq!(snapshot(&path).unwrap(), changed);
+    }
+
+    #[test]
+    fn text_replacement_refuses_wrong_counts_bounds_links_and_stale_reviews() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let path = root.join("api.rst");
+        fs::write(&path, "clamp clamp\n").unwrap();
+        for (before, after, matches) in [
+            ("clamp", "new", 1),
+            ("", "new", 2),
+            ("clamp", "clamp", 2),
+            ("clamp", "new", 0),
+            ("clamp", "new", 501),
+            ("clamp", "\0", 2),
+        ] {
+            let command = Command::Replace {
+                path: "api.rst".into(),
+                before: before.into(),
+                after: after.into(),
+                matches,
+                write: true,
+            };
+            assert!(execute(root, &command, false).is_err());
+            assert_eq!(fs::read_to_string(&path).unwrap(), "clamp clamp\n");
+            assert!(History::read(root).unwrap().records.is_empty());
+        }
+        std::os::unix::fs::symlink("api.rst", root.join("link")).unwrap();
+        assert!(plan(
+            root,
+            &["link".into()],
+            Operation::Replace {
+                before: "api",
+                after: "other",
+                matches: 1
+            }
+        )
+        .is_err());
+        fs::write(&path, "x".repeat(65_537)).unwrap();
+        assert!(plan(
+            root,
+            &["api.rst".into()],
+            Operation::Replace {
+                before: "x",
+                after: "",
+                matches: 1
+            }
+        )
+        .is_err());
+        fs::write(&path, "x".repeat(65_536)).unwrap();
+        assert!(plan(
+            root,
+            &["api.rst".into()],
+            Operation::Replace {
+                before: &"x".repeat(65_536),
+                after: "y",
+                matches: 1
+            }
+        )
+        .is_err());
+        fs::write(&path, "x".repeat(65_535) + "z").unwrap();
+        assert!(plan(
+            root,
+            &["api.rst".into()],
+            Operation::Replace {
+                before: "z",
+                after: "zz",
+                matches: 1
+            }
+        )
+        .is_err());
+        fs::write(&path, "clamp\n").unwrap();
+        let command = Command::Replace {
+            path: "api.rst".into(),
+            before: "clamp".into(),
+            after: "clamp_value".into(),
+            matches: 1,
+            write: false,
+        };
+        execute(root, &command, true).unwrap();
+        fs::write(&path, "newer work\n").unwrap();
+        assert!(act(root, Action::Apply, 1, true).is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "newer work\n");
+    }
 
     fn setup(root: &Path, executable: bool, action: Action) {
         for (name, content) in [("first.txt", "before λ\n"), ("second.txt", "")] {

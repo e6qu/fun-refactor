@@ -1,0 +1,37 @@
+{
+  "command": [
+    "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+    "-I",
+    "-B",
+    "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+    "--worker",
+    "/home/runner/work/_temp/project-change-prior-questions/dateutil/renamed-relocated-steps/request.json"
+  ],
+  "elapsed_seconds": 2.014648128000033,
+  "exit_code": 0,
+  "launch_error": null,
+  "limits": {
+    "cpu_seconds": 10,
+    "disk_bytes": 16777216,
+    "rss_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "wall_seconds": 20
+  },
+  "monitor_error": null,
+  "process_exit_code": 0,
+  "result": {
+    "complete": false,
+    "cutoffs": [
+      "step-budget"
+    ],
+    "witnesses": 0
+  },
+  "sampled_aggregate_rss_bytes": 88612864,
+  "sampled_cpu_seconds": 4.0,
+  "sampled_disk_growth_bytes": 336353,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "8181d349aece76ab8048934e2edcaa5415ec3569fe7636309d9d3bac42b887fc",
+  "stop_reason": null,
+  "timed_out": false,
+  "transcript_bytes": 64
+}

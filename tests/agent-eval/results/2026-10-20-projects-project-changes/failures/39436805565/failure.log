@@ -1,0 +1,920 @@
+project-changes	UNKNOWN STEP	﻿2026-10-20T14:11:21.2881439Z Current runner version: '2.337.0'
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2905766Z ##[group]Runner Image Provisioner
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2906731Z Hosted Compute Agent
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2907365Z Version: 20261015.610
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2908019Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2908853Z Build Date: 2026-10-14T17:06:54Z
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2909560Z Worker ID: {3a2b66ef-5bae-4c4c-8b06-6d136a89ac41}
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2910402Z Region: westus
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2911222Z Cloud: Azure
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2911780Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2913375Z ##[group]Operating System
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2914045Z Ubuntu
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2914570Z 24.04.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2915163Z LTS
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2915694Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2916316Z ##[group]Runner Image
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2917002Z Image: ubuntu-24.04
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2917559Z Version: 20261018.339.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2918903Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2920509Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2922203Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2923377Z ##[group]GITHUB_TOKEN Permissions
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2925331Z Contents: read
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2925990Z Metadata: read
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2926722Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2928814Z Secret source: Actions
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2929898Z Cache mode: write
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.2930992Z Prepare workflow directory
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.3349155Z Prepare all required actions
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.3397193Z Getting action download info
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.6982961Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:21.8180543Z Download action repository 'actions/setup-python@v7' (SHA:5fda3b95a4ea91299a34e894583c3862153e4b97)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.0237164Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.4109025Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.6267475Z Complete job name: project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7190495Z ##[group]Run actions/checkout@v7
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7191624Z with:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7193054Z   sparse-checkout: .github
+project-changes	UNKNOWN STEP	src
+project-changes	UNKNOWN STEP	grammars
+project-changes	UNKNOWN STEP	crates
+project-changes	UNKNOWN STEP	queries
+project-changes	UNKNOWN STEP	catalogs
+project-changes	UNKNOWN STEP	kernels
+project-changes	UNKNOWN STEP	sdk/python/src
+project-changes	UNKNOWN STEP	sdk/python/tests
+project-changes	UNKNOWN STEP	tools
+project-changes	UNKNOWN STEP	tests/agent-eval/project-changes
+project-changes	UNKNOWN STEP	tests/native_fingerprint.rs
+project-changes	UNKNOWN STEP	tests/common
+project-changes	UNKNOWN STEP	tests/fixtures
+project-changes	UNKNOWN STEP	recipes
+project-changes	UNKNOWN STEP	
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7194590Z   repository: e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7198604Z   token: ***
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7199029Z   ssh-strict: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7199454Z   ssh-user: git
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7199896Z   persist-credentials: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7200382Z   clean: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7200995Z   sparse-checkout-cone-mode: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7201513Z   fetch-depth: 1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7201938Z   fetch-tags: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7202412Z   show-progress: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7202843Z   lfs: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7203239Z   submodules: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7203885Z   set-safe-directory: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7204488Z   allow-unsafe-pr-checkout: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7205338Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7205745Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7206187Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7206641Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7207223Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.7207809Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8218107Z Syncing repository: e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8219868Z ##[group]Getting Git version info
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8220999Z Working directory is '/home/runner/work/fun-refactor/fun-refactor'
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8222142Z [command]/usr/bin/git version
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8334441Z git version 2.55.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8361533Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8374299Z Temporarily overriding HOME='/home/runner/work/_temp/1912b958-956d-438d-a7ab-d82800ff1e4d' before making global git config changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8376856Z Adding repository directory to the temporary git global config as a safe directory
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8383497Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8434649Z Deleting the contents of '/home/runner/work/fun-refactor/fun-refactor'
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8438166Z ##[group]Determining repository object format
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8439651Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8440387Z ##[group]Initializing the repository
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8445227Z [command]/usr/bin/git init /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8546001Z hint: Using 'master' as the name for the initial branch. This default branch name
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8547436Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8548835Z hint: to use in all of your new repositories, which will suppress this warning,
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8550158Z hint: call:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8551129Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8551984Z hint: 	git config --global init.defaultBranch <name>
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8553011Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8553627Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8554557Z hint: 'development'. The just-created branch can be renamed via this command:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8555299Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8555715Z hint: 	git branch -m <name>
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8556191Z hint:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8556808Z hint: Disable this message with "git config set advice.defaultBranchName false"
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8561962Z Initialized empty Git repository in /home/runner/work/fun-refactor/fun-refactor/.git/
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8574510Z [command]/usr/bin/git remote add origin https://github.com/e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8626598Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8628180Z ##[group]Disabling automatic garbage collection
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8629645Z [command]/usr/bin/git config --local gc.auto 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8666749Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8667894Z ##[group]Setting up auth
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8668685Z Removing SSH command configuration
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8674601Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.8721357Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9121719Z Removing HTTP extra header
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9123573Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9155383Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9416461Z Removing includeIf entries pointing to credentials config files
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9421690Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9476199Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9725012Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9774131Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path /home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9816844Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9864729Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9907890Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9949045Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9950229Z ##[group]Fetching the repository
+project-changes	UNKNOWN STEP	2026-10-20T14:11:22.9955960Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin +c9f5fc08276d0a82931bb3b2df79639c2f705a9a:refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7891224Z From https://github.com/e6qu/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7892195Z  * [new ref]         c9f5fc08276d0a82931bb3b2df79639c2f705a9a -> origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7901155Z [command]/usr/bin/git branch --list --remote origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7941088Z   origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7949225Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7986022Z c9f5fc08276d0a82931bb3b2df79639c2f705a9a
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7991032Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7992147Z ##[group]Determining the checkout info
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7993242Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7994219Z ##[group]Setting up sparse checkout
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.7996645Z [command]/usr/bin/git sparse-checkout set .github src grammars crates queries catalogs kernels sdk/python/src sdk/python/tests tools tests/agent-eval/project-changes tests/native_fingerprint.rs tests/common tests/fixtures recipes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.8056068Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.8057146Z ##[group]Checking out the ref
+project-changes	UNKNOWN STEP	2026-10-20T14:11:23.8060337Z [command]/usr/bin/git checkout --progress --force -B feat/real-project-changes refs/remotes/origin/feat/real-project-changes
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6168399Z Updating files:   0% (1/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6176444Z Updating files:   1% (13/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6207445Z Updating files:   2% (25/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6216984Z Updating files:   3% (37/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6223993Z Updating files:   4% (49/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6233903Z Updating files:   5% (61/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.6385132Z Updating files:   6% (73/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.7988997Z Updating files:   7% (85/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8076530Z Updating files:   8% (97/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8084260Z Updating files:   9% (109/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8131943Z Updating files:  10% (122/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8266518Z Updating files:  11% (134/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8360485Z Updating files:  12% (146/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8437301Z Updating files:  13% (158/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8581891Z Updating files:  14% (170/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8591992Z Updating files:  15% (182/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8596028Z Updating files:  16% (194/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8606090Z Updating files:  17% (206/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8614971Z Updating files:  18% (218/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8627922Z Updating files:  19% (231/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8639753Z Updating files:  20% (243/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8651276Z Updating files:  21% (255/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8664247Z Updating files:  22% (267/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8675192Z Updating files:  23% (279/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8685326Z Updating files:  24% (291/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8695128Z Updating files:  25% (303/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8705388Z Updating files:  26% (315/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8714573Z Updating files:  27% (327/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8719072Z Updating files:  27% (336/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8736393Z Updating files:  28% (340/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8753974Z Updating files:  29% (352/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8776360Z Updating files:  30% (364/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8786835Z Updating files:  31% (376/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8798931Z Updating files:  32% (388/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8811680Z Updating files:  33% (400/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8824863Z Updating files:  34% (412/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8840736Z Updating files:  35% (424/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8855312Z Updating files:  36% (436/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8871807Z Updating files:  37% (449/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8884142Z Updating files:  38% (461/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8897554Z Updating files:  39% (473/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8910453Z Updating files:  40% (485/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8922706Z Updating files:  41% (497/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8953083Z Updating files:  42% (509/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.8977824Z Updating files:  43% (521/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9028845Z Updating files:  44% (533/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9046489Z Updating files:  45% (545/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9056071Z Updating files:  46% (558/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9068821Z Updating files:  47% (570/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9078944Z Updating files:  48% (582/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9094884Z Updating files:  49% (594/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9107451Z Updating files:  50% (606/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9116586Z Updating files:  51% (618/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9124072Z Updating files:  52% (630/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9135274Z Updating files:  53% (642/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9147104Z Updating files:  54% (654/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9156510Z Updating files:  55% (667/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9170901Z Updating files:  56% (679/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9181949Z Updating files:  57% (691/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9190228Z Updating files:  58% (703/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9205246Z Updating files:  59% (715/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9216663Z Updating files:  60% (727/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9237279Z Updating files:  61% (739/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9250643Z Updating files:  62% (751/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9259809Z Updating files:  63% (763/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9269011Z Updating files:  64% (776/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9279090Z Updating files:  65% (788/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9289570Z Updating files:  66% (800/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9297224Z Updating files:  67% (812/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9305100Z Updating files:  68% (824/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9312875Z Updating files:  69% (836/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9320813Z Updating files:  70% (848/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9331247Z Updating files:  71% (860/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9342801Z Updating files:  72% (872/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9352997Z Updating files:  73% (885/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9360893Z Updating files:  74% (897/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9370942Z Updating files:  75% (909/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9380042Z Updating files:  76% (921/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9389667Z Updating files:  77% (933/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9398007Z Updating files:  78% (945/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9409708Z Updating files:  79% (957/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9422159Z Updating files:  80% (969/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9433292Z Updating files:  81% (981/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9444251Z Updating files:  82% (994/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9451226Z Updating files:  83% (1006/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9462970Z Updating files:  84% (1018/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9471496Z Updating files:  85% (1030/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9480428Z Updating files:  86% (1042/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9488385Z Updating files:  87% (1054/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9497564Z Updating files:  88% (1066/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9506405Z Updating files:  89% (1078/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9518725Z Updating files:  90% (1090/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9533071Z Updating files:  91% (1103/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9541781Z Updating files:  92% (1115/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9553224Z Updating files:  93% (1127/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9563342Z Updating files:  94% (1139/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9571917Z Updating files:  95% (1151/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9579026Z Updating files:  96% (1163/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9589669Z Updating files:  97% (1175/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9598771Z Updating files:  98% (1187/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9609394Z Updating files:  99% (1199/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9609825Z Updating files: 100% (1211/1211)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:27.9610139Z Updating files: 100% (1211/1211), done.
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0265279Z Switched to a new branch 'feat/real-project-changes'
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0272643Z branch 'feat/real-project-changes' set up to track 'origin/feat/real-project-changes'.
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0329246Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0392612Z [command]/usr/bin/git log -1 --format=%H
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0432080Z c9f5fc08276d0a82931bb3b2df79639c2f705a9a
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0696874Z ##[group]Run actions/setup-python@v7
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0697176Z with:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0697373Z   python-version: 3.14
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0697611Z   check-latest: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0700346Z   token: ***
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0700568Z   update-environment: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0701137Z   allow-prereleases: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0701394Z   freethreaded: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0701630Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0701810Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0702022Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0702243Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0702504Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.0702734Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.1890909Z ##[group]Installed versions
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.1974076Z Successfully set up CPython (3.14.8)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.1974977Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2079529Z ##[group]Run rustup toolchain install stable --profile minimal --component rustfmt
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2080216Z ^[[36;1mrustup toolchain install stable --profile minimal --component rustfmt^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2392730Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2393039Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2393250Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2393486Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2393910Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2394412Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2395092Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2396085Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2397122Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2398000Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2398783Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2399507Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.2400075Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.6129634Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.9582684Z info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.9883733Z info: component rustfmt is up to date
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.9897155Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.9980248Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:28.9981044Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0116576Z ##[group]Run Swatinem/rust-cache@v2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0116862Z with:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0117049Z   key: default
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0117247Z   prefix-key: v0-rust
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0117465Z   add-job-id-key: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0117723Z   add-rust-environment-hash-key: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0117994Z   cache-targets: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0118209Z   cache-all-crates: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0118452Z   cache-workspace-crates: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0118803Z   save-if: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0119105Z   cache-provider: github
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0119478Z   cache-bin: true
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0119808Z   lookup-only: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0120018Z   cmd-format: {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0120214Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0120393Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0120826Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0121151Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0121391Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0121753Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0122203Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0122629Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0123007Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0123611Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0124001Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:11:29.0124330Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9928937Z ##[group]Cache Configuration
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9929611Z Cache Provider:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9930109Z     github
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9930857Z Workspaces:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9931362Z     /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9931908Z Cache Paths:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9932284Z     /home/runner/.cargo/bin
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9932722Z     /home/runner/.cargo/.crates.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9933322Z     /home/runner/.cargo/.crates2.json
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9933831Z     /home/runner/.cargo/registry
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9934301Z     /home/runner/.cargo/git
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9934828Z     /home/runner/work/fun-refactor/fun-refactor/target
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9935346Z Restore Key:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9935849Z     v0-rust-default-project-changes-Linux-x64-d6c49be7
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9936446Z Cache Key:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9937044Z     v0-rust-default-project-changes-Linux-x64-d6c49be7-adb386b3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9937732Z .. Prefix:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9938139Z   - v0-rust-default-project-changes-Linux-x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9938726Z .. Environment considered:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9939158Z   - Rust Versions:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9939752Z     - 1.99.1 x86_64-unknown-linux-gnu 58cf8f9c35b355199727627d07ae34a4e2846d67
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9940484Z   - CARGO_BUILD_JOBS
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9941138Z   - CARGO_INCREMENTAL
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9941549Z   - CARGO_PROFILE_DEV_DEBUG
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9942006Z   - RUSTFLAGS
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9942364Z .. Lockfiles considered:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9942866Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.lock
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9943532Z   - /home/runner/work/fun-refactor/fun-refactor/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9944349Z   - /home/runner/work/fun-refactor/fun-refactor/crates/wasm-libc/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9945315Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/go/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9946254Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/lean/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9947215Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/python/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9948166Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/sass/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9949081Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/scss/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9950051Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/typescript/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9951310Z   - /home/runner/work/fun-refactor/fun-refactor/grammars/zig/Cargo.toml
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9952911Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9953181Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:11:30.9953355Z ... Restoring cache ...
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2512646Z No cache found.
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2634235Z ##[group]Run cargo fmt --all
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2634551Z ^[[36;1mcargo fmt --all^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2634904Z ^[[36;1mgit diff -- src > "$RUNNER_TEMP/project-change-rustfmt.patch"^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2688867Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2689111Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2689299Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2689517Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2689736Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2689983Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2690276Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2690992Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2691449Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2691840Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2692222Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2692667Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2693003Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:31.2693400Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9506080Z ##[group]Run cargo build --locked --bin fr
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9506453Z ^[[36;1mcargo build --locked --bin fr^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9557920Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9558166Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9558355Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9558572Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9558791Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9559166Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9559557Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9559992Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9560410Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9561059Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9561448Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9561830Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9562215Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:11:36.9562441Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.3674991Z     Updating crates.io index
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7291537Z  Downloading crates ...
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7560422Z   Downloaded anstyle-query v1.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7581652Z   Downloaded anstream v1.0.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7604875Z   Downloaded is_terminal_polyfill v1.70.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7615421Z   Downloaded anstyle v1.0.14
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7629182Z   Downloaded anstyle-parse v1.0.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7644966Z   Downloaded cpufeatures v0.3.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7661277Z   Downloaded hash32 v0.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7677937Z   Downloaded strsim v0.11.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7695738Z   Downloaded crossbeam-utils v0.8.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7730953Z   Downloaded proc-macro2 v1.0.107
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7761170Z   Downloaded aho-corasick v1.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7812283Z   Downloaded heapless v0.7.17
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7847800Z   Downloaded tracing-log v0.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7860887Z   Downloaded embedded-io v0.6.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7873430Z   Downloaded fixedbitset v0.5.7
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7890662Z   Downloaded byteorder v1.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7905653Z   Downloaded tree-sitter-json v0.24.8
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7919450Z   Downloaded quote v1.0.47
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.7945074Z   Downloaded clap_builder v4.6.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8007350Z   Downloaded clap_lex v1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8017927Z   Downloaded crypto-common v0.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8030499Z   Downloaded equivalent v1.0.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8041793Z   Downloaded matchers v0.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8054741Z   Downloaded rustc_version v0.4.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8068881Z   Downloaded cfg-if v1.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8087865Z   Downloaded heck v0.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8103874Z   Downloaded lock_api v0.4.14
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8119792Z   Downloaded postcard v1.1.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8150826Z   Downloaded bstr v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8241386Z   Downloaded utf8parse v0.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8250380Z   Downloaded zmij v1.0.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8274328Z   Downloaded colorchoice v1.0.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8301918Z   Downloaded toml_parser v1.1.3+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8319756Z   Downloaded anyhow v1.0.104
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8357413Z   Downloaded tree-sitter-html v0.23.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8373856Z   Downloaded walkdir v2.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8390640Z   Downloaded const-oid v0.10.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8412887Z   Downloaded ignore v0.4.33
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8435867Z   Downloaded rayon-core v1.13.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8470783Z   Downloaded tracing-attributes v0.1.31
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8495798Z   Downloaded fastrand v2.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8508875Z   Downloaded foldhash v0.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8520268Z   Downloaded globset v0.4.20
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8534197Z   Downloaded unicode-ident v1.0.24
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8560166Z   Downloaded unsafe-libyaml v0.2.11
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8590333Z   Downloaded tree-sitter-css v0.25.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8613308Z   Downloaded tree-sitter-hcl v1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8639116Z   Downloaded tree-sitter-xml v0.7.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8670721Z   Downloaded tree-sitter-yaml v0.7.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8711044Z   Downloaded typenum v1.20.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8744419Z   Downloaded unicode-normalization v0.1.25
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8777124Z   Downloaded tree-sitter-java v0.23.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8827072Z   Downloaded winnow v1.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8918661Z   Downloaded tracing-subscriber v0.3.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.8997508Z   Downloaded tree-sitter v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9077974Z   Downloaded tree-sitter-md-025 v0.5.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9169291Z   Downloaded tree-sitter-bash v0.25.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9314657Z   Downloaded tree-sitter-rust v0.24.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9423097Z   Downloaded bitflags v2.13.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9465027Z   Downloaded scopeguard v1.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9476745Z   Downloaded itoa v1.0.18
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9490244Z   Downloaded same-file v1.0.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9503180Z   Downloaded stable_deref_trait v1.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9511103Z   Downloaded cobs v0.3.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9524290Z   Downloaded errno v0.3.14
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9538181Z   Downloaded thread_local v1.1.10
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9550649Z   Downloaded hex v0.4.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9566099Z   Downloaded block-buffer v0.12.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9577708Z   Downloaded toml_writer v1.1.2+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9590855Z   Downloaded shlex v2.0.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9603510Z   Downloaded smallvec v1.16.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9615520Z   Downloaded streaming-iterator v0.1.9
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9627062Z   Downloaded thiserror-impl v2.0.20
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9640295Z   Downloaded nu-ansi-term v0.50.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9662609Z   Downloaded thiserror v2.0.20
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9722875Z   Downloaded pin-project-lite v0.2.17
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9777173Z   Downloaded toml_datetime v1.1.1+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9789183Z   Downloaded either v1.18.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9803421Z   Downloaded find-msvc-tools v0.1.12
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9818165Z   Downloaded digest v0.11.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9841881Z   Downloaded embedded-io v0.4.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9857768Z   Downloaded crossbeam-deque v0.8.8
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9872028Z   Downloaded hybrid-array v0.4.15
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9895543Z   Downloaded once_cell v1.21.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9919807Z   Downloaded semver v1.0.28
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9941513Z   Downloaded lazy_static v1.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9958081Z   Downloaded spin v0.9.9
+project-changes	UNKNOWN STEP	2026-10-20T14:11:37.9979615Z   Downloaded tempfile v3.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0003638Z   Downloaded clap_derive v4.6.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0024617Z   Downloaded sha2 v0.11.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0060076Z   Downloaded sharded-slab v0.1.7
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0092258Z   Downloaded tinyvec v1.13.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0125024Z   Downloaded clap v4.6.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0215711Z   Downloaded getrandom v0.4.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0250903Z   Downloaded serde_derive v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0279889Z   Downloaded serde_yaml v0.9.34+deprecated
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0311956Z   Downloaded tracing-core v0.1.36
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0338379Z   Downloaded crossbeam-epoch v0.9.21
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0361990Z   Downloaded log v0.4.34
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0385509Z   Downloaded ryu v1.0.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0416254Z   Downloaded serde_core v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0442278Z   Downloaded toml_edit v0.25.15+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0478954Z   Downloaded serde v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0511869Z   Downloaded similar v3.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0546017Z   Downloaded cc v1.4.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0574994Z   Downloaded memchr v2.8.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0626872Z   Downloaded indexmap v2.14.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0667304Z   Downloaded serde_json v1.0.151
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0736304Z   Downloaded hashbrown v0.15.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0783242Z   Downloaded regex v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0833601Z   Downloaded hashbrown v0.17.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0883856Z   Downloaded rayon v1.12.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.0972701Z   Downloaded syn v3.0.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1074453Z   Downloaded syn v2.0.119
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1175034Z   Downloaded regex-syntax v0.8.11
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1239057Z   Downloaded rustix v1.1.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1493433Z   Downloaded tracing v0.1.44
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1647157Z   Downloaded regex-automata v0.4.18
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1782193Z   Downloaded petgraph v0.8.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.1987089Z   Downloaded libc v0.2.189
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.2403149Z   Downloaded linux-raw-sys v0.12.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.9091483Z    Compiling shlex v2.0.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:38.9101756Z    Compiling find-msvc-tools v0.1.12
+project-changes	UNKNOWN STEP	2026-10-20T14:11:44.5818161Z    Compiling cc v1.4.6
+project-changes	UNKNOWN STEP	2026-10-20T14:11:44.5844169Z    Compiling tree-sitter-language v0.1.8 (/home/runner/work/fun-refactor/fun-refactor/crates/tree-sitter-language)
+project-changes	UNKNOWN STEP	2026-10-20T14:11:46.1042719Z    Compiling proc-macro2 v1.0.107
+project-changes	UNKNOWN STEP	2026-10-20T14:11:47.3180799Z    Compiling unicode-ident v1.0.24
+project-changes	UNKNOWN STEP	2026-10-20T14:11:47.4223777Z    Compiling quote v1.0.47
+project-changes	UNKNOWN STEP	2026-10-20T14:11:47.5293774Z    Compiling memchr v2.8.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:48.1983311Z    Compiling hashbrown v0.17.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:48.3400446Z    Compiling syn v3.0.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:48.6098334Z    Compiling equivalent v1.0.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:48.6372253Z    Compiling indexmap v2.14.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:49.2328877Z    Compiling zmij v1.0.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:49.3401046Z    Compiling aho-corasick v1.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:50.6106118Z    Compiling crossbeam-utils v0.8.23
+project-changes	UNKNOWN STEP	2026-10-20T14:11:50.7137460Z    Compiling typenum v1.20.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:50.9362250Z    Compiling serde_core v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:51.0502037Z    Compiling itoa v1.0.18
+project-changes	UNKNOWN STEP	2026-10-20T14:11:51.1402263Z    Compiling regex-syntax v0.8.11
+project-changes	UNKNOWN STEP	2026-10-20T14:11:51.4611251Z    Compiling cfg-if v1.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:51.4971647Z    Compiling hybrid-array v0.4.15
+project-changes	UNKNOWN STEP	2026-10-20T14:11:52.3981875Z    Compiling regex-automata v0.4.18
+project-changes	UNKNOWN STEP	2026-10-20T14:11:52.7940954Z    Compiling crossbeam-epoch v0.9.21
+project-changes	UNKNOWN STEP	2026-10-20T14:11:52.8733093Z    Compiling serde_json v1.0.151
+project-changes	UNKNOWN STEP	2026-10-20T14:11:55.7789611Z    Compiling once_cell v1.21.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:55.8812773Z    Compiling semver v1.0.28
+project-changes	UNKNOWN STEP	2026-10-20T14:11:56.0413380Z    Compiling crossbeam-deque v0.8.8
+project-changes	UNKNOWN STEP	2026-10-20T14:11:56.1263843Z    Compiling serde v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:56.2576321Z    Compiling rustc_version v0.4.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:56.5942359Z    Compiling block-buffer v0.12.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:56.6648779Z    Compiling crypto-common v0.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.1213927Z    Compiling serde_derive v1.0.229
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.2945263Z    Compiling utf8parse v0.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.3315533Z    Compiling scopeguard v1.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.3637014Z    Compiling const-oid v0.10.2
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.4959234Z    Compiling thiserror v2.0.20
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.6229192Z    Compiling libc v0.2.189
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.7739755Z    Compiling log v0.4.34
+project-changes	UNKNOWN STEP	2026-10-20T14:11:57.9274853Z    Compiling digest v0.11.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.0114632Z    Compiling lock_api v0.4.14
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.1449299Z    Compiling anstyle-parse v1.0.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.2249718Z    Compiling tree-sitter v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.4271982Z    Compiling heapless v0.7.17
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.5070014Z    Compiling tracing-core v0.1.36
+project-changes	UNKNOWN STEP	2026-10-20T14:11:58.8386374Z    Compiling thiserror-impl v2.0.20
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.5261033Z    Compiling syn v2.0.119
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.5791601Z    Compiling anstyle-query v1.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.6150314Z    Compiling getrandom v0.4.3
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.6981901Z    Compiling rustix v1.1.4
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.8338489Z    Compiling colorchoice v1.0.5
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.8717687Z    Compiling rayon-core v1.13.0
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.9321658Z    Compiling cpufeatures v0.3.1
+project-changes	UNKNOWN STEP	2026-10-20T14:11:59.9554309Z    Compiling byteorder v1.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:00.0483502Z    Compiling anstyle v1.0.14
+project-changes	UNKNOWN STEP	2026-10-20T14:12:00.1532091Z    Compiling is_terminal_polyfill v1.70.2
+project-changes	UNKNOWN STEP	2026-10-20T14:12:00.1829072Z    Compiling anstream v1.0.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:00.3394586Z    Compiling hash32 v0.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:00.4433954Z    Compiling sha2 v0.11.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:02.6636415Z    Compiling tracing-attributes v0.1.31
+project-changes	UNKNOWN STEP	2026-10-20T14:12:03.3654042Z    Compiling spin v0.9.9
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.3803930Z    Compiling bstr v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.6691099Z    Compiling fun-refactor-lean-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/lean)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.7412346Z    Compiling fun-refactor-zig-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/zig)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.8117106Z    Compiling fun-refactor-typescript-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/typescript)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.8856274Z    Compiling fun-refactor-scss-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/scss)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:04.9570182Z    Compiling fun-refactor-sass-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/sass)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.0286998Z    Compiling fun-refactor-python-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/python)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.0999421Z    Compiling fun-refactor-go-grammar v0.78.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/go)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.1708975Z    Compiling tree-sitter-json v0.24.8
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.2407152Z    Compiling tree-sitter-java v0.23.5
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.3098570Z    Compiling tree-sitter-html v0.23.2
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.3795255Z    Compiling tree-sitter-hcl v1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.4511407Z    Compiling tree-sitter-css v0.25.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.5320400Z    Compiling tree-sitter-bash v0.25.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.6031891Z    Compiling tree-sitter-yaml v0.7.2
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.6762315Z    Compiling tree-sitter-xml v0.7.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.7511359Z    Compiling tree-sitter-rust v0.24.2
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.8227410Z    Compiling tree-sitter-md-025 v0.5.6
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.9059735Z    Compiling pin-project-lite v0.2.17
+project-changes	UNKNOWN STEP	2026-10-20T14:12:05.9378159Z    Compiling foldhash v0.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.0094654Z    Compiling linux-raw-sys v0.12.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.2361729Z    Compiling lazy_static v1.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.2679342Z    Compiling same-file v1.0.6
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.3245110Z    Compiling stable_deref_trait v1.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.3491901Z    Compiling strsim v0.11.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.5327914Z    Compiling clap_lex v1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.6282736Z    Compiling anyhow v1.0.104
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.7414011Z    Compiling bitflags v2.13.2
+project-changes	UNKNOWN STEP	2026-10-20T14:12:06.8497466Z    Compiling winnow v1.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:12:07.6568479Z    Compiling heck v0.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:07.8183632Z    Compiling clap_derive v4.6.4
+project-changes	UNKNOWN STEP	2026-10-20T14:12:08.8429906Z    Compiling toml_parser v1.1.3+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:11.0081459Z    Compiling clap_builder v4.6.6
+project-changes	UNKNOWN STEP	2026-10-20T14:12:13.4209573Z    Compiling walkdir v2.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:13.5694375Z    Compiling sharded-slab v0.1.7
+project-changes	UNKNOWN STEP	2026-10-20T14:12:13.8849613Z    Compiling hashbrown v0.15.5
+project-changes	UNKNOWN STEP	2026-10-20T14:12:14.2421677Z    Compiling tracing v0.1.44
+project-changes	UNKNOWN STEP	2026-10-20T14:12:21.5281502Z    Compiling globset v0.4.20
+project-changes	UNKNOWN STEP	2026-10-20T14:12:22.0088247Z    Compiling cobs v0.3.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:22.4791764Z    Compiling fun-refactor v0.78.0 (/home/runner/work/fun-refactor/fun-refactor)
+project-changes	UNKNOWN STEP	2026-10-20T14:12:22.8180878Z    Compiling tracing-log v0.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:22.9218548Z    Compiling matchers v0.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:22.9748563Z    Compiling regex v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:23.2355089Z    Compiling thread_local v1.1.10
+project-changes	UNKNOWN STEP	2026-10-20T14:12:23.3392124Z    Compiling fixedbitset v0.5.7
+project-changes	UNKNOWN STEP	2026-10-20T14:12:23.4987836Z    Compiling unsafe-libyaml v0.2.11
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.0079388Z    Compiling nu-ansi-term v0.50.3
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.1689134Z    Compiling smallvec v1.16.1
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.2885583Z    Compiling fastrand v2.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.4110076Z    Compiling toml_writer v1.1.2+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.5243951Z    Compiling either v1.18.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.6315296Z    Compiling ryu v1.0.23
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.7172278Z    Compiling toml_datetime v1.1.1+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:24.8342071Z    Compiling tinyvec v1.13.3
+project-changes	UNKNOWN STEP	2026-10-20T14:12:25.0970115Z    Compiling streaming-iterator v0.1.9
+project-changes	UNKNOWN STEP	2026-10-20T14:12:25.7445064Z    Compiling unicode-normalization v0.1.25
+project-changes	UNKNOWN STEP	2026-10-20T14:12:26.1072659Z    Compiling toml_edit v0.25.15+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:26.9202389Z    Compiling serde_yaml v0.9.34+deprecated
+project-changes	UNKNOWN STEP	2026-10-20T14:12:27.9142428Z    Compiling rayon v1.12.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:29.1671924Z    Compiling tempfile v3.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:29.3692383Z    Compiling tracing-subscriber v0.3.23
+project-changes	UNKNOWN STEP	2026-10-20T14:12:29.6040932Z    Compiling petgraph v0.8.3
+project-changes	UNKNOWN STEP	2026-10-20T14:12:30.7312029Z    Compiling postcard v1.1.3
+project-changes	UNKNOWN STEP	2026-10-20T14:12:30.9324027Z    Compiling ignore v0.4.33
+project-changes	UNKNOWN STEP	2026-10-20T14:12:31.5631719Z    Compiling clap v4.6.6
+project-changes	UNKNOWN STEP	2026-10-20T14:12:31.8692545Z    Compiling similar v3.2.0
+project-changes	UNKNOWN STEP	2026-10-20T14:12:32.4965990Z    Compiling hex v0.4.3
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.5608479Z     Finished `dev` profile [unoptimized] target(s) in 1m 37s
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6206064Z ##[group]Run target/debug/fr --json -C . spec sync kernels/FrKernels/Project.lean --write > "$RUNNER_TEMP/project-change-spec-sync.json"
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6207875Z ^[[36;1mtarget/debug/fr --json -C . spec sync kernels/FrKernels/Project.lean --write > "$RUNNER_TEMP/project-change-spec-sync.json"^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6209246Z ^[[36;1mgit diff -- src kernels > "$RUNNER_TEMP/project-change-rustfmt.patch"^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6287291Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6287743Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6288094Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6288519Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6288949Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6289395Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6289922Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6290999Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6291824Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6292578Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6293324Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6294108Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6294758Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:13:14.6295199Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7727267Z ##[group]Run python3 -B tools/project-changes.py inspect --fr target/debug/fr --output "$RUNNER_TEMP/project-change-inspection"
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7728226Z ^[[36;1mpython3 -B tools/project-changes.py inspect --fr target/debug/fr --output "$RUNNER_TEMP/project-change-inspection"^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7779489Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7779733Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7779920Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7780143Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7780364Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7780837Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7781197Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7781640Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7782082Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7782485Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7782914Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7783300Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7783631Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:13:15.7783853Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7577492Z ##[group]Run python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7577987Z ^[[36;1mpython3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7578335Z ^[[36;1mty check sdk/python/src^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7578656Z ^[[36;1mpython3 -B tools/test-native-source-inputs.py^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7579021Z ^[[36;1mcargo test --locked --test native_fingerprint^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7579541Z ^[[36;1mcargo test --locked --lib rust_path_prefixes_and_attributes_do_not_name_same_spelled_values^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7580248Z ^[[36;1mcargo test --locked --lib unresolved_procedural_attributes_still_block_same_named_function_edits^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7581644Z ^[[36;1mPYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py sdk/python/tests/test_investigation.py^[[0m
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7631997Z shell: /usr/bin/bash -e {0}
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7632250Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7632473Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7632696Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7632916Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7633152Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7633452Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7633894Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7634317Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7634689Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7635062Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7635438Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7635767Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:13:20.7635989Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.1199412Z Collecting pytest==9.1.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.1671361Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.2952204Z Collecting ty==0.0.80
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.2998998Z   Downloading ty-0.0.80-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.4 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3113915Z Collecting iniconfig>=1.0.1 (from pytest==9.1.1)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3142587Z   Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3277087Z Collecting packaging>=22 (from pytest==9.1.1)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3304799Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3409220Z Collecting pluggy<2,>=1.5 (from pytest==9.1.1)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3437628Z   Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3596284Z Collecting pygments>=2.7.2 (from pytest==9.1.1)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3626790Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3697918Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.3910229Z Downloading ty-0.0.80-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (13.7 MB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.4825989Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.7/13.7 MB 155.7 MB/s  0:00:00
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.4856298Z Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.4905761Z Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.4955853Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.5007730Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.5072495Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 236.6 MB/s  0:00:00
+project-changes	UNKNOWN STEP	2026-10-20T14:13:23.7732200Z Installing collected packages: ty, pygments, pluggy, packaging, iniconfig, pytest
+project-changes	UNKNOWN STEP	2026-10-20T14:13:25.3422989Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:13:25.3438244Z Successfully installed iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.1.1 ty-0.0.80
+project-changes	UNKNOWN STEP	2026-10-20T14:13:25.7167687Z All checks passed!
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0330996Z ......
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0331714Z ----------------------------------------------------------------------
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0332631Z Ran 6 tests in 0.064s
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0332804Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0332970Z OK
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.0829250Z  Downloading crates ...
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1214567Z   Downloaded autocfg v1.5.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1238735Z   Downloaded num-traits v0.2.19
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1263572Z   Downloaded termtree v0.5.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1274939Z   Downloaded rstest v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1340718Z   Downloaded futures-core v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1353694Z   Downloaded predicates v3.1.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1379105Z   Downloaded wait-timeout v0.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1393901Z   Downloaded futures-timer v3.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1411890Z   Downloaded assert_cmd v2.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1430108Z   Downloaded difflib v0.4.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1439836Z   Downloaded predicates-core v1.0.10
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1448435Z   Downloaded futures-task v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1459655Z   Downloaded proc-macro-crate v3.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1472140Z   Downloaded relative-path v1.9.3
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1481383Z   Downloaded float-cmp v0.10.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1491877Z   Downloaded normalize-line-endings v0.3.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1499257Z   Downloaded glob v0.3.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1513249Z   Downloaded rstest_macros v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.1543551Z   Downloaded futures-util v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.2503470Z   Downloaded predicates-tree v1.0.13
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.3270026Z    Compiling libc v0.2.189
+project-changes	UNKNOWN STEP	2026-10-20T14:13:26.3270509Z    Compiling syn v2.0.119
+project-changes	UNKNOWN STEP	2026-10-20T14:13:27.1480262Z    Compiling autocfg v1.5.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:27.3710430Z    Compiling num-traits v0.2.19
+project-changes	UNKNOWN STEP	2026-10-20T14:13:27.4297789Z    Compiling bstr v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:27.8860142Z    Compiling aho-corasick v1.1.5
+project-changes	UNKNOWN STEP	2026-10-20T14:13:28.9517386Z    Compiling regex-automata v0.4.18
+project-changes	UNKNOWN STEP	2026-10-20T14:13:29.7032025Z    Compiling tracing-attributes v0.1.31
+project-changes	UNKNOWN STEP	2026-10-20T14:13:30.3871874Z    Compiling tracing v0.1.44
+project-changes	UNKNOWN STEP	2026-10-20T14:13:30.9214803Z    Compiling getrandom v0.4.3
+project-changes	UNKNOWN STEP	2026-10-20T14:13:30.9959968Z    Compiling globset v0.4.20
+project-changes	UNKNOWN STEP	2026-10-20T14:13:31.1436516Z    Compiling toml_edit v0.25.15+spec-1.1.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:31.3725097Z    Compiling rstest_macros v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:31.4581479Z    Compiling predicates-core v1.0.10
+project-changes	UNKNOWN STEP	2026-10-20T14:13:31.5227379Z    Compiling tracing-subscriber v0.3.23
+project-changes	UNKNOWN STEP	2026-10-20T14:13:31.8081403Z    Compiling proc-macro-crate v3.5.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:32.0865246Z    Compiling tempfile v3.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:32.3097148Z    Compiling ignore v0.4.33
+project-changes	UNKNOWN STEP	2026-10-20T14:13:32.7604223Z    Compiling float-cmp v0.10.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:32.8110194Z    Compiling regex v1.13.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.0632372Z    Compiling glob v0.3.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.2009474Z    Compiling termtree v0.5.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.2509736Z    Compiling futures-task v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.2558527Z    Compiling normalize-line-endings v0.3.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.2821058Z    Compiling assert_cmd v2.2.2
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.3001741Z    Compiling difflib v0.4.0
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.3558122Z    Compiling futures-core v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.4014736Z    Compiling relative-path v1.9.3
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.6077090Z    Compiling predicates v3.1.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:33.9761174Z    Compiling fun-refactor v0.78.0 (/home/runner/work/fun-refactor/fun-refactor)
+project-changes	UNKNOWN STEP	2026-10-20T14:13:35.5132843Z    Compiling futures-util v0.3.34
+project-changes	UNKNOWN STEP	2026-10-20T14:13:36.3320370Z    Compiling predicates-tree v1.0.13
+project-changes	UNKNOWN STEP	2026-10-20T14:13:36.4198198Z    Compiling wait-timeout v0.2.1
+project-changes	UNKNOWN STEP	2026-10-20T14:13:36.5301092Z    Compiling futures-timer v3.0.4
+project-changes	UNKNOWN STEP	2026-10-20T14:13:36.6962850Z    Compiling rstest v0.27.0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4283129Z     Finished `test` profile [unoptimized] target(s) in 50.37s
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4398878Z      Running tests/native_fingerprint.rs (target/debug/deps/native_fingerprint-55393c5cfc38188e)
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4413319Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4415271Z running 7 tests
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4457688Z test additions_deletions_and_renames_invalidate_without_a_manual_file_list ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4458532Z test build_settings_and_policy_are_inputs ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4544033Z test generated_outputs_and_documentation_do_not_move_the_source_namespace ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4545179Z test directories_are_watched_and_the_digest_is_sha256 ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4564520Z test symlinked_native_inputs_are_not_silently_skipped_or_followed ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4608802Z test missing_declared_inputs_and_malformed_policy_fail_loudly ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4725752Z test every_checking_input_changes_the_namespace ... ok
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4726062Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4726333Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.4726721Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:16.6011594Z    Compiling fun-refactor v0.78.0 (/home/runner/work/fun-refactor/fun-refactor)
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.5968448Z     Finished `test` profile [unoptimized] target(s) in 33.10s
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6082209Z      Running unittests src/lib.rs (target/debug/deps/fun_refactor-e7dd7a909de55e12)
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6104829Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6105045Z running 1 test
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6915478Z test index::tests::rust_path_prefixes_and_attributes_do_not_name_same_spelled_values ... FAILED
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6915913Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6915996Z failures:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6916109Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6916409Z ---- index::tests::rust_path_prefixes_and_attributes_do_not_name_same_spelled_values stdout ----
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6916794Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6917171Z thread 'index::tests::rust_path_prefixes_and_attributes_do_not_name_same_spelled_values' (5478) panicked at src/index.rs:2171:9:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6917752Z assertion `left == right` failed
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6917997Z   left: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6918170Z  right: 1
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6918485Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6918818Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6918823Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6918897Z failures:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6919238Z     index::tests::rust_path_prefixes_and_attributes_do_not_name_same_spelled_values
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6919563Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6919841Z test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 460 filtered out; finished in 0.08s
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6920207Z 
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6928611Z error: test failed, to rerun pass `--lib`
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.6993770Z ##[error]Process completed with exit code 101.
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7174553Z ##[group]Run actions/upload-artifact@v7
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7174858Z with:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7175074Z   name: project-change-rustfmt
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7175611Z   path: /home/runner/work/_temp/project-change-rustfmt.patch
+project-changes	UNKNOWN STEP	/home/runner/work/_temp/project-change-spec-sync.json
+project-changes	UNKNOWN STEP	
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7176165Z   if-no-files-found: ignore
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7176402Z   retention-days: 30
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7176632Z   compression-level: 6
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7176850Z   overwrite: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7177060Z   include-hidden-files: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7177294Z   archive: true
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7177480Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7177659Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7177873Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7178085Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7178322Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7178609Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7179060Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7179476Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7179848Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7180224Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7180608Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7181103Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.7181328Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.8631950Z Multiple search paths detected. Calculating the least common ancestor of all paths
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.8634391Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.8635632Z With the provided path, there will be 2 files uploaded
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.8637008Z Artifact name is valid!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:49.8637564Z Root directory input is valid!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.2474197Z Uploading artifact: project-change-rustfmt.zip
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.2516530Z Beginning upload of artifact content to blob storage
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.5847642Z Uploaded bytes 3578
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.6668805Z Finished uploading artifact content to blob storage!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.6669905Z SHA256 digest of uploaded artifact is 1afa1e85c1392280edf31f151a86c83eefc7b66abe37f11b74e94a0f233ef0f6
+project-changes	UNKNOWN STEP	2026-10-20T14:14:50.6671046Z Finalizing artifact upload
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4700449Z Artifact project-change-rustfmt successfully finalized. Artifact ID 12273131662
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4703065Z Artifact project-change-rustfmt has been successfully uploaded! Final size is 3578 bytes. Artifact ID is 12273131662
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4704637Z Artifact download URL: https://github.com/e6qu/fun-refactor/actions/runs/39436805565/artifacts/12273131662
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4857943Z ##[group]Run actions/upload-artifact@v7
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4858249Z with:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4858464Z   name: project-change-inspection
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4858813Z   path: /home/runner/work/_temp/project-change-inspection/
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4859161Z   if-no-files-found: error
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4859403Z   retention-days: 30
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4859622Z   compression-level: 6
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4859839Z   overwrite: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4860056Z   include-hidden-files: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4860302Z   archive: true
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4860493Z env:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4861025Z   CARGO_BUILD_JOBS: 2
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4861245Z   CARGO_INCREMENTAL: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4861486Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4861740Z   RUSTFLAGS: -D warnings
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4862038Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4862475Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4862934Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4863320Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4863704Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4864093Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4864430Z   CACHE_ON_FAILURE: false
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.4864657Z ##[endgroup]
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.6315925Z With the provided path, there will be 7 files uploaded
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.6321615Z Artifact name is valid!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:51.6322099Z Root directory input is valid!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.0162436Z Uploading artifact: project-change-inspection.zip
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.0237197Z Beginning upload of artifact content to blob storage
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.4267050Z Uploaded bytes 30388
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.5061545Z Finished uploading artifact content to blob storage!
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.5062868Z SHA256 digest of uploaded artifact is b4d324e14e349e0cdcb1f086ebbfd76dd49eca5ebdbe3fc5da7317dc10071f69
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.5063903Z Finalizing artifact upload
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.9301597Z Artifact project-change-inspection successfully finalized. Artifact ID 12272011968
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.9303073Z Artifact project-change-inspection has been successfully uploaded! Final size is 30388 bytes. Artifact ID is 12272011968
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.9306492Z Artifact download URL: https://github.com/e6qu/fun-refactor/actions/runs/39436805565/artifacts/12272011968
+project-changes	UNKNOWN STEP	2026-10-20T14:14:52.9549652Z Post job cleanup.
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0423231Z [command]/usr/bin/git version
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0473304Z git version 2.55.0
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0523966Z Temporarily overriding HOME='/home/runner/work/_temp/95a5ad68-2cdb-4e81-8504-821bc54f20a3' before making global git config changes
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0525205Z Adding repository directory to the temporary git global config as a safe directory
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0530281Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fun-refactor/fun-refactor
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0566178Z Removing SSH command configuration
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0573567Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.0615209Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1003692Z Removing HTTP extra header
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1009464Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1058842Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1465043Z Removing includeIf entries pointing to credentials config files
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1473399Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1521684Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1522895Z includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1524057Z includeif.gitdir:/github/workspace/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1525057Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1532322Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1571502Z /home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1583061Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-8bffd109\-bdde\-4301\-b160\-356a07a20bed\.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1637557Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1675782Z /home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1692592Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fun-refactor/fun-refactor/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-8bffd109\-bdde\-4301\-b160\-356a07a20bed\.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1740370Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1776134Z /github/runner_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1785437Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-8bffd109\-bdde\-4301\-b160\-356a07a20bed\.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1834074Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1870103Z /github/runner_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1878793Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-8bffd109\-bdde\-4301\-b160\-356a07a20bed\.config
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.1929833Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.2301845Z Removing credentials config '/home/runner/work/_temp/git-credentials-8bffd109-bdde-4301-b160-356a07a20bed.config'
+project-changes	UNKNOWN STEP	2026-10-20T14:14:53.2452371Z Cleaning up orphan processes

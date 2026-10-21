@@ -49,7 +49,7 @@ def proposal(client, refactor, name="subtotal"):
     return scope, scope.bind(change)
 
 
-@pytest.mark.parametrize("refactor", [RefactorRequest.rename("sum_values"),
+@pytest.mark.parametrize("refactor", [RefactorRequest.rename("sum_values", documentation="preserve"),
     RefactorRequest.remove_parameter(2), RefactorRequest.move_parameter(0, 1)])
 def test_structural_delivery_compiles_reverses_and_replays(tmp_path, refactor):
     root, client = fixture(tmp_path)
@@ -74,13 +74,13 @@ def test_structural_delivery_compiles_reverses_and_replays(tmp_path, refactor):
 
 def test_structural_requires_binding_and_refuses_collision_without_writes(tmp_path):
     root, client = fixture(tmp_path)
-    _, change = proposal(client, RefactorRequest.rename("sum_values"))
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
     with pytest.raises(FrRuntimeError, match="consumer scope"):
         client.review(replace(change, change_scope=None))
     path = root/"pricing.rs"
     path.write_text(path.read_text()+"pub fn sum_values() {}\n")
     original = path.read_bytes()
-    _, change = proposal(client, RefactorRequest.rename("sum_values"))
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
     with pytest.raises(FrRuntimeError, match="already|collision"):
         client.review(change)
     assert path.read_bytes() == original
@@ -113,7 +113,7 @@ def test_signature_refuses_used_parameter_and_non_scalar_type(tmp_path):
 
 def test_added_consumer_and_mapping_drift_refuse_old_review(tmp_path):
     root, client = fixture(tmp_path)
-    _, change = proposal(client, RefactorRequest.rename("sum_values"))
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
     review = client.review(change)
     (root/"new.rs").write_text("fn added() -> i64 { crate::pricing::subtotal(1, 2, 0) }\n")
     with pytest.raises(FrRuntimeError):
@@ -123,7 +123,7 @@ def test_added_consumer_and_mapping_drift_refuse_old_review(tmp_path):
 
 def test_overlapping_structural_and_body_edits_refuse_in_both_orders(tmp_path):
     root, client = fixture(tmp_path)
-    _, change = proposal(client, RefactorRequest.rename("sum_values"))
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
     handle = client.project("find", "quote").definition_target().handle
     body = TaskTarget("body", handle, "replace-body", fragment="{ crate::pricing::subtotal(1, 4, 0) }")
     for targets in [(change.targets[0], body), (body, change.targets[0])]:
@@ -132,9 +132,9 @@ def test_overlapping_structural_and_body_edits_refuse_in_both_orders(tmp_path):
     assert "subtotal" in (root/"api.rs").read_text()
 
 
-@pytest.mark.parametrize("args", [("rename", ""), ("rename", "x", 1), ("remove-parameter", True),
-    ("remove-parameter", 64), ("remove-parameter", 0, 1), ("move-parameter", 0, 0),
-    ("move-parameter", 0, True), ("unknown", 0)])
+@pytest.mark.parametrize("args", [("rename", "", "preserve"), ("rename", "x", "unknown"), ("remove-parameter", True, None),
+    ("remove-parameter", 64, None), ("remove-parameter", 0, "update"), ("move-parameter", 0, None, 0),
+    ("move-parameter", 0, None, True), ("unknown", 0, None)])
 def test_typed_refactors_reject_malformed_fields(args):
     with pytest.raises(IrError):
         RefactorRequest(*args)
@@ -181,7 +181,7 @@ def test_function_value_and_unresolved_consumer_refuse_signature_delivery(tmp_pa
 
 def test_native_request_rejects_unknown_fields_and_clipped_reviews(tmp_path):
     root, client = fixture(tmp_path)
-    _, change = proposal(client, RefactorRequest.rename("sum_values"))
+    _, change = proposal(client, RefactorRequest.rename("sum_values", documentation="preserve"))
     target = replace(change.targets[0], fragment='{"operation":"rename","name":"sum_values","unexpected":true}')
     with pytest.raises(FrRuntimeError, match="unknown field"):
         client.review(replace(change, targets=[target]))

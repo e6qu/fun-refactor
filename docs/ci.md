@@ -9,6 +9,37 @@ The final gate checks that all required portions ran and passed; a passing small
 Queue time is time waiting for a runner. Execution time starts when a runner begins work.
 For a slow PR, inspect those times separately before deciding which operation needs repair.
 
+## Keep completed project checks reproducible
+
+CI replays the [recorded project changes](project-change-milestone.md) and checks that altered completion claims fail.
+The record covers saved answers after seven changes on three projects, plus complete Rust and Python renames.
+For example, Boltons' renamed integer-bounds function must preserve its outputs, documentation references, undo and patch delivery.
+
+The replay uses the recorded source, Rust 1.99.1 and Python 3.14.8.
+It preserves the meaning of Humanize's first evaluation; a replay makes no new unread-project claim.
+Another required job checks the current replay with both current checker builds.
+Both builds use Rust 1.99.1, so a compiler update cannot silently change the program being checked.
+It repeats all 21 change checks and both deliveries; all three projects are familiar during this maintenance run.
+The ordinary native and Python suites also check the current code.
+The final required gate includes these records and the earlier original-package checks.
+
+The migration test also appears in the project-wide test inventory.
+Publishing a replacement result updates that entry after its behavior and patch checks pass.
+The inventory then checks the same test file that CI runs.
+
+The development collector also requires a clean checkout: its files must match the commit named in its result.
+If formatting or preparation changes files, the job fails and saves those corrections.
+Commit the corrections before qualification. Successful source reads alone do not qualify the experiment.
+
+An original source snapshot can contain its own `.gitignore`, a list of filenames Git should omit.
+JDcal's list names `MANIFEST`, even though its recorded source archive includes that file.
+The `project-record-files.yml` packaging workflow authenticates the original collection and checks every file after Git's storage and checkout conversions.
+The checked-out bytes must match the original collection, including line endings. Git must also report no uncommitted file changes after staging.
+This also preserves bytes when a snapshot's own text-conversion rules would otherwise change them.
+It checks each staged file against the original bytes before committing. Ordinary validation continues to fail when a declared file is missing.
+This packaging step preserves the fixed evaluation inputs and their original fingerprints.
+It also regenerates and checks the tracking pages before publishing the repaired record.
+
 ## Save Python test progress without repeating earlier work
 
 The Python collector runs small programs through Python itself and through `fr`, then saves both observations for comparison.

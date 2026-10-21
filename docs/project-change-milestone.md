@@ -1,7 +1,9 @@
 # Change a project and keep the answers trustworthy
 
-The next milestone asks whether `fr` helps carry a change through a project without trusting answers about old code.
-The [two package milestones](package-milestones.md) are complete. This milestone is open.
+This milestone checks whether `fr` carries a change through a project without trusting answers about old code.
+The [two package milestones](package-milestones.md) and these two selected project-change outcomes now have passing original records.
+The [combined record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) covers 21 change comparisons and both language deliveries.
+The [current replay](../tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json) repeats all of them after integrating the release from the main branch.
 
 Suppose a project uses a function named `subtotal`. The requested change renames it to `order_subtotal`.
 An import makes that function available in another file; a caller invokes it.
@@ -13,7 +15,7 @@ For an argument change, imagine requiring `format_total(amount, currency)` where
 Every required caller must supply its currency explicitly. The checks must verify the requested behavior.
 These examples explain the task; they are not selected project results.
 
-## Two outcomes to complete together
+## Two outcomes checked together
 
 | Outcome | What must work | Existing tracking requirement |
 | --- | --- | --- |
@@ -26,10 +28,19 @@ Two empty reports cannot establish agreement when one search never finished.
 
 ## Choose the tasks before adding support
 
-No projects or tasks have been reserved for this milestone yet. Selection is the first work item.
-Choose three independently maintained projects with pinned source revisions and concrete change questions.
-Include a Rust task and a Python task; the third project supplies another independent check of the same change procedure.
-The projects may supply both outcomes when they meet all their conditions.
+The tasks are recorded in [the project selection](../tests/agent-eval/project-changes/tasks.json).
+They were committed before adding language support or opening the reserved implementation.
+
+| Project | Requested change | Check from a user's point of view |
+| --- | --- | --- |
+| Rust glob library | Rename `glob_with` to `glob_with_options` | The same files match the same patterns, with case sensitivity and other matching options supplied explicitly |
+| Python Boltons library | Rename `clamp` to `clamp_value` | Import the original math module; limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50 |
+| Python Humanize library | Keep discovery current through project changes | Find the implementation and uses of `intcomma`, shown in its public README as formatting 12345 as `12,345`; implementation and tests stayed unread until qualification |
+
+All three projects have pinned source revisions. Glob and Boltons are development projects.
+Humanize's implementation and tests stayed unread until the implementation, procedure and both checker builds were fixed.
+Its first evaluation passed all seven change cases. The independent audit retained its original result and every failed or cancelled development attempt.
+The catalog now links qualifying records for both outcomes.
 
 Record each request, expected behavior, public interfaces in scope, required checks and reasons for selecting the project.
 Use existing functions through their original project structure. A newly invented helper or copied package cannot qualify as a real project task.
@@ -57,9 +68,17 @@ A later unfamiliar-project claim then needs another unread project.
 
 Merely editing an analyzer identifier does not exercise the last case.
 Record which changed implementation input should invalidate the answer.
+The recorded control builds two checkers from real code: one accepts a new function
+name up to 256 bytes; the other accepts up to 255 bytes. A 256-byte rename must
+therefore pass one review and fail the other. Saved answers about the checker must
+expire even though the project files and public data format stay the same.
 For each change, also keep a finding about independent code. It must remain usable while its own recorded inputs still match.
 Restore the pinned starting files between independent cases so one change cannot hide another.
 Also test a saved task resumed in another process after an edit.
+
+These comparisons change copies of each project outside `fr`. This checks whether
+`fr` notices edits from another editor too. The delivery tasks below use `fr` to
+review and apply the requested changes, then test the resulting programs.
 
 ## Deliver the Rust and Python changes
 
@@ -76,12 +95,59 @@ Keep settings explicit. Add no compatibility wrappers, old calling forms or impl
 General language support may expand when the chosen task needs it. Check each new rule independently of that project's expected answer.
 Keep existing refusals, source limits and execution deadlines. Fix the cause of a failure or timeout without extending them.
 
-## When this milestone is complete
+### Include the documentation that users read
+
+Boltons' documentation contains `.. autofunction:: boltons.mathutils.clamp`.
+This is a Sphinx instruction: the documentation builder imports that Python object
+and uses its description. Renaming the function while leaving this instruction
+unchanged would break the documentation even if the Python tests passed.
+
+The procedure reviews the code rename through `fr`, then uses an exact
+[`fr file replace`](file-transactions.md#exact-text-replacements) transaction for
+that instruction. The required match count is one. Both transactions contribute
+to the single delivered patch. A separate check imports all four objects named
+in the original document. It must fail after the code rename, pass after the
+documentation repair, and pass again after undo, redo and patch application.
+This checks those references; it does not claim a complete Sphinx build.
+
+### Use fr while developing fr
+
+The hosted checks use the public Python client to read the actual functions
+responsible for saved answers, import resolution, edits, file transactions and
+discovery. Each request selects its source file explicitly. They also use public
+discovery to list the original projects' declarations and consumers, save and
+reopen findings, review the proposed changes, apply them, run checks and export
+patches. Undo and redo use the same public history commands available to a user.
+
+These runs have already exposed failures that unit examples missed. A Python
+import such as `from helper import price as charge` must rename the imported
+`price` while preserving calls to the local name `charge`. Two Rust functions
+named alike in different modules must remain distinguishable when discovery
+is saved. A one-file inspection must select that file before indexing; filtering
+an entire source tree afterward caused a timeout. The fixes address these causes
+and keep the original deadlines.
+
+## Completion and continuing checks
 
 Both outcomes need qualifying original results. The three projects must pass the full change procedure, including the first unread-project evaluation.
 The Rust and Python tasks must pass their behavior, undo and separate-checkout delivery checks.
 The catalog must link those results before either tracking requirement can close.
 Passing unit tests or writing this plan does not finish the milestone.
+The retained record now meets those criteria for the three selected projects and two rename tasks.
+It preserves 32 failed or cancelled development attempts alongside the successful original results.
+
+The recurring CI check replays the original result with its recorded source,
+Rust 1.99.1 and Python 3.14.8. It also rejects altered completion records.
+Later source changes need fresh results before tracking can call them checked.
+The current replay repeats all 21 changes and both renames with the current
+implementation, then independently checks the results. All three projects are
+familiar during this replay. Its record links the unchanged first Humanize
+evaluation; it makes no new unread-project claim. Tracking requires the fresh
+replay, and CI checks both the original and current results.
+
+The current replay keeps its raw files in a ZIP archive. This preserves original
+line endings and project Git settings without applying those settings to this
+repository. The full test suite also checks the current implementation.
 
 Run builds, full tests and result collection on GitHub under the [workstation policy](development.md#working-on-a-shared-desktop).
 This milestone checks correctness through changes. Measure speed and storage separately against fresh checks doing the same work, including setup costs.

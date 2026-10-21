@@ -1,4 +1,4 @@
-"""Typed requests for reviewed, consumer-bound Rust structural changes."""
+"""Explicit reviewed Rust/Python renames and Rust scalar signature changes."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,15 +12,19 @@ from .ir import IrError, TaskTarget
 class RefactorRequest:
     operation: Literal["rename", "remove-parameter", "move-parameter"]
     value: str | int
+    documentation: Literal["preserve", "update"] | None
     destination: int | None = None
 
     def __post_init__(self) -> None:
         if self.operation == "rename":
             if (not isinstance(self.value, str) or not self.value
                     or len(self.value.encode()) > 256 or "\0" in self.value
-                    or self.destination is not None):
-                raise IrError("rename requires a bounded name; native preflight checks Rust identifiers")
+                    or self.destination is not None
+                    or self.documentation not in ("preserve", "update")):
+                raise IrError("rename requires a bounded name and explicit documentation policy; native preflight checks the target language")
         elif self.operation in ("remove-parameter", "move-parameter"):
+            if self.documentation is not None:
+                raise IrError("signature changes do not accept a documentation rename policy")
             if type(self.value) is not int or not 0 <= self.value < 64:
                 raise IrError("parameter position must be an integer below 64")
             if self.operation == "remove-parameter" and self.destination is not None:
@@ -33,21 +37,21 @@ class RefactorRequest:
             raise IrError("unsupported structural refactor")
 
     @classmethod
-    def rename(cls, name: str) -> RefactorRequest:
-        return cls("rename", name)
+    def rename(cls, name: str, *, documentation: Literal["preserve", "update"]) -> RefactorRequest:
+        return cls("rename", name, documentation)
 
     @classmethod
     def remove_parameter(cls, index: int) -> RefactorRequest:
-        return cls("remove-parameter", index)
+        return cls("remove-parameter", index, None)
 
     @classmethod
     def move_parameter(cls, source: int, destination: int) -> RefactorRequest:
-        return cls("move-parameter", source, destination)
+        return cls("move-parameter", source, None, destination)
 
     def to_data(self) -> dict[str, Any]:
         self.__post_init__()
         if self.operation == "rename":
-            return {"operation": self.operation, "name": self.value}
+            return {"operation": self.operation, "name": self.value, "documentation": self.documentation}
         if self.operation == "remove-parameter":
             return {"operation": self.operation, "index": self.value}
         return {"operation": self.operation, "from": self.value, "to": self.destination}

@@ -62,6 +62,7 @@ pub struct Index {
     /// All references; `target` holds a global [`SymbolId`].
     pub references: References,
     files: BTreeMap<PathBuf, FileInfo>,
+    conditional_groups: HashMap<SymbolId, Vec<SymbolId>>,
     /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
     /// Hash of each file's text as this index read it.
@@ -401,6 +402,12 @@ impl Index {
         }
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
+        for group in facts.conditional_groups {
+            let global: Vec<_> = group.into_iter().map(remap).collect();
+            for member in &global {
+                self.conditional_groups.insert(*member, global.clone());
+            }
+        }
 
         let mut symbol_ids = Vec::with_capacity(facts.symbols.len());
         for mut symbol in facts.symbols {
@@ -692,7 +699,16 @@ impl Index {
         info: &FileInfo,
         by_name: &HashMap<&str, Vec<SymbolId>>,
     ) -> (Option<SymbolId>, Confidence) {
+        if reference.kind == ReferenceKind::Attribute {
+            return (None, Confidence::NameOnly);
+        }
         let (target, confidence) = self.resolve_by_evidence(reference, path, info, by_name);
+        if target
+            .and_then(|id| self.symbol(id))
+            .is_some_and(|symbol| !reference.may_name(symbol))
+        {
+            return (None, Confidence::NameOnly);
+        }
 
         // Only a member access asks a question about a receiver.
         let Some(receiver) = reference
@@ -812,10 +828,8 @@ impl Index {
             }
             // Markup writes the namespace down: `class="x"` names a class and `href="#x"` names
             // an element id.
-            if let Some(expected) = reference.expects {
-                if s.kind != expected {
-                    return false;
-                }
+            if !reference.may_name(s) {
+                return false;
             }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
             if in_an_import {
@@ -983,6 +997,7 @@ impl Index {
         // An explicit Rust path cannot use the unqualified in-file fallback.
         if reference.language == Language::Rust
             && reference.receiver_is_path
+            && reference.receiver.is_some()
             && !matches!(
                 reference.receiver.as_deref(),
                 Some("Self" | "crate" | "self" | "super")
@@ -1157,7 +1172,18 @@ impl Index {
         }
 
         // 3.
-        if let Some(import) = self.import_binding(info, &reference.name) {
+        let import = if reference.language == Language::Python && in_an_import {
+            info.imports.iter().find(|import| {
+                import.span.contains(reference.span)
+                    && import
+                        .names
+                        .iter()
+                        .any(|name| name.original == reference.name)
+            })
+        } else {
+            self.import_binding(info, &reference.name)
+        };
+        if let Some(import) = import {
             let mut imported_file = self.resolve_import_path(path, &import.path);
             let mut original = import
                 .names
@@ -1721,7 +1747,11 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
-        self.references.matching(&sym.name, symbol)
+        self.references
+            .matching(&sym.name, symbol)
+            .into_iter()
+            .filter(|reference| reference.may_name(sym))
+            .collect()
     }
 
     /// Every definition site of the entity `symbol` belongs to.
@@ -1729,6 +1759,9 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
+        if let Some(group) = self.conditional_groups.get(&symbol) {
+            return group.clone();
+        }
         if !sym.kind.allows_multiple_definitions() {
             // `self.count = 0` in `__init__` and `self.count = n` in another method are one
             // attribute declared twice, and Python declares attributes only that way.
@@ -2141,6 +2174,84 @@ mod tests {
     }
 
     #[test]
+    fn rust_path_prefixes_and_attributes_do_not_name_same_spelled_values() {
+        let source = "mod shared { pub fn run() {} }\nfn shared() {}\nmod test {}\n#[test]\nfn check() { shared::run(); shared(); }\n";
+        let (_tmp, index) = index_of(&[("a.rs", source)]);
+        let values = index.find_symbols("shared", None);
+        let function = values
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Function)
+            .unwrap();
+        let module = values
+            .iter()
+            .find(|symbol| symbol.kind == SymbolKind::Module)
+            .unwrap();
+        let calls = index.references_to(function.id);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].kind, ReferenceKind::Call);
+        let paths = index.references_to(module.id);
+        assert_eq!(paths.len(), 1);
+        assert_eq!(paths[0].kind, ReferenceKind::Namespace);
+        let test = index.find_symbols("test", None)[0];
+        assert!(index.references_to(test.id).is_empty());
+        assert!(index.unresolved_matching(test.id).is_empty());
+    }
+
+    #[test]
+    fn unresolved_procedural_attributes_still_block_same_named_function_edits() {
+        let (_tmp, index) = index_of(&[("a.rs", "fn custom() {}\n#[custom]\nfn checked() {}\n")]);
+        let custom = index.find_symbols("custom", None)[0];
+        assert!(index.references_to(custom.id).is_empty());
+        let unresolved = index.unresolved_matching(custom.id);
+        assert_eq!(unresolved.len(), 1);
+        assert_eq!(unresolved[0].kind, ReferenceKind::Attribute);
+    }
+
+    #[test]
+    fn rust_complementary_cfg_definitions_rename_both_branches_and_the_call() {
+        let source = "#[cfg(chosen)]\nfn answer() -> i64 { 11 }\n#[cfg(not(chosen))]\nfn answer() -> i64 { 22 }\nfn caller() -> i64 { answer() }\n";
+        let (_tmp, index) = index_of(&[("a.rs", source)]);
+        let definitions = index.find_symbols("answer", None);
+        assert_eq!(definitions.len(), 2);
+        for definition in &definitions {
+            assert_eq!(index.definition_group(definition.id).len(), 2);
+            let references = index.references_to(definition.id);
+            assert_eq!(references.len(), 1);
+            assert_eq!(references[0].confidence, Confidence::Exact);
+        }
+        let plan = crate::refactor::rename::plan(&index, definitions[0].id, "result").unwrap();
+        assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
+        let spans: Vec<_> = plan
+            .edits
+            .iter()
+            .flat_map(|(_, edits)| edits.iter().map(|edit| edit.span))
+            .collect();
+        assert_eq!(spans.len(), 3);
+        assert!(spans.iter().all(|span| span.text(source) == "answer"));
+    }
+
+    #[test]
+    fn rust_complementary_cfg_support_keeps_unknown_conditions_ambiguous() {
+        for attributes in [
+            ("#[cfg(first)]", "#[cfg(not(second))]"),
+            (
+                "#[cfg(all(first,second))]",
+                "#[cfg(not(all(first,second)))]",
+            ),
+            ("#[cfg(first)]\n#[inline]", "#[cfg(not(first))]"),
+        ] {
+            let source = format!(
+                "{}\nfn answer() {{}}\n{}\nfn answer() {{}}\nfn caller() {{ answer(); }}\n",
+                attributes.0, attributes.1
+            );
+            let (_tmp, index) = index_of(&[("a.rs", &source)]);
+            for definition in index.find_symbols("answer", None) {
+                assert_eq!(index.definition_group(definition.id).len(), 1);
+            }
+        }
+    }
+
+    #[test]
     fn shadowing_resolves_to_the_innermost_definition() {
         let src =
             "fn f() {\n    let x = 1;\n    {\n        let x = 2;\n        use_it(x);\n    }\n}\n";
@@ -2299,6 +2410,17 @@ mod tests {
             .find(|r| r.file.ends_with("app.py") && r.kind == ReferenceKind::Call)
             .unwrap_or_else(|| panic!("the aliased call is a reference: {refs:?}"));
         assert_eq!(call.confidence, Confidence::ImportQualified);
+        let imported = refs
+            .iter()
+            .find(|reference| reference.file.ends_with("app.py") && reference.name == "helper")
+            .expect("original name in the import is a reference");
+        assert_eq!(imported.confidence, Confidence::ImportQualified);
+        let rename = crate::refactor::rename::plan(&index, helper[0].id, "renamed_helper").unwrap();
+        assert!(rename.warnings.is_empty(), "{:?}", rename.warnings);
+        assert_eq!(
+            rename.reference_edits, 1,
+            "only the original import name changes; h2 stays local"
+        );
     }
 
     #[test]

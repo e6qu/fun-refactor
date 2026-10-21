@@ -25,19 +25,40 @@ Toolz, funcy and pydash still give incomplete answers when used through their fu
 Some helpers work when copied into small isolated files. That tests a simpler question with different import behavior.
 We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
 
-## Next: change a project and keep the answers trustworthy
+## Checked project changes
 
-The [next milestone](project-change-milestone.md) shifts work from questions about unchanged packages to changes across a project.
-Its two outcomes are correct saved answers after edits and a complete function change in Rust and Python.
-For example, renaming `subtotal` must update the required callers and imports, invalidate affected findings and preserve unrelated ones.
-The changed program must pass its checks. Its patch must also work in another checkout.
+The [project-change milestone](project-change-milestone.md) now has passing original records for both selected outcomes.
+Saved answers agree with fresh checks after seven changes on each of glob, Boltons and Humanize.
+The cases cover renames, moves, deletion, competing imports, project configuration, question settings and an actual checker implementation change.
+An unrelated source finding remains usable in every case.
 
-Start by choosing three independent projects and recording their tasks, expected behavior and required checks before implementation.
-Keep one project's implementation unread until the checker and test procedure are fixed.
-Boltons, dateutil and JDcal are already familiar; none can supply that new unread test.
-Compare fresh and saved answers after each declared change. Keep every failure and resource stop.
-The tracking requirements for project changes and complete function edits remain open.
-Language work should address an obstacle in a selected task. Broader support and cost savings need their own results.
+The Rust task renames `glob_with` to `glob_with_options` while preserving the declared filesystem matching cases.
+The Python task renames `clamp` to `clamp_value` through the original Boltons imports, callers, tests and documentation.
+For example, limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50.
+Both tasks pass behavior checks, undo and patch application in a separate checkout.
+
+Humanize's implementation and tests stayed unread until the checker, procedure and both checker builds were fixed.
+It passed its first evaluation. The [original record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json)
+includes that result and all 32 failed or cancelled development attempts.
+The earlier Boltons, dateutil and JDcal questions also pass with the current checker.
+Their original unread result still has its own audit against its original source.
+
+[PR #551](https://github.com/e6qu/fun-refactor/pull/551) contains the implementation and results.
+The fixes preserve local Python import names, distinguish same-named Rust declarations and expire saved answers when checker code changes.
+Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
+The recurring CI check replays the recorded experiment and rejects altered completion claims.
+
+## Next: measure the cost of continuing work
+
+After moving Boltons' helper to another file, how much work does it take to find the current function and callers again?
+Compare continuing a saved task with asking the same questions from scratch about the same changed files.
+Repeat the measurements and include preparation, input checking, analysis, memory, disk and text returned.
+Choose the projects and comparison before tuning code; reserve an independent project from that tuning.
+Treat glob, Boltons and Humanize as familiar projects from now on.
+
+Use the results to choose a cache change. Check its answers against fresh analysis before claiming lower costs.
+Broader agent-cost trials, translation and proofs connected to source code remain separate work.
+Language changes should address a concrete obstacle in a chosen task.
 
 ## The current reader review
 

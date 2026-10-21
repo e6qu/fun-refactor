@@ -1,0 +1,28 @@
+project-changes	Record the checked procedure before opening unread source	﻿2026-10-20T18:37:43.1755932Z ##[group]Run python3 -B tools/project_change_gate.py --runs "$RUNS" --fr "$RUNNER_TEMP/project-change-checkers/production-fr" --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1756849Z ^[[36;1mpython3 -B tools/project_change_gate.py --runs "$RUNS" --fr "$RUNNER_TEMP/project-change-checkers/production-fr" --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"^[[0m
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1801526Z shell: /usr/bin/bash -e {0}
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1801676Z env:
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1801791Z   CARGO_BUILD_JOBS: 2
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1801923Z   CARGO_INCREMENTAL: 0
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1802057Z   CARGO_PROFILE_DEV_DEBUG: 0
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1802203Z   CARGO_PROFILE_TEST_DEBUG: 0
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1802345Z   RUSTFLAGS: -D warnings
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1802535Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1802782Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1803021Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1803270Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1803485Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1803707Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1803899Z   CACHE_ON_FAILURE: false
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1805487Z   GH_TOKEN: ***
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1805682Z   RUNS: {"development":39468872544,"delivery":39468881595,"findings":39468892410}
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:43.1805906Z ##[endgroup]
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8866251Z Traceback (most recent call last):
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8873094Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/project_change_gate.py", line 156, in <module>
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8873415Z     freeze(args)
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8873584Z     ~~~~~~^^^^^^
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8873839Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/project_change_gate.py", line 88, in freeze
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8874185Z     assert development['passed'] is True and development['source_clean'] is True
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8874456Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.8874633Z AssertionError
+project-changes	Record the checked procedure before opening unread source	2026-10-20T18:37:45.9057178Z ##[error]Process completed with exit code 1.

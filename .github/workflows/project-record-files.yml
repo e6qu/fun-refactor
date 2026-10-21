@@ -1,0 +1,129 @@
+name: Preserve original project record files
+on:
+  push:
+    branches: [feat/real-project-changes]
+    paths: [.github/workflows/project-record-files.yml]
+  workflow_dispatch:
+    inputs:
+      collection_run:
+        description: Successful project-change retention run
+        required: true
+        type: string
+      prefix:
+        description: Existing project record directory prefix
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: project-record-files-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  preserve:
+    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      COLLECTION_RUN: ${{ github.event_name == 'push' && '39483490662' || inputs.collection_run }}
+      EVIDENCE_PREFIX: ${{ github.event_name == 'push' && '2026-10-20-projects' || inputs.prefix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Restore declared bytes and verify every checkout round trip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json, os, re, subprocess, sys
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          sys.path.insert(0, str(root / 'tools'))
+          spec = importlib.util.spec_from_file_location('scalar', root / 'tools/retain-scalar-evidence.py')
+          scalar = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(scalar)
+          prefix = os.environ['EVIDENCE_PREFIX']
+          scalar.require(re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix), 'declare a plain record prefix')
+          run = int(os.environ['COLLECTION_RUN'])
+          scalar.require(run > 0, 'declare the original successful retention run')
+          data, identity = scalar.collect(run, 'retained-project-changes', 'project-changes', os.environ['GITHUB_REPOSITORY'])
+          relative = Path('tests/agent-eval/results') / (prefix + '-project-changes')
+          directory = root / relative
+          scalar.require(directory.resolve().is_relative_to(root.resolve()) and not directory.is_symlink(), 'unsafe record directory')
+          artifact_root = 'results/' + directory.name + '/'
+          original = data[artifact_root + 'result.json']
+          scalar.require((directory / 'result.json').read_bytes() == original, 'preserve the original result bytes')
+          report = json.loads(original)
+          catalog = json.loads((root / 'tests/agent-eval/roadmap.json').read_text())
+          entry, = [item for item in catalog['evidence'] if item['id'] == 'project-changes']
+          scalar.require(entry['path'] == str(relative / 'result.json') and entry['sha256'] == hashlib.sha256(original).hexdigest(),
+                         'the current catalog must authenticate this original record')
+          expected = {artifact_root + name for name in report['files']} | {artifact_root + 'result.json', 'roadmap.json'}
+          scalar.require(set(data) == expected, 'the authenticated artifact inventory changed')
+          contents = {name: data[artifact_root + name] for name in report['files']}
+          contents['result.json'] = original
+          restored = []
+          for name, content in contents.items():
+              if name != 'result.json':
+                  scalar.require(hashlib.sha256(content).hexdigest() == report['files'][name], 'original file changed: ' + name)
+              destination = directory / name
+              scalar.require(destination.resolve().is_relative_to(directory.resolve()) and not destination.is_symlink(), 'unsafe record path')
+              if destination.exists():
+                  scalar.require(destination.read_bytes() == content, 'existing record changed: ' + name)
+              else:
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(content)
+                  restored.append(name)
+          index = []
+          for name, content in contents.items():
+              oid = subprocess.check_output(['git', 'hash-object', '-w', '--stdin', '--path=' + str(relative / name)],
+                                            input=content, cwd=root).strip()
+              checkout_bytes = subprocess.check_output(['git', 'cat-file', '--filters', '--path=' + str(relative / name),
+                                                       oid.decode()], cwd=root)
+              scalar.require(checkout_bytes == content, 'Git checkout would change the declared bytes: ' + name)
+              index.append(b'100644 ' + oid + b'\t' + str(relative / name).encode() + b'\0')
+          subprocess.run(['git', 'update-index', '--add', '-z', '--index-info'],
+                         input=b''.join(index), cwd=root, check=True)
+          for name, content in contents.items():
+              staged = subprocess.check_output(['git', 'cat-file', '--filters', '--path=' + str(relative / name),
+                                               ':' + str(relative / name)], cwd=root)
+              scalar.require(staged == content, 'Git checkout did not retain the declared bytes: ' + name)
+          subprocess.run(['git', 'diff', '--exit-code', '--', str(relative)], cwd=root, check=True)
+          print(json.dumps({'original_collection': identity, 'restored': restored, 'verified_staged_files': len(contents)}))
+          PY
+      - name: Prepare the pinned documentation counter
+        run: |
+          python3 -m pip install --only-binary=:all: -r tools/agent_eval/requirements.txt
+          mkdir -p target/agent-eval-tokenizer
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
+            https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+          echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
+      - name: Validate the complete record and reconciled documentation
+        run: |
+          python3 -B tests/agent-eval/test_roadmap_status.py
+          python3 -B tools/review-docs.py --write
+          CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE" rustc --edition=2021 --test tests/docs_links.rs -o "$RUNNER_TEMP/fr-docs-links"
+          "$RUNNER_TEMP/fr-docs-links" --test-threads=1
+          python3 -B tools/test-python-contract.py
+          python3 -B tools/test-check-prose.py
+          python3 -B tools/check-prose.py
+          python3 -B tools/roadmap-status.py --check
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
+          python3 -B tools/agent_eval/test_opencode_native.py Discovery
+          python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence
+          python3 -B tools/test-ci-shards.py
+      - name: Commit the complete original record and checked documentation
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: preserve every declared original project record file'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi

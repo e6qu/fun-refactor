@@ -23,6 +23,7 @@ from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKi
 from fr_ir.investigation_delivery import DeliveryReceipt, attach_delivery, run_delivery
 from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient, FrRuntimeError
+from evidence_basis import native_source_bindings
 
 FIXTURE = ROOT/"tests/agent-eval/change-scope"
 FILES = ("pricing.py", "api.py", "batch.py", "test_api.py")
@@ -37,6 +38,11 @@ BINDINGS = ("tools/change-scope-acceptance.py", "src/project/change_scope.rs", "
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bindings():
+    return {**native_source_bindings(ROOT), **{name: sha(ROOT/name) for name in BINDINGS},
+        **{str(path.relative_to(ROOT)): sha(path) for path in (ROOT/'sdk/python/src').rglob('*.py')}}
 
 
 def save(path, value):
@@ -127,7 +133,7 @@ def measure(binary, output):
         path = output/"binding-sources"/name
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT/name, path)
-    result: dict[str, Any] = {"schema": "fr-change-scope-acceptance-1"}
+    result: dict[str, Any] = {"schema": "fr-change-scope-acceptance-1", "source_bindings": bindings()}
     with tempfile.TemporaryDirectory(prefix="fr-scope-acceptance-") as temporary:
         base = Path(temporary)
         ordinary = base/"ordinary"
@@ -229,6 +235,7 @@ def audit(output):
         assert sha(output/name) == digest, name
     result = json.loads((output/"result.json").read_text())
     assert result["passed"] and result["schema"] == "fr-change-scope-acceptance-1"
+    assert result['source_bindings'] == bindings(), 'consumer scope inputs changed'
     native = result["native"]
     store = DirectoryObjectStore(output/"objects")
     scope = ChangeScope.restore(store, native["scope_root"])

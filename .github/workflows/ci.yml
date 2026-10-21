@@ -20,6 +20,147 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  project-changes:
+    name: Original saved findings and delivered project changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            tests/agent-eval/project-changes
+            tests/agent-eval/results/2026-10-20-projects-project-changes
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Preserve the original record before checking out its source
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, re, shutil
+          from pathlib import Path
+          directory = Path('tests/agent-eval/results/2026-10-20-projects-project-changes')
+          report = directory / 'result.json'
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'project-changes']
+          assert entry['path'] == str(report)
+          assert hashlib.sha256(report.read_bytes()).hexdigest() == entry['sha256']
+          freeze = Path('tests/agent-eval/project-changes/freeze.json')
+          revision = json.loads(freeze.read_text())['implementation_commit']
+          assert re.fullmatch(r'[0-9a-f]{40}', revision)
+          saved = Path(os.environ['RUNNER_TEMP']) / 'original-project-changes'
+          saved.mkdir()
+          shutil.copytree(directory, saved / 'record')
+          shutil.copyfile(freeze, saved / 'freeze.json')
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              stream.write('FR_PROJECT_CHANGE_SOURCE=' + revision + '\n')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.FR_PROJECT_CHANGE_SOURCE }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            src
+            grammars
+            crates
+            queries
+            catalogs
+            kernels
+            sdk/python/src
+            sdk/python/tests
+            tools
+            tests/common
+            tests/fixtures
+            tests/agent-eval/project-changes
+            tests/agent-eval/package-questions
+            tests/agent-eval/python-repository-flow
+            tests/agent-eval/python-repositories
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage
+            tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out
+            tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out
+            recipes
+      - name: Restore the authenticated result beside its original auditor
+        run: |
+          python3 -B - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          saved = Path(os.environ['RUNNER_TEMP']) / 'original-project-changes'
+          shutil.copytree(saved / 'record', 'tests/agent-eval/results/2026-10-20-projects-project-changes')
+          shutil.copyfile(saved / 'freeze.json', 'tests/agent-eval/project-changes/freeze.json')
+          PY
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Prepare the original package behavior checks
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Build both recorded checker implementations
+        run: |
+          cargo build --locked --bin fr
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
+      - name: Replay all projects and reject altered completion records
+        run: |
+          python3 -B tools/test-project-change-gate.py
+          python3 -B tools/test-project-change-audit.py \
+            --report tests/agent-eval/results/2026-10-20-projects-project-changes/result.json \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
+
+  current-project-changes:
+    name: Current saved findings and delivered project changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Prepare the package behavior checks
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Build both current checker implementations
+        run: |
+          cargo build --locked --bin fr
+          python3 -B tools/project_change_checkers.py --fr target/debug/fr --output "$RUNNER_TEMP/project-change-checkers"
+      - name: Replay the current result and reject altered completion records
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json, os
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
+          path = Path(entry['path'])
+          assert path.resolve().is_relative_to(Path.cwd())
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+          spec = importlib.util.spec_from_file_location('recheck', 'tools/recheck-project-changes.py')
+          recheck = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(recheck)
+          checkers = Path(os.environ['RUNNER_TEMP']) / 'project-change-checkers'
+          binary = checkers / 'production-fr'
+          alternate = checkers / 'alternate-fr'
+          recheck.audit(path.parent, binary, alternate)
+          recheck.reject_false_claims(path.parent, binary, alternate)
+          PY
+
   original-package-questions:
     name: Original package questions
     runs-on: ubuntu-latest
@@ -29,12 +170,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - name: Fetch the source recorded before the unfamiliar-project evaluation
-        run: git fetch --no-tags --depth=1 origin d04c9301bb703eeaaddd06ecffc0cacd52f9fbd9
       - name: Audit the original results and reject false completion records
         run: >-
-          python3 -B tools/test-package-milestone-audit.py
-          tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/result.json
+          python3 -B tools/audit-historical-package-questions.py
+          --source-commit 06294a686ef7ebe29987787bd2ef29b441ac0147
 
   toolchain:
     name: Pinned Zig toolchain
@@ -250,7 +389,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain]
+    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -263,13 +402,19 @@ jobs:
           CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
+          ORIGINAL_PACKAGES: ${{ needs.original-package-questions.result }}
+          PROJECT_CHANGES: ${{ needs.project-changes.result }}
+          CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
         run: |
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&
           test "$CODE_CHANGE_GRADERS" = success &&
           test "$TOOLCHAIN" = success &&
-          test "$GO_TOOLCHAIN" = success
+          test "$GO_TOOLCHAIN" = success &&
+          test "$ORIGINAL_PACKAGES" = success &&
+          test "$PROJECT_CHANGES" = success &&
+          test "$CURRENT_PROJECT_CHANGES" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

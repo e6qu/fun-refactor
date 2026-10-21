@@ -78,16 +78,20 @@ All three finish the input-to-output question and its overwritten-input counterp
 Ordinary Python agrees with the declared examples. Renamed callers, unknown calls and search budgets retain their expected outcomes.
 The two familiar packages also pass the saved-answer checks after source and import changes.
 
-These results complete the selected package questions, while the broader goals below remain open.
-The next milestone is [changing projects while keeping answers trustworthy](docs/project-change-milestone.md).
-For example, rename a helper, update its callers and resume a saved task against the changed code.
-Discard conclusions that depended on the old helper, keep unrelated findings and check the delivered patch in another checkout.
+The [project-change milestone](docs/project-change-milestone.md) now also has passing original records.
+Saved answers match fresh checks after seven changes on Rust glob, Python Boltons and Python Humanize.
+The checks cover renames, moves, deletion, competing imports, project configuration, question settings and an actual checker implementation change.
+Unrelated findings remain usable. Humanize passed its first evaluation after the procedure and both checker builds were fixed.
 
-Complete two outcomes together: correct answers through project changes, and a complete function change in both Rust and Python.
-Use three independently selected projects for the change checks. Keep at least one implementation unread until the checker and test procedure are fixed.
-Test renames, moves, deletions, competing imports, project configuration, explicit question settings and a real analyzer change.
-Compare each resumed or reused answer with a fresh check of the same changed project.
-The [milestone guide](docs/project-change-milestone.md) defines selection, examples and completion criteria. Both requirements remain open until their original results qualify.
+The Rust and Python rename tasks include callers, documentation, behavior checks, undo and patch replay in another checkout.
+For example, Boltons' renamed integer-bounds function still limits -5, 17 and 70 to 0, 17 and 50.
+The [original record](tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) preserves the qualifying results and all 32 failed or cancelled development attempts.
+Both selected outcomes belong to [PR #551](https://github.com/e6qu/fun-refactor/pull/551).
+
+Next, measure whether continuing a saved task costs less than asking the same questions from scratch after an edit.
+Use the same files, questions and limits. Count preparation, input checking, analysis, memory, disk and text returned before choosing optimizations.
+The [handoff](docs/continuity.md#next-measure-the-cost-of-continuing-work) describes the next work.
+Broader agent savings, translation and proofs connected to source code remain open.
 
 Choose work by a useful question that we can answer from beginning to end.
 For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
@@ -295,8 +299,9 @@ that depended on that helper, keep unrelated findings, and require a fresh edit 
 - [x] Measure first analysis, reused results and rechecking after edits on a small generated set of programs.
   See [cache measurements](docs/evaluations.md#current-matched-results).
 
-Still needed: project-scale change tests and measurements of time, memory and disk on unfamiliar
-repositories. Small synthetic timing improvements do not demonstrate cheaper agent tasks.
+The project-change records now cover glob, Boltons and Humanize. Next, measure the cost of fresh,
+resumed and post-edit work on independently selected projects. Small synthetic timing improvements
+do not demonstrate cheaper agent tasks.
 
 ### D. Make checked changes and useful proofs
 
@@ -306,7 +311,12 @@ a patch another checkout can apply. For a proof request, connect the theorem to 
 - [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
   [Caller discovery](docs/change-scopes.md) and [structural changes](docs/structural-changes.md) cover
   specific cases; dynamic dispatch (choosing a callable from runtime values) and inferred contracts remain incomplete.
-- [ ] Add general language rules needed by observed tasks. Define what succeeds, what fails and what other actions the code performs.
+- [x] Add general language rules needed by observed tasks. Define what succeeds, what fails and what other actions the code performs.
+  Rust modules and functions with the same name now stay distinct.
+  A build flag can select between two Rust implementations; renaming the function updates both.
+  Python edits preserve local import names and update documentation according to the chosen policy.
+  The [structural-change guide](docs/structural-changes.md#which-changes-this-route-can-handle) lists supported cases and refusals.
+  Broader discovery, translation and source proofs remain open.
 - [ ] Translate a function under explicit arithmetic, error and evaluation-order rules, independently
   checking its source and target behavior.
 - [ ] Connect a property and proof to an existing implementation, and write a new implementation

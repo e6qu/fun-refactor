@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare fresh indexing against a pinned pre-change resolution baseline."""
+"""Measure current indexing on fixed sources; retain the original comparison separately."""
 
 import argparse
 import hashlib
@@ -19,6 +19,7 @@ from evidence_basis import file_digest, native_source_bindings
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-resolution/task.json"
 BASELINE = TASK.parent / "baseline.json"
+COMPARISON = 'Fixed source workloads; Rust namespace, attribute and conditional-declaration fixes intentionally change repository answers. The smaller unchanged workloads retain exact output comparison. Timing includes these language changes; no repository-wide identical-answer or optimization-only claim.'
 
 
 def digest(path):
@@ -42,6 +43,7 @@ def bindings():
     paths = sorted(ROOT.joinpath("src").rglob("*.rs"))
     paths += [ROOT / p for p in ["Cargo.toml", "Cargo.lock", "tests/index_resolution.rs",
               "tools/index-resolution-acceptance.py", "tools/evidence_basis.py", str(TASK.relative_to(ROOT))]]
+    paths += [ROOT / 'tools/audit-historical-index-resolution.py']
     return {str(p.relative_to(ROOT)): hashlib.sha256(manifest_basis(p.read_bytes())).hexdigest()
             if p.name == "Cargo.toml" else file_digest(p) for p in paths} | native_source_bindings(ROOT)
 
@@ -64,13 +66,17 @@ def verify(path):
     validate_samples(report)
     validate_samples(baseline)
     assert report["bindings"] == bindings(), "stale source bindings"
+    assert report['comparison'] == COMPARISON
     assert report["baseline_sha256"] == digest(BASELINE)
     for before, after in zip(baseline["samples"], report["samples"]):
-        for field in ("workload", "symbols", "references", "answer_bytes", "answer_sha256"):
+        fields = ("workload", "symbols", "references") if after['workload'] == 'repository' else (
+            "workload", "symbols", "references", "answer_bytes", "answer_sha256")
+        for field in fields:
             assert before[field] == after[field], (field, before, after)
     for workload in json.loads(TASK.read_text())["budgets"]["workloads"]:
         assert len({s["answer_sha256"] for s in baseline["samples"] if s["workload"] == workload}) == 1
-    print("resolution evidence: complete symbol/reference digests agree with the pinned baseline")
+        assert len({s['answer_sha256'] for s in report['samples'] if s['workload'] == workload}) == 1
+    print("Current indexing: unchanged small workloads match; complete repository answers repeat exactly under the declared language changes")
 
 
 def main():
@@ -139,7 +145,8 @@ def main():
               "profile": "unoptimized test, debug information and incremental compilation disabled",
               "bindings": before_bindings, "samples": samples,
               "baseline_sha256": None if args.baseline else digest(BASELINE),
-              "claim": "Finite complete symbol/reference equivalence. Fresh extraction with no facts cache; OS caches remain active. Process RSS includes output serialization."}
+              "comparison": COMPARISON,
+              "claim": "Current fresh indexing on the fixed workloads. Rust changes alter repository answers; the original equivalence comparison is audited against its original source. No facts cache; OS caches remain active. Process RSS includes output serialization. No full agent-cost or general speed claim."}
     assert before_bindings == bindings(), "sources changed during measurement"
     assert binary_digest == digest(args.binary), "binary changed during measurement"
     validate_samples(report)

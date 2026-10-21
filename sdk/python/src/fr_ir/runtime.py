@@ -793,7 +793,7 @@ class TaskResult(FrReport):
 
 
 class FrClient:
-    """A bounded, structured client for one local ``fr`` project root."""
+    """A bounded client for an explicitly selected source file or project directory."""
 
     def __init__(
         self,
@@ -804,8 +804,8 @@ class FrClient:
         max_output_bytes: int = 1_048_576,
     ) -> None:
         root_path = Path(root)
-        if not root_path.is_dir():
-            raise FrRuntimeError("fr client root must be an existing directory")
+        if not (root_path.is_dir() or root_path.is_file()):
+            raise FrRuntimeError("fr client root must be an existing source file or directory")
         if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool) or timeout <= 0):
             raise FrRuntimeError("fr client timeout must be positive")
         if (not isinstance(max_output_bytes, int) or isinstance(max_output_bytes, bool)

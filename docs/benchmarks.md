@@ -66,14 +66,28 @@ They measure data movement, not an agent finding a solution.
 
 | Measurement and source | Baseline | Compared approach | Included cost and missing measurement |
 | --- | --- | --- | --- |
-| [Python runtime client](agent-runtime-sdk.md#controlled-comparison) | Five exposed requests and replies: 17,689 bytes | Complete program plus result: 1,893 bytes | Includes the 1,471-byte program and 422-byte result. Both still make five internal `fr` calls. Python execution time is not measured here |
-| [Keeping report pages in Python](agent-context-workspace.md#controlled-comparison) | Sixteen exposed requests and replies: 59,825 bytes | Complete program plus selected result: 4,550 bytes | Includes the 686-byte program and 3,864-byte result. Both still make sixteen internal calls. Memory and CPU overhead are not quantified here |
-| [One native request versus following report pages](agent-runtime-sdk.md#controlled-comparison) | 89 subprocesses; 302,380 internal reply bytes; 3,909-byte final packet | One subprocess; 4,975 internal reply bytes; 4,975-byte final packet | The final packet grows by 1,066 bytes, about 27.3%, because it includes coverage information. Fewer subprocesses alone do not measure elapsed time |
+| [Python runtime client](agent-runtime-sdk.md#controlled-comparison) | Five exposed requests and replies: 18,136 bytes | Complete program request plus result: 1,902 bytes | Includes the 1,480-byte program request and 422-byte result. Both still make five internal `fr` calls. Python execution time is not measured here |
+| [Keeping report pages in Python](agent-context-workspace.md#controlled-comparison) | Twenty-four exposed requests and replies: 89,677 bytes | Complete program request plus selected result: 4,780 bytes | Includes the 695-byte program request and 4,085-byte result. Both still make 24 internal calls. Memory and CPU overhead are not quantified here |
+| [One native request versus following report pages](agent-runtime-sdk.md#controlled-comparison) | 111 `fr` launches; 391,001 internal reply bytes; 4,480-byte final result | One `fr` launch; 5,545 internal reply bytes; 5,545-byte final result | The final result grows by 1,065 bytes, about 23.8%, because it includes coverage information. Fewer launches alone do not measure elapsed time |
 | [Omitting repeated check declarations](project-checks.md#controlled-report-measurement) | Four check replies: 2,720 tokens | The same replies with repeated declarations omitted: 1,804 tokens | Saves 916 reply tokens. Excludes the earlier listing, prompts and the rest of the task. Replays old replies; no new agent ran |
 
 “Internal” means traffic between the Python program and `fr`.
 “Exposed” or “agent-visible” means text sent to the agent's conversation.
 Moving work inside Python changes that boundary; it does not make the work free.
+
+## Measuring indexing as language support changes
+
+Indexing reads declarations and works out what each name refers to. For example, in `item.pick()`, the tool must find the method that belongs to `item`'s type.
+The [indexing task](../tests/agent-eval/index-resolution/task.json) repeats four fixed workloads: Rust methods on 128 and 256 types, 128 Python assignments to the same name, and the repository at commit `3fdba43036f4fac2a6e73a659c5dbf7e907c48cf`.
+It measures fresh extraction and name resolution with one worker, an unoptimized build, and no saved facts. Process memory includes writing the answer; operating-system caches remain active.
+
+The earlier speed comparison required exactly the same complete answers before and after an ambiguity-counting optimization.
+Its original baseline and audit remain attached to the original checker.
+The project-change work adds Rust path, attribute and conditional-declaration rules, which intentionally change some answers on that repository.
+Current runs therefore keep exact comparisons for the smaller unchanged workloads, retain the repository's declaration/reference counts, and require its complete answers to repeat exactly.
+Their timings include the new language support. They cannot isolate the cost of the earlier optimization.
+
+These measurements concern the tool reading code. Measuring translated-program overhead requires running the original and generated functions on equivalent inputs, with the same declared build settings and matching outputs.
 
 ## Faster parts can still make the whole operation slower
 
