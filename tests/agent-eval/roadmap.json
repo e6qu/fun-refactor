@@ -30,36 +30,36 @@
   },
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "sha256": "5879f6b4ef6bd45a08e3575e9c10efe236d2d0c9b323ce759d25f488ae4e7828"
+      "sha256": "7795ea3680b5e92b0ca76ac0f5e8e83905dd7ffc3e6a37d31854edc8c43d0016"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "83562fa7a2f569a8a8d39be2869c975e5d07de25024780eab82da9a2bdfa923a"
+      "sha256": "ba38629cc34b069eaf722f9692b6707a776b8d0dd0dc84913ce56e667fb087aa"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "sha256": "7e4b3bb52f56a5f2fc978fec0fbf18291b382a76184137c90a43a99b0fe13dfd"
+      "sha256": "837b95f4699d8d92fdb88ef38250d978790b5ebe8af89527b810bb9e3dd0dee5"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "218757d6e39321c08dd3ccabb1f4de7b2c5826c309c55b14783fff6fb297625c"
+      "sha256": "9e96f9ecc7fe0680c49dd8cf6f306938bb214eb8139b00cc17c21bb29d3a0b8a"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "89db0df018af44369fb6f07b6a627f830be15276d88a9d26bc75a2e791104220"
+      "sha256": "c5a6c768978758e2baaab41c6efe4baf4d06f5b79008928966237ad4cacc6286"
     },
     {
       "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons",
@@ -94,28 +94,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "sha256": "22435bb2d9228efa63b35c1091b3a607e538aeb5947bcaecab4f64956217b766"
+      "sha256": "f01e0739629a985102415b64fde93cf05ba87944557f6465dd3666bfd95a4dc5"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-python-contract/result.json",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "c0798354c2b9e2f7199ee14666d941b163c9044273c285df367ff012bc6dfbc9"
+      "sha256": "8a7d1ea048a2cbe1b6c02fe2113ff91958e83ff0014a8313b060c32b76de0f71"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-21-batched-storage-final-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-21-distinct-answers-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "6977548f1639078ecc34557dce4060a365feb56b1d3bb633b99c33d60dd5e48c"
+      "sha256": "d8cfecd22e48dc2b894209a71e58fa27c8a2cc975e8f80f1eb99a605a8e15953"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -150,12 +150,12 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-batched-answers-39612376706",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39664831023",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-batched-answers-39612376706/result.json",
-      "scope": "Matched complete sessions before and after batch storage on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification.",
-      "sha256": "ce4ad251f7a874b542215108efc8ef8af62a761ac29d45751b588b9e5c20442d"
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-39664831023/result.json",
+      "scope": "Matched complete sessions before and after hashing distinct pieces once on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification.",
+      "sha256": "23d24c55741243d4a12fea02df6b1718859112e08913d1e72ee8c247346add0b"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
