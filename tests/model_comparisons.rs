@@ -8,7 +8,7 @@ fn retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal() 
             "--fr",
             env!("CARGO_BIN_EXE_fr"),
             "--audit",
-            "tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons",
+            "tests/agent-eval/results/2026-10-21-distinct-answer-delivery-model-comparisons",
         ])
         .output()
         .unwrap();

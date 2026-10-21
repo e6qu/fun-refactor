@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-21-storage-ci-repair-checked-outcomes",
+        "tests/agent-eval/results/2026-10-21-distinct-answer-delivery-checked-outcomes",
     ]);
 }
 
