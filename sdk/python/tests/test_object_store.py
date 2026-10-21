@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-from fr_ir.context import DirectoryObjectStore, restore_stored_value, store_merkle_value
+from fr_ir.context import DirectoryObjectStore, MemoryObjectStore, restore_stored_value, store_merkle_value
 from fr_ir.ir import IrError, merkle_object_pack
 from fr_ir.runtime import FrRuntimeError
 
@@ -51,6 +51,20 @@ def test_a_conflicting_record_rolls_back_the_entire_batch(tmp_path):
     reopened = DirectoryObjectStore(store.root)
     assert reopened.get(first) == original
     assert reopened.get(second) is None
+
+
+@pytest.mark.parametrize("disk", [False, True])
+@pytest.mark.parametrize("original,replacement", [(True, 1), (False, 0), (1, 1.0)])
+def test_equal_python_values_cannot_overwrite_different_json_bytes(tmp_path, disk, original, replacement):
+    store = DirectoryObjectStore(tmp_path / "objects") if disk else MemoryObjectStore()
+    saved = store_merkle_value(store, original)
+    record = store.get(saved.digest)
+    record["value"] = replacement
+    with pytest.raises(FrRuntimeError, match="conflicting immutable"):
+        store.put_many({"8" * 64: {"kind": "scalar", "value": "new"}, saved.digest: record})
+    assert store.get("8" * 64) is None
+    restored = restore_stored_value(store, saved.digest)
+    assert type(restored) is type(original) and restored == original
 
 
 def test_a_killed_writer_leaves_no_partial_answer(tmp_path):

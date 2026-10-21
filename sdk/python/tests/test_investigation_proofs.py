@@ -213,7 +213,7 @@ def test_merkle_corruption_refuses(project):
     report = ProofReport.review(client).execute(client)
     store = MemoryObjectStore()
     digest = report.persist(store)
-    store._objects[digest] = {}
+    store._objects[digest] = b"{}"
     with pytest.raises(IrError):
         ProofReport.restore(store, digest)
 

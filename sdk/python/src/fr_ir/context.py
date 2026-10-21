@@ -61,7 +61,7 @@ class MemoryObjectStore:
     """An in-memory object store for one agent process."""
 
     def __init__(self) -> None:
-        self._objects: dict[str, dict[str, Any]] = {}
+        self._objects: dict[str, bytes] = {}
 
     @contextmanager
     def read(self) -> Iterator[Callable[[str], Mapping[str, Any] | None]]:
@@ -69,10 +69,16 @@ class MemoryObjectStore:
 
     def get(self, digest: str) -> Mapping[str, Any] | None:
         value = self._objects.get(_checked_digest(digest))
-        return _copy_json(value) if value is not None else None
+        return json.loads(value) if value is not None else None
 
     def put_many(self, records: Mapping[str, Mapping[str, Any]]) -> None:
-        values = {_checked_digest(key): _copy_json(record) for key, record in records.items()}
+        try:
+            values = {_checked_digest(key): json.dumps(
+                record, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False,
+            ).encode("utf-8") for key, record in records.items()}
+        except (TypeError, ValueError) as error:
+            raise FrRuntimeError("Merkle object record is not canonical JSON") from error
         for digest, value in values.items():
             previous = self._objects.get(digest)
             if previous is not None and previous != value:
