@@ -115,7 +115,7 @@ def fixture(directory, tasks):
             result['sessions'].append({'repetition': repetition, 'condition': condition,
                 'position': (tasks['conditions'].index(condition) - repetition) % 2,
                 'copy_seconds': .5, 'copy_cpu_seconds': .01, 'copy_bytes': result['source_bytes'],
-                'stages': stages, 'total_seconds': 4.5})
+                'cleanup_seconds': .2, 'cleanup_cpu_seconds': .01, 'stages': stages, 'total_seconds': 4.7})
     return result
 
 
@@ -174,6 +174,19 @@ class Accounting(unittest.TestCase):
         value['limits']['wall_seconds'] += 1
         with self.assertRaisesRegex(ValueError, 'limits changed'):
             cost.check_measurement(value, self.tasks['limits'])
+
+    def test_explicit_cache_and_worker_settings_reach_the_process(self):
+        output, workspace = self.directory / 'measurement', self.directory / 'workspace'
+
+        def run(*args, **kwargs):
+            self.assertEqual(kwargs['env']['FUN_REFACTOR_CACHE'], str(workspace / 'project/.fr/cost-cache'))
+            self.assertEqual(kwargs['env']['RAYON_NUM_THREADS'], '1')
+            self.assertEqual(kwargs['env']['PYTHONHASHSEED'], '0')
+            (output / 'cpu.txt').write_text('0.01 0.01\n')
+            return process(self.tasks['limits'])
+
+        with patch.object(cost, 'bounded_run', side_effect=run):
+            cost.measured(['example'], output, workspace, self.tasks['limits'])
 
     def test_stale_answer_cannot_be_reused(self):
         path = self.directory / '0-saved/edit/result.json'

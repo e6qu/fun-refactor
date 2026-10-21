@@ -81,6 +81,7 @@ def satisfy(plan, client, reference):
 
 
 def measure(args):
+    assert args.cache.resolve() == (args.project / '.fr/cost-cache').resolve()
     os.environ['FUN_REFACTOR_CACHE'] = str(args.cache)
     request = json.loads(args.request.read_text())
     client = MeasuredClient(args.project, args.fr, args.output)
@@ -131,6 +132,7 @@ def measure(args):
         'worker_seconds': time.monotonic() - BOOT,
         'worker_cpu_seconds': sum(getattr(resource.getrusage(kind), field)
             for kind in (resource.RUSAGE_SELF, resource.RUSAGE_CHILDREN) for field in ('ru_utime', 'ru_stime'))}
+    assert args.cache.is_dir() and any(path.is_file() for path in args.cache.rglob('*')), 'explicit cache was not populated'
     save(args.output / 'result.json', result)
     sys.stdout.buffer.write(encode(answer) + b'\n')
 

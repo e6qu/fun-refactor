@@ -42,7 +42,7 @@ Samples can miss short memory peaks. GNU time reports process-tree CPU in hundre
 The worker also records CPU with finer precision before writing its final report.
 
 Source download, extraction, checkout copies and the source edit have separate measurements.
-The three-question session total includes its checkout copy and edit.
+The three-question session total includes its checkout copy, edit and cleanup.
 Download and extraction are shared preparation, outside each session total.
 The optimized build and runner environment setup also stay outside request totals.
 The workflow records their steps and duration in GitHub.

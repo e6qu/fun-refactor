@@ -1,5 +1,5 @@
 name: Cost of continuing saved work
-# Each measured condition owns an explicit empty native cache.
+# Every condition owns an explicit empty cache and counts its cleanup.
 on:
   push:
     branches: [feat/saved-work-cost]

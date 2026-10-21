@@ -144,8 +144,7 @@ def collect_project(task, output, binary, tasks):
             order = tasks['conditions'][repetition % 2:] + tasks['conditions'][:repetition % 2]
             for position, condition in enumerate(order):
                 copied, copied_cpu = time.monotonic(), cpu_now()
-                if project.exists():
-                    shutil.rmtree(project)
+                require(not project.exists(), 'previous condition was not cleaned up')
                 shutil.copytree(source, project)
                 copy_seconds = time.monotonic() - copied
                 copy_cpu_seconds = cpu_now() - copied_cpu
@@ -184,10 +183,15 @@ def collect_project(task, output, binary, tasks):
                         'storage_before': value['storage_before'], 'storage_after': value['storage_after']})
                 if condition == 'saved':
                     shutil.copytree(state, session / 'saved-state')
+                cleaned, cleaned_cpu = time.monotonic(), cpu_now()
+                shutil.rmtree(state)
+                shutil.rmtree(project)
+                cleanup_seconds, cleanup_cpu_seconds = time.monotonic() - cleaned, cpu_now() - cleaned_cpu
                 sessions.append({'repetition': repetition, 'condition': condition, 'position': position,
                     'copy_seconds': copy_seconds, 'copy_cpu_seconds': copy_cpu_seconds,
+                    'cleanup_seconds': cleanup_seconds, 'cleanup_cpu_seconds': cleanup_cpu_seconds,
                     'copy_bytes': source_bytes, 'stages': stages,
-                    'total_seconds': copy_seconds + sum(row['seconds'] for row in stages)
+                    'total_seconds': copy_seconds + cleanup_seconds + sum(row['seconds'] for row in stages)
                         + edit['elapsed_seconds']})
     shutil.rmtree(source)
     result = {'project': task, 'source_files': source_files, 'changed_files': changed_files,
@@ -246,12 +250,14 @@ def audit_project(value, directory, tasks):
         require(session['position'] == (tasks['conditions'].index(condition) - repetition) % 2, 'condition order')
         require(finite(session['copy_seconds']) and finite(session['copy_cpu_seconds'])
             and session['copy_bytes'] == value['source_bytes'], 'missing checkout copy cost')
+        require(finite(session['cleanup_seconds']) and finite(session['cleanup_cpu_seconds']), 'missing cleanup cost')
         require([row['stage'] for row in session['stages']] == tasks['stages'], 'missing stages')
         edit_path = directory / f'{repetition}-{condition}/edit.json'
         edit = json.loads(edit_path.read_text())
         check_measurement(edit['measurement'], tasks['limits'])
         require(finite(edit['cpu_seconds']) and integer(edit['matches']) and edit['matches'] > 0, 'missing edit cost')
-        require(math.isclose(session['total_seconds'], session['copy_seconds'] + edit['measurement']['elapsed_seconds']
+        require(math.isclose(session['total_seconds'], session['copy_seconds'] + session['cleanup_seconds']
+            + edit['measurement']['elapsed_seconds']
             + sum(row['seconds'] for row in session['stages'])), 'total omits preparation or edit')
         for row in session['stages']:
             stage = row['stage']
