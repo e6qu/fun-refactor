@@ -37,6 +37,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Install the recorded library-check dependencies
+        run: >-
+          python3 -m pip install --only-binary=:all: --require-hashes
+          -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
       - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
       - name: Check artifact and current-record controls
         run: |
