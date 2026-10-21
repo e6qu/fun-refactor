@@ -93,8 +93,11 @@
     },
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tests/common/retained.rs",
+        "tests/retained_evidence.rs"
+      ],
+      "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
@@ -103,8 +106,11 @@
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tests/common/retained.rs",
+        "tests/retained_evidence.rs"
+      ],
+      "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
@@ -166,7 +172,8 @@
       "changed_sources": [
         ".github/workflows/refinement-evidence.yml",
         "sdk/python/src/fr_ir/ir.py",
-        "sdk/python/tests/test_ir.py"
+        "sdk/python/tests/test_ir.py",
+        "tools/retain-scalar-evidence.py"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
@@ -181,7 +188,8 @@
         ".github/workflows/refinement-evidence.yml",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "sdk/python/tests/test_ir.py"
+        "sdk/python/tests/test_ir.py",
+        "tools/retain-scalar-evidence.py"
       ],
       "freshness": "stale",
       "id": "project-changes",
@@ -205,16 +213,6 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
-      "id": "current-project-changes",
-      "integrity": "checked",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
-    },
-    {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-saved-answer-39561749625",
       "changed_sources": [],
       "freshness": "current",
@@ -223,30 +221,42 @@
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-21-saved-answer-39561749625/result.json",
       "scope": "Matched previous and current SDK sessions on three familiar projects; original first JMESPath qualification remains separate. Full session costs, fresh baselines and answer agreement."
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "current-project-changes",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
   "milestones": {
     "A": {
-      "demonstrated": 3,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.live-repeat"
+        "A.live-repeat",
+        "A.compiler-profile"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.contract",
         "B.repository-flow",
         "B.effects"
       ],
@@ -344,7 +354,9 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [],
+      "blockers": [
+        "compiler-profile: stale source binding"
+      ],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -379,7 +391,7 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
@@ -412,7 +424,9 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [],
+      "blockers": [
+        "python-contract: stale source binding"
+      ],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep all fourteen declared rules, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
@@ -455,7 +469,7 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Specify reusable Python behavior"
     },
     {

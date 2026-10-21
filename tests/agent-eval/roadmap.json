@@ -150,20 +150,20 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "id": "current-project-changes",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "79a8bc8f945a2c6d0303bc7adf9b91a3cc1d6da44d577b3d05b7a93917fadc39"
-    },
-    {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-saved-answer-39561749625",
       "id": "current-saved-work-cost",
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-21-saved-answer-39561749625/result.json",
       "scope": "Matched previous and current SDK sessions on three familiar projects; original first JMESPath qualification remains separate. Full session costs, fresh baselines and answer agreement.",
       "sha256": "8873c0eb938d07be3e0cfa884452ee3543e763a72a1f66931d45aa8be8d1ed95"
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "id": "current-project-changes",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
+      "sha256": "101cdcecc965e43a6268921632296c8509228d32b696ab11fe395f490e536ecc"
     }
   ],
   "obligations": [
