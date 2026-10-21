@@ -5,7 +5,7 @@ The Python helper library, called the SDK, can save that answer and the inputs i
 A content fingerprint is a label computed from a saved piece's contents. Computing that label is called hashing.
 JSON is the text format used to save those pieces, including numbers, lists and named fields.
 For example, the same function name can appear in many parts of an answer.
-Previously, packing the glob answer visited 11,210 pieces and hashed every visit, although only 1,387 pieces were distinct.
+Previously, saving the glob answer visited 11,210 pieces and hashed every visit, although only 1,387 pieces were distinct.
 The SDK now remembers fingerprints within each operation. Equal pieces share a fingerprint without repeating that hash.
 This includes separately created lists and objects with equal contents, not just repeated references to one Python object.
 The SDK still visits every input entry. It skips the repeated fingerprint computation.
@@ -22,7 +22,7 @@ Both ask identical questions on fixed versions of glob, Boltons and JMESPath at 
 glob matches file paths in Rust. Boltons provides Python utilities. JMESPath selects values from JSON documents.
 Each project and SDK has three sessions containing first use, unchanged reuse and one source edit.
 Each question starts a new Python process.
-Both approaches let the compiled `fr` program keep its own saved analysis between questions, starting empty.
+Each approach has separate, initially empty analysis storage on disk. The compiled `fr` program can reuse it between questions.
 The saved approach also keeps its answer and a task plan, which records the inputs needed for the answer to remain valid.
 The fresh approach asks `fr` again without saving a task plan or answer.
 After an edit, the saved approach checks those inputs, expires the old answer and repeats discovery.
