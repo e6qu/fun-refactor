@@ -22,6 +22,8 @@ GROUPS = {
     'index-consumers': ['index-consumers'],
     'completion-workflows': ['completion-workflows'],
     'structural-change': ['structural-change'],
+    'package-flow': ['package-flow'],
+    'python-repositories': ['python-repositories'],
     'sdk-contexts': ['agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
                      'native-intent-context', 'intent-action-context'],
 }
@@ -31,6 +33,8 @@ SCRIPTS = {
     'resumable-correspondence': 'correspondence-acceptance',
     'index-consumers': 'index-consumers-acceptance',
     'structural-change': 'structural-change-acceptance',
+    'package-flow': 'package-flow-acceptance',
+    'python-repositories': 'python-repository-acceptance',
 }
 ACTIVE_REFERENCES = {
     'project-batch-context': 'tests/agent_acceptance.rs',
@@ -68,8 +72,17 @@ def main():
     collected = []
     for collection in sorted(runs):
         groups = GROUPS[collection]
-        data, identity = scalar.collect(runs[collection], 'refinement-evidence', 'refresh',
+        artifact, producer = (('roadmap-evidence', 'repositories') if collection == 'python-repositories'
+                              else ('refinement-evidence', 'refresh'))
+        data, identity = scalar.collect(runs[collection], artifact, producer,
                                         os.environ['GITHUB_REPOSITORY'])
+        if collection == 'python-repositories':
+            value = json.loads(data['result.json'])
+            require(value['runner']['revision'] == identity['source_commit']
+                    and set(data) == {'result.json', *value['artifacts']},
+                    'repository source or artifact inventory changed')
+            collected.append((collection, data, identity))
+            continue
         if collection == 'structural-change':
             matches = [name for name in data if re.fullmatch(
                 r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-structural-change/result.json', name)]
@@ -110,13 +123,20 @@ def main():
             path.write_bytes(content)
         script = SCRIPTS.get(group, group)
         flag = '--verify' if group == 'index-consumers' else '--audit'
-        argument = directory if group == 'structural-change' else report
+        argument = directory if group in ('structural-change', 'python-repositories') else report
         subprocess.run(['python3', '-B', f'tools/{script}.py', flag, str(argument)],
                        cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
         receipts[group] = {'collection': identity, 'sha256': hashlib.sha256(payload['result.json']).hexdigest()}
         print(f'Validated {group}', flush=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
+    for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks')):
+        if group in receipts:
+            entry, = [row for row in catalog['evidence'] if row['id'] == identifier]
+            directory = f'tests/agent-eval/results/{args.prefix}-{group}'
+            entry.update(path=directory + '/result.json', sha256=receipts[group]['sha256'],
+                         audit='python3 -B tools/' + SCRIPTS[group] + '.py --audit ' +
+                         (directory if group == 'python-repositories' else directory + '/result.json'))
     if 'host-recovery' in receipts:
         entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
         entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'

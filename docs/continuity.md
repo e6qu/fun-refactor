@@ -61,6 +61,8 @@ Choose an improvement from the measured repeated work. Compare complete session 
 The [matched SDK comparison](saved-answer-improvement.md) addresses repeated hashing while saving and reopening answers.
 It keeps the original measurements and first JMESPath result separate from the current checks on familiar projects.
 Use its complete session totals and fresh baseline when choosing the next storage or process improvement.
+The hashing fix reduces complete saved-session time by 8% to 34% across these trials.
+Saving still costs 27% to 218% more than asking again, so lower storage costs remain useful work.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 
