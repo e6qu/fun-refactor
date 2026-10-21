@@ -1,4 +1,5 @@
 name: Find and reduce saved answer costs
+# Keep the project path identical across SDKs; project identities include it.
 on:
   push:
     branches: [perf/saved-answer-cost]

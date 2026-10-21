@@ -175,7 +175,7 @@ def unpack_state(source, destination, limits):
         require('receipt.json' in seen, 'saved state is missing its receipt')
 
 
-def collect_project(task, output, binary, tasks):
+def collect_project(task, output, binary, tasks, workspace):
     output.mkdir(parents=True, exist_ok=False)
     preparation, preparation_cpu = time.monotonic(), cpu_now()
     download(task, output / 'source', tasks['limits'])
@@ -195,64 +195,62 @@ def collect_project(task, output, binary, tasks):
     request['name'] = task['name']
     save(output / 'request.json', request)
     sessions = []
-    with tempfile.TemporaryDirectory(prefix='fr-saved-cost-') as temporary:
-        workspace = Path(temporary)
-        project = workspace / 'project'
-        for repetition in range(tasks['repetitions']):
-            order = tasks['conditions'][repetition % 2:] + tasks['conditions'][:repetition % 2]
-            for position, condition in enumerate(order):
-                copied, copied_cpu = time.monotonic(), cpu_now()
-                require(not project.exists(), 'previous condition was not cleaned up')
-                shutil.copytree(source, project)
-                copy_seconds = time.monotonic() - copied
-                copy_cpu_seconds = cpu_now() - copied_cpu
-                session = output / f'{repetition}-{condition}'
-                state = workspace / f'{repetition}-{condition}-state'
-                state.mkdir()
-                stages = []
-                for stage in tasks['stages']:
-                    if stage == 'edit':
-                        edit, cpu = measured([str(binary), '--json', '-C', str(project), 'file', 'replace',
-                            task['edit_path'], '--before', old.decode(), '--after', new.decode(),
-                            '--matches', str(matches), '--write'], session / 'source-edit', workspace, tasks['limits'])
-                        save(session / 'edit.json', {'measurement': edit, 'cpu_seconds': cpu, 'matches': matches})
-                    destination = session / stage
-                    command = [sys.executable, '-B', str(WORKER), '--project', str(project), '--fr', str(binary),
-                        '--request', str(output / 'request.json'), '--state', str(state),
-                        '--cache', str(project / '.fr/cost-cache'),
-                        '--output', str(destination), '--condition', condition, '--stage', stage]
-                    process, cpu = measured(command, destination, workspace, tasks['limits'])
-                    value = json.loads((destination / 'result.json').read_text())
-                    require(value['source_files'] == (changed_files if stage == 'edit' else source_files),
-                        'question changed project source')
-                    if condition == 'saved':
-                        save(destination / 'receipt.json', json.loads((state / 'receipt.json').read_text()))
-                    stages.append({'stage': stage, 'path': str(destination.relative_to(output)),
-                        'seconds': process['elapsed_seconds'], 'cpu_seconds': cpu,
-                        'worker_cpu_seconds': value['worker_cpu_seconds'],
-                        'sampled_aggregate_rss_bytes': process['sampled_aggregate_rss_bytes'],
-                        'sampled_disk_growth_bytes': process['sampled_disk_growth_bytes'],
-                        'answer_digest': value['answer_digest'], 'answer_bytes': value['answer_bytes'],
-                        'program_bytes': WORKER.stat().st_size,
-                        'invocation_bytes': len(encode(command)), 'request_bytes': len(encode(request)),
-                        'native_calls': len(value['calls']),
-                        'native_report_bytes': sum(call['canonical_report_bytes'] for call in value['calls']),
-                        'native_seconds': sum(call['seconds'] for call in value['calls']),
-                        'storage_before': value['storage_before'], 'storage_after': value['storage_after']})
+    project = workspace / 'project'
+    for repetition in range(tasks['repetitions']):
+        order = tasks['conditions'][repetition % 2:] + tasks['conditions'][:repetition % 2]
+        for position, condition in enumerate(order):
+            copied, copied_cpu = time.monotonic(), cpu_now()
+            require(not project.exists(), 'previous condition was not cleaned up')
+            shutil.copytree(source, project)
+            copy_seconds = time.monotonic() - copied
+            copy_cpu_seconds = cpu_now() - copied_cpu
+            session = output / f'{repetition}-{condition}'
+            state = workspace / f'{repetition}-{condition}-state'
+            state.mkdir()
+            stages = []
+            for stage in tasks['stages']:
+                if stage == 'edit':
+                    edit, cpu = measured([str(binary), '--json', '-C', str(project), 'file', 'replace',
+                        task['edit_path'], '--before', old.decode(), '--after', new.decode(),
+                        '--matches', str(matches), '--write'], session / 'source-edit', workspace, tasks['limits'])
+                    save(session / 'edit.json', {'measurement': edit, 'cpu_seconds': cpu, 'matches': matches})
+                destination = session / stage
+                command = [sys.executable, '-B', str(WORKER), '--project', str(project), '--fr', str(binary),
+                    '--request', str(output / 'request.json'), '--state', str(state),
+                    '--cache', str(project / '.fr/cost-cache'),
+                    '--output', str(destination), '--condition', condition, '--stage', stage]
+                process, cpu = measured(command, destination, workspace, tasks['limits'])
+                value = json.loads((destination / 'result.json').read_text())
+                require(value['source_files'] == (changed_files if stage == 'edit' else source_files),
+                    'question changed project source')
                 if condition == 'saved':
-                    pack_state(state, session / 'saved-state.zip')
-                cleaned, cleaned_cpu = time.monotonic(), cpu_now()
-                shutil.rmtree(state)
-                shutil.rmtree(project)
-                cleanup_seconds, cleanup_cpu_seconds = time.monotonic() - cleaned, cpu_now() - cleaned_cpu
-                sessions.append({'repetition': repetition, 'condition': condition, 'position': position,
-                    'copy_seconds': copy_seconds, 'copy_cpu_seconds': copy_cpu_seconds,
-                    'cleanup_seconds': cleanup_seconds, 'cleanup_cpu_seconds': cleanup_cpu_seconds,
-                    'copy_bytes': source_bytes, 'stages': stages,
-                    'total_seconds': copy_seconds + cleanup_seconds + sum(row['seconds'] for row in stages)
-                        + edit['elapsed_seconds']})
+                    save(destination / 'receipt.json', json.loads((state / 'receipt.json').read_text()))
+                stages.append({'stage': stage, 'path': str(destination.relative_to(output)),
+                    'seconds': process['elapsed_seconds'], 'cpu_seconds': cpu,
+                    'worker_cpu_seconds': value['worker_cpu_seconds'],
+                    'sampled_aggregate_rss_bytes': process['sampled_aggregate_rss_bytes'],
+                    'sampled_disk_growth_bytes': process['sampled_disk_growth_bytes'],
+                    'answer_digest': value['answer_digest'], 'answer_bytes': value['answer_bytes'],
+                    'program_bytes': WORKER.stat().st_size,
+                    'invocation_bytes': len(encode(command)), 'request_bytes': len(encode(request)),
+                    'native_calls': len(value['calls']),
+                    'native_report_bytes': sum(call['canonical_report_bytes'] for call in value['calls']),
+                    'native_seconds': sum(call['seconds'] for call in value['calls']),
+                    'storage_before': value['storage_before'], 'storage_after': value['storage_after']})
+            if condition == 'saved':
+                pack_state(state, session / 'saved-state.zip')
+            cleaned, cleaned_cpu = time.monotonic(), cpu_now()
+            shutil.rmtree(state)
+            shutil.rmtree(project)
+            cleanup_seconds, cleanup_cpu_seconds = time.monotonic() - cleaned, cpu_now() - cleaned_cpu
+            sessions.append({'repetition': repetition, 'condition': condition, 'position': position,
+                'copy_seconds': copy_seconds, 'copy_cpu_seconds': copy_cpu_seconds,
+                'cleanup_seconds': cleanup_seconds, 'cleanup_cpu_seconds': cleanup_cpu_seconds,
+                'copy_bytes': source_bytes, 'stages': stages,
+                'total_seconds': copy_seconds + cleanup_seconds + sum(row['seconds'] for row in stages)
+                    + edit['elapsed_seconds']})
     shutil.rmtree(source)
-    result = {'project': task, 'source_files': source_files, 'changed_files': changed_files,
+    result = {'project': task, 'workspace': str(project), 'source_files': source_files, 'changed_files': changed_files,
         'source_preparation_seconds': preparation_seconds,
         'source_preparation_cpu_seconds': preparation_cpu_seconds,
         'archive_bytes': (output / 'source/source.tar.gz').stat().st_size,
@@ -498,7 +496,8 @@ def collect(args):
             'run_id': int(os.environ['GITHUB_RUN_ID']), 'previous_attempts': attempts})
     for task in tasks['projects']:
         if task['role'] == ('development' if args.collect == 'development' else 'reserved'):
-            value = collect_project(task, args.output / task['id'], binary, tasks)
+            with tempfile.TemporaryDirectory(prefix='fr-saved-cost-') as temporary:
+                value = collect_project(task, args.output / task['id'], binary, tasks, Path(temporary))
             audit_project(value, args.output / task['id'], tasks)
     require(bindings() == before, 'collection changed its implementation')
     if args.collect == 'reserved':

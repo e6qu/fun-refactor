@@ -143,31 +143,34 @@ def retain_measurement(run_id):
     return pointer, report
 
 
-def retain_publication_failures():
+def retain_failed_attempts():
     directory = DIRECTORY / 'failures'
     directory.mkdir()
-    for run_id, failed_step in ((39560287457, 'Commit the checked reports'),
-                               (39559712773, 'Retain both complete measurements after auditing them')):
+    cases = (
+        (39560287457, 'Commit the checked reports', b'(fetch first)',
+         'Another writer updated the branch before the checked reports could be pushed.'),
+        (39559712773, 'Compare both SDKs with the same optimized native executable',
+         b'SDK versions disagree or omit requests',
+         'The two trials used different absolute project paths, which fr includes in project identities. '
+         'The harness removed temporary raw results before packaging them; no raw measurements survived. '
+         'The corrected trial reuses one explicit project path and retains raw results on failure.'))
+    for run_id, failed_step, expected_error, cause in cases:
         run = cost.api(f'actions/runs/{run_id}')
         jobs = cost.api(f'actions/runs/{run_id}/jobs?per_page=100')['jobs']
         cost.require(run['status'] == 'completed' and run['conclusion'] == 'failure'
                      and any(step['name'] == failed_step and step['conclusion'] == 'failure'
-                             for job in jobs for step in job['steps']), 'publication failure changed')
-        cost.save(directory / f'{run_id}.json', {'run': run, 'jobs': jobs,
-            'cause': 'The checked reports could not be pushed because another writer updated the branch.'})
+                             for job in jobs for step in job['steps']), 'failed attempt changed')
+        artifacts = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+        cost.save(directory / f'{run_id}.json', {'run': run, 'jobs': jobs, 'cause': cause,
+                                                'artifacts': artifacts})
         with tempfile.TemporaryFile() as output:
             subprocess.run(['gh', 'run', 'view', str(run_id), '--log-failed'],
                            stdout=output, stderr=subprocess.PIPE, check=True, timeout=30)
             output.seek(0)
             data = output.read(2097153)
-        cost.require(len(data) <= 2097152 and b'[rejected]' in data and b'(fetch first)' in data,
-                     'publication log does not confirm the branch conflict')
+        cost.require(len(data) <= 2097152 and expected_error in data,
+                     'failure log does not confirm the recorded cause')
         (directory / f'{run_id}.log').write_bytes(data)
-        if run_id == 39559712773:
-            rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
-            artifact, = [row for row in rows if row['name'] == 'saved-answer-comparison']
-            (directory / f'{run_id}.zip').write_bytes(cost.artifact_bytes(artifact))
-            cost.save(directory / f'{run_id}-artifact.json', artifact)
 
 
 def main():
@@ -177,7 +180,7 @@ def main():
     run_id = os.environ['COLLECTION_RUN']
     cost.require(run_id.isdigit() and int(run_id) > 0, 'declare the completed collection run')
     pointer, report = retain_measurement(int(run_id))
-    retain_publication_failures()
+    retain_failed_attempts()
     run, jobs = authenticate(pointer['run_id'], report['source_commit'])
     names = {job['name'] for job in jobs if job['conclusion'] == 'success'}
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')

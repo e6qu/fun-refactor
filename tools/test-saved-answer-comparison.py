@@ -24,7 +24,7 @@ def projects():
                          'worker_cpu_seconds': 2, 'sampled_aggregate_rss_bytes': 4096,
                          'storage_after': {'saved_state': 10}}
                         for stage in ('first', 'reuse', 'edit')]})
-        values.append({'project': {'id': name}, 'source_files': {'code.py': 'before'},
+        values.append({'project': {'id': name}, 'workspace': '/trial/project', 'source_files': {'code.py': 'before'},
                        'changed_files': {'code.py': 'after'}, 'sessions': sessions})
     return {'previous': values, 'current': copy.deepcopy(values)}
 
@@ -40,7 +40,8 @@ class ComparisonTests(unittest.TestCase):
             comparison.compare_answers(value)
 
     def test_changed_source_and_question_fail(self):
-        for field, replacement in (('source_files', {}), ('changed_files', {}), ('project', {'id': 'other'})):
+        for field, replacement in (('source_files', {}), ('changed_files', {}),
+                                   ('project', {'id': 'other'}), ('workspace', '/other/project')):
             value = projects()
             value['current'][0][field] = replacement
             with self.assertRaisesRegex(ValueError, 'inputs differ'):

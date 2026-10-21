@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import shutil
 import statistics
 import subprocess
 import tarfile
@@ -76,6 +77,7 @@ def compare_answers(projects):
     cost.require(len(old) == len(new) == 3, 'missing project comparison')
     for before, after in zip(old, new):
         cost.require(before['project'] == after['project']
+                     and before['workspace'] == after['workspace']
                      and before['source_files'] == after['source_files']
                      and before['changed_files'] == after['changed_files'], 'project inputs differ')
         answers = lambda project: {(session['repetition'], session['condition'], row['stage']): row['answer_digest']
@@ -143,6 +145,12 @@ def audit(directory):
             for task in report['tasks']['projects']:
                 value = json.loads((tree / task['id'] / 'result.json').read_text())
                 cost.audit_project(value, tree / task['id'], report['tasks'])
+                for session in value['sessions']:
+                    for row in session['stages']:
+                        process = json.loads((tree / task['id'] / row['path'] / 'process.json').read_text())
+                        argv = process['argv']
+                        cost.require(argv[argv.index('--project') + 1] == value['workspace'],
+                                     'request used a different project path')
                 projects[version].append(value)
         compare_answers(projects)
         cost.require(report['summary'] == summary(projects), 'summary differs from full session costs')
@@ -156,14 +164,16 @@ def collect(binary, output):
     projects = {'previous': [], 'current': []}
     with tempfile.TemporaryDirectory(prefix='fr-answer-comparison-') as temporary:
         root = Path(temporary)
+        workspace = root / 'workspace'
+        workspace.mkdir()
         baseline_sources = baseline_tree(root / 'baseline')
         for index, task in enumerate(tasks['projects']):
             versions = ('previous', 'current') if index % 2 == 0 else ('current', 'previous')
             values = {}
             for version in versions:
                 cost.WORKER = (root / 'baseline' if version == 'previous' else ROOT) / 'tools/saved-work-worker.py'
-                directory = root / version / task['id']
-                value = cost.collect_project(task, directory, binary, tasks)
+                directory = output / 'raw' / version / task['id']
+                value = cost.collect_project(task, directory, binary, tasks, workspace)
                 cost.audit_project(value, directory, tasks)
                 values[version] = value
             for version in versions:
@@ -171,7 +181,8 @@ def collect(binary, output):
         cost.WORKER = ROOT / 'tools/saved-work-worker.py'
         compare_answers(projects)
         for version in ('previous', 'current'):
-            archive_tree(root / version, output / (version + '.zip'))
+            archive_tree(output / 'raw' / version, output / (version + '.zip'))
+        shutil.rmtree(output / 'raw')
     cost.require(bindings() == before, 'collection changed its source')
     cost.save(output / 'result.json', {
         'schema': 'fr-saved-answer-improvement', 'passed': True,
