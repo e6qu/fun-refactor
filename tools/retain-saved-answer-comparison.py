@@ -130,7 +130,14 @@ def main():
                     '8a0ac262ac17332feffb22a0ed61e864d920895b', '--', 'sdk/python/src'], check=True)
     cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
+    subprocess.run(['python3', '-B', 'tools/retain-ci-reports.py', '--runs', json.dumps({
+        'sdk-contexts': 39559075965, 'structural-change': 39559082672}),
+        '--prefix', '2026-10-21-saved-answer'], cwd=ROOT, check=True)
     cache_path, cache_receipt = retain_cache()
+    subprocess.run(['git', 'add', '--', 'tests/python_sdk.rs', 'tests/structural_change.rs',
+                    *[str(path.relative_to(ROOT)) for path in
+                      sorted((ROOT / 'tests/agent-eval/results').glob('2026-10-21-saved-answer-*'))]],
+                   cwd=ROOT, check=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     cache, = [row for row in catalog['evidence'] if row['id'] == 'cache-measurements']
