@@ -63,8 +63,10 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -236,8 +238,11 @@
     },
     {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39664831023",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/saved-answer-improvement.yml",
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -245,13 +250,13 @@
       "scope": "Matched complete sessions before and after hashing distinct pieces once on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-distinct-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-release-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -284,14 +289,16 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
@@ -310,7 +317,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -617,7 +624,9 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "current-saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.",
@@ -660,7 +669,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
