@@ -261,12 +261,24 @@ A change to `src/cli.rs` can affect all the groups below in the
 | `intent-action-context` | The same reviewed edit through composed calls and an intent action |
 | `completion-workflows` | Seven workflow families reach executable actions from a guide |
 | `retained-proofs` | Proof records invalidate after relevant changes and replay delivery |
+| `checked-outcomes` | A wrong repair fails its behavior check; a correct repair can be reopened and delivered |
+| `model-comparisons` | Rust and Python answers agree on eight true-or-false input combinations, and saved model proofs can be reopened |
+| `resumable-correspondence` | A saved function selection is checked after moves, renames, copies and deletion |
 | `host-recovery` | Edit recovery at process-interruption boundaries |
 | `index-resolution` | Complete symbol and reference answers match a pinned baseline |
 | `python-repositories` | Two scripted repository edits pass behavior checks and patch replay |
 
 Freeze the bound source inputs before dispatch, then import results from the exact successful
 run after checking every source hash. Update active test references and preserve historical reports.
+
+Current regression tests need current records. For example, after changing answer storage to SQLite,
+an old saved delivery receipt cannot exercise reopening with the new store. Collect `checked-outcomes`,
+`model-comparisons`, `retained-proofs` and `resumable-correspondence` from one source commit.
+Then dispatch `retain-ci-reports` with a new `prefix` and an `evidence_runs` JSON map from those
+four group names to their successful run IDs. The publisher checks complete archives, current code
+and behavior before updating the test paths and tracking. Model replay also runs `fr` and Lean,
+the proof checker. Earlier records remain unchanged; the current SDK gains no older-format reader.
+
 If workstation resource admission stops local evidence handling, dispatch
 `refinement-evidence.yml` with `group=retain-python-contract` on the working branch. Supply the
 successful collection's `collection_run` ID and a new dated `prefix`. The hosted job verifies

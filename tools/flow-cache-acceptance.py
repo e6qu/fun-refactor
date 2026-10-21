@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -64,7 +65,7 @@ def legacy_class():
 
 
 def inventory(directory):
-    files = list(directory.rglob("*.json"))
+    files = [path for path in directory.rglob("*") if path.is_file()]
     return len(files), sum(path.stat().st_size for path in files)
 
 
@@ -74,19 +75,32 @@ class MeasuredStore:
         self.gets = self.puts = 0
         self.seconds = 0.0
 
-    def get(self, key):
+    @contextmanager
+    def read(self):
+        started = time.perf_counter()
+        try:
+            with self.store.read() as fetch:
+                self.seconds += time.perf_counter() - started
+                try:
+                    yield lambda key: self._get(fetch, key)
+                finally:
+                    started = time.perf_counter()
+        finally:
+            self.seconds += time.perf_counter() - started
+
+    def _get(self, fetch, key):
         self.gets += 1
         start = time.perf_counter()
         try:
-            return self.store.get(key)
+            return fetch(key)
         finally:
             self.seconds += time.perf_counter() - start
 
-    def put(self, key, value):
-        self.puts += 1
+    def put_many(self, records):
+        self.puts += len(records)
         start = time.perf_counter()
         try:
-            return self.store.put(key, value)
+            return self.store.put_many(records)
         finally:
             self.seconds += time.perf_counter() - start
 

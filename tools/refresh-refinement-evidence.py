@@ -26,6 +26,7 @@ def main():
     group = os.environ.get('FR_EVIDENCE_GROUP', 'all')
     scripts = {
         'model-comparisons': 'refinement-acceptance',
+        'checked-outcomes': 'outcome-acceptance',
         'retained-proofs': 'proof-evidence-acceptance',
         'agent-guide-context': 'agent-guide-context',
         'completion-workflows': 'completion-workflows',
@@ -92,7 +93,7 @@ def main():
                               and row['target']['name'] == target and row.get('executable'))
     for name in names:
         directory = OUTPUT / f'{PREFIX}-{name}'
-        path = directory if name in ('model-comparisons', 'structural-change') else directory / 'result.json'
+        path = directory if name in ('model-comparisons', 'checked-outcomes', 'structural-change') else directory / 'result.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         command = [sys.executable, f'tools/{scripts[name]}.py']
         if name in binaries:

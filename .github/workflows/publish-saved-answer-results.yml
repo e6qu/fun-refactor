@@ -1,0 +1,95 @@
+name: Publish checked saved answer results together
+on:
+  push:
+    branches: [perf/batched-answer-storage]
+    paths: [.github/workflows/publish-saved-answer-results.yml]
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: JSON map of the eleven successful comparison and report collections
+        required: true
+        type: string
+      prefix:
+        description: New dated prefix for the retained SDK and scalar reports
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: publish-saved-answer-results-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Install the recorded library-check dependencies
+        run: >-
+          python3 -m pip install --only-binary=:all: --require-hashes
+          -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - name: Check artifact and current-record controls
+        run: |
+          python3 -B tools/test-saved-answer-comparison.py
+          python3 -B tools/test-retain-ci-reports.py
+          python3 -B tools/test-retain-scalar-evidence.py
+      - name: Authenticate and audit every declared collection before committing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_RUNS: ${{ inputs.runs }}
+          REPORT_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, subprocess
+          runs = json.loads(os.environ['REPORT_RUNS'])
+          scalar = {'flow', 'compiler', 'index', 'repositories', 'python', 'routes', 'repair', 'probes'}
+          assert set(runs) == scalar | {'comparison', 'sdk-contexts', 'structural-change'}
+          assert all(type(run) is int and run > 0 for run in runs.values())
+          prefix = os.environ['REPORT_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          os.environ['COLLECTION_RUN'] = str(runs['comparison'])
+          subprocess.run(['python3', '-B', 'tools/retain-saved-answer-comparison.py'], check=True)
+          subprocess.run(['python3', '-B', 'tools/retain-ci-reports.py', '--runs',
+              json.dumps({key: runs[key] for key in ('sdk-contexts', 'structural-change')}),
+              '--prefix', prefix], check=True)
+          subprocess.run(['python3', '-B', 'tools/retain-scalar-evidence.py', '--runs',
+              json.dumps({key: runs[key] for key in sorted(scalar)}), '--prefix', prefix], check=True)
+          PY
+      - name: Reconcile tracking and check the reviewed writing
+        run: |
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tools/roadmap-status.py --check
+          python3 -B tests/agent-eval/test_roadmap_status.py
+          python3 -B tools/review-docs.py
+          python3 -B tools/check-prose.py
+      - name: Commit only current results and their reviewed references
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import subprocess
+          changes = subprocess.check_output(['git', 'diff', '--name-status', 'HEAD', '--',
+              'tests/agent-eval/results'], text=True).splitlines()
+          assert all(line.startswith('A\t') for line in changes), 'preserve earlier raw results'
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -u
+          git add tests/agent-eval/results tests/agent-eval/batched-answer-storage-release docs/batched-answer-storage.md
+          git commit -m 'test: publish current storage results and reconcile tracking'
+          git push origin "HEAD:refs/heads/$BRANCH"

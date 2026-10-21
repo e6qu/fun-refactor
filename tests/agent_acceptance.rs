@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-09-28-checked-outcomes",
+        "tests/agent-eval/results/2026-10-21-storage-ci-repair-checked-outcomes",
     ]);
 }
 
@@ -239,6 +239,6 @@ fn consumer_scopes_retain_exact_discovery_and_replay_checked_delivery() {
     python(&[
         "tools/change-scope-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-21-saved-answer-change-scope",
+        "tests/agent-eval/results/2026-10-21-batched-storage-final-change-scope",
     ]);
 }

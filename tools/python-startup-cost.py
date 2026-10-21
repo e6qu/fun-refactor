@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import copy
 import hashlib
 import json
@@ -51,7 +52,7 @@ SCOPE = {
     'elapsed_seconds': 'Parent timer around a new Python worker through parsed JSON reply. Includes Python/SDK startup, finding the function, native process startup, file checks, import resolution, parsing, analysis or validation, saved-record reads/writes and manifest pointer I/O.',
     'excluded': 'Checkout, compilation, dependency installation, fixture edits, ordinary Python observation, store inventory, report comparison and audit. Worker reply serialization/transfer, shared measurement imports and instrumentation are included. Each sequence explicitly enables or disables the project cache, isolated by approach and repetition and initially empty. No uncounted priming. OS file caches are neither flushed nor controlled.',
     'attribution': 'Ordinary CLI calls time finding the function, input identity and answering separately, including client parsing. Separate profiling sequences use the existing library profiler with construction timers. Their phase times exclude process startup, argument parsing and outer reply output. The profiling client constructs the current required project identity before strict SDK validation, outside native phase timers. Index includes extraction or cached facts and resolution; query includes import loading, parsing and analysis or validation, without separate import/parser timers. Profiling totals are diagnostic, not CLI latency.',
-    'bytes': 'Canonical JSON reply bytes, not exact wire bytes. Profiling counts the adapted SDK report including its constructed project identity, excluding the diagnostic envelope. Store reads and offered writes count repeated object operations. Added bytes count unique object files; offered writes can verify existing objects. Manifest pointer bytes are outside object totals but their I/O is timed. Temporary native reuse files are timed but not retained in the object inventory.',
+    'bytes': 'Canonical JSON reply bytes, not exact wire bytes. Profiling counts the adapted SDK report including its constructed project identity, excluding the diagnostic envelope. Store reads and offered writes count repeated object operations. Added bytes count database growth; offered writes can verify existing objects. Manifest pointer bytes are outside object totals but their I/O is timed. Temporary native reuse files are timed but not retained in the object inventory.',
     'memory': 'Separate worker and largest-child lifetime RSS high-water marks, not sampled aggregate RSS. Python runtime and fr are separate processes.',
     'python': 'Ordinary Python executes the same selected function with source returning 17 and sink returning its argument. It checks one concrete result, not all input-flow paths. Its elapsed time is contextual, not an equivalent analysis baseline.',
     'claims': 'Optimized build, disclosed synthetic development examples only. No unfamiliar package, agent task, paid study, full-package acceptance or general speedup claim. The earlier development-build collection is historical, not a controlled build-profile comparison.',
@@ -84,7 +85,7 @@ def evidence(value):
 
 
 def inventory(root):
-    files = list((root / 'objects').rglob('*.json'))
+    files = [path for path in (root / 'objects').rglob('*') if path.is_file()]
     return len(files), sum(path.stat().st_size for path in files)
 
 
@@ -99,23 +100,36 @@ class MeasuredStore:
         self.gets = self.puts = self.read_bytes = self.offered_bytes = 0
         self.seconds = 0.0
 
-    def get(self, key):
+    @contextmanager
+    def read(self):
+        started = time.perf_counter()
+        try:
+            with self.store.read() as fetch:
+                self.seconds += time.perf_counter() - started
+                try:
+                    yield lambda key: self._get(fetch, key)
+                finally:
+                    started = time.perf_counter()
+        finally:
+            self.seconds += time.perf_counter() - started
+
+    def _get(self, fetch, key):
         self.gets += 1
         started = time.perf_counter()
         try:
-            value = self.store.get(key)
+            value = fetch(key)
             if value is not None:
                 self.read_bytes += len(encode(value))
             return value
         finally:
             self.seconds += time.perf_counter() - started
 
-    def put(self, key, value):
-        self.puts += 1
+    def put_many(self, records):
+        self.puts += len(records)
         started = time.perf_counter()
         try:
-            self.offered_bytes += len(encode(value))
-            self.store.put(key, value)
+            self.offered_bytes += sum(len(encode(value)) for value in records.values())
+            self.store.put_many(records)
         finally:
             self.seconds += time.perf_counter() - started
 

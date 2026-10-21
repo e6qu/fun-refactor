@@ -96,7 +96,11 @@ Use the complete session totals to choose the next optimization, rather than a f
 The [matched SDK comparison](docs/saved-answer-improvement.md) checks the fix for repeated hashing when saving and reopening answers.
 It compares the previous and changed SDKs with one native executable and keeps the original first JMESPath evaluation separate.
 The hashing fix reduces complete saved-session time by 8% to 34% in these three trials.
-Saving still costs 27% to 218% more than asking again. File writes remain part of that cost.
+That hashing comparison still found 27% to 218% overhead against asking again.
+The [storage follow-up](docs/batched-answer-storage.md) checks replacing separate file writes with one database commit per answer.
+It compares complete sessions against the code merged in PR #554 and against asking again.
+Saved sessions take 19% to 53% less time in that comparison, but still cost 2% to 41% more than asking again.
+The database uses more stored bytes. Saving answers remains an explicit choice.
 The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
 Broader agent savings, translation and proofs connected to source code remain open.
 

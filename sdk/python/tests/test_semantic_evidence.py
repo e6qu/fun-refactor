@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 import subprocess
@@ -228,13 +229,17 @@ def test_retained_check_objects_reject_tampering(tmp_path):
     result = run_checks(plan, client, "verify", reviewed, store)
 
     class CorruptStore:
+        @contextmanager
+        def read(self):
+            yield self.get
+
         def get(self, key):
             if key == result.report_root:
                 return {"schema": "invented", "kind": "scalar", "value": True}
             return store.get(key)
 
-        def put(self, key, record):
-            store.put(key, record)
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         restore_checks(CorruptStore(), result.report_root)

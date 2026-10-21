@@ -1,6 +1,7 @@
 from dataclasses import replace
 import json
 from pathlib import Path
+from contextlib import contextmanager
 
 import pytest
 
@@ -158,6 +159,10 @@ def test_verified_merkle_objects_refuse_corruption(project, tmp_path):
     store = MemoryObjectStore()
     digest = snapshot.persist(store)
     class Corrupt:
+        @contextmanager
+        def read(self):
+            yield self.get
+
         def get(self, key):
             value = store.get(key)
             if key == digest:

@@ -285,6 +285,8 @@ The native call count and disclosed context are unchanged. This tradeoff does no
 Warm medians still exceed cold medians in that corpus, so caching remains an explicit choice.
 The [baseline and overhead guide](benchmarks.md#faster-parts-can-still-make-the-whole-operation-slower) shows fresh and warm times together.
 The storage ratio above divides each format's recorded warm stored-byte median; it is independent of the timing percentage.
+The [later local-storage comparison](batched-answer-storage.md) measures complete sessions on real projects.
+It commits pieces together in a database and reports the extra stored bytes alongside elapsed time.
 The [measurement tool](../tools/flow-acceptance.py) records cold, warm, unrelated-edit and relevant-edit
 latency, child/worker peak RSS (resident set size, the measured memory held by a process), report bytes and transfer steps in isolated workers. Tokens are unavailable.
 

@@ -62,7 +62,12 @@ The [matched SDK comparison](saved-answer-improvement.md) addresses repeated has
 It keeps the original measurements and first JMESPath result separate from the current checks on familiar projects.
 Use its complete session totals and fresh baseline when choosing the next storage or process improvement.
 The hashing fix reduces complete saved-session time by 8% to 34% across these trials.
-Saving still costs 27% to 218% more than asking again, so lower storage costs remain useful work.
+That hashing comparison still found 27% to 218% overhead against asking again.
+The [storage follow-up](batched-answer-storage.md) replaces separate file writes with one database commit per answer.
+It also uses one database read session to verify or restore an answer.
+Use that comparison's complete session times and fresh baselines when choosing further work.
+Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than asking again.
+The database uses more stored bytes, so preserve that tradeoff in further comparisons.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 

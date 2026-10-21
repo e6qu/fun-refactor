@@ -76,18 +76,29 @@ correctly makes that handle stale.
 
 ## Object storage
 
-`MemoryObjectStore` is process-local. `DirectoryObjectStore` shards canonical JSON, the normalized encoding used to compare records and compute their fingerprints, records by their
-lowercase SHA-256 digest and publishes immutable files atomically. `store_merkle_value` uses the
-same `fr-merkle-object-1` shape as the CLI. It limits a pack to 65,536 objects and 64 MiB, writes the
-root last, reads every object back and compares canonical bytes. `restore_stored_value` fetches only
+`MemoryObjectStore` keeps data in one process. `DirectoryObjectStore` keeps it in `objects.sqlite3`
+inside the chosen directory. SQLite is a database library included with Python; no server is needed.
+For example, saving an answer about `render` commits all its pieces together, instead of waiting
+for thousands of separate file writes. A transaction makes either all the pieces visible or none.
+Disk synchronization stays enabled, and conflicting bytes roll back the whole transaction.
+Use an empty directory for a new store. The store reads only its current database format.
+
+`store_merkle_value` uses the same `fr-merkle-object-1` shape as the CLI. It limits a pack to
+65,536 objects and 64 MiB, offers the root last, reads every object back and compares canonical JSON
+bytes. Canonical JSON is the normalized encoding used to compare records and compute their fingerprints.
+`restore_stored_value` fetches only
 reachable records, verifies every content address and reconstructs the JSON value.
 
-The `ObjectStore` protocol has only `get(digest)` and `put(digest, record)`. `HttpObjectStore`
+The `ObjectStore` protocol requires `read()` and `put_many(records)`. A read session yields a
+function that fetches a piece by its fingerprint; the local store uses one database snapshot for
+the complete verification or restore. `records` maps content
+fingerprints to pieces, in publication order. Local writes commit in one transaction. `HttpObjectStore`
 provides a bounded zero-dependency adapter for an endpoint that accepts `GET` and idempotent `PUT`
 at `<base>/<sha256>`. It accepts caller-supplied headers, refuses redirects, bounds each response to
 1 MiB and exposes neither response bodies nor headers in errors. `store_merkle_value` reads every
 write back and checks canonical bytes before admitting the pack. The remote service still owns
-credentials, authorization, concurrency, retention and durability.
+credentials, authorization, concurrency, retention, transaction support and durability.
+The HTTP adapter sends one `PUT` per piece in the supplied order.
 
 ```python
 from fr_ir.http_store import HttpObjectStore

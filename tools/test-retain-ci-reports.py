@@ -30,10 +30,12 @@ class ReportRetention(unittest.TestCase):
                 data = {'result.json': json.dumps(value).encode(), 'repair.patch': payload}
                 if omit_repository_artifact:
                     del data['repair.patch']
-            if 'structural-change' in groups[run - 1]:
-                parent = f'refinement-evidence/{prefix}-structural-change/'
+            group, = groups[run - 1] if len(groups[run - 1]) == 1 else ['single-json']
+            if group in reports.DIRECTORY_REPORTS:
+                parent = f'refinement-evidence/{prefix}-{group}/'
                 data[parent + 'objects/example.json'] = payload
-                data[parent + 'manifest.json'] = json.dumps({'source_commit': identity['source_commit'],
+                source_key = 'revision' if group == 'checked-outcomes' else 'source_commit'
+                data[parent + 'manifest.json'] = json.dumps({source_key: identity['source_commit'],
                     'files': {name: hashlib.sha256(payload).hexdigest()
                               for name in ('result.json', 'objects/example.json')}}).encode()
                 if tamper_structural:
@@ -44,7 +46,7 @@ class ReportRetention(unittest.TestCase):
         catalog = root / 'tests/agent-eval/roadmap.json'
         catalog.parent.mkdir(parents=True)
         catalog.write_text(json.dumps({'evidence': [{'id': name} for name in
-            ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile')]}))
+            ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations')]}))
         (root / 'tools').mkdir()
         (root / 'tools/test-compiler-profile.py').write_text("REPORT = ROOT / 'previous.json'\n")
         (catalog.parent / 'current-scalar-reports.json').write_text(json.dumps({
@@ -54,13 +56,14 @@ class ReportRetention(unittest.TestCase):
                                           ('compiler-profile', 'compiler-profile'))}}))
         (catalog.parent / 'results').mkdir()
         (catalog.parent / 'representative-acceptance.json').write_text(json.dumps({'cases': [{
-            'id': 'rust-scoped-structural-migration', 'runner': 'tests/structural_change.rs',
-            'runner_sha256': 'previous', 'fixture_revision': 'unchanged-fixture'}]}))
+            'id': identifier, 'runner': reports.ACTIVE_REFERENCES[group],
+            'runner_sha256': 'previous', 'fixture_revision': 'unchanged-fixture'}
+            for group, identifier in reports.REGISTERED_REPORTS.items()]}))
         for group, name in reports.ACTIVE_REFERENCES.items():
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             previous = path.read_text() if path.exists() else ''
-            suffix = '' if group == 'structural-change' else '/result.json'
+            suffix = '' if group in reports.DIRECTORY_REPORTS else '/result.json'
             path.write_text(previous + f'"tests/agent-eval/results/previous-{group}{suffix}"\n')
         test = root / 'tests/python_sdk.rs'
         test.write_text('\n'.join(
@@ -98,14 +101,14 @@ class ReportRetention(unittest.TestCase):
             self.assertEqual((root / 'tests/retained_proofs.rs').read_text(),
                              '"tests/agent-eval/results/test-reports-retained-proofs/result.json"\n')
             for group, name in reports.ACTIVE_REFERENCES.items():
-                suffix = '' if group == 'structural-change' else '/result.json'
+                suffix = '' if group in reports.DIRECTORY_REPORTS else '/result.json'
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}{suffix}"',
                     (root / name).read_text())
             self.assertEqual((root / 'tests/agent-eval/results/test-reports-structural-change/objects/example.json').read_bytes(), original)
             registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
-            case, = registry['cases']
-            self.assertEqual(case['runner_sha256'], hashlib.sha256((root / case['runner']).read_bytes()).hexdigest())
-            self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
+            for case in registry['cases']:
+                self.assertEqual(case['runner_sha256'], hashlib.sha256((root / case['runner']).read_bytes()).hexdigest())
+                self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
             for group in reports.ACTIVE_FUNCTIONS:
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}/result.json"',
                               (root / 'tests/python_sdk.rs').read_text())
@@ -126,12 +129,12 @@ class ReportRetention(unittest.TestCase):
                              {'test-reports-retained-proofs', 'test-reports-ci-collection'})
             self.assertEqual(json.loads((root / 'tests/agent-eval/roadmap.json').read_text()),
                              {'evidence': [{'id': name} for name in
-                                 ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile')]})
+                                 ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile', 'model-relations')]})
             manifest = json.loads((saved / 'test-reports-ci-collection/manifest.json').read_text())
             self.assertEqual(set(manifest['groups']), {'retained-proofs'})
             for group, name in reports.ACTIVE_REFERENCES.items():
                 if group != 'retained-proofs':
-                    suffix = '' if group == 'structural-change' else '/result.json'
+                    suffix = '' if group in reports.DIRECTORY_REPORTS else '/result.json'
                     self.assertIn(f'"tests/agent-eval/results/previous-{group}{suffix}"',
                         (root / name).read_text())
             for group in reports.ACTIVE_FUNCTIONS:
@@ -159,12 +162,39 @@ class ReportRetention(unittest.TestCase):
                 self.retain(root, reject=True)
             self.assertFalse((root / 'tests/agent-eval/results/test-reports-ci-collection').exists())
 
-    def test_changed_structural_members_are_rejected_before_saving(self):
+    def test_changed_directory_members_are_rejected_before_saving(self):
+        for group in sorted(reports.DIRECTORY_REPORTS):
+            with self.subTest(group=group), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                with self.assertRaisesRegex(ValueError, 'directory artifact changed'):
+                    self.retain(root, only=[group], tamper_structural=True)
+                self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+
+    def test_directory_reports_keep_all_files_and_use_directory_audits(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with self.assertRaisesRegex(ValueError, 'structural artifact changed'):
-                self.retain(root, only=['structural-change'], tamper_structural=True)
-            self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+            original = self.retain(root, only=['checked-outcomes', 'model-comparisons'])
+            for group in ('checked-outcomes', 'model-comparisons'):
+                saved = root / 'tests/agent-eval/results' / ('test-reports-' + group)
+                self.assertEqual((saved / 'objects/example.json').read_bytes(), original)
+                self.assertIn(['python3', '-B', 'tools/' + reports.SCRIPTS[group] + '.py',
+                               '--audit', str(saved)], self.commands)
+            entry, = [row for row in json.loads((root / 'tests/agent-eval/roadmap.json').read_text())['evidence']
+                      if row['id'] == 'model-relations']
+            manifest = root / entry['path']
+            self.assertEqual(entry['sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+
+    def test_model_refresh_updates_its_registered_runner_without_changing_the_fixture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['model-comparisons'])
+            registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
+            for case in registry['cases']:
+                expected = (hashlib.sha256((root / case['runner']).read_bytes()).hexdigest()
+                            if case['id'] == reports.REGISTERED_REPORTS['model-comparisons'] else 'previous')
+                self.assertEqual(case['runner_sha256'], expected)
+                self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
+            self.assertIn(['python3', '-B', 'tools/representative-acceptance.py', 'audit'], self.commands)
 
     def test_package_and_repository_refresh_retains_delivery_files_and_correct_audit_targets(self):
         with tempfile.TemporaryDirectory() as directory:

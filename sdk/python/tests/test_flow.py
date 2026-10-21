@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import contextmanager
 
 import pytest
 
@@ -98,8 +99,12 @@ def test_tampered_cache_manifest_refuses_and_graphs_check_revisions_and_edges(tm
                 return {"kind": "scalar", "value": "forged"}
             return record
 
-        def put(self, key, value):
-            store.put(key, value)
+        @contextmanager
+        def read(self):
+            yield self.get
+
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         FlowCache.restore(Corrupt(), root)

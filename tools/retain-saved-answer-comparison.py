@@ -1,4 +1,4 @@
-"""Publish authenticated measurements and preserve the original project qualification."""
+"""Publish authenticated batch-storage costs without replacing earlier measurements."""
 import hashlib
 import importlib.util
 import io
@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +13,9 @@ spec = importlib.util.spec_from_file_location('comparison', ROOT / 'tools/saved-
 comparison = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(comparison)
 cost = comparison.cost
-DIRECTORY = ROOT / 'tests/agent-eval/saved-answer-improvement'
+DIRECTORY = ROOT / 'tests/agent-eval/batched-answer-storage-release'
+BEFORE_RUN = 39561749625
+BEFORE_SOURCE = 'f9abf411e5a7d59b480ab60dde80824715d287d1'
 
 
 def authenticate(run_id, expected_head):
@@ -45,30 +46,33 @@ def retain_profile(run_id, expected_head, name):
 
 
 def markdown(report):
-    lines = ['# Spend less time reopening saved answers', '',
-        'A user asks where `glob_with` appears and what other code its change could affect.',
-        'Python programs use the helper library, called the SDK, to call `fr` and keep saved answers.',
-        'On reopening that unchanged question, the previous helpers repeatedly hashed the same saved contents.',
-        'A content hash identifies a piece by its bytes. Parent pieces record the hashes of their children.',
-        'The new code checks each distinct piece once and builds parent hashes from those verified child hashes.',
-        'It still rejects missing, corrupted or cyclic data and returns independently editable copies of repeated values.', '',
-        'The comparison uses the previous SDK from merged PR #553 and the changed SDK with the same release build of `fr`.',
-        'Both answer the same questions on identical pinned glob, Boltons and JMESPath sources.',
-        'glob matches file paths in Rust. Boltons supplies Python utility functions. JMESPath selects values from JSON documents.',
-        'Every question starts a new Python process.',
-        'A cache saves earlier results. Each route starts with an empty `fr` analysis cache and keeps it between questions.',
-        'The saved route also stores its task plan and answer, validates dependencies before reuse, and repeats discovery after an edit.',
-        'The task plan records which inputs an answer depends on, so edits can expire the answer.',
-        'The fresh route asks `fr` again and retains no task plan or answer.', '',
-        'Each session contains first use, unchanged reuse and one edit, with three repetitions per project and SDK.',
+    lines = ['# Save an answer with one database transaction', '',
+        'A user asks where `glob_with` appears and which code a change could affect.',
+        'The Python helper library, called the SDK, can save that answer and the inputs it depends on.',
+        'A content fingerprint identifies each distinct piece of the answer by its bytes.',
+        'JSON is the text format used to save those pieces, including numbers, lists and named fields.',
+        'Previously, saving the glob answer wrote 1,387 files and waited for each write to reach disk.',
+        'The local store now puts the pieces in one SQLite database inside the chosen directory.',
+        'SQLite is a database library included with Python; it needs no separate server.',
+        'A transaction commits the pieces together. If it fails, none of its changes become visible.',
+        'Disk synchronization stays enabled. Conflicting bytes and corrupted records still fail verification.', '',
+        '## What is compared', '',
+        'The previous SDK is the code merged in PR #554. Both SDKs use the same optimized `fr` build on the same runner.',
+        'Both ask identical questions on pinned glob, Boltons and JMESPath sources at the same absolute project path.',
+        'glob matches file paths in Rust. Boltons provides Python utilities. JMESPath selects values from JSON documents.',
+        'Each project and SDK has three sessions containing first use, unchanged reuse and one source edit.',
+        'Each question starts a new Python process. Both approaches keep their own initially empty native analysis cache.',
+        'The saved approach also keeps its answer and a task plan, which records the inputs needed for the answer to remain valid.',
+        'The fresh approach asks `fr` again without saving a task plan or answer.',
+        'After an edit, the saved approach checks those inputs, expires the old answer and repeats discovery.',
+        'The edit uses `fr file replace` in one file. For example, glob replaces `glob_with` with `glob_with_cost_renamed`.',
+        'It then asks about the old name. This checks whether an answer expires; it does not deliver a complete project rename.',
         'SDK order alternates by project. Saved and fresh order alternates by repetition within each SDK.',
         'Each SDK finishes its three repetitions on a project before the other SDK starts that project.',
-        'The edit replaces the selected name in one file through `fr file replace`; it checks invalidation rather than delivering a complete rename.',
-        'For example, the glob trial replaces `glob_with` with `glob_with_cost_renamed`, then asks about the original name again.',
-        'All 108 request answers agree between SDKs, and each saved answer agrees with its matching fresh check.', '',
+        'All 108 request answers agree across SDKs, including missing, ambiguous and bounded results.', '',
         '## Complete session time', '',
-        'Median seconds include Python startup, validation, discovery, persistence, output, checkout copies, the edit and cleanup.',
-        'Preparation and environment setup remain separate in the raw reports and recorded workflow steps.', '',
+        'Median seconds include Python startup, validation, discovery, saving, output, source copies, the edit and cleanup.',
+        'Builds, dependency installation and initial downloads remain separate in raw reports and workflow steps.', '',
         '| Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |',
         '|---|---:|---:|---:|---:|---:|---:|']
     for name, versions in report['summary'].items():
@@ -77,58 +81,45 @@ def markdown(report):
         old_fresh = versions['previous']['fresh']['median_session_seconds']
         fresh = versions['current']['fresh']['median_session_seconds']
         lines.append(f'| {name} | {old:.3f} | {new:.3f} | {(new / old - 1) * 100:+.1f}% | {old_fresh:.3f} | {fresh:.3f} | {(new / fresh - 1) * 100:+.1f}% |')
-    lines += ['', 'A negative change means less time. Positive overhead means saving still costs more than asking again.',
-        'Percentages compare the median times in the table.', '',
-        'Change compares current saved time with previous saved time. Overhead compares current saved time with current fresh time.', '',
-        '## Unchanged requests, CPU, memory and storage', '',
-        'CPU time counts processor work in Python and the `fr` programs it starts. Elapsed time also includes waiting.',
-        'CPU below sums worker and child CPU across the three questions; it excludes copy, edit and cleanup CPU.',
-        'The worker samples CPU before its final report and answer writes.',
-        'The raw GNU time values include those writes and round CPU to 0.01 seconds.',
-        'The raw reports retain GNU time CPU, edit CPU and separate preparation measurements.',
-        'Memory is the largest sampled total of resident memory across the worker and its child processes.',
-        'This measure, RSS, counts memory present in RAM. Sampling can miss short peaks.',
-        'Shared pages can count in more than one process.',
-        'Stored bytes count file contents; directory and filesystem block allocation add unmeasured overhead.', '',
+    lines += ['', 'Negative change means less time than the previous saved approach.',
+        'Positive overhead means saving costs more than asking again with the current SDK.',
+        'Percentages compare the median complete session times above.', '',
+        '## CPU, memory and saved bytes', '',
+        'CPU counts processor work in Python and its `fr` child processes. Elapsed time also includes waiting.',
+        'Request CPU sums the three questions, sampled before the final report and answer writes.',
+        'Raw GNU time values include those writes and round CPU to 0.01 seconds. Copy, edit and cleanup CPU remain separate.',
+        'Memory is the largest sampled sum of resident memory across the worker and its children.',
+        'This measure, RSS, counts memory present in RAM. Sampling can miss short peaks, and shared pages can count twice.',
+        'Saved bytes include the database or record files and the task receipt, including the earlier answer retained after editing.',
+        'Filesystem block allocation and directory entries add unmeasured overhead.',
+        'The database uses more stored bytes in these trials because it also keeps pages and an index.',
+        'The index maps each content fingerprint to its stored piece.',
+        'The memory samples include the database library. These results establish no memory saving.',
         'One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.', '',
-        '| Project / SDK | Saved reuse seconds | Saved request CPU seconds | Maximum memory MiB | Final saved KiB |',
+        '| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |',
         '|---|---:|---:|---:|---:|']
     for name, versions in report['summary'].items():
-        for version, routes in versions.items():
-            value = routes['saved']
+        for version in ('previous', 'current'):
+            value = versions[version]['saved']
             lines.append(f"| {name} / {version} | {value['median_reuse_seconds']:.3f} | {value['median_worker_cpu_seconds']:.3f} | {value['maximum_sampled_aggregate_rss_bytes'] / 1048576:.1f} | {value['median_final_saved_bytes'] / 1024:.1f} |")
-    lines += ['', '## What this establishes', '',
-        'The dedicated profile locates repeated hashing and also exposes the cost of flushing many small files to disk.',
-        'For example, the original glob answer contains 1,387 distinct stored pieces.',
-        'Each new file write waits for its bytes to reach disk before finishing. That storage cost remains after the hashing fix.',
-        'Profile timings include profiler overhead and do not enter the timing tables above.',
-        'The change preserves object contents, content addresses, verification and the existing resource limits.',
-        'It adds no alternate reader, fallback or compatibility layer.', '',
-        'Both measured routes use Python, so this experiment does not isolate Python overhead against direct command-line use.',
-        'Three repetitions and uncontrolled operating-system file caches limit the precision of the timing estimates.',
-        'The requests preserve bounded, missing and ambiguous answers. They establish no general agent, model-token or billing savings.', '',
-        'All projects in this follow-up are familiar. The original first JMESPath evaluation remains separate and unchanged.',
-        'The recurring checks audit that original result beside its original code and audit these measurements beside the current code.', '',
-        'The next cost improvement should address the remaining measured storage and process costs and retain complete session comparisons.',
-        'Broader agent-cost trials, translation and proofs connected to source code remain separate work.', '',
-        f"[Matched measurement and raw archives](../{DIRECTORY.relative_to(ROOT)}/record.json) | "
-        '[Original costs](saved-work-cost-results.md) | '
-        '[Authenticated profiles and workflow steps](../tests/agent-eval/saved-answer-improvement/publication.json)', '']
+    lines += ['', '## What the checks establish', '',
+        'Separate profiles locate storage work. Their timings include profiler overhead and do not enter these tables.',
+        'Checks cover reopening, concurrent writers, conflicting bytes, corrupted records and a writer killed before commit.',
+        'Python considers `True == 1` true. Both stores compare the saved JSON bytes, so these values cannot overwrite one another under the same fingerprint.',
+        'Each SDK audits its own retained state in a separate process beside its declared source.',
+        'The application has one current local format and no older-format reader or fallback.',
+        'Record contents, fingerprints, verification and request resource limits stay the same.',
+        'HTTP stores publish pieces in order; the remote service owns transaction support and durability.', '',
+        'Both approaches use Python. This experiment does not isolate Python overhead against direct command-line use.',
+        'Three repetitions and uncontrolled operating-system file caches limit the precision of timing estimates.',
+        'These scripted requests establish no general agent, model-token or billing savings.',
+        'All projects are familiar. The original first JMESPath result remains unchanged and separately audited.',
+        'The earlier hashing comparison remains unchanged and is audited beside the code merged in PR #554.', '',
+        '[Measurements and raw archives](../tests/agent-eval/batched-answer-storage-release/record.json) | '
+        '[Authenticated profiles and workflow steps](../tests/agent-eval/batched-answer-storage-release/publication.json) | '
+        '[First storage comparison](batched-answer-storage-first-results.md) | '
+        '[Earlier hashing comparison](saved-answer-improvement.md)', '']
     return '\n'.join(lines)
-
-
-def retain_cache():
-    spec = importlib.util.spec_from_file_location('scalar', ROOT / 'tools/retain-scalar-evidence.py')
-    scalar = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(scalar)
-    data, identity = scalar.collect(39559089792, 'refinement-evidence', 'refresh', os.environ['GITHUB_REPOSITORY'])
-    scalar.verify_sources(ROOT, {identity['source_commit']})
-    paths = scalar.report_paths(data, ['flow-cache'])
-    relative, receipt = scalar.keep('flow-cache', {'result.json': data[paths['flow-cache']]},
-                                     identity, '2026-10-21-saved-answer')
-    subprocess.run(['git', 'add', '--', str(relative)], cwd=ROOT, check=True)
-    cost.save(DIRECTORY / 'cache-collection.json', receipt)
-    return relative, receipt
 
 
 def retain_measurement(run_id):
@@ -137,7 +128,7 @@ def retain_measurement(run_id):
     rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
     artifact, = [row for row in rows if row['name'] == 'saved-answer-comparison']
     data = cost.artifact_bytes(artifact)
-    directory = ROOT / f'tests/agent-eval/results/2026-10-21-saved-answer-{run_id}'
+    directory = ROOT / f'tests/agent-eval/results/2026-10-21-batched-answers-{run_id}'
     cost.require(not directory.exists(), 'preserve existing matched measurements')
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         entries = archive.infolist()
@@ -150,42 +141,14 @@ def retain_measurement(run_id):
     report = comparison.audit(directory)
     cost.require(report['source_commit'] == run['head_sha'] and report['run_id'] == run_id,
                  'measurement source differs from its producer')
+    cost.require(not DIRECTORY.exists(), 'preserve the completed storage publication')
+    DIRECTORY.mkdir(parents=True)
     pointer = {'directory': str(directory.relative_to(ROOT)),
                'sha256': cost.file_digest(directory / 'result.json'), 'run_id': run_id}
-    DIRECTORY.mkdir(parents=True, exist_ok=True)
     cost.save(DIRECTORY / 'record.json', pointer)
     cost.save(DIRECTORY / 'collection.json', {'run': run, 'artifact': artifact})
+    subprocess.run(['git', 'add', '--', str(directory.relative_to(ROOT))], cwd=ROOT, check=True)
     return pointer, report
-
-
-def retain_failed_attempts():
-    directory = DIRECTORY / 'failures'
-    directory.mkdir()
-    cases = (
-        (39560287457, 'Commit the checked reports', b'(fetch first)',
-         'Another writer updated the branch before the checked reports could be pushed.'),
-        (39559712773, 'Compare both SDKs with the same optimized native executable',
-         b'SDK versions disagree or omit requests',
-         'The two trials used different absolute project paths, which fr includes in project identities. '
-         'The harness removed temporary raw results before packaging them; no raw measurements survived. '
-         'The corrected trial reuses one explicit project path and retains raw results on failure.'))
-    for run_id, failed_step, expected_error, cause in cases:
-        run = cost.api(f'actions/runs/{run_id}')
-        jobs = cost.api(f'actions/runs/{run_id}/jobs?per_page=100')['jobs']
-        cost.require(run['status'] == 'completed' and run['conclusion'] == 'failure'
-                     and any(step['name'] == failed_step and step['conclusion'] == 'failure'
-                             for job in jobs for step in job['steps']), 'failed attempt changed')
-        artifacts = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
-        cost.save(directory / f'{run_id}.json', {'run': run, 'jobs': jobs, 'cause': cause,
-                                                'artifacts': artifacts})
-        with tempfile.TemporaryFile() as output:
-            subprocess.run(['gh', 'run', 'view', str(run_id), '--log-failed'],
-                           stdout=output, stderr=subprocess.PIPE, check=True, timeout=30)
-            output.seek(0)
-            data = output.read(2097153)
-        cost.require(len(data) <= 2097152 and expected_error in data,
-                     'failure log does not confirm the recorded cause')
-        (directory / f'{run_id}.log').write_bytes(data)
 
 
 def main():
@@ -195,60 +158,27 @@ def main():
     run_id = os.environ['COLLECTION_RUN']
     cost.require(run_id.isdigit() and int(run_id) > 0, 'declare the completed collection run')
     pointer, report = retain_measurement(int(run_id))
-    retain_failed_attempts()
     run, jobs = authenticate(pointer['run_id'], report['source_commit'])
     names = {job['name'] for job in jobs if job['conclusion'] == 'success'}
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')
-    before = retain_profile(39558069368, '8a0ac262ac17332feffb22a0ed61e864d920895b', 'profile-before')
+    before = retain_profile(BEFORE_RUN, BEFORE_SOURCE, 'profile-before')
     after = retain_profile(pointer['run_id'], report['source_commit'], 'profile-after')
+    subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', BEFORE_SOURCE], check=True)
     subprocess.run(['git', 'diff', '--exit-code', comparison.BASELINE,
-                    '8a0ac262ac17332feffb22a0ed61e864d920895b', '--', 'sdk/python/src'], check=True)
+                    BEFORE_SOURCE, '--', 'sdk/python/src', 'tools/profile-saved-answers.py'], check=True)
     cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
-    subprocess.run(['rustup', 'toolchain', 'install', '1.99.1', '--profile', 'minimal', '--component', 'rustfmt'],
-                   cwd=ROOT, check=True)
-    subprocess.run(['python3', '-B', 'tools/retain-ci-reports.py', '--runs', json.dumps({
-        'sdk-contexts': 39559075965, 'structural-change': 39559082672}),
-        '--prefix', '2026-10-21-saved-answer'], cwd=ROOT, check=True)
-    cache_path, cache_receipt = retain_cache()
-    subprocess.run(['git', 'add', '--', 'tests/python_sdk.rs', 'tests/structural_change.rs',
-                    *[str(path.relative_to(ROOT)) for path in
-                      sorted((ROOT / 'tests/agent-eval/results').glob('2026-10-21-saved-answer-*'))]],
-                   cwd=ROOT, check=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
-    cache, = [row for row in catalog['evidence'] if row['id'] == 'cache-measurements']
-    cache.update(path=str(cache_path / 'result.json'), sha256=cache_receipt['files']['result.json'],
-                 audit='python3 -B tools/flow-cache-acceptance.py --audit ' + str(cache_path / 'result.json'))
-    identifier = 'current-saved-work-cost'
-    cost.require(not any(row['id'] == identifier for row in catalog['evidence']), 'preserve previous publication')
-    catalog['evidence'].append({'id': identifier, 'kind': 'measurement',
-        'path': pointer['directory'] + '/result.json', 'sha256': pointer['sha256'],
-        'audit': 'python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],
-        'scope': 'Matched previous and current SDK sessions on three familiar projects; original first JMESPath qualification remains separate. Full session costs, fresh baselines and answer agreement.'})
-    gate, = [row for row in catalog['obligations'] if row['id'] == 'C.performance']
-    cost.require(gate['requires'][0]['evidence'] == 'saved-work-cost', 'review existing cost requirement')
-    gate['requires'] = [{'evidence': identifier, 'assertions': [
-        {'pointer': '/passed', 'equals': True}, {'pointer': '/projects', 'equals': 3},
-        {'pointer': '/repetitions', 'equals': 3}, {'pointer': '/answer_agreement', 'equals': True},
-        {'pointer': '/all_projects_familiar', 'equals': True},
-        {'pointer': '/new_unread_claim', 'equals': False},
-        {'pointer': '/original_unread/qualified', 'equals': True},
-        {'pointer': '/original_unread/first_evaluation', 'equals': True}]}]
-    gate['next'] = 'Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.'
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-batched-answers-39599573585/result.json',
+                 'review the previous current cost record before replacing its selection')
+    entry.update(path=pointer['directory'] + '/result.json', sha256=pointer['sha256'],
+                 audit='python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],
+                 scope='Matched complete sessions before and after batch storage on three familiar projects. '
+                       'Includes fresh baselines, full answer agreement and unchanged first-project qualification.')
     cost.save(catalog_path, catalog)
-    (ROOT / 'docs/saved-answer-improvement.md').write_text(markdown(report))
-    spec = importlib.util.spec_from_file_location('prose', ROOT / 'tools/check-prose.py')
-    prose = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(prose)
-    counts = prose.gather()
-    budget = prose.read_budget()
-    for name, count in counts.items():
-        cost.require(count <= budget[name], 'writing budget increased: ' + name)
-    text = prose.BUDGET.read_text()
-    for name, count in counts.items():
-        text = text.replace(f'{name} {budget[name]}\n', f'{name} {count}\n')
-    prose.BUDGET.write_text(text)
+    (ROOT / 'docs/batched-answer-storage.md').write_text(markdown(report))
 
 
 if __name__ == '__main__':
