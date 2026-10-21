@@ -34,11 +34,15 @@ def save(path, value):
 def files(root):
     return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(root.rglob('*')) if path.is_file()
-            and path.relative_to(root).parts[0] != '.fr'}
+            and path.relative_to(root).parts[0] not in ('.fr', '.fr-history')}
 
 
 def size(root):
     return sum(path.stat().st_size for path in root.rglob('*') if path.is_file()) if root.exists() else 0
+
+
+def native_size(project):
+    return size(project / '.fr') + size(project / '.fr-history')
 
 
 class MeasuredClient(FrClient):
@@ -87,7 +91,7 @@ def measure(args):
     request = json.loads(args.request.read_text())
     client = MeasuredClient(args.project, args.fr, args.output)
     objects = args.state / 'objects'
-    before = {'native_state': size(args.project / '.fr'), 'saved_state': size(args.state)}
+    before = {'native_state': native_size(args.project), 'saved_state': size(args.state)}
     phases, invalidated, retained, validation = {}, [], False, None
     stage_start = time.monotonic()
     if args.condition == 'saved':
@@ -129,7 +133,7 @@ def measure(args):
         'answer_digest': digest(answer), 'answer_bytes': len(encode(answer)) + 1, 'calls': client.calls,
         'invalidated': invalidated, 'retained': retained, 'validation': validation, 'phases': phases,
         'source_files': files(args.project), 'storage_before': before,
-        'storage_after': {'native_state': size(args.project / '.fr'), 'saved_state': size(args.state)},
+        'storage_after': {'native_state': native_size(args.project), 'saved_state': size(args.state)},
         'worker_seconds': time.monotonic() - BOOT,
         'worker_cpu_seconds': sum(getattr(resource.getrusage(kind), field)
             for kind in (resource.RUSAGE_SELF, resource.RUSAGE_CHILDREN) for field in ('ru_utime', 'ru_stime'))}

@@ -189,6 +189,18 @@ class Accounting(unittest.TestCase):
         with patch.object(cost, 'bounded_run', side_effect=run):
             cost.measured(['example'], output, workspace, self.tasks['limits'])
 
+    def test_edit_history_is_state_and_other_hidden_files_are_source(self):
+        spec = importlib.util.spec_from_file_location('saved_worker', cost.WORKER)
+        worker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(worker)
+        for name, data in {'.fr/cache': b'facts', '.fr-history/state.json': b'undo',
+                '.github/workflow.yml': b'source', 'app.py': b'function'}.items():
+            path = self.directory / 'project' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        self.assertEqual(set(worker.files(self.directory / 'project')), {'.github/workflow.yml', 'app.py'})
+        self.assertEqual(worker.native_size(self.directory / 'project'), 9)
+
     def test_stale_answer_cannot_be_reused(self):
         path = self.directory / '0-saved/edit/result.json'
         value = json.loads(path.read_text())

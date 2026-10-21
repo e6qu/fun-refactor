@@ -1,5 +1,5 @@
 name: Cost of continuing saved work
-# Conditions own empty caches; question scopes and limits are explicit.
+# Native cache and edit history count as state; source changes remain explicit.
 on:
   push:
     branches: [feat/saved-work-cost]

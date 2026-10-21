@@ -123,7 +123,8 @@ def collect_project(task, output, binary, tasks):
     preparation, preparation_cpu = time.monotonic(), cpu_now()
     download(task, output / 'source', tasks['limits'])
     source = output / 'source/original'
-    require(not (source / '.fr').exists(), 'upstream source already has native cache state')
+    require(not any((source / name).exists() for name in ('.fr', '.fr-history')),
+        'upstream source already has native cache or history state')
     source_files = inventory(source)
     source_bytes = sum(path.stat().st_size for path in source.rglob('*') if path.is_file())
     original = (source / task['edit_path']).read_bytes()
