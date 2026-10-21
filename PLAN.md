@@ -93,6 +93,8 @@ JMESPath is a Python library for selecting values from JSON documents.
 It compares first use, unchanged reuse and one source edit, with three repetitions on each project.
 Saved and fresh answers agree. Preparation, validation, analysis, memory, storage and submitted text remain visible.
 Use the complete session totals to choose the next optimization, rather than a faster unchanged request alone.
+The [matched SDK comparison](docs/saved-answer-improvement.md) checks the fix for repeated hashing when saving and reopening answers.
+It compares the previous and changed SDKs with one native executable and keeps the original first JMESPath evaluation separate.
 The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
 Broader agent savings, translation and proofs connected to source code remain open.
 

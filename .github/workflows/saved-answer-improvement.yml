@@ -4,14 +4,31 @@ on:
     branches: [perf/saved-answer-cost]
     paths: [.github/workflows/saved-answer-improvement.yml]
   workflow_dispatch:
+    inputs:
+      phase:
+        description: Measure both implementations or publish a completed comparison
+        required: true
+        type: choice
+        options: [measure, publish]
+  pull_request:
+    paths:
+      - 'sdk/python/src/**'
+      - 'sdk/python/tests/test_ir.py'
+      - 'tools/saved-answer-comparison.py'
+      - 'tools/test-saved-answer-comparison.py'
+      - 'tools/profile-saved-answers.py'
+      - 'tools/retain-saved-answer-comparison.py'
+      - 'tests/agent-eval/saved-answer-improvement/**'
+      - '.github/workflows/saved-answer-improvement.yml'
 permissions:
-  contents: write
+  contents: read
   actions: read
 concurrency:
   group: saved-answer-improvement-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   profile:
+    if: github.event_name == 'push' || inputs.phase == 'measure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -34,9 +51,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   compare:
+    if: github.event_name == 'push' || inputs.phase == 'measure'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: profile
+    needs: [profile, original]
+    permissions:
+      contents: write
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -68,9 +88,20 @@ jobs:
           test ! -e "$destination"
           cp -R "$RUNNER_TEMP/answer-comparison" "$destination"
           python3 -B tools/saved-answer-comparison.py --audit "$destination"
+          DESTINATION="$destination" python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          directory = Path(os.environ['DESTINATION'])
+          record = {'directory': str(directory),
+                    'sha256': hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest(),
+                    'run_id': int(os.environ['GITHUB_RUN_ID'])}
+          path = Path('tests/agent-eval/saved-answer-improvement/record.json')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(record, indent=2) + '\n')
+          PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$destination"
+          git add "$destination" tests/agent-eval/saved-answer-improvement/record.json
           git commit -m 'test: retain matched project sessions for saved answer improvements'
           git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7
@@ -80,3 +111,98 @@ jobs:
           path: ${{ runner.temp }}/answer-comparison
           if-no-files-found: error
           retention-days: 30
+  original:
+    name: Original saved answer comparison
+    if: github.event_name != 'workflow_dispatch' || inputs.phase == 'measure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          sparse-checkout: |
+            tests/agent-eval/saved-work-cost
+            tests/agent-eval/results/2026-10-21-saved-work-39531778541
+      - name: Preserve the declared original identity
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-work-cost/record.json').read_text())
+          path = Path(record['directory']) / 'result.json'
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
+          Path(os.environ['RUNNER_TEMP'], 'original-cost-sha256').write_text(record['sha256'])
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: c431636b9b9203f5a08aa682e0a1530b22850ad9
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the unchanged first evaluation beside its original SDK
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-work-cost/record.json').read_text())
+          directory = Path(record['directory'])
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'original-cost-sha256').read_text()
+          subprocess.run(['python3', '-B', 'tools/saved-work-cost.py', '--audit', str(directory)], check=True)
+          PY
+  audit:
+    name: Current saved answer comparison
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: |
+          python3 -B tools/test-saved-answer-comparison.py
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-answer-improvement/record.json').read_text())
+          directory = Path(record['directory'])
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
+          subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
+          PY
+  publish:
+    if: inputs.phase == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Publish authenticated results and reconcile tracking
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B tools/retain-saved-answer-comparison.py
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tests/agent-eval/test_roadmap_status.py
+          python3 -B tools/review-docs.py
+          python3 -B tools/check-prose.py
+      - name: Commit the results and reviewed tracking
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/saved-answer-improvement.md tests/agent-eval/saved-answer-improvement \
+            tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
+          git commit -m 'docs: publish saved answer costs and reconcile current evidence'
+          git push origin "HEAD:refs/heads/$BRANCH"

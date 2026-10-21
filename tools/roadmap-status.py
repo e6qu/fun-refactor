@@ -42,6 +42,7 @@ KINDS = {
     'fr-project-changes': 'deterministic',
     'fr-project-changes-recheck': 'deterministic',
     'fr-saved-work-cost': 'measurement',
+    'fr-saved-answer-improvement': 'measurement',
     'fr-rechecked-package-questions': 'deterministic',
 }
 

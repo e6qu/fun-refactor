@@ -58,6 +58,9 @@ JMESPath passed its first evaluation after the procedure and optimized binary we
 Treat glob, Boltons, Humanize and JMESPath as familiar projects from now on.
 
 Choose an improvement from the measured repeated work. Compare complete session totals and keep answer agreement as a required check.
+The [matched SDK comparison](saved-answer-improvement.md) addresses repeated hashing while saving and reopening answers.
+It keeps the original measurements and first JMESPath result separate from the current checks on familiar projects.
+Use its complete session totals and fresh baseline when choosing the next storage or process improvement.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 
