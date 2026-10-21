@@ -2,7 +2,7 @@ name: Find and reduce saved answer costs
 # Keep the project path identical across SDKs; project identities include it.
 on:
   push:
-    branches: [perf/saved-answer-cost]
+    branches: [perf/batched-answer-storage]
     paths: [.github/workflows/saved-answer-improvement.yml]
   workflow_dispatch:
     inputs:
@@ -45,6 +45,8 @@ jobs:
       - name: Check addresses, corruption rejection and verification work
         run: |
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_ir.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_object_store.py
+          python3 -B tools/test-saved-work-cost.py
           python3 -B tools/test-saved-answer-comparison.py
       - name: Profile the retained real answers without native rebuilds
         run: python3 -B tools/profile-saved-answers.py --output "$RUNNER_TEMP/saved-answer-profile.json"

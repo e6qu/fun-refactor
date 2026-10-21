@@ -233,8 +233,8 @@ def test_retained_check_objects_reject_tampering(tmp_path):
                 return {"schema": "invented", "kind": "scalar", "value": True}
             return store.get(key)
 
-        def put(self, key, record):
-            store.put(key, record)
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         restore_checks(CorruptStore(), result.report_root)

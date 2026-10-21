@@ -129,8 +129,8 @@ def test_fact_store_verifies_objects_and_keeps_stale_actions_stale(tmp_path):
     class Corrupt:
         def get(self, key):
             return {"kind": "scalar", "value": "forged"} if key == root else store.get(key)
-        def put(self, key, value):
-            store.put(key, value)
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         FlowFacts.restore(Corrupt(), root)

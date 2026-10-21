@@ -64,7 +64,7 @@ def legacy_class():
 
 
 def inventory(directory):
-    files = list(directory.rglob("*.json"))
+    files = [path for path in directory.rglob("*") if path.is_file()]
     return len(files), sum(path.stat().st_size for path in files)
 
 
@@ -82,11 +82,11 @@ class MeasuredStore:
         finally:
             self.seconds += time.perf_counter() - start
 
-    def put(self, key, value):
-        self.puts += 1
+    def put_many(self, records):
+        self.puts += len(records)
         start = time.perf_counter()
         try:
-            return self.store.put(key, value)
+            return self.store.put_many(records)
         finally:
             self.seconds += time.perf_counter() - start
 

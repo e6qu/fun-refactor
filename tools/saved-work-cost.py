@@ -165,14 +165,14 @@ def unpack_state(source, destination, limits):
             'saved state exceeds its existing object or disk budget')
         for entry in entries:
             name = entry.filename
-            require((name == 'receipt.json' or re.fullmatch(r'objects/[0-9a-f]{2}/[0-9a-f]{62}\.json', name))
+            require(name in ('receipt.json', 'objects/objects.sqlite3')
                 and name not in seen and entry.file_size <= 1048576
                 and (entry.external_attr >> 16) & 0o170000 in (0, 0o100000), 'unsafe saved state entry')
             seen.add(name)
             path = destination / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(archive.read(entry))
-        require('receipt.json' in seen, 'saved state is missing its receipt')
+        require(seen == {'receipt.json', 'objects/objects.sqlite3'}, 'saved state is missing its receipt or database')
 
 
 def collect_project(task, output, binary, tasks, workspace):

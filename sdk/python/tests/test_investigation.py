@@ -64,8 +64,8 @@ def test_tampered_plan_objects_cannot_restore():
                 return {"schema": "invented", "kind": "scalar", "value": True}
             return store.get(key)
 
-        def put(self, key, record):
-            store.put(key, record)
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         TaskPlan.restore(CorruptStore(), digest)

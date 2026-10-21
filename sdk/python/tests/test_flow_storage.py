@@ -1,4 +1,6 @@
 import json
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -47,27 +49,30 @@ def test_current_cache_reopens_and_rebinds_without_partial_reuse(tmp_path, disk)
 
 
 def test_large_unicode_record_roundtrips_through_bounded_directory_records(tmp_path):
-    store = DirectoryObjectStore(tmp_path)
+    store = DirectoryObjectStore(tmp_path / "objects")
     report = {"schema": "fr-dataflow-1", "complete": True, "text": '\"λ🙂\\\n' * 65_000}
     encoded = json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     assert 700_000 < len(encoded.encode()) < 1_048_576
     digest = store_flow_report(store, report)
     assert restore_flow_report(store, digest) == report
-    assert len(list(tmp_path.rglob("*.json"))) < 40
-    assert all(path.stat().st_size < 1_048_576 for path in tmp_path.rglob("*.json"))
+    with closing(sqlite3.connect(store.database)) as connection:
+        count, maximum = connection.execute("SELECT count(*), max(length(record)) FROM objects").fetchone()
+    assert count < 40 and maximum < 1_048_576
 
 
 def test_changed_chunk_is_rejected_by_content_verification(tmp_path):
-    store = DirectoryObjectStore(tmp_path)
+    store = DirectoryObjectStore(tmp_path / "objects")
     digest = store_flow_report(store, {"schema": "fr-dataflow-1", "complete": True})
-    for path in tmp_path.rglob("*.json"):
-        record = json.loads(path.read_text())
-        if record.get("kind") == "scalar" and 'fr-dataflow-1' in str(record.get("value")):
-            record["value"] = record["value"].replace("true", "false")
-            path.write_text(json.dumps(record))
-            break
-    else:
-        pytest.fail("no report chunk found")
+    with closing(sqlite3.connect(store.database)) as connection, connection:
+        for key, encoded in connection.execute("SELECT digest, record FROM objects").fetchall():
+            record = json.loads(encoded)
+            if record.get("kind") == "scalar" and 'fr-dataflow-1' in str(record.get("value")):
+                record["value"] = record["value"].replace("true", "false")
+                connection.execute("UPDATE objects SET record = ? WHERE digest = ?",
+                                   (json.dumps(record).encode(), key))
+                break
+        else:
+            pytest.fail("no report chunk found")
     with pytest.raises(IrError, match="verification"):
         restore_flow_report(store, digest)
 

@@ -90,7 +90,12 @@ class HttpObjectStore:
             raise FrRuntimeError("HTTP object-store record is malformed")
         return _copy_json(value)
 
-    def put(self, digest: str, record: Mapping[str, Any]) -> None:
+    def put_many(self, records: Mapping[str, Mapping[str, Any]]) -> None:
+        """Publish records in caller order; the service owns atomicity and durability."""
+        for digest, record in records.items():
+            self._put(digest, record)
+
+    def _put(self, digest: str, record: Mapping[str, Any]) -> None:
         digest = _checked_digest(digest)
         try:
             encoded = json.dumps(

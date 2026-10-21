@@ -235,8 +235,8 @@ def test_compiler_persistence_detects_corrupt_objects(tmp_path, monkeypatch):
     class Corrupt:
         def get(self, key):
             return {"kind":"scalar","value":"forged"} if key == digest else store.get(key)
-        def put(self, key, value):
-            store.put(key, value)
+        def put_many(self, records):
+            store.put_many(records)
 
     with pytest.raises((FrRuntimeError, ValueError)):
         CompilerEvidence.restore(Corrupt(), digest)

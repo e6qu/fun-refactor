@@ -9,12 +9,13 @@ import platform
 import shutil
 import statistics
 import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE = 'c431636b9b9203f5a08aa682e0a1530b22850ad9'
+BASELINE = 'cc5e27808744516504c349c1bb7351800a0a271b'
 spec = importlib.util.spec_from_file_location('cost', ROOT / 'tools/saved-work-cost.py')
 cost = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cost)
@@ -27,7 +28,8 @@ def bindings():
 
 
 def baseline_tree(destination):
-    data = subprocess.check_output(['git', 'archive', BASELINE, 'sdk/python/src', 'tools/saved-work-worker.py'])
+    data = subprocess.check_output(['git', 'archive', BASELINE, 'sdk/python/src',
+                                    'tools/saved-work-worker.py', 'tools/saved-work-cost.py'])
     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
         for entry in archive.getmembers():
             path = Path(entry.name)
@@ -84,6 +86,13 @@ def compare_answers(projects):
             for session in project['sessions'] for row in session['stages']}
         cost.require(answers(before) == answers(after) and len(answers(before)) == 18,
                      'SDK versions disagree or omit requests')
+
+
+def audit_project_sdk(directory, sdk, auditor):
+    # Each archive is checked by its declared SDK, in a separate process.
+    subprocess.run([sys.executable, '-B', str(Path(__file__).resolve()),
+                    '--audit-project', str(directory), '--sdk', str(sdk),
+                    '--project-auditor', str(auditor)], check=True)
 
 
 def summary(projects):
@@ -144,7 +153,9 @@ def audit(directory):
             projects[version] = []
             for task in report['tasks']['projects']:
                 value = json.loads((tree / task['id'] / 'result.json').read_text())
-                cost.audit_project(value, tree / task['id'], report['tasks'])
+                sdk = root / 'baseline/sdk/python/src' if version == 'previous' else ROOT / 'sdk/python/src'
+                auditor = root / 'baseline/tools/saved-work-cost.py' if version == 'previous' else ROOT / 'tools/saved-work-cost.py'
+                audit_project_sdk(tree / task['id'], sdk, auditor)
                 for session in value['sessions']:
                     for row in session['stages']:
                         process = json.loads((tree / task['id'] / row['path'] / 'process.json').read_text())
@@ -174,7 +185,9 @@ def collect(binary, output):
                 cost.WORKER = (root / 'baseline' if version == 'previous' else ROOT) / 'tools/saved-work-worker.py'
                 directory = output / 'raw' / version / task['id']
                 value = cost.collect_project(task, directory, binary, tasks, workspace)
-                cost.audit_project(value, directory, tasks)
+                sdk = root / 'baseline/sdk/python/src' if version == 'previous' else ROOT / 'sdk/python/src'
+                auditor = root / 'baseline/tools/saved-work-cost.py' if version == 'previous' else ROOT / 'tools/saved-work-cost.py'
+                audit_project_sdk(directory, sdk, auditor)
                 values[version] = value
             for version in versions:
                 projects[version].append(values[version])
@@ -205,9 +218,25 @@ if __name__ == '__main__':
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--collect', type=Path)
     mode.add_argument('--audit', type=Path)
+    mode.add_argument('--audit-project', type=Path)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--project-auditor', type=Path)
     parser.add_argument('--fr', type=Path)
     args = parser.parse_args()
-    if args.audit:
+    if args.audit_project:
+        cost.require(args.sdk is not None and args.project_auditor is not None,
+                     'project audit requires explicit SDK and auditor paths')
+        tasks = json.loads(cost.TASKS.read_text())
+        spec = importlib.util.spec_from_file_location('project_auditor', args.project_auditor)
+        auditor = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(auditor)
+        sys.path.insert(0, str(args.sdk.resolve()))
+        import fr_ir.context
+        cost.require(Path(fr_ir.context.__file__).resolve().is_relative_to(args.sdk.resolve()),
+                     'audit loaded a different SDK')
+        auditor.audit_project(json.loads((args.audit_project / 'result.json').read_text()),
+                              args.audit_project, tasks)
+    elif args.audit:
         print(json.dumps(audit(args.audit)['summary'], indent=2))
     else:
         cost.require(args.fr is not None, 'collection requires the explicit optimized native binary')

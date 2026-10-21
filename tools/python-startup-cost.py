@@ -84,7 +84,7 @@ def evidence(value):
 
 
 def inventory(root):
-    files = list((root / 'objects').rglob('*.json'))
+    files = [path for path in (root / 'objects').rglob('*') if path.is_file()]
     return len(files), sum(path.stat().st_size for path in files)
 
 
@@ -110,12 +110,12 @@ class MeasuredStore:
         finally:
             self.seconds += time.perf_counter() - started
 
-    def put(self, key, value):
-        self.puts += 1
+    def put_many(self, records):
+        self.puts += len(records)
         started = time.perf_counter()
         try:
-            self.offered_bytes += len(encode(value))
-            self.store.put(key, value)
+            self.offered_bytes += sum(len(encode(value)) for value in records.values())
+            self.store.put_many(records)
         finally:
             self.seconds += time.perf_counter() - started
 

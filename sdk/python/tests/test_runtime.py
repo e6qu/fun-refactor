@@ -781,13 +781,13 @@ class TestRuntime:
         with pytest.raises(FrRuntimeError, match="advertised object digest"):
             store_merkle_value(store, value, expected_digest="0" * 64)
         with pytest.raises(FrRuntimeError, match="conflicting immutable"):
-            store.put(stored.digest, {"schema": "wrong"})
+            store.put_many({stored.digest: {"schema": "wrong"}})
 
         class DroppingStore:
             def get(self, digest):
                 return None
 
-            def put(self, digest, record):
+            def put_many(self, records):
                 pass
 
         with pytest.raises(FrRuntimeError, match="immutable write verification"):
