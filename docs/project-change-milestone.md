@@ -151,5 +151,6 @@ repository. The full test suite also checks the current implementation.
 
 Run builds, full tests and result collection on GitHub under the [workstation policy](development.md#working-on-a-shared-desktop).
 This milestone checks correctness through changes. Measure speed and storage separately against fresh checks doing the same work, including setup costs.
+The [saved-work comparison](saved-work-cost-results.md) records those costs on glob, Boltons and JMESPath.
 It does not establish lower agent costs, broad package support, numeric translation or source-connected proofs.
 See the [plan](../PLAN.md) and [current tracking](roadmap-status.md) for those larger goals.

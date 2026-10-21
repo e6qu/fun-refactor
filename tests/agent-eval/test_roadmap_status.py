@@ -76,6 +76,20 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(report['milestones']['A']['state'], 'open')
         self.assertEqual(report['milestones_complete'], 3)
 
+    def test_cost_results_change_next_work_only_after_qualification(self):
+        for gate, name in zip(self.catalog['obligations'],
+                              ('A.exact', 'B.scalar', 'C.repository-mutations', 'D.structural')):
+            gate['id'] = name
+        gate = {**self.catalog['obligations'][0], 'id': 'C.performance'}
+        self.catalog['obligations'].append(gate)
+        page = status.markdown(self.compute())
+        self.assertIn('saved-work cost comparison', page)
+        self.assertNotIn('Next, measure the cost of continuing', page)
+        gate['requires'] = []
+        page = status.markdown(self.compute())
+        self.assertIn('Next, measure the cost of continuing', page)
+        self.assertNotIn('saved-work cost comparison', page)
+
     def test_missing_report_opens_all_dependents(self):
         (self.root / 'result.json').unlink()
         self.assertEqual(self.compute()['milestones_complete'], 0)

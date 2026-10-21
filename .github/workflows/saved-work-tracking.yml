@@ -1,0 +1,66 @@
+name: Publish audited project cost results
+on:
+  push:
+    branches: [feat/saved-work-cost]
+    paths: [.github/workflows/saved-work-tracking.yml]
+  workflow_dispatch:
+    inputs:
+      collection_run:
+        description: Successful original cost-comparison run
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: saved-work-tracking-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COLLECTION_RUN: ${{ github.event_name == 'push' && '39531778541' || inputs.collection_run }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Authenticate the original workflow and audit every paired answer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -B tools/retain-saved-work-cost.py \
+            --directory "tests/agent-eval/results/2026-10-21-saved-work-$COLLECTION_RUN" \
+            --run-id "$COLLECTION_RUN"
+      - name: Check tracking and writing
+        run: |
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tests/agent-eval/test_roadmap_status.py
+          python3 -B tools/review-docs.py
+          python3 -B tools/check-prose.py
+      - name: Retain the checked tables and tracking
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/agent-eval/saved-work-cost/record.json tests/agent-eval/roadmap.json \
+            docs/saved-work-cost-results.md docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
+          git commit -m 'docs: publish measured costs and reconcile project milestones'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: saved-work-tracking
+          path: |
+            tests/agent-eval/saved-work-cost/record.json
+            tests/agent-eval/roadmap.json
+            docs/saved-work-cost-results.md
+            docs/roadmap-status.json
+            docs/roadmap-status.md
+            tools/PROSE-DEBT
+          retention-days: 30
+          if-no-files-found: error

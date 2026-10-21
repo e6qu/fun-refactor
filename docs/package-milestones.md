@@ -11,7 +11,8 @@ regression tests alone would not establish either outcome.
 
 These package milestones remain complete. The [project-change milestone](project-change-milestone.md)
 now also has passing original records for saved answers after edits and complete Rust/Python rename delivery.
-The [next work](continuity.md#next-measure-the-cost-of-continuing-work) measures the cost of continuing a task against asking again from scratch.
+The [saved-work comparison](saved-work-cost-results.md) measures continued work against fresh questions on the same files.
+The [next work](continuity.md#next-use-the-continuing-work-cost-results) uses those measured costs to choose an improvement.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.

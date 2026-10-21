@@ -48,15 +48,16 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: measure the cost of continuing work
+## Next: use the continuing-work cost results
 
-After moving Boltons' helper to another file, how much work does it take to find the current function and callers again?
-Compare continuing a saved task with asking the same questions from scratch about the same changed files.
-Repeat the measurements and include preparation, input checking, analysis, memory, disk and text returned.
-Choose the projects and comparison before tuning code; reserve an independent project from that tuning.
-Treat glob, Boltons and Humanize as familiar projects from now on.
+The [saved-work comparison](saved-work-cost-results.md) repeats the same questions on glob, Boltons and JMESPath.
+JMESPath is a Python library for selecting values from JSON documents.
+It measures first use, unchanged reuse and one source edit, with three repetitions per project.
+Saved and fresh discovery agree. The totals include starting Python, checking saved inputs, analysis, storage, source copies, edits and cleanup.
+JMESPath passed its first evaluation after the procedure and optimized binary were fixed.
+Treat glob, Boltons, Humanize and JMESPath as familiar projects from now on.
 
-Use the results to choose a cache change. Check its answers against fresh analysis before claiming lower costs.
+Choose an improvement from the measured repeated work. Compare complete session totals and keep answer agreement as a required check.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 

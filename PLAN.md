@@ -88,9 +88,12 @@ For example, Boltons' renamed integer-bounds function still limits -5, 17 and 70
 The [original record](tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) preserves the qualifying results and all 32 failed or cancelled development attempts.
 Both selected outcomes belong to [PR #551](https://github.com/e6qu/fun-refactor/pull/551).
 
-Next, measure whether continuing a saved task costs less than asking the same questions from scratch after an edit.
-Use the same files, questions and limits. Count preparation, input checking, analysis, memory, disk and text returned before choosing optimizations.
-The [handoff](docs/continuity.md#next-measure-the-cost-of-continuing-work) describes the next work.
+The [saved-work comparison](docs/saved-work-cost-results.md) compares reopening answers with asking the same questions again on glob, Boltons and JMESPath.
+JMESPath is a Python library for selecting values from JSON documents.
+It compares first use, unchanged reuse and one source edit, with three repetitions on each project.
+Saved and fresh answers agree. Preparation, validation, analysis, memory, storage and submitted text remain visible.
+Use the complete session totals to choose the next optimization, rather than a faster unchanged request alone.
+The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
 Broader agent savings, translation and proofs connected to source code remain open.
 
 Choose work by a useful question that we can answer from beginning to end.
@@ -296,12 +299,12 @@ that depended on that helper, keep unrelated findings, and require a fresh edit 
   See [resumption tests](tests/investigation.rs).
 - [x] Tie check and proof results to their inputs, rejecting old results after relevant changes.
   See [retained proofs](src/spec/retained.rs).
-- [x] Measure first analysis, reused results and rechecking after edits on a small generated set of programs.
-  See [cache measurements](docs/evaluations.md#current-matched-results).
+- [x] Measure first analysis, reused results and rechecking after edits on three independently maintained projects.
+  See [saved-work measurements](docs/saved-work-cost-results.md).
 
-The project-change records now cover glob, Boltons and Humanize. Next, measure the cost of fresh,
-resumed and post-edit work on independently selected projects. Small synthetic timing improvements
-do not demonstrate cheaper agent tasks.
+The project-change records cover glob, Boltons and Humanize.
+The cost comparison covers glob, Boltons and the first independent JMESPath evaluation.
+It measures matching answers and their full scripted session costs. Complete agent-task savings remain a separate requirement.
 
 ### D. Make checked changes and useful proofs
 
