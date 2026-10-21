@@ -3,6 +3,7 @@
 A user asks where `glob_with` appears and which code a change could affect.
 The Python helper library, called the SDK, can save that answer and the inputs it depends on.
 A content fingerprint identifies each distinct piece of the answer by its bytes.
+JSON is the text format used to save those pieces, including numbers, lists and named fields.
 Previously, saving the glob answer wrote 1,387 files and waited for each write to reach disk.
 The local store now puts the pieces in one SQLite database inside the chosen directory.
 SQLite is a database library included with Python; it needs no separate server.
@@ -32,9 +33,9 @@ Builds, dependency installation and initial downloads remain separate in raw rep
 
 | Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |
 |---|---:|---:|---:|---:|---:|---:|
-| boltons | 3.477 | 3.004 | -13.6% | 2.845 | 2.830 | +6.2% |
-| glob | 2.894 | 1.457 | -49.7% | 1.104 | 1.096 | +32.9% |
-| jmespath | 4.478 | 2.040 | -54.4% | 1.465 | 1.469 | +38.8% |
+| boltons | 4.017 | 3.242 | -19.3% | 3.099 | 3.190 | +1.6% |
+| glob | 3.588 | 1.788 | -50.2% | 1.186 | 1.266 | +41.3% |
+| jmespath | 4.743 | 2.214 | -53.3% | 1.606 | 1.723 | +28.5% |
 
 Negative change means less time than the previous saved approach.
 Positive overhead means saving costs more than asking again with the current SDK.
@@ -56,17 +57,18 @@ One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
 | Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |
 |---|---:|---:|---:|---:|
-| boltons / previous | 0.358 | 3.078 | 78.8 | 100.6 |
-| boltons / current | 0.297 | 2.873 | 85.4 | 200.1 |
-| glob / previous | 0.518 | 2.018 | 49.0 | 313.5 |
-| glob / current | 0.312 | 1.335 | 51.6 | 520.1 |
-| jmespath / previous | 0.610 | 3.185 | 55.9 | 548.3 |
-| jmespath / current | 0.363 | 1.883 | 60.4 | 860.1 |
+| boltons / previous | 0.362 | 3.236 | 80.3 | 100.6 |
+| boltons / current | 0.366 | 3.030 | 84.3 | 200.1 |
+| glob / previous | 0.514 | 1.982 | 53.1 | 313.5 |
+| glob / current | 0.345 | 1.392 | 53.0 | 528.1 |
+| jmespath / previous | 0.592 | 3.073 | 58.5 | 548.3 |
+| jmespath / current | 0.416 | 2.005 | 58.9 | 876.1 |
 
 ## What the checks establish
 
 Separate profiles locate storage work. Their timings include profiler overhead and do not enter these tables.
 Checks cover reopening, concurrent writers, conflicting bytes, corrupted records and a writer killed before commit.
+Python considers `True == 1` true. Both stores compare the saved JSON bytes, so these values cannot overwrite one another under the same fingerprint.
 Each SDK audits its own retained state in a separate process beside its declared source.
 The application has one current local format and no older-format reader or fallback.
 Record contents, fingerprints, verification and request resource limits stay the same.
@@ -78,4 +80,4 @@ These scripted requests establish no general agent, model-token or billing savin
 All projects are familiar. The original first JMESPath result remains unchanged and separately audited.
 The earlier hashing comparison remains unchanged and is audited beside the code merged in PR #554.
 
-[Measurements and raw archives](../tests/agent-eval/batched-answer-storage/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/batched-answer-storage/publication.json) | [Earlier hashing comparison](saved-answer-improvement.md)
+[Measurements and raw archives](../tests/agent-eval/batched-answer-storage-release/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/batched-answer-storage-release/publication.json) | [First storage comparison](batched-answer-storage-first-results.md) | [Earlier hashing comparison](saved-answer-improvement.md)
