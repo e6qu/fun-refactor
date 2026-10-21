@@ -64,7 +64,7 @@ acceptance runs must satisfy their scorer at recording time.
 
 ## Retained Boolean model comparisons
 
-The [current comparison](../tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons/manifest.json)
+The [current comparison](../tests/agent-eval/results/2026-10-21-distinct-answer-delivery-model-comparisons/manifest.json)
 checks a Rust function and its Python translation with three true-or-false inputs.
 For example, renaming the Rust function and removing an unused argument must preserve its answer
 for all eight input combinations. A separate test compiles and runs the Rust code and executes Python.
@@ -115,7 +115,7 @@ the manifest distinguishes admitted edits from direct-edit boundaries.
 
 ## Checked delivery outcomes
 
-The [current delivery evaluation](../tests/agent-eval/results/2026-10-21-storage-ci-repair-checked-outcomes/manifest.json)
+The [current delivery evaluation](../tests/agent-eval/results/2026-10-21-distinct-answer-delivery-checked-outcomes/manifest.json)
 asks for a subtotal repair and a fee in two Rust files. A separate Python test compiles and runs
 the public Rust functions with 49 input combinations. The script supplies each proposed edit;
 it does not test an agent discovering the repair or establish savings in model usage.
@@ -599,7 +599,7 @@ source proofs remain open. Synthetic malformed-protocol tests remain separate fr
 The [correspondence fixture](../tests/agent-eval/resumable-correspondence/task.json) pins a Unicode declaration and an independent AST oracle.
 The [baseline](../tests/agent-eval/resumable-correspondence/baseline.json) retains a changed original that the old matcher hid behind its unchanged copy.
 The [evaluator](../tools/correspondence-acceptance.py) retains moves, identifier renames, body edits, copies, duplicates and deletion.
-The [current result](../tests/agent-eval/results/2026-10-21-storage-ci-repair-resumable-correspondence/result.json) includes interrupted plan resumption and an independent satisfied step.
+The [current result](../tests/agent-eval/results/2026-10-21-distinct-answer-delivery-resumable-correspondence/result.json) includes interrupted plan resumption and an independent satisfied step.
 Explicit refresh clears stale evidence and actions; the old mutation review refuses.
 A fresh review delivers a checked edit, reversal and patch. An independent receiver applies the patch and checks three finite outputs.
 
@@ -616,7 +616,7 @@ Run `python3 tools/proof-evidence-acceptance.py --output PATH` to retain current
 Run the same script with `--audit PATH` to check its recorded input fingerprints, Merkle roots, invalidation outcomes and patch replay.
 The evaluator retains old and fresh model reports, seven input changes, independent observations and stale review refusals.
 A separate Python oracle checks both Boolean inputs after applying the retained patch in an independent directory.
-The [current result](../tests/agent-eval/results/2026-10-21-storage-ci-repair-retained-proofs/result.json) records its fixture timing and context bytes.
+The [current result](../tests/agent-eval/results/2026-10-21-distinct-answer-delivery-retained-proofs/result.json) records its fixture timing and context bytes.
 These deterministic results make no live-agent, general performance or source correspondence proof claim.
 
 ## Imported scalar flow
