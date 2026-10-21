@@ -1,0 +1,29 @@
+name: Find and reduce saved answer costs
+on:
+  push:
+    branches: [perf/saved-answer-cost]
+    paths: [.github/workflows/saved-answer-improvement.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: saved-answer-improvement-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Profile the retained real answers without native rebuilds
+        run: python3 -B tools/profile-saved-answers.py --output "$RUNNER_TEMP/saved-answer-profile.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: saved-answer-profile
+          path: ${{ runner.temp }}/saved-answer-profile.json
+          if-no-files-found: error
+          retention-days: 30
