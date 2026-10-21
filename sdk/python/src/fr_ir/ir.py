@@ -88,43 +88,30 @@ def _merkle_number(value: int | float) -> str:
     return significand + "e" + ("+" if position >= 0 else "-") + str(abs(position))
 
 
-def merkle_object_digest(value: Any) -> str:
-    """Return the content address for one JSON value."""
+def _merkle_scalar_parts(value: Any) -> tuple[Any, ...]:
     if value is None:
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "null")
+        return ("null",)
     if isinstance(value, bool):
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "bool", value)
+        return ("bool", value)
     if isinstance(value, (int, float)):
-        written = _merkle_number(value)
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "number", written)
+        return ("number", str.__str__(_merkle_number(value)))
     if isinstance(value, str):
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "string", value)
-    if isinstance(value, list):
-        entries = [
-            _tagged_hash(MERKLE_OBJECT_SCHEMA, "array-entry", index,
-                         merkle_object_digest(child))
-            for index, child in enumerate(value)
-        ]
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "array", len(value),
-                            _object_binary_root(entries))
-    if isinstance(value, dict):
-        if not all(isinstance(key, str) for key in value):
-            raise IrError("Merkle object keys must be strings")
-        entries = [
-            _tagged_hash(MERKLE_OBJECT_SCHEMA, "object-entry", index, key,
-                         merkle_object_digest(value[key]))
-            for index, key in enumerate(sorted(value))
-        ]
-        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "object", len(value),
-                            _object_binary_root(entries))
+        return ("string", str.__str__(value))
     raise IrError(f"{type(value).__name__} is not a JSON value")
+
+
+def merkle_object_digest(value: Any) -> str:
+    """Return the content address, hashing each distinct JSON piece once."""
+    if not isinstance(value, (dict, list)):
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, *_merkle_scalar_parts(value))
+    return _merkle_tree_digest(value, None)
 
 
 def _merkle_record_digest(record: Mapping[str, Any]) -> str:
     """Hash one record whose child addresses have already been computed or verified."""
     kind = record["kind"]
     if kind == "scalar":
-        return merkle_object_digest(record["value"])
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, *_merkle_scalar_parts(record["value"]))
     if kind == "array":
         entries = [
             _tagged_hash(MERKLE_OBJECT_SCHEMA, "array-entry", index, child)
@@ -138,32 +125,55 @@ def _merkle_record_digest(record: Mapping[str, Any]) -> str:
     return _tagged_hash(MERKLE_OBJECT_SCHEMA, kind, len(entries), _object_binary_root(entries))
 
 
-def merkle_object_pack(value: Any) -> dict[str, Any]:
-    """Split a JSON tree into deduplicated objects suitable for object storage."""
-    objects: dict[str, Any] = {}
+def _merkle_tree_digest(value: Any, objects: dict[str, Any] | None) -> str:
+    """Hash canonical record shapes once within this operation."""
+    digests: dict[tuple[Any, ...], str] = {}
+    active: set[int] = set()
 
     def visit(node: Any) -> str:
-        if isinstance(node, list):
-            record = {
-                "schema": MERKLE_OBJECT_SCHEMA,
-                "kind": "array",
-                "children": [visit(child) for child in node],
-            }
-        elif isinstance(node, dict):
-            if not all(isinstance(key, str) for key in node):
-                raise IrError("Merkle object keys must be strings")
-            record = {
-                "schema": MERKLE_OBJECT_SCHEMA,
-                "kind": "object",
-                "entries": [[key, visit(node[key])] for key in sorted(node)],
-            }
+        container = isinstance(node, (list, dict))
+        if container:
+            identity = id(node)
+            if identity in active:
+                raise IrError("Merkle JSON value contains a cycle")
+            active.add(identity)
+            try:
+                if isinstance(node, list):
+                    signature = ("array", tuple(visit(child) for child in node))
+                else:
+                    if not all(isinstance(key, str) for key in node):
+                        raise IrError("Merkle object keys must be strings")
+                    signature = ("object", tuple(
+                        (str.__str__(key), visit(node[key])) for key in sorted(node)
+                    ))
+            finally:
+                active.remove(identity)
+        else:
+            signature = _merkle_scalar_parts(node)
+        previous = digests.get(signature)
+        if previous is not None:
+            return previous
+        if signature[0] == "array":
+            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "array",
+                      "children": list(signature[1])}
+        elif signature[0] == "object":
+            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "object",
+                      "entries": [list(entry) for entry in signature[1]]}
         else:
             record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "scalar", "value": node}
         digest = _merkle_record_digest(record)
-        objects[digest] = record
+        digests[signature] = digest
+        if objects is not None:
+            objects[digest] = record
         return digest
 
-    root = visit(value)
+    return visit(value)
+
+
+def merkle_object_pack(value: Any) -> dict[str, Any]:
+    """Split a JSON tree into deduplicated objects suitable for object storage."""
+    objects: dict[str, Any] = {}
+    root = _merkle_tree_digest(value, objects)
     return {
         "schema": "fr-merkle-object-pack-1",
         "algorithm": "sha256-tagged-binary-json-tree",
