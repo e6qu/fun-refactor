@@ -68,6 +68,14 @@ It also uses one database read session to verify or restore an answer.
 Use that comparison's complete session times and fresh baselines when choosing further work.
 Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than asking again.
 The database uses more stored bytes, so preserve that tradeoff in further comparisons.
+The [distinct-piece follow-up](distinct-answer-hashing.md) hashes equal answer pieces once within each operation.
+For example, the glob answer contains 1,387 distinct pieces across 11,210 visits. The new lookup ends after the operation, so later edits still change fingerprints.
+Complete saved sessions take about 1% to 7% less time than PR #555 across three trials per project.
+They still cost about 6% to 28% more than asking again. Stored bytes match within this comparison; memory samples show no general saving.
+The next useful comparison should keep the Python helper running across a complete project session.
+Count the first start, input checks, edits, renewed analysis and final shutdown in both saved and fresh approaches.
+The earlier [process study](python-process-cost-results.md) suggests a reason to try this, but its small helper examples do not establish project-scale savings.
+Keep the stopped live-agent studies separate.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 
