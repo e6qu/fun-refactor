@@ -179,6 +179,16 @@ def main():
                 if group == 'index-resolution':
                     entry['scope'] = 'Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.'
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+    settings_path = ROOT / 'tests/agent-eval/current-scalar-reports.json'
+    settings = json.loads(settings_path.read_text())
+    require(settings['schema'] == 'fr-current-scalar-reports'
+            and set(settings['reports']) == set(receipts), 'declare every current scalar report explicitly')
+    for group, receipt in receipts.items():
+        settings['reports'][group].update(
+            path=f'tests/agent-eval/results/{args.prefix}-{group}/result.json',
+            sha256=receipt['files']['result.json'])
+    settings_path.write_text(json.dumps(settings, indent=2) + '\n')
+    subprocess.run(['git', 'add', '--', 'tests/agent-eval/current-scalar-reports.json'], cwd=ROOT, check=True)
     directory = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
     require(not directory.exists(), 'preserve previous collection receipts')
     directory.mkdir()

@@ -1,0 +1,49 @@
+name: Check explicit saved report settings
+on:
+  push:
+    branches: [perf/saved-answer-cost]
+    paths: [.github/workflows/saved-report-settings.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: saved-report-settings-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Format and check explicit selection without any older-record fallback
+        run: |
+          rustfmt --edition 2021 tests/common/retained.rs tests/retained_evidence.rs
+          cargo test --locked --test retained_evidence
+          python3 -B tools/test-retain-ci-reports.py
+          python3 -B tools/test-retain-scalar-evidence.py
+      - name: Retain formatting before collecting fresh compiler evidence
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/common/retained.rs tests/retained_evidence.rs
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: format explicit saved report selection checks'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi

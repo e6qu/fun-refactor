@@ -24,6 +24,7 @@ GROUPS = {
     'structural-change': ['structural-change'],
     'package-flow': ['package-flow'],
     'python-repositories': ['python-repositories'],
+    'compiler-profile': ['compiler-profile'],
     'sdk-contexts': ['agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
                      'native-intent-context', 'intent-action-context'],
 }
@@ -35,6 +36,7 @@ SCRIPTS = {
     'structural-change': 'structural-change-acceptance',
     'package-flow': 'package-flow-acceptance',
     'python-repositories': 'python-repository-acceptance',
+    'compiler-profile': 'compiler-profile',
 }
 ACTIVE_REFERENCES = {
     'project-batch-context': 'tests/agent_acceptance.rs',
@@ -72,8 +74,12 @@ def main():
     collected = []
     for collection in sorted(runs):
         groups = GROUPS[collection]
-        artifact, producer = (('roadmap-evidence', 'repositories') if collection == 'python-repositories'
-                              else ('refinement-evidence', 'refresh'))
+        if collection == 'python-repositories':
+            artifact, producer = 'roadmap-evidence', 'repositories'
+        elif collection == 'compiler-profile':
+            artifact, producer = 'compiler-profile', 'compiler-profile'
+        else:
+            artifact, producer = 'refinement-evidence', 'refresh'
         data, identity = scalar.collect(runs[collection], artifact, producer,
                                         os.environ['GITHUB_REPOSITORY'])
         if collection == 'python-repositories':
@@ -81,6 +87,12 @@ def main():
             require(value['runner']['revision'] == identity['source_commit']
                     and set(data) == {'result.json', *value['artifacts']},
                     'repository source or artifact inventory changed')
+            collected.append((collection, data, identity))
+            continue
+        if collection == 'compiler-profile':
+            require(set(data) == {'result.json'}, 'compiler report inventory changed')
+            require(json.loads(data['result.json'])['source_commit'] == identity['source_commit'],
+                    'compiler report source changed')
             collected.append((collection, data, identity))
             continue
         if collection == 'structural-change':
@@ -130,15 +142,42 @@ def main():
         print(f'Validated {group}', flush=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
-    for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks')):
+    for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
+                              ('compiler-profile', 'compiler-profile')):
         if group in receipts:
             entry, = [row for row in catalog['evidence'] if row['id'] == identifier]
             directory = f'tests/agent-eval/results/{args.prefix}-{group}'
             entry.update(path=directory + '/result.json', sha256=receipts[group]['sha256'],
                          audit='python3 -B tools/' + SCRIPTS[group] + '.py --audit ' +
                          (directory if group == 'python-repositories' else directory + '/result.json'))
-    if receipts.keys() & {'package-flow', 'python-repositories'}:
+    if receipts.keys() & {'package-flow', 'python-repositories', 'compiler-profile'}:
         catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+    if 'compiler-profile' in receipts:
+        receipt = receipts['compiler-profile']
+        family = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
+        family.mkdir()
+        (family / 'manifest.json').write_text(json.dumps({'schema': 'fr-scalar-collection', 'groups': {
+            'compiler-profile': {'collection': receipt['collection'], 'files': {'result.json': receipt['sha256']}}
+        }}, indent=2) + '\n')
+        test = ROOT / 'tools/test-compiler-profile.py'
+        text, count = re.subn(r"^REPORT = ROOT / '[^']+'$",
+            f"REPORT = ROOT / 'tests/agent-eval/results/{args.prefix}-compiler-profile/result.json'",
+            test.read_text(), flags=re.M)
+        require(count == 1, 'expected one current compiler report reference')
+        test.write_text(text)
+        subprocess.run(['python3', '-B', 'tools/test-compiler-profile.py'], cwd=ROOT, check=True, timeout=120)
+        subprocess.run(['git', 'add', '--', 'tools/test-compiler-profile.py'], cwd=ROOT, check=True)
+    settings_path = ROOT / 'tests/agent-eval/current-scalar-reports.json'
+    settings = json.loads(settings_path.read_text())
+    require(settings['schema'] == 'fr-current-scalar-reports', 'unknown current report settings')
+    selected = receipts.keys() & settings['reports'].keys()
+    if selected:
+        for group in selected:
+            settings['reports'][group].update(
+                path=f'tests/agent-eval/results/{args.prefix}-{group}/result.json',
+                sha256=receipts[group]['sha256'])
+        settings_path.write_text(json.dumps(settings, indent=2) + '\n')
+        subprocess.run(['git', 'add', '--', 'tests/agent-eval/current-scalar-reports.json'], cwd=ROOT, check=True)
     if 'host-recovery' in receipts:
         entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
         entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'

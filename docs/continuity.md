@@ -171,7 +171,10 @@ Reserve another unread project before using any later comparison to claim progre
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [current checker collection receipt](../tests/agent-eval/results/2026-10-20-leap-year-scalar-collection/manifest.json) records the refreshed analysis results.
+The [active check reports](../tests/agent-eval/current-scalar-reports.json) name each result and its file fingerprint explicitly.
+For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
+A missing setting fails the check. Tests never select an older record automatically.
+Original collection receipts remain beside the recorded results.
 The [Python example receipt](../tests/agent-eval/results/2026-10-20-leap-year-python-contract/manifest.json)
 covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
 It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
