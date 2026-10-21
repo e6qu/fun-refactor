@@ -97,7 +97,7 @@ a prerequisite when a post-change plan requires it. Successful delivery cannot r
 The Rust/Lean readiness comparison covers all 16 Boolean admission cases. Its theorems concern that
 small predicate; they do not prove the index, consumer closure, test catalog or source behavior.
 
-The [pinned evaluation](../tests/agent-eval/results/2026-10-21-distinct-release-change-scope/manifest.json)
+The [pinned evaluation](../tests/agent-eval/results/2026-10-22-hash-lifetime-change-scope/manifest.json)
 compares independent Python inspection of the parsed syntax tree with native discovery, then checks two-file delivery,
 resumption in a new process, added-consumer invalidation and independent patch replay.
 The [SDK tests](../sdk/python/tests/test_change_scope.py) exercise budgets, ambiguity, coordinates,
