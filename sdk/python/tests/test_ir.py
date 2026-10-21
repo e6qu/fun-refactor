@@ -447,6 +447,30 @@ class TestIr:
                 with pytest.raises(IrError, match="finite"):
                     operation([number, number])
 
+    def test_merkle_restore_releases_records_without_cyclic_collection(self):
+        import gc
+        import weakref
+
+        class TrackedScalar(str):
+            pass
+
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            scalar = TrackedScalar("saved value")
+            reference = weakref.ref(scalar)
+            digest = merkle_object_digest(scalar)
+            objects = {digest: {"schema": "fr-merkle-object-1", "kind": "scalar", "value": scalar}}
+            restored = restore_merkle_object(digest, objects)
+            del scalar, objects
+            assert reference() is restored
+            del restored
+            assert reference() is None, "restore retained its records after the caller released the result"
+        finally:
+            if enabled:
+                gc.enable()
+            gc.collect()
+
     def test_merkle_restore_verifies_shared_records_once_without_sharing_mutations(self):
         from fr_ir import ir
         value = {"items": [1, {"name": "original"}]}
