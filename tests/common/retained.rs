@@ -23,12 +23,12 @@ pub fn checked_report(root: &Path, group: &str) -> String {
     let relative = entry["path"]
         .as_str()
         .expect("need an explicit current report");
-    assert!(relative.starts_with("tests/agent-eval/results/") && relative.ends_with("/result.json"));
     assert!(
-        Path::new(relative)
-            .components()
-            .all(|part| matches!(part, std::path::Component::Normal(_)))
+        relative.starts_with("tests/agent-eval/results/") && relative.ends_with("/result.json")
     );
+    assert!(Path::new(relative)
+        .components()
+        .all(|part| matches!(part, std::path::Component::Normal(_))));
     assert!(!relative.contains('\\'));
     let expected = entry["sha256"]
         .as_str()
@@ -53,7 +53,10 @@ pub fn checked_report(root: &Path, group: &str) -> String {
         );
     }
     let path = root.join(relative);
-    assert!(path.canonicalize().unwrap().starts_with(root.canonicalize().unwrap()));
+    assert!(path
+        .canonicalize()
+        .unwrap()
+        .starts_with(root.canonicalize().unwrap()));
     assert_eq!(
         hex::encode(Sha256::digest(fs::read(&path).unwrap())),
         expected,
