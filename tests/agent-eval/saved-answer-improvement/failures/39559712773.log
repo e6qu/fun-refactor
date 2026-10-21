@@ -1,0 +1,58 @@
+compare	Compare both SDKs with the same optimized native executable	﻿2026-10-21T07:16:40.7768557Z ##[group]Run python3 -B tools/saved-answer-comparison.py --collect "$RUNNER_TEMP/answer-comparison" --fr target/release/fr
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7769528Z ^[[36;1mpython3 -B tools/saved-answer-comparison.py --collect "$RUNNER_TEMP/answer-comparison" --fr target/release/fr^[[0m
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7821712Z shell: /usr/bin/bash -e {0}
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7821976Z env:
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7822170Z   CARGO_BUILD_JOBS: 2
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7822399Z   CARGO_INCREMENTAL: 0
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7822760Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7823024Z   RUSTFLAGS: -D warnings
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7823273Z   RUSTUP_TOOLCHAIN: 1.99.1
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7823576Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7824014Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7824628Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7825018Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7825503Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7825912Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7826264Z   CACHE_ON_FAILURE: false
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:16:40.7826486Z ##[endgroup]
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2850578Z Traceback (most recent call last):
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2862939Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-answer-comparison.py", line 203, in <module>
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2863978Z     collect(args.fr.resolve(), args.collect)
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2864552Z     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2865599Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-answer-comparison.py", line 172, in collect
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2866501Z     compare_answers(projects)
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2867017Z     ~~~~~~~~~~~~~~~^^^^^^^^^^
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2868134Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-answer-comparison.py", line 83, in compare_answers
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2869549Z     cost.require(answers(before) == answers(after) and len(answers(before)) == 18,
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2870470Z     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2871123Z                  'SDK versions disagree or omit requests')
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2871451Z                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2871956Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 46, in require
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2872481Z     raise ValueError(message)
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.2873049Z ValueError: SDK versions disagree or omit requests
+compare	Compare both SDKs with the same optimized native executable	2026-10-21T07:18:52.3187870Z ##[error]Process completed with exit code 1.
+compare	Run actions/upload-artifact@v7	﻿2026-10-21T07:18:52.3287821Z ##[group]Run actions/upload-artifact@v7
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3288168Z with:
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3288381Z   name: saved-answer-comparison
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3288685Z   path: /home/runner/work/_temp/answer-comparison
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3289001Z   if-no-files-found: error
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3289237Z   retention-days: 30
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3289453Z   compression-level: 6
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3289667Z   overwrite: false
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3289883Z   include-hidden-files: false
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3290126Z   archive: true
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3290318Z env:
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3290504Z   CARGO_BUILD_JOBS: 2
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3290726Z   CARGO_INCREMENTAL: 0
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3290953Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3291211Z   RUSTFLAGS: -D warnings
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3291444Z   RUSTUP_TOOLCHAIN: 1.99.1
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3291735Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3292165Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3292975Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3293375Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3293754Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3294133Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3294465Z   CACHE_ON_FAILURE: false
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.3294684Z ##[endgroup]
+compare	Run actions/upload-artifact@v7	2026-10-21T07:18:52.4849113Z ##[error]No files were found with the provided path: /home/runner/work/_temp/answer-comparison. No artifacts will be uploaded.

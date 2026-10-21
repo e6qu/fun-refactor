@@ -22,6 +22,9 @@ GROUPS = {
     'index-consumers': ['index-consumers'],
     'completion-workflows': ['completion-workflows'],
     'structural-change': ['structural-change'],
+    'package-flow': ['package-flow'],
+    'python-repositories': ['python-repositories'],
+    'compiler-profile': ['compiler-profile'],
     'sdk-contexts': ['agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
                      'native-intent-context', 'intent-action-context'],
 }
@@ -31,6 +34,9 @@ SCRIPTS = {
     'resumable-correspondence': 'correspondence-acceptance',
     'index-consumers': 'index-consumers-acceptance',
     'structural-change': 'structural-change-acceptance',
+    'package-flow': 'package-flow-acceptance',
+    'python-repositories': 'python-repository-acceptance',
+    'compiler-profile': 'compiler-profile',
 }
 ACTIVE_REFERENCES = {
     'project-batch-context': 'tests/agent_acceptance.rs',
@@ -68,8 +74,27 @@ def main():
     collected = []
     for collection in sorted(runs):
         groups = GROUPS[collection]
-        data, identity = scalar.collect(runs[collection], 'refinement-evidence', 'refresh',
+        if collection == 'python-repositories':
+            artifact, producer = 'roadmap-evidence', 'repositories'
+        elif collection == 'compiler-profile':
+            artifact, producer = 'compiler-profile', 'compiler-profile'
+        else:
+            artifact, producer = 'refinement-evidence', 'refresh'
+        data, identity = scalar.collect(runs[collection], artifact, producer,
                                         os.environ['GITHUB_REPOSITORY'])
+        if collection == 'python-repositories':
+            value = json.loads(data['result.json'])
+            require(value['runner']['revision'] == identity['source_commit']
+                    and set(data) == {'result.json', *value['artifacts']},
+                    'repository source or artifact inventory changed')
+            collected.append((collection, data, identity))
+            continue
+        if collection == 'compiler-profile':
+            require(set(data) == {'result.json'}, 'compiler report inventory changed')
+            require(json.loads(data['result.json'])['source_commit'] == identity['source_commit'],
+                    'compiler report source changed')
+            collected.append((collection, data, identity))
+            continue
         if collection == 'structural-change':
             matches = [name for name in data if re.fullmatch(
                 r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-structural-change/result.json', name)]
@@ -110,13 +135,49 @@ def main():
             path.write_bytes(content)
         script = SCRIPTS.get(group, group)
         flag = '--verify' if group == 'index-consumers' else '--audit'
-        argument = directory if group == 'structural-change' else report
+        argument = directory if group in ('structural-change', 'python-repositories') else report
         subprocess.run(['python3', '-B', f'tools/{script}.py', flag, str(argument)],
                        cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
         receipts[group] = {'collection': identity, 'sha256': hashlib.sha256(payload['result.json']).hexdigest()}
         print(f'Validated {group}', flush=True)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
+    for group, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
+                              ('compiler-profile', 'compiler-profile')):
+        if group in receipts:
+            entry, = [row for row in catalog['evidence'] if row['id'] == identifier]
+            directory = f'tests/agent-eval/results/{args.prefix}-{group}'
+            entry.update(path=directory + '/result.json', sha256=receipts[group]['sha256'],
+                         audit='python3 -B tools/' + SCRIPTS[group] + '.py --audit ' +
+                         (directory if group == 'python-repositories' else directory + '/result.json'))
+    if receipts.keys() & {'package-flow', 'python-repositories', 'compiler-profile'}:
+        catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+    if 'compiler-profile' in receipts:
+        receipt = receipts['compiler-profile']
+        family = ROOT / 'tests/agent-eval/results' / (args.prefix + '-scalar-collection')
+        family.mkdir()
+        (family / 'manifest.json').write_text(json.dumps({'schema': 'fr-scalar-collection', 'groups': {
+            'compiler-profile': {'collection': receipt['collection'], 'files': {'result.json': receipt['sha256']}}
+        }}, indent=2) + '\n')
+        test = ROOT / 'tools/test-compiler-profile.py'
+        text, count = re.subn(r"^REPORT = ROOT / '[^']+'$",
+            f"REPORT = ROOT / 'tests/agent-eval/results/{args.prefix}-compiler-profile/result.json'",
+            test.read_text(), flags=re.M)
+        require(count == 1, 'expected one current compiler report reference')
+        test.write_text(text)
+        subprocess.run(['python3', '-B', 'tools/test-compiler-profile.py'], cwd=ROOT, check=True, timeout=120)
+        subprocess.run(['git', 'add', '--', 'tools/test-compiler-profile.py'], cwd=ROOT, check=True)
+    settings_path = ROOT / 'tests/agent-eval/current-scalar-reports.json'
+    settings = json.loads(settings_path.read_text())
+    require(settings['schema'] == 'fr-current-scalar-reports', 'unknown current report settings')
+    selected = receipts.keys() & settings['reports'].keys()
+    if selected:
+        for group in selected:
+            settings['reports'][group].update(
+                path=f'tests/agent-eval/results/{args.prefix}-{group}/result.json',
+                sha256=receipts[group]['sha256'])
+        settings_path.write_text(json.dumps(settings, indent=2) + '\n')
+        subprocess.run(['git', 'add', '--', 'tests/agent-eval/current-scalar-reports.json'], cwd=ROOT, check=True)
     if 'host-recovery' in receipts:
         entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
         entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'

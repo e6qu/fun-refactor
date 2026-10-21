@@ -30,36 +30,36 @@
   },
   "evidence": [
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "sha256": "c132207699750fe23af606854db2a464827ef307eab0c7678d5a176b9b7a93a4"
+      "sha256": "2ffc3da00156819eaa70c7f02cf5ca8df873d0ec889ed3610f82c4da770f62be"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "aa155e51ecf8d68c004555c25ca6a2a61c9dce78217b85b7bd3f443caa4d5bed"
+      "sha256": "7daa2618d027bf8926d2c8f9571f3e68902416568f73e76837b85fe9a5fab86e"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "sha256": "9fb7fb7fc8d60a211029afd9804403d6012f13d928bc28aba31c5a5dfedeb90b"
+      "sha256": "f44227cdc1a2462b914336509abf643be2c537ddb13ff838ff65ae1ed21bf20d"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "17570533cb3360d8bc14aef0d88976837e91661469008ec2e44e2224b2db279c"
+      "sha256": "3bd3185db3a7387275680f4f22fa074ffa49f9f144b76c19e5a6417ec17a7161"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-inventory-ci-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-inventory-ci-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "961d263a9c415bc9cb4dd96d5ff215bcab3ad26589a5c9302540499ce1d81aa0"
+      "sha256": "e0a24fdce66f20ce9c4f6f939f4d648552d206ad55d7427ab7736aafeec8805b"
     },
     {
       "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
@@ -94,28 +94,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "sha256": "9c3d09fa3f1031eaf85f30887f7db3cd40aadfeaf9751b8eeefb1371f91fd74f"
+      "sha256": "5558462ccd78547118b288a4789faa33e4623a05f11e86fc58f40fd3bb37c983"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-python-contract/result.json",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "298daf5f1f92db9f0e428d96df534ecc3d6e613a5ffbbfc1f9089ea0896f4917"
+      "sha256": "383e561cee50922f3d8453a836e624d636c3055522a537e50b699a3d78c9859d"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-21-saved-answer-final-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "fc7da55e19479a66be8bfde53d2a7c0379e3c5449b15946bb66e090ed801ba64"
+      "sha256": "c01e4fb84ce04d4a686524c4be916027eea20366fd7ff2ffe0eb560f6bb90d92"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -142,20 +142,28 @@
       "sha256": "a6de2d9c7ca0fe91fac5cb2f77c59bffb32d3e9ba50c20a2f5a6560a7b033884"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "id": "current-project-changes",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "84f58106d7ec9840462029b77e5865ce4a0264a1d77c878ecd78a74db4666aed"
-    },
-    {
       "audit": "python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541",
       "id": "saved-work-cost",
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json",
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim.",
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
+    },
+    {
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-saved-answer-39561749625",
+      "id": "current-saved-work-cost",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-39561749625/result.json",
+      "scope": "Matched previous and current SDK sessions on three familiar projects; original first JMESPath qualification remains separate. Full session costs, fresh baselines and answer agreement.",
+      "sha256": "8873c0eb938d07be3e0cfa884452ee3543e763a72a1f66931d45aa8be8d1ed95"
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "id": "current-project-changes",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-final-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
+      "sha256": "101cdcecc965e43a6268921632296c8509228d32b696ab11fe395f490e536ecc"
     }
   ],
   "obligations": [
@@ -439,7 +447,7 @@
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Use the measured setup, validation and repeated discovery costs to choose an improvement. Compare complete sessions on identical files and questions. Keep full agent-task savings separate.",
+      "next": "Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.",
       "requires": [
         {
           "assertions": [
@@ -461,10 +469,22 @@
             },
             {
               "equals": true,
-              "pointer": "/reserved/first_evaluation"
+              "pointer": "/all_projects_familiar"
+            },
+            {
+              "equals": false,
+              "pointer": "/new_unread_claim"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/qualified"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/first_evaluation"
             }
           ],
-          "evidence": "saved-work-cost"
+          "evidence": "current-saved-work-cost"
         }
       ],
       "title": "Measure useful work, memory and disk at project scale"

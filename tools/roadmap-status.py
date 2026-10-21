@@ -42,6 +42,7 @@ KINDS = {
     'fr-project-changes': 'deterministic',
     'fr-project-changes-recheck': 'deterministic',
     'fr-saved-work-cost': 'measurement',
+    'fr-saved-answer-improvement': 'measurement',
     'fr-rechecked-package-questions': 'deterministic',
 }
 
@@ -212,10 +213,11 @@ def markdown(report):
         if cost_done:
             resuming_remaining = 'Use the measured costs to choose an improvement; measure complete agent tasks separately'
             next_work = (
-                'The project-change checks and [saved-work cost comparison](saved-work-cost-results.md) have matching records. '
+                'The project-change checks and [saved-work cost comparison](saved-answer-improvement.md) have matching current records. '
                 'The comparison repeats the same questions on three projects before and after one source edit. '
                 'It counts setup, checking, memory, storage and submitted text. '
-                'Use those results to choose an improvement and compare its complete session cost. '
+                'The current comparison checks the fix for repeatedly hashing saved answers. '
+                'Use its fresh baseline and complete session totals to choose the next storage or process improvement. '
                 'Broader agent savings and proofs remain separate requirements.')
     else:
         resumed_work = 'Saved changes, undo, checks and recovery tests'

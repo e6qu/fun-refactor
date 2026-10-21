@@ -95,6 +95,8 @@ The [real-project saved-work comparison](saved-work-cost-results.md) asks the sa
 It separates first use, unchanged reuse and a single-file edit, with three repetitions on each project.
 Both approaches retain their own native project cache. The saved approach also validates and stores answers.
 Read the complete three-question totals alongside the reuse times. Source preparation, memory, storage and the full submitted program remain visible.
+The [matched follow-up](saved-answer-improvement.md) compares the previous and changed Python helpers with the same native executable.
+It addresses repeated hashing of saved answers and reports the remaining overhead against fresh questions.
 
 The [cache measurements](evaluations.md#fixed-point-and-reuse-acceptance) include storage and validation costs.
 Read each report's actual baseline before interpreting a warm-run improvement.

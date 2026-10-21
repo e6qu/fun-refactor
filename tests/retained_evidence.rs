@@ -18,7 +18,21 @@ fn fixture(root: &Path) {
         json!({"schema": "fr-roadmap-catalog-1", "evidence": [{
             "id": "compiler-profile", "sha256": digest,
             "path": "tests/agent-eval/results/current-compiler-profile/result.json"
+        }, {
+            "id": "facts", "sha256": digest,
+            "path": "tests/agent-eval/results/current-flow-facts/result.json"
         }]})
+        .to_string(),
+    )
+    .unwrap();
+    fs::write(
+        root.join("tests/agent-eval/current-scalar-reports.json"),
+        json!({"schema": "fr-current-scalar-reports", "reports": {
+            "flow-facts": {"path": "tests/agent-eval/results/current-flow-facts/result.json",
+                           "sha256": digest, "catalog_id": "facts"},
+            "compiler-profile": {"path": "tests/agent-eval/results/current-compiler-profile/result.json",
+                                 "sha256": digest, "catalog_id": "compiler-profile"}
+        }})
         .to_string(),
     )
     .unwrap();
@@ -34,7 +48,7 @@ fn fixture(root: &Path) {
 }
 
 #[test]
-fn tests_use_the_current_collection_and_verify_its_report_bytes() {
+fn tests_use_the_explicit_current_report_and_verify_its_bytes() {
     let root = tempfile::tempdir().unwrap();
     fixture(root.path());
     let path = retained::checked_report(root.path(), "flow-facts");
@@ -46,29 +60,64 @@ fn tests_use_the_current_collection_and_verify_its_report_bytes() {
 }
 
 #[test]
-fn a_missing_current_receipt_cannot_select_an_older_report() {
+fn a_missing_current_setting_cannot_select_an_older_report() {
     let root = tempfile::tempdir().unwrap();
     fixture(root.path());
-    let manifest = root
+    let path = root
         .path()
-        .join("tests/agent-eval/results/current-scalar-collection/manifest.json");
-    fs::remove_file(manifest).unwrap();
+        .join("tests/agent-eval/current-scalar-reports.json");
+    let mut settings: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    settings["reports"]
+        .as_object_mut()
+        .unwrap()
+        .remove("flow-facts");
+    fs::write(path, settings.to_string()).unwrap();
     assert!(
         std::panic::catch_unwind(|| retained::checked_report(root.path(), "flow-facts")).is_err()
     );
 }
 
 #[test]
-fn a_collection_from_another_catalog_is_rejected() {
+fn a_current_report_from_another_catalog_is_rejected() {
     let root = tempfile::tempdir().unwrap();
     fixture(root.path());
     let path = root.path().join("tests/agent-eval/roadmap.json");
     let mut catalog: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    catalog["evidence"][0]["sha256"] = json!("different collection");
+    catalog["evidence"][1]["sha256"] = json!("different report");
     fs::write(path, catalog.to_string()).unwrap();
     assert!(
         std::panic::catch_unwind(|| retained::checked_report(root.path(), "flow-facts")).is_err()
     );
+}
+
+#[test]
+fn current_report_paths_and_associations_require_explicit_safe_settings() {
+    for (field, value) in [
+        (
+            "path",
+            json!("tests/agent-eval/results/../old-flow-facts/result.json"),
+        ),
+        (
+            "path",
+            json!("tests/agent-eval/results/old-flow-facts/result.json"),
+        ),
+        ("catalog_id", json!(42)),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        fixture(root.path());
+        let path = root
+            .path()
+            .join("tests/agent-eval/current-scalar-reports.json");
+        let mut settings: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        settings["reports"]["flow-facts"][field] = value;
+        fs::write(path, settings.to_string()).unwrap();
+        assert!(
+            std::panic::catch_unwind(|| retained::checked_report(root.path(), "flow-facts"))
+                .is_err()
+        );
+    }
 }
 
 #[test]

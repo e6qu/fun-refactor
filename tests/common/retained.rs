@@ -1,4 +1,4 @@
-//! Select the current saved report from the required collection receipt.
+//! Read explicit current report paths and verify their recorded bytes.
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -13,44 +13,54 @@ pub fn checked_report(root: &Path, group: &str) -> String {
         serde_json::from_slice(&fs::read(root.join("tests/agent-eval/roadmap.json")).unwrap())
             .unwrap();
     assert_eq!(catalog["schema"], "fr-roadmap-catalog-1");
-    let profiles: Vec<_> = catalog["evidence"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|entry| entry["id"] == "compiler-profile")
-        .collect();
-    assert_eq!(profiles.len(), 1, "need one current compiler profile");
-    let profile = profiles[0];
-    let prefix = profile["path"]
-        .as_str()
-        .unwrap()
-        .strip_prefix("tests/agent-eval/results/")
-        .unwrap()
-        .strip_suffix("-compiler-profile/result.json")
-        .unwrap();
-    assert!(!prefix.is_empty() && !prefix.contains(['/', '\\']));
     assert!(!group.is_empty() && !group.contains(['/', '\\']));
-    let results = root.join("tests/agent-eval/results");
-    let receipt: Value = serde_json::from_slice(
-        &fs::read(results.join(format!("{prefix}-scalar-collection/manifest.json"))).unwrap(),
+    let settings: Value = serde_json::from_slice(
+        &fs::read(root.join("tests/agent-eval/current-scalar-reports.json")).unwrap(),
     )
     .unwrap();
-    assert_eq!(receipt["schema"], "fr-scalar-collection");
-    assert_eq!(
-        profile["sha256"].as_str().unwrap(),
-        receipt["groups"]["compiler-profile"]["files"]["result.json"]
-            .as_str()
-            .unwrap(),
-        "catalog and collection must identify the same compiler report"
-    );
-    let path = results.join(format!("{prefix}-{group}/result.json"));
-    let expected = receipt["groups"][group]["files"]["result.json"]
+    assert_eq!(settings["schema"], "fr-current-scalar-reports");
+    let entry = &settings["reports"][group];
+    let relative = entry["path"]
         .as_str()
-        .expect("need the requested group in the current collection");
+        .expect("need an explicit current report");
+    assert!(
+        relative.starts_with("tests/agent-eval/results/") && relative.ends_with("/result.json")
+    );
+    assert!(Path::new(relative)
+        .components()
+        .all(|part| matches!(part, std::path::Component::Normal(_))));
+    assert!(!relative.contains('\\'));
+    let expected = entry["sha256"]
+        .as_str()
+        .expect("need the current report fingerprint");
+    let catalog_id = entry
+        .get("catalog_id")
+        .expect("declare the catalog association");
+    if let Some(identifier) = catalog_id.as_str() {
+        let matches: Vec<_> = catalog["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["id"] == identifier)
+            .collect();
+        assert_eq!(matches.len(), 1, "need one matching catalog entry");
+        assert_eq!(matches[0]["path"].as_str().unwrap(), relative);
+        assert_eq!(matches[0]["sha256"].as_str().unwrap(), expected);
+    } else {
+        assert!(
+            catalog_id.is_null(),
+            "catalog association must name an entry or explicitly use null"
+        );
+    }
+    let path = root.join(relative);
+    assert!(path
+        .canonicalize()
+        .unwrap()
+        .starts_with(root.canonicalize().unwrap()));
     assert_eq!(
         hex::encode(Sha256::digest(fs::read(&path).unwrap())),
         expected,
-        "saved report differs from its collection receipt"
+        "saved report differs from its explicit current fingerprint"
     );
     path.to_str().unwrap().to_owned()
 }

@@ -157,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: c431636b9b9203f5a08aa682e0a1530b22850ad9
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

@@ -14,13 +14,22 @@ spec.loader.exec_module(reports)
 
 
 class ReportRetention(unittest.TestCase):
-    def retain(self, root, *, mixed=False, extra=False, reject=False, only=None, tamper_structural=False):
+    def retain(self, root, *, mixed=False, extra=False, reject=False, only=None, tamper_structural=False,
+               omit_repository_artifact=False, wrong_repository_revision=False):
         prefix = 'test-reports'
         payload = b'{"sample":0.10000000000000001}\n'
         groups = list(reports.GROUPS.values())
         def collect(run, *_):
             data = {f'refinement-evidence/{prefix}-{name}/result.json': payload for name in groups[run - 1]}
             identity = {'source_commit': ('b' if mixed and run == 2 else 'a') * 40, 'run_id': str(run)}
+            if 'compiler-profile' in groups[run - 1]:
+                data = {'result.json': json.dumps({'source_commit': identity['source_commit']}).encode()}
+            if 'python-repositories' in groups[run - 1]:
+                value = {'runner': {'revision': ('b' if wrong_repository_revision else 'a') * 40},
+                         'artifacts': {'repair.patch': hashlib.sha256(payload).hexdigest()}}
+                data = {'result.json': json.dumps(value).encode(), 'repair.patch': payload}
+                if omit_repository_artifact:
+                    del data['repair.patch']
             if 'structural-change' in groups[run - 1]:
                 parent = f'refinement-evidence/{prefix}-structural-change/'
                 data[parent + 'objects/example.json'] = payload
@@ -34,7 +43,15 @@ class ReportRetention(unittest.TestCase):
             return data, identity
         catalog = root / 'tests/agent-eval/roadmap.json'
         catalog.parent.mkdir(parents=True)
-        catalog.write_text(json.dumps({'evidence': [{'id': 'host-recovery'}, {'id': 'structural'}]}))
+        catalog.write_text(json.dumps({'evidence': [{'id': name} for name in
+            ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile')]}))
+        (root / 'tools').mkdir()
+        (root / 'tools/test-compiler-profile.py').write_text("REPORT = ROOT / 'previous.json'\n")
+        (catalog.parent / 'current-scalar-reports.json').write_text(json.dumps({
+            'schema': 'fr-current-scalar-reports', 'reports': {name: {
+                'path': 'previous/' + name, 'sha256': 'previous', 'catalog_id': identifier}
+                for name, identifier in (('package-flow', 'package-flow'), ('python-repositories', 'repository-tasks'),
+                                          ('compiler-profile', 'compiler-profile'))}}))
         (catalog.parent / 'results').mkdir()
         (catalog.parent / 'representative-acceptance.json').write_text(json.dumps({'cases': [{
             'id': 'rust-scoped-structural-migration', 'runner': 'tests/structural_change.rs',
@@ -49,7 +66,9 @@ class ReportRetention(unittest.TestCase):
         test.write_text('\n'.join(
             '#[test]\nfn ' + function + '() {\n    let path = "tests/agent-eval/previous-' + group + '.json";\n}\n'
             for group, function in reports.ACTIVE_FUNCTIONS.items()))
+        self.commands = []
         def execute(command, **_):
+            self.commands.append(command)
             if reject and '--audit' in command:
                 raise subprocess.CalledProcessError(1, command)
         runs = {group: index for index, group in enumerate(reports.GROUPS, 1)}
@@ -106,7 +125,8 @@ class ReportRetention(unittest.TestCase):
             self.assertEqual({path.name for path in saved.iterdir()},
                              {'test-reports-retained-proofs', 'test-reports-ci-collection'})
             self.assertEqual(json.loads((root / 'tests/agent-eval/roadmap.json').read_text()),
-                             {'evidence': [{'id': 'host-recovery'}, {'id': 'structural'}]})
+                             {'evidence': [{'id': name} for name in
+                                 ('host-recovery', 'structural', 'package-flow', 'repository-tasks', 'compiler-profile')]})
             manifest = json.loads((saved / 'test-reports-ci-collection/manifest.json').read_text())
             self.assertEqual(set(manifest['groups']), {'retained-proofs'})
             for group, name in reports.ACTIVE_REFERENCES.items():
@@ -145,6 +165,48 @@ class ReportRetention(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'structural artifact changed'):
                 self.retain(root, only=['structural-change'], tamper_structural=True)
             self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+
+    def test_package_and_repository_refresh_retains_delivery_files_and_correct_audit_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = self.retain(root, only=['package-flow', 'python-repositories'])
+            base = root / 'tests/agent-eval/results'
+            package = base / 'test-reports-package-flow/result.json'
+            repository = base / 'test-reports-python-repositories'
+            self.assertEqual(package.read_bytes(), original)
+            self.assertEqual((repository / 'repair.patch').read_bytes(), original)
+            self.assertIn(['python3', '-B', 'tools/python-repository-acceptance.py', '--audit', str(repository)],
+                          self.commands)
+            self.assertIn(['python3', '-B', 'tools/package-flow-acceptance.py', '--audit', str(package)], self.commands)
+            entries = {row['id']: row for row in json.loads((root / 'tests/agent-eval/roadmap.json').read_text())['evidence']}
+            self.assertEqual(entries['package-flow']['path'], str(package.relative_to(root)))
+            self.assertEqual(entries['repository-tasks']['path'], str((repository / 'result.json').relative_to(root)))
+            settings = json.loads((root / 'tests/agent-eval/current-scalar-reports.json').read_text())['reports']
+            self.assertEqual(settings['package-flow']['path'], entries['package-flow']['path'])
+            self.assertEqual(settings['package-flow']['sha256'], entries['package-flow']['sha256'])
+            self.assertEqual(settings['python-repositories']['path'], entries['repository-tasks']['path'])
+            self.assertEqual(settings['python-repositories']['sha256'], entries['repository-tasks']['sha256'])
+            self.assertEqual(entries['host-recovery'], {'id': 'host-recovery'})
+
+    def test_repository_source_and_missing_delivery_files_fail_before_retention(self):
+        for mutation in ('omit_repository_artifact', 'wrong_repository_revision'):
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                with self.assertRaisesRegex(ValueError, 'repository source or artifact inventory'):
+                    self.retain(root, only=['python-repositories'], **{mutation: True})
+                self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+
+    def test_compiler_refresh_keeps_its_source_receipt_and_explicit_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['compiler-profile'])
+            family = root / 'tests/agent-eval/results/test-reports-scalar-collection/manifest.json'
+            receipt = json.loads(family.read_text())['groups']['compiler-profile']
+            self.assertEqual(receipt['collection']['source_commit'], 'a' * 40)
+            settings = json.loads((root / 'tests/agent-eval/current-scalar-reports.json').read_text())
+            entry = settings['reports']['compiler-profile']
+            self.assertEqual(entry['sha256'], receipt['files']['result.json'])
+            self.assertIn(entry['path'], (root / 'tools/test-compiler-profile.py').read_text())
 
 
 if __name__ == '__main__':

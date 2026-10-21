@@ -59,8 +59,8 @@ fn python_package_keeps_explicit_module_boundaries() {
 
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
-    let evidence =
-        root().join("tests/agent-eval/results/2026-10-21-final-ci-agent-guide-context/result.json");
+    let evidence = root()
+        .join("tests/agent-eval/results/2026-10-21-saved-answer-agent-guide-context/result.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")
@@ -214,15 +214,14 @@ print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stage
 
 #[test]
 fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
-    let output =
-        python()
-            .arg(root().join("tools/native-intent-context.py"))
-            .arg("--audit")
-            .arg(root().join(
-                "tests/agent-eval/results/2026-10-21-final-ci-native-intent-context/result.json",
-            ))
-            .output()
-            .unwrap();
+    let output = python()
+        .arg(root().join("tools/native-intent-context.py"))
+        .arg("--audit")
+        .arg(root().join(
+            "tests/agent-eval/results/2026-10-21-saved-answer-native-intent-context/result.json",
+        ))
+        .output()
+        .unwrap();
     assert!(
         output.status.success(),
         "{}",
@@ -237,15 +236,14 @@ fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
 
 #[test]
 fn intent_action_context_evidence_is_source_bound_and_arithmetically_valid() {
-    let output =
-        python()
-            .arg(root().join("tools/intent-action-context.py"))
-            .arg("--audit")
-            .arg(root().join(
-                "tests/agent-eval/results/2026-10-21-final-ci-intent-action-context/result.json",
-            ))
-            .output()
-            .unwrap();
+    let output = python()
+        .arg(root().join("tools/intent-action-context.py"))
+        .arg("--audit")
+        .arg(root().join(
+            "tests/agent-eval/results/2026-10-21-saved-answer-intent-action-context/result.json",
+        ))
+        .output()
+        .unwrap();
     assert!(
         output.status.success(),
         "{}",
@@ -1046,7 +1044,7 @@ fn checked_agent_runtime_context_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join(
-            "tests/agent-eval/results/2026-10-21-final-ci-agent-runtime-context/result.json",
+            "tests/agent-eval/results/2026-10-21-saved-answer-agent-runtime-context/result.json",
         ))
         .unwrap(),
     )
@@ -1074,7 +1072,7 @@ fn checked_agent_context_workspace_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join(
-            "tests/agent-eval/results/2026-10-21-final-ci-agent-context-workspace/result.json",
+            "tests/agent-eval/results/2026-10-21-saved-answer-agent-context-workspace/result.json",
         ))
         .unwrap(),
     )

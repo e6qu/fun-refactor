@@ -58,6 +58,11 @@ JMESPath passed its first evaluation after the procedure and optimized binary we
 Treat glob, Boltons, Humanize and JMESPath as familiar projects from now on.
 
 Choose an improvement from the measured repeated work. Compare complete session totals and keep answer agreement as a required check.
+The [matched SDK comparison](saved-answer-improvement.md) addresses repeated hashing while saving and reopening answers.
+It keeps the original measurements and first JMESPath result separate from the current checks on familiar projects.
+Use its complete session totals and fresh baseline when choosing the next storage or process improvement.
+The hashing fix reduces complete saved-session time by 8% to 34% across these trials.
+Saving still costs 27% to 218% more than asking again, so lower storage costs remain useful work.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
 Language changes should address a concrete obstacle in a chosen task.
 
@@ -166,7 +171,11 @@ Reserve another unread project before using any later comparison to claim progre
 Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
-The [current checker collection receipt](../tests/agent-eval/results/2026-10-20-leap-year-scalar-collection/manifest.json) records the refreshed analysis results.
+The [active check reports](../tests/agent-eval/current-scalar-reports.json) name each result and its file fingerprint explicitly.
+A file fingerprint is a short value computed from its contents, used to detect edits.
+For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
+A missing setting fails the check. Tests never select an older record automatically.
+Original collection receipts remain beside the recorded results.
 The [Python example receipt](../tests/agent-eval/results/2026-10-20-leap-year-python-contract/manifest.json)
 covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
 It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
