@@ -3,7 +3,7 @@
 This milestone checks whether `fr` carries a change through a project without trusting answers about old code.
 The [two package milestones](package-milestones.md) and these two selected project-change outcomes now have passing original records.
 The [combined record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) covers 21 change comparisons and both language deliveries.
-The [current replay](../tests/agent-eval/results/2026-10-21-distinct-answers-project-changes-recheck/result.json) repeats all of them with the current answer hashing and collection workflow.
+The [current replay](../tests/agent-eval/results/2026-10-21-distinct-release-project-changes-recheck/result.json) repeats all of them with the current answer hashing, release inputs and collection workflow.
 For example, a saved finding about Boltons' `clamp` must agree with a fresh question after a rename or move.
 The earlier replay records stay unchanged; this run makes no new unfamiliar-project claim.
 

@@ -70,8 +70,9 @@ Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than ask
 The database uses more stored bytes, so preserve that tradeoff in further comparisons.
 The [distinct-piece follow-up](distinct-answer-hashing.md) hashes equal answer pieces once within each operation.
 For example, the glob answer contains 1,387 distinct pieces across 11,210 visits. The new lookup ends after the operation, so later edits still change fingerprints.
-Complete saved sessions take about 1% to 7% less time than PR #555 across three trials per project.
-They still cost about 6% to 28% more than asking again. Stored bytes match within this comparison; memory samples show no general saving.
+Complete saved sessions take about 3% to 9% less time than PR #555 across three trials per project after release integration.
+They still cost about 4% to 28% more than asking again. Stored bytes match within this comparison.
+The largest sampled memory total for glob rose from 49.9 to 58.1 MiB. Memory samples establish no general saving.
 The next useful comparison should keep the Python helper running across a complete project session.
 Count the first start, input checks, edits, renewed analysis and final shutdown in both saved and fresh approaches.
 The earlier [process study](python-process-cost-results.md) suggests a reason to try this, but its small helper examples do not establish project-scale savings.

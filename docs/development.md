@@ -113,6 +113,11 @@ reports; preserve their old records. Never change a recorded hash to make stale 
 
 ## Refresh retained evidence
 
+Fetch current `main` before collecting reports and check it again before publication.
+Integrate its changes before fixing the source revision for a collection.
+For example, a release can change the Python library's version file while a measurement is running.
+If a report records that file, refresh it against the integrated release. Keep the earlier measurement and its original audit available.
+
 `tools/refresh-refinement-evidence.py` refuses local execution and regenerates reports tied to recorded source inputs
 on GitHub runners. The [CI guide](ci.md) owns refresh groups and coverage requirements.
 The manual `Refresh refinement evidence` workflow uploads results from a directory unique to each

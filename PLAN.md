@@ -103,8 +103,9 @@ Saved sessions take 19% to 53% less time in that comparison, but still cost 2% t
 The database uses more stored bytes. Saving answers remains an explicit choice.
 The [distinct-piece comparison](docs/distinct-answer-hashing.md) removes repeated fingerprint computation within each save or digest operation.
 For example, saving glob's answer now hashes its 1,387 distinct pieces once each, despite visiting 11,210 pieces.
-Complete saved sessions take about 1% to 7% less time than PR #555 in these three-trial measurements.
-They still cost about 6% to 28% more than asking again. Stored bytes match between the two implementations in this comparison.
+Complete saved sessions take about 3% to 9% less time than PR #555 in the three-trial comparison after release integration.
+They still cost about 4% to 28% more than asking again. Stored bytes match between the two implementations in this comparison.
+The largest sampled memory total for glob rose from 49.9 to 58.1 MiB. These trials establish no memory saving.
 Next, measure complete project sessions with the Python helper kept running, including the first start, edits and shutdown.
 The earlier small [process comparison](docs/python-process-cost-results.md) motivates that test; it does not establish a project-scale benefit.
 The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
