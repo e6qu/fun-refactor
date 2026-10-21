@@ -78,12 +78,12 @@
       "sha256": "89db0df018af44369fb6f07b6a627f830be15276d88a9d26bc75a2e791104220"
     },
     {
-      "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions.",
-      "sha256": "d238cd353526e727a92c3a0e8d36bd725f52e89f4db191852bd55ba082fe5cfb"
+      "sha256": "4d0d4491423520c5996b975030eb8d5fde2c099abf7f5109a6352fc272596a40"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
