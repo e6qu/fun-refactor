@@ -98,6 +98,20 @@ def markdown(report):
     return '\n'.join(lines)
 
 
+def retain_cache():
+    spec = importlib.util.spec_from_file_location('scalar', ROOT / 'tools/retain-scalar-evidence.py')
+    scalar = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scalar)
+    data, identity = scalar.collect(39559089792, 'refinement-evidence', 'refresh', os.environ['GITHUB_REPOSITORY'])
+    scalar.verify_sources(ROOT, {identity['source_commit']})
+    paths = scalar.report_paths(data, ['flow-cache'])
+    relative, receipt = scalar.keep('flow-cache', {'result.json': data[paths['flow-cache']]},
+                                     identity, '2026-10-21-saved-answer')
+    subprocess.run(['git', 'add', '--', str(relative)], cwd=ROOT, check=True)
+    cost.save(DIRECTORY / 'cache-collection.json', receipt)
+    return relative, receipt
+
+
 def main():
     cost.require(os.environ.get('GITHUB_ACTIONS') == 'true', 'publish on GitHub runners')
     cost.require(os.environ['GITHUB_REF'].startswith('refs/heads/')
@@ -116,8 +130,12 @@ def main():
                     '8a0ac262ac17332feffb22a0ed61e864d920895b', '--', 'sdk/python/src'], check=True)
     cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
+    cache_path, cache_receipt = retain_cache()
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
+    cache, = [row for row in catalog['evidence'] if row['id'] == 'cache-measurements']
+    cache.update(path=str(cache_path / 'result.json'), sha256=cache_receipt['files']['result.json'],
+                 audit='python3 -B tools/flow-cache-acceptance.py --audit ' + str(cache_path / 'result.json'))
     identifier = 'current-saved-work-cost'
     cost.require(not any(row['id'] == identifier for row in catalog['evidence']), 'preserve previous publication')
     catalog['evidence'].append({'id': identifier, 'kind': 'measurement',
