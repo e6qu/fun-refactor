@@ -64,17 +64,20 @@ acceptance runs must satisfy their scorer at recording time.
 
 ## Retained Boolean model comparisons
 
-The [comparison run](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json)
-retains prescribed ordinary and native edits to a Rust Boolean function and its Python translation.
-An independent oracle compiles Rust and checks all eight assignments. Both patches must reproduce
-those results, reverse exactly and reapply in separate receivers.
+The [current comparison](../tests/agent-eval/results/2026-10-21-storage-ci-repair-model-comparisons/manifest.json)
+checks a Rust function and its Python translation with three true-or-false inputs.
+For example, renaming the Rust function and removing an unused argument must preserve its answer
+for all eight input combinations. A separate test compiles and runs the Rust code and executes Python.
+Both the ordinary edit and the edit made with `fr` must pass, undo exactly and work again in another checkout.
 
-Three Lean obligations cover Rust preservation after rename and unused-parameter removal,
-Rust/Python equivalence with reordered arguments, and a stricter Boolean acceptance rule.
+Lean is a proof checker. Here it checks three rules about simplified descriptions of the functions:
+the Rust edit preserves answers, the Python translation agrees when arguments are reordered,
+and a stricter acceptance rule never accepts something the original rule rejects.
 The run retains an incorrect argument map that fails proof checking. Fresh processes restore the
 snapshot and completed plan; changed source invalidates the model evidence. Receiver audits check
 the retained models and proofs again. These are generated-model theorems, not source implementation
 proofs, general translation correctness or a live-agent comparison.
+The [September record](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) remains unchanged as history.
 
 The [virtual workspace regressions](../tests/virtual_model_workspaces.rs) check byte limits,
 UTF-8 (the text encoding used to count source bytes) errors, scoped restoration and native/virtual agreement between saved file states. Private model regressions
@@ -112,10 +115,10 @@ the manifest distinguishes admitted edits from direct-edit boundaries.
 
 ## Checked delivery outcomes
 
-The [retained outcome evaluation](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json)
-pins a two-file Rust subtotal repair and fee requirement. An independent Python oracle compiles the
-public Rust API and checks 49 bounded inputs. The evaluator supplies each change, so these are
-scripted protocol cases without a live-agent or token-saving claim.
+The [current delivery evaluation](../tests/agent-eval/results/2026-10-21-storage-ci-repair-checked-outcomes/manifest.json)
+asks for a subtotal repair and a fee in two Rust files. A separate Python test compiles and runs
+the public Rust functions with 49 input combinations. The script supplies each proposed edit;
+it does not test an agent discovering the repair or establish savings in model usage.
 
 | Case | Lifecycle checks | Requested behavior | Patch | Plan completion |
 |---|---|---|---|---|
@@ -123,10 +126,12 @@ scripted protocol cases without a live-agent or token-saving claim.
 | Same wrong change, acceptance checks | Pass through apply | Fail | Withheld | Incomplete |
 | Correct change, acceptance checks | Pass, including reversal | Pass after apply and redo | Delivered | Complete |
 
-The accepted receipt survives storage and attachment in a fresh process. A later source edit
+The accepted receipt records the checks and their results. It can be reopened in a fresh process
+and used to complete the saved task. A later source edit
 invalidates the outcome step while preserving an independent documentation observation. Separate
 receivers replay both exported patches, reproduce their respective behavioral outcomes, reverse
 exactly and reapply. Failed receipts remain retained beside the successful result.
+The [September record](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json) remains unchanged as history.
 
 [SDK and native tests](checked-outcomes.md#evidence) add configuration, checker and environment drift,
 source-writing checks, redo failures, malformed receipts and stale prerequisites. A successful
@@ -594,7 +599,7 @@ source proofs remain open. Synthetic malformed-protocol tests remain separate fr
 The [correspondence fixture](../tests/agent-eval/resumable-correspondence/task.json) pins a Unicode declaration and an independent AST oracle.
 The [baseline](../tests/agent-eval/resumable-correspondence/baseline.json) retains a changed original that the old matcher hid behind its unchanged copy.
 The [evaluator](../tools/correspondence-acceptance.py) retains moves, identifier renames, body edits, copies, duplicates and deletion.
-The [result](../tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json) includes interrupted plan resumption and an independent satisfied step.
+The [current result](../tests/agent-eval/results/2026-10-21-storage-ci-repair-resumable-correspondence/result.json) includes interrupted plan resumption and an independent satisfied step.
 Explicit refresh clears stale evidence and actions; the old mutation review refuses.
 A fresh review delivers a checked edit, reversal and patch. An independent receiver applies the patch and checks three finite outputs.
 
@@ -611,7 +616,7 @@ Run `python3 tools/proof-evidence-acceptance.py --output PATH` to retain current
 Run the same script with `--audit PATH` to check its recorded input fingerprints, Merkle roots, invalidation outcomes and patch replay.
 The evaluator retains old and fresh model reports, seven input changes, independent observations and stale review refusals.
 A separate Python oracle checks both Boolean inputs after applying the retained patch in an independent directory.
-The [current result](../tests/agent-eval/results/2026-09-24-retained-proofs/result.json) records its fixture timing and context bytes.
+The [current result](../tests/agent-eval/results/2026-10-21-storage-ci-repair-retained-proofs/result.json) records its fixture timing and context bytes.
 These deterministic results make no live-agent, general performance or source correspondence proof claim.
 
 ## Imported scalar flow
