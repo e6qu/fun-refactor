@@ -77,12 +77,12 @@ def api(path):
 
 
 def artifact_bytes(artifact):
-    request = urllib.request.Request('https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY']
-        + '/actions/artifacts/' + str(artifact['id']) + '/zip',
-        headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN']})
     require(artifact['size_in_bytes'] <= 16777216 and artifact['expired'] is False, 'missing bounded attempt artifact')
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = response.read(16777217)
+    with tempfile.TemporaryFile() as output:
+        subprocess.run(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/artifacts/'
+            + str(artifact['id']) + '/zip'], stdout=output, stderr=subprocess.PIPE, check=True, timeout=30)
+        output.seek(0)
+        data = output.read(16777217)
     require(len(data) <= 16777216 and 'sha256:' + hashlib.sha256(data).hexdigest() == artifact['digest'],
         'attempt artifact changed')
     return data

@@ -278,6 +278,23 @@ class Accounting(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'unsafe saved state'):
             cost.unpack_state(bad, self.directory / 'bad-state', self.tasks['limits'])
 
+    def test_authenticated_artifact_download_checks_original_digest(self):
+        data = b'original archive'
+        artifact = {'id': 5, 'size_in_bytes': len(data), 'expired': False,
+            'digest': 'sha256:' + hashlib.sha256(data).hexdigest()}
+
+        def download(command, **kwargs):
+            self.assertEqual(command, ['gh', 'api', 'repos/example/project/actions/artifacts/5/zip'])
+            self.assertEqual(kwargs['timeout'], 30)
+            kwargs['stdout'].write(data)
+
+        with patch.dict(cost.os.environ, {'GITHUB_REPOSITORY': 'example/project'}), \
+                patch.object(cost.subprocess, 'run', side_effect=download):
+            self.assertEqual(cost.artifact_bytes(artifact), data)
+            artifact['digest'] = 'sha256:' + '0' * 64
+            with self.assertRaisesRegex(ValueError, 'artifact changed'):
+                cost.artifact_bytes(artifact)
+
     def test_rerun_cannot_claim_first_evaluation(self):
         with patch.dict(cost.os.environ, {'GITHUB_RUN_ATTEMPT': '2'}):
             with self.assertRaisesRegex(ValueError, 'rerun'):
