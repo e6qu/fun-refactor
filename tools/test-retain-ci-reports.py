@@ -56,8 +56,9 @@ class ReportRetention(unittest.TestCase):
                                           ('compiler-profile', 'compiler-profile'))}}))
         (catalog.parent / 'results').mkdir()
         (catalog.parent / 'representative-acceptance.json').write_text(json.dumps({'cases': [{
-            'id': 'rust-scoped-structural-migration', 'runner': 'tests/structural_change.rs',
-            'runner_sha256': 'previous', 'fixture_revision': 'unchanged-fixture'}]}))
+            'id': identifier, 'runner': reports.ACTIVE_REFERENCES[group],
+            'runner_sha256': 'previous', 'fixture_revision': 'unchanged-fixture'}
+            for group, identifier in reports.REGISTERED_REPORTS.items()]}))
         for group, name in reports.ACTIVE_REFERENCES.items():
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,9 +106,9 @@ class ReportRetention(unittest.TestCase):
                     (root / name).read_text())
             self.assertEqual((root / 'tests/agent-eval/results/test-reports-structural-change/objects/example.json').read_bytes(), original)
             registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
-            case, = registry['cases']
-            self.assertEqual(case['runner_sha256'], hashlib.sha256((root / case['runner']).read_bytes()).hexdigest())
-            self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
+            for case in registry['cases']:
+                self.assertEqual(case['runner_sha256'], hashlib.sha256((root / case['runner']).read_bytes()).hexdigest())
+                self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
             for group in reports.ACTIVE_FUNCTIONS:
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}/result.json"',
                               (root / 'tests/python_sdk.rs').read_text())
@@ -182,6 +183,18 @@ class ReportRetention(unittest.TestCase):
                       if row['id'] == 'model-relations']
             manifest = root / entry['path']
             self.assertEqual(entry['sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+
+    def test_model_refresh_updates_its_registered_runner_without_changing_the_fixture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['model-comparisons'])
+            registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
+            for case in registry['cases']:
+                expected = (hashlib.sha256((root / case['runner']).read_bytes()).hexdigest()
+                            if case['id'] == reports.REGISTERED_REPORTS['model-comparisons'] else 'previous')
+                self.assertEqual(case['runner_sha256'], expected)
+                self.assertEqual(case['fixture_revision'], 'unchanged-fixture')
+            self.assertIn(['python3', '-B', 'tools/representative-acceptance.py', 'audit'], self.commands)
 
     def test_package_and_repository_refresh_retains_delivery_files_and_correct_audit_targets(self):
         with tempfile.TemporaryDirectory() as directory:

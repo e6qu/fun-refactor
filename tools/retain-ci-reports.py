@@ -63,6 +63,10 @@ ACTIVE_FUNCTIONS = {
     'intent-action-context': 'intent_action_context_evidence_is_source_bound_and_arithmetically_valid',
 }
 DIRECTORY_REPORTS = {'structural-change', 'checked-outcomes', 'model-comparisons'}
+REGISTERED_REPORTS = {
+    'structural-change': 'rust-scoped-structural-migration',
+    'model-comparisons': 'retained-boolean-model-comparisons',
+}
 
 
 def main():
@@ -232,12 +236,14 @@ def main():
     if receipts.keys() & ACTIVE_FUNCTIONS.keys():
         subprocess.run(['rustup', 'run', '1.99.1', 'rustfmt', '--edition', '2021', 'tests/python_sdk.rs'],
                        cwd=ROOT, check=True, timeout=30)
-    if 'structural-change' in receipts:
+    registered = receipts.keys() & REGISTERED_REPORTS.keys()
+    if registered:
         registry_path = ROOT / 'tests/agent-eval/representative-acceptance.json'
         registry = json.loads(registry_path.read_text())
-        case, = [row for row in registry['cases'] if row['id'] == 'rust-scoped-structural-migration'
-                 and row['runner'] == 'tests/structural_change.rs']
-        case['runner_sha256'] = hashlib.sha256((ROOT / case['runner']).read_bytes()).hexdigest()
+        for group in sorted(registered):
+            case, = [row for row in registry['cases'] if row['id'] == REGISTERED_REPORTS[group]
+                     and row['runner'] == ACTIVE_REFERENCES[group]]
+            case['runner_sha256'] = hashlib.sha256((ROOT / case['runner']).read_bytes()).hexdigest()
         registry_path.write_text(json.dumps(registry, indent=2) + '\n')
         subprocess.run(['python3', '-B', 'tools/representative-acceptance.py', 'audit'],
                        cwd=ROOT, check=True, timeout=60, stdout=subprocess.DEVNULL)
