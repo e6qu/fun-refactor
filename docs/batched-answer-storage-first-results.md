@@ -7,6 +7,7 @@ This page keeps the first measured results and their original records unchanged.
 A user asks where `glob_with` appears and which code a change could affect.
 The Python helper library, called the SDK, can save that answer and the inputs it depends on.
 A content fingerprint identifies each distinct piece of the answer by its bytes.
+JSON is the text format used to save those pieces, including numbers, lists and named fields.
 Previously, saving the glob answer wrote 1,387 files and waited for each write to reach disk.
 The local store now puts the pieces in one SQLite database inside the chosen directory.
 SQLite is a database library included with Python; it needs no separate server.
