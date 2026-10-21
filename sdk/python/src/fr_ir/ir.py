@@ -104,7 +104,7 @@ def merkle_object_digest(value: Any) -> str:
     """Return the content address, hashing each distinct JSON piece once."""
     if not isinstance(value, (dict, list)):
         return _tagged_hash(MERKLE_OBJECT_SCHEMA, *_merkle_scalar_parts(value))
-    return _merkle_tree_digest(value, None)
+    return _merkle_tree_digest(value, None, {}, set())
 
 
 def _merkle_record_digest(record: Mapping[str, Any]) -> str:
@@ -125,55 +125,54 @@ def _merkle_record_digest(record: Mapping[str, Any]) -> str:
     return _tagged_hash(MERKLE_OBJECT_SCHEMA, kind, len(entries), _object_binary_root(entries))
 
 
-def _merkle_tree_digest(value: Any, objects: dict[str, Any] | None) -> str:
-    """Hash canonical record shapes once within this operation."""
-    digests: dict[tuple[Any, ...], str] = {}
-    active: set[int] = set()
-
-    def visit(node: Any) -> str:
-        container = isinstance(node, (list, dict))
-        if container:
-            identity = id(node)
-            if identity in active:
-                raise IrError("Merkle JSON value contains a cycle")
-            active.add(identity)
-            try:
-                if isinstance(node, list):
-                    signature = ("array", tuple(visit(child) for child in node))
-                else:
-                    if not all(isinstance(key, str) for key in node):
-                        raise IrError("Merkle object keys must be strings")
-                    signature = ("object", tuple(
-                        (str.__str__(key), visit(node[key])) for key in sorted(node)
-                    ))
-            finally:
-                active.remove(identity)
-        else:
-            signature = _merkle_scalar_parts(node)
-        previous = digests.get(signature)
-        if previous is not None:
-            return previous
-        if signature[0] == "array":
-            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "array",
-                      "children": list(signature[1])}
-        elif signature[0] == "object":
-            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "object",
-                      "entries": [list(entry) for entry in signature[1]]}
-        else:
-            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "scalar", "value": node}
-        digest = _merkle_record_digest(record)
-        digests[signature] = digest
-        if objects is not None:
-            objects[digest] = record
-        return digest
-
-    return visit(value)
+def _merkle_tree_digest(
+    node: Any, objects: dict[str, Any] | None,
+    digests: dict[tuple[Any, ...], str], active: set[int],
+) -> str:
+    """Pass operation state explicitly so recursion keeps no function cycle."""
+    if isinstance(node, (list, dict)):
+        identity = id(node)
+        if identity in active:
+            raise IrError("Merkle JSON value contains a cycle")
+        active.add(identity)
+        try:
+            if isinstance(node, list):
+                signature = ("array", tuple(
+                    _merkle_tree_digest(child, objects, digests, active) for child in node
+                ))
+            else:
+                if not all(isinstance(key, str) for key in node):
+                    raise IrError("Merkle object keys must be strings")
+                signature = ("object", tuple(
+                    (str.__str__(key), _merkle_tree_digest(node[key], objects, digests, active))
+                    for key in sorted(node)
+                ))
+        finally:
+            active.remove(identity)
+    else:
+        signature = _merkle_scalar_parts(node)
+    previous = digests.get(signature)
+    if previous is not None:
+        return previous
+    if signature[0] == "array":
+        record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "array",
+                  "children": list(signature[1])}
+    elif signature[0] == "object":
+        record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "object",
+                  "entries": [list(entry) for entry in signature[1]]}
+    else:
+        record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "scalar", "value": node}
+    digest = _merkle_record_digest(record)
+    digests[signature] = digest
+    if objects is not None:
+        objects[digest] = record
+    return digest
 
 
 def merkle_object_pack(value: Any) -> dict[str, Any]:
     """Split a JSON tree into deduplicated objects suitable for object storage."""
     objects: dict[str, Any] = {}
-    root = _merkle_tree_digest(value, objects)
+    root = _merkle_tree_digest(value, objects, {}, set())
     return {
         "schema": "fr-merkle-object-pack-1",
         "algorithm": "sha256-tagged-binary-json-tree",
@@ -187,48 +186,52 @@ def restore_merkle_object(
     objects: Mapping[str, Any] | Callable[[str], Any],
 ) -> Any:
     """Fetch, restore and verify a JSON tree rooted at one content digest."""
-    active: set[str] = set()
-    verified: dict[str, Any] = {}
+    return _restore_merkle_object(root, objects, {}, set())
 
-    def restore(digest: str) -> Any:
-        if not _is_digest(digest):
-            raise IrError("Merkle object references must be lowercase SHA-256 digests")
-        if digest in active:
-            raise IrError("Merkle object graph contains a cycle")
-        if digest in verified:
-            return deepcopy(verified[digest])
-        record = objects(digest) if callable(objects) else objects.get(digest)
-        if not isinstance(record, Mapping) or record.get("schema") != MERKLE_OBJECT_SCHEMA:
-            raise IrError(f"Merkle object {digest} is absent or malformed")
-        active.add(digest)
-        kind = record.get("kind")
-        if kind == "scalar" and set(record) == {"schema", "kind", "value"}:
-            value = record["value"]
-            if isinstance(value, (dict, list)):
-                raise IrError(f"Merkle object {digest} has a non-scalar value")
-        elif (kind == "array" and set(record) == {"schema", "kind", "children"}
-              and isinstance(record.get("children"), list)):
-            value = [restore(child) for child in record["children"]]
-        elif (kind == "object" and set(record) == {"schema", "kind", "entries"}
-              and isinstance(record.get("entries"), list)):
-            entries = record["entries"]
-            if not all(isinstance(entry, list) and len(entry) == 2
-                       and isinstance(entry[0], str) and isinstance(entry[1], str)
-                       for entry in entries):
-                raise IrError(f"Merkle object {digest} has malformed entries")
-            keys = [entry[0] for entry in entries]
-            if keys != sorted(set(keys)):
-                raise IrError(f"Merkle object {digest} keys are not canonical")
-            value = {key: restore(child) for key, child in entries}
-        else:
-            raise IrError(f"Merkle object {digest} has an unsupported shape")
-        active.remove(digest)
-        if _merkle_record_digest(record) != digest:
-            raise IrError(f"Merkle object {digest} fails content verification")
-        verified[digest] = value
-        return value
 
-    return restore(root)
+def _restore_merkle_object(
+    digest: str, objects: Mapping[str, Any] | Callable[[str], Any],
+    verified: dict[str, Any], active: set[str],
+) -> Any:
+    """Verify records with state owned by the current restore call."""
+    if not _is_digest(digest):
+        raise IrError("Merkle object references must be lowercase SHA-256 digests")
+    if digest in active:
+        raise IrError("Merkle object graph contains a cycle")
+    if digest in verified:
+        return deepcopy(verified[digest])
+    record = objects(digest) if callable(objects) else objects.get(digest)
+    if not isinstance(record, Mapping) or record.get("schema") != MERKLE_OBJECT_SCHEMA:
+        raise IrError(f"Merkle object {digest} is absent or malformed")
+    active.add(digest)
+    kind = record.get("kind")
+    if kind == "scalar" and set(record) == {"schema", "kind", "value"}:
+        value = record["value"]
+        if isinstance(value, (dict, list)):
+            raise IrError(f"Merkle object {digest} has a non-scalar value")
+    elif (kind == "array" and set(record) == {"schema", "kind", "children"}
+          and isinstance(record.get("children"), list)):
+        value = [_restore_merkle_object(child, objects, verified, active)
+                 for child in record["children"]]
+    elif (kind == "object" and set(record) == {"schema", "kind", "entries"}
+          and isinstance(record.get("entries"), list)):
+        entries = record["entries"]
+        if not all(isinstance(entry, list) and len(entry) == 2
+                   and isinstance(entry[0], str) and isinstance(entry[1], str)
+                   for entry in entries):
+            raise IrError(f"Merkle object {digest} has malformed entries")
+        keys = [entry[0] for entry in entries]
+        if keys != sorted(set(keys)):
+            raise IrError(f"Merkle object {digest} keys are not canonical")
+        value = {key: _restore_merkle_object(child, objects, verified, active)
+                 for key, child in entries}
+    else:
+        raise IrError(f"Merkle object {digest} has an unsupported shape")
+    active.remove(digest)
+    if _merkle_record_digest(record) != digest:
+        raise IrError(f"Merkle object {digest} fails content verification")
+    verified[digest] = value
+    return value
 
 
 def verify_disclosure_commitment(digest: str, proof: Mapping[str, Any]) -> bool:

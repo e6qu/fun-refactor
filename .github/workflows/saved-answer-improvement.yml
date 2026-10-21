@@ -28,6 +28,7 @@ on:
       - 'tests/agent-eval/batched-answer-storage-release/**'
       - 'tests/agent-eval/distinct-answer-hashing/**'
       - 'tests/agent-eval/distinct-answer-hashing-release/**'
+      - 'tests/agent-eval/distinct-answer-hashing-lifetime/**'
       - '.github/workflows/saved-answer-improvement.yml'
 permissions:
   contents: read
@@ -37,7 +38,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   profile:
-    if: github.event_name == 'push' || inputs.phase == 'measure'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || inputs.phase == 'measure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -53,9 +54,10 @@ jobs:
           python3 -B tools/test-saved-work-cost.py
           python3 -B tools/test-saved-answer-comparison.py
       - name: Profile the retained real answers without native rebuilds
+        id: diagnostic
         run: python3 -B tools/profile-saved-answers.py --output "$RUNNER_TEMP/saved-answer-profile.json"
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && (steps.diagnostic.outcome == 'success' || steps.diagnostic.outcome == 'failure')
         with:
           name: saved-answer-profile
           path: ${{ runner.temp }}/saved-answer-profile.json
@@ -171,7 +173,7 @@ jobs:
           python3 -B - <<'PY'
           import hashlib, json, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-release/record.json').read_text())
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-lifetime/record.json').read_text())
           directory = Path(record['directory'])
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
@@ -293,6 +295,45 @@ jobs:
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'distinct-cost-sha256').read_text()
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
           PY
+  release:
+    name: Hashing comparison before memory release fix
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          sparse-checkout: |
+            tests/agent-eval/distinct-answer-hashing-release
+            tests/agent-eval/results/2026-10-21-distinct-answers-39670459804
+      - name: Preserve the measurement before the memory release fix
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-release/record.json').read_text())
+          path = Path(record['directory']) / 'result.json'
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
+          Path(os.environ['RUNNER_TEMP'], 'release-cost-sha256').write_text(record['sha256'])
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: f32cf6e60ebe5418387826473d4268a574121c20
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the earlier measurement beside its original implementation
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-release/record.json').read_text())
+          directory = Path(record['directory'])
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'release-cost-sha256').read_text()
+          subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
+          PY
   publish:
     if: inputs.phase == 'publish'
     runs-on: ubuntu-latest
@@ -324,7 +365,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/distinct-answer-hashing.md tests/agent-eval/distinct-answer-hashing-release \
+          git add docs/distinct-answer-hashing.md tests/agent-eval/distinct-answer-hashing-lifetime \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
           git commit -m 'docs: publish saved answer costs and reconcile current evidence'
           git push origin "HEAD:refs/heads/$BRANCH"

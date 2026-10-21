@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('comparison', ROOT / 'tools/saved-
 comparison = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(comparison)
 cost = comparison.cost
-DIRECTORY = ROOT / 'tests/agent-eval/distinct-answer-hashing-release'
+DIRECTORY = ROOT / 'tests/agent-eval/distinct-answer-hashing-lifetime'
 BEFORE_RUN = 39612376706
 BEFORE_SOURCE = '3e4649c2286b801cf2ab0f9cd65d51a8cfd0c3f8'
 
@@ -57,11 +57,16 @@ def markdown(report):
         'This includes separately created lists and objects with equal contents, not just repeated references to one Python object.',
         'The SDK still visits every input entry. It skips the repeated fingerprint computation.',
         'The temporary lookup ends with the operation. Editing an input before the next call produces a new fingerprint.',
+        'The earlier recursive helper could keep its lookup alive after returning, until Python collected the unused reference cycle.',
+        'A reference cycle means objects keep one another alive through their references, even after callers stop using them.',
+        'Hashing and restoring now pass their lookup tables explicitly through ordinary function calls, so each completed operation releases its temporary state.',
+        'Three regression checks reproduce the old retention with cyclic garbage collection disabled and require immediate release.',
+        'The [unfixed regression run](https://github.com/e6qu/fun-refactor/actions/runs/39679273061) preserves the failures before the correction.',
         'The same JSON input still produces the same pieces and fingerprints, with the same corruption checks.', '',
         '## What is compared', '',
         'The previous SDK is the code merged in PR #555, which already writes an answer\'s pieces together into one database.',
         'Both SDKs call the same compiled `fr` program, built with optimizations, on the same runner.',
-        'This rerun includes the release merged after the first trial. Both trials retain their actual source revisions.',
+        'This rerun includes the current release and the memory-lifetime fix. Earlier trials retain their actual source revisions.',
         'The trials used different runners. Compare SDKs within each trial; their absolute times are not directly comparable between trials.',
         'Both ask identical questions on fixed versions of glob, Boltons and JMESPath at the same absolute project path.',
         'glob matches file paths in Rust. Boltons provides Python utilities. JMESPath selects values from JSON documents.',
@@ -102,6 +107,7 @@ def markdown(report):
         'Filesystem block allocation and directory entries add unmeasured overhead.',
         'Both SDKs use the same database format. This change is intended to reduce repeated computation, not stored bytes.',
         'The temporary lookup adds one entry per distinct piece while hashing. The memory samples include that working space.',
+        'Releasing temporary references does not guarantee a lower operating-system memory reading; the table reports the measured totals.',
         'The memory samples include the database library. These results establish no memory saving.',
         'One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.', '',
         '| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |',
@@ -128,8 +134,9 @@ def markdown(report):
         'These scripted requests establish no general agent, model-token or billing savings.',
         'All projects are familiar. The original first JMESPath result remains unchanged and separately audited.',
         'The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.', '',
-        '[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-release/record.json) | '
-        '[Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-release/publication.json) | '
+        '[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-lifetime/record.json) | '
+        '[Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-lifetime/publication.json) | '
+        '[Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | '
         '[First distinct-piece comparison](distinct-answer-hashing-first-results.md) | '
         '[Previous storage comparison](batched-answer-storage.md) | '
         '[Earlier hashing comparison](saved-answer-improvement.md)', '']
@@ -185,7 +192,7 @@ def main():
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
-    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-distinct-answers-39664831023/result.json',
+    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-distinct-answers-39670459804/result.json',
                  'review the previous current cost record before replacing its selection')
     entry.update(path=pointer['directory'] + '/result.json', sha256=pointer['sha256'],
                  audit='python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],

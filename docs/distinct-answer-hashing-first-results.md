@@ -1,5 +1,9 @@
 # Hash each distinct answer piece once
 
+This is the first measurement, before the memory-lifetime fix. Its timing and storage results remain unchanged.
+Later regression checks found that temporary data could survive completed calls until Python ran cyclic garbage collection.
+Use the [current guide](distinct-answer-hashing.md) for the corrected behavior and new measurements.
+
 A user asks where `glob_with` appears and which code a change could affect.
 The Python helper library, called the SDK, can save that answer and the inputs it depends on.
 A content fingerprint is a label computed from a saved piece's contents. Computing that label is called hashing.
@@ -9,7 +13,8 @@ Previously, packing the glob answer visited 11,210 pieces and hashed every visit
 The SDK now remembers fingerprints within each operation. Equal pieces share a fingerprint without repeating that hash.
 This includes separately created lists and objects with equal contents, not just repeated references to one Python object.
 The SDK still visits every input entry. It skips the repeated fingerprint computation.
-The temporary lookup ends with the operation. Editing an input before the next call produces a new fingerprint.
+The lookup was intended to end with the operation, but could remain in memory until cyclic garbage collection ran.
+Editing an input before the next call still produced a new fingerprint.
 Stored pieces, their fingerprints and corruption checks remain identical.
 
 ## What is compared
