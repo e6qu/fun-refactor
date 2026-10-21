@@ -23,8 +23,10 @@
     },
     {
       "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/ir.py"
+      ],
+      "freshness": "stale",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
@@ -33,8 +35,10 @@
     },
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/ir.py"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
@@ -43,8 +47,10 @@
     },
     {
       "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/ir.py"
+      ],
+      "freshness": "stale",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
@@ -63,8 +69,10 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-inventory-ci-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/ir.py"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -164,7 +172,9 @@
     {
       "audit": "python3 tools/package_question_replay.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files",
       "changed_sources": [
-        ".github/workflows/refinement-evidence.yml"
+        ".github/workflows/refinement-evidence.yml",
+        "sdk/python/src/fr_ir/ir.py",
+        "sdk/python/tests/test_ir.py"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
@@ -177,7 +187,9 @@
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [
         ".github/workflows/refinement-evidence.yml",
-        "sdk/python/src/fr_ir/_version.py"
+        "sdk/python/src/fr_ir/_version.py",
+        "sdk/python/src/fr_ir/ir.py",
+        "sdk/python/tests/test_ir.py"
       ],
       "freshness": "stale",
       "id": "project-changes",
@@ -187,48 +199,54 @@
       "scope": "Three original projects, seven change controls each, and checked Rust and Python rename delivery."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
-      "id": "current-project-changes",
-      "integrity": "checked",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
-    },
-    {
       "audit": "python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/saved-work-cost.yml",
+        "sdk/python/src/fr_ir/ir.py",
+        "tools/saved-work-cost.py"
+      ],
+      "freshness": "stale",
       "id": "saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json",
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "current-project-changes",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
   "milestones": {
     "A": {
-      "demonstrated": 3,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "A.repositories",
         "A.live-repeat"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.scalar",
         "B.repository-flow",
         "B.effects"
       ],
@@ -236,24 +254,29 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.resume",
+        "C.clean",
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 3,
+      "demonstrated": 2,
       "engineering": {
         "done": 2,
         "total": 6
       },
       "engineering_remaining": 4,
       "remaining": [
+        "D.checked",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -262,7 +285,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -290,7 +313,9 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -309,7 +334,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -366,7 +391,9 @@
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -389,7 +416,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -493,7 +520,9 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -512,12 +541,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -540,7 +571,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -569,7 +600,9 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the measured setup, validation and repeated discovery costs to choose an improvement. Compare complete sessions on identical files and questions. Keep full agent-task savings separate.",
@@ -600,12 +633,14 @@
           "evidence": "saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -624,7 +659,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {

@@ -142,20 +142,20 @@
       "sha256": "a6de2d9c7ca0fe91fac5cb2f77c59bffb32d3e9ba50c20a2f5a6560a7b033884"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "id": "current-project-changes",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "84f58106d7ec9840462029b77e5865ce4a0264a1d77c878ecd78a74db4666aed"
-    },
-    {
       "audit": "python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541",
       "id": "saved-work-cost",
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json",
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim.",
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "id": "current-project-changes",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
+      "sha256": "79a8bc8f945a2c6d0303bc7adf9b91a3cc1d6da44d577b3d05b7a93917fadc39"
     }
   ],
   "obligations": [
