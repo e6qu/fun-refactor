@@ -160,6 +160,7 @@ def main():
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')
     before = retain_profile(BEFORE_RUN, BEFORE_SOURCE, 'profile-before')
     after = retain_profile(pointer['run_id'], report['source_commit'], 'profile-after')
+    subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', BEFORE_SOURCE], check=True)
     subprocess.run(['git', 'diff', '--exit-code', comparison.BASELINE,
                     BEFORE_SOURCE, '--', 'sdk/python/src', 'tools/profile-saved-answers.py'], check=True)
     cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,

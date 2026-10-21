@@ -1,8 +1,11 @@
 """Reuse checked startup across questions; compare fresh answers and Python."""
 import copy
+from contextlib import closing
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -216,16 +219,20 @@ def test_corrupt_storage_refuses_without_running_a_fresh_check(tmp_path):
     store = DirectoryObjectStore(tmp_path / 'objects')
     cache = StartupCache(store)
     ask(cache, client, rules, 'forwards', imports=True)
-    for path in (tmp_path / 'objects').rglob('*.json'):
-        record = json.loads(path.read_text())
-        if record.get('kind') == 'scalar' and 'fr-python-startup' in str(record.get('value')):
-            record['value'] = record['value'].replace('fr-python-startup', 'corrupt-startup')
-            path.write_text(json.dumps(record))
-            break
-    else:
-        pytest.fail('no startup chunk found')
-    with pytest.raises(IrError, match='verification'):
-        ask(cache, client, rules, 'stopped', imports=True)
+    with closing(sqlite3.connect(store.database)) as connection, connection:
+        for key, encoded in connection.execute('SELECT digest, record FROM objects').fetchall():
+            record = json.loads(encoded)
+            if record.get('kind') == 'scalar' and 'fr-python-startup' in str(record.get('value')):
+                record['value'] = record['value'].replace('fr-python-startup', 'corrupt-startup')
+                connection.execute('UPDATE objects SET record = ? WHERE digest = ?',
+                                   (json.dumps(record).encode(), key))
+                break
+        else:
+            pytest.fail('no startup chunk found')
+    with patch.object(client, 'project', wraps=client.project) as calls:
+        with pytest.raises(IrError, match='verification'):
+            ask(cache, client, rules, 'stopped', imports=True)
+    assert not any(call.args[:1] == ('dataflow',) for call in calls.call_args_list)
 
 
 @pytest.mark.parametrize('change', ['schema', 'digest', 'extra', 'missing', 'span', 'path', 'name',
