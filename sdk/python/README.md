@@ -353,12 +353,14 @@ They run after apply and redo; failure stops patch delivery and retains the appl
 explicit outcome step. See [checked outcomes](../../docs/checked-outcomes.md) for new-process
 completion, invalidation, failure handling and the distinction between lifecycle and acceptance checks.
 
-Disclosure trees can be stored by content address:
+For example, save a small answer about `render` and restore it by its content fingerprint:
 
 ```python
-from fr_ir.context import store_merkle_value
+from fr_ir.context import MemoryObjectStore, store_merkle_value
 from fr_ir.ir import merkle_object_digest, restore_merkle_object
 
+object_store = MemoryObjectStore()
+project_evidence = {"function": "render", "callers": ["checkout"]}
 saved = store_merkle_value(object_store, project_evidence)
 
 with object_store.read() as fetch:

@@ -168,7 +168,7 @@ jobs:
           python3 -B - <<'PY'
           import hashlib, json, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/batched-answer-storage/record.json').read_text())
+          record = json.loads(Path('tests/agent-eval/batched-answer-storage-release/record.json').read_text())
           directory = Path(record['directory'])
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
@@ -243,7 +243,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/batched-answer-storage.md tests/agent-eval/batched-answer-storage \
+          git add docs/batched-answer-storage.md tests/agent-eval/batched-answer-storage-release \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
           git commit -m 'docs: publish saved answer costs and reconcile current evidence'
           git push origin "HEAD:refs/heads/$BRANCH"
