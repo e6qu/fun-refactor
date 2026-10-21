@@ -400,6 +400,40 @@ class TestIr:
         assert restore_merkle_object(first["root"], first["objects"]) == [{"name": "before"}] * 2
         assert restore_merkle_object(second["root"], second["objects"]) == [{"name": "after"}] * 2
 
+    @pytest.mark.parametrize("operation", (merkle_object_digest, merkle_object_pack))
+    def test_merkle_temporary_hashes_are_released_without_cyclic_collection(self, operation):
+        import gc
+        import weakref
+        from fr_ir import ir
+
+        class TrackedDigest(str):
+            pass
+
+        references = []
+        original = ir._merkle_record_digest
+
+        def tracked(record):
+            digest = TrackedDigest(original(record))
+            references.append(weakref.ref(digest))
+            return digest
+
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            with patch.object(ir, "_merkle_record_digest", tracked):
+                result = operation({"items": [{"name": "same", "count": 7}] * 16})
+            assert len(references) > 1
+            if operation is merkle_object_digest:
+                assert all(reference() is None for reference in references[:-1]), \
+                    "digest lookup survived the completed operation"
+            del result
+            assert all(reference() is None for reference in references), \
+                "hashing retained records after their caller released the result"
+        finally:
+            if enabled:
+                gc.enable()
+            gc.collect()
+
     def test_merkle_hashing_rejects_cycles_and_nonfinite_numbers(self):
         sequence = []
         sequence.append(sequence)
