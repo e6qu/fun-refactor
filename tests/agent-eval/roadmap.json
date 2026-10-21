@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-answers-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-saved-answer-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-21-batched-answers-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "e0a24fdce66f20ce9c4f6f939f4d648552d206ad55d7427ab7736aafeec8805b"
+      "sha256": "faa48481610e8f71bad48a98295e4176ee03115060ad6111e0d761debc10173b"
     },
     {
       "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
