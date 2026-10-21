@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,15 +116,68 @@ def retain_cache():
     return relative, receipt
 
 
+def retain_measurement(run_id):
+    run = cost.api(f'actions/runs/{run_id}')
+    authenticate(run_id, run['head_sha'])
+    rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+    artifact, = [row for row in rows if row['name'] == 'saved-answer-comparison']
+    data = cost.artifact_bytes(artifact)
+    directory = ROOT / f'tests/agent-eval/results/2026-10-21-saved-answer-{run_id}'
+    cost.require(not directory.exists(), 'preserve existing matched measurements')
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        entries = archive.infolist()
+        cost.require({entry.filename for entry in entries} == {'result.json', 'previous.zip', 'current.zip'}
+                     and len(entries) == 3 and sum(entry.file_size for entry in entries) <= 16777216,
+                     'unexpected measurement artifact inventory')
+        directory.mkdir()
+        for entry in entries:
+            (directory / entry.filename).write_bytes(archive.read(entry))
+    report = comparison.audit(directory)
+    cost.require(report['source_commit'] == run['head_sha'] and report['run_id'] == run_id,
+                 'measurement source differs from its producer')
+    pointer = {'directory': str(directory.relative_to(ROOT)),
+               'sha256': cost.file_digest(directory / 'result.json'), 'run_id': run_id}
+    DIRECTORY.mkdir(parents=True, exist_ok=True)
+    cost.save(DIRECTORY / 'record.json', pointer)
+    cost.save(DIRECTORY / 'collection.json', {'run': run, 'artifact': artifact})
+    return pointer, report
+
+
+def retain_publication_failures():
+    directory = DIRECTORY / 'failures'
+    directory.mkdir()
+    for run_id, failed_step in ((39560287457, 'Commit the checked reports'),
+                               (39559712773, 'Retain both complete measurements after auditing them')):
+        run = cost.api(f'actions/runs/{run_id}')
+        jobs = cost.api(f'actions/runs/{run_id}/jobs?per_page=100')['jobs']
+        cost.require(run['status'] == 'completed' and run['conclusion'] == 'failure'
+                     and any(step['name'] == failed_step and step['conclusion'] == 'failure'
+                             for job in jobs for step in job['steps']), 'publication failure changed')
+        cost.save(directory / f'{run_id}.json', {'run': run, 'jobs': jobs,
+            'cause': 'The checked reports could not be pushed because another writer updated the branch.'})
+        with tempfile.TemporaryFile() as output:
+            subprocess.run(['gh', 'run', 'view', str(run_id), '--log-failed'],
+                           stdout=output, stderr=subprocess.PIPE, check=True, timeout=30)
+            output.seek(0)
+            data = output.read(2097153)
+        cost.require(len(data) <= 2097152 and b'[rejected]' in data and b'(fetch first)' in data,
+                     'publication log does not confirm the branch conflict')
+        (directory / f'{run_id}.log').write_bytes(data)
+        if run_id == 39559712773:
+            rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+            artifact, = [row for row in rows if row['name'] == 'saved-answer-comparison']
+            (directory / f'{run_id}.zip').write_bytes(cost.artifact_bytes(artifact))
+            cost.save(directory / f'{run_id}-artifact.json', artifact)
+
+
 def main():
     cost.require(os.environ.get('GITHUB_ACTIONS') == 'true', 'publish on GitHub runners')
     cost.require(os.environ['GITHUB_REF'].startswith('refs/heads/')
                  and os.environ['GITHUB_REF'] != 'refs/heads/main', 'publish on the work branch')
-    pointer = json.loads((DIRECTORY / 'record.json').read_text())
-    directory = ROOT / pointer['directory']
-    cost.require(directory.resolve().is_relative_to(ROOT)
-                 and cost.file_digest(directory / 'result.json') == pointer['sha256'], 'comparison receipt changed')
-    report = comparison.audit(directory)
+    run_id = os.environ['COLLECTION_RUN']
+    cost.require(run_id.isdigit() and int(run_id) > 0, 'declare the completed collection run')
+    pointer, report = retain_measurement(int(run_id))
+    retain_publication_failures()
     run, jobs = authenticate(pointer['run_id'], report['source_commit'])
     names = {job['name'] for job in jobs if job['conclusion'] == 'success'}
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')

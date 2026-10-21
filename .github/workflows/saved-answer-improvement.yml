@@ -10,6 +10,10 @@ on:
         required: true
         type: choice
         options: [measure, publish]
+      collection_run:
+        description: Successful measurement run to publish
+        type: string
+        required: false
   pull_request:
     paths:
       - 'sdk/python/src/**'
@@ -55,8 +59,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [profile, original]
-    permissions:
-      contents: write
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -79,31 +81,6 @@ jobs:
         run: >-
           python3 -B tools/saved-answer-comparison.py
           --collect "$RUNNER_TEMP/answer-comparison" --fr target/release/fr
-      - name: Retain both complete measurements after auditing them
-        env:
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          destination="tests/agent-eval/results/2026-10-21-saved-answer-$GITHUB_RUN_ID"
-          test ! -e "$destination"
-          cp -R "$RUNNER_TEMP/answer-comparison" "$destination"
-          python3 -B tools/saved-answer-comparison.py --audit "$destination"
-          DESTINATION="$destination" python3 -B - <<'PY'
-          import hashlib, json, os
-          from pathlib import Path
-          directory = Path(os.environ['DESTINATION'])
-          record = {'directory': str(directory),
-                    'sha256': hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest(),
-                    'run_id': int(os.environ['GITHUB_RUN_ID'])}
-          path = Path('tests/agent-eval/saved-answer-improvement/record.json')
-          path.parent.mkdir(parents=True, exist_ok=True)
-          path.write_text(json.dumps(record, indent=2) + '\n')
-          PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$destination" tests/agent-eval/saved-answer-improvement/record.json
-          git commit -m 'test: retain matched project sessions for saved answer improvements'
-          git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -189,6 +166,7 @@ jobs:
       - name: Publish authenticated results and reconcile tracking
         env:
           GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
         run: |
           python3 -B tools/retain-saved-answer-comparison.py
           python3 -B tools/roadmap-status.py --write
