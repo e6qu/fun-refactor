@@ -46,14 +46,16 @@ def retain_profile(run_id, expected_head, name):
 def markdown(report):
     lines = ['# Spend less time reopening saved answers', '',
         'A user asks where `glob_with` appears and what indexed code its change could affect.',
-        'On reopening that unchanged question, the previous Python SDK repeatedly hashed the same saved contents.',
+        'Python programs use the helper library, called the SDK, to call `fr` and keep saved answers.',
+        'On reopening that unchanged question, the previous helpers repeatedly hashed the same saved contents.',
         'A content hash identifies a piece by its bytes. Parent pieces record the hashes of their children.',
         'The new code checks each distinct piece once and builds parent hashes from those verified child hashes.',
         'It still rejects missing, corrupted or cyclic data and returns independently editable copies of repeated values.', '',
-        'The comparison uses the previous SDK from merged PR #553 and the changed SDK with one optimized `fr` executable.',
+        'The comparison uses the previous SDK from merged PR #553 and the changed SDK with the same release build of `fr`.',
         'Both answer the same questions on identical pinned glob, Boltons and JMESPath sources.',
         'Each route starts a fresh Python worker per question and keeps its own explicitly named native cache.',
         'The saved route also stores its task plan and answer, validates dependencies before reuse, and repeats discovery after an edit.',
+        'The task plan records which inputs an answer depends on, so edits can expire the answer.',
         'The fresh route asks `fr` again and retains no task plan or answer.', '',
         'Each session contains first use, unchanged reuse and one edit, with three repetitions per project and SDK.',
         'The edit replaces the selected name in one file through `fr file replace`; it checks invalidation rather than delivering a complete rename.',
@@ -72,7 +74,8 @@ def markdown(report):
         '## Unchanged requests, CPU, memory and storage', '',
         'CPU below sums worker and child CPU across the three questions; it excludes copy, edit and cleanup CPU.',
         'The raw reports retain GNU time CPU, edit CPU and separate preparation measurements.',
-        'Memory is the largest sampled aggregate RSS across requests. Sampling can miss short peaks.',
+        'Memory is the largest sampled total of resident memory across the worker and its child processes.',
+        'This measure, RSS, counts memory present in RAM. Sampling can miss short peaks.',
         'Stored bytes count file contents; directory and filesystem block allocation add unmeasured overhead.', '',
         '| Project / SDK | Saved reuse seconds | Saved request CPU seconds | Maximum memory MiB | Final saved KiB |',
         '|---|---:|---:|---:|---:|']
@@ -130,6 +133,8 @@ def main():
                     '8a0ac262ac17332feffb22a0ed61e864d920895b', '--', 'sdk/python/src'], check=True)
     cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
+    subprocess.run(['rustup', 'toolchain', 'install', '1.99.1', '--profile', 'minimal', '--component', 'rustfmt'],
+                   cwd=ROOT, check=True)
     subprocess.run(['python3', '-B', 'tools/retain-ci-reports.py', '--runs', json.dumps({
         'sdk-contexts': 39559075965, 'structural-change': 39559082672}),
         '--prefix', '2026-10-21-saved-answer'], cwd=ROOT, check=True)
