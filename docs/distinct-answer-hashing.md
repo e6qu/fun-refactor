@@ -10,12 +10,14 @@ The SDK now remembers fingerprints within each operation. Equal pieces share a f
 This includes separately created lists and objects with equal contents, not just repeated references to one Python object.
 The SDK still visits every input entry. It skips the repeated fingerprint computation.
 The temporary lookup ends with the operation. Editing an input before the next call produces a new fingerprint.
-Stored pieces, their fingerprints and corruption checks remain identical.
+The same JSON input still produces the same pieces and fingerprints, with the same corruption checks.
 
 ## What is compared
 
 The previous SDK is the code merged in PR #555, which already writes an answer's pieces together into one database.
 Both SDKs call the same compiled `fr` program, built with optimizations, on the same runner.
+This rerun includes the release merged after the first trial. Both trials retain their actual source revisions.
+The trials used different runners. Compare SDKs within each trial; their absolute times are not directly comparable between trials.
 Both ask identical questions on fixed versions of glob, Boltons and JMESPath at the same absolute project path.
 glob matches file paths in Rust. Boltons provides Python utilities. JMESPath selects values from JSON documents.
 Each project and SDK has three sessions containing first use, unchanged reuse and one source edit.
@@ -38,9 +40,9 @@ Builds, dependency installation and initial downloads remain separate in raw rep
 
 | Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |
 |---|---:|---:|---:|---:|---:|---:|
-| boltons | 3.309 | 3.262 | -1.4% | 3.108 | 3.080 | +5.9% |
-| glob | 1.595 | 1.501 | -5.9% | 1.193 | 1.202 | +24.9% |
-| jmespath | 2.185 | 2.029 | -7.1% | 1.616 | 1.588 | +27.8% |
+| boltons | 2.422 | 2.356 | -2.7% | 2.249 | 2.262 | +4.2% |
+| glob | 1.185 | 1.121 | -5.4% | 0.878 | 0.877 | +27.7% |
+| jmespath | 1.581 | 1.445 | -8.6% | 1.160 | 1.149 | +25.9% |
 
 Negative change means less time than the previous saved approach.
 Positive overhead means saving costs more than asking again with the current SDK.
@@ -63,12 +65,12 @@ One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
 | Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |
 |---|---:|---:|---:|---:|
-| boltons / previous | 0.333 | 3.140 | 81.9 | 200.1 |
-| boltons / current | 0.326 | 3.102 | 81.6 | 200.1 |
-| glob / previous | 0.337 | 1.423 | 48.9 | 516.1 |
-| glob / current | 0.337 | 1.329 | 51.1 | 516.1 |
-| jmespath / previous | 0.391 | 2.023 | 58.1 | 860.1 |
-| jmespath / current | 0.390 | 1.853 | 58.0 | 860.1 |
+| boltons / previous | 0.232 | 2.267 | 82.3 | 192.1 |
+| boltons / current | 0.230 | 2.250 | 81.6 | 192.1 |
+| glob / previous | 0.239 | 1.011 | 49.9 | 528.1 |
+| glob / current | 0.240 | 0.946 | 58.1 | 528.1 |
+| jmespath / previous | 0.264 | 1.443 | 59.1 | 868.1 |
+| jmespath / current | 0.262 | 1.307 | 58.7 | 868.1 |
 
 ## What the checks establish
 
@@ -90,4 +92,4 @@ These scripted requests establish no general agent, model-token or billing savin
 All projects are familiar. The original first JMESPath result remains unchanged and separately audited.
 The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.
 
-[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing/publication.json) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)
+[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-release/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-release/publication.json) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)

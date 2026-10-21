@@ -6,7 +6,7 @@ fn retained_structural_migration_preserves_compiled_results_and_exact_reversal()
         .args([
             "tools/structural-change-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-21-distinct-answers-structural-change",
+            "tests/agent-eval/results/2026-10-21-distinct-release-structural-change",
         ])
         .output()
         .unwrap();
