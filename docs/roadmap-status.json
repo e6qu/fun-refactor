@@ -22,27 +22,23 @@
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/ir.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/ir.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
@@ -231,28 +227,26 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.repositories",
         "A.live-repeat"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
-        "B.scalar",
         "B.repository-flow",
         "B.effects"
       ],
@@ -260,28 +254,24 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 4,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [
-        "C.resume",
-        "C.clean"
-      ],
-      "state": "open",
+      "remaining": [],
+      "state": "complete",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 2,
         "total": 6
       },
       "engineering_remaining": 4,
       "remaining": [
-        "D.checked",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -290,7 +280,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 0,
+  "milestones_complete": 1,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -318,9 +308,7 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -339,7 +327,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -396,9 +384,7 @@
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -421,7 +407,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -525,9 +511,7 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -546,14 +530,12 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -576,7 +558,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -653,9 +635,7 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -674,7 +654,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Check and replay a delivered change"
     },
     {

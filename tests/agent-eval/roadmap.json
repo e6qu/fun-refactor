@@ -38,20 +38,20 @@
       "sha256": "c132207699750fe23af606854db2a464827ef307eab0c7678d5a176b9b7a93a4"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "aa155e51ecf8d68c004555c25ca6a2a61c9dce78217b85b7bd3f443caa4d5bed"
+      "sha256": "c9225155123ab74ca6d9db0cfe7a430ed54bcac314798fb2c647a317d602957e"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories",
+      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "sha256": "9fb7fb7fc8d60a211029afd9804403d6012f13d928bc28aba31c5a5dfedeb90b"
+      "sha256": "f44227cdc1a2462b914336509abf643be2c537ddb13ff838ff65ae1ed21bf20d"
     },
     {
       "audit": "python3 -B tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json",

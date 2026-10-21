@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**7 of 18 specific test requirements have matching recorded results; 11 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**12 of 18 specific test requirements have matching recorded results; 6 remain open. 1 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -33,10 +33,10 @@ The implementation column counts completed code changes. The test column counts 
 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
-| A. Find relevant code and explain the evidence | 6/6 | 2/4 | open |
-| B. Explain how values move through code | 4/5 | 1/4 | open |
-| C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
-| D. Make checked changes and useful proofs | 2/6 | 2/6 | open |
+| A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
+| B. Explain how values move through code | 4/5 | 2/4 | open |
+| C. Resume work and reuse correct answers | 6/6 | 4/4 | complete |
+| D. Make checked changes and useful proofs | 2/6 | 3/6 | open |
 
 ## Finite acceptance obligations
 
@@ -62,9 +62,9 @@ Next: Keep these location tests passing as discovery changes.
 
 User example: Replay the two prescribed repository repairs and check their behavior, saved changes and delivery.
 
-**State: open.** The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.
+**State: demonstrated.** The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.
 
-Recorded results or remaining work: repository-tasks: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json).
 
 Next: Keep these delivery regression tests; evaluate unscripted problem solving separately.
 
@@ -92,9 +92,9 @@ Next: Keep the declared profile and ambiguity refusals passing; specify reusable
 
 User example: Follow an input through a simple helper and check whether overwriting the value removes the original connection.
 
-**State: open.** The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.
+**State: demonstrated.** The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.
 
-Recorded results or remaining work: package-flow: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json).
 
 Next: Keep the small examples as regression tests while testing more varied programs.
 
@@ -132,9 +132,9 @@ Next: Prioritize unsupported effects exposed by the selected project-change task
 
 User example: After another agent edits the helper, recheck the finding that depended on it and keep unrelated notes.
 
-**State: open.** In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.
+**State: demonstrated.** In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.
 
-Recorded results or remaining work: repository-tasks: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json).
 
 Next: Keep the saved-plan and delivery regression tests reproducible.
 
@@ -142,9 +142,9 @@ Next: Keep the saved-plan and delivery regression tests reproducible.
 
 User example: A reused answer must agree with a fresh analysis of the same current code.
 
-**State: open.** In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.
+**State: demonstrated.** In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.
 
-Recorded results or remaining work: package-flow: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json).
 
 Next: Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.
 
@@ -172,9 +172,9 @@ Next: Use the matched SDK comparison to address remaining storage and process co
 
 User example: Apply a reviewed repair, run its required checks and verify the exported patch in another checkout.
 
-**State: open.** The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.
+**State: demonstrated.** The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.
 
-Recorded results or remaining work: repository-tasks: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [repository-tasks](../tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json).
 
 Next: Keep these behavior and patch-replay tests passing.
 
@@ -235,8 +235,8 @@ The entries below identify the stored test results. “Current” means their re
 | Saved result / kind of test | File fingerprints | Do recorded inputs still match? | What it checked and how to check it again |
 |---|---|---|---|
 | [exact-facts](../tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json) / scripted behavior checks | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-facts/result.json` |
-| [package-flow](../tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json) / scripted behavior checks | checked | stale (1 changed inputs) | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-20-project-ci-python-repositories/result.json) / scripted behavior checks | checked | stale (1 changed inputs) | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-python-repositories` |
+| [package-flow](../tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json) / scripted behavior checks | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-package-flow/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-basics-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json) / measured tool operations | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 -B tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-10-21-saved-answer-structural-change/manifest.json) / scripted behavior checks | checked | current | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-structural-change` |
