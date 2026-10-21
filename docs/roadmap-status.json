@@ -195,6 +195,16 @@
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-21-current-39503602158-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
+    },
+    {
+      "audit": "python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "saved-work-cost",
+      "integrity": "checked",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json",
+      "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     }
   ],
   "milestones": {
@@ -226,16 +236,14 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [
-        "C.performance"
-      ],
-      "state": "open",
+      "remaining": [],
+      "state": "complete",
       "total": 4
     },
     "D": {
@@ -254,7 +262,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 0,
+  "milestones_complete": 1,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -561,14 +569,38 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [
-        "No qualifying retained evidence yet"
-      ],
+      "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Compare continuing a saved task with asking the same questions from scratch on the same changed files. Repeat fresh, reused and post-edit measurements three times on three independently selected projects, including one reserved from tuning. Count setup, input checking, analysis, aggregate memory, disk and text returned before choosing a cache change. Keep full agent costs separate.",
-      "requires": [],
-      "state": "open",
+      "next": "Use the measured setup, validation and repeated discovery costs to choose an improvement. Compare complete sessions on identical files and questions. Keep full agent-task savings separate.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/passed"
+            },
+            {
+              "equals": 3,
+              "pointer": "/projects"
+            },
+            {
+              "equals": 3,
+              "pointer": "/repetitions"
+            },
+            {
+              "equals": true,
+              "pointer": "/answer_agreement"
+            },
+            {
+              "equals": true,
+              "pointer": "/reserved/first_evaluation"
+            }
+          ],
+          "evidence": "saved-work-cost"
+        }
+      ],
+      "state": "demonstrated",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {

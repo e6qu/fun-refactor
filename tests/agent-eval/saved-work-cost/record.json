@@ -1,0 +1,383 @@
+{
+  "directory": "tests/agent-eval/results/2026-10-21-saved-work-39531778541",
+  "jobs": [
+    {
+      "completed_at": "2026-10-21T02:15:19Z",
+      "conclusion": "success",
+      "name": "Reject incomplete cost comparisons",
+      "started_at": "2026-10-21T02:14:13Z",
+      "steps": [
+        {
+          "completed_at": "2026-10-21T02:14:14Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-10-21T02:14:14Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:04Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "started_at": "2026-10-21T02:14:14Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:04Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v7",
+          "number": 3,
+          "started_at": "2026-10-21T02:15:04Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:17Z",
+          "conclusion": "success",
+          "name": "Run python3 -B tools/test-saved-work-cost.py",
+          "number": 4,
+          "started_at": "2026-10-21T02:15:04Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v7",
+          "number": 7,
+          "started_at": "2026-10-21T02:15:17Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v7",
+          "number": 8,
+          "started_at": "2026-10-21T02:15:17Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:15:17Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 9,
+          "started_at": "2026-10-21T02:15:17Z",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-21T02:20:01Z",
+      "conclusion": "success",
+      "name": "build",
+      "started_at": "2026-10-21T02:15:53Z",
+      "steps": [
+        {
+          "completed_at": "2026-10-21T02:15:55Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-10-21T02:15:53Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:16:48Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "started_at": "2026-10-21T02:15:55Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:16:57Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install 1.99.1 --profile minimal",
+          "number": 3,
+          "started_at": "2026-10-21T02:16:48Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:17:02Z",
+          "conclusion": "success",
+          "name": "Run Swatinem/rust-cache@v2",
+          "number": 4,
+          "started_at": "2026-10-21T02:16:57Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:56Z",
+          "conclusion": "success",
+          "name": "Run cargo build --locked --release --bin fr",
+          "number": 5,
+          "started_at": "2026-10-21T02:17:02Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:56Z",
+          "conclusion": "success",
+          "name": "Run git rev-parse HEAD > target/release/source.txt",
+          "number": 6,
+          "started_at": "2026-10-21T02:19:56Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:58Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v7",
+          "number": 7,
+          "started_at": "2026-10-21T02:19:56Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:58Z",
+          "conclusion": "success",
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "number": 13,
+          "started_at": "2026-10-21T02:19:58Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:58Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "started_at": "2026-10-21T02:19:58Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:19:58Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "started_at": "2026-10-21T02:19:58Z",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-21T02:15:19Z",
+      "conclusion": "skipped",
+      "name": "Audit retained project cost measurements",
+      "started_at": "2026-10-21T02:15:19Z",
+      "steps": []
+    },
+    {
+      "completed_at": "2026-10-21T02:24:49Z",
+      "conclusion": "success",
+      "name": "Familiar projects",
+      "started_at": "2026-10-21T02:22:51Z",
+      "steps": [
+        {
+          "completed_at": "2026-10-21T02:22:53Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-10-21T02:22:52Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:23:48Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "started_at": "2026-10-21T02:22:53Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:23:48Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v7",
+          "number": 3,
+          "started_at": "2026-10-21T02:23:48Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:23:59Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install 1.99.1 --profile minimal",
+          "number": 4,
+          "started_at": "2026-10-21T02:23:48Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:00Z",
+          "conclusion": "success",
+          "name": "Run actions/download-artifact@v8",
+          "number": 5,
+          "started_at": "2026-10-21T02:23:59Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:00Z",
+          "conclusion": "success",
+          "name": "Run chmod +x target/release/fr",
+          "number": 6,
+          "started_at": "2026-10-21T02:24:00Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:45Z",
+          "conclusion": "success",
+          "name": "Freeze the procedure and measure the two familiar projects",
+          "number": 7,
+          "started_at": "2026-10-21T02:24:00Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:47Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v7",
+          "number": 8,
+          "started_at": "2026-10-21T02:24:45Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:47Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v7",
+          "number": 15,
+          "started_at": "2026-10-21T02:24:47Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:47Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "started_at": "2026-10-21T02:24:47Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:24:47Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "started_at": "2026-10-21T02:24:47Z",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-21T02:27:44Z",
+      "conclusion": "success",
+      "name": "Reserved project",
+      "started_at": "2026-10-21T02:24:52Z",
+      "steps": [
+        {
+          "completed_at": "2026-10-21T02:24:54Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "started_at": "2026-10-21T02:24:53Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:48Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "started_at": "2026-10-21T02:24:54Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:48Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v7",
+          "number": 3,
+          "started_at": "2026-10-21T02:25:48Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:57Z",
+          "conclusion": "success",
+          "name": "Run rustup toolchain install 1.99.1 --profile minimal",
+          "number": 4,
+          "started_at": "2026-10-21T02:25:48Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:58Z",
+          "conclusion": "success",
+          "name": "Run actions/download-artifact@v8",
+          "number": 5,
+          "started_at": "2026-10-21T02:25:57Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:59Z",
+          "conclusion": "success",
+          "name": "Run actions/download-artifact@v8",
+          "number": 6,
+          "started_at": "2026-10-21T02:25:58Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:25:59Z",
+          "conclusion": "success",
+          "name": "Run chmod +x target/release/fr",
+          "number": 7,
+          "started_at": "2026-10-21T02:25:59Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:12Z",
+          "conclusion": "success",
+          "name": "Evaluate the reserved project without changing the frozen procedure",
+          "number": 8,
+          "started_at": "2026-10-21T02:25:59Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:40Z",
+          "conclusion": "success",
+          "name": "Retain the audited record",
+          "number": 9,
+          "started_at": "2026-10-21T02:27:12Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:42Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v7",
+          "number": 10,
+          "started_at": "2026-10-21T02:27:40Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:42Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v7",
+          "number": 19,
+          "started_at": "2026-10-21T02:27:42Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:42Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v7",
+          "number": 20,
+          "started_at": "2026-10-21T02:27:42Z",
+          "status": "completed"
+        },
+        {
+          "completed_at": "2026-10-21T02:27:42Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "started_at": "2026-10-21T02:27:42Z",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "run_id": 39531778541,
+  "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd",
+  "workflow": {
+    "conclusion": "success",
+    "created_at": "2026-10-21T02:13:08Z",
+    "head_sha": "baf978d15a1a6929456f53238910b17abd1a355c",
+    "html_url": "https://github.com/e6qu/fun-refactor/actions/runs/39531778541",
+    "path": ".github/workflows/saved-work-cost.yml",
+    "run_started_at": "2026-10-21T02:13:08Z",
+    "updated_at": "2026-10-21T02:27:45Z"
+  }
+}
