@@ -77,8 +77,16 @@ class MeasuredStore:
 
     @contextmanager
     def read(self):
-        with self.store.read() as fetch:
-            yield lambda key: self._get(fetch, key)
+        started = time.perf_counter()
+        try:
+            with self.store.read() as fetch:
+                self.seconds += time.perf_counter() - started
+                try:
+                    yield lambda key: self._get(fetch, key)
+                finally:
+                    started = time.perf_counter()
+        finally:
+            self.seconds += time.perf_counter() - started
 
     def _get(self, fetch, key):
         self.gets += 1

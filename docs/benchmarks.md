@@ -97,6 +97,9 @@ Both approaches retain their own native project cache. The saved approach also v
 Read the complete three-question totals alongside the reuse times. Source preparation, memory, storage and the full submitted program remain visible.
 The [matched follow-up](saved-answer-improvement.md) compares the previous and changed Python helpers with the same native executable.
 It addresses repeated hashing of saved answers and reports the remaining overhead against fresh questions.
+The [storage follow-up](batched-answer-storage.md) compares saving an answer in one database
+transaction with the file-per-piece implementation from PR #554.
+It reports complete saved sessions, both fresh baselines and agreement across all 108 requests.
 
 The [cache measurements](evaluations.md#fixed-point-and-reuse-acceptance) include storage and validation costs.
 Read each report's actual baseline before interpreting a warm-run improvement.

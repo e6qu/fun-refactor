@@ -91,12 +91,15 @@ def markdown(report):
         'This measure, RSS, counts memory present in RAM. Sampling can miss short peaks, and shared pages can count twice.',
         'Saved bytes include the database or record files and the task receipt, including the earlier answer retained after editing.',
         'Filesystem block allocation and directory entries add unmeasured overhead.',
+        'The database uses more stored bytes in these trials because it also keeps pages and an index.',
+        'The index maps each content fingerprint to its stored piece.',
+        'The memory samples include the database library. These results establish no memory saving.',
         'One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.', '',
         '| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |',
         '|---|---:|---:|---:|---:|']
     for name, versions in report['summary'].items():
-        for version, routes in versions.items():
-            value = routes['saved']
+        for version in ('previous', 'current'):
+            value = versions[version]['saved']
             lines.append(f"| {name} / {version} | {value['median_reuse_seconds']:.3f} | {value['median_worker_cpu_seconds']:.3f} | {value['maximum_sampled_aggregate_rss_bytes'] / 1048576:.1f} | {value['median_final_saved_bytes'] / 1024:.1f} |")
     lines += ['', '## What the checks establish', '',
         'Separate profiles locate storage work. Their timings include profiler overhead and do not enter these tables.',
