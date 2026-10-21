@@ -299,11 +299,13 @@ def audit_project(value, directory, tasks):
             require(len(discoveries) == (0 if raw['retained'] else 1), 'missing or repeated discovery')
             if discoveries:
                 require(discoveries[0]['arguments'] == ['project', 'find', task['name'], '--source', '--bytes',
-                    str(tasks['scope_limits']['find_bytes'])], 'different native question')
+                    str(tasks['scope_limits']['find_bytes']), '--limit', str(tasks['scope_limits']['find_limit']),
+                    '--in', tasks['scope_limits']['find_scope']], 'different native question')
                 require(json.loads((base / discoveries[0]['report']).read_text()) == raw['answer']['find'],
                     'answer does not match discovery')
             found = raw['answer']['find']
-            require(found['page']['next'] is None and len(found['rows']) <= 16, 'unfinished discovery page')
+            require(found['page']['next'] is None and len(found['rows']) <= tasks['scope_limits']['find_limit'],
+                'unfinished discovery page')
             scopes = raw['answer']['scopes']
             require(len(scopes) == len(found['rows']), 'missing change scopes')
             scope_calls = [call for call in raw['calls'] if call['arguments'][:2] == ['project', 'change-scope']]

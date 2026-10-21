@@ -78,7 +78,8 @@ def fixture(directory, tasks):
                     validation = {'invalidated': invalidated, 'complete': retained}
                     call(['project', 'investigate', '--from', 'plan.json'], validation)
                 if not retained:
-                    call(['project', 'find', task['name'], '--source', '--bytes', str(tasks['scope_limits']['find_bytes'])], found)
+                    call(['project', 'find', task['name'], '--source', '--bytes', str(tasks['scope_limits']['find_bytes']),
+                        '--limit', str(tasks['scope_limits']['find_limit']), '--in', tasks['scope_limits']['find_scope']], found)
                     if stage != 'edit':
                         limits = tasks['scope_limits']
                         call(['project', 'change-scope', 'frp1:example', '--depth', str(limits['depth']), '--nodes',

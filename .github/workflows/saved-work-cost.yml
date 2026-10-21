@@ -1,5 +1,5 @@
 name: Cost of continuing saved work
-# Every condition owns an explicit empty cache and counts its cleanup.
+# Conditions own empty caches; question scopes and limits are explicit.
 on:
   push:
     branches: [feat/saved-work-cost]

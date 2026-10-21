@@ -60,11 +60,12 @@ class MeasuredClient(FrClient):
 
 def discover(client, request):
     limits = request['scope_limits']
-    found = client.project('find', request['name'], '--source', '--bytes', str(limits['find_bytes']))
+    found = client.project('find', request['name'], '--source', '--bytes', str(limits['find_bytes']),
+        '--limit', str(limits['find_limit']), '--in', limits['find_scope'])
     value = found.to_data()
     assert value['page']['next'] is None, 'find requires another page'
     rows = [dict(zip(value['columns'], row)) for row in value['rows']]
-    assert len(rows) <= 16, 'too many declarations for this bounded question'
+    assert len(rows) <= limits['find_limit'], 'too many declarations for this bounded question'
     scopes = [ChangeScope.inspect(client, [row['handle']], depth=limits['depth'],
         nodes=limits['nodes'], references=limits['references'], max_bytes=limits['max_bytes']).report.to_data()
         for row in rows]

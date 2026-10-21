@@ -12,6 +12,6 @@
   "repetitions": 3,
   "edit": "In the declared source file, replace every exact occurrence of the selected name with NAME_cost_renamed using fr file replace. Ask the original question again. This is an invalidation probe, not a delivered or behavior-preserving rename.",
   "limits": {"archive_bytes": 8388608, "expanded_bytes": 33554432, "archive_members": 4096, "wall_seconds": 20, "cpu_seconds": 10, "rss_bytes": 536870912, "disk_bytes": 16777216, "transcript_bytes": 1048576},
-  "scope_limits": {"depth": 4, "nodes": 128, "references": 512, "max_bytes": 262144, "find_bytes": 65536},
+  "scope_limits": {"depth": 4, "nodes": 128, "references": 512, "max_bytes": 262144, "find_bytes": 65536, "find_limit": 16, "find_scope": "."},
   "accounting": "Each request starts a new Python worker. Parent wall time includes startup, SDK imports, validation, discovery, persistence and output. Record exact worker self-and-child CPU plus GNU time process-tree CPU rounded to 0.01 seconds. Aggregate RSS is sampled; short peaks may be missed. Native reports are counted after canonical JSON encoding, not as wire bytes. Count the full submitted worker, invocation, request and returned answer separately. Include native cache and saved-object storage. Record source download, extraction, checkout copies and edits separately. Build and environment setup are outside request totals. OS file caches remain uncontrolled. Counterbalance condition order. No live-agent, language-runtime or ordinary-file-tool savings claim. No cache optimization before measurement."
 }
