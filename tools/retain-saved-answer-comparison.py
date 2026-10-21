@@ -59,18 +59,21 @@ def markdown(report):
         'The task plan records which inputs an answer depends on, so edits can expire the answer.',
         'The fresh route asks `fr` again and retains no task plan or answer.', '',
         'Each session contains first use, unchanged reuse and one edit, with three repetitions per project and SDK.',
+        'SDK order alternates by project. Saved and fresh order alternates by repetition within each SDK.',
+        'Each SDK finishes its three repetitions on a project before the other SDK starts that project.',
         'The edit replaces the selected name in one file through `fr file replace`; it checks invalidation rather than delivering a complete rename.',
         'All 108 request answers agree between SDKs, and each saved answer agrees with its matching fresh check.', '',
         '## Complete session time', '',
         'Median seconds include Python startup, validation, discovery, persistence, output, checkout copies, the edit and cleanup.',
         'Preparation and environment setup remain separate in the raw reports and recorded workflow steps.', '',
-        '| Project | Previous saved | Current saved | Change | Current fresh | Current saved overhead versus fresh |',
-        '|---|---:|---:|---:|---:|---:|']
+        '| Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |',
+        '|---|---:|---:|---:|---:|---:|---:|']
     for name, versions in report['summary'].items():
         old = versions['previous']['saved']['median_session_seconds']
         new = versions['current']['saved']['median_session_seconds']
+        old_fresh = versions['previous']['fresh']['median_session_seconds']
         fresh = versions['current']['fresh']['median_session_seconds']
-        lines.append(f'| {name} | {old:.3f} | {new:.3f} | {(new / old - 1) * 100:+.1f}% | {fresh:.3f} | {(new / fresh - 1) * 100:+.1f}% |')
+        lines.append(f'| {name} | {old:.3f} | {new:.3f} | {(new / old - 1) * 100:+.1f}% | {old_fresh:.3f} | {fresh:.3f} | {(new / fresh - 1) * 100:+.1f}% |')
     lines += ['', 'A negative change means less time. Positive overhead means saving still costs more than asking again.', '',
         '## Unchanged requests, CPU, memory and storage', '',
         'CPU below sums worker and child CPU across the three questions; it excludes copy, edit and cleanup CPU.',
@@ -86,6 +89,8 @@ def markdown(report):
             lines.append(f"| {name} / {version} | {value['median_reuse_seconds']:.3f} | {value['median_worker_cpu_seconds']:.3f} | {value['maximum_sampled_aggregate_rss_bytes'] / 1048576:.1f} | {value['median_final_saved_bytes'] / 1024:.1f} |")
     lines += ['', '## What this establishes', '',
         'The dedicated profile locates repeated hashing and also exposes the cost of flushing many small files to disk.',
+        'For example, the original glob answer contains 1,387 distinct stored pieces.',
+        'Each new file write waits for its bytes to reach disk before finishing. That storage cost remains after the hashing fix.',
         'Profile timings include profiler overhead and do not enter the timing tables above.',
         'The change preserves object contents, content addresses, verification and the existing resource limits.',
         'It adds no alternate reader, fallback or compatibility layer.', '',
