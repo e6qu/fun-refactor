@@ -172,6 +172,7 @@ Toolz, funcy and pydash are already familiar development examples.
 The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
 
 The [active check reports](../tests/agent-eval/current-scalar-reports.json) name each result and its file fingerprint explicitly.
+A file fingerprint is a short value computed from its contents, used to detect edits.
 For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
 A missing setting fails the check. Tests never select an older record automatically.
 Original collection receipts remain beside the recorded results.

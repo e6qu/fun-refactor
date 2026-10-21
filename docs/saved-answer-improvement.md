@@ -1,6 +1,6 @@
 # Spend less time reopening saved answers
 
-A user asks where `glob_with` appears and what indexed code its change could affect.
+A user asks where `glob_with` appears and what other code its change could affect.
 Python programs use the helper library, called the SDK, to call `fr` and keep saved answers.
 On reopening that unchanged question, the previous helpers repeatedly hashed the same saved contents.
 A content hash identifies a piece by its bytes. Parent pieces record the hashes of their children.
@@ -9,7 +9,9 @@ It still rejects missing, corrupted or cyclic data and returns independently edi
 
 The comparison uses the previous SDK from merged PR #553 and the changed SDK with the same release build of `fr`.
 Both answer the same questions on identical pinned glob, Boltons and JMESPath sources.
-Each route starts a fresh Python worker per question and keeps its own explicitly named native cache.
+glob matches file paths in Rust. Boltons supplies Python utility functions. JMESPath selects values from JSON documents.
+Every question starts a new Python process.
+A cache saves earlier results. Each route starts with an empty `fr` analysis cache and keeps it between questions.
 The saved route also stores its task plan and answer, validates dependencies before reuse, and repeats discovery after an edit.
 The task plan records which inputs an answer depends on, so edits can expire the answer.
 The fresh route asks `fr` again and retains no task plan or answer.
@@ -18,6 +20,7 @@ Each session contains first use, unchanged reuse and one edit, with three repeti
 SDK order alternates by project. Saved and fresh order alternates by repetition within each SDK.
 Each SDK finishes its three repetitions on a project before the other SDK starts that project.
 The edit replaces the selected name in one file through `fr file replace`; it checks invalidation rather than delivering a complete rename.
+For example, the glob trial replaces `glob_with` with `glob_with_cost_renamed`, then asks about the original name again.
 All 108 request answers agree between SDKs, and each saved answer agrees with its matching fresh check.
 
 ## Complete session time
@@ -32,14 +35,21 @@ Preparation and environment setup remain separate in the raw reports and recorde
 | jmespath | 4.420 | 2.952 | -33.2% | 0.932 | 0.928 | +218.0% |
 
 A negative change means less time. Positive overhead means saving still costs more than asking again.
+Percentages compare the median times in the table.
+Change compares current saved time with previous saved time. Overhead compares current saved time with current fresh time.
 
 ## Unchanged requests, CPU, memory and storage
 
+CPU time counts processor work in Python and the `fr` programs it starts. Elapsed time also includes waiting.
 CPU below sums worker and child CPU across the three questions; it excludes copy, edit and cleanup CPU.
+The worker samples CPU before its final report and answer writes.
+The raw GNU time values include those writes and round CPU to 0.01 seconds.
 The raw reports retain GNU time CPU, edit CPU and separate preparation measurements.
 Memory is the largest sampled total of resident memory across the worker and its child processes.
 This measure, RSS, counts memory present in RAM. Sampling can miss short peaks.
+Shared pages can count in more than one process.
 Stored bytes count file contents; directory and filesystem block allocation add unmeasured overhead.
+One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
 | Project / SDK | Saved reuse seconds | Saved request CPU seconds | Maximum memory MiB | Final saved KiB |
 |---|---:|---:|---:|---:|
