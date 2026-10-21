@@ -73,8 +73,10 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-batched-release-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/context.py"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -190,6 +192,7 @@
         "sdk/python/tests/test_flow_facts.py",
         "sdk/python/tests/test_flow_storage.py",
         "sdk/python/tests/test_investigation.py",
+        "sdk/python/tests/test_investigation_proofs.py",
         "sdk/python/tests/test_ir.py",
         "sdk/python/tests/test_runtime.py",
         "sdk/python/tests/test_saved_startup.py",
@@ -217,6 +220,7 @@
         "sdk/python/tests/test_flow_facts.py",
         "sdk/python/tests/test_flow_storage.py",
         "sdk/python/tests/test_investigation.py",
+        "sdk/python/tests/test_investigation_proofs.py",
         "sdk/python/tests/test_ir.py",
         "sdk/python/tests/test_runtime.py",
         "sdk/python/tests/test_saved_startup.py",
@@ -251,7 +255,8 @@
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-batched-answers-39599573585",
       "changed_sources": [
         ".github/workflows/saved-answer-improvement.yml",
-        "sdk/python/src/fr_ir/_version.py"
+        "sdk/python/src/fr_ir/_version.py",
+        "sdk/python/src/fr_ir/context.py"
       ],
       "freshness": "stale",
       "id": "current-saved-work-cost",
@@ -261,13 +266,13 @@
       "scope": "Matched complete sessions before and after batch storage on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-batched-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-21-batched-storage-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-batched-release-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-batched-storage-final-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
