@@ -29,8 +29,13 @@ def test_a_pack_uses_one_transaction_and_survives_reopening(tmp_path, monkeypatc
     saved = store_merkle_value(store, value)
     assert saved.objects > 200
     assert sum(sql.startswith("BEGIN IMMEDIATE") for sql in statements) == 1
-    assert statements.count("COMMIT") == 1
+    assert statements.count("BEGIN") == 1
+    assert statements.count("COMMIT") == 2
     assert "PRAGMA synchronous=EXTRA" in statements
+    statements.clear()
+    assert restore_stored_value(store, saved.digest) == value
+    assert statements.count("BEGIN") == 1
+    assert statements.count("COMMIT") == 1
     assert restore_stored_value(DirectoryObjectStore(store.root), saved.digest) == value
     assert [path.name for path in store.root.iterdir()] == ["objects.sqlite3"]
 

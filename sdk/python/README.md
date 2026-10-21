@@ -57,6 +57,13 @@ its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
 [context workspace](../../docs/agent-context-workspace.md) for bounded calls, selected packets,
 storage adapters and the reviewed session API.
 
+The directory store uses one SQLite database named `objects.sqlite3`.
+SQLite ships with Python and needs no separate server. Saving an answer commits its pieces
+together, with disk synchronization enabled. Start with an empty directory; existing stores
+must contain the current database format. Custom stores implement `read()` and
+`put_many(records)`. A read session yields a function that fetches a piece by its fingerprint.
+`records` maps content fingerprints to pieces in publication order.
+
 For a remote content-addressed endpoint that accepts `GET` and idempotent `PUT` at
 `<base>/<sha256>`, use the zero-dependency adapter. The application supplies authorization headers;
 the SDK bounds responses, refuses redirects, verifies every content address during restoration and
@@ -349,14 +356,14 @@ completion, invalidation, failure handling and the distinction between lifecycle
 Disclosure trees can be stored by content address:
 
 ```python
-from fr_ir.ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
+from fr_ir.context import store_merkle_value
+from fr_ir.ir import merkle_object_digest, restore_merkle_object
 
-pack = merkle_object_pack(project_evidence)
-for digest, record in pack["objects"].items():
-    object_store.put(digest, record)
+saved = store_merkle_value(object_store, project_evidence)
 
-restored = restore_merkle_object(pack["root"], object_store.get)
-assert merkle_object_digest(restored) == pack["root"]
+with object_store.read() as fetch:
+    restored = restore_merkle_object(saved.digest, fetch)
+assert merkle_object_digest(restored) == saved.digest
 ```
 
 The callback fetches only objects reachable from that root and each digest at most once, so a client

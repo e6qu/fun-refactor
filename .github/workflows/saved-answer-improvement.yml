@@ -24,6 +24,7 @@ on:
       - 'tools/profile-saved-answers.py'
       - 'tools/retain-saved-answer-comparison.py'
       - 'tests/agent-eval/saved-answer-improvement/**'
+      - 'tests/agent-eval/batched-answer-storage/**'
       - '.github/workflows/saved-answer-improvement.yml'
 permissions:
   contents: read
@@ -44,7 +45,7 @@ jobs:
       - run: python3 -m pip install 'pytest==9.1.1'
       - name: Check addresses, corruption rejection and verification work
         run: |
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_ir.py
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_ir.py sdk/python/tests/test_runtime.py
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_object_store.py
           python3 -B tools/test-saved-work-cost.py
           python3 -B tools/test-saved-answer-comparison.py
@@ -80,6 +81,26 @@ jobs:
         with:
           key: saved-work-cost-release
       - run: cargo build --locked --release --bin fr
+      - name: Check storage consumers with the compiled executable
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          mkdir -p target/debug
+          ln -sf ../release/fr target/debug/fr
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q \
+            sdk/python/tests/test_flow_storage.py sdk/python/tests/test_investigation.py \
+            sdk/python/tests/test_flow.py sdk/python/tests/test_flow_facts.py \
+            sdk/python/tests/test_compiler_evidence.py sdk/python/tests/test_semantic_evidence.py \
+            sdk/python/tests/test_correspondence.py
+      - name: Use fr to inspect the storage API it is helping improve
+        run: >-
+          target/release/fr --json -C sdk/python project find DirectoryObjectStore
+          --source --bytes 4096 --limit 16 --in src > "$RUNNER_TEMP/storage-api.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: saved-answer-api-review
+          path: ${{ runner.temp }}/storage-api.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Compare both SDKs with the same optimized native executable
         run: >-
           python3 -B tools/saved-answer-comparison.py
@@ -147,9 +168,48 @@ jobs:
           python3 -B - <<'PY'
           import hashlib, json, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/saved-answer-improvement/record.json').read_text())
+          record = json.loads(Path('tests/agent-eval/batched-answer-storage/record.json').read_text())
           directory = Path(record['directory'])
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
+          subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
+          PY
+  previous:
+    name: Earlier hashing comparison
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          sparse-checkout: |
+            tests/agent-eval/saved-answer-improvement
+            tests/agent-eval/results/2026-10-21-saved-answer-39561749625
+      - name: Preserve the earlier measurement identity
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-answer-improvement/record.json').read_text())
+          path = Path(record['directory']) / 'result.json'
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
+          Path(os.environ['RUNNER_TEMP'], 'earlier-cost-sha256').write_text(record['sha256'])
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: cc5e27808744516504c349c1bb7351800a0a271b
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the unchanged hashing comparison beside its measured SDK
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-answer-improvement/record.json').read_text())
+          directory = Path(record['directory'])
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'earlier-cost-sha256').read_text()
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
           PY
   publish:
@@ -183,7 +243,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/saved-answer-improvement.md tests/agent-eval/saved-answer-improvement \
+          git add docs/batched-answer-storage.md tests/agent-eval/batched-answer-storage \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
           git commit -m 'docs: publish saved answer costs and reconcile current evidence'
           git push origin "HEAD:refs/heads/$BRANCH"

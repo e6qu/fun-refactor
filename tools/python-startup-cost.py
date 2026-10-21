@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import copy
 import hashlib
 import json
@@ -99,11 +100,16 @@ class MeasuredStore:
         self.gets = self.puts = self.read_bytes = self.offered_bytes = 0
         self.seconds = 0.0
 
-    def get(self, key):
+    @contextmanager
+    def read(self):
+        with self.store.read() as fetch:
+            yield lambda key: self._get(fetch, key)
+
+    def _get(self, fetch, key):
         self.gets += 1
         started = time.perf_counter()
         try:
-            value = self.store.get(key)
+            value = fetch(key)
             if value is not None:
                 self.read_bytes += len(encode(value))
             return value

@@ -1,4 +1,5 @@
 import hashlib
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import subprocess
@@ -784,6 +785,10 @@ class TestRuntime:
             store.put_many({stored.digest: {"schema": "wrong"}})
 
         class DroppingStore:
+            @contextmanager
+            def read(self):
+                yield self.get
+
             def get(self, digest):
                 return None
 

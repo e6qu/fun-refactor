@@ -1,4 +1,5 @@
 import copy
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import subprocess
@@ -129,6 +130,10 @@ def test_fact_store_verifies_objects_and_keeps_stale_actions_stale(tmp_path):
     class Corrupt:
         def get(self, key):
             return {"kind": "scalar", "value": "forged"} if key == root else store.get(key)
+        @contextmanager
+        def read(self):
+            yield self.get
+
         def put_many(self, records):
             store.put_many(records)
 

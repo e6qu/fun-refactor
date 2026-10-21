@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import sqlite3
 import stat
-from typing import Any, Iterator, Mapping, Protocol
+from typing import Any, Callable, ContextManager, Iterator, Mapping, Protocol
 
 from .ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
 from .runtime import (
@@ -50,8 +50,8 @@ def _object_store_admitted(
 class ObjectStore(Protocol):
     """The two operations required from a Merkle object backend."""
 
-    def get(self, digest: str) -> Mapping[str, Any] | None:
-        """Return one record by content digest, or ``None`` when absent."""
+    def read(self) -> ContextManager[Callable[[str], Mapping[str, Any] | None]]:
+        """Open a read session and yield a fetch function; absent records return None."""
 
     def put_many(self, records: Mapping[str, Mapping[str, Any]]) -> None:
         """Store immutable records in iteration order; conflicting bytes fail."""
@@ -62,6 +62,10 @@ class MemoryObjectStore:
 
     def __init__(self) -> None:
         self._objects: dict[str, dict[str, Any]] = {}
+
+    @contextmanager
+    def read(self) -> Iterator[Callable[[str], Mapping[str, Any] | None]]:
+        yield self.get
 
     def get(self, digest: str) -> Mapping[str, Any] | None:
         value = self._objects.get(_checked_digest(digest))
@@ -108,9 +112,11 @@ class DirectoryObjectStore:
             raise FrRuntimeError("Merkle object store root must remain a real directory")
         for suffix in ("", "-journal", "-wal", "-shm"):
             path = Path(str(self.database) + suffix)
-            if path.is_symlink() or (path.exists() and (
-                not stat.S_ISREG(path.stat().st_mode) or path.stat().st_nlink != 1
-            )):
+            try:
+                status = path.lstat()
+            except FileNotFoundError:
+                continue
+            if not stat.S_ISREG(status.st_mode) or status.st_nlink != 1:
                 raise FrRuntimeError("Merkle object database is unsafe")
         try:
             connection = sqlite3.connect(
@@ -119,7 +125,8 @@ class DirectoryObjectStore:
             )
             try:
                 connection.execute("PRAGMA trusted_schema=OFF")
-                connection.execute("PRAGMA journal_mode=DELETE")
+                if connection.execute("PRAGMA journal_mode=DELETE").fetchone() != ("delete",):
+                    raise FrRuntimeError("Merkle object database requires a rollback journal")
                 connection.execute("PRAGMA synchronous=EXTRA")
                 with connection:
                     yield connection
@@ -139,13 +146,24 @@ class DirectoryObjectStore:
             raise FrRuntimeError("Merkle object record exceeds 1 MiB")
         return encoded
 
-    def get(self, digest: str) -> Mapping[str, Any] | None:
-        digest = _checked_digest(digest)
+    @contextmanager
+    def read(self) -> Iterator[Callable[[str], Mapping[str, Any] | None]]:
         with self._connection() as connection:
-            row = connection.execute(
-                "SELECT CASE WHEN length(record) <= ? THEN record ELSE NULL END FROM objects WHERE digest = ?",
-                (_RECORD_MAX_BYTES, digest),
-            ).fetchone()
+            connection.execute("PRAGMA query_only=ON")
+            connection.execute("BEGIN")
+            yield lambda digest: self._get(connection, digest)
+
+    def get(self, digest: str) -> Mapping[str, Any] | None:
+        with self.read() as fetch:
+            return fetch(digest)
+
+    @staticmethod
+    def _get(connection: sqlite3.Connection, digest: str) -> Mapping[str, Any] | None:
+        digest = _checked_digest(digest)
+        row = connection.execute(
+            "SELECT CASE WHEN length(record) <= ? THEN record ELSE NULL END FROM objects WHERE digest = ?",
+            (_RECORD_MAX_BYTES, digest),
+        ).fetchone()
         if row is None:
             return None
         if not isinstance(row[0], bytes):
@@ -216,23 +234,24 @@ def store_merkle_value(
     records_canonical = True
     ordered = {key: objects[key] for key in sorted(objects, key=lambda item: (item == digest, item))}
     store.put_many(ordered)
-    for key in ordered:
-        observed = store.get(key)
-        if not isinstance(observed, Mapping):
-            records_canonical = False
-            break
-        try:
-            observed_bytes = json.dumps(
-                observed, ensure_ascii=False, sort_keys=True,
-                separators=(",", ":"), allow_nan=False,
-            ).encode("utf-8")
-        except (TypeError, ValueError):
-            records_canonical = False
-            break
-        if observed_bytes != encoded[key]:
-            records_canonical = False
-            break
-    root_present = store.get(digest) is not None
+    with store.read() as fetch:
+        for key in ordered:
+            observed = fetch(key)
+            if not isinstance(observed, Mapping):
+                records_canonical = False
+                break
+            try:
+                observed_bytes = json.dumps(
+                    observed, ensure_ascii=False, sort_keys=True,
+                    separators=(",", ":"), allow_nan=False,
+                ).encode("utf-8")
+            except (TypeError, ValueError):
+                records_canonical = False
+                break
+            if observed_bytes != encoded[key]:
+                records_canonical = False
+                break
+        root_present = fetch(digest) is not None
     if not _object_store_admitted(
         len(objects), total, expected_digest is None or expected_digest == digest,
         records_canonical, root_present,
@@ -243,7 +262,8 @@ def store_merkle_value(
 
 def restore_stored_value(store: ObjectStore, digest: str) -> Any:
     """Restore a stored value while verifying every fetched object."""
-    return restore_merkle_object(_checked_digest(digest), store.get)
+    with store.read() as fetch:
+        return restore_merkle_object(_checked_digest(digest), fetch)
 
 
 class ContextSession:

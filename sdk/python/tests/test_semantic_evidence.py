@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 import subprocess
@@ -228,6 +229,10 @@ def test_retained_check_objects_reject_tampering(tmp_path):
     result = run_checks(plan, client, "verify", reviewed, store)
 
     class CorruptStore:
+        @contextmanager
+        def read(self):
+            yield self.get
+
         def get(self, key):
             if key == result.report_root:
                 return {"schema": "invented", "kind": "scalar", "value": True}

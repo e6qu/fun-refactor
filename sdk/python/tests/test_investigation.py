@@ -1,4 +1,5 @@
 from dataclasses import replace
+from contextlib import contextmanager
 from pathlib import Path
 import pytest
 
@@ -59,6 +60,10 @@ def test_tampered_plan_objects_cannot_restore():
     digest = plan.store(store)
 
     class CorruptStore:
+        @contextmanager
+        def read(self):
+            yield self.get
+
         def get(self, key):
             if key == digest:
                 return {"schema": "invented", "kind": "scalar", "value": True}

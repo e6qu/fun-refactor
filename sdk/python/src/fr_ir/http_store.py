@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from http.client import HTTPMessage
 import re
-from typing import Any, IO, Mapping
+from typing import Any, Callable, IO, Iterator, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -64,6 +65,10 @@ class HttpObjectStore:
 
     def _url(self, digest: str) -> str:
         return f"{self.base_url}/{_checked_digest(digest)}"
+
+    @contextmanager
+    def read(self) -> Iterator[Callable[[str], Mapping[str, Any] | None]]:
+        yield self.get
 
     def get(self, digest: str) -> Mapping[str, Any] | None:
         request = Request(self._url(digest), headers=self.headers, method="GET")
