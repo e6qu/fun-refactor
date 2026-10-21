@@ -4,6 +4,23 @@ Use this list to see what shipped in each release. A release label identifies a 
 For example, a fix about imported values applies only to the supported cases described in the [Python guide](docs/python-contract.md).
 An entry's technical shorthand is historical release wording. Read the [tutorial](TUTORIAL.md) for a first use and the [current status](docs/roadmap-status.md) for remaining work.
 
+## [0.79.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.78.1...fun-refactor-v0.79.0) (2026-10-21)
+
+
+### Features
+
+* deliver real project changes and keep saved findings current ([dc8836a](https://github.com/e6qu/fun-refactor/commit/dc8836a957c9c021fdd8fc2f7907df76760f0fd0))
+
+
+### Performance
+
+* avoid repeatedly hashing saved answers ([cc5e278](https://github.com/e6qu/fun-refactor/commit/cc5e27808744516504c349c1bb7351800a0a271b))
+
+
+### Tests
+
+* measure the cost of resuming work on real projects ([c431636](https://github.com/e6qu/fun-refactor/commit/c431636b9b9203f5a08aa682e0a1530b22850ad9))
+
 ## [0.78.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.78.0...fun-refactor-v0.78.1) (2026-10-20)
 
 
