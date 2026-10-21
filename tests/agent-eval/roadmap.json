@@ -54,12 +54,12 @@
       "sha256": "9fb7fb7fc8d60a211029afd9804403d6012f13d928bc28aba31c5a5dfedeb90b"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
+      "audit": "python3 -B tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-20-project-ci-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "17570533cb3360d8bc14aef0d88976837e91661469008ec2e44e2224b2db279c"
+      "sha256": "3a62374ac2fe8e40bfd94e121f37ee1ba82fb03a8ae239f2a0c39bcc451056e1"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json",
@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-inventory-ci-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-21-saved-answer-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-21-inventory-ci-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "961d263a9c415bc9cb4dd96d5ff215bcab3ad26589a5c9302540499ce1d81aa0"
+      "sha256": "e0a24fdce66f20ce9c4f6f939f4d648552d206ad55d7427ab7736aafeec8805b"
     },
     {
       "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
@@ -156,6 +156,14 @@
       "path": "tests/agent-eval/results/2026-10-21-saved-answer-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
       "sha256": "79a8bc8f945a2c6d0303bc7adf9b91a3cc1d6da44d577b3d05b7a93917fadc39"
+    },
+    {
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-saved-answer-39561749625",
+      "id": "current-saved-work-cost",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-10-21-saved-answer-39561749625/result.json",
+      "scope": "Matched previous and current SDK sessions on three familiar projects; original first JMESPath qualification remains separate. Full session costs, fresh baselines and answer agreement.",
+      "sha256": "8873c0eb938d07be3e0cfa884452ee3543e763a72a1f66931d45aa8be8d1ed95"
     }
   ],
   "obligations": [
@@ -439,7 +447,7 @@
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Use the measured setup, validation and repeated discovery costs to choose an improvement. Compare complete sessions on identical files and questions. Keep full agent-task savings separate.",
+      "next": "Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.",
       "requires": [
         {
           "assertions": [
@@ -461,10 +469,22 @@
             },
             {
               "equals": true,
-              "pointer": "/reserved/first_evaluation"
+              "pointer": "/all_projects_familiar"
+            },
+            {
+              "equals": false,
+              "pointer": "/new_unread_claim"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/qualified"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/first_evaluation"
             }
           ],
-          "evidence": "saved-work-cost"
+          "evidence": "current-saved-work-cost"
         }
       ],
       "title": "Measure useful work, memory and disk at project scale"
