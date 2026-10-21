@@ -25,6 +25,7 @@ on:
       - 'tools/retain-saved-answer-comparison.py'
       - 'tests/agent-eval/saved-answer-improvement/**'
       - 'tests/agent-eval/batched-answer-storage/**'
+      - 'tests/agent-eval/batched-answer-storage-release/**'
       - '.github/workflows/saved-answer-improvement.yml'
 permissions:
   contents: read
