@@ -1,0 +1,15 @@
+{
+  "run_id": 39528768739,
+  "source_commit": "ff2e5cef02816757ed641ba07ab3fcae73830e18",
+  "url": "https://github.com/e6qu/fun-refactor/actions/runs/39528768739",
+  "artifact_id": 12314719788,
+  "artifact": "39528768739.zip",
+  "artifact_name": "saved-work-reserved",
+  "artifact_bytes": 3883451,
+  "artifact_digest": "sha256:21b3da735ae0c9cc4d13614736619c5e73a6463289a2a657337ce95c95ff0f28",
+  "outcome": "both familiar projects passed; reserved preflight stopped before writing reserved.json or downloading JMESPath",
+  "cause": "GitHub populated started_at for a queued job later cancelled. The history check mistook that timestamp for opening reserved source.",
+  "fix": "Check the executed collection step and authenticate its retained source-opening marker. A queued job timestamp does not prove any source was read.",
+  "reserved_project_opened": false,
+  "limits_changed": false
+}

@@ -72,6 +72,7 @@ if [ "$slice" = study ]; then
     python3 -B tools/test-python-startup.py
     python3 -B tools/test-python-startup-cost.py
     python3 -B tools/test-python-process-cost.py
+    python3 -B tools/test-saved-work-cost.py
     python3 -B tools/test-python-together-cost.py
     python3 -B tools/test-frozen-python-cost.py
     python3 -B tools/frozen-python-cost.py --source "${FR_PYTHON_COST_SOURCE:?provide the original source checkout}"

@@ -91,6 +91,11 @@ These measurements concern the tool reading code. Measuring translated-program o
 
 ## Faster parts can still make the whole operation slower
 
+The [real-project saved-work comparison](saved-work-cost-results.md) asks the same questions on glob, Boltons and JMESPath.
+It separates first use, unchanged reuse and a single-file edit, with three repetitions on each project.
+Both approaches retain their own native project cache. The saved approach also validates and stores answers.
+Read the complete three-question totals alongside the reuse times. Source preparation, memory, storage and the full submitted program remain visible.
+
 The [cache measurements](evaluations.md#fixed-point-and-reuse-acceptance) include storage and validation costs.
 Read each report's actual baseline before interpreting a warm-run improvement.
 **Cold** means the relevant saved result is unavailable; **warm** means an earlier result is available for reuse.

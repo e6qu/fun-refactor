@@ -1,0 +1,31 @@
+Familiar projects	Freeze the procedure and measure the two familiar projects	﻿2026-10-21T01:38:38.4176565Z ##[group]Run python3 -B tools/saved-work-cost.py --collect development --fr target/release/fr --output "$RUNNER_TEMP/saved-work"
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4177535Z ^[[36;1mpython3 -B tools/saved-work-cost.py --collect development --fr target/release/fr --output "$RUNNER_TEMP/saved-work"^[[0m
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4240888Z shell: /usr/bin/bash -e {0}
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4241502Z env:
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4241721Z   CARGO_BUILD_JOBS: 2
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4241963Z   CARGO_INCREMENTAL: 0
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4242210Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4242483Z   RUSTFLAGS: -D warnings
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4242730Z   RUSTUP_TOOLCHAIN: 1.99.1
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4243055Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.8/x64
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4243524Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib/pkgconfig
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4243981Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4244394Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4244838Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.8/x64
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4245243Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.8/x64/lib
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:38.4245596Z ##[endgroup]
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9116344Z Traceback (most recent call last):
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9134105Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 472, in <module>
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9134969Z     collect(args)
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9135291Z     ~~~~~~~^^^^^^
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9136020Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 438, in collect
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9136936Z     value = collect_project(task, args.output / task['id'], binary, tasks)
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9137920Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 168, in collect_project
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9138914Z     require(value['source_files'] == (changed_files if stage == 'edit' else source_files),
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9139622Z     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9140173Z         'question changed project source')
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9140599Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9141535Z   File "/home/runner/work/fun-refactor/fun-refactor/tools/saved-work-cost.py", line 44, in require
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9142331Z     raise ValueError(message)
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9142775Z ValueError: question changed project source
+Familiar projects	Freeze the procedure and measure the two familiar projects	2026-10-21T01:38:43.9320398Z ##[error]Process completed with exit code 1.

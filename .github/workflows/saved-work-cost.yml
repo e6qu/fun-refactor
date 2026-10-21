@@ -1,0 +1,171 @@
+name: Cost of continuing saved work
+# Authenticate retained opening markers through gh; keep existing limits.
+on:
+  push:
+    branches: [feat/saved-work-cost]
+    paths: [.github/workflows/saved-work-cost.yml]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/saved-work-*.py'
+      - 'tools/test-saved-work-cost.py'
+      - 'tests/agent-eval/saved-work-cost/**'
+      - '.github/workflows/saved-work-cost.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: saved-work-cost-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_RELEASE_DEBUG: '0'
+  RUSTFLAGS: '-D warnings'
+  RUSTUP_TOOLCHAIN: '1.99.1'
+jobs:
+  controls:
+    name: Reject incomplete cost comparisons
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-saved-work-cost.py
+  build:
+    if: github.event_name != 'pull_request'
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: saved-work-cost-release
+      - run: cargo build --locked --release --bin fr
+      - run: |
+          git rev-parse HEAD > target/release/source.txt
+          cd target/release
+          sha256sum fr > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: saved-work-binary
+          path: |
+            target/release/fr
+            target/release/source.txt
+            target/release/SHA256SUMS
+          retention-days: 7
+          if-no-files-found: error
+  development:
+    name: Familiar projects
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: actions/download-artifact@v8
+        with:
+          name: saved-work-binary
+          path: target/release
+      - run: |
+          chmod +x target/release/fr
+          test "$(cat target/release/source.txt)" = "$GITHUB_SHA"
+          cd target/release
+          sha256sum --check SHA256SUMS
+      - name: Freeze the procedure and measure the two familiar projects
+        run: >-
+          python3 -B tools/saved-work-cost.py --collect development
+          --fr target/release/fr --output "$RUNNER_TEMP/saved-work"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: saved-work-development
+          path: ${{ runner.temp }}/saved-work/
+          retention-days: 30
+          if-no-files-found: error
+  reserved:
+    name: Reserved project
+    needs: [build, development]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: actions/download-artifact@v8
+        with:
+          name: saved-work-binary
+          path: target/release
+      - uses: actions/download-artifact@v8
+        with:
+          name: saved-work-development
+          path: ${{ runner.temp }}/saved-work
+      - run: |
+          chmod +x target/release/fr
+          test "$(cat target/release/source.txt)" = "$GITHUB_SHA"
+          cd target/release
+          sha256sum --check SHA256SUMS
+      - name: Evaluate the reserved project without changing the frozen procedure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B tools/saved-work-cost.py --collect reserved
+          --fr target/release/fr --output "$RUNNER_TEMP/saved-work"
+      - name: Retain the audited record
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          destination="tests/agent-eval/results/2026-10-21-saved-work-$GITHUB_RUN_ID"
+          test ! -e "$destination"
+          cp -R "$RUNNER_TEMP/saved-work-retained" "$destination"
+          python3 -B tools/saved-work-cost.py --audit "$destination"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$destination"
+          git commit -m 'test: retain saved and fresh project cost measurements'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: saved-work-reserved
+          path: |
+            ${{ runner.temp }}/saved-work/
+            ${{ runner.temp }}/saved-work-retained/
+          retention-days: 30
+          if-no-files-found: error
+  audit:
+    name: Audit retained project cost measurements
+    if: github.event_name == 'pull_request'
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the declared original measurement
+        run: |
+          python3 -B - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/saved-work-cost/record.json').read_text())
+          subprocess.run(['python3', '-B', 'tools/saved-work-cost.py', '--audit', record['directory']], check=True)
+          PY

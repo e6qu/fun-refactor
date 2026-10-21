@@ -41,6 +41,7 @@ KINDS = {
     'fr-original-package-questions': 'deterministic',
     'fr-project-changes': 'deterministic',
     'fr-project-changes-recheck': 'deterministic',
+    'fr-saved-work-cost': 'measurement',
     'fr-rechecked-package-questions': 'deterministic',
 }
 
@@ -196,6 +197,9 @@ def markdown(report):
     project_done = project_requirements == {
         gate['id'] for gate in report['obligations']
         if gate['id'] in project_requirements and gate['state'] == 'demonstrated'}
+    cost_done = any(gate['id'] == 'C.performance' and gate['state'] == 'demonstrated'
+        for gate in report['obligations'])
+    resuming_remaining = 'Measure the cost of resuming work at project scale'
     if project_done:
         resumed_work = 'Saved answers match fresh checks through seven changes on three projects'
         delivered_changes = 'Real Rust and Python renames, including behavior checks, undo and patch replay'
@@ -205,6 +209,14 @@ def markdown(report):
             'Next, measure the cost of continuing a saved task against asking the same questions from scratch on the same changed files. '
             'Count setup, input checking, analysis, memory, disk and text returned. '
             'Measure broader agent savings and proofs through their separate requirements.')
+        if cost_done:
+            resuming_remaining = 'Use the measured costs to choose an improvement; measure complete agent tasks separately'
+            next_work = (
+                'The project-change checks and [saved-work cost comparison](saved-work-cost-results.md) have matching records. '
+                'The comparison repeats the same questions on three projects before and after one source edit. '
+                'It counts setup, checking, memory, storage and submitted text. '
+                'Use those results to choose an improvement and compare its complete session cost. '
+                'Broader agent savings and proofs remain separate requirements.')
     else:
         resumed_work = 'Saved changes, undo, checks and recovery tests'
         delivered_changes = 'Reviewed edits, behavior checks and small supported proofs'
@@ -232,7 +244,7 @@ def markdown(report):
         '| User task | What we have now | What remains |', '|---|---|---|',
         '| Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |',
         '| Trace input to an output | Selected original-package questions in Boltons, dateutil and JDcal, plus small Python examples | Other imports and unsupported behavior still leave many answers incomplete |',
-        f'| Continue after a failed attempt | {resumed_work} | Measure the cost of resuming work at project scale |',
+        f'| Continue after a failed attempt | {resumed_work} | {resuming_remaining} |',
         f'| Deliver a repair or check a property | {delivered_changes} | Independent agent task success and a checked connection between proofs and actual code |', '',
         '**We have not demonstrated general time or cost savings.** The older two-task comparison '
         'used more calls, reading and time with fr than with ordinary file tools. The recent Python repository scripts apply '

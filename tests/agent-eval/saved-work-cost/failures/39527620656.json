@@ -1,0 +1,15 @@
+{
+  "run_id": 39527620656,
+  "source_commit": "7f66b4c6592911b8cf925f66ea6c65f53dd7268c",
+  "url": "https://github.com/e6qu/fun-refactor/actions/runs/39527620656",
+  "artifact_id": 12313414790,
+  "artifact": "39527620656.zip",
+  "artifact_name": "saved-work-development",
+  "artifact_bytes": 143837,
+  "artifact_digest": "sha256:b6c62336ba90b0abb5fb8a3f6311120303bbca856b392325c19a5a35e947269c",
+  "outcome": "failed during glob post-edit source inventory checking",
+  "cause": "fr file replace creates .fr-history. The original measurement counted that generated undo history as source and omitted it from native state storage.",
+  "fix": "Exclude only the two known native state folders, .fr and .fr-history, from source identity. Count both folders in native state storage. Retain other hidden source files.",
+  "reserved_project_opened": false,
+  "limits_changed": false
+}
