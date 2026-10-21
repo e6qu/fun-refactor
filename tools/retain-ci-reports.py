@@ -137,6 +137,8 @@ def main():
             entry.update(path=directory + '/result.json', sha256=receipts[group]['sha256'],
                          audit='python3 -B tools/' + SCRIPTS[group] + '.py --audit ' +
                          (directory if group == 'python-repositories' else directory + '/result.json'))
+    if receipts.keys() & {'package-flow', 'python-repositories'}:
+        catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
     if 'host-recovery' in receipts:
         entry, = [row for row in catalog['evidence'] if row['id'] == 'host-recovery']
         entry['path'] = f'tests/agent-eval/results/{args.prefix}-host-recovery/result.json'
