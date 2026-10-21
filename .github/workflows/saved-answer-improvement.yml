@@ -5,7 +5,8 @@ on:
     paths: [.github/workflows/saved-answer-improvement.yml]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
+  actions: read
 concurrency:
   group: saved-answer-improvement-${{ github.ref }}
   cancel-in-progress: false
@@ -18,6 +19,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - name: Check addresses, corruption rejection and verification work
+        run: |
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_ir.py
+          python3 -B tools/test-saved-answer-comparison.py
       - name: Profile the retained real answers without native rebuilds
         run: python3 -B tools/profile-saved-answers.py --output "$RUNNER_TEMP/saved-answer-profile.json"
       - uses: actions/upload-artifact@v7
@@ -25,5 +31,52 @@ jobs:
         with:
           name: saved-answer-profile
           path: ${{ runner.temp }}/saved-answer-profile.json
+          if-no-files-found: error
+          retention-days: 30
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: profile
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: saved-work-cost-release
+      - run: cargo build --locked --release --bin fr
+      - name: Compare both SDKs with the same optimized native executable
+        run: >-
+          python3 -B tools/saved-answer-comparison.py
+          --collect "$RUNNER_TEMP/answer-comparison" --fr target/release/fr
+      - name: Retain both complete measurements after auditing them
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          destination="tests/agent-eval/results/2026-10-21-saved-answer-$GITHUB_RUN_ID"
+          test ! -e "$destination"
+          cp -R "$RUNNER_TEMP/answer-comparison" "$destination"
+          python3 -B tools/saved-answer-comparison.py --audit "$destination"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$destination"
+          git commit -m 'test: retain matched project sessions for saved answer improvements'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: saved-answer-comparison
+          path: ${{ runner.temp }}/answer-comparison
           if-no-files-found: error
           retention-days: 30

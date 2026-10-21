@@ -2,6 +2,7 @@ import inspect
 import hashlib
 import json
 import re
+from unittest.mock import patch
 
 from fr_ir.ir import (
     CHANGE_SCHEMA,
@@ -301,6 +302,69 @@ class TestIr:
                     "children": [cycle],
                 }
             })
+
+    def test_merkle_pack_and_restore_preserve_addresses_for_json_shapes(self):
+        values = [None, True, False, 0, -17, 1.5, 1e-5, 1e20, "雪", [], {},
+                  [None, False, 0, ""], {"雪": [], "a": {"nested": [1, 2, 3]}}]
+        for value in values:
+            expected = merkle_object_digest(value)
+            pack = merkle_object_pack(value)
+            assert pack["root"] == expected
+            assert restore_merkle_object(expected, pack["objects"]) == value
+            for digest, record in pack["objects"].items():
+                assert merkle_object_digest(restore_merkle_object(digest, pack["objects"])) == digest
+                assert record["schema"] == "fr-merkle-object-1"
+
+    def test_merkle_packing_hash_work_grows_with_input_size(self):
+        from fr_ir import ir
+        value = "leaf"
+        for _ in range(64):
+            value = [value]
+        expected = merkle_object_digest(value)
+        with patch.object(ir, "_tagged_hash", wraps=ir._tagged_hash) as hashed:
+            pack = merkle_object_pack(value)
+        assert pack["root"] == expected
+        assert hashed.call_count < 4 * 65
+
+    def test_merkle_restore_verifies_shared_records_once_without_sharing_mutations(self):
+        from fr_ir import ir
+        value = {"items": [1, {"name": "original"}]}
+        for _ in range(8):
+            value = [value, value]
+        pack = merkle_object_pack(value)
+        with patch.object(ir, "_tagged_hash", wraps=ir._tagged_hash) as hashed:
+            restored = restore_merkle_object(pack["root"], pack["objects"])
+        assert restored == value
+        assert hashed.call_count < 8 * len(pack["objects"])
+        leaf = restored
+        for _ in range(8):
+            leaf = leaf[0]
+        leaf["items"][1]["name"] = "changed"
+        other = restored[1]
+        for _ in range(7):
+            other = other[0]
+        assert other["items"][1]["name"] == "original"
+        assert value[0][0][0][0][0][0][0][0]["items"][1]["name"] == "original"
+
+    def test_merkle_restore_rejects_valid_children_under_the_wrong_parent(self):
+        pack = merkle_object_pack({"left": [1], "right": [2]})
+        record = pack["objects"][pack["root"]]
+        record["entries"][0][1] = record["entries"][1][1]
+        with pytest.raises(IrError, match="content verification"):
+            restore_merkle_object(pack["root"], pack["objects"])
+
+    def test_merkle_restore_rejects_noncanonical_record_shapes(self):
+        pack = merkle_object_pack([1])
+        objects = pack["objects"]
+        root = pack["root"]
+        objects[root]["unused"] = True
+        with pytest.raises(IrError, match="unsupported shape"):
+            restore_merkle_object(root, objects)
+        with pytest.raises(IrError, match="non-scalar"):
+            restore_merkle_object(root, {root: {
+                "schema": "fr-merkle-object-1", "kind": "scalar", "value": [1]}})
+        with pytest.raises(IrError, match="keys must be strings"):
+            merkle_object_pack({1: "not a JSON object key"})
 
     def test_disclosure_proofs_reconstruct_the_root_and_reject_tampering(self):
         leaf = {"name": "run", "kind": "function"}
