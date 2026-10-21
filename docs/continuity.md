@@ -70,11 +70,13 @@ Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than ask
 The database uses more stored bytes, so preserve that tradeoff in further comparisons.
 The [distinct-piece follow-up](distinct-answer-hashing.md) hashes equal answer pieces once within each operation.
 For example, the glob answer contains 1,387 distinct pieces across 11,210 visits. The new lookup ends after the operation, so later edits still change fingerprints.
-Complete saved sessions take about 3% to 9% less time than PR #555 across three trials per project after release integration.
-They still cost about 4% to 28% more than asking again. Stored bytes match within this comparison.
-The largest sampled memory total for glob rose from 49.9 to 58.1 MiB. Memory samples establish no general saving.
+The memory review found hashing and restore helpers keeping themselves and temporary answer data alive after returning.
+Both now release those references at the end of each call. Three checks prove release even when Python's automatic memory cleanup is disabled.
+The final three-trial comparison finds about 8% to 9% less complete saved-session time for glob and JMESPath than PR #555.
+Boltons takes 0.4% more time. Saved sessions still cost about 5% to 26% more than asking again.
+Stored bytes match within this comparison. The largest memory samples for glob and JMESPath are higher; these results establish no general memory saving.
 The next useful comparison should keep the Python helper running across a complete project session.
-Count the first start, input checks, edits, renewed analysis and final shutdown in both saved and fresh approaches.
+Count the first start, input checks, edits, renewed analysis, memory growth and final shutdown in both saved and fresh approaches.
 The earlier [process study](python-process-cost-results.md) suggests a reason to try this, but its small helper examples do not establish project-scale savings.
 Keep the stopped live-agent studies separate.
 Broader agent-cost trials, translation and proofs connected to source code remain separate work.
