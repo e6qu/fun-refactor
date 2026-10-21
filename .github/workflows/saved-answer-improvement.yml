@@ -27,6 +27,7 @@ on:
       - 'tests/agent-eval/batched-answer-storage/**'
       - 'tests/agent-eval/batched-answer-storage-release/**'
       - 'tests/agent-eval/distinct-answer-hashing/**'
+      - 'tests/agent-eval/distinct-answer-hashing-release/**'
       - '.github/workflows/saved-answer-improvement.yml'
 permissions:
   contents: read
@@ -170,7 +171,7 @@ jobs:
           python3 -B - <<'PY'
           import hashlib, json, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing/record.json').read_text())
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-release/record.json').read_text())
           directory = Path(record['directory'])
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
@@ -253,6 +254,45 @@ jobs:
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'storage-cost-sha256').read_text()
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
           PY
+  first:
+    name: First distinct-piece comparison
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          sparse-checkout: |
+            tests/agent-eval/distinct-answer-hashing
+            tests/agent-eval/results/2026-10-21-distinct-answers-39664831023
+      - name: Preserve the first distinct-piece measurement identity
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing/record.json').read_text())
+          path = Path(record['directory']) / 'result.json'
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
+          Path(os.environ['RUNNER_TEMP'], 'distinct-cost-sha256').write_text(record['sha256'])
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: 366852a58507306ff528bd8a6e95f49aec4ead12
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the first distinct-piece comparison beside its measured SDK
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing/record.json').read_text())
+          directory = Path(record['directory'])
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'distinct-cost-sha256').read_text()
+          subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
+          PY
   publish:
     if: inputs.phase == 'publish'
     runs-on: ubuntu-latest
@@ -284,7 +324,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/distinct-answer-hashing.md tests/agent-eval/distinct-answer-hashing \
+          git add docs/distinct-answer-hashing.md tests/agent-eval/distinct-answer-hashing-release \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
           git commit -m 'docs: publish saved answer costs and reconcile current evidence'
           git push origin "HEAD:refs/heads/$BRANCH"

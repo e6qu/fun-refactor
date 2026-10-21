@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('comparison', ROOT / 'tools/saved-
 comparison = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(comparison)
 cost = comparison.cost
-DIRECTORY = ROOT / 'tests/agent-eval/distinct-answer-hashing'
+DIRECTORY = ROOT / 'tests/agent-eval/distinct-answer-hashing-release'
 BEFORE_RUN = 39612376706
 BEFORE_SOURCE = '3e4649c2286b801cf2ab0f9cd65d51a8cfd0c3f8'
 
@@ -126,8 +126,9 @@ def markdown(report):
         'These scripted requests establish no general agent, model-token or billing savings.',
         'All projects are familiar. The original first JMESPath result remains unchanged and separately audited.',
         'The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.', '',
-        '[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing/record.json) | '
-        '[Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing/publication.json) | '
+        '[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-release/record.json) | '
+        '[Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-release/publication.json) | '
+        '[First distinct-piece comparison](distinct-answer-hashing-first-results.md) | '
         '[Previous storage comparison](batched-answer-storage.md) | '
         '[Earlier hashing comparison](saved-answer-improvement.md)', '']
     return '\n'.join(lines)
@@ -182,7 +183,7 @@ def main():
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
-    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-batched-answers-39612376706/result.json',
+    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-distinct-answers-39664831023/result.json',
                  'review the previous current cost record before replacing its selection')
     entry.update(path=pointer['directory'] + '/result.json', sha256=pointer['sha256'],
                  audit='python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],
