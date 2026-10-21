@@ -1,6 +1,6 @@
 {
   "question": "Find declarations with the requested name and show their bounded indexed change scopes. Preserve missing, ambiguous and unfinished answers.",
-  "baseline": "Run the same fr discovery again, keeping the native project cache between requests but retaining no saved answer or task plan.",
+  "baseline": "Run the same fr discovery again, keeping its explicit native project cache between requests but retaining no saved answer or task plan. Every condition and repetition starts with a separate empty project/.fr/cost-cache. RAYON_NUM_THREADS=1 and PYTHONHASHSEED=0.",
   "saved": "Create and store a task plan and answer. Reopen and validate its workspace, lookup and analyzer dependencies before reuse. Repeat discovery when invalidated.",
   "projects": [
     {"id": "glob", "repository": "rust-lang/glob", "revision": "057cef2824f5a96f738e52d7d8ca3e024381bcc6", "role": "development", "name": "glob_with", "edit_path": "src/lib.rs"},

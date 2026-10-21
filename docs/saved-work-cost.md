@@ -13,6 +13,8 @@ Both approaches use the same optimized `fr` program and Python SDK.
 The SDK lets a Python program ask `fr` questions and read its replies.
 Both approaches retain the native project cache between questions.
 That cache contains work that `fr` can reuse when it reads a project again.
+Each approach starts with an empty, separate cache inside its workspace.
+The cache path is explicit. One approach cannot populate the other approach's cache.
 
 The fresh approach repeats discovery. It keeps no previous answer or saved task.
 The saved approach stores the answer and its task plan.

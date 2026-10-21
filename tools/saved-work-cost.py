@@ -109,7 +109,8 @@ def measured(command, output, workspace, limits):
             wall_seconds=limits['wall_seconds'], cpu_limit_seconds=limits['cpu_seconds'],
             rss_bytes=limits['rss_bytes'], disk_bytes=limits['disk_bytes'],
             transcript_bytes=limits['transcript_bytes'], cwd=ROOT,
-            env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
+            env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0',
+                'RAYON_NUM_THREADS': '1', 'FUN_REFACTOR_CACHE': str(workspace / 'project/.fr/cost-cache')})
     save(output / 'process.json', {'argv': command, 'measurement': result})
     require(result['stop_reason'] is None and result['exit_code'] == 0, 'measured process failed: ' + str(output))
     cpu = sum(float(value) for value in (output / 'cpu.txt').read_text().split())
@@ -161,6 +162,7 @@ def collect_project(task, output, binary, tasks):
                     destination = session / stage
                     command = [sys.executable, '-B', str(WORKER), '--project', str(project), '--fr', str(binary),
                         '--request', str(output / 'request.json'), '--state', str(state),
+                        '--cache', str(project / '.fr/cost-cache'),
                         '--output', str(destination), '--condition', condition, '--stage', stage]
                     process, cpu = measured(command, destination, workspace, tasks['limits'])
                     value = json.loads((destination / 'result.json').read_text())
@@ -413,6 +415,8 @@ def collect(args):
         save(args.output / 'freeze.json', {'source_commit': os.environ['GITHUB_SHA'], 'source_bindings': before,
             'binary_sha256': file_digest(binary), 'run_id': int(os.environ['GITHUB_RUN_ID']),
             'environment': {'build': BUILD, 'python': platform.python_version(), 'platform': platform.platform(),
+                'cache': 'Explicit per-condition project/.fr/cost-cache; initially empty',
+                'RAYON_NUM_THREADS': '1', 'PYTHONHASHSEED': '0',
                 'rustc': subprocess.check_output(['rustc', '--version'], text=True).strip()}})
     else:
         freeze = json.loads((args.output / 'freeze.json').read_text())

@@ -3,6 +3,7 @@ import argparse
 from dataclasses import replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import resource
 import sys
@@ -80,6 +81,7 @@ def satisfy(plan, client, reference):
 
 
 def measure(args):
+    os.environ['FUN_REFACTOR_CACHE'] = str(args.cache)
     request = json.loads(args.request.read_text())
     client = MeasuredClient(args.project, args.fr, args.output)
     objects = args.state / 'objects'
@@ -139,6 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--request', type=Path, required=True)
     parser.add_argument('--state', type=Path, required=True)
+    parser.add_argument('--cache', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--condition', choices=('saved', 'fresh'), required=True)
     parser.add_argument('--stage', choices=('first', 'reuse', 'edit'), required=True)
