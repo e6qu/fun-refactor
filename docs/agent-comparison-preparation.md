@@ -93,6 +93,8 @@ list skills, run a declared command and call the configured MCP tool without req
 Its explicit command uses the existing container as the sandbox; this does not test an autonomous model turn.
 All application, provider and background tool processes share the existing container resource limits and cleanup check.
 The rehearsal explicitly limits Tokio and libuv worker pools to one thread each.
+Each application and its children are also restricted to one available CPU, under the unchanged half-core time allowance.
+The time allowance alone leaves the runner's other cores visible, which can cause oversized worker pools.
 Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
 OpenCode receives a fixed session title to avoid a separate title-generation request.
 

@@ -39,7 +39,8 @@ Saving and validating answers still cost more than asking again. These results d
 The [comparison preparation](docs/agent-comparison-preparation.md) defines eighteen first attempts.
 Its controls exercise the real applications in all nine tool setups, retain their configurations and prompts, and check complete background-process shutdown.
 Task controls must reject unchanged and incomplete code, accept the reference repair and replay its patch independently. These controls use no live models.
-Next: rehearse both complete task phases and the interruption between them, then agree live models, offered tools, credentials, prices and full-attempt limits before paying for attempts.
+Next: rehearse both complete task phases and the interruption between them.
+Then agree live models, offered tools, credentials, prices and full-attempt limits before paying for attempts.
 
 - Keep one portable skill with explicit setup for Claude Code, Codex and OpenCode.
   Check discovery in clean sessions and record actual tool use separately from scripted integration controls.

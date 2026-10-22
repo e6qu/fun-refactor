@@ -47,6 +47,9 @@ class NativeInputs(unittest.TestCase):
             self.assertEqual(claude[claude.index("--setting-sources") + 1], "project")
             opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"))
             self.assertEqual(opencode[opencode.index("--title") + 1], "Scripted native tool control")
+            config = clients.native_config("opencode", setup, "http://127.0.0.1:1234")
+            self.assertEqual(config["permission"]["bash"], "allow")
+            self.assertEqual(native.call_for("opencode", "files")[0], "bash")
 
     def test_editing_one_returned_config_cannot_change_later_worker_limits(self):
         graph = clients.native_config("claude", "codegraph", "http://127.0.0.1:1234")

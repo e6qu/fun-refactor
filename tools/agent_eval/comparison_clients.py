@@ -40,7 +40,7 @@ def native_config(host, setup, endpoint):
                     "startup_timeout_sec": 10, "tool_timeout_sec": 30,
                     "enabled_tools": ["codegraph_explore"], "default_tools_approval_mode": "auto"}} if setup == "codegraph" else {}}
     permission = {"*": "deny", "read": "allow", "glob": "allow", "grep": "allow",
-                  "list": "allow", "edit": "allow", "shell": "allow", "skill": "allow"}
+                  "list": "allow", "edit": "allow", "bash": "allow", "skill": "allow"}
     if setup == "codegraph":
         permission["codegraph_codegraph_explore"] = "allow"
     return {"model": "rehearsal/" + MODEL, "small_model": "rehearsal/" + MODEL,
@@ -86,7 +86,7 @@ def launch_command(host, setup, config):
 def inputs(root):
     root = Path(root)
     tasks = json.loads((root / "tests/agent-eval/unknown-target/task.json").read_text())["tasks"]
-    result = {"live_calls_enabled": False, "ordinary_operations": list(ORDINARY),
+    result = {"live_calls_enabled": False, "ordinary_operations": list(ORDINARY), "cpu_affinity_count": 1,
               "rehearsal_model": MODEL, "applications": {}, "commands": {}, "tasks": {}}
     for host in HOSTS:
         result["applications"][host] = {setup: native_config(host, setup, "http://127.0.0.1:1") for setup in SETUPS}

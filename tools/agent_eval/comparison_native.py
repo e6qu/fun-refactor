@@ -8,6 +8,7 @@ from pathlib import Path
 import selectors
 import shutil
 import subprocess
+import sys
 import threading
 import time
 
@@ -41,7 +42,7 @@ def call_for(host, setup):
     if setup == "codegraph":
         name = "mcp__codegraph__codegraph_explore" if host == "claude" else "codegraph_codegraph_explore"
         return name, QUERY
-    name = "Bash" if host == "claude" else "shell"
+    name = "Bash" if host == "claude" else "bash"
     return name, {"command": FIND if setup == "fr" else READ, "description": "Inspect the fixture function"}
 
 
@@ -155,6 +156,14 @@ def codex(config, env, setup):
         buffer = b""
         def request(method, params):
             nonlocal buffer
+            processes = []
+            for status in Path("/proc").glob("[0-9]*/status"):
+                try:
+                    fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
+                    processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"])})
+                except FileNotFoundError:
+                    continue
+            print(json.dumps({"before_request": method, "processes": processes}), file=sys.stderr, flush=True)
             identity = len(transcript) + 1
             process.stdin.write((json.dumps({"id": identity, "method": method, "params": params}) + "\n").encode())
             process.stdin.flush()
@@ -213,6 +222,8 @@ def codex(config, env, setup):
 
 
 def probe(host, setup):
+    # A CPU quota throttles time but leaves the runner's cores visible to worker pools.
+    os.sched_setaffinity(0, {min(os.sched_getaffinity(0))})
     available = {n for n in ("fr", "codegraph") if shutil.which(n)}
     require(available == ({setup} if setup != "files" else set()), "specialized executable leaked into a setup")
     require({n for n in HOSTS if shutil.which(n)} == {host}, "wrong native application installed")
@@ -260,6 +271,7 @@ def probe(host, setup):
             require(len([r for r in requests if r["path"].split("?")[0] == route]) == 2, "scripted tool loop did not complete")
         return {"host": host, "setup": setup, "client_release": identity, "version": version,
                 "config": config, "result": result, "provider_requests": requests,
+                "cpu_affinity": sorted(os.sched_getaffinity(0)),
                 "live_model_calls": 0, "scope": "Scripted native integration control; not agent adoption, performance or billing evidence."}
 
 
