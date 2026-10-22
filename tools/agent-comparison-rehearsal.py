@@ -75,10 +75,14 @@ def rehearsal(image, setup, output, negative_control):
             if negative_control:
                 # The launcher exits. Its child starts a new session and burns CPU.
                 # A parent/group sampler would miss it; the kernel slice must stop it.
-                script = ("import subprocess,sys; subprocess.Popen([sys.executable,'-c',"
-                          "'import os; os.setsid()\\nwhile True: pass'],"
-                          "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)")
-                docker("exec", name, "python3", "-c", script, timeout=5)
+                script = ("import subprocess,sys,os,json; worker=subprocess.Popen([sys.executable,'-c',"
+                          "'while True: pass'],start_new_session=True,"
+                          "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);"
+                          "print(json.dumps({'pid':worker.pid,'worker_pgid':os.getpgid(worker.pid),"
+                          "'launcher_pgid':os.getpgrp()}))")
+                worker = json.loads(docker("exec", name, "python3", "-c", script, timeout=5))
+                report["detached_worker"] = worker
+                require(worker["worker_pgid"] != worker["launcher_pgid"], "failure control did not detach its worker")
                 deadline = time.monotonic() + 8
                 while scope.reason is None and time.monotonic() < deadline:
                     time.sleep(0.05)

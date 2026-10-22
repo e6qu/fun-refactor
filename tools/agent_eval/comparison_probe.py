@@ -71,8 +71,12 @@ def codegraph():
             daemon = lock["pid"]
             require(lock["version"] == "1.6.2", "daemon version differs from pinned release")
             require(os.getpgid(daemon) != os.getpgid(server.pid), "daemon did not leave the proxy process group")
+            membership = {label: Path(f"/proc/{pid}/cgroup").read_text() for label, pid in (
+                ("host", os.getpid()), ("proxy", server.pid), ("daemon", daemon))}
+            require(len(set(membership.values())) == 1, "daemon and host belong to different resource groups")
             result = {"tools": tools, "answer": answer, "daemon_pid": daemon,
-                      "proxy_pgid": os.getpgid(server.pid), "daemon_pgid": os.getpgid(daemon)}
+                      "proxy_pgid": os.getpgid(server.pid), "daemon_pgid": os.getpgid(daemon),
+                      "resource_group_membership": membership}
         finally:
             Path("/workspace/mcp.json").write_text(json.dumps(transcript, indent=2) + "\n")
             server.stdin.close()
@@ -87,6 +91,9 @@ def codegraph():
                 selector.close()
         require(server.returncode == 0, "CodeGraph proxy exited unsuccessfully")
         os.kill(daemon, 0)
+        require(Path(f"/proc/{daemon}/stat").read_text().split(") ", 1)[1].split()[0] != "Z",
+                "daemon is a zombie rather than a running program")
+        require(b"codegraph" in Path(f"/proc/{daemon}/cmdline").read_bytes(), "daemon PID does not identify CodeGraph")
         result["daemon_alive_after_proxy_exit"] = True
         return result
 
