@@ -16,6 +16,12 @@ directory beside the binary.
 
 ## Install the handoff
 
+This repository already exposes the shared bundle through [.claude/skills/fr](../.claude/skills/fr/SKILL.md)
+and [.agents/skills/fr](../.agents/skills/fr/SKILL.md). Claude Code reads the first; Codex reads the second; OpenCode discovers both.
+The entries are relative links to `skills/fr`, so instructions and examples have one maintained source.
+Keep the links and their target when checking out the project. `fr` must still be on the agent's `PATH`.
+
+Use the steps below to install the skill for other projects.
 Put the matching `fr` binary on the agent's `PATH`. Run the copy commands from the source checkout
 or unpacked release directory containing `skills/fr`. Choose the block for your agent.
 Copy the whole directory so its internal references remain available.

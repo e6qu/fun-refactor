@@ -18,7 +18,7 @@ from agent_eval.bounded_host import run
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/fr"
-CASES = ("absent", "project", "user")
+CASES = ("absent", "project", "user", "checkout")
 LOCATIONS = {
     "claude": (".claude/skills/fr", ".claude/skills/fr"),
     "codex": (".agents/skills/fr", ".agents/skills/fr"),
@@ -179,9 +179,20 @@ def capture(args):
     home, project = output / "home", output / "project"
     home.mkdir()
     project.mkdir()
+    for relative in (".codex", ".claude", ".config/opencode", ".local/share", ".cache", ".local/state"):
+        (home / relative).mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", "-b", "main", str(project)], check=True, timeout=10)
     location = None
-    if args.case != "absent":
+    if args.case == "checkout":
+        location = project / "skills/fr"
+        shutil.copytree(SKILL, location)
+        for relative in (".claude/skills/fr", ".agents/skills/fr"):
+            source = ROOT / relative
+            require(source.is_symlink() and source.resolve() == SKILL.resolve(), "Project skill link is missing or points elsewhere")
+            link = project / relative
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(os.readlink(source), target_is_directory=True)
+    elif args.case != "absent":
         relative = LOCATIONS[args.host][args.case == "user"]
         location = (home if args.case == "user" else project) / relative
         shutil.copytree(SKILL, location)
@@ -221,7 +232,8 @@ def main():
         (folder / "host.stderr").write_bytes(stderr.getvalue())
         save(folder / "process.json", process)
         require(process["exit_code"] == 0 and process["stop_reason"] is None,
-                f"{args.host}/{case} failed: {process['stop_reason'] or process['exit_code']}; inspect retained diagnostics")
+                f"{args.host}/{case} failed: {process['stop_reason'] or process['exit_code']}; "
+                + stderr.getvalue()[-4096:].decode(errors="replace"))
         results.append(json.loads((folder / "result.json").read_text()))
         save(args.output / "result.json", {"host": args.host, "cases": results,
              "binary_sha256": hashlib.sha256(args.binary.read_bytes()).hexdigest()})

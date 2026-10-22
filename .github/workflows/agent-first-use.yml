@@ -13,6 +13,35 @@ concurrency:
   group: agent-first-use-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
+  first-change:
+    name: Execute the introductory change and undo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Fetch the pinned released fr
+        run: |
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            https://github.com/e6qu/fun-refactor/releases/download/fun-refactor-v0.79.2/fr-v0.79.2-x86_64-unknown-linux-musl.tar.gz \
+            -o "$RUNNER_TEMP/fr.tar.gz"
+          echo "938c012806eb412e26c76c7b143a559b5adfa64c3fe2989acd89689ce4014c49  $RUNNER_TEMP/fr.tar.gz" | sha256sum --check
+          mkdir "$RUNNER_TEMP/fr-package"
+          tar -xzf "$RUNNER_TEMP/fr.tar.gz" -C "$RUNNER_TEMP/fr-package"
+      - name: Execute the actual skill lesson and check its reading budgets
+        run: |
+          python3 -B - <<'PY'
+          import os, pathlib, runpy, tempfile
+          checker = runpy.run_path('tools/check-agent-skill.py')
+          checker['check_bundle']()
+          binary, = (path for path in pathlib.Path(os.environ['RUNNER_TEMP'], 'fr-package').rglob('fr') if path.is_file())
+          exercise = checker['Exercise'](str(binary))
+          with tempfile.TemporaryDirectory() as directory:
+              checker['first_change_workflow'](exercise, pathlib.Path(directory))
+          print('Introductory lesson passed:', exercise.examples, 'commands')
+          PY
   discovery:
     name: Native skill discovery (${{ matrix.host }})
     runs-on: ubuntu-latest
