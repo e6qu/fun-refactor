@@ -60,22 +60,25 @@ unfinished requirements. Continuing work and correct reuse meets its stated test
 
 We ship one portable [fr skill](../skills/fr/SKILL.md), with references for finding code, edits, checks, saved work and proofs.
 Its name and description supply the basic information these agents need to discover a skill.
-The [installation guide](agent-skill.md#install-the-handoff) now names each agent's discovery directories and gives a manual discovery check.
-It uses Codex's currently documented `.agents/skills` location.
+The checkout exposes that bundle through `.claude/skills/fr` and `.agents/skills/fr`.
+The [README](../README.md#give-fr-to-an-agent) links the skill and its introductory lesson.
+The [installation guide](agent-skill.md#install-the-handoff) also explains installation for other projects.
 
 The skill checker runs its shell examples against temporary projects.
-That establishes command behavior, not discovery by each agent application or effective choices during an unfamiliar task.
+Separate [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) pass with pinned Claude Code, Codex and OpenCode clients.
+They check absent, project and user installations, plus this checkout's linked bundle.
+These checks use isolated settings and no live model credentials. Claude Code receives a scripted response from a local server.
 
 | Agent | What we have checked | What remains |
 | --- | --- | --- |
-| Claude Code | A skill bundle with the required name and description | Installation, discovery and actual use in a clean Claude Code session |
-| Codex | An evaluation runner and recorded agent attempts | Native skill discovery; existing runners supply instructions through prepared prompts |
-| OpenCode | Scripted client controls and recorded agent attempts | Native skill discovery and reliable adoption during changes |
+| Claude Code | Native discovery advertises the installed skill once | Whether a live agent chooses and follows it on unfamiliar work |
+| Codex | Native discovery lists the installed skill once, with no loading errors | Whether native skill use improves complete tasks; earlier evaluations supply prepared prompts |
+| OpenCode | Native discovery lists the installed skill once | Whether an agent chooses fr and uses it successfully during changes |
 
 The [OpenCode change records](native-change-outcomes.md) contain ten behavior passes and two collection failures, with zero fr calls.
 Those passes establish no benefit from fr.
 The [reading records](native-read-outcomes.md) include one guided attempt using fr, but no successful ordinary/fr comparison pair.
-The repository's `.claude/skills/lean-spec` is a separate Lean guide, not an installation of the portable fr skill.
+The repository also has a separate `.claude/skills/lean-spec` guide for Lean work.
 
 For discovery requirements, see the official [Claude Code](https://code.claude.com/docs/en/skills),
 [Codex](https://learn.chatgpt.com/docs/build-skills) and [OpenCode](https://docs.opencode.ai/docs/skills/) documentation.

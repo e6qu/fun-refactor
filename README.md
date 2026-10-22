@@ -84,8 +84,8 @@ Replace `<TX>`, including its brackets, with the returned transaction ID. Contin
 
 ## Give `fr` to an agent
 
-This checkout includes project skills for [Claude Code](.claude/skills/fr/SKILL.md)
-and [Codex and OpenCode](.agents/skills/fr/SKILL.md).
+This checkout includes project skills for [Claude Code](.claude/skills/fr)
+and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
 
