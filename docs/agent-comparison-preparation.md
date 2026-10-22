@@ -92,7 +92,8 @@ Codex uses its [app-server commands](https://learn.chatgpt.com/docs/app-server) 
 list skills, run a declared command and call the configured MCP tool without requesting inference.
 Its explicit command uses the existing container as the sandbox; this does not test an autonomous model turn.
 All application, provider and background tool processes share the existing container resource limits and cleanup check.
-The rehearsal explicitly limits Tokio and libuv worker pools to one thread each.
+The rehearsal explicitly limits Tokio, libuv and Node's V8 worker pools to one thread each.
+Node's [background worker pool](https://nodejs.org/api/cli.html#--v8-pool-sizenum) has its own setting, separate from libuv and CodeGraph's task workers.
 Each application and its children are also restricted to one available CPU, under the unchanged half-core time allowance.
 The time allowance alone leaves the runner's other cores visible, which can cause oversized worker pools.
 Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
