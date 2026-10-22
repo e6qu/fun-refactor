@@ -98,6 +98,9 @@ Each application and its children are also restricted to one available CPU, unde
 The time allowance alone leaves the runner's other cores visible, which can cause oversized worker pools.
 Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
 OpenCode receives a fixed session title to avoid a separate title-generation request.
+Compiled Bun applications also receive [`BUN_OPTIONS=--smol`](https://bun.sh/docs/bundler/executables#runtime-arguments-via-bun-options).
+This requests more frequent garbage collection to reduce memory use; it does not increase the container memory cap.
+The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.

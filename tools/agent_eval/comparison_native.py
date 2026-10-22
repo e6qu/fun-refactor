@@ -33,7 +33,8 @@ def trace(stage):
     for status in Path("/proc").glob("[0-9]*/status"):
         try:
             fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
-            processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"])})
+            processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"]),
+                              "rss_kib": int(fields.get("VmRSS", "0 kB").split()[0])})
         except FileNotFoundError:
             continue
     print(json.dumps({"stage": stage, "processes": processes}), file=sys.stderr, flush=True)
