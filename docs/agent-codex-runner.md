@@ -15,16 +15,36 @@ The Codex evaluators run prepared agent tasks through `codex exec`. They are opt
 normal CI and require an explicit quota acknowledgement. Use them to answer a defined acceptance or
 comparison question after deterministic replay and scoring already pass.
 
-The generic paired runner prepares isolated project copies and one immutable `fr` binary:
+The generic paired runner prepares isolated project copies and one immutable `fr` binary.
+After the settings and spending limits have been agreed, save the chosen settings as `/tmp/fr-codex-settings.json`:
+
+```json
+{
+  "model": "MODEL_ID_FROM_THE_AGREED_PLAN",
+  "reasoning_effort": "AGREED_EFFORT",
+  "service_tier": "AGREED_SERVICE_TIER"
+}
+```
+
+Replace those labels with actual agreed values; they are not model recommendations.
+A service tier selects the provider's requested processing class. Use the same explicit value for both setups.
+The preparation command copies these settings into every session before an agent can run.
+Without the file, preparation creates model-free sessions for scripted checks; the Codex runner rejects them.
+Set `CODEX_BINARY` and `FR_BINARY` to the reviewed executables' absolute paths, and use those same agreed settings in the run commands:
 
 ```sh
 python3 tools/agent-eval.py prepare \
-  --project regex-coordinated --repetitions 1 --out /tmp/fr-agent-sessions
+  --fr "$FR_BINARY" --project regex-coordinated --repetitions 1 \
+  --codex-settings /tmp/fr-codex-settings.json --out /tmp/fr-agent-sessions
 
 python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions \
+  --codex "$CODEX_BINARY" --model MODEL_ID_FROM_THE_AGREED_PLAN \
+  --effort AGREED_EFFORT --service-tier AGREED_SERVICE_TIER --timeout 900 \
   --trial regex-escape-len-fr --trial regex-escape-len-files --dry-run
 
 python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions \
+  --codex "$CODEX_BINARY" --model MODEL_ID_FROM_THE_AGREED_PLAN \
+  --effort AGREED_EFFORT --service-tier AGREED_SERVICE_TIER --timeout 900 \
   --trial regex-escape-len-fr --trial regex-escape-len-files --confirm-agent-spend
 ```
 
@@ -32,6 +52,9 @@ Each trial uses a new ephemeral Codex process with user configuration and reposi
 disabled. The runner pins its model, reasoning effort, service tier and sandbox. It reads the frozen
 prompt over standard input and refuses incomplete pairs or reused session directories. Model
 availability and quota remain account-dependent.
+Model, reasoning effort, service tier, executable and timeout have no runner defaults.
+Undeclared or mismatched session settings fail before creating attempt records or contacting a model.
+The example states the existing maximum of 900 seconds explicitly; it does not extend it.
 
 A session retains its JSONL events, stderr, final response and run record. The run record binds the
 prompt and streams by SHA-256 and records the model, effort, service tier, elapsed time and exit

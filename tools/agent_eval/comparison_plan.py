@@ -21,6 +21,9 @@ INPUTS = (
     "tools/agent-comparison-plan.py", "tools/agent-comparison-rehearsal.py",
     "tools/agent_eval/comparison_probe.py", "tools/agent_eval/container_resources.py",
     "tools/agent_eval/bounded_host.py", "tools/agent_eval/study.py",
+    "tools/agent-eval-codex.py", "tools/agent_eval/isolated_grade.py",
+    "tools/agent_eval/docker_info.py", "tools/agent_eval/request_gateway.py",
+    "tools/agent_eval/provider_usage.py",
     "tests/agent-eval/agent-comparison/Dockerfile", ".github/workflows/agent-comparison.yml",
 )
 

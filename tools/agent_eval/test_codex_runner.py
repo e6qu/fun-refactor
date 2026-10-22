@@ -1,12 +1,15 @@
 """Local tests for the opt-in Codex evaluator; no agent service is called."""
 
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import stat
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,10 +75,26 @@ class SettingsIsolation(unittest.TestCase):
                     runner.run_trial(Path("missing-codex"), ("trial", root, config), "different-model", "low", "default", 60)
                 self.assertEqual(list(root.iterdir()), [])
 
-    def test_matching_settings_and_legacy_sessions_remain_valid(self):
-        runner.validate_settings({}, "chosen", "low", "default")
+    def test_matching_declared_settings_are_required(self):
+        for config in ({}, {"model": "chosen"}, {"model_settings": {"reasoning_effort": "low", "service_tier": "default"}}):
+            with self.subTest(config=config), self.assertRaisesRegex(ValueError, "declared"):
+                runner.validate_settings(config, "chosen", "low", "default")
         runner.validate_settings({"model": "chosen", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}},
                                  "chosen", "low", "default")
+
+    def test_cli_does_not_supply_model_or_resource_defaults(self):
+        explicit = {"--codex": "codex", "--model": "chosen", "--effort": "low",
+                    "--service-tier": "default", "--timeout": "60"}
+        for missing in explicit:
+            argv = ["agent-eval-codex.py", "missing-sessions", "--trial", "selected", "--dry-run"]
+            for key, value in explicit.items():
+                if key != missing:
+                    argv.extend([key, value])
+            with self.subTest(missing=missing), patch.object(sys, "argv", argv), contextlib.redirect_stderr(io.StringIO()) as errors:
+                with self.assertRaises(SystemExit) as stopped:
+                    runner.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn(missing, errors.getvalue())
 
 
 class CodexRunner(unittest.TestCase):
@@ -149,7 +168,8 @@ class CodexRunner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             name = self.sessions(root)[0]
-            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1})
+            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1,
+                "model": "gpt-5.6-luna", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}})
             fake = root / "fake-codex"
             fake.write_text(
                 "#!/bin/sh\n"
@@ -170,7 +190,8 @@ class CodexRunner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             name = self.sessions(root)[0]
-            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1})
+            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1,
+                "model": "gpt-5.6-luna", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}})
             record = runner.run_trial(root / "missing-codex", entry, "gpt-5.6-luna", "low", "default", 60)
             self.assertIsNone(record["exit_code"])
             self.assertTrue(record["launch_error"])

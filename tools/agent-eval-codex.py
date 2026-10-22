@@ -12,11 +12,6 @@ import time
 from agent_eval.bounded_host import run as run_bounded
 
 
-DEFAULT_MODEL = "gpt-5.6-luna"
-DEFAULT_EFFORT = "low"
-DEFAULT_SERVICE_TIER = "default"
-
-
 def load(path):
     return json.loads(path.read_text())
 
@@ -100,10 +95,12 @@ def codex_command(codex, session, model, effort, service_tier):
 
 
 def validate_settings(config, model, effort, service_tier):
-    if config.get("model", model) != model:
+    if not all(isinstance(value, str) and value.strip() for value in (model, effort, service_tier)):
+        raise ValueError("Model, effort and service tier must be declared as nonempty text")
+    if config.get("model") != model:
         raise ValueError("Requested model differs from the session's declared model")
     expected = {"reasoning_effort": effort, "service_tier": service_tier}
-    if "model_settings" in config and config["model_settings"] != expected:
+    if config.get("model_settings") != expected:
         raise ValueError("Requested settings differ from the session's declared settings")
 
 
@@ -159,12 +156,12 @@ def codex_version(codex):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sessions", type=Path)
-    parser.add_argument("--trial", action="append", default=[])
-    parser.add_argument("--codex", type=Path, default=Path("codex"))
-    parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--effort", default=DEFAULT_EFFORT)
-    parser.add_argument("--service-tier", default=DEFAULT_SERVICE_TIER)
-    parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--trial", action="append", required=True)
+    parser.add_argument("--codex", type=Path, required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--effort", required=True)
+    parser.add_argument("--service-tier", required=True)
+    parser.add_argument("--timeout", type=int, required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--confirm-agent-spend",

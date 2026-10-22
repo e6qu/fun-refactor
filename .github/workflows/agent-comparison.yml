@@ -14,6 +14,9 @@ on:
       - 'tools/agent_eval/request_gateway.py'
       - 'tools/agent_eval/provider_usage.py'
       - 'tools/agent-eval.py'
+      - 'tools/agent-eval-codex.py'
+      - 'tools/agent_eval/test_codex_runner.py'
+      - 'tools/agent_eval/test_harness.py'
       - 'tools/agent_eval/oracle.py'
       - 'tools/agent_eval/regex_workspace.py'
       - 'tools/agent_eval/regex_escape_len.py'
@@ -38,6 +41,10 @@ jobs:
         with:
           python-version: '3.14.8'
       - run: python3 -B -m unittest discover -s tools/agent_eval -p 'test_comparison*.py' -v
+      - name: Reject undeclared Codex settings without model calls
+        run: |
+          python3 -B tools/agent_eval/test_codex_runner.py
+          python3 -B tools/agent_eval/test_harness.py CoordinatedWorkspaceEvidence
       - name: Prepare and independently reopen the schedule
         run: |
           python3 -B tools/agent-comparison-plan.py --prepare > "$RUNNER_TEMP/comparison-plan.json"
