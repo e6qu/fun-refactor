@@ -1,17 +1,15 @@
 ---
 name: fr
-description: Find code, review, check, undo and deliver changes with fr.
+description: Use fr to find code and callers, rename functions, preview and check edits, or undo a reviewed change.
 ---
 # Work with fr
 
-Find the bug's code, preview the fix and test behavior. Run at the project root or use `-C PATH`.
-A handle selects code; a basis ties actions to reviews. Copy them unchanged.
-`fr guide --from GOAL` starts from a JSON task file. See [Guide](references/guide.md).
+Run at the project root or use `-C PATH`. New to fr? Follow [your first checked change](references/first-change.md).
 
 ```sh
 fr project find greet --signature
-fr project select greet render validate --signature --source --bytes 2048
-fr project map --depth 2 --limit 12
 ```
 
-Read omissions. [Review edits](references/author.md), then [check and deliver](references/workflow.md).
+Read omissions. Copy handles, which identify code in one revision, unchanged.
+For a rename, read [Change](references/change.md); for implementation edits, [Author](references/author.md).
+Then [check and deliver](references/workflow.md). A preview shows proposed edits; `--write` applies them.

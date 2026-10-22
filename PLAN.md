@@ -14,8 +14,8 @@ Selected Rust and Python project changes pass behavior checks and patch replay i
 Some Python input-to-output questions work through real package imports; broader imports, exceptions and shared mutable values remain incomplete.
 
 We have not demonstrated general time or cost savings for agents.
-The [current measurements](docs/distinct-answer-hashing.md) still find saving answers more expensive than asking again in the tested sessions.
-Those comparisons use the Python library in both approaches; they do not isolate Python overhead against direct CLI calls.
+The [complete session comparison](docs/project-session-cost.md) measures direct CLI calls, restarted Python clients and Python clients kept running across questions.
+It also compares saving and validating answers with asking again. Read its included costs and limits before interpreting the overhead.
 
 The [status report](docs/roadmap-status.md) owns current test counts and completion claims.
 Milestone C, correct resumption and reuse, meets its stated requirements. A, B and D remain open.

@@ -150,20 +150,20 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39680136839",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39751703210",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json",
-      "scope": "Matched complete sessions before and after hashing distinct pieces once on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification.",
-      "sha256": "4e15441662a081651e0d202267aa4c0e424516645c15bfe67158ef95c919f59f"
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json",
+      "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
+      "sha256": "781d81091f3c849e1d30ec61a8c047e0ca14f08bf4adf20cc35b86708bb7c027"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "a1a66e7e8c403dc7e5bffa25ec53713861e2ec4fb0276c7f110b4d89404ef1b5"
+      "sha256": "09d0189973cdee122f85a39dbea40b2d44172d323d69c3c906ed97eb06cfbaba"
     }
   ],
   "obligations": [
@@ -447,7 +447,7 @@
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.",
+      "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
       "requires": [
         {
           "assertions": [

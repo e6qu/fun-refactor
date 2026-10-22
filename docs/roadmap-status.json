@@ -63,8 +63,10 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -235,23 +237,23 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39680136839",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39751703210",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json",
-      "scope": "Matched complete sessions before and after hashing distinct pieces once on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification."
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json",
+      "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -620,7 +622,7 @@
       "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
-      "next": "Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.",
+      "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
       "requires": [
         {
           "assertions": [

@@ -14,6 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills/fr"
 ROUTES = {
+    "first-change": ["SKILL.md", "references/first-change.md"],
     "application": ["SKILL.md", "references/surfaces.md", "references/application.md"],
     "guide": ["SKILL.md", "references/guide.md"],
     "intent": ["SKILL.md", "references/intents.md"],
@@ -232,6 +233,37 @@ def size_of_source(value):
     source = value["source"]
     assert source["next_offset"] is None or source["next_offset"] > 0
     return len(source["text"].encode())
+
+
+def first_change_workflow(exercise, root):
+    path = SKILL / "references/first-change.md"
+    sources = blocks(path, "python")
+    assert len(sources) == 2, "Supply both complete files for the first change."
+    for name, source in zip(("app.py", "test_app.py"), sources):
+        (root / name).write_text(source)
+    (root / ".fr").mkdir()
+    (root / ".fr/checks.json").write_text(blocks(path, "json")[0])
+    original = {name: (root / name).read_bytes() for name in ("app.py", "test_app.py")}
+    undone = False
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        current = {name: (root / name).read_bytes() for name in original}
+        if "--save-plan" in command:
+            exercise.values["<FIRST_TX>"] = str(value["transaction"])
+            assert current == original and not value["applied"]
+        elif command[1:3] == ["history", "apply"]:
+            assert value["applied"] and all(b"welcome" in source and b"greet" not in source
+                                            for source in current.values())
+        elif command[1:3] == ["history", "undo"] and "--write" in command:
+            assert current == original
+            undone = True
+        elif command[1:] == ["checks"]:
+            key = "<UNDO_CHECK_BASIS>" if undone else "<FIRST_CHECK_BASIS>"
+            exercise.values[key] = value["basis"]
+            assert value["executed"] is False and value["passed"] is None
+        elif command[1] == "checks" and "--run" in command:
+            assert value["passed"] is True and value["not_run"] == []
+    assert undone and {name: (root / name).read_bytes() for name in original} == original
 
 
 def checks_workflow(exercise, root):
@@ -554,6 +586,8 @@ def main():
         (root / "task").mkdir()
         (root / "workflow").mkdir()
         (root / "guide").mkdir()
+        (root / "first-change").mkdir()
+        first_change_workflow(exercise, root / "first-change")
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
         author_workflow(exercise, root / "author")

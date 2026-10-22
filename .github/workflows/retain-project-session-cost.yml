@@ -1,0 +1,63 @@
+name: Retain completed session measurements
+on:
+  workflow_dispatch:
+    inputs:
+      collection_run:
+        description: Completed run whose collection and independent audit passed
+        type: string
+        required: true
+  pull_request:
+    paths:
+      - 'tools/retain-project-session-cost.py'
+      - 'tools/test-retain-project-session-cost.py'
+      - 'tools/publish-project-session-cost.py'
+      - '.github/workflows/retain-project-session-cost.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: retain-project-session-cost-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-retain-project-session-cost.py
+      - run: python3 -B tests/agent-eval/test_roadmap_status.py
+  retain:
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Authenticate the artifact and audit the complete collection
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+        run: python3 -B tools/retain-project-session-cost.py --collection-run "$COLLECTION_RUN"
+      - run: |
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tests/agent-eval/test_roadmap_status.py
+      - name: Commit the audited publication and its producer receipt
+        env:
+          BRANCH: ${{ github.ref_name }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/2026-10-22-project-sessions-$COLLECTION_RUN" "tests/agent-eval/project-session-cost/publication-$COLLECTION_RUN.json" tests/agent-eval/roadmap.json docs/project-session-cost.md docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: publish complete session costs and child CPU accounting'
+          git push origin "HEAD:refs/heads/$BRANCH"

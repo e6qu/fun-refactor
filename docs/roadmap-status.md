@@ -23,7 +23,7 @@ A requirement is one specific behavior we promise to check. A recorded result de
 
 ## What happens next
 
-The project-change checks and [saved-work cost comparison](distinct-answer-hashing.md) have matching current records. The comparison repeats the same questions on three projects before and after one source edit. It counts setup, checking, memory, storage and submitted text. Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. Existing acceptance requirements remain in force; the delivery packages do not change completion claims.
+The project-change checks and [complete session cost comparison](project-session-cost.md) have matching current records. The comparison repeats the same questions on three projects before and after one source edit. It compares CLI calls, fresh and running Python clients, and saved answers. Startup, checking, edits, shutdown and cleanup enter session totals; setup remains separate. Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. Existing acceptance requirements remain in force; the delivery packages do not change completion claims.
 
 See the [plan](../PLAN.md#next-three-prs) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
@@ -154,7 +154,7 @@ User example: Move a helper or add a previously missing module and check the con
 
 **State: demonstrated.** Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -164,9 +164,9 @@ User example: Measure whether saved answers reduce total work and storage on a r
 
 **State: demonstrated.** On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.
 
-Recorded results or remaining work: [current-saved-work-cost](../tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json).
+Recorded results or remaining work: [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json).
 
-Next: Use the matched SDK comparison to address remaining storage and process costs. Keep checking complete sessions and answer agreement.
+Next: Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.
 
 ### D.checked: Check and replay a delivered change
 
@@ -184,7 +184,7 @@ User example: Rename Boltons' `clamp` function to `clamp_value` and update its c
 
 **State: demonstrated.** Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -239,7 +239,7 @@ The entries below identify the stored test results. “Current” means their re
 | [repository-tasks](../tests/agent-eval/results/2026-10-22-hash-lifetime-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-22-hash-lifetime-flow-cache/result.json) / measured tool operations | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json` |
-| [structural](../tests/agent-eval/results/2026-10-22-hash-lifetime-structural-change/manifest.json) / scripted behavior checks | checked | current | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-structural-change` |
+| [structural](../tests/agent-eval/results/2026-10-22-hash-lifetime-structural-change/manifest.json) / scripted behavior checks | checked | stale (1 changed inputs) | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-10-22-hash-lifetime-delivery-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three Boolean model relations; no source implementation connection between the descriptions. Audit: `python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-delivery-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-22-hash-lifetime-compiler-profile/result.json) / compiler and execution comparisons | checked | current | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-compiler-profile/result.json` |
@@ -249,8 +249,8 @@ The entries below identify the stored test results. “Current” means their re
 | [original-package-questions](../tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files/result.json) / scripted behavior checks | checked | stale (16 changed inputs) | Current replay of the three earlier package questions. All are familiar now; the original unread result is checked against its original source. Audit: `python3 tools/package_question_replay.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files` |
 | [project-changes](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) / scripted behavior checks | checked | stale (17 changed inputs) | Three original projects, seven change controls each, and checked Rust and Python rename delivery. Audit: `python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 | [saved-work-cost](../tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json) / measured tool operations | checked | stale (6 changed inputs) | Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim. Audit: `python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541` |
-| [current-saved-work-cost](../tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json) / measured tool operations | checked | current | Matched complete sessions before and after hashing distinct pieces once on three familiar projects. Includes fresh baselines, full answer agreement and unchanged first-project qualification. Audit: `python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39680136839` |
-| [current-project-changes](../tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
+| [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json) / measured tool operations | checked | current | Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim. Audit: `python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39751703210` |
+| [current-project-changes](../tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-agent-first-use-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 

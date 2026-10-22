@@ -43,6 +43,7 @@ KINDS = {
     'fr-project-changes-recheck': 'deterministic',
     'fr-saved-work-cost': 'measurement',
     'fr-saved-answer-improvement': 'measurement',
+    'fr-project-session-cost': 'measurement',
     'fr-rechecked-package-questions': 'deterministic',
 }
 
@@ -213,9 +214,9 @@ def markdown(report):
         if cost_done:
             resuming_remaining = 'Use the measured costs to choose an improvement; measure complete agent tasks separately'
             next_work = (
-                'The project-change checks and [saved-work cost comparison](distinct-answer-hashing.md) have matching current records. '
+                'The project-change checks and [complete session cost comparison](project-session-cost.md) have matching current records. '
                 'The comparison repeats the same questions on three projects before and after one source edit. '
-                'It counts setup, checking, memory, storage and submitted text. '
+                'It compares CLI calls, fresh and running Python clients, and saved answers. Startup, checking, edits, shutdown and cleanup enter session totals; setup remains separate. '
                 'Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. '
                 'Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. '
                 'Existing acceptance requirements remain in force; the delivery packages do not change completion claims.')

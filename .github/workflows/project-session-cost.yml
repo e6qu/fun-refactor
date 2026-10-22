@@ -1,0 +1,108 @@
+name: Complete CLI and Python session costs
+on:
+  push:
+    branches: [feat/agent-first-use-cost-refresh]
+    paths: [.github/workflows/project-session-cost.yml]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/project-session-*.py'
+      - 'tools/test-project-session-cost.py'
+      - 'tools/publish-project-session-cost.py'
+      - 'tests/agent-eval/results/*-project-sessions-*/**'
+      - '.github/workflows/project-session-cost.yml'
+permissions:
+  contents: read
+concurrency:
+  group: project-session-cost-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  controls:
+    name: Reject missing session costs and stale answers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-project-session-cost.py
+  measure:
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/main'
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: saved-work-cost-release
+      - run: cargo build --locked --release --bin fr
+      - run: python3 -m pip install 'setuptools==84.0.0' 'build==1.6.1'
+      - name: Inspect the Python client with fr
+        run: >-
+          target/release/fr --json --no-cache -C sdk/python project find FrClient
+          --source --bytes 4096 --limit 16 --in src > "$RUNNER_TEMP/client-inspection.json"
+      - name: Measure five approaches with matching complete answers
+        run: >-
+          python3 -B tools/project-session-cost.py --collect
+          --fr target/release/fr --output "$RUNNER_TEMP/project-session-cost"
+      - name: Retain the audited collection and update current tracking
+        run: |
+          python3 -B tools/publish-project-session-cost.py --collection "$RUNNER_TEMP/project-session-cost"
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tests/agent-eval/test_roadmap_status.py
+      - name: Commit the measurements to this work branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/2026-10-22-project-sessions-$GITHUB_RUN_ID" tests/agent-eval/roadmap.json docs/project-session-cost.md docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain complete CLI and Python project session costs'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: complete-project-session-costs
+          path: |
+            ${{ runner.temp }}/project-session-cost
+            ${{ runner.temp }}/client-inspection.json
+          if-no-files-found: error
+          retention-days: 30
+  audit:
+    name: Independently audit retained complete session costs
+    if: github.event_name == 'pull_request'
+    needs: controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the exact selected record
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+          path = Path(entry['path'])
+          assert path.resolve().is_relative_to(Path.cwd())
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+          subprocess.run(['python3', '-B', 'tools/project-session-cost.py', '--audit', '--output', str(path.parent)], check=True)
+          PY

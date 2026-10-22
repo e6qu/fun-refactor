@@ -16,6 +16,12 @@ directory beside the binary.
 
 ## Install the handoff
 
+This repository already exposes the shared bundle through [.claude/skills/fr](../.claude/skills/fr)
+and [.agents/skills/fr](../.agents/skills/fr). Claude Code reads the first; Codex reads the second; OpenCode discovers both.
+The entries are relative links to `skills/fr`, so instructions and examples have one maintained source.
+Keep the links and their target when checking out the project. `fr` must still be on the agent's `PATH`.
+
+Use the steps below to install the skill for other projects.
 Put the matching `fr` binary on the agent's `PATH`. Run the copy commands from the source checkout
 or unpacked release directory containing `skills/fr`. Choose the block for your agent.
 Copy the whole directory so its internal references remain available.
@@ -50,7 +56,14 @@ In Claude Code, invoke `/fr`; in Codex, select it with `$fr` or `/skills`.
 In OpenCode, ask the agent to load the `fr` skill with its skill tool.
 Then ask it to find a known function using `fr project find NAME --signature` and explain the result.
 Check the recorded tool call: listing a skill does not establish that the agent used `fr`.
-These are installation checks for the reader, not completed host-discovery tests in our CI.
+Our [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) pass for all three applications on GitHub's Linux runners.
+They check an absent skill, project installation, user installation and the repository's linked bundle in isolated settings.
+Claude Code uses a local scripted response; no paid model or live credentials take part.
+Discovery establishes that instructions are available. It does not establish that an agent chooses or follows them during an unfamiliar task.
+
+Start with [your first checked change](../skills/fr/references/first-change.md).
+It creates a small greeting program and test, finds the function and caller, previews a rename, runs the test and undoes the change.
+The [introductory lesson check](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) executes those commands against the pinned released `fr`.
 
 Ordinary inspection and source history need only `fr`. Git actions need Git, and strict Lean verification needs the target project's Lean and Lake toolchain.
 

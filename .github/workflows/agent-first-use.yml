@@ -1,0 +1,108 @@
+name: Agent skill discovery and first use
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.agents/skills/**'
+      - '.claude/skills/**'
+      - 'skills/fr/**'
+      - 'tools/check-agent-skill.py'
+      - 'tools/check-agent-discovery.py'
+      - 'tests/agent-eval/agent-first-use/**'
+      - '.github/workflows/agent-first-use.yml'
+permissions:
+  contents: read
+concurrency:
+  group: agent-first-use-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  first-change:
+    name: Execute the introductory change and undo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Fetch the pinned released fr
+        run: |
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            https://github.com/e6qu/fun-refactor/releases/download/fun-refactor-v0.79.2/fr-v0.79.2-x86_64-unknown-linux-musl.tar.gz \
+            -o "$RUNNER_TEMP/fr.tar.gz"
+          echo "938c012806eb412e26c76c7b143a559b5adfa64c3fe2989acd89689ce4014c49  $RUNNER_TEMP/fr.tar.gz" | sha256sum --check
+          mkdir "$RUNNER_TEMP/fr-package"
+          tar -xzf "$RUNNER_TEMP/fr.tar.gz" -C "$RUNNER_TEMP/fr-package"
+      - name: Execute the actual skill lesson and check its reading budgets
+        run: |
+          python3 -B - <<'PY'
+          import os, pathlib, runpy, tempfile
+          checker = runpy.run_path('tools/check-agent-skill.py')
+          checker['check_bundle']()
+          binary, = (path for path in pathlib.Path(os.environ['RUNNER_TEMP'], 'fr-package').rglob('fr') if path.is_file())
+          exercise = checker['Exercise'](str(binary))
+          with tempfile.TemporaryDirectory() as directory:
+              checker['first_change_workflow'](exercise, pathlib.Path(directory))
+          print('Introductory lesson passed:', exercise.examples, 'commands')
+          PY
+  discovery:
+    name: Native skill discovery (${{ matrix.host }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [claude, codex, opencode]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Fetch the pinned native client
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, pathlib, tarfile, urllib.request
+          host = os.environ['AGENT_HOST']
+          entry = json.loads(pathlib.Path('tests/agent-eval/agent-first-use/hosts.json').read_text())[host]
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'agent-client'
+          root.mkdir()
+          archive = root / 'client.tar.gz'
+          with urllib.request.urlopen(entry['url'], timeout=30) as response, archive.open('wb') as target:
+              while chunk := response.read(1048576):
+                  target.write(chunk)
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == entry['sha256']
+          with tarfile.open(archive) as bundle:
+              bundle.extractall(root, filter='data')
+          binary = root / entry['executable']
+          assert binary.is_file()
+          binary.chmod(0o755)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('AGENT_BINARY=' + str(binary) + '\n')
+          PY
+      - name: Verify the pinned version
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: |
+          "$AGENT_BINARY" --version > "$RUNNER_TEMP/client-version.txt"
+          python3 -B - <<'PY'
+          import json, os, pathlib
+          expected = json.loads(pathlib.Path('tests/agent-eval/agent-first-use/hosts.json').read_text())[os.environ['AGENT_HOST']]['version']
+          assert expected in pathlib.Path(os.environ['RUNNER_TEMP'], 'client-version.txt').read_text()
+          PY
+      - name: Check absent, project and user skill discovery without live credentials
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: >-
+          python3 -B tools/check-agent-discovery.py check --host "$AGENT_HOST"
+          --binary "$AGENT_BINARY" --output "$RUNNER_TEMP/agent-discovery"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: agent-discovery-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/agent-discovery
+            ${{ runner.temp }}/client-version.txt
+          retention-days: 30
+          if-no-files-found: error
