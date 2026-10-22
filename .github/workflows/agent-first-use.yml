@@ -3,7 +3,10 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - '.agents/skills/**'
+      - '.claude/skills/**'
       - 'skills/fr/**'
+      - 'tools/check-agent-skill.py'
       - 'tools/check-agent-discovery.py'
       - 'tests/agent-eval/agent-first-use/**'
       - '.github/workflows/agent-first-use.yml'
