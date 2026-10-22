@@ -28,8 +28,21 @@ def toml(value):
     return json.dumps(value)
 
 
+def trace(stage):
+    processes = []
+    for status in Path("/proc").glob("[0-9]*/status"):
+        try:
+            fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
+            processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"])})
+        except FileNotFoundError:
+            continue
+    print(json.dumps({"stage": stage, "processes": processes}), file=sys.stderr, flush=True)
+
+
 def command(argv, env):
+    trace("before " + " ".join(argv[:2]))
     result = subprocess.run(argv, cwd="/workspace", env=env, capture_output=True, timeout=60)
+    trace("after " + " ".join(argv[:2]))
     Path("/workspace/native.stdout").write_bytes(result.stdout[:CAP])
     Path("/workspace/native.stderr").write_bytes(result.stderr[:CAP])
     require(len(result.stdout) + len(result.stderr) <= CAP, "native output exceeds 1 MiB")
@@ -156,14 +169,7 @@ def codex(config, env, setup):
         buffer = b""
         def request(method, params):
             nonlocal buffer
-            processes = []
-            for status in Path("/proc").glob("[0-9]*/status"):
-                try:
-                    fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
-                    processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"])})
-                except FileNotFoundError:
-                    continue
-            print(json.dumps({"before_request": method, "processes": processes}), file=sys.stderr, flush=True)
+            trace("before " + method)
             identity = len(transcript) + 1
             process.stdin.write((json.dumps({"id": identity, "method": method, "params": params}) + "\n").encode())
             process.stdin.flush()
@@ -234,7 +240,7 @@ def probe(host, setup):
         "XDG_CACHE_HOME": "/tmp/home/.cache", "XDG_STATE_HOME": "/tmp/home/.local/state",
         "FR_REHEARSAL_KEY": "scripted-no-live-credential", "CI": "true", "DISABLE_AUTOUPDATER": "1",
         "DISABLE_TELEMETRY": "1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"}
-    for name in ("PROJECT_CONFIG", "AUTOUPDATE", "CLAUDE_CODE", "MODELS_FETCH", "LSP_DOWNLOAD", "DEFAULT_PLUGINS"):
+    for name in ("AUTOUPDATE", "CLAUDE_CODE", "MODELS_FETCH", "LSP_DOWNLOAD", "DEFAULT_PLUGINS"):
         env["OPENCODE_DISABLE_" + name] = "1"
     for folder in (".codex", ".claude", ".config/opencode", ".local/share", ".cache", ".local/state"):
         Path("/tmp/home", folder).mkdir(parents=True, exist_ok=True)

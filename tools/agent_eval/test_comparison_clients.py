@@ -91,7 +91,8 @@ class NativeInputs(unittest.TestCase):
 
     def test_native_client_error_keeps_both_streams_and_exit_status(self):
         result = subprocess.CompletedProcess(["claude"], 1, b"stdout diagnosis", b"stderr diagnosis")
-        with patch.object(native.subprocess, "run", return_value=result), patch.object(native, "Path", return_value=Mock()):
+        with patch.object(native.subprocess, "run", return_value=result), \
+             patch.object(native, "trace"), patch.object(native, "Path", return_value=Mock()):
             with self.assertRaises(ValueError) as failed:
                 native.command(["claude"], {})
         for text in ("stdout diagnosis", "stderr diagnosis", "1"):

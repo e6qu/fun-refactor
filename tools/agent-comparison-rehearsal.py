@@ -53,13 +53,18 @@ def rehearsal(image, setup, output, negative_control, host):
               "scope": "All processes in one attempt container, including the scripted host and detached daemon. "
                        "Excludes image download/build, outer controller, Docker service and model inference. "
                        "This is an integration control, not a cost comparison or native-agent trial."}
+    def retain_command(command, data, directory, timeout, cap):
+        result = invoke(command, data, directory, timeout, cap)
+        process, stdout, stderr = result
+        report.setdefault("commands", []).append({"argv": command[len(DOCKER):], "process": process,
+            "stdout": stdout.decode(errors="replace"), "stderr": stderr.decode(errors="replace")})
+        return result
+
     with isolated_budget(output, budget) as slice_id:
-        scope = ContainerResources(budget, slice_id, output).start()
+        scope = ContainerResources(budget, slice_id, output, execute=retain_command).start()
 
         def docker(*arguments, timeout):
             process, stdout, stderr = scope.invoke(DOCKER + list(arguments), b"", output, timeout, 2 * 1024**2)
-            report.setdefault("commands", []).append({"argv": list(arguments), "process": process,
-                "stdout": stdout.decode(errors="replace"), "stderr": stderr.decode(errors="replace")})
             require(process["exit_code"] == 0 and not process["stop_reason"],
                     f"Docker command failed: {arguments!r}: {stderr.decode(errors='replace')}")
             return stdout
