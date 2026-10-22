@@ -31,6 +31,13 @@ These are three delivery packages, not replacements for the four milestones belo
 
 Example: an agent finds a helper, previews its rename, checks its callers and undoes the change.
 
+Done: all three applications discover the project skill, and the introductory change lesson passes.
+The CLI and Python comparison now includes startup, edits, validation and shutdown.
+Direct CLI calls were fastest in these small sessions; keeping Python running reduced its overhead.
+Saving and validating answers still cost more than asking again. These results do not measure agent savings.
+
+Next: prepare the ordinary-tools, CodeGraph and fr pilot below, then agree its model settings and spending limit before live calls.
+
 - Keep one portable skill with explicit setup for Claude Code, Codex and OpenCode.
   Check discovery in clean sessions and record actual tool use separately from scripted integration controls.
 - Teach the complete find, inspect, preview, check and undo route through examples that introduce each new concept.

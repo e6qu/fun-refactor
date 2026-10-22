@@ -160,6 +160,18 @@ jobs:
           recheck.audit(path.parent, binary, alternate)
           recheck.reject_false_claims(path.parent, binary, alternate)
           PY
+      - name: Audit current CLI and Python session measurements
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess, sys
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+          path = Path(entry['path'])
+          assert path.resolve().is_relative_to(Path.cwd())
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+          subprocess.run([sys.executable, '-B', 'tools/project-session-cost.py', '--audit', '--output', str(path.parent)], check=True)
+          PY
 
   original-package-questions:
     name: Original package questions

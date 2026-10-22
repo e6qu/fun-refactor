@@ -89,8 +89,8 @@ and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
 
-To make the skill available in other projects, copy the complete `skills/fr` directory
-from the source tree or release archive into your agent's user skill directory:
+To use the skill in another project, copy the complete `skills/fr` directory from the source tree or release archive.
+Choose your agent's user directory below:
 
 | Agent | User skill directory |
 | --- | --- |

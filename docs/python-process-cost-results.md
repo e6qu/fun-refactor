@@ -108,7 +108,7 @@ For example, find both `forwards()` and `stopped()`, then ask their questions wi
 Both questions can already use the existing client; this result needs no new saved-work mechanism.
 
 The later [two-helper comparison](python-together-cost-results.md) measures that combined request against separate requests in the same running program.
-The [current handoff](continuity.md#next-start-the-three-pr-roadmap) places the complete project-session comparison in PR 1.
+The [complete project-session comparison](project-session-cost.md) now includes the CLI, fresh Python clients and clients kept running between questions.
 State the work limits explicitly: a combined request shares its limit, while separate requests each receive their own limit.
 Count finding both functions, initial setup, all answers and checking source edits.
 Keep exhausted or unsupported questions unfinished, then return to the real libraries' remaining import and startup gaps.
