@@ -83,12 +83,12 @@ class RoadmapStatusTests(unittest.TestCase):
         gate = {**self.catalog['obligations'][0], 'id': 'C.performance'}
         self.catalog['obligations'].append(gate)
         page = status.markdown(self.compute())
-        self.assertIn('saved-work cost comparison', page)
+        self.assertIn('[complete session cost comparison](project-session-cost.md)', page)
         self.assertNotIn('Next, measure the cost of continuing', page)
         gate['requires'] = []
         page = status.markdown(self.compute())
         self.assertIn('Next, measure the cost of continuing', page)
-        self.assertNotIn('saved-work cost comparison', page)
+        self.assertNotIn('[complete session cost comparison](project-session-cost.md)', page)
 
     def test_missing_report_opens_all_dependents(self):
         (self.root / 'result.json').unlink()

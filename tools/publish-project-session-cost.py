@@ -11,17 +11,12 @@ cost = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cost)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--collection', type=Path, required=True)
-    args = parser.parse_args()
-    cost.require(os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ['GITHUB_REF'].startswith('refs/heads/')
-                 and os.environ['GITHUB_REF'] != 'refs/heads/main', 'publish from a work-branch runner')
-    report = json.loads((args.collection / 'result.json').read_text())
-    cost.require(report['run_id'] == int(os.environ['GITHUB_RUN_ID']) and report['source_commit'] == os.environ['GITHUB_SHA'],
+def publish(collection, producer):
+    report = json.loads((collection / 'result.json').read_text())
+    cost.require(report['run_id'] == producer['id'] and report['source_commit'] == producer['head_sha'],
                  'the collection belongs to another run')
     directory = ROOT / f'tests/agent-eval/results/2026-10-22-project-sessions-{report["run_id"]}'
-    summary = cost.retain_collection(args.collection, directory)
+    summary = cost.retain_collection(collection, directory)
     relative = str(directory.relative_to(ROOT))
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
@@ -75,7 +70,7 @@ def main():
     for project in summary:
         for condition in cost.CONDITIONS:
             rows = [row for row in report['sessions'] if (row['project'], row['condition']) == (project, condition)]
-            finals = [json.loads((args.collection / row['path'] / 'session.json').read_text())['stages'][-1] for row in rows]
+            finals = [json.loads((collection / row['path'] / 'session.json').read_text())['stages'][-1] for row in rows]
             lines.append(f'| {project} / {condition} | {statistics.median(row["cpu_seconds"] for row in rows):.2f} | '
                 f'{max(row["measurement"]["sampled_aggregate_rss_bytes"] for row in rows) / 1048576:.1f} | '
                 f'{statistics.median(stage["native_cache_bytes"] for stage in finals) / 1024:.1f} | '
@@ -97,6 +92,15 @@ def main():
         f'[Raw record](../{relative}/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/{report["run_id"]}) | '
         '[Previous saved-answer comparison](distinct-answer-hashing.md)', '']
     (ROOT / 'docs/project-session-cost.md').write_text('\n'.join(lines))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--collection', type=Path, required=True)
+    args = parser.parse_args()
+    cost.require(os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ['GITHUB_REF'].startswith('refs/heads/')
+                 and os.environ['GITHUB_REF'] != 'refs/heads/main', 'publish from a work-branch runner')
+    publish(args.collection, {'id': int(os.environ['GITHUB_RUN_ID']), 'head_sha': os.environ['GITHUB_SHA']})
 
 
 if __name__ == '__main__':
