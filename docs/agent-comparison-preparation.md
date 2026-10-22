@@ -91,7 +91,9 @@ Each price needs its source and date. It requires positive total and per-attempt
 Reviewing the file does not authorize spending or enable live calls.
 This checks required fields and numeric prices. It does not resolve model aliases or validate each provider's reasoning options; those require the native application rehearsal.
 The [older paired Codex runner](agent-codex-runner.md) now also rejects undeclared model settings and requires explicit model, effort, service tier, executable and timeout.
-Its preparer can freeze an agreed settings file into both sessions. This fixes implicit settings in that runner; it does not turn its two-setup protocol into this proposed three-setup study.
+Its `freeze-settings` command declares the agreed settings in both fresh sessions before a run.
+This belongs to the Codex runner: the shared evaluator and its recorded comparison fingerprints remain unchanged.
+This fixes implicit settings in that runner; it does not turn its two-setup protocol into this proposed three-setup study.
 
 Then freeze and rehearse the actual application configurations, complete prompts, grading commands, fr source revision and binary, credential access and full-attempt resource limits.
 For Codex, verify the chosen release's behavior against its [configuration reference](https://developers.openai.com/codex/config-reference) and [app-server interface](https://developers.openai.com/codex/app-server).

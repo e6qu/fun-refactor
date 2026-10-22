@@ -218,13 +218,8 @@ def trial_names(project, repetitions):
             for repeat in range(1, repetitions + 1) for task in tasks for arm in ("fr", "files")]
 
 
-def prepare(out, binary, project, repetitions, codex_settings):
+def prepare(out, binary, project="strsim", repetitions=1):
     names = trial_names(project, repetitions)
-    if codex_settings is not None:
-        if (not isinstance(codex_settings, dict)
-                or set(codex_settings) != {"model", "reasoning_effort", "service_tier"}
-                or not all(isinstance(value, str) and value.strip() for value in codex_settings.values())):
-            raise ValueError("Codex settings must explicitly name model, reasoning_effort and service_tier")
     if any((parent / "Cargo.toml").is_file() for parent in [out, *out.parents]):
         raise ValueError("Prepare outside Cargo projects, for example under /tmp, to avoid inherited workspace membership")
     binary = binary.resolve()
@@ -239,11 +234,6 @@ def prepare(out, binary, project, repetitions, codex_settings):
         session = out / name
         session.mkdir()
         prepare_trial(session, frozen_binary, task, arm, repeat)
-        if codex_settings is not None:
-            config = json.loads((session / "session.json").read_text())
-            config["model"] = codex_settings["model"]
-            config["model_settings"] = {key: codex_settings[key] for key in ("reasoning_effort", "service_tier")}
-            save(session / "session.json", config)
     print(json.dumps({"sessions": [str(out / name) for name, _, _, _ in names]}))
 
 
@@ -1123,8 +1113,6 @@ def main():
     prepare_parser.add_argument("--fr", type=Path, default=ROOT / "target/debug/fr")
     prepare_parser.add_argument("--project", choices=("strsim", "regex", "regex-coordinated"), default="strsim")
     prepare_parser.add_argument("--repetitions", type=int, default=1)
-    prepare_parser.add_argument("--codex-settings", type=Path,
-                                help="Freeze explicit model settings from JSON; omit only for model-free sessions")
     step_parser = commands.add_parser("step")
     step_parser.add_argument("session", type=Path)
     step_parser.add_argument("request", nargs="?")
@@ -1146,9 +1134,7 @@ def main():
     )
     args = parser.parse_args()
     if args.command == "prepare":
-        from agent_eval.study import load as load_settings
-        settings = load_settings(args.codex_settings) if args.codex_settings is not None else None
-        prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions, settings)
+        prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
     elif args.command == "step":
         step(args.session.resolve(), request_input(args.request, args.request_stdin, sys.stdin))
     elif args.command == "score":

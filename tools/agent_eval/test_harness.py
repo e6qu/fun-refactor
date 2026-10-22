@@ -458,30 +458,6 @@ class CheckPolicyEvidence(unittest.TestCase):
 
 
 class CoordinatedWorkspaceEvidence(unittest.TestCase):
-    def test_prepare_freezes_the_same_explicit_model_settings_for_both_setups(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            binary = root / "fr-source"
-            binary.write_bytes(b"evaluated binary")
-            settings = {"model": "fixture-exact-model", "reasoning_effort": "low", "service_tier": "default"}
-            def scripted_trial(session, *_):
-                harness.save(session / "session.json", {"arm": session.name})
-            with mock.patch.object(harness, "prepare_trial", side_effect=scripted_trial), contextlib.redirect_stdout(io.StringIO()):
-                harness.prepare(root / "sessions", binary, "regex-coordinated", 1, settings)
-            for path in (root / "sessions").glob("*/session.json"):
-                config = json.loads(path.read_text())
-                self.assertEqual(config["model"], settings["model"])
-                self.assertEqual(config["model_settings"], {"reasoning_effort": "low", "service_tier": "default"})
-            self.assertEqual(len(list((root / "sessions").glob("*/session.json"))), 2)
-
-    def test_prepare_rejects_partial_model_settings_before_creating_sessions(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "sessions"
-            for settings in ({}, {"model": "chosen"}, {"model": "", "reasoning_effort": "low", "service_tier": "default"}):
-                with self.subTest(settings=settings), self.assertRaisesRegex(ValueError, "explicitly"):
-                    harness.prepare(root, Path("unused"), "regex-coordinated", 1, settings)
-                self.assertFalse(root.exists())
-
     def test_prepare_freezes_one_read_only_binary_for_every_arm(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -491,7 +467,7 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             sessions = root / "sessions"
             with mock.patch.object(harness, "prepare_trial") as prepare_trial:
                 with contextlib.redirect_stdout(io.StringIO()):
-                    harness.prepare(sessions, binary, "regex-coordinated", 1, None)
+                    harness.prepare(sessions, binary, "regex-coordinated", 1)
 
             frozen = sessions / "fr-agent-eval-bin"
             self.assertEqual(frozen.read_bytes(), b"evaluated binary")
@@ -506,7 +482,7 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             sessions = Path(tmp) / "sessions"
             with self.assertRaisesRegex(ValueError, "not a regular file"):
-                harness.prepare(sessions, Path(tmp) / "missing", "regex-coordinated", 1, None)
+                harness.prepare(sessions, Path(tmp) / "missing", "regex-coordinated", 1)
             self.assertFalse(sessions.exists())
 
     def test_prepared_evaluator_fingerprints_refuse_harness_drift(self):
@@ -1342,7 +1318,7 @@ class Boundaries(unittest.TestCase):
             root = Path(tmp)
             (root / "Cargo.toml").write_text("[workspace]\n")
             with self.assertRaisesRegex(ValueError, "outside Cargo"):
-                harness.prepare(root / "sessions", Path("unused"), "strsim", 1, None)
+                harness.prepare(root / "sessions", Path("unused"))
             self.assertFalse((root / "sessions").exists())
 
     def test_source_archive_is_pinned_and_upstream_oracles_fail_for_the_expected_reason(self):
