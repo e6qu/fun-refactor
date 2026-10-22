@@ -15,23 +15,45 @@ The Codex evaluators run prepared agent tasks through `codex exec`. They are opt
 normal CI and require an explicit quota acknowledgement. Use them to answer a defined acceptance or
 comparison question after deterministic replay and scoring already pass.
 
-The generic paired runner prepares isolated project copies and one immutable `fr` binary:
+The generic paired runner prepares isolated project copies and one immutable `fr` binary.
+The Codex runner then declares the agreed model settings in both fresh sessions.
+Replace `MODEL_ID_FROM_THE_AGREED_PLAN`, `AGREED_EFFORT` and `AGREED_SERVICE_TIER` below with actual agreed values; they are not model recommendations.
+A service tier selects the provider's requested processing class. Use the same explicit value for both setups.
+`freeze-settings` records these settings without launching Codex or making model calls.
+It refuses to overwrite declarations or to change a session where an attempt has already started.
+Sessions without declared settings remain usable for scripted checks; the Codex runner rejects them.
+Set `CODEX_BINARY` and `FR_BINARY` to the reviewed executables' absolute paths, and use those same agreed settings in the run commands:
 
 ```sh
 python3 tools/agent-eval.py prepare \
-  --project regex-coordinated --repetitions 1 --out /tmp/fr-agent-sessions
+  --fr "$FR_BINARY" --project regex-coordinated --repetitions 1 \
+  --out /tmp/fr-agent-sessions
 
-python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions \
+python3 tools/agent-eval-codex.py freeze-settings /tmp/fr-agent-sessions \
+  --model MODEL_ID_FROM_THE_AGREED_PLAN --effort AGREED_EFFORT \
+  --service-tier AGREED_SERVICE_TIER \
+  --trial regex-escape-len-fr --trial regex-escape-len-files
+
+python3 tools/agent-eval-codex.py run /tmp/fr-agent-sessions \
+  --codex "$CODEX_BINARY" --model MODEL_ID_FROM_THE_AGREED_PLAN \
+  --effort AGREED_EFFORT --service-tier AGREED_SERVICE_TIER --timeout 900 \
   --trial regex-escape-len-fr --trial regex-escape-len-files --dry-run
 
-python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions \
+python3 tools/agent-eval-codex.py run /tmp/fr-agent-sessions \
+  --codex "$CODEX_BINARY" --model MODEL_ID_FROM_THE_AGREED_PLAN \
+  --effort AGREED_EFFORT --service-tier AGREED_SERVICE_TIER --timeout 900 \
   --trial regex-escape-len-fr --trial regex-escape-len-files --confirm-agent-spend
 ```
 
-Each trial uses a new ephemeral Codex process with user configuration and repository discovery
-disabled. The runner pins its model, reasoning effort, service tier and sandbox. It reads the frozen
+Each trial uses a new ephemeral Codex process. Its [`codex exec` flags](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
+ignore the user configuration file and execution-policy rule files. The runner pins its model, reasoning effort, service tier and sandbox. It reads the frozen
 prompt over standard input and refuses incomplete pairs or reused session directories. Model
 availability and quota remain account-dependent.
+Model, reasoning effort, service tier, executable and timeout have no runner defaults.
+Undeclared or mismatched session settings fail before creating attempt records or contacting a model.
+The whole selection must also be fresh. If the second attempt already has a response or event record,
+the runner refuses the pair before spending on the first attempt.
+The example states the existing maximum of 900 seconds explicitly; it does not extend it.
 
 A session retains its JSONL events, stderr, final response and run record. The run record binds the
 prompt and streams by SHA-256 and records the model, effort, service tier, elapsed time and exit

@@ -1,12 +1,15 @@
 """Local tests for the opt-in Codex evaluator; no agent service is called."""
 
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import stat
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,10 +75,112 @@ class SettingsIsolation(unittest.TestCase):
                     runner.run_trial(Path("missing-codex"), ("trial", root, config), "different-model", "low", "default", 60)
                 self.assertEqual(list(root.iterdir()), [])
 
-    def test_matching_settings_and_legacy_sessions_remain_valid(self):
-        runner.validate_settings({}, "chosen", "low", "default")
+    def test_matching_declared_settings_are_required(self):
+        for config in ({}, {"model": "chosen"}, {"model_settings": {"reasoning_effort": "low", "service_tier": "default"}}):
+            with self.subTest(config=config), self.assertRaisesRegex(ValueError, "declared"):
+                runner.validate_settings(config, "chosen", "low", "default")
         runner.validate_settings({"model": "chosen", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}},
                                  "chosen", "low", "default")
+
+    def test_cli_does_not_supply_model_or_resource_defaults(self):
+        explicit = {"--codex": "codex", "--model": "chosen", "--effort": "low",
+                    "--service-tier": "default", "--timeout": "60"}
+        for missing in explicit:
+            argv = ["agent-eval-codex.py", "run", "missing-sessions", "--trial", "selected", "--dry-run"]
+            for key, value in explicit.items():
+                if key != missing:
+                    argv.extend([key, value])
+            with self.subTest(missing=missing), patch.object(sys, "argv", argv), contextlib.redirect_stderr(io.StringIO()) as errors:
+                with self.assertRaises(SystemExit) as stopped:
+                    runner.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn(missing, errors.getvalue())
+
+
+class SettingsPreparation(unittest.TestCase):
+    def sessions(self, root):
+        names = ["repair-fr", "repair-files"]
+        (root / "experiment.json").write_text(json.dumps({"trials": names}))
+        for name, arm in zip(names, ("fr", "files")):
+            session = root / name
+            session.mkdir()
+            (session / "session.json").write_text(json.dumps({"task": "repair", "arm": arm, "repetition": 1}))
+        return names
+
+    def test_cli_freezes_both_sessions_without_launching_codex_or_changing_prompts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = self.sessions(root)
+            for name in names:
+                (root / name / "prompt.txt").write_text("Original task requirements")
+            argv = ["agent-eval-codex.py", "freeze-settings", str(root), "--model", "chosen",
+                    "--effort", "low", "--service-tier", "default"]
+            for name in names:
+                argv.extend(["--trial", name])
+            with patch.object(sys, "argv", argv), patch.object(runner, "run_bounded") as launch, contextlib.redirect_stdout(io.StringIO()):
+                runner.main()
+            launch.assert_not_called()
+            for name in names:
+                config = runner.load(root / name / "session.json")
+                runner.validate_settings(config, "chosen", "low", "default")
+                self.assertEqual((root / name / "prompt.txt").read_text(), "Original task requirements")
+                self.assertFalse((root / name / "codex-run.json").exists())
+            # The runner independently reopens and validates the frozen pair.
+            self.assertEqual(len(runner.selected_pairs(root, names)), 1)
+
+    def test_later_used_session_prevents_changes_to_the_whole_selection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = self.sessions(root)
+            (root / names[-1] / "events.jsonl").write_text("first attempt")
+            before = [(root / name / "session.json").read_bytes() for name in names]
+            with self.assertRaisesRegex(ValueError, "not fresh"):
+                runner.freeze_settings(runner.selected_pairs(root, names), "chosen", "low", "default")
+            self.assertEqual(before, [(root / name / "session.json").read_bytes() for name in names])
+
+    def test_declared_settings_cannot_be_overwritten_or_filled_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = self.sessions(root)
+            for field in ("model", "model_settings"):
+                pairs = runner.selected_pairs(root, names)
+                pairs[-1][-1][2][field] = "previous declaration"
+                before = [(root / name / "session.json").read_bytes() for name in names]
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, "already declares"):
+                    runner.freeze_settings(pairs, "chosen", "low", "default")
+                self.assertEqual(before, [(root / name / "session.json").read_bytes() for name in names])
+
+    def test_empty_settings_fail_before_writing_sessions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = self.sessions(root)
+            before = [(root / name / "session.json").read_bytes() for name in names]
+            with self.assertRaisesRegex(ValueError, "nonempty"):
+                runner.freeze_settings(runner.selected_pairs(root, names), "", "low", "default")
+            self.assertEqual(before, [(root / name / "session.json").read_bytes() for name in names])
+
+    def test_later_attempt_blocks_the_entire_run_before_codex_is_contacted(self):
+        for artifact in runner.ATTEMPT_FILES:
+            with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                names = self.sessions(root)
+                runner.freeze_settings(runner.selected_pairs(root, names), "chosen", "low", "default")
+                (root / names[-1] / artifact).write_text("prior attempt")
+                argv = ["agent-eval-codex.py", "run", str(root), "--codex", "missing-codex",
+                        "--model", "chosen", "--effort", "low", "--service-tier", "default",
+                        "--timeout", "60", "--confirm-agent-spend"]
+                for name in names:
+                    argv.extend(["--trial", name])
+                with patch.object(sys, "argv", argv), patch.object(runner, "codex_version") as version, \
+                        patch.object(runner, "run_trial") as attempt, contextlib.redirect_stderr(io.StringIO()) as errors:
+                    with self.assertRaises(SystemExit) as stopped:
+                        runner.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn("not fresh", errors.getvalue())
+                version.assert_not_called()
+                attempt.assert_not_called()
+                self.assertEqual((root / names[-1] / artifact).read_text(), "prior attempt")
+                self.assertFalse(any((root / names[0] / filename).exists() for filename in runner.ATTEMPT_FILES))
 
 
 class CodexRunner(unittest.TestCase):
@@ -149,7 +254,8 @@ class CodexRunner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             name = self.sessions(root)[0]
-            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1})
+            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1,
+                "model": "gpt-5.6-luna", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}})
             fake = root / "fake-codex"
             fake.write_text(
                 "#!/bin/sh\n"
@@ -170,11 +276,23 @@ class CodexRunner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             name = self.sessions(root)[0]
-            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1})
+            entry = (name, root / name, {"task": "task", "arm": "fr", "repetition": 1,
+                "model": "gpt-5.6-luna", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}})
             record = runner.run_trial(root / "missing-codex", entry, "gpt-5.6-luna", "low", "default", 60)
             self.assertIsNone(record["exit_code"])
             self.assertTrue(record["launch_error"])
             self.assertTrue((root / name / "codex-run.json").is_file())
+
+    def test_final_response_alone_prevents_overwriting_a_previous_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "codex-final.txt").write_text("prior answer")
+            config = {"model": "chosen", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}}
+            with patch.object(runner, "run_bounded") as launch, self.assertRaisesRegex(ValueError, "not fresh"):
+                runner.run_trial(Path("missing-codex"), ("trial", root, config), "chosen", "low", "default", 60)
+            launch.assert_not_called()
+            self.assertEqual([path.name for path in root.iterdir()], ["codex-final.txt"])
+            self.assertEqual((root / "codex-final.txt").read_text(), "prior answer")
 
 
 if __name__ == "__main__":

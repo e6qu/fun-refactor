@@ -70,12 +70,12 @@
       "sha256": "ecc904705f8214b122b5f8f75ed9c13003522a98f234f2d24eab51043046b7d9"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-release080-ci-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-pr565-release081-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-release080-ci-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-22-pr565-release081-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "e706e1b27d87d564f94f209fb4c35c795dfbd3c6b8ed47657f0ff1f08d1ba23b"
+      "sha256": "c569098ee864905adfe58337999612199ad5e88a6943bbdf1151115665150dc5"
     },
     {
       "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-delivery-model-comparisons",
@@ -150,20 +150,20 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39771668139",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39806449836",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39771668139/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39806449836/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "4304b25393f47c21c848551f9e187ad63fb72f06891b3515c3738d4de9025d92"
+      "sha256": "18934b8b3f58ab63ecd8c7f52a96de6fce679ea2dbbb19eec383b09e6cccea57"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-release080-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-pr565-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-pr565-release-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "106e04aa9091fb42914016591616fa8803ab975592aa1073708079c3ff85414e"
+      "sha256": "2c9e952810e1ffc714dad5c9529330d695e666552d1fc58a5606459560b35887"
     }
   ],
   "obligations": [

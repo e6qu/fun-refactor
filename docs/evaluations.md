@@ -24,7 +24,8 @@ A shared source-input list now covers the Rust checking code, compiled grammars,
 The checker hashes these inputs when building; the result collectors record the same source files.
 Tests change a rule, generated parser, scanner, query, dependency and build setting, and require a changed cache identity.
 Missing declared inputs stop the build or collection. The tests also check added, removed and renamed source files.
-Saving startup work for a later request remains open. The existing package questions remain unfinished.
+The later [saved-startup lesson](save-python-startup.md) adds checked reuse across requests for supported examples.
+The existing full-package questions remain unfinished.
 
 
 The [Python package startup investigation](python-package-startup-results.md) observes what runs before four simple library helpers become available.
@@ -41,6 +42,10 @@ evidence, not timeless product documentation. Live support comes from `fr audit`
 and the command schemas.
 
 ## Evidence classes
+
+The [CodeGraph comparison preparation](agent-comparison-preparation.md) defines eighteen proposed attempts
+and model-free controls for isolated tool setup and complete shutdown, including detached background programs.
+These checks do not constitute live attempts or establish cost savings. Native application configuration and grading rehearsal remain open.
 
 Use the [independent study planner and auditor](agent-study.md) for new matched comparisons.
 It records planned cells, failed outcomes and complete declared agent usage without invoking models.
@@ -95,7 +100,7 @@ unused formal parameters and retained source anchors. Direct-edit boundaries are
 
 ## Consumer scope and delivery
 
-The [consumer-scope evaluation](../tests/agent-eval/results/2026-10-22-release080-ci-change-scope/manifest.json)
+The [consumer-scope evaluation](../tests/agent-eval/results/2026-10-22-pr565-release081-change-scope/manifest.json)
 pins a four-file Python caller chain. Independent inspection of the parsed syntax tree and native discovery agree on all
 three direct call sites. Both prescribed editing arms repair subtotal and add the API fee, then
 pass 147 public results plus the discovered test. Separate receivers apply, reverse and reapply

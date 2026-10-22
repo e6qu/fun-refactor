@@ -11,10 +11,7 @@ import time
 
 from agent_eval.bounded_host import run as run_bounded
 
-
-DEFAULT_MODEL = "gpt-5.6-luna"
-DEFAULT_EFFORT = "low"
-DEFAULT_SERVICE_TIER = "default"
+ATTEMPT_FILES = ("codex-run.json", "codex-events.jsonl", "codex-stderr.txt", "codex-final.txt", "events.jsonl")
 
 
 def load(path):
@@ -100,11 +97,30 @@ def codex_command(codex, session, model, effort, service_tier):
 
 
 def validate_settings(config, model, effort, service_tier):
-    if config.get("model", model) != model:
+    if not all(isinstance(value, str) and value.strip() for value in (model, effort, service_tier)):
+        raise ValueError("Model, effort and service tier must be declared as nonempty text")
+    if config.get("model") != model:
         raise ValueError("Requested model differs from the session's declared model")
     expected = {"reasoning_effort": effort, "service_tier": service_tier}
-    if "model_settings" in config and config["model_settings"] != expected:
+    if config.get("model_settings") != expected:
         raise ValueError("Requested settings differ from the session's declared settings")
+
+
+def freeze_settings(pairs, model, effort, service_tier):
+    """Declare settings before any attempt, without changing the task evaluator."""
+    declared = {"model": model, "model_settings": {"reasoning_effort": effort, "service_tier": service_tier}}
+    validate_settings(declared, model, effort, service_tier)
+    entries = [entry for pair in pairs for entry in pair]
+    # Check the whole selection before writing any session. Existing declarations
+    # and attempt records cannot be overwritten, even with identical values.
+    for name, session, config in entries:
+        if any(key in config for key in declared):
+            raise ValueError(f"Trial {name} already declares model settings; prepare a new session")
+        if any((session / filename).exists() for filename in ATTEMPT_FILES):
+            raise ValueError(f"Trial {name} is not fresh; prepare a new session")
+    for _, session, config in entries:
+        (session / "session.json").write_text(json.dumps({**config, **declared}, indent=2) + "\n")
+    return {"trials": [name for name, _, _ in entries], **declared}
 
 
 def run_trial(codex, entry, model, effort, service_tier, timeout):
@@ -113,7 +129,7 @@ def run_trial(codex, entry, model, effort, service_tier, timeout):
     record_path = session / "codex-run.json"
     events_path = session / "codex-events.jsonl"
     stderr_path = session / "codex-stderr.txt"
-    if any(path.exists() for path in (record_path, events_path, stderr_path, session / "events.jsonl")):
+    if any((session / filename).exists() for filename in ATTEMPT_FILES):
         raise ValueError(f"Trial {name} is not fresh; prepare a new session")
     prompt_path = session / "prompt.txt"
     command = codex_command(codex, session, model, effort, service_tier)
@@ -158,27 +174,37 @@ def codex_version(codex):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("sessions", type=Path)
-    parser.add_argument("--trial", action="append", default=[])
-    parser.add_argument("--codex", type=Path, default=Path("codex"))
-    parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--effort", default=DEFAULT_EFFORT)
-    parser.add_argument("--service-tier", default=DEFAULT_SERVICE_TIER)
-    parser.add_argument("--timeout", type=int, default=900)
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument(
+    commands = parser.add_subparsers(dest="command", required=True)
+    freeze = commands.add_parser("freeze-settings", help="Declare settings in fresh sessions without calling Codex")
+    execute = commands.add_parser("run", help="Run or inspect commands for sessions with frozen settings")
+    for command in (freeze, execute):
+        command.add_argument("sessions", type=Path)
+        command.add_argument("--trial", action="append", required=True)
+        command.add_argument("--model", required=True)
+        command.add_argument("--effort", required=True)
+        command.add_argument("--service-tier", required=True)
+    execute.add_argument("--codex", type=Path, required=True)
+    execute.add_argument("--timeout", type=int, required=True)
+    execution = execute.add_mutually_exclusive_group(required=True)
+    execution.add_argument("--dry-run", action="store_true")
+    execution.add_argument(
         "--confirm-agent-spend",
         action="store_true",
         help="Required acknowledgement that the selected Codex runs consume quota.",
     )
     args = parser.parse_args()
-    if not 60 <= args.timeout <= 900:
+    if args.command == "run" and not 60 <= args.timeout <= 900:
         parser.error("--timeout must be between 60 and 900 seconds")
     try:
         pairs = selected_pairs(args.sessions, args.trial)
+        if args.command == "freeze-settings":
+            print(json.dumps(freeze_settings(pairs, args.model, args.effort, args.service_tier), indent=2))
+            return
         for pair in pairs:
             for entry in pair:
                 validate_settings(entry[2], args.model, args.effort, args.service_tier)
+                if any((entry[1] / filename).exists() for filename in ATTEMPT_FILES):
+                    raise ValueError(f"Trial {entry[0]} is not fresh; prepare a new session")
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     if args.dry_run:
@@ -196,8 +222,6 @@ def main():
             )
         )
         return
-    if not args.confirm_agent_spend:
-        parser.error("--confirm-agent-spend is required for a real Codex run")
     version = codex_version(args.codex)
     records = []
     for pair in pairs:

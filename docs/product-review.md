@@ -112,6 +112,9 @@ The [numeric investigation](python-symbolic-investigation.md) supplies no presen
 
 ### First comparison with CodeGraph
 
+The [preparation guide](agent-comparison-preparation.md) gives the executable schedule and model-free tool and shutdown controls.
+Actual application configurations, complete prompts, independent grading rehearsal and agreed live settings remain to be frozen.
+
 Start with 18 attempts: two existing change tasks, three agent applications and three tool setups.
 One task repairs Unicode string comparison. The other adds a way to calculate escaped text length without allocating a temporary string.
 Their [requirements and independent behavior checks](../tests/agent-eval/unknown-target/task.json) already exist.
