@@ -8,7 +8,8 @@ SETUPS = ("files", "fr", "codegraph")
 MODEL = "fr-scripted-control"
 ORDINARY = ("read", "search", "edit", "run checks", "export a Git patch")
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
-           "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1"}
+           "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
+           "TOKIO_WORKER_THREADS": "1", "UV_THREADPOOL_SIZE": "1"}
 
 
 def require(condition, message):
@@ -72,12 +73,12 @@ def launch_command(host, setup, config):
     if host == "codex":
         return ["codex", "app-server", "--listen", "stdio://"]
     if host == "opencode":
-        return ["opencode", "run", "--format", "json", "--model", config["model"],
+        return ["opencode", "run", "--format", "json", "--title", "Scripted native tool control", "--model", config["model"],
                 "Inspect the fixture and report readiness."]
     allowed = config["tools"] + (["mcp__codegraph__codegraph_explore"] if setup == "codegraph" else [])
     return ["claude", "-p", "Inspect the fixture and report readiness.", "--output-format", "stream-json",
             "--verbose", "--model", config["model"], "--max-turns", str(config["max_turns"]),
-            "--no-session-persistence", "--setting-sources", "", "--settings", json.dumps(config["settings"]),
+            "--no-session-persistence", "--setting-sources", "project", "--settings", json.dumps(config["settings"]),
             "--tools", ",".join(config["tools"]), "--allowedTools", *allowed,
             "--strict-mcp-config", "--mcp-config", "/workspace/mcp.json"]
 

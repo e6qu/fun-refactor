@@ -41,6 +41,13 @@ class NativeInputs(unittest.TestCase):
                 with self.subTest(host=host, endpoint=endpoint), self.assertRaises(ValueError):
                     clients.native_config(host, "files", endpoint)
 
+    def test_native_launches_keep_project_skills_and_avoid_title_inference(self):
+        for setup in clients.SETUPS:
+            claude = clients.launch_command("claude", setup, clients.native_config("claude", setup, "http://127.0.0.1:1234"))
+            self.assertEqual(claude[claude.index("--setting-sources") + 1], "project")
+            opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"))
+            self.assertEqual(opencode[opencode.index("--title") + 1], "Scripted native tool control")
+
     def test_editing_one_returned_config_cannot_change_later_worker_limits(self):
         graph = clients.native_config("claude", "codegraph", "http://127.0.0.1:1234")
         graph["mcp"]["mcpServers"]["codegraph"]["env"]["CODEGRAPH_PARSE_WORKERS"] = "128"

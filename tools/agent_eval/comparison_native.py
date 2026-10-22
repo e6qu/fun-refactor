@@ -134,6 +134,10 @@ def provider(host, setup):
     try:
         yield "http://127.0.0.1:" + str(server.server_port), requests, errors
     finally:
+        Path("/workspace/provider-summary.json").write_text(json.dumps({"errors": errors, "requests": [
+            {"path": r["path"], "model": r["body"].get("model"),
+             "tools": [t.get("name") if host == "claude" else t.get("function", {}).get("name")
+                       for t in r["body"].get("tools", [])]} for r in requests]}) + "\n")
         Path("/workspace/provider.json").write_text(json.dumps({"requests": requests, "errors": errors}) + "\n")
         server.shutdown()
         server.server_close()

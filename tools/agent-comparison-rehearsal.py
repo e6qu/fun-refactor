@@ -107,7 +107,7 @@ def rehearsal(image, setup, output, negative_control, host):
             diagnostic, stdout, stderr = invoke(DOCKER + ["exec", name, "python3", "-c",
                 "from pathlib import Path; import json; print(json.dumps({str(p):p.read_bytes()[:16384].decode(errors='replace') "
                 "for p in Path('/workspace').rglob('*') if p.is_file() and "
-                "p.name in ('mcp.json','mcp.stderr','daemon.log','native.stdout','native.stderr','provider.json','native-config.json')}))"],
+                "p.name in ('mcp.json','mcp.stderr','daemon.log','native.stdout','native.stderr','provider.json','provider-summary.json','native-config.json')}))"],
                 b"", output, 5, 256 * 1024)
             report["diagnostics"] = {"process": diagnostic, "stdout": stdout.decode(errors="replace"),
                                      "stderr": stderr.decode(errors="replace")}

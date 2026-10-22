@@ -92,6 +92,9 @@ Codex uses its [app-server commands](https://learn.chatgpt.com/docs/app-server) 
 list skills, run a declared command and call the configured MCP tool without requesting inference.
 Its explicit command uses the existing container as the sandbox; this does not test an autonomous model turn.
 All application, provider and background tool processes share the existing container resource limits and cleanup check.
+The rehearsal explicitly limits Tokio and libuv worker pools to one thread each.
+Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
+OpenCode receives a fixed session title to avoid a separate title-generation request.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.
@@ -105,7 +108,7 @@ For each task, a separate GitHub job runs the pinned upstream tests and the exis
 
 - Unchanged Unicode code must fail the 67,081-pair behavior check. The original regex code must fail because the new public API is absent.
 - An incomplete Unicode repair fixes one length calculation but leaves the other wrong. The incomplete regex change adds length APIs but leaves extra allocations. Both must be rejected.
-- The reference repair must pass upstream and independent checks. Its Git patch must also pass in a fresh receiver, reverse to the original tracked source exactly and reapply exactly.
+- The reference repair must pass upstream and independent checks. Its Git patch must also pass in a fresh receiver. Undo must restore the original tracked source exactly; reapplying must restore the repaired source exactly.
 
 Run these controls on GitHub with `python3 -B tools/agent-comparison-grade.py controls --task TASK --output NEW_DIRECTORY`.
 The schedule records the separate `grade --candidate CANDIDATE_DIRECTORY` command for later submissions.
