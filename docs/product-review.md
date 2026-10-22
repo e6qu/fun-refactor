@@ -53,8 +53,66 @@ measure an agent discovering a solution. A search of production Rust and Python 
 no references to the two repository identities; that check alone does not establish generalization.
 
 The [current status report](roadmap-status.md) owns the count of checks that meet their stated
-requirements. Those checks cover particular examples. All four larger project goals still have
-unfinished work, and the count does not measure savings for an agent.
+requirements. Those checks cover particular examples. Three of the four larger project goals still have
+unfinished requirements. Continuing work and correct reuse meets its stated tests; that does not establish savings for an agent.
+
+## Agent setup review, 22 October 2026
+
+We ship one portable [fr skill](../skills/fr/SKILL.md), with references for finding code, edits, checks, saved work and proofs.
+Its name and description supply the basic information these agents need to discover a skill.
+The [installation guide](agent-skill.md#install-the-handoff) now names each agent's discovery directories and gives a manual discovery check.
+It uses Codex's currently documented `.agents/skills` location.
+
+The skill checker runs its shell examples against temporary projects.
+That establishes command behavior, not discovery by each agent application or effective choices during an unfamiliar task.
+
+| Agent | What we have checked | What remains |
+| --- | --- | --- |
+| Claude Code | A skill bundle with the required name and description | Installation, discovery and actual use in a clean Claude Code session |
+| Codex | An evaluation runner and recorded agent attempts | Native skill discovery; existing runners supply instructions through prepared prompts |
+| OpenCode | Scripted client controls and recorded agent attempts | Native skill discovery and reliable adoption during changes |
+
+The [OpenCode change records](native-change-outcomes.md) contain ten behavior passes and two collection failures, with zero fr calls.
+Those passes establish no benefit from fr.
+The [reading records](native-read-outcomes.md) include one guided attempt using fr, but no successful ordinary/fr comparison pair.
+The repository's `.claude/skills/lean-spec` is a separate Lean guide, not an installation of the portable fr skill.
+
+For discovery requirements, see the official [Claude Code](https://code.claude.com/docs/en/skills),
+[Codex](https://learn.chatgpt.com/docs/build-skills) and [OpenCode](https://docs.opencode.ai/docs/skills/) documentation.
+An optional Codex `agents/openai.yaml` file is not required for basic skill discovery.
+
+## What to learn from CodeGraph
+
+This review means [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph), the project linked by [Graphify's comparison](https://graphify.com/vs/codegraph).
+CodeGraph documents an installer for all three agents and one main exploration tool returning relevant source, call paths and likely affected code.
+It maintains a local index after edits.
+Its published agent measurements cover architecture questions on seven repositories, with four runs per setup.
+They are not a matched comparison with fr or evidence of delivering our change tasks.
+
+For example, CodeGraph targets “how does this request reach the database?”
+Our wider goal also includes “change the relevant helper, check the result, undo it and deliver a patch.”
+Finding a call path alone does not establish which submitted values reach an output or prove program behavior.
+The practical lesson is easier installation and fewer choices before the first useful answer.
+We should measure whether a simpler fr route helps before adding another wrapper or service.
+
+## Proposed next steps
+
+These priorities do not replace the four existing milestones or mark their open requirements complete.
+They do not authorize restarting stopped model studies.
+
+1. **Make first use dependable in all three agents.** A clean session should discover the skill and find a known function.
+   Then it should preview a change, run the relevant check and undo the edit.
+   Scripted client checks can test plumbing; live adoption still needs separate evidence.
+2. **Compare complete tasks fairly.** Give ordinary tools, CodeGraph and fr the same unfamiliar questions and change requests.
+   Check answers and delivered behavior independently. Count instructions, initial indexing, edits, retries, memory, storage and model usage.
+   State exact tools, model settings and approved limits before any live run.
+3. **Measure the existing Python library kept running.** Compare saved and fresh answers across a complete project session.
+   Count first start, edits, validation, renewed analysis, memory growth and shutdown.
+   Current saved sessions still cost about 5% to 26% more than asking fr again.
+   Both approaches use Python; this comparison does not isolate Python overhead against direct CLI calls or compare fr with CodeGraph.
+4. **Finish broader tracing and source-connected proofs through useful tasks.** Handle imports, exceptions and shared mutable values exposed by selected tasks.
+   Separately, translate one bounded function and connect one proof to actual code.
+   The [numeric investigation](python-symbolic-investigation.md) supplies no present reason to build another symbolic execution engine.
 
 ## Models to evaluate
 
@@ -193,8 +251,8 @@ with a version that omits or simplifies that component. A search for references 
 not proof that an external public API is unused.
 
 Remove unreachable or redundant internal code when its behavior and consumers are accounted for.
-For public routes, establish compatibility needs and choose consolidation, deprecation or an optional
-package. For stored evidence, retain unique failures and the manifests that tests depend on; first
+For public routes, identify consumers and keep one current interface without compatibility readers or fallback routes.
+For stored evidence, retain unique failures and the manifests that tests depend on; first
 prove that a fresh checkout can retrieve and audit any replacement archive. Do not rewrite Git history
 as part of ordinary cleanup.
 

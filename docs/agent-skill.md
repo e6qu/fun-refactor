@@ -16,18 +16,43 @@ directory beside the binary.
 
 ## Install the handoff
 
-Put the matching `fr` binary on the agent's `PATH`. Copy the whole skill directory so its internal
-references remain available. For Codex:
+Put the matching `fr` binary on the agent's `PATH`. Run the copy commands from the source checkout
+or unpacked release directory containing `skills/fr`. Choose the block for your agent.
+Copy the whole directory so its internal references remain available.
+
+For [Claude Code](https://code.claude.com/docs/en/skills):
 
 ```sh
-mkdir -p "$HOME/.codex/skills"
-cp -R skills/fr "$HOME/.codex/skills/fr"
-fr --version
+mkdir -p "$HOME/.claude/skills/fr"
+cp -R skills/fr/. "$HOME/.claude/skills/fr/"
 ```
 
-For another agent, point its instruction loader at `skills/fr/SKILL.md`. Ordinary inspection and
-source history need only `fr`. Git actions need Git, and strict Lean verification needs the target
-project's Lean and Lake toolchain.
+For [Codex](https://learn.chatgpt.com/docs/build-skills):
+
+```sh
+mkdir -p "$HOME/.agents/skills/fr"
+cp -R skills/fr/. "$HOME/.agents/skills/fr/"
+```
+
+For [OpenCode](https://docs.opencode.ai/docs/skills/):
+
+```sh
+mkdir -p "$HOME/.config/opencode/skills/fr"
+cp -R skills/fr/. "$HOME/.config/opencode/skills/fr/"
+```
+
+OpenCode also discovers the Claude Code and Codex locations above. Install one copy visible to OpenCode to avoid duplicate names.
+For a project-only installation, use `.claude/skills/fr/`, `.agents/skills/fr/` or `.opencode/skills/fr/`, respectively.
+The source directory `skills/fr/` alone is not a documented discovery location for these agents.
+
+Open a new local agent session and check that `fr` appears among its available skills.
+In Claude Code, invoke `/fr`; in Codex, select it with `$fr` or `/skills`.
+In OpenCode, ask the agent to load the `fr` skill with its skill tool.
+Then ask it to find a known function using `fr project find NAME --signature` and explain the result.
+Check the recorded tool call: listing a skill does not establish that the agent used `fr`.
+These are installation checks for the reader, not completed host-discovery tests in our CI.
+
+Ordinary inspection and source history need only `fr`. Git actions need Git, and strict Lean verification needs the target project's Lean and Lake toolchain.
 
 ## Use the bounded change loop
 

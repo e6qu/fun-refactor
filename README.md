@@ -84,16 +84,18 @@ Replace `<TX>`, including its brackets, with the returned transaction ID. Contin
 
 ## Give `fr` to an agent
 
-Put `fr` on the agent's `PATH` and provide the complete `skills/fr` directory from the source tree
-or release archive. For Codex:
+Put `fr` on the agent's `PATH`. Copy the complete `skills/fr` directory from the source tree
+or release archive into your agent's skill directory:
 
-```sh
-mkdir -p "$HOME/.codex/skills"
-cp -R skills/fr "$HOME/.codex/skills/fr"
-```
+| Agent | User skill directory |
+| --- | --- |
+| Claude Code | `~/.claude/skills/fr/` |
+| Codex | `~/.agents/skills/fr/` |
+| OpenCode | `~/.config/opencode/skills/fr/` |
 
-Other agents can load [`skills/fr/SKILL.md`](skills/fr/SKILL.md) with its adjacent `references`
-directory. The skill routes a task to a small relevant guide rather than loading the whole manual.
+The [installation guide](docs/agent-skill.md#install-the-handoff) gives commands and explains how to check discovery.
+Keep [`SKILL.md`](skills/fr/SKILL.md) and its adjacent `references` directory together.
+The skill routes a task to a small relevant guide rather than loading the whole manual.
 
 Start with the live support summary and a structured goal:
 
