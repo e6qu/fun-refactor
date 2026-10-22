@@ -49,7 +49,8 @@ Each setup finds the same small Python function, `normalize_total`, called by `c
 The fr control also uses `fr project find settings --signature` to inspect this project's new settings validator.
 The CodeGraph control runs the pinned release's real `init --yes` command and `serve --mcp` server, lists its tools and calls `codegraph_explore`.
 MCP is the request protocol an agent application uses to call an external tool server.
-This direct protocol check complements the [existing native skill discovery checks](agent-skill.md); it does not test CodeGraph discovery inside all three agent applications.
+This direct protocol check complements the [existing native skill discovery checks](agent-skill.md).
+The native application controls below separately test loading and using the assigned tool setup.
 
 CodeGraph starts a background indexing program, called a daemon, that can survive the client that asked the question.
 The rehearsal verifies that this happens with the pinned release: the daemon leaves the client's process group and remains alive after the client exits.
@@ -76,6 +77,43 @@ It excludes downloading/building images, the outer controller, the Docker servic
 These are integration controls, not runtime benchmarks: there is no speed ranking or language-overhead claim.
 They must not be presented as complete live-attempt costs.
 
+## Check each actual application and the task graders
+
+The same workflow now exercises three fresh containers per application: ordinary tools, fr, and CodeGraph.
+Only the assigned specialized executable is installed. The fr skill is installed only in the fr setup.
+For example, Claude Code receives the same ordinary read, edit and shell tools in every setup;
+the CodeGraph setup also connects its real MCP server. A scripted response asks the application to query the fixture.
+The next provider request must contain the successful tool result. Errors and missing tools fail the control.
+
+These are real pinned client binaries with empty homes and no live credentials.
+Claude Code and OpenCode receive two fixed replies from a local HTTP server inside the network-disabled container.
+The model name `fr-scripted-control` names that test fixture, not a model available to buy.
+Codex uses its [app-server commands](https://learn.chatgpt.com/docs/app-server) to inspect effective settings,
+list skills, run a declared command and call the configured MCP tool without requesting inference.
+Its explicit command uses the existing container as the sandbox; this does not test an autonomous model turn.
+All application, provider and background tool processes share the existing container resource limits and cleanup check.
+
+The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
+It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.
+The discovery prompt asks for a `HANDOFF.md` diagnosis; the delivery prompt asks the next process to read it,
+inspect current source, implement the repair and export `change.patch`.
+These prompts describe the planned handoff. The native fixture controls do not execute that complete two-phase task.
+The rehearsal configurations deliberately use a scripted provider and a single controlled CodeGraph query.
+Agree and freeze the complete offered tool set and real model settings before live attempts.
+
+For each task, a separate GitHub job runs the pinned upstream tests and the existing independent behavior checker:
+
+- Unchanged Unicode code must fail the 67,081-pair behavior check. The original regex code must fail because the new public API is absent.
+- An incomplete Unicode repair fixes one length calculation but leaves the other wrong. The incomplete regex change adds length APIs but leaves extra allocations. Both must be rejected.
+- The reference repair must pass upstream and independent checks. Its Git patch must also pass in a fresh receiver, reverse to the original tracked source exactly and reapply exactly.
+
+Run these controls on GitHub with `python3 -B tools/agent-comparison-grade.py controls --task TASK --output NEW_DIRECTORY`.
+The schedule records the separate `grade --candidate CANDIDATE_DIRECTORY` command for later submissions.
+Keep grading outside the candidate directory. The current controls execute trusted pinned fixtures on a dedicated runner;
+they do not establish isolation for arbitrary hostile submitted code.
+Failures retain their diagnostics. A timeout or compilation error cannot become the expected missing-API result.
+Reference implementations and private checker details stay outside agent containers and prompts.
+
 ## What must happen before live attempts
 
 Choose and agree exact models, reasoning settings, prices and spending caps.
@@ -95,7 +133,8 @@ Its `freeze-settings` command declares the agreed settings in both fresh session
 This belongs to the Codex runner: the shared evaluator and its recorded comparison fingerprints remain unchanged.
 This fixes implicit settings in that runner; it does not turn its two-setup protocol into this proposed three-setup study.
 
-Then freeze and rehearse the actual application configurations, complete prompts, grading commands, fr source revision and binary, credential access and full-attempt resource limits.
+Then freeze the live application configurations and offered tools, fr source revision and binary, credential access and full-attempt resource limits.
+Rehearse both complete task phases, their intervening source change and independent private grading under those limits.
 For Codex, verify the chosen release's behavior against its [configuration reference](https://developers.openai.com/codex/config-reference) and [app-server interface](https://developers.openai.com/codex/app-server).
 The container control alone does not establish native application integration, correct grading or bounded live model usage.
 

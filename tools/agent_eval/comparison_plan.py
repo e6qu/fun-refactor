@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .study import digest, load, number, require, text
+from .comparison_clients import inputs as client_inputs
 
 ROOT = Path(__file__).resolve().parents[2]
 HOSTS = ("claude", "codex", "opencode")
@@ -25,6 +26,11 @@ INPUTS = (
     "tools/agent_eval/docker_info.py", "tools/agent_eval/request_gateway.py",
     "tools/agent_eval/provider_usage.py",
     "tests/agent-eval/agent-comparison/Dockerfile", ".github/workflows/agent-comparison.yml",
+    "tests/agent-eval/agent-comparison/Native.Dockerfile",
+    "tools/agent_eval/comparison_clients.py", "tools/agent_eval/comparison_native.py",
+    "tools/agent-comparison-native.py",
+    "tools/agent-comparison-grade.py", "tools/agent_eval/comparison_grade.py",
+    "tools/agent_eval/investigation_rehearsal.py",
 )
 
 
@@ -56,13 +62,14 @@ def prepare(root):
         "live_calls_enabled": False,
         "missing_before_live_calls": [
             "Agreed exact models, reasoning settings, prices and spending cap",
-            "Frozen native application configurations, prompts and grading commands",
+            "Agreed live native application configurations and full attempt rehearsal",
             "Full-attempt resource and credential admission on the chosen runner",
         ],
         "bindings": bindings(root),
         "clients": load(root / INPUTS[1]),
         "codegraph": load(root / INPUTS[2]),
         "tools": load(root / INPUTS[3]),
+        "native_rehearsal_inputs": client_inputs(root),
         "tasks": {name: task["tasks"][name] for name in TASKS},
         "limits": {name: budget[name] for name in (
             "phases_per_trial", "seconds_per_phase", "calls_per_trial",

@@ -38,15 +38,17 @@ def isolated_budget(directory, budget):
         (Path(tempfile.gettempdir()) / (name + ".lock")).unlink(missing_ok=True)
 
 
-def rehearsal(image, setup, output, negative_control):
+def rehearsal(image, setup, output, negative_control, host):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run this rehearsal on GitHub, not a workstation")
     require(image.startswith("sha256:") and len(image) == 71, "use the immutable local image ID")
+    require(host in {"tools", "claude", "codex", "opencode"}, "declare the rehearsed application")
+    require(not negative_control or host == "tools", "detached-worker control has no native application")
     output.mkdir(parents=True, exist_ok=False)
     budget = {**limits(), "memory_bytes": 512 * 1024**2,
               "cpu_seconds": 0.5 if negative_control else 60}
     name = "fr-comparison-" + uuid.uuid4().hex
     started = time.monotonic()
-    report = {"setup": setup, "negative_control": negative_control, "image": image,
+    report = {"setup": setup, "host": host, "negative_control": negative_control, "image": image,
               "model_calls": 0, "passed": False,
               "scope": "All processes in one attempt container, including the scripted host and detached daemon. "
                        "Excludes image download/build, outer controller, Docker service and model inference. "
@@ -88,11 +90,13 @@ def rehearsal(image, setup, output, negative_control):
                     time.sleep(0.05)
                 require(scope.reason == "cpu_seconds", "detached CPU worker escaped the shared budget")
             else:
-                data = docker("exec", name, "python3", "/probe/comparison_probe.py", "--setup", setup, timeout=100)
+                probe = ["python3", "/probe/comparison_probe.py", "--setup", setup] if host == "tools" else [
+                    "python3", "/probe/comparison_native.py", "--host", host, "--setup", setup]
+                data = docker("exec", name, *probe, timeout=100)
                 report["probe"] = json.loads(data)
                 scope.check()
                 report["after_host_exit"] = dict(scope.last)
-                if setup == "codegraph":
+                if setup == "codegraph" and host == "tools":
                     require(report["probe"]["daemon_alive_after_proxy_exit"], "missing daemon lifecycle control")
                     require(scope.last["populated"] == 1, "daemon left its container budget")
         except Exception as error:
@@ -101,9 +105,10 @@ def rehearsal(image, setup, output, negative_control):
             # Capture diagnostics on failure too; a killed container may reject exec.
             # This does not restart it or bypass a stopped kernel budget.
             diagnostic, stdout, stderr = invoke(DOCKER + ["exec", name, "python3", "-c",
-                "from pathlib import Path; import json; print(json.dumps({str(p):p.read_bytes()[:65536].decode(errors='replace') "
+                "from pathlib import Path; import json; print(json.dumps({str(p):p.read_bytes()[:16384].decode(errors='replace') "
                 "for p in Path('/workspace').rglob('*') if p.is_file() and "
-                "p.name in ('mcp.json','mcp.stderr','daemon.log')}))"], b"", output, 5, 256 * 1024)
+                "p.name in ('mcp.json','mcp.stderr','daemon.log','native.stdout','native.stderr','provider.json','native-config.json')}))"],
+                b"", output, 5, 256 * 1024)
             report["diagnostics"] = {"process": diagnostic, "stdout": stdout.decode(errors="replace"),
                                      "stderr": stderr.decode(errors="replace")}
             # rm --force kills PID 1 AND detached descendants before the final sample.
@@ -133,7 +138,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
     parser.add_argument("--setup", choices=("files", "fr", "codegraph"), required=True)
+    parser.add_argument("--host", choices=("tools", "claude", "codex", "opencode"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--negative-control", action="store_true")
     args = parser.parse_args()
-    rehearsal(args.image, args.setup, args.output.resolve(), args.negative_control)
+    rehearsal(args.image, args.setup, args.output.resolve(), args.negative_control, args.host)

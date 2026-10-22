@@ -120,16 +120,82 @@ jobs:
       - name: Exercise the real tool and stop every container process
         run: >-
           python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
-          --setup '${{ matrix.setup }}' --output "$RUNNER_TEMP/comparison-normal"
+          --setup '${{ matrix.setup }}' --host tools --output "$RUNNER_TEMP/comparison-normal"
       - name: Catch a detached worker after its launcher exits
         if: matrix.setup == 'files'
         run: >-
           python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
-          --setup files --negative-control --output "$RUNNER_TEMP/comparison-detached"
+          --setup files --host tools --negative-control --output "$RUNNER_TEMP/comparison-detached"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: comparison-rehearsal-${{ matrix.setup }}
           path: ${{ runner.temp }}/comparison-*/result.json
+          retention-days: 30
+          if-no-files-found: error
+  native:
+    name: Native application and assigned tools (${{ matrix.host }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [claude, codex, opencode]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Exercise each setup in a fresh bounded container
+        run: >-
+          python3 -B tools/agent-comparison-native.py --host '${{ matrix.host }}'
+          --output "$RUNNER_TEMP/native-comparison"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-comparison-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/native-comparison/summary.json
+            ${{ runner.temp }}/native-comparison/*/result.json
+          retention-days: 30
+          if-no-files-found: error
+  grading:
+    name: Independent comparison grading (${{ matrix.task }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [unicode-dice, regex-escape-len]
+    env:
+      CARGO_HOME: ${{ github.workspace }}/target/cargo-home
+      CARGO_BUILD_JOBS: '1'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - name: Provision the pinned regex dependency graph before offline grading
+        if: matrix.task == 'regex-escape-len'
+        run: |
+          python3 -B tools/regex-workspace-check.py unpack "$RUNNER_TEMP/grader-dependencies"
+          cargo fetch --locked --manifest-path "$RUNNER_TEMP/grader-dependencies/Cargo.toml"
+      - name: Reject unchanged and incomplete code, then replay the correct patch
+        run: >-
+          python3 -B tools/agent-comparison-grade.py controls --task '${{ matrix.task }}'
+          --output "$RUNNER_TEMP/comparison-grade"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: comparison-grade-${{ matrix.task }}
+          path: |
+            ${{ runner.temp }}/comparison-grade/*.json
+            ${{ runner.temp }}/comparison-grade/*.patch
           retention-days: 30
           if-no-files-found: error

@@ -52,9 +52,11 @@ The recurring CI check replays the recorded experiment and rejects altered compl
 
 Continue PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs).
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
-isolated real-tool controls and detached-process accounting check. These controls make no model calls.
-Next, freeze and rehearse native application configurations, complete prompts and independent grading commands.
-Agree exact models, prices, spending caps and full-attempt resource limits before live attempts.
+isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
+They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.
+Independent task controls reject unchanged and incomplete code, check the reference repair and replay its patch in a fresh checkout.
+These checks make no live model calls. Next, rehearse the complete two-phase tasks and their intervening source change.
+Agree exact live models, offered tools, credentials, prices, spending caps and full-attempt resource limits before live attempts.
 Claude Code, Codex and OpenCode now discover the portable skill in isolated native-client checks.
 The introductory lesson executes the complete find, preview, check and undo route.
 The [agent setup review](product-review.md#agent-setup-review-22-october-2026) explains what passed and what remains unmeasured.

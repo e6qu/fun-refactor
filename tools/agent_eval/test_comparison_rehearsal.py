@@ -38,9 +38,9 @@ class FailureRetention(unittest.TestCase):
                  patch.object(control, "audit", return_value=checked):
                 if create_fails or cleanup_fails or audit_fails:
                     with self.assertRaises(ValueError):
-                        control.rehearsal("sha256:" + "a" * 64, "files", output, False)
+                        control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
                 else:
-                    control.rehearsal("sha256:" + "a" * 64, "files", output, False)
+                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
             retained = json.loads((output / "result.json").read_text())
             self.assertEqual(retained["passed"], not (create_fails or cleanup_fails or audit_fails))
             self.assertEqual(retained["resources"], {"retained": True})
