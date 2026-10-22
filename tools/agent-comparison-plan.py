@@ -20,5 +20,5 @@ elif args.verify:
     result = {"preparation_matches": True, "live_calls_enabled": False}
 else:
     settings(load(args.review_settings))
-    result = {"settings_complete": True, "live_calls_enabled": False}
+    result = {"required_settings_present": True, "live_calls_enabled": False}
 print(json.dumps(result, indent=2, allow_nan=False))

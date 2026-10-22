@@ -56,6 +56,9 @@ Counting just the client's group would miss that program.
 A Linux kernel resource group counts the entire container, including the scripted host, proxy, daemon and their workers.
 Its explicit limits are half a CPU core, sixty CPU seconds, 512 MiB of memory, no swap and sixty-four processes.
 CPU seconds count time spent executing; they differ from elapsed time while waiting.
+The [pinned CodeGraph parser](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/extraction/parse-pool.ts) chooses its worker count from the host's cores, which can exceed the container's CPU allowance.
+This rehearsal explicitly sets its parse, query and resolver worker limits to one, and sets fr's Rayon worker limit to one.
+A worker is a program or thread doing part of the tool's work. These limits avoid competing startup work on the shared half core; they do not disable CodeGraph's daemon or increase any deadline.
 The container also has bounded temporary storage and no writable host mounts.
 After the query, the controller removes the container and requires an empty resource group.
 It retains CPU and peak-memory counters, command output and available server diagnostics, including failures.
@@ -83,6 +86,7 @@ python3 -B tools/agent-comparison-plan.py --review-settings agreed-settings.json
 It requires all three applications, their provider/model identities, reasoning settings and all four token prices: ordinary input, cached input reads, cache writes and output.
 Each price needs its source and date. It requires positive total and per-attempt spending caps; missing prices do not become zero.
 Reviewing the file does not authorize spending or enable live calls.
+This checks required fields and numeric prices. It does not resolve model aliases or validate each provider's reasoning options; those require the native application rehearsal.
 
 Then freeze and rehearse the actual application configurations, complete prompts, grading commands, fr source revision and binary, credential access and full-attempt resource limits.
 For Codex, verify the chosen release's behavior against its [configuration reference](https://developers.openai.com/codex/config-reference) and [app-server interface](https://developers.openai.com/codex/app-server).

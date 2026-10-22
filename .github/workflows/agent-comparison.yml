@@ -8,6 +8,15 @@ on:
       - 'tools/agent_eval/test_comparison*.py'
       - 'tools/agent_eval/container_resources.py'
       - 'tools/agent_eval/bounded_host.py'
+      - 'tools/agent_eval/study.py'
+      - 'tools/agent_eval/isolated_grade.py'
+      - 'tools/agent_eval/docker_info.py'
+      - 'tools/agent_eval/request_gateway.py'
+      - 'tools/agent_eval/provider_usage.py'
+      - 'tools/agent-eval.py'
+      - 'tools/agent_eval/oracle.py'
+      - 'tools/agent_eval/regex_workspace.py'
+      - 'tools/agent_eval/regex_escape_len.py'
       - 'tests/agent-eval/agent-comparison/**'
       - 'tests/agent-eval/agent-first-use/*.json'
       - 'tests/agent-eval/unknown-target/task.json'
@@ -38,6 +47,7 @@ jobs:
         with:
           name: proposed-agent-comparison
           path: ${{ runner.temp }}/comparison-plan.json
+          retention-days: 30
           if-no-files-found: error
   rehearsal:
     name: Isolated tools and complete shutdown (${{ matrix.setup }})
@@ -108,4 +118,5 @@ jobs:
         with:
           name: comparison-rehearsal-${{ matrix.setup }}
           path: ${{ runner.temp }}/comparison-*/result.json
+          retention-days: 30
           if-no-files-found: error
