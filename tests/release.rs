@@ -139,10 +139,14 @@ fn the_release_builds_checks_and_attaches_the_python_sdk() {
     for required in [
         "python tools/check-sdk-package.py --fr target/release/fr",
         "python -m build --no-isolation --outdir dist sdk/python",
-        "dist/*.whl dist/*.tar.gz dist/*.sha256 --clobber",
+        "dist/*.whl dist/*.tar.gz dist/*.sha256",
     ] {
         assert!(WORKFLOW.contains(required), "release omits `{required}`");
     }
+    assert!(
+        !WORKFLOW.contains("--clobber"),
+        "release publication must refuse to overwrite existing downloads"
+    );
 }
 
 #[test]
