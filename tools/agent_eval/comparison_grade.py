@@ -81,10 +81,14 @@ def controls(task, output):
         results[variant] = grade(project, task)
         write(output / (variant + ".json"), results[variant])
         require(results[variant]["passed"] == (variant == "reference"), f"unexpected {variant} grading outcome")
-        if variant == "unchanged":
-            require(all(c["exit_code"] == 0 for c in results[variant]["checks"]), "original upstream checks failed")
-            require(results[variant]["oracle"].get("stage") == (2 if task == "unicode-dice" else 1),
-                    "baseline failed for an unexpected reason")
+        if variant != "reference":
+            require(all(c["exit_code"] == 0 for c in results[variant]["checks"]), f"{variant} upstream checks failed")
+            expected_stage = 1 if task == "regex-escape-len" and variant == "unchanged" else 2
+            require(results[variant]["oracle"].get("stage") == expected_stage,
+                    f"{variant} failed for an unexpected reason")
+            if variant == "incomplete":
+                expected = 'a="aa" b="aaé": 0.5 != 0.6666666666666666' if task == "unicode-dice" else "escaping allocated 2 times"
+                require(expected in results[variant]["oracle"]["detail"], "incomplete repair missed its intended failure")
     patch = BASE.git(output / "reference", "diff", "--binary").stdout
     require(patch, "reference produced no patch")
     (output / "reference.patch").write_bytes(patch)
