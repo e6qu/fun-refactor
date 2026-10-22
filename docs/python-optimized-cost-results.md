@@ -136,7 +136,7 @@ The inner worker itself takes about 16 ms in that case; the entire request takes
 The [installed-client follow-up](python-process-cost-results.md) now compares saved bytecode and several questions from one running Python program.
 It uses smaller measurement code and another runner, so its controlled comparisons apply within that new collection.
 The later [two-helper comparison](python-together-cost-results.md) measures combined and separate questions in the same running program with explicit limits.
-The [current handoff](continuity.md#next-use-the-continuing-work-cost-results) uses the newer real-project cost results to choose the next improvement.
+The [current handoff](continuity.md#next-start-the-three-pr-roadmap) places the complete project-session comparison in PR 1.
 
 ## Limits and retained unsuccessful work
 

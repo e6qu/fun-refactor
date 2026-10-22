@@ -23,9 +23,9 @@ A requirement is one specific behavior we promise to check. A recorded result de
 
 ## What happens next
 
-The project-change checks and [saved-work cost comparison](distinct-answer-hashing.md) have matching current records. The comparison repeats the same questions on three projects before and after one source edit. It counts setup, checking, memory, storage and submitted text. The current comparison hashes each distinct answer piece once per operation. Use its fresh baseline and complete session totals to choose the next storage or process improvement. Broader agent savings and proofs remain separate requirements.
+The project-change checks and [saved-work cost comparison](distinct-answer-hashing.md) have matching current records. The comparison repeats the same questions on three projects before and after one source edit. It counts setup, checking, memory, storage and submitted text. Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. Existing acceptance requirements remain in force; the delivery packages do not change completion claims.
 
-See the [plan](../PLAN.md#completed-package-milestones-and-next-work) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
+See the [plan](../PLAN.md#next-three-prs) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
 ## Milestones
 
