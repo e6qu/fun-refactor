@@ -108,10 +108,16 @@ Its [installer](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core
 The control makes those folders read-only after installing the fr skill in its assigned setup.
 This avoids loading an unused installer and trying to download packages inside the network-disabled container.
 The control requires skill discovery to work and rejects generated package manifests or installed modules.
-For the pinned Bun applications, `BUN_JSC_forceRAMSize=268435456` tells the collector to plan around 256 MiB of available memory.
-This [runtime hint](https://github.com/oven-sh/bun/issues/3628#issuecomment-1634783893) leaves room for CodeGraph and the control process inside the shared 512 MiB limit.
-It changes when unused objects are collected; the kernel still enforces the actual shared memory cap.
 The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
+
+The native controls ask one server one question at a time.
+They explicitly select CodeGraph's [direct server mode](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/index.ts) with `CODEGRAPH_NO_DAEMON=1`.
+`CODEGRAPH_QUERY_POOL_SIZE=0` runs the query in that server instead of starting a separate query worker.
+All three applications receive these same settings before startup; the real MCP query must still succeed.
+The separate tool control above continues to test the detached daemon and its complete shutdown.
+OpenCode with CodeGraph's daemon exceeded the shared 512 MiB cap during preparation.
+Garbage-collection hints did not resolve it. That configuration remains unqualified under this cap; the control does not raise it.
+Agree the actual live-attempt mode and include its costs before comparing agent performance.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.
