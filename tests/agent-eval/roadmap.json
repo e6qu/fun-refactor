@@ -158,12 +158,12 @@
       "sha256": "4304b25393f47c21c848551f9e187ad63fb72f06891b3515c3738d4de9025d92"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-release080-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-pr565-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-pr565-release-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "106e04aa9091fb42914016591616fa8803ab975592aa1073708079c3ff85414e"
+      "sha256": "2c9e952810e1ffc714dad5c9529330d695e666552d1fc58a5606459560b35887"
     }
   ],
   "obligations": [
