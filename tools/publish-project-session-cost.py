@@ -65,17 +65,18 @@ def main():
     lines += ['', 'The CLI baseline includes a Python coordinator. These percentages measure the added library, process and saved-answer work in this procedure; '
         'they do not compare Python with Rust as programming languages. All approaches use the same optimized native executable.', '',
         '## Processor work, memory and stored data', '',
-        'CPU seconds estimate processor work across the session and its children. Elapsed seconds also include waiting. '
+        'CPU seconds sum user and system processor work for the session and its waited-for children, from GNU time, rounded to 0.01 seconds. Elapsed seconds also include waiting. '
+        'The separate process monitor uses a coarse CPU clock that can report zero for short processes; those samples remain in raw diagnostics and do not supply this table. '
         'Memory is the largest sampled sum of resident memory, meaning memory present in RAM, for that group of processes. '
         'Sampling can miss short peaks; shared pages can count twice. One MiB is 1,048,576 bytes and one KiB is 1,024 bytes.', '',
-        '| Project / approach | Median sampled CPU seconds | Maximum sampled memory MiB | Median final fr cache KiB | Median final saved data KiB |',
+        '| Project / approach | Median CPU seconds | Maximum sampled memory MiB | Median final fr cache KiB | Median final saved data KiB |',
         '|---|---:|---:|---:|---:|']
     import statistics
     for project in summary:
         for condition in cost.CONDITIONS:
             rows = [row for row in report['sessions'] if (row['project'], row['condition']) == (project, condition)]
             finals = [json.loads((args.collection / row['path'] / 'session.json').read_text())['stages'][-1] for row in rows]
-            lines.append(f'| {project} / {condition} | {statistics.median(row["measurement"]["sampled_cpu_seconds"] for row in rows):.2f} | '
+            lines.append(f'| {project} / {condition} | {statistics.median(row["cpu_seconds"] for row in rows):.2f} | '
                 f'{max(row["measurement"]["sampled_aggregate_rss_bytes"] for row in rows) / 1048576:.1f} | '
                 f'{statistics.median(stage["native_cache_bytes"] for stage in finals) / 1024:.1f} | '
                 f'{statistics.median(stage["saved_bytes"] for stage in finals) / 1024:.1f} |')

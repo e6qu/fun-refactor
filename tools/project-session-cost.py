@@ -41,7 +41,7 @@ SCOPE = {
     'cache': 'All conditions use an initially empty native project cache and retain it across questions within a session. Saved conditions additionally store and validate answers and task plans. Distinct sessions do not share production caches or saved state.',
     'time': 'Measured process lifetime includes the session coordinator, source copy, first Python start, all three questions, native source edit, validation, report recording, explicit worker shutdown and cleanup. Downloads and SDK build/install/bytecode compilation are separate one-time setup costs. Native builds and runner provisioning are workflow setup.',
     'reports': 'Complete answers stay local. Worker replies contain their digests. Equal evidence reports share one recorded file across conditions, preventing duplicated evidence archives. Hashing and evidence persistence are instrumentation included in time. Conditions rotate by project and repetition; OS caches remain uncontrolled.',
-    'resources': 'Sampled process-group memory and CPU include the session coordinator and its SDK/native children. Brief peaks can be missed and shared pages counted twice. The outer download/collection/audit process and runner setup are outside session peaks. Source, native cache and saved-answer storage are recorded separately from evidence files.',
+    'resources': 'GNU time records user and system CPU for the session and its waited-for descendants, rounded to 0.01 seconds. The process-group monitor separately samples memory and CPU; its ps CPU clock can round short processes down to whole seconds. Brief peaks can be missed and shared pages counted twice. The outer download/collection/audit process and runner setup are outside session peaks. Source, native cache and saved-answer storage are recorded separately from evidence files.',
     'claims': 'Three repetitions on three familiar projects. Requires all 135 answers to agree, including the changed source. No new unread qualification, live-agent adoption, model-token, billing or CodeGraph savings claim. Compare conditions within this run; earlier timings use different procedures and runners.',
 }
 
@@ -322,6 +322,7 @@ def collect(args):
                             '--condition', condition, '--task', str(directory / 'task.json'),
                             '--request', str(directory / 'request.json'), '--source', str(source), '--sdk', str(sdk),
                             '--fr', str(args.fr), '--reports', str(reports), '--workspace', str(workspace), '--output', str(output)]
+                        command = ['/usr/bin/time', '-f', '%U %S', '-o', str(output / 'cpu.txt'), *command]
                         with (output / 'stdout.txt').open('wb') as stdout, (output / 'stderr.txt').open('wb') as stderr:
                             measured = bounded_run(command, b'', stdout, stderr, workspace,
                                 wall_seconds=tasks['limits']['wall_seconds'], cpu_limit_seconds=tasks['limits']['cpu_seconds'],
@@ -330,10 +331,16 @@ def collect(args):
                                 env={**os.environ, 'PYTHONHASHSEED': '0', 'RAYON_NUM_THREADS': '1'})
                         save(output / 'process.json', {'argv': command, 'measurement': measured})
                         records.append({'project': task['id'], 'repetition': repetition, 'condition': condition,
-                                        'position': position, 'path': str(output.relative_to(args.output)), 'measurement': measured})
+                                        'position': position, 'path': str(output.relative_to(args.output)),
+                                        'measurement': measured, 'cpu_seconds': None})
                         save(args.output / 'progress.json', {'completed': records, 'setup': setup})
                         require(measured['exit_code'] == 0 and measured['stop_reason'] is None,
                                 'session failed: ' + str(output) + '; inspect retained diagnostics')
+                        cpu = [float(value) for value in (output / 'cpu.txt').read_text().split()]
+                        require(len(cpu) == 2 and all(finite(value) for value in cpu), 'missing complete CPU accounting')
+                        records[-1]['cpu_seconds'] = sum(cpu)
+                        require(sum(cpu) <= tasks['limits']['cpu_seconds'], 'complete session CPU exceeded its limit')
+                        save(args.output / 'progress.json', {'completed': records, 'setup': setup})
                 shutil.rmtree(source)
         result = {'schema': 'fr-project-session-cost', 'passed': True, 'source_bindings': before,
             'source_commit': os.environ['GITHUB_SHA'], 'run_id': int(os.environ['GITHUB_RUN_ID']),
@@ -433,6 +440,9 @@ def audit_contents(directory, resources):
         require(process == row['measurement'] and process['exit_code'] == 0 and process['stop_reason'] is None,
                 'session did not finish within its limits')
         expected_limits = report['tasks']['limits']
+        cpu = [float(value) for value in (base / 'cpu.txt').read_text().split()]
+        require(len(cpu) == 2 and all(finite(value) for value in cpu) and finite(row['cpu_seconds'])
+                and row['cpu_seconds'] == sum(cpu) and sum(cpu) <= expected_limits['cpu_seconds'], 'complete CPU accounting differs')
         require(process['process_exit_code'] == 0 and process['timed_out'] is False
                 and process['monitor_error'] is None and process['launch_error'] is None
                 and process['limits'] == {name: expected_limits[name] for name in

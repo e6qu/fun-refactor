@@ -107,9 +107,10 @@ def fixture(root):
                     'sampled_aggregate_rss_bytes': 1000, 'sampled_disk_growth_bytes': 1000, 'transcript_bytes': 100,
                     'limits': {name: tasks['limits'][name] for name in ('wall_seconds', 'cpu_seconds', 'rss_bytes', 'disk_bytes', 'transcript_bytes')}}
                 cost.save(base / 'process.json', {'measurement': measured})
+                (base / 'cpu.txt').write_text('0.05 0.05\n')
                 sessions.append({'project': task['id'], 'repetition': repetition, 'condition': condition,
                     'position': (cost.CONDITIONS.index(condition) - project_index - repetition) % 5,
-                    'path': str(base.relative_to(root)), 'measurement': measured})
+                    'path': str(base.relative_to(root)), 'measurement': measured, 'cpu_seconds': .1})
     report = {'schema': 'fr-project-session-cost', 'passed': True, 'source_bindings': {}, 'scope': cost.SCOPE,
         'conditions': list(cost.CONDITIONS), 'stages': list(cost.STAGES), 'tasks': tasks, 'projects': 3,
         'repetitions': 3, 'original_unread': {'original': True}, 'all_projects_familiar': True,
@@ -152,6 +153,11 @@ class SessionAccounting(unittest.TestCase):
     def test_missing_shutdown(self):
         self.update('glob/0-sdk-running/session.json', lambda value: value['launches'][0].update(stopped=False))
         with self.assertRaisesRegex(ValueError, 'lifecycle'):
+            cost.audit(self.root)
+
+    def test_missing_child_cpu(self):
+        self.update('result.json', lambda value: value['sessions'][0].update(cpu_seconds=0))
+        with self.assertRaisesRegex(ValueError, 'complete CPU accounting'):
             cost.audit(self.root)
 
     def test_false_reuse(self):
