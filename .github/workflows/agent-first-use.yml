@@ -1,0 +1,76 @@
+name: Agent skill discovery and first use
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'skills/fr/**'
+      - 'tools/check-agent-discovery.py'
+      - 'tests/agent-eval/agent-first-use/**'
+      - '.github/workflows/agent-first-use.yml'
+permissions:
+  contents: read
+concurrency:
+  group: agent-first-use-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  discovery:
+    name: Native skill discovery (${{ matrix.host }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [claude, codex, opencode]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Fetch the pinned native client
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, pathlib, tarfile, urllib.request
+          host = os.environ['AGENT_HOST']
+          entry = json.loads(pathlib.Path('tests/agent-eval/agent-first-use/hosts.json').read_text())[host]
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'agent-client'
+          root.mkdir()
+          archive = root / 'client.tar.gz'
+          with urllib.request.urlopen(entry['url'], timeout=30) as response, archive.open('wb') as target:
+              while chunk := response.read(1048576):
+                  target.write(chunk)
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == entry['sha256']
+          with tarfile.open(archive) as bundle:
+              bundle.extractall(root, filter='data')
+          binary = root / entry['executable']
+          assert binary.is_file()
+          binary.chmod(0o755)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('AGENT_BINARY=' + str(binary) + '\n')
+          PY
+      - name: Verify the pinned version
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: |
+          "$AGENT_BINARY" --version > "$RUNNER_TEMP/client-version.txt"
+          python3 -B - <<'PY'
+          import json, os, pathlib
+          expected = json.loads(pathlib.Path('tests/agent-eval/agent-first-use/hosts.json').read_text())[os.environ['AGENT_HOST']]['version']
+          assert expected in pathlib.Path(os.environ['RUNNER_TEMP'], 'client-version.txt').read_text()
+          PY
+      - name: Check absent, project and user skill discovery without live credentials
+        env:
+          AGENT_HOST: ${{ matrix.host }}
+        run: >-
+          python3 -B tools/check-agent-discovery.py check --host "$AGENT_HOST"
+          --binary "$AGENT_BINARY" --output "$RUNNER_TEMP/agent-discovery"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: agent-discovery-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/agent-discovery
+            ${{ runner.temp }}/client-version.txt
+          retention-days: 30
+          if-no-files-found: error
