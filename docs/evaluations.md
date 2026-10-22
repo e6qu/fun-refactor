@@ -24,7 +24,8 @@ A shared source-input list now covers the Rust checking code, compiled grammars,
 The checker hashes these inputs when building; the result collectors record the same source files.
 Tests change a rule, generated parser, scanner, query, dependency and build setting, and require a changed cache identity.
 Missing declared inputs stop the build or collection. The tests also check added, removed and renamed source files.
-Saving startup work for a later request remains open. The existing package questions remain unfinished.
+The later [saved-startup lesson](save-python-startup.md) adds checked reuse across requests for supported examples.
+The existing full-package questions remain unfinished.
 
 
 The [Python package startup investigation](python-package-startup-results.md) observes what runs before four simple library helpers become available.

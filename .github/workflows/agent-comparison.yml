@@ -5,7 +5,7 @@ on:
     paths:
       - 'tools/agent-comparison-*.py'
       - 'tools/agent_eval/comparison_*.py'
-      - 'tools/agent_eval/test_comparison_plan.py'
+      - 'tools/agent_eval/test_comparison*.py'
       - 'tools/agent_eval/container_resources.py'
       - 'tools/agent_eval/bounded_host.py'
       - 'tests/agent-eval/agent-comparison/**'
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - run: python3 -B -m unittest discover -s tools/agent_eval -p test_comparison_plan.py -v
+      - run: python3 -B -m unittest discover -s tools/agent_eval -p 'test_comparison*.py' -v
       - name: Prepare and independently reopen the schedule
         run: |
           python3 -B tools/agent-comparison-plan.py --prepare > "$RUNNER_TEMP/comparison-plan.json"
