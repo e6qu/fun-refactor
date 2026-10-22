@@ -183,9 +183,22 @@ executed each advertised cell.
 
 ## Release
 
-Release Please prepares the version and changelog pull request. A version tag starts the release
-workflow, which builds native archives and the WASM package, attaches checksums and verifies the
-published shapes. Keep installation instructions independent of a specific version number.
+Release Please prepares the version and changelog pull request. Merging it publishes the release tag;
+the workflow then builds native archives, the WASM package and the Python package, with checksums.
+It checks out the commit resolved from the published tag. Preparing the next release pull request runs separately,
+so an API error in that bookkeeping cannot block downloads for an already published release.
+Existing downloads are never overwritten. Keep installation instructions independent of a specific version number.
+
+If publication stopped after creating the latest release but before uploading any files, explicitly select that tag:
+
+```sh
+gh workflow run release.yml --ref APPROVED_WORKFLOW_BRANCH --field existing_tag=fun-refactor-vVERSION
+```
+
+Replace the branch with the reviewed workflow branch and `VERSION` with the published release's version.
+This completes an existing release; it does not create a tag or release another commit.
+The workflow verifies the published tag, its package version and the absence of downloads before building.
+If an individual build fails after other downloads have arrived, rerun that failed job in the same run.
 
 Before release, require passing default, WASM and deep lanes and archive-shape checks on GitHub.
 
