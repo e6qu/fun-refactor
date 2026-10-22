@@ -257,6 +257,13 @@ def probe(host, setup):
     if setup == "fr":
         location = {"codex": ".agents", "claude": ".claude", "opencode": ".opencode"}[host] + "/skills/fr"
         shutil.copytree("/opt/skill/fr", location)
+    if host == "opencode":
+        # The pinned client otherwise loads npm's installer to scaffold an unused plugin SDK.
+        # Its supported read-only-config path skips installation while retaining skill discovery.
+        for folder in (Path("/tmp/home/.config/opencode"), Path("/workspace/.opencode")):
+            folder.mkdir(exist_ok=True)
+            folder.chmod(0o555)
+            require(not os.access(folder, os.W_OK), "OpenCode configuration must be read-only")
     if setup == "codegraph":
         command(["codegraph", "init", "--yes"], env)
     with provider(host, setup) as (endpoint, requests, errors):
@@ -277,6 +284,9 @@ def probe(host, setup):
             discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
             require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
             result = command(launch_command(host, setup, config), env)
+            for folder in (Path("/tmp/home/.config/opencode"), Path("/workspace/.opencode")):
+                require(not any((folder / name).exists() for name in ("node_modules", "package.json", "package-lock.json")),
+                        "OpenCode attempted plugin SDK scaffolding")
         require(not errors, "; ".join(errors))
         if host != "codex":
             route = "/v1/messages" if host == "claude" else "/v1/chat/completions"

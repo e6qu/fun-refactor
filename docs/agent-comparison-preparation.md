@@ -98,8 +98,10 @@ Each application and its children are also restricted to one available CPU, unde
 The time allowance alone leaves the runner's other cores visible, which can cause oversized worker pools.
 Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
 OpenCode receives a fixed session title to avoid a separate title-generation request.
-Compiled Bun applications also receive [`BUN_OPTIONS=--smol`](https://bun.sh/docs/bundler/executables#runtime-arguments-via-bun-options).
-This requests more frequent garbage collection to reduce memory use; it does not increase the container memory cap.
+OpenCode receives read-only configuration directories, with the fr skill already installed in its assigned setup.
+The pinned client's [package installer](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core/src/npm.ts) skips plugin SDK scaffolding for read-only configuration.
+No plugin SDK is needed for these controls. Loading its npm installer wastes memory and attempts unavailable network access.
+The control requires skill discovery to work and rejects generated package manifests or installed modules.
 The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
