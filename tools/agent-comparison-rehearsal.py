@@ -66,12 +66,12 @@ def rehearsal(image, setup, output, negative_control):
             docker("create", "--name", name, "--pull=never", "--network=none", "--read-only",
                    "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
                    "--cpus=0.5", "--memory=512m", "--memory-swap=512m", "--pids-limit=64",
-                   "--log-driver=none", "--workdir=/workspace", "--env=HOME=/workspace/home",
+                   "--log-driver=none", "--workdir=/workspace", "--env=HOME=/tmp/home",
                    "--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,mode=1777",
                    "--tmpfs=/tmp:rw,exec,nosuid,nodev,size=64m,mode=1777",
                    image, "python3", "-c", "import time; time.sleep(150)", timeout=10)
             docker("start", name, timeout=10)
-            docker("exec", name, "mkdir", "/workspace/home", timeout=5)
+            docker("exec", name, "mkdir", "/tmp/home", timeout=5)
             if negative_control:
                 # The launcher exits. Its child starts a new session and burns CPU.
                 # A parent/group sampler would miss it; the kernel slice must stop it.

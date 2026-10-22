@@ -41,6 +41,9 @@ The [GitHub workflow](../.github/workflows/agent-comparison.yml) runs three sepa
 A container gives each setup its own filesystem and processes. Each has ordinary tools and only its assigned specialized tool.
 External network access is disabled while the control runs; it receives no model credentials.
 The release archives are checked against recorded SHA-256 fingerprints before building the images.
+Keep `/workspace` for the project and `/tmp/home` for the isolated user's home.
+The first CodeGraph control put the home inside the project; CodeGraph correctly refused to index a parent of the home directory.
+The corrected layout respects that boundary without forcing indexing or changing limits.
 
 Each setup finds the same small Python function, `normalize_total`, called by `checkout`.
 The fr control also uses `fr project find settings --signature` to inspect this project's new settings validator.

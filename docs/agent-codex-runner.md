@@ -48,8 +48,8 @@ python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions \
   --trial regex-escape-len-fr --trial regex-escape-len-files --confirm-agent-spend
 ```
 
-Each trial uses a new ephemeral Codex process with user configuration and repository discovery
-disabled. The runner pins its model, reasoning effort, service tier and sandbox. It reads the frozen
+Each trial uses a new ephemeral Codex process. Its [`codex exec` flags](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
+ignore the user configuration file and execution-policy rule files. The runner pins its model, reasoning effort, service tier and sandbox. It reads the frozen
 prompt over standard input and refuses incomplete pairs or reused session directories. Model
 availability and quota remain account-dependent.
 Model, reasoning effort, service tier, executable and timeout have no runner defaults.

@@ -17,8 +17,9 @@ def require(condition, message):
 
 def command(argv):
     result = subprocess.run(argv, capture_output=True, timeout=30)
-    require(result.returncode == 0, f"{argv!r}: {result.stderr.decode(errors='replace')}")
     require(len(result.stdout) + len(result.stderr) <= 1024**2, "tool output exceeds 1 MiB")
+    require(result.returncode == 0, f"{argv!r}: exit={result.returncode}\n"
+            f"stdout: {result.stdout.decode(errors='replace')}\nstderr: {result.stderr.decode(errors='replace')}")
     return result.stdout.decode()
 
 
