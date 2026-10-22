@@ -15,7 +15,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE = 'cc5e27808744516504c349c1bb7351800a0a271b'
+BASELINE = 'b5d68215c9c428a00d03ca8f96bd8b3cfdd89b79'
 spec = importlib.util.spec_from_file_location('cost', ROOT / 'tools/saved-work-cost.py')
 cost = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cost)

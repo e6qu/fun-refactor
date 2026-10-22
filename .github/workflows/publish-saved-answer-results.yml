@@ -1,7 +1,7 @@
 name: Publish checked saved answer results together
 on:
   push:
-    branches: [perf/batched-answer-storage]
+    branches: [perf/hash-distinct-answer-pieces]
     paths: [.github/workflows/publish-saved-answer-results.yml]
   workflow_dispatch:
     inputs:
@@ -90,6 +90,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -u
-          git add tests/agent-eval/results tests/agent-eval/batched-answer-storage-release docs/batched-answer-storage.md
-          git commit -m 'test: publish current storage results and reconcile tracking'
+          git add tests/agent-eval/results tests/agent-eval/distinct-answer-hashing-lifetime docs/distinct-answer-hashing.md
+          git commit -m 'test: publish current hashing results and reconcile tracking'
           git push origin "HEAD:refs/heads/$BRANCH"

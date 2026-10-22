@@ -23,7 +23,7 @@ with `fr` met a requirement the ordinary-tool attempt missed. That is a useful r
 little evidence to say the tool generally saves work.
 
 The [current status](docs/roadmap-status.md) owns the test counts and the remaining requirements.
-All four larger goals below still have unfinished work. A passing test establishes the behavior
+Three of the four larger goals below still have unfinished requirements. A passing test establishes the behavior
 it checks; it is not a percentage of product readiness.
 
 ## What the recent Python work means for a user
@@ -101,6 +101,16 @@ The [storage follow-up](docs/batched-answer-storage.md) checks replacing separat
 It compares complete sessions against the code merged in PR #554 and against asking again.
 Saved sessions take 19% to 53% less time in that comparison, but still cost 2% to 41% more than asking again.
 The database uses more stored bytes. Saving answers remains an explicit choice.
+The [distinct-piece comparison](docs/distinct-answer-hashing.md) removes repeated fingerprint computation within each save or digest operation.
+For example, saving glob's answer now hashes its 1,387 distinct pieces once each, despite visiting 11,210 pieces.
+The memory review found helpers keeping themselves and temporary answer data alive after returning.
+The functions now release those references at the end of each call.
+Three checks confirm release even when Python's automatic memory cleanup is disabled.
+In the final three-trial comparison, complete saved sessions take about 8% to 9% less time for glob and JMESPath than PR #555.
+Boltons takes 0.4% more time. Saved sessions still cost about 5% to 26% more than asking again.
+Stored bytes match between implementations. The largest memory samples for glob and JMESPath are higher, so these trials establish no general memory saving.
+Next, measure complete project sessions with the Python helper kept running, including the first start, edits and shutdown.
+The earlier small [process comparison](docs/python-process-cost-results.md) motivates that test; it does not establish a project-scale benefit.
 The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
 Broader agent savings, translation and proofs connected to source code remain open.
 
@@ -246,7 +256,7 @@ records. Detailed run history belongs with those records, not in the current wor
 Checkboxes track implementation only. The [status report](docs/roadmap-status.md) lists the behavior
 each milestone must demonstrate, its supporting tests and what is missing.
 The catalog is the machine-readable list of those requirements. Its identifier is `agent-analysis-v2`.
-Open requirements include project-wide changes, unsupported effects and complete agent-cost accounting;
+Open requirements include broader caller discovery, unsupported effects and complete agent-cost accounting;
 demonstrated items retain their original, limited scope.
 
 ### A. Find relevant code and explain the evidence

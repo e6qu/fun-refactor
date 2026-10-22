@@ -100,6 +100,8 @@ It addresses repeated hashing of saved answers and reports the remaining overhea
 The [storage follow-up](batched-answer-storage.md) compares saving an answer in one database
 transaction with the file-per-piece implementation from PR #554.
 It reports complete saved sessions, both fresh baselines and agreement across all 108 requests.
+The [distinct-piece comparison](distinct-answer-hashing.md) measures hashing equal answer pieces once per operation
+against the database implementation from PR #555. Both versions also run the same questions without saving answers.
 
 The [cache measurements](evaluations.md#fixed-point-and-reuse-acceptance) include storage and validation costs.
 Read each report's actual baseline before interpreting a warm-run improvement.

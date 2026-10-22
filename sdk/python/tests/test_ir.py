@@ -326,6 +326,151 @@ class TestIr:
         assert pack["root"] == expected
         assert hashed.call_count < 4 * 65
 
+    def test_merkle_hashes_repeated_separate_structures_once(self):
+        from fr_ir import ir
+
+        def tagged(*parts):
+            return hashlib.sha256(json.dumps(
+                ["fr-merkle-object-1", *parts], ensure_ascii=False,
+                separators=(",", ":"), allow_nan=False,
+            ).encode()).hexdigest()
+
+        def binary_root(entries):
+            if not entries:
+                return tagged("empty")
+            while len(entries) > 1:
+                entries = [tagged("pair", *entries[index:index + 2])
+                           if index + 1 < len(entries) else entries[index]
+                           for index in range(0, len(entries), 2)]
+            return entries[0]
+
+        def reference(value):
+            if isinstance(value, dict):
+                entries = [tagged("object-entry", index, key, reference(value[key]))
+                           for index, key in enumerate(sorted(value))]
+                return tagged("object", len(value), binary_root(entries))
+            if isinstance(value, list):
+                entries = [tagged("array-entry", index, reference(child))
+                           for index, child in enumerate(value)]
+                return tagged("array", len(value), binary_root(entries))
+            if value is None:
+                return tagged("null")
+            if isinstance(value, bool):
+                return tagged("bool", value)
+            if isinstance(value, int):
+                return tagged("number", str(value))
+            return tagged("string", value)
+
+        branch = {"items": ["shared", None, True, {"name": "雪", "count": 17}]}
+        value = [json.loads(json.dumps(branch)) for _ in range(257)]
+        expected = reference(value)
+        with patch.object(ir, "_merkle_record_digest", wraps=ir._merkle_record_digest) as hashed:
+            pack = merkle_object_pack(value)
+        assert pack["root"] == expected
+        assert hashed.call_count == len(pack["objects"])
+        with patch.object(ir, "_merkle_record_digest", wraps=ir._merkle_record_digest) as hashed:
+            assert merkle_object_digest(value) == expected
+        assert hashed.call_count == len(pack["objects"])
+        assert restore_merkle_object(expected, pack["objects"]) == value
+
+    def test_merkle_deduplication_keeps_numeric_types_and_signed_zero_distinct(self):
+        value = [True, 1, 1.0, False, 0, 0.0, -0.0, "1"]
+        pack = merkle_object_pack(value * 8)
+        scalars = [record for record in pack["objects"].values() if record["kind"] == "scalar"]
+        assert len(scalars) == len(value)
+        for original, parts in zip(value, (("bool", True), ("number", "1"),
+                ("number", "1.0"), ("bool", False), ("number", "0"),
+                ("number", "0.0"), ("number", "-0.0"), ("string", "1"))):
+            expected = hashlib.sha256(json.dumps(
+                ["fr-merkle-object-1", *parts], separators=(",", ":"),
+            ).encode()).hexdigest()
+            assert expected in pack["objects"]
+            assert merkle_object_digest(original) == expected
+        restored = restore_merkle_object(pack["root"], pack["objects"])
+        assert json.dumps(restored) == json.dumps(value * 8)
+
+    def test_merkle_deduplication_does_not_reuse_results_between_operations(self):
+        shared = {"name": "before"}
+        value = [shared, shared]
+        first = merkle_object_pack(value)
+        shared["name"] = "after"
+        second = merkle_object_pack(value)
+        assert first["root"] != second["root"]
+        assert merkle_object_digest(value) == second["root"]
+        assert restore_merkle_object(first["root"], first["objects"]) == [{"name": "before"}] * 2
+        assert restore_merkle_object(second["root"], second["objects"]) == [{"name": "after"}] * 2
+
+    @pytest.mark.parametrize("operation", (merkle_object_digest, merkle_object_pack))
+    def test_merkle_temporary_hashes_are_released_without_cyclic_collection(self, operation):
+        import gc
+        import weakref
+        from fr_ir import ir
+
+        class TrackedDigest(str):
+            pass
+
+        references = []
+        original = ir._merkle_record_digest
+
+        def tracked(record):
+            digest = TrackedDigest(original(record))
+            references.append(weakref.ref(digest))
+            return digest
+
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            with patch.object(ir, "_merkle_record_digest", tracked):
+                result = operation({"items": [{"name": "same", "count": 7}] * 16})
+            assert len(references) > 1
+            if operation is merkle_object_digest:
+                assert all(reference() is None for reference in references[:-1]), \
+                    "digest lookup survived the completed operation"
+            del result
+            assert all(reference() is None for reference in references), \
+                "hashing retained records after their caller released the result"
+        finally:
+            if enabled:
+                gc.enable()
+            gc.collect()
+
+    def test_merkle_hashing_rejects_cycles_and_nonfinite_numbers(self):
+        sequence = []
+        sequence.append(sequence)
+        mapping = {}
+        mapping["self"] = mapping
+        for operation in (merkle_object_digest, merkle_object_pack):
+            for value in (sequence, mapping):
+                with pytest.raises(IrError, match="contains a cycle"):
+                    operation(value)
+            for number in (float("nan"), float("inf"), float("-inf")):
+                with pytest.raises(IrError, match="finite"):
+                    operation([number, number])
+
+    def test_merkle_restore_releases_records_without_cyclic_collection(self):
+        import gc
+        import weakref
+
+        class TrackedScalar(str):
+            pass
+
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            scalar = TrackedScalar("saved value")
+            reference = weakref.ref(scalar)
+            digest = merkle_object_digest(scalar)
+            objects = {digest: {"schema": "fr-merkle-object-1", "kind": "scalar", "value": scalar}}
+            restored = restore_merkle_object(digest, objects)
+            del scalar, objects
+            assert reference() is restored
+            del restored
+            assert reference() is None, "restore retained its records after the caller released the result"
+        finally:
+            if enabled:
+                gc.enable()
+            gc.collect()
+
     def test_merkle_restore_verifies_shared_records_once_without_sharing_mutations(self):
         from fr_ir import ir
         value = {"items": [1, {"name": "original"}]}

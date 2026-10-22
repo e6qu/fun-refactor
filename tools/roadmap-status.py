@@ -213,10 +213,10 @@ def markdown(report):
         if cost_done:
             resuming_remaining = 'Use the measured costs to choose an improvement; measure complete agent tasks separately'
             next_work = (
-                'The project-change checks and [saved-work cost comparison](batched-answer-storage.md) have matching current records. '
+                'The project-change checks and [saved-work cost comparison](distinct-answer-hashing.md) have matching current records. '
                 'The comparison repeats the same questions on three projects before and after one source edit. '
                 'It counts setup, checking, memory, storage and submitted text. '
-                'The current comparison replaces thousands of separate file writes with one database commit per saved answer. '
+                'The current comparison hashes each distinct answer piece once per operation. '
                 'Use its fresh baseline and complete session totals to choose the next storage or process improvement. '
                 'Broader agent savings and proofs remain separate requirements.')
     else:
