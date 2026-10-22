@@ -92,15 +92,21 @@ Codex uses its [app-server commands](https://learn.chatgpt.com/docs/app-server) 
 list skills, run a declared command and call the configured MCP tool without requesting inference.
 Its explicit command uses the existing container as the sandbox; this does not test an autonomous model turn.
 All application, provider and background tool processes share the existing container resource limits and cleanup check.
-The rehearsal explicitly limits Tokio, libuv and Node's V8 worker pools to one thread each.
+
+Applications and tools can each start background threads, even for a single question.
+The rehearsal limits their runtime worker pools, named Tokio, libuv and V8, to one thread each.
 Node's [background worker pool](https://nodejs.org/api/cli.html#--v8-pool-sizenum) has its own setting, separate from libuv and CodeGraph's task workers.
 Each application and its children are also restricted to one available CPU, under the unchanged half-core time allowance.
 The time allowance alone leaves the runner's other cores visible, which can cause oversized worker pools.
+
 Claude loads project settings so it can discover the installed skill, while its empty home excludes personal settings.
 OpenCode receives a fixed session title to avoid a separate title-generation request.
-OpenCode receives read-only configuration directories, with the fr skill already installed in its assigned setup.
-The pinned client's [package installer](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core/src/npm.ts) skips plugin SDK scaffolding for read-only configuration.
-No plugin SDK is needed for these controls. Loading its npm installer wastes memory and attempts unavailable network access.
+
+A plugin adds code to an application; an fr skill supplies written instructions.
+These controls use no plugins, but OpenCode would still start its package installer to prepare files for writing them.
+Its [installer](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core/src/npm.ts) skips that work when configuration folders are read-only.
+The control makes those folders read-only after installing the fr skill in its assigned setup.
+This avoids loading an unused installer and trying to download packages inside the network-disabled container.
 The control requires skill discovery to work and rejects generated package manifests or installed modules.
 The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
 
