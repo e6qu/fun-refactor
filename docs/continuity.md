@@ -48,9 +48,13 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: prepare the agent comparison
+## Next: finish preparing the agent comparison
 
 Continue PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs).
+The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
+isolated real-tool controls and detached-process accounting check. These controls make no model calls.
+Next, freeze and rehearse native application configurations, complete prompts and independent grading commands.
+Agree exact models, prices, spending caps and full-attempt resource limits before live attempts.
 Claude Code, Codex and OpenCode now discover the portable skill in isolated native-client checks.
 The introductory lesson executes the complete find, preview, check and undo route.
 The [agent setup review](product-review.md#agent-setup-review-22-october-2026) explains what passed and what remains unmeasured.
@@ -61,9 +65,9 @@ All 135 answers agree. Direct CLI calls were fastest; keeping Python running red
 Saving and validating answers still cost more than asking again in these familiar-project sessions.
 Preserve these results without claiming general agent savings.
 
-Next, prepare the [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph).
-Reuse the existing task graders and isolate each attempt so detached indexing programs are counted and stopped.
-Freeze prompts, model settings and spending limits before live calls. No live attempts have started.
+The proposed [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph)
+reuses the existing task graders. Carry the rehearsed container boundary into each complete native-agent attempt,
+so detached indexing programs are counted and stopped. No live attempts have started.
 
 The [original saved-work results](saved-work-cost-results.md) preserve the first independent JMESPath evaluation.
 Treat glob, Boltons, Humanize and JMESPath as familiar projects when choosing new independent tasks.

@@ -1,0 +1,111 @@
+name: Agent comparison preparation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/agent-comparison-*.py'
+      - 'tools/agent_eval/comparison_*.py'
+      - 'tools/agent_eval/test_comparison_plan.py'
+      - 'tools/agent_eval/container_resources.py'
+      - 'tools/agent_eval/bounded_host.py'
+      - 'tests/agent-eval/agent-comparison/**'
+      - 'tests/agent-eval/agent-first-use/*.json'
+      - 'tests/agent-eval/unknown-target/task.json'
+      - 'skills/fr/**'
+      - '.github/workflows/agent-comparison.yml'
+permissions:
+  contents: read
+concurrency:
+  group: agent-comparison-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  preparation:
+    name: Freeze the proposed attempts and reject changed inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B -m unittest discover -s tools/agent_eval -p test_comparison_plan.py -v
+      - name: Prepare and independently reopen the schedule
+        run: |
+          python3 -B tools/agent-comparison-plan.py --prepare > "$RUNNER_TEMP/comparison-plan.json"
+          python3 -B tools/agent-comparison-plan.py --verify "$RUNNER_TEMP/comparison-plan.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: proposed-agent-comparison
+          path: ${{ runner.temp }}/comparison-plan.json
+          if-no-files-found: error
+  rehearsal:
+    name: Isolated tools and complete shutdown (${{ matrix.setup }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        setup: [files, fr, codegraph]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Stage only this setup's pinned tool
+        env:
+          COMPARISON_SETUP: ${{ matrix.setup }}
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, pathlib, shutil, tarfile, urllib.request
+          root = pathlib.Path(os.environ['RUNNER_TEMP'], 'comparison-image')
+          root.mkdir()
+          tool = root / 'tool'
+          (tool / 'bin').mkdir(parents=True)
+          setup = os.environ['COMPARISON_SETUP']
+          if setup != 'files':
+              source = ('tests/agent-eval/agent-first-use/codegraph.json' if setup == 'codegraph'
+                        else 'tests/agent-eval/agent-comparison/tools.json')
+              entry = json.loads(pathlib.Path(source).read_text())
+              if setup == 'fr':
+                  entry = entry['fr']
+              archive = root / 'tool.tar.gz'
+              with urllib.request.urlopen(entry['url'], timeout=30) as response, archive.open('wb') as target:
+                  while chunk := response.read(1048576):
+                      target.write(chunk)
+              assert hashlib.sha256(archive.read_bytes()).hexdigest() == entry['sha256']
+              with tarfile.open(archive) as bundle:
+                  bundle.extractall(root / 'unpacked', filter='data')
+              if setup == 'codegraph':
+                  shutil.copytree(root / 'unpacked/codegraph-linux-x64', tool, dirs_exist_ok=True)
+              else:
+                  binary, = (path for path in (root / 'unpacked').rglob('fr') if path.is_file())
+                  shutil.copyfile(binary, tool / 'bin/fr')
+                  (tool / 'bin/fr').chmod(0o755)
+              archive.unlink()
+              shutil.rmtree(root / 'unpacked')
+          shutil.copyfile('tools/agent_eval/comparison_probe.py', root / 'comparison_probe.py')
+          shutil.copyfile('tools/agent_eval/comparison_plan.py', root / 'comparison_plan.py')
+          shutil.copyfile('tests/agent-eval/agent-comparison/Dockerfile', root / 'Dockerfile')
+          PY
+      - name: Build an isolated model-free control image
+        run: |
+          docker build --tag fr-comparison-control "$RUNNER_TEMP/comparison-image"
+          echo "COMPARISON_IMAGE=$(docker image inspect fr-comparison-control --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Exercise the real tool and stop every container process
+        run: >-
+          python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
+          --setup '${{ matrix.setup }}' --output "$RUNNER_TEMP/comparison-normal"
+      - name: Catch a detached worker after its launcher exits
+        if: matrix.setup == 'files'
+        run: >-
+          python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
+          --setup files --negative-control --output "$RUNNER_TEMP/comparison-detached"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: comparison-rehearsal-${{ matrix.setup }}
+          path: ${{ runner.temp }}/comparison-*/result.json
+          if-no-files-found: error

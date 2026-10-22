@@ -42,6 +42,10 @@ and the command schemas.
 
 ## Evidence classes
 
+The [CodeGraph comparison preparation](agent-comparison-preparation.md) defines eighteen proposed attempts
+and model-free controls for isolated tool setup and complete shutdown, including detached background programs.
+These checks do not constitute live attempts or establish cost savings. Native application configuration and grading rehearsal remain open.
+
 Use the [independent study planner and auditor](agent-study.md) for new matched comparisons.
 It records planned cells, failed outcomes and complete declared agent usage without invoking models.
 Its offline tests are infrastructure checks, not evidence of live-agent savings.
