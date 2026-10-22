@@ -110,6 +110,29 @@ These packages preserve the four existing milestones and their acceptance requir
 They do not authorize restarting stopped model studies.
 The [numeric investigation](python-symbolic-investigation.md) supplies no present reason to build another symbolic execution engine.
 
+### First comparison with CodeGraph
+
+Start with 18 attempts: two existing change tasks, three agent applications and three tool setups.
+One task repairs Unicode string comparison. The other adds a way to calculate escaped text length without allocating a temporary string.
+Their [requirements and independent behavior checks](../tests/agent-eval/unknown-target/task.json) already exist.
+These projects are familiar to development; fresh agent sessions do not turn them into a new unread-project evaluation.
+
+For each application, compare ordinary search, reads, patches and checks with those same tools plus CodeGraph, then those tools plus fr.
+Use the same exact model and reasoning settings within each application's three setups.
+Compare those setups within each application before comparing applications, which may use different models.
+Rotate setup order and retain every first attempt, including failure and non-use of an offered tool.
+This small pilot checks integration, tool choices and complete task costs. It cannot establish general savings or close the repeated-agent requirement.
+
+Give both tools their documented installation instructions. Count skill text, server setup, indexing, edits, validation and shutdown.
+Count a first session with setup included; report later use separately instead of spreading an unmeasured setup cost across hypothetical tasks.
+Keep ordinary editing and checking tools available in all setups. Keep the other two specialized tools out of each setup's configuration and executable search path.
+Grade delivered behavior and patch replay with the same independent checks. An explanation also needs correct source references and explicit uncertainty.
+
+Use the [pinned native clients](../tests/agent-eval/agent-first-use/hosts.json) and [CodeGraph release](../tests/agent-eval/agent-first-use/codegraph.json).
+Before collecting, freeze the final fr revision, complete prompts, graders, model identities, reasoning settings, prices, credentials available on the runner and spending cap.
+Reuse the existing task limits; diagnose a timeout before changing the procedure.
+No live attempts have started. The stopped studies remain stopped, and their records stay separate.
+
 ## Models to evaluate
 
 The broader study targets Claude Sonnet and OpenAI Luna. Local protocol and task rehearsals use

@@ -6,6 +6,10 @@ A smaller report is one possible saving. Starting the tool, reading instructions
 
 This page explains recorded measurements. It does not start a new study.
 
+The [complete CLI and Python comparison](project-session-cost.md) measures the same three questions through five approaches.
+It compares direct commands, Python clients restarted or kept running, and saved answers with validation.
+Its tables state the CLI baseline and the added work in each approach.
+
 ## First choose the question
 
 A **benchmark** is a repeatable measurement of a stated operation.
