@@ -69,4 +69,8 @@ Native compilation, dependency provisioning and runner startup are workflow setu
 
 All three projects were already familiar. The original first JMESPath evaluation remains unchanged and separately audited. Three repetitions cannot establish general savings. There is no live agent, model-token, billing or CodeGraph comparison here. Earlier measurements use different procedures and runners; compare approaches within this run.
 
-[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json) | [Workflow run](https://github.com/e6qu/fun-refactor/actions/runs/39751703210) | [Previous saved-answer comparison](distinct-answer-hashing.md)
+The collection and answer checks passed. Its workflow later failed a publication test because an expected link label had changed.
+After fixing that test, a [separate publication run](https://github.com/e6qu/fun-refactor/actions/runs/39754107150) authenticated and audited the original results.
+The [publication receipt](../tests/agent-eval/project-session-cost/publication-39751703210.json) preserves both outcomes; no measurements were replaced.
+
+[Raw record](../tests/agent-eval/results/2026-10-22-project-sessions-39751703210/result.json) | [Collection run](https://github.com/e6qu/fun-refactor/actions/runs/39751703210) | [Previous saved-answer comparison](distinct-answer-hashing.md)

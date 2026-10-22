@@ -65,7 +65,7 @@ The [README](../README.md#give-fr-to-an-agent) links the skill and its introduct
 The [installation guide](agent-skill.md#install-the-handoff) also explains installation for other projects.
 
 The skill checker runs its shell examples against temporary projects.
-Separate [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) pass with pinned Claude Code, Codex and OpenCode clients.
+Separate [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39752380161) pass with pinned Claude Code, Codex and OpenCode clients.
 They check absent, project and user installations, plus this checkout's linked bundle.
 These checks use isolated settings and no live model credentials. Claude Code receives a scripted response from a local server.
 
@@ -125,6 +125,9 @@ This small pilot checks integration, tool choices and complete task costs. It ca
 
 Give both tools their documented installation instructions. Count skill text, server setup, indexing, edits, validation and shutdown.
 Count a first session with setup included; report later use separately instead of spreading an unmeasured setup cost across hypothetical tasks.
+CodeGraph can [keep its indexing program running](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/index.ts#L19) after the agent exits.
+Each attempt needs an isolated environment that counts and stops all of its programs.
+Counting only programs started directly by the agent would miss part of the work.
 Keep ordinary editing and checking tools available in all setups. Keep the other two specialized tools out of each setup's configuration and executable search path.
 Grade delivered behavior and patch replay with the same independent checks. An explanation also needs correct source references and explicit uncertainty.
 
