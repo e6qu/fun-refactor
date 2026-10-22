@@ -97,22 +97,15 @@ We should measure whether a simpler fr route helps before adding another wrapper
 
 ## Proposed next steps
 
-These priorities do not replace the four existing milestones or mark their open requirements complete.
-They do not authorize restarting stopped model studies.
+The [three-PR roadmap](../PLAN.md#next-three-prs) owns the agreed sequence and completion checks:
 
-1. **Make first use dependable in all three agents.** A clean session should discover the skill and find a known function.
-   Then it should preview a change, run the relevant check and undo the edit.
-   Scripted client checks can test plumbing; live adoption still needs separate evidence.
-2. **Compare complete tasks fairly.** Give ordinary tools, CodeGraph and fr the same unfamiliar questions and change requests.
-   Check answers and delivered behavior independently. Count instructions, initial indexing, edits, retries, memory, storage and model usage.
-   State exact tools, model settings and approved limits before any live run.
-3. **Measure the existing Python library kept running.** Compare saved and fresh answers across a complete project session.
-   Count first start, edits, validation, renewed analysis, memory growth and shutdown.
-   Current saved sessions still cost about 5% to 26% more than asking fr again.
-   Both approaches use Python; this comparison does not isolate Python overhead against direct CLI calls or compare fr with CodeGraph.
-4. **Finish broader tracing and source-connected proofs through useful tasks.** Handle imports, exceptions and shared mutable values exposed by selected tasks.
-   Separately, translate one bounded function and connect one proof to actual code.
-   The [numeric investigation](python-symbolic-investigation.md) supplies no present reason to build another symbolic execution engine.
+1. Make fr usable by agents and measure its value, including complete Python costs and a fair CodeGraph comparison.
+2. Complete broader Python analysis and translation.
+3. Connect proofs to code and repeat the agent comparison.
+
+These packages preserve the four existing milestones and their acceptance requirements.
+They do not authorize restarting stopped model studies.
+The [numeric investigation](python-symbolic-investigation.md) supplies no present reason to build another symbolic execution engine.
 
 ## Models to evaluate
 
@@ -160,7 +153,7 @@ consumer review and reproducible retrieval; measure storage, build time and runt
 
 The configured packaging pilot stopped when its first live call hit the CPU cap.
 The later resource investigation found no justified client configuration fix and is closed.
-Keep the failed and three unstarted cells. The [current plan](../PLAN.md#completed-package-milestones-and-next-work)
+Keep the failed and three unstarted cells. The [current plan](../PLAN.md#next-three-prs)
 continues tool work; it does not authorize restarting that pilot.
 
 The [source-reading report](native-read-outcomes.md) has no successful ordinary/fr pair.

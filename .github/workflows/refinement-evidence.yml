@@ -815,6 +815,7 @@ jobs:
           python3 -c 'import runpy; runpy.run_path("tools/check-agent-skill.py")["check_bundle"]()'
           python3 -B tools/check-prose.py
           python3 -B tools/roadmap-status.py --check
+          python3 -B tests/agent-eval/test_roadmap_status.py
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_native*outcomes.py'
           python3 -B tools/agent_eval/test_opencode_native.py Discovery
           python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence

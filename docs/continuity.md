@@ -48,39 +48,24 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: use the continuing-work cost results
+## Next: start the three-PR roadmap
 
-The [saved-work comparison](saved-work-cost-results.md) repeats the same questions on glob, Boltons and JMESPath.
-JMESPath is a Python library for selecting values from JSON documents.
-It measures first use, unchanged reuse and one source edit, with three repetitions per project.
-Saved and fresh discovery agree. The totals include starting Python, checking saved inputs, analysis, storage, source copies, edits and cleanup.
-JMESPath passed its first evaluation after the procedure and optimized binary were fixed.
-Treat glob, Boltons, Humanize and JMESPath as familiar projects from now on.
+Begin with PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs): agent setup, complete costs and a fair CodeGraph comparison.
+The [agent setup review](product-review.md#agent-setup-review-22-october-2026) distinguishes existing checks from unverified native skill discovery and adoption.
+Keep one portable skill and test the complete find, preview, check and undo route in all three agents.
 
-Choose an improvement from the measured repeated work. Compare complete session totals and keep answer agreement as a required check.
-The [matched SDK comparison](saved-answer-improvement.md) addresses repeated hashing while saving and reopening answers.
-It keeps the original measurements and first JMESPath result separate from the current checks on familiar projects.
-Use its complete session totals and fresh baseline when choosing the next storage or process improvement.
-The hashing fix reduces complete saved-session time by 8% to 34% across these trials.
-That hashing comparison still found 27% to 218% overhead against asking again.
-The [storage follow-up](batched-answer-storage.md) replaces separate file writes with one database commit per answer.
-It also uses one database read session to verify or restore an answer.
-Use that comparison's complete session times and fresh baselines when choosing further work.
-Saved sessions take 19% to 53% less time, but still cost 2% to 41% more than asking again.
-The database uses more stored bytes, so preserve that tradeoff in further comparisons.
-The [distinct-piece follow-up](distinct-answer-hashing.md) hashes equal answer pieces once within each operation.
-For example, the glob answer contains 1,387 distinct pieces across 11,210 visits. The new lookup ends after the operation, so later edits still change fingerprints.
-The memory review found hashing and restore helpers keeping themselves and temporary answer data alive after returning.
-Both now release those references at the end of each call. Three checks prove release even when Python's automatic memory cleanup is disabled.
-The final three-trial comparison finds about 8% to 9% less complete saved-session time for glob and JMESPath than PR #555.
-Boltons takes 0.4% more time. Saved sessions still cost about 5% to 26% more than asking again.
-Stored bytes match within this comparison. The largest memory samples for glob and JMESPath are higher; these results establish no general memory saving.
-The next useful comparison should keep the Python helper running across a complete project session.
-Count the first start, input checks, edits, renewed analysis, memory growth and final shutdown in both saved and fresh approaches.
-The earlier [process study](python-process-cost-results.md) suggests a reason to try this, but its small helper examples do not establish project-scale savings.
-Keep the stopped live-agent studies separate.
-Broader agent-cost trials, translation and proofs connected to source code remain separate work.
-Language changes should address a concrete obstacle in a chosen task.
+Use the [current saved-answer comparison](distinct-answer-hashing.md) as the measured starting point.
+It includes complete sessions and matching fresh answers. Saving still costs more than asking again in those trials.
+Compare direct CLI use, Python restarted for each question, and Python kept running across a complete project session.
+Count first start, validation, edits, renewed analysis, memory, storage and shutdown.
+The [earlier process study](python-process-cost-results.md) motivates that comparison without establishing project-scale savings.
+
+The [original saved-work results](saved-work-cost-results.md) preserve the first independent JMESPath evaluation.
+Treat glob, Boltons, Humanize and JMESPath as familiar projects when choosing new independent tasks.
+Historical results remain with their guides and original source; do not rewrite their recorded fingerprints.
+
+PRs 2 and 3 cover broader Python analysis, translation, source-connected proofs and repeated agent comparisons.
+Use concrete task failures to choose language changes. Keep the stopped studies stopped and agree limits before new live calls.
 
 ## The current reader review
 

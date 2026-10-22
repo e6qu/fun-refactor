@@ -13,7 +13,7 @@ These package milestones remain complete. The [project-change milestone](project
 now also has passing original records for saved answers after edits and complete Rust/Python rename delivery.
 The [saved-work comparison](saved-work-cost-results.md) measures continued work against fresh questions on the same files.
 The [matched follow-up](saved-answer-improvement.md) checks the fix for repeated hashing while saving and reopening answers.
-The [next work](continuity.md#next-use-the-continuing-work-cost-results) uses those measured costs to choose an improvement.
+The [next work](../PLAN.md#next-three-prs) combines agent setup, measured costs and a fair CodeGraph comparison in the first PR.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.

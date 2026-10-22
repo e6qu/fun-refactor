@@ -1,370 +1,164 @@
 # Help an agent finish the right change with less work
 
-The goal is straightforward. Give an agent a bug or feature request in a project it has never seen.
-Help it find the right code, make the change and check the result. We want fewer
-unnecessary reads and retries, lower total cost, and reliable answers about what still needs checking.
+Give an agent a bug or feature request in a project it has never seen.
+Help it find the right code, make the change and check the result.
+The goal is fewer unnecessary reads and retries, lower total cost and dependable handoffs.
 
-For example, you need to fix checkout rounding without changing the public API. The agent
-should find the calculation and its callers, explain the mistake and prepare a small patch.
-Then it should run checks that catch the reported error. Finding a function name is only one step toward that result.
+For example, fixing checkout rounding should produce a reviewed patch and a test that catches the reported error.
+Finding the calculation is only part of that outcome.
 
 ## Where we are
 
-`fr` already helps an agent find functions and callers, read selected code, preview edits and run
-checks. It keeps saved changes so the agent can undo a mistake or resume interrupted work.
-It can also trace some simple Python values and prepare proof tasks for small supported functions.
+`fr` can find functions and callers, preview edits, run declared checks, undo changes and resume saved work.
+Selected Rust and Python project changes pass behavior checks and patch replay in another checkout.
+Some Python input-to-output questions work through real package imports; broader imports, exceptions and shared mutable values remain incomplete.
 
-Before preparing a Python rename, check the installed tool with `fr --json audit` and `fr capabilities`.
-They report available commands and their limits. After the rename, run the test that checks the user’s problem.
+We have not demonstrated general time or cost savings for agents.
+The [current measurements](docs/distinct-answer-hashing.md) still find saving answers more expensive than asking again in the tested sessions.
+Those comparisons use the Python library in both approaches; they do not isolate Python overhead against direct CLI calls.
 
-These pieces have useful tests. They do not yet add up to a demonstrated advantage on unfamiliar
-work. In the small live comparisons, using `fr` took more calls, reading and time. One attempt
-with `fr` met a requirement the ordinary-tool attempt missed. That is a useful result, but too
-little evidence to say the tool generally saves work.
+The [status report](docs/roadmap-status.md) owns current test counts and completion claims.
+Milestone C, correct resumption and reuse, meets its stated requirements. A, B and D remain open.
+The [product review](docs/product-review.md) explains the evidence and agent integration gaps.
 
-The [current status](docs/roadmap-status.md) owns the test counts and the remaining requirements.
-Three of the four larger goals below still have unfinished requirements. A passing test establishes the behavior
-it checks; it is not a percentage of product readiness.
+## Next three PRs
 
-## What the recent Python work means for a user
+Do these in order. Findings in PR 1 should shape the detailed tasks in PRs 2 and 3.
+Each PR includes its implementation, independent checks, examples, limitations and tracking updates.
+These are three delivery packages, not replacements for the four milestones below.
 
-The recent Python work asks: “Can this input reach that output?” Small examples compare assignments
-and helper calls with Python execution.
+### PR 1. Make fr usable by agents and measure its value
 
-Illustration: your helper lives beside these declarations:
+Example: an agent finds a helper, previews its rename, checks its callers and undoes the change.
 
-```python
-metadata = 0
-registry = {}
-sorter = sorted
+- Keep one portable skill with explicit setup for Claude Code, Codex and OpenCode.
+  Check discovery in clean sessions and record actual tool use separately from scripted integration controls.
+- Teach the complete find, inspect, preview, check and undo route through examples that introduce each new concept.
+- Compare direct CLI calls with the Python library restarted for each question and kept running across questions.
+  Compare saved answers with fresh analysis. Count startup, edits, validation, shutdown, memory and storage, with matching answers required.
+- Compare ordinary tools, ordinary tools plus [CodeGraph](https://github.com/colbymchenry/codegraph), and ordinary tools plus `fr` on the same unfamiliar tasks.
+  Give every setup the same ordinary editing and checking tools. Independently grade explanations and delivered behavior.
+  Count setup, indexing, instructions, model usage, retries and failed attempts. Record whether the agent used the offered tool.
+- Fix waste supported by the measurements. Prefer a shorter route through existing interfaces before adding a wrapper or background service.
 
-def relay(value):
-    return value
+Complete when all three agents can discover and use the skill, the change loop passes, and complete comparison results retain failures and limitations.
+Scripted controls establish integration behavior; live attempts establish adoption. A small pilot does not close the repeated-agent requirement in milestone A.
+Freeze tasks, graders, model settings and agreed spending and resource limits before live calls.
+The stopped studies stay stopped; this roadmap does not authorize their restart.
 
-public = relay
-```
+### PR 2. Complete broader Python analysis and translation
 
-Those unused declarations can now coexist with a supported trace through `public`.
-The trace points back to `relay`. Using or changing `registry`, or calling the stored `sorter`,
-still needs behavior the analyzer does not support. That question remains unfinished.
+Example: determine whether customer input reaches `send(value)` through an imported helper, including an exception or a shared list mutation.
+A shared list mutation changes an object that another name can read later.
 
-The [original-package checks](docs/package-milestones.md) now finish selected questions in Boltons,
-dateutil and JDcal with one unchanged analyzer. JDcal's implementation stayed unread until the freeze.
-The checks include overwritten inputs and moved callers, plus saved answers after edits in the two familiar packages.
-Importing other packages can still execute code that `fr` does not understand.
-The current tests in Toolz, funcy and pydash leave their package answers incomplete.
-Moving the same helper into a small isolated file sometimes produces a complete answer. That
-isolated success does not establish that the original package is understood.
+- Handle package imports, exceptions and shared mutable values exposed by the chosen tasks.
+  Use the original package imports. A copied helper in an isolated file answers a different question.
+- Test both inputs that reach the output and inputs that cannot reach it.
+  Compare results with ordinary Python execution and independent inspection.
+- Check project-scale analysis across at least three independently selected projects, including one kept unread during implementation.
+  Keep unsupported behavior and exhausted searches explicit; preserve existing limits.
+- Extend caller discovery for the selected changes, including affected configuration and tests.
+  Independently check the complete declared change scope before delivery.
+- Translate one useful bounded function between Rust and Python.
+  Declare input ranges, arithmetic, overflow, errors and evaluation order before implementing support.
+  Independently compare every input in the chosen bounded range and the declared boundary cases.
 
-The [Python behavior guide](docs/python-contract.md) explains the examples and limits.
-The [real-library results](docs/python-repository-flow.md) keep unsuccessful attempts alongside
-successful ones. The [product review](docs/product-review.md) explains what we still need to measure.
+Complete when the broader tracing, effects and translation requirements have qualifying results under the existing acceptance conditions.
+One unchanged analyzer must handle the selected projects. Keep their editing, saved-answer checks, undo and patch replay passing.
 
-## How the guides should read
+### PR 3. Connect proofs to code and repeat the agent comparison
 
-Start each guide from the reader’s question before describing the machinery.
-Show the task, a concrete example, the meaning of the result and the next action.
-Introduce concepts where the example first needs them. A reader should not need another manual to understand the lesson.
-State required files, installed tools and values returned by earlier commands before using them in an example.
-Explain each performance comparison's baseline and included costs; the [measurement guide](docs/benchmarks.md) supplies examples.
-Keep exact commands and data fields available for readers who need them. Keep one current format;
-reject missing or old data without adding compatibility readers or migration fallbacks.
+Example: prove a stated access rule about the actual function, then reject that claim when a relevant source edit changes its behavior.
 
-## Completed package milestones and next work
+- Connect a precise property and checked proof to one existing implementation.
+  Identify the assumptions and components trusted to connect the code to its mathematical description.
+- Write one new function together with its specification and proof, checking the same connection to its implementation.
+  Retain relevant old and new inputs. Source changes must invalidate affected proof claims.
+- Run independent behavior checks and replay the delivered changes in another checkout.
+- Repeat unfamiliar agent tasks after the improvements, meeting the existing repeated-agent requirements.
+  Report correctness first, then complete costs with failures and work by every participating agent included.
+  Keep the CodeGraph comparison distinct from the ordinary-tools/fr results required by milestone A.
 
-Both [near-term package milestones](docs/package-milestones.md) now have passing original records.
-Boltons limits an integer, dateutil computes an Easter date, and JDcal checks a leap year.
-All three finish the input-to-output question and its overwritten-input counterpart with one unchanged analyzer.
-Ordinary Python agrees with the declared examples. Renamed callers, unknown calls and search budgets retain their expected outcomes.
-The two familiar packages also pass the saved-answer checks after source and import changes.
-
-The [project-change milestone](docs/project-change-milestone.md) now also has passing original records.
-Saved answers match fresh checks after seven changes on Rust glob, Python Boltons and Python Humanize.
-The checks cover renames, moves, deletion, competing imports, project configuration, question settings and an actual checker implementation change.
-Unrelated findings remain usable. Humanize passed its first evaluation after the procedure and both checker builds were fixed.
-
-The Rust and Python rename tasks include callers, documentation, behavior checks, undo and patch replay in another checkout.
-For example, Boltons' renamed integer-bounds function still limits -5, 17 and 70 to 0, 17 and 50.
-The [original record](tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) preserves the qualifying results and all 32 failed or cancelled development attempts.
-Both selected outcomes belong to [PR #551](https://github.com/e6qu/fun-refactor/pull/551).
-
-The [saved-work comparison](docs/saved-work-cost-results.md) compares reopening answers with asking the same questions again on glob, Boltons and JMESPath.
-JMESPath is a Python library for selecting values from JSON documents.
-It compares first use, unchanged reuse and one source edit, with three repetitions on each project.
-Saved and fresh answers agree. Preparation, validation, analysis, memory, storage and submitted text remain visible.
-Use the complete session totals to choose the next optimization, rather than a faster unchanged request alone.
-The [matched SDK comparison](docs/saved-answer-improvement.md) checks the fix for repeated hashing when saving and reopening answers.
-It compares the previous and changed SDKs with one native executable and keeps the original first JMESPath evaluation separate.
-The hashing fix reduces complete saved-session time by 8% to 34% in these three trials.
-That hashing comparison still found 27% to 218% overhead against asking again.
-The [storage follow-up](docs/batched-answer-storage.md) checks replacing separate file writes with one database commit per answer.
-It compares complete sessions against the code merged in PR #554 and against asking again.
-Saved sessions take 19% to 53% less time in that comparison, but still cost 2% to 41% more than asking again.
-The database uses more stored bytes. Saving answers remains an explicit choice.
-The [distinct-piece comparison](docs/distinct-answer-hashing.md) removes repeated fingerprint computation within each save or digest operation.
-For example, saving glob's answer now hashes its 1,387 distinct pieces once each, despite visiting 11,210 pieces.
-The memory review found helpers keeping themselves and temporary answer data alive after returning.
-The functions now release those references at the end of each call.
-Three checks confirm release even when Python's automatic memory cleanup is disabled.
-In the final three-trial comparison, complete saved sessions take about 8% to 9% less time for glob and JMESPath than PR #555.
-Boltons takes 0.4% more time. Saved sessions still cost about 5% to 26% more than asking again.
-Stored bytes match between implementations. The largest memory samples for glob and JMESPath are higher, so these trials establish no general memory saving.
-Next, measure complete project sessions with the Python helper kept running, including the first start, edits and shutdown.
-The earlier small [process comparison](docs/python-process-cost-results.md) motivates that test; it does not establish a project-scale benefit.
-The [handoff](docs/continuity.md#next-use-the-continuing-work-cost-results) describes the next work.
-Broader agent savings, translation and proofs connected to source code remain open.
-
-Choose work by a useful question that we can answer from beginning to end.
-For an unfinished Python trace, first [explain the recorded import gaps](docs/explain-python-imports.md).
-The explanation separates a helper file found but left unread from names the checker could not resolve.
-It also shows code left unchecked during import. Use those details to choose the next language change.
-
-Calls can now [replace checked Python defaults](docs/replace-python-defaults.md) without consuming the stored object.
-For example, `choose(value=stored_list)` can receive submitted input through `choose(read_input())`.
-Calling `choose()` still needs object behavior the analyzer does not check.
-This improves a general call rule; it does not finish the familiar libraries' package imports.
-
-The [numeric investigation](docs/python-symbolic-investigation.md) checked whether Pydash keeps a quantity between user-supplied limits.
-Ordinary tests and an existing symbolic execution tool found the same missing assumption: the caller must order the limits.
-
-Symbolic execution searches for inputs satisfying conditions in the code. This example does not justify building another execution engine inside `fr`.
-Use ordinary tests for this question; consider the existing checker again when a real task needs harder input searches.
-Keep original package imports separate from copied-function results, count setup and checking costs, and reproduce reported failing inputs in Python.
-The experiment adds no analyzer support and does not restart the stopped agent studies.
-
-Extend Python support when a chosen project-change task needs it. For example, importing a helper can
-run a package's setup code before the helper is available. Explain which statement prevents an
-answer, then improve the language rule needed to handle it.
-The [startup investigation](docs/python-package-startup-results.md) shows why another declaration rule alone cannot finish these package questions.
-Funcy and Pydash exceed the current file or source budgets in their complete observed Python executions.
-Small startup functions can now fill dictionaries created earlier in their own file.
-They can receive those dictionaries explicitly or store them as defaults, such as `output=table`.
-The [startup lesson](docs/check-python-startup.md) compares this check with a function that replaces the selected helper and must stay unfinished.
-Saved answers already depend on source files and import lookups.
-You can now [ask about two helpers together](docs/check-python-together.md).
-It prepares shared startup once within one request, then returns separate function answers.
-Both questions share the existing work and output limits; changed sources and unknown effects remain visible.
-You can [save preparation between separate questions](docs/save-python-startup.md).
-Ask about the forwarding helper first and the helper returning zero in a later process.
-The later question reuses checked declarations, default values and startup writes while its files and import choices match.
-Every request still resolves imports and checks their declaration and execution order.
-Edits and competing import files trigger fresh preparation. Corrupt records fail visibly.
-The new API requires explicit rules, context, analysis limits and import settings.
-Keep saved preparation separate from whole-answer reuse and full-package acceptance.
-
-The [optimized comparison](docs/python-optimized-cost-results.md) now measures ordinary requests and separate diagnostic runs with project caching off and on.
-Across 1,344 requests, answers agreed for the same question, including edits and unfinished work.
-Project caching reduced fresh-check totals by about 22–23% in these four examples.
-With that cache on, saved setup added 0.9–4.1% and saved answers added 2.7–6.2% to total time.
-Neither saved approach reduced median sequence time in either cache setting.
-
-The [installed-client comparison](docs/python-process-cost-results.md) checked 560 questions with matching answers across all four approaches.
-In these examples, installing the client with saved compiled Python modules reduced fresh-process totals by 26.7–33.0%.
-Keeping the installed client running reduced totals by another 64.1–69.1% relative to restarting it for every question.
-For the local helper, seven questions took 0.888 seconds with separate installed starts and 0.280 seconds in one running process.
-Both totals include the first start, fresh analysis after edits and final shutdown.
-Building and installing the Python package and compiling its modules added 1.144 seconds separately.
-Complete environment setup remains unmeasured.
-
-The [two-helper comparison](docs/python-together-cost-results.md) checked 560 function answers in running installed clients.
-For local helpers, seven pairs took 0.444 seconds separately and 0.429 seconds together, including first startup and shutdown.
-The three examples with matching answers showed 2.7–9.0% lower totals together, while their report text grew by 6.6–10.2%.
-A one-step combined request leaves zero steps for its second answer; that separate measurement performs different work.
-The experiment used the existing analyzer and client.
-These timing studies predate bounded loop support.
-Their original code still audits them; this language change has no separate cost measurement.
-
-Keep the real libraries' remaining import and startup gaps visible.
-For example, Toolz still builds an argument table using loops and imported code that examines functions' arguments before a helper is available.
-If one blocks a selected change task, explain the concrete statement and check any new rule against Python.
-
-A small registration function can now copy entries between dictionaries created in the same file.
-The source must list its entries directly in code and stay unchanged.
-For example, `labels = {'state': 'ready'}` followed by `for key, item in labels.items(): table[key] = item`
-records the label without running unknown code.
-The [startup lesson](docs/check-python-startup.md) supplies the complete example.
-The function and its repeated work each keep the 128-node limit.
-Mutating the source dictionary, changing helper names or calling unknown code leaves the answer unfinished.
-Dictionary arguments and stored dictionary defaults now work in these bounded startup functions.
-For example, `register(labels, table)` can copy entries into the table without relying on global names.
-Passing the same dictionary as both source and destination stays unfinished, as do changed source contents and rebound defaults.
-Toolz still needs module-valued keys, conditional imports and function-argument inspection, among other unchecked setup.
-These rules do not complete its package answer.
-
-When a selected change task needs a helper answer, use its original package import.
-Keep the existing limits and unfinished answers.
-
-Never teach the analyzer the names of test projects or their expected answers.
-An unfinished search must still say the answer is unknown.
-
-The first unfamiliar checks of jaraco.functools and fn.py stopped before analysis.
-Jaraco's archive lacked the license file required by admission.
-fn.py had no function matching the fixed selection rule.
-Keep both original failures. They do not count as successful unfamiliar-project coverage.
-The next comparison used [JDcal's documented leap-year check](docs/leap-year-package-question.md).
-We chose its function and examples from the public README before opening its implementation or tests.
-Its first evaluation passed after the analyzer and question plan were frozen.
-JDcal is now familiar; a later unfamiliar-project test needs a new reservation.
-Toolz, funcy and pydash are already familiar development examples. The earlier Boltons reservation
-was unsuitable because prior work had already used it. Keep that mistake in the recorded history.
-
-Keep editing, undo, interrupted-work recovery and patch delivery working as this expands.
-The stopped packaging experiment stays stopped. A later live study needs suitable independent tasks,
-explicit cost limits and complete usage records before it can run. The [closed investigation](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-does not authorize restarting it.
-
-## Remaining product gaps
-
-| User question | What we still need to show |
-| --- | --- |
-| “Where should I look for this bug?” | Accurate explanations and relevant source lines on unfamiliar tasks, with less wasted reading |
-| “Does this input reach the output?” | Useful answers in real projects, including a clear unknown answer when imports or effects exceed support |
-| “Did the fix solve my problem?” | Independent behavior checks for the requested change, alongside builds and regression tests |
-| “Can another agent pick this up?” | A useful handoff with the question, checked findings and remaining work, without repeating the whole investigation |
-| “Can I trust the saved answer after an edit?” | Correct invalidation and renewed checks when the code behind a finding changes |
-| “Does fr save time or money?” | Repeated comparisons that count all reading, retries, failed attempts and work by every agent |
-| “Does the proof apply to my code?” | A stated property, a checked proof and a checked connection to the actual implementation |
-
-The broader comparison targets Sonnet and Luna. Its plan remains a proposal. Tool availability
-alone does not establish use: an agent that fixes a bug without calling `fr` has not shown a benefit
-from `fr`. The [review](docs/product-review.md) owns the comparison criteria and decisions about what to simplify.
-
-## Evidence and remaining gaps
-
-Use the [evaluation guide](docs/evaluations.md) to inspect the recorded results and their limits.
-It separates tests of prescribed edits from experiments where an agent must discover a solution.
-Failures, timeouts and unstarted attempts stay visible. Missing cost information stays unknown.
-
-For example, a script that applies a known repair and replays its patch can check delivery.
-It cannot tell us whether an agent would find that repair, or whether the tool makes the search cheaper.
-Likewise, a smaller response does not establish a smaller bill for the complete task.
-
-The [restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md) explains how to recover historical
-records. Detailed run history belongs with those records, not in the current work instructions.
-
-## Generalization requirements
-
-- Test a language rule in several independently written forms. Renaming a helper or moving a supported file must preserve the answer.
-- Choose at least three independent projects before building project-scale analysis. Keep one unread during implementation and freeze the analyzer before evaluating it.
-- Preserve the first failure on an unfamiliar project. Once its code informs a fix, choose another unread project for the next evaluation.
-- Keep production behavior independent of test repository names, revisions and expected patches. User rules can select inputs and outputs, but cannot skip language behavior.
-- Report unsupported behavior and exhausted searches. “I could not finish checking” must never become “this cannot happen.”
-- Keep previous editing and recovery examples reproducible. Their success alone cannot establish that the tool works generally or reduces agent cost.
+Complete when both source-proof requirements and the repeated-agent requirement have qualifying results.
+A proof about a separate model alone is insufficient. Negative or inconclusive cost results remain visible.
+Use an existing symbolic execution tool when a concrete task needs input searches; no new engine is planned.
+The [earlier investigation](docs/python-symbolic-investigation.md) explains that decision.
 
 ## Milestones and implementation checklist
 
-Checkboxes track implementation only. The [status report](docs/roadmap-status.md) lists the behavior
-each milestone must demonstrate, its supporting tests and what is missing.
-The catalog is the machine-readable list of those requirements. Its identifier is `agent-analysis-v2`.
-Open requirements include broader caller discovery, unsupported effects and complete agent-cost accounting;
-demonstrated items retain their original, limited scope.
+The checkboxes track implementation, not demonstrated product outcomes.
+The [status report](docs/roadmap-status.md) checks both implementation and the specific test requirements.
+The [acceptance catalog](tests/agent-eval/roadmap.json) owns their detailed conditions and evidence links.
+Keep these counts reconciled with the catalog; close milestones only when all required work and results qualify.
 
 ### A. Find relevant code and explain the evidence
 
-Example: given a failing test, help the agent locate the responsible code and distinguish its
-hypothesis from facts established by the tool or a compiler.
+Open outcome: repeated unfamiliar agent tasks with correct answers and complete cost accounting. PRs 1 and 3 address it.
 
-- [x] Report exact locations for declarations, references and calls, including repeated calls on one line.
-  See [investigation contracts](docs/agent-investigations.md).
-- [x] Link analyzed expressions back to source, including missing or multiple source locations.
-  See [source-location tests](tests/semantic_evidence.rs).
-- [x] Explain analyzed facts with their inputs, assumptions and omitted information.
-  See [Python fact reports](src/project/flow_facts.rs).
-- [x] Save the compiler command, build inputs, tool versions and any disagreement with fr.
-  See [compiler checks](docs/project-checks.md#retained-compiler-diagnostics).
-- [x] Save the requested outcome, possible explanations, checked facts, their inputs and remaining tests.
-  See [task plans](sdk/python/src/fr_ir/investigation.py).
-- [x] Run an initial bug and feature comparison without supplying edit locations to the agent.
-  See the [original four trials](tests/agent-eval/unknown-target/cohort.json).
-
-Still needed: repeated agent comparisons with full cost accounting and a consolidated statement
-of which Rust/Python facts the tool can establish. Existing test scripts and the small older-model
-comparison do not establish general autonomous problem solving.
+- [x] Report exact declaration, reference and call locations.
+- [x] Link analyzed expressions to source and expose missing or ambiguous locations.
+- [x] Explain findings with their inputs, assumptions and omitted information.
+- [x] Retain compiler inputs, versions and disagreements with fr.
+- [x] Save requested outcomes, checked facts and remaining questions.
+- [x] Run the initial bug and feature comparison without supplying edit locations.
 
 ### B. Explain how values move through code
 
-Example: determine whether a value supplied to a function can reach an output after a helper call.
-Check whether an earlier assignment overwrites it. Report possible paths separately from runtime-proven paths.
+Open outcomes: broader project tracing and honest handling of exceptions and shared mutable values. PR 2 addresses them.
 
-- [ ] Specify the reusable language rules connecting source, analysis and edits, with independent
-  examples and explicit unsupported cases.
-- [x] Represent assignments, branches, loops, returns and supported explicit exceptions.
-  See [Python control flow](src/project/control_flow.rs) and [runtime comparisons](tests/flow_fixed_point.rs).
-- [x] Record how supported functions pass arguments, return values and perform actions, including calls to themselves.
-  See [function summaries](src/project/flow_summaries.rs).
-- [x] Let users name input, output and context-specific cleaning functions; report possible connections and their source locations.
-  See [dataflow](src/project/dataflow.rs).
-- [x] Separate possible callees, possible input-to-output connections and statements established by a proof.
-  See the [analysis contract](docs/agent-investigations.md).
-
-The selected questions now finish across three independently maintained projects, including one unread during development.
-Still needed: broader project questions and honest handling of shared mutable objects and implicit exceptions.
-An implicit exception is an error an operation can raise without an explicit `raise`. The two recent
-repository delivery tasks still report incomplete or refused flow analysis.
+- [ ] Specify reusable language rules connecting source, analysis and edits, with independent examples and explicit limits.
+- [x] Represent supported assignments, branches, loops, returns and explicit exceptions.
+- [x] Describe supported argument passing, returns and actions, including recursive calls.
+- [x] Trace user-declared inputs, outputs and cleaning functions with source locations.
+- [x] Distinguish possible calls and value paths from statements established by a proof.
 
 ### C. Resume work and reuse correct answers
 
-Example: another agent changes a helper while work is paused. On resumption, discard conclusions
-that depended on that helper, keep unrelated findings, and require a fresh edit review.
+Complete for its stated tests. Preserve this behavior throughout all three PRs; agent savings remain a separate question.
 
-- [x] Distinguish references to current code, fingerprints of saved contents and candidate matches after an edit.
-  See [target sessions](sdk/python/src/fr_ir/investigation_session.py).
-- [x] Record which source files, imports, settings and analyzer code support an answer, including searches that found nothing.
-  See [module dependencies](src/project/flow_modules.rs).
-- [x] Save and verify analysis results; analyze again when the tool cannot fully check the inputs needed for reuse.
-  See [flow caching](sdk/python/src/fr_ir/flow.py).
-- [x] Save tasks and discard outdated findings before continuing.
-  See [resumption tests](tests/investigation.rs).
-- [x] Tie check and proof results to their inputs, rejecting old results after relevant changes.
-  See [retained proofs](src/spec/retained.rs).
-- [x] Measure first analysis, reused results and rechecking after edits on three independently maintained projects.
-  See [saved-work measurements](docs/saved-work-cost-results.md).
-
-The project-change records cover glob, Boltons and Humanize.
-The cost comparison covers glob, Boltons and the first independent JMESPath evaluation.
-It measures matching answers and their full scripted session costs. Complete agent-task savings remain a separate requirement.
+- [x] Distinguish current code references, saved-content fingerprints and candidate matches after edits.
+- [x] Track source, import searches, settings and analyzer inputs behind answers.
+- [x] Verify saved answers and analyze again when reuse cannot be established.
+- [x] Resume saved tasks after discarding outdated findings.
+- [x] Invalidate check and proof results after relevant input changes.
+- [x] Measure first use, reuse and rechecking after edits on three independent projects.
 
 ### D. Make checked changes and useful proofs
 
-Example: change a function's interface and its callers, run the relevant behavior tests, and produce
-a patch another checkout can apply. For a proof request, connect the theorem to the actual code.
+Open outcomes: translation and proofs connected to existing and new implementations. PRs 2 and 3 address them.
+Broader caller discovery and proof invalidation also remain implementation work.
 
 - [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
-  [Caller discovery](docs/change-scopes.md) and [structural changes](docs/structural-changes.md) cover
-  specific cases; dynamic dispatch (choosing a callable from runtime values) and inferred contracts remain incomplete.
-- [x] Add general language rules needed by observed tasks. Define what succeeds, what fails and what other actions the code performs.
-  Rust modules and functions with the same name now stay distinct.
-  A build flag can select between two Rust implementations; renaming the function updates both.
-  Python edits preserve local import names and update documentation according to the chosen policy.
-  The [structural-change guide](docs/structural-changes.md#which-changes-this-route-can-handle) lists supported cases and refusals.
-  Broader discovery, translation and source proofs remain open.
-- [ ] Translate a function under explicit arithmetic, error and evaluation-order rules, independently
-  checking its source and target behavior.
-- [ ] Connect a property and proof to an existing implementation, and write a new implementation
-  together with its specification and proof.
-- [ ] Retain old and new proof inputs for changes and translations; reject outdated proof claims.
-  [Model comparisons](docs/model-comparisons.md) cover small Boolean models; broader source proofs remain open.
-- [x] Check small models deciding when edits may proceed, task steps may change state and interrupted writes may recover.
-  See [Lean checks](docs/lean-specs.md) and [host recovery](docs/host-recovery.md).
+- [x] Add general language rules needed by observed structural changes.
+- [ ] Translate a function under explicit arithmetic, error and evaluation-order rules.
+- [ ] Connect proofs to an existing implementation and to a new implementation developed with its specification.
+- [ ] Retain proof inputs for edits and translations, rejecting outdated claims.
+- [x] Check small models governing edits, task transitions and interrupted-write recovery.
 
-Still needed: broader structural changes, a useful numeric translation, and checked connections
-between source implementations and proofs. Passing a theorem about a separate model is insufficient.
+## Generalization requirements
+
+- Test each language rule with independently written examples. Renaming a helper or moving a supported file must preserve the answer.
+- Select project-scale tasks before implementation. Keep one project unread until the analyzer and test procedure are frozen.
+- Preserve the first unfamiliar-project failure. Once its code informs a fix, use a new unread project for independent evaluation.
+- Keep production behavior independent of test project names, revisions and expected patches.
+- Report unsupported behavior and exhausted searches. An unfinished check cannot establish that a path is impossible.
+- Keep failures, timeouts and unstarted attempts visible. Missing usage or billing information stays unknown.
+- Compare complete task outcomes and costs. Smaller responses and prescribed repairs alone cannot establish agent savings.
 
 ## Working rules
 
-Use small reports with explicit follow-up reads, exact source references and stale-result rejection.
-Check behavior independently of the proposed patch. Preview edits, preserve unrelated work and
-retain undo and recovery. Use `fr` on its own code when its public operations fit, and record concrete gaps.
+Use `fr --json audit` and `fr capabilities` for current command support and limits.
+Use `fr` on its own code where its operations fit, and record concrete gaps.
+Preview writes, preserve unrelated work and keep undo, recovery and patch delivery working.
 
-Keep agent scheduling and model access in evaluation hosts. The [study guide](docs/agent-study.md)
-defines independent task plans and parent/child accounting; the
-[OpenCode guide](docs/opencode-native-tools.md) defines configured-client collection and replay.
-Fake-provider controls are protocol tests, not live efficiency evidence.
+Keep settings explicit and maintain one current interface and format.
+Add no compatibility readers, fallback routes or needless wrappers.
+Keep agent scheduling and model access in the evaluation host.
 
-Full builds, test gates and large evidence regeneration run on GitHub. Local checks and `fr`
-use the [workstation guard](docs/development.md#working-on-a-shared-desktop).
-Keep CI jobs within 15 minutes without dropping coverage; queue time is separate from execution.
+Full builds, full test gates and large result collections run on GitHub.
+Local checks and `fr` use the [workstation guard](docs/development.md#working-on-a-shared-desktop); move refused work to CI.
+Fix the cause of failures and timeouts. Keep existing limits and coverage.
 
-The [acceptance catalog](tests/agent-eval/roadmap.json) owns detailed conditions and evidence links.
-`tools/roadmap-status.py --check` verifies the generated report. Independent behavior tests must
-also pass. Close a milestone only when both implementation and demonstrated outcomes are complete.
+Keep tutorials and historical runs in their guides, not this roadmap.
+Use the [handoff](docs/continuity.md) for investigation details, the [measurement guide](docs/benchmarks.md) for comparison rules,
+and the [evaluation guide](docs/evaluations.md) for results and preserved failures.
