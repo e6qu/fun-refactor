@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Measure complete familiar-project sessions through CLI and Python clients."""
 import argparse
+from contextlib import ExitStack
 import hashlib
 import importlib.util
 import json
@@ -350,6 +351,11 @@ def collect(args):
 
 
 def audit(directory):
+    with ExitStack() as resources:
+        return audit_contents(directory, resources)
+
+
+def audit_contents(directory, resources):
     if (directory / 'evidence.zip').is_file():
         outer = json.loads((directory / 'result.json').read_text())
         require(outer['files'] == {'evidence.zip': file_digest(directory / 'evidence.zip')}, 'retained archive changed')
@@ -447,14 +453,14 @@ def audit(directory):
         require(json.loads((base / 'stdout.txt').read_text()) == expected_stdout, 'session replies differ')
         saved_state = None
         if condition.startswith('saved-'):
-            saved_state = tempfile.TemporaryDirectory(prefix='fr-session-state-')
+            saved_state = resources.enter_context(tempfile.TemporaryDirectory(prefix='fr-session-state-'))
             with zipfile.ZipFile(base / 'saved-state.zip') as archive:
                 entries = archive.infolist()
                 require({entry.filename for entry in entries} == {'receipt.json', 'objects/objects.sqlite3'}
                         and len(entries) == 2 and sum(entry.file_size for entry in entries) <= expected_limits['disk_bytes'],
                         'unexpected saved state')
-                archive.extractall(saved_state.name)
-            store = DirectoryObjectStore(Path(saved_state.name) / 'objects')
+                archive.extractall(saved_state)
+            store = DirectoryObjectStore(Path(saved_state) / 'objects')
         for stage in session_value['stages']:
             stage_root = base / stage['stage']
             result = json.loads((stage_root / 'result.json').read_text())
@@ -510,8 +516,6 @@ def audit(directory):
                         and result['validation']['complete'] is result['retained'], 'native validation differs')
             else:
                 require(not validations and result['validation'] is None, 'unexpected saved validation')
-        if saved_state is not None:
-            saved_state.cleanup()
         summary.setdefault(project, {}).setdefault(condition, []).append(process['elapsed_seconds'])
     require(len(agreement) == 27 and report['answer_agreement'] is True, 'missing answer comparisons')
     for project in summary:

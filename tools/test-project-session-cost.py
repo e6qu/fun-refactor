@@ -17,7 +17,7 @@ spec.loader.exec_module(cost)
 sys.path.insert(0, str(cost.ROOT / 'sdk/python/src'))
 from fr_ir.context import DirectoryObjectStore, store_merkle_value
 from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKind, TaskPlan, TaskStep, StepState
-from fr_ir.runtime import FrRuntimeError
+from fr_ir.ir import IrError
 
 
 def fixture(root):
@@ -171,7 +171,7 @@ class SessionAccounting(unittest.TestCase):
 
     def test_stored_answer_does_not_match(self):
         self.update('glob/0-saved-running/edit/receipt.json', lambda value: value.update(answer='0' * 64))
-        with self.assertRaises(FrRuntimeError):
+        with self.assertRaisesRegex(IrError, 'absent or malformed'):
             cost.audit(self.root)
 
 
