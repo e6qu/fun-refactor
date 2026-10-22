@@ -20,7 +20,12 @@ assert greet("Ada") == "hello Ada"
 assert run() == "hello Ada"
 ```
 
+`run` calls `greet`, so it is one of its callers. The test imports `greet` and calls it too.
+A rename must update these uses along with the function's definition.
+
 Create `.fr/checks.json`. A check names the command that tests the behavior; listing it does not execute it.
+The `argv` list contains the program and its arguments. `cwd` gives the folder where it runs; `.` means this project folder.
+The `-B` argument tells Python to avoid writing bytecode files during this lesson.
 ```json
 {
   "schema": 1,
@@ -43,7 +48,8 @@ fr rename greet welcome --save-plan
 ```
 The preview prints a diff: `-` marks an old line and `+` its replacement.
 Check that the declaration, caller and test import change, while the greeting stays the same.
-Saving records the proposed edit without applying it. Replace `<FIRST_TX>` with its returned `transaction` number, including the brackets.
+Saving records the proposed edit without applying it.
+Replace the entire `<FIRST_TX>` placeholder, including its brackets, with the returned `transaction` number.
 
 ```sh
 fr history show '<FIRST_TX>'

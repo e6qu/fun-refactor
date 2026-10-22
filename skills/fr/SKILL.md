@@ -1,6 +1,6 @@
 ---
 name: fr
-description: Use fr to find code and callers, preview and check edits, or undo a reviewed change.
+description: Use fr to find code and callers, rename functions, preview and check edits, or undo a reviewed change.
 ---
 # Work with fr
 

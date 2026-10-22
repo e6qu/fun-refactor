@@ -56,7 +56,7 @@ In Claude Code, invoke `/fr`; in Codex, select it with `$fr` or `/skills`.
 In OpenCode, ask the agent to load the `fr` skill with its skill tool.
 Then ask it to find a known function using `fr project find NAME --signature` and explain the result.
 Check the recorded tool call: listing a skill does not establish that the agent used `fr`.
-Our [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) also pass for all three applications.
+Our [native discovery checks](https://github.com/e6qu/fun-refactor/actions/runs/39746584042) pass for all three applications on GitHub's Linux runners.
 They check an absent skill, project installation, user installation and the repository's linked bundle in isolated settings.
 Claude Code uses a local scripted response; no paid model or live credentials take part.
 Discovery establishes that instructions are available. It does not establish that an agent chooses or follows them during an unfamiliar task.
