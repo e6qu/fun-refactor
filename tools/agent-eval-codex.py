@@ -11,6 +11,8 @@ import time
 
 from agent_eval.bounded_host import run as run_bounded
 
+ATTEMPT_FILES = ("codex-run.json", "codex-events.jsonl", "codex-stderr.txt", "codex-final.txt", "events.jsonl")
+
 
 def load(path):
     return json.loads(path.read_text())
@@ -114,8 +116,7 @@ def freeze_settings(pairs, model, effort, service_tier):
     for name, session, config in entries:
         if any(key in config for key in declared):
             raise ValueError(f"Trial {name} already declares model settings; prepare a new session")
-        if any((session / filename).exists() for filename in (
-                "codex-run.json", "codex-events.jsonl", "codex-stderr.txt", "codex-final.txt", "events.jsonl")):
+        if any((session / filename).exists() for filename in ATTEMPT_FILES):
             raise ValueError(f"Trial {name} is not fresh; prepare a new session")
     for _, session, config in entries:
         (session / "session.json").write_text(json.dumps({**config, **declared}, indent=2) + "\n")
@@ -128,7 +129,7 @@ def run_trial(codex, entry, model, effort, service_tier, timeout):
     record_path = session / "codex-run.json"
     events_path = session / "codex-events.jsonl"
     stderr_path = session / "codex-stderr.txt"
-    if any(path.exists() for path in (record_path, events_path, stderr_path, session / "events.jsonl")):
+    if any((session / filename).exists() for filename in ATTEMPT_FILES):
         raise ValueError(f"Trial {name} is not fresh; prepare a new session")
     prompt_path = session / "prompt.txt"
     command = codex_command(codex, session, model, effort, service_tier)
@@ -202,6 +203,8 @@ def main():
         for pair in pairs:
             for entry in pair:
                 validate_settings(entry[2], args.model, args.effort, args.service_tier)
+                if any((entry[1] / filename).exists() for filename in ATTEMPT_FILES):
+                    raise ValueError(f"Trial {entry[0]} is not fresh; prepare a new session")
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     if args.dry_run:

@@ -51,6 +51,8 @@ prompt over standard input and refuses incomplete pairs or reused session direct
 availability and quota remain account-dependent.
 Model, reasoning effort, service tier, executable and timeout have no runner defaults.
 Undeclared or mismatched session settings fail before creating attempt records or contacting a model.
+The whole selection must also be fresh. If the second attempt already has a response or event record,
+the runner refuses the pair before spending on the first attempt.
 The example states the existing maximum of 900 seconds explicitly; it does not extend it.
 
 A session retains its JSONL events, stderr, final response and run record. The run record binds the

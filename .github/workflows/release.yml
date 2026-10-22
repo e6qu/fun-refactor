@@ -1,9 +1,8 @@
 name: Release
 
-# Two halves. `release-please` reads the commits since the last tag and keeps a
-# pull request open holding the next version and its changelog. Merging that
-# request tags the release. The rest of this file then builds what the release
-# hands people.
+# Publishing a merged release and planning the next release PR are separate
+# jobs. A planning API error must not block downloads for a published version.
+# Manual completion selects an existing empty release and verifies its source.
 #
 # Nothing here builds on a push that is not a release. A binary nobody asked for
 # costs twenty minutes of runner time per push and answers no question.
@@ -26,8 +25,8 @@ on:
 # `release-please` opens a pull request holding the next version. A workflow may
 # only do that where the repository allows it: Settings, Actions, General,
 # Workflow permissions, "Allow GitHub Actions to create and approve pull
-# requests". Without it the job fails with "GitHub Actions is not permitted to
-# create or approve pull requests" and no release goes out.
+# requests". Without it the planning job fails with "GitHub Actions is not
+# permitted to create or approve pull requests"; download builds stay separate.
 permissions:
   contents: write
   pull-requests: write
