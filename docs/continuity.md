@@ -48,17 +48,22 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: start the three-PR roadmap
+## Next: prepare the agent comparison
 
-Begin with PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs): agent setup, complete costs and a fair CodeGraph comparison.
-The [agent setup review](product-review.md#agent-setup-review-22-october-2026) distinguishes existing checks from unverified native skill discovery and adoption.
-Keep one portable skill and test the complete find, preview, check and undo route in all three agents.
+Continue PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs).
+Claude Code, Codex and OpenCode now discover the portable skill in isolated native-client checks.
+The introductory lesson executes the complete find, preview, check and undo route.
+The [agent setup review](product-review.md#agent-setup-review-22-october-2026) explains what passed and what remains unmeasured.
+Discovery makes the instructions available; a live attempt must show whether an agent uses them effectively.
 
-Use the [current saved-answer comparison](distinct-answer-hashing.md) as the measured starting point.
-It includes complete sessions and matching fresh answers. Saving still costs more than asking again in those trials.
-Compare direct CLI use, Python restarted for each question, and Python kept running across a complete project session.
-Count first start, validation, edits, renewed analysis, memory, storage and shutdown.
-The [earlier process study](python-process-cost-results.md) motivates that comparison without establishing project-scale savings.
+The [complete CLI and Python comparison](project-session-cost.md) now covers startup, validation, edits, memory, storage and shutdown.
+All 135 answers agree. Direct CLI calls were fastest; keeping Python running reduced its overhead.
+Saving and validating answers still cost more than asking again in these familiar-project sessions.
+Preserve these results without claiming general agent savings.
+
+Next, prepare the [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph).
+Reuse the existing task graders and isolate each attempt so detached indexing programs are counted and stopped.
+Freeze prompts, model settings and spending limits before live calls. No live attempts have started.
 
 The [original saved-work results](saved-work-cost-results.md) preserve the first independent JMESPath evaluation.
 Treat glob, Boltons, Humanize and JMESPath as familiar projects when choosing new independent tasks.
