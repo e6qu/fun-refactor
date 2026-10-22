@@ -6,7 +6,7 @@
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**12 of 18 specific test requirements have matching recorded results; 6 remain open. 1 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
+**11 of 18 specific test requirements have matching recorded results; 7 remain open. 0 of 4 larger goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -16,14 +16,14 @@ A requirement is one specific behavior we promise to check. A recorded result de
 |---|---|---|
 | Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |
 | Trace input to an output | Selected original-package questions in Boltons, dateutil and JDcal, plus small Python examples | Other imports and unsupported behavior still leave many answers incomplete |
-| Continue after a failed attempt | Saved answers match fresh checks through seven changes on three projects | Use the measured costs to choose an improvement; measure complete agent tasks separately |
+| Continue after a failed attempt | Saved answers match fresh checks through seven changes on three projects | Measure the cost of resuming work at project scale |
 | Deliver a repair or check a property | Real Rust and Python renames, including behavior checks, undo and patch replay | Independent agent task success and a checked connection between proofs and actual code |
 
 **We have not demonstrated general time or cost savings.** The older two-task comparison used more calls, reading and time with fr than with ordinary file tools. The recent Python repository scripts apply known repairs; they test editing and recovery. They do not measure an agent discovering the repair. The [measurement guide](benchmarks.md) explains baselines, included costs and unmeasured overhead. Read the [product review](product-review.md) and [result meanings](understanding-results.md).
 
 ## What happens next
 
-The project-change checks and [complete session cost comparison](project-session-cost.md) have matching current records. The comparison repeats the same questions on three projects before and after one source edit. It compares CLI calls, fresh and running Python clients, and saved answers. Startup, checking, edits, shutdown and cleanup enter session totals; setup remains separate. Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. Existing acceptance requirements remain in force; the delivery packages do not change completion claims.
+The [project-change milestone](project-change-milestone.md) now has passing original records. Saved answers stay current through the declared changes, and the Rust and Python renames include their required delivery checks. Next, measure the cost of continuing a saved task against asking the same questions from scratch on the same changed files. Count setup, input checking, analysis, memory, disk and text returned. Measure broader agent savings and proofs through their separate requirements.
 
 See the [plan](../PLAN.md#next-three-prs) for the work sequence and [generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.
 
@@ -35,7 +35,7 @@ The implementation column counts completed code changes. The test column counts 
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
 | B. Explain how values move through code | 4/5 | 2/4 | open |
-| C. Resume work and reuse correct answers | 6/6 | 4/4 | complete |
+| C. Resume work and reuse correct answers | 6/6 | 3/4 | open |
 | D. Make checked changes and useful proofs | 2/6 | 3/6 | open |
 
 ## Finite acceptance obligations
@@ -154,7 +154,7 @@ User example: Move a helper or add a previously missing module and check the con
 
 **State: demonstrated.** Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -162,9 +162,9 @@ Next: Keep the original project checks, undo and patch replay passing.
 
 User example: Measure whether saved answers reduce total work and storage on a real project after edits.
 
-**State: demonstrated.** On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.
+**State: open.** On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.
 
-Recorded results or remaining work: [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-39765340567/result.json).
+Recorded results or remaining work: current-saved-work-cost: recorded source inputs changed; collect and check a new result.
 
 Next: Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.
 
@@ -184,7 +184,7 @@ User example: Rename Boltons' `clamp` function to `clamp_value` and update its c
 
 **State: demonstrated.** Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -239,7 +239,7 @@ The entries below identify the stored test results. “Current” means their re
 | [repository-tasks](../tests/agent-eval/results/2026-10-22-hash-lifetime-python-repositories/result.json) / scripted behavior checks | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-22-hash-lifetime-flow-cache/result.json) / measured tool operations | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-20-clean-ci-host-recovery/result.json` |
-| [structural](../tests/agent-eval/results/2026-10-22-merged-agent-ci-structural-change/manifest.json) / scripted behavior checks | checked | current | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-merged-agent-ci-structural-change` |
+| [structural](../tests/agent-eval/results/2026-10-22-merged-agent-ci-structural-change/manifest.json) / scripted behavior checks | checked | stale (1 changed inputs) | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-merged-agent-ci-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-10-22-hash-lifetime-delivery-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three Boolean model relations; no source implementation connection between the descriptions. Audit: `python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-delivery-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-22-hash-lifetime-compiler-profile/result.json) / compiler and execution comparisons | checked | current | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-22-hash-lifetime-compiler-profile/result.json` |
@@ -249,8 +249,8 @@ The entries below identify the stored test results. “Current” means their re
 | [original-package-questions](../tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files/result.json) / scripted behavior checks | checked | stale (16 changed inputs) | Current replay of the three earlier package questions. All are familiar now; the original unread result is checked against its original source. Audit: `python3 tools/package_question_replay.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files` |
 | [project-changes](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) / scripted behavior checks | checked | stale (17 changed inputs) | Three original projects, seven change controls each, and checked Rust and Python rename delivery. Audit: `python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 | [saved-work-cost](../tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json) / measured tool operations | checked | stale (6 changed inputs) | Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim. Audit: `python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541` |
-| [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-39765340567/result.json) / measured tool operations | checked | current | Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim. Audit: `python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39765340567` |
-| [current-project-changes](../tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
+| [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-39765340567/result.json) / measured tool operations | checked | stale (1 changed inputs) | Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim. Audit: `python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39765340567` |
+| [current-project-changes](../tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-release080-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 

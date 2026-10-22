@@ -63,8 +63,10 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-22-merged-agent-ci-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -236,8 +238,10 @@
     },
     {
       "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39765340567",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -245,13 +249,13 @@
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-22-release080-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-22-merged-agent-setup-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-release080-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -284,14 +288,16 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
@@ -310,7 +316,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -617,7 +623,9 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "current-saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -660,7 +668,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
