@@ -108,6 +108,9 @@ Its [installer](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core
 The control makes those folders read-only after installing the fr skill in its assigned setup.
 This avoids loading an unused installer and trying to download packages inside the network-disabled container.
 The control requires skill discovery to work and rejects generated package manifests or installed modules.
+For the pinned Bun applications, `BUN_JSC_forceRAMSize=268435456` tells the collector to plan around 256 MiB of available memory.
+This [runtime hint](https://github.com/oven-sh/bun/issues/3628#issuecomment-1634783893) leaves room for CodeGraph and the control process inside the shared 512 MiB limit.
+It changes when unused objects are collected; the kernel still enforces the actual shared memory cap.
 The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
