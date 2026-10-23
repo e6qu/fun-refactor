@@ -196,12 +196,13 @@ jobs:
       - name: Preserve the original measurement identity
         run: |
           python3 -B - <<'PY'
-          import hashlib, json, os
+          import hashlib, json, os, shutil
           from pathlib import Path
           record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-lifetime/record.json').read_text())
           path = Path(record['directory']) / 'result.json'
           assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
           Path(os.environ['RUNNER_TEMP'], 'lifetime-cost-sha256').write_text(record['sha256'])
+          shutil.copytree(path.parent, Path(os.environ['RUNNER_TEMP'], 'lifetime-original'))
           PY
       - uses: actions/checkout@v7
         with:
@@ -215,8 +216,7 @@ jobs:
           python3 -B - <<'PY'
           import hashlib, json, os, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-lifetime/record.json').read_text())
-          directory = Path(record['directory'])
+          directory = Path(os.environ['RUNNER_TEMP'], 'lifetime-original')
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'lifetime-cost-sha256').read_text()
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
           PY
