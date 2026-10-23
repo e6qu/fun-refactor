@@ -5,9 +5,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn effect_limit(&mut self, node: Node<'t>, kind: &str, reason: &str) {
         let occurrence = self.occurrence(node, "unchecked-effect");
         let key = format!("{}:{kind}", occurrence.id);
-        self.effect_limits.entry(key).or_insert_with(|| {
-            json!({"kind":kind,"reason":reason,"occurrence":occurrence})
-        });
+        self.effect_limits
+            .entry(key)
+            .or_insert_with(|| json!({"kind":kind,"reason":reason,"occurrence":occurrence}));
     }
 
     pub(super) fn expression_effect_limit(&mut self, node: Node<'t>) {

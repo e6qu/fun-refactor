@@ -179,6 +179,9 @@ See the [agent quickstart](docs/agent-skill.md), [goal and workflow contract](do
 
 ## Common agent tasks
 
+For a complete arithmetic example and the limits of Python value tracing, see
+[check a Rust/Python translation and explain unchecked effects](docs/check-language-behavior.md).
+
 Inspect one symbol and its local relationships:
 
 ```sh

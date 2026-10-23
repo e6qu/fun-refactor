@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from evidence_basis import native_source_roots
+from evidence_basis import native_source_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = [
@@ -52,10 +52,7 @@ def digest(path):
 
 def bindings():
     paths = [ROOT / "tools/python-effects.py", ROOT / "tools/test-python-effects.py", ROOT / "tools/evidence_basis.py"]
-    for name in native_source_roots(ROOT):
-        path = ROOT / name
-        paths.extend(path.rglob("*") if path.is_dir() else [path])
-    return {str(path.relative_to(ROOT)): digest(path) for path in sorted(set(paths)) if path.is_file()}
+    return {**native_source_bindings(ROOT), **{str(path.relative_to(ROOT)): digest(path) for path in paths}}
 
 
 def command(argv, directory, timeout):
