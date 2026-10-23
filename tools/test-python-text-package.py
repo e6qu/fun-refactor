@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -56,6 +57,43 @@ class CheckerIdentity(unittest.TestCase):
                     patch.object(package, 'checker_bindings', return_value={name: 'new'}):
                 with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'checker differs'):
                     package.original_audit(data, Path(temporary))
+
+
+class ArtifactDelivery(unittest.TestCase):
+    def example(self):
+        sources = {'.gitignore': hashlib.sha256(b'cache/\n').hexdigest()}
+        cache = 'stringcase/cache-cold/.cache/fun-refactor/index'
+        answer = 'stringcase/original-positive.json'
+        earlier = json.dumps({'projects': []}).encode()
+        files = {'stringcase/upstream/.gitignore': sources['.gitignore'], cache: 'a' * 64,
+            answer: hashlib.sha256(b'answer').hexdigest(),
+            'earlier-questions/result.json': hashlib.sha256(earlier).hexdigest()}
+        result = {'files': files, 'project': {'source_files': sources}}
+        return {'result.json': json.dumps(result).encode(), 'earlier-questions/result.json': earlier, answer: b'answer'}
+
+    def test_source_restoration_and_unavailable_internal_cache_payloads_remain_explicit(self):
+        value = package.delivery(self.example())
+        self.assertEqual(set(value['restored_source_files']), {'stringcase/upstream/.gitignore'})
+        self.assertEqual(set(value['unavailable_native_cache_files']),
+            {'stringcase/cache-cold/.cache/fun-refactor/index'})
+
+    def test_a_missing_answer_or_sdk_saved_object_cannot_inherit_the_cache_omission(self):
+        for missing in ('stringcase/original-positive.json', 'stringcase/cache-objects/manifest'):
+            data = self.example()
+            if missing in data:
+                del data[missing]
+            else:
+                result = json.loads(data['result.json'])
+                result['files'][missing] = 'b' * 64
+                data['result.json'] = json.dumps(result).encode()
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, 'required answer'):
+                package.delivery(data)
+
+    def test_available_answer_bytes_must_match_the_original_digest(self):
+        data = self.example()
+        data['stringcase/original-positive.json'] = b'different answer'
+        with self.assertRaisesRegex(ValueError, 'file changed'):
+            package.delivery(data)
 
 
 if __name__ == '__main__':

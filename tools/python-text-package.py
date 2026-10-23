@@ -62,6 +62,83 @@ def checked_collection(run, artifact, jobs, repository):
         'artifact_digest': artifact['digest'], 'url': run['html_url']}
 
 
+def delivery(data):
+    result = json.loads(data['result.json'])
+    earlier = json.loads(data['earlier-questions/result.json'])
+    sources = {'stringcase/upstream/' + name: value for name, value in result['project']['source_files'].items()}
+    for row in earlier['projects']:
+        sources.update({'earlier-questions/' + row['project']['id'] + '/upstream/' + name: value
+            for name, value in row['source_files'].items()})
+    require(set(data) <= {'result.json', *result['files']}, 'unexpected first-artifact file')
+    missing = set(result['files']) - set(data)
+    restored = {name: result['files'][name] for name in sorted(missing & set(sources))}
+    require(all(expected == sources[name] for name, expected in restored.items()), 'missing source digest changed')
+    workers = [variant + '-' + case for variant in ('original', 'renamed-relocated')
+        for case in ('positive', 'overwritten', 'unknown', 'steps')]
+    workers += ['cache-' + stage for stage in ('cold', 'restored', 'unrelated-edit',
+        'helper-replaced', 'helper-restored', 'import-replaced')]
+    omitted = {name: result['files'][name] for name in sorted(missing - set(restored))}
+    require(all(any(name.startswith('stringcase/' + worker + '/.cache/fun-refactor/') for worker in workers)
+                for name in omitted), 'first artifact lost a required answer, command or saved object')
+    require(all(name in sources and any(part.startswith('.') for part in Path(name).parts) for name in restored),
+        'source restoration must explain hidden-file filtering')
+    for name, value in data.items():
+        if name != 'result.json':
+            require(hashlib.sha256(value).hexdigest() == result['files'][name], 'first artifact file changed: ' + name)
+    return {'original_upload_complete': not missing, 'restored_source_file_count': len(restored),
+        'unavailable_native_cache_file_count': len(omitted),
+        'restored_source_files': restored, 'unavailable_native_cache_files': omitted,
+        'scope': 'The first upload omitted hidden files. Recover original project files from their authenticated source archives. Internal native index cache payloads remain unavailable; all question outputs, commands and SDK saved objects must remain present. This record makes no timing or native-cache storage claim.'}
+
+
+def validate_original(original, records, omissions):
+    result = json.loads((records / 'result.json').read_text())
+    frozen = json.loads((records / 'freeze.json').read_text())
+    require(result['source_bindings'] == frozen['source_bindings'] == original.bindings(), 'original procedure inputs changed')
+    require(result['freeze_sha256'] == digest(records / 'freeze.json') and frozen['implementation_and_tests_unread'] is True,
+        'original first-evaluation declaration changed')
+    earlier = json.loads((records / 'earlier-questions/result.json').read_text())
+    projects = [(result['project'], records / 'stringcase')]
+    projects += [(row, records / 'earlier-questions' / row['project']['id']) for row in earlier['projects']]
+    with tempfile.TemporaryDirectory(prefix='fr-original-package-sources-') as temporary:
+        for row, work in projects:
+            archive = work / 'source.tar.gz'
+            require(digest(archive) == row['archive_sha256'], 'original source archive changed')
+            canonical = Path(temporary) / row['project']['id']
+            canonical.mkdir()
+            inventory = original.packages.flow.snapshot(archive.read_bytes(), row['project'], canonical)
+            require(inventory == row['source_files'], 'original source inventory changed')
+            for name, expected in inventory.items():
+                target = work / 'upstream' / name
+                if target.exists():
+                    require(digest(target) == expected, 'retained source changed')
+                else:
+                    relative = str(target.relative_to(records))
+                    require(omissions['restored_source_files'][relative] == expected, 'undeclared missing original source')
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes((canonical / name).read_bytes())
+    original.packages.checked_questions([result['project']], {'stringcase': original.PROJECT}, True)
+    original.replay.audit(records / 'earlier-questions')
+    require(earlier['binary_sha256'] == result['binary_sha256'], 'projects used different executables')
+    require(result['benchmark'] is False and result['live_model_calls'] == 0, 'unexpected cost or model claim')
+    require(result['project']['original_sources_unchanged'] is True and frozen['selection'] == original.SELECTION,
+        'reserved question or original sources changed')
+    work = records / 'stringcase'
+    reports = [work / (cell['variant'] + '-' + cell['case'] + '.json') for cell in result['project']['cases']]
+    reports += [work / (stage + '-' + kind + '.json') for stage, _, _ in original.packages.CACHE_STAGES
+        for kind in ('saved', 'fresh')]
+    for path in reports:
+        value, limits = json.loads(path.read_text()), original.SELECTION['limits']
+        require(value['budget']['response_bytes'] == limits['report_bytes']
+            and value['budget']['call_depth'] == limits['depth']
+            and value['budget']['steps'] == (1 if path.stem.endswith('-steps') else limits['steps'])
+            and value['inputs']['modules']['limits']['modules'] == limits['modules']
+            and value['inputs']['modules']['limits']['source_bytes'] == limits['source_bytes'], 'original limits changed')
+    for name, expected in result['files'].items():
+        if name not in omissions['unavailable_native_cache_files']:
+            require(digest(records / name) == expected, 'original answer or source file changed: ' + name)
+
+
 def original_audit(data, directory):
     original = json.loads(data['result.json'])
     require(original['source_commit'] == FIRST_SOURCE and original['complete'] is True,
@@ -92,7 +169,19 @@ def original_audit(data, directory):
             path = records / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(value)
-        subprocess.run(['python3', '-B', 'tools/python-text-package.py', 'audit', '--directory', str(records)],
+        omissions = directory / 'delivery.json'
+        save(omissions, delivery(data))
+        driver = ('import importlib.util, json, sys\nfrom pathlib import Path\n'
+            'sys.path.insert(0, str(Path.cwd() / "tools"))\n'
+            'def load(name, path):\n'
+            '    spec = importlib.util.spec_from_file_location(name, path)\n'
+            '    value = importlib.util.module_from_spec(spec)\n'
+            '    spec.loader.exec_module(value)\n'
+            '    return value\n'
+            'first = load("first", Path.cwd() / "tools/python-text-package.py")\n'
+            'auditor = load("auditor", sys.argv[1])\n'
+            'auditor.validate_original(first, Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_text()))\n')
+        subprocess.run(['python3', '-I', '-B', '-c', driver, str(Path(__file__).resolve()), str(records), str(omissions)],
             cwd=source, check=True, timeout=120)
     finally:
         subprocess.run(['git', 'worktree', 'remove', '--force', str(source)], cwd=ROOT,
@@ -106,14 +195,15 @@ def audit(directory):
         'unknown or unfinished qualified package record')
     require(result['source_bindings'] == bindings(), 'current package auditor or checker changed')
     require(result['original_source_commit'] == FIRST_SOURCE, 'original procedure source changed')
-    require(result['files'] == {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json')},
+    require(result['files'] == {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json', 'delivery.json')},
         'original package archive or collection identity changed')
-    require({path.name for path in directory.iterdir()} == {'result.json', 'receipt.json', 'artifact.zip'},
+    require({path.name for path in directory.iterdir()} == {'result.json', 'receipt.json', 'artifact.zip', 'delivery.json'},
         'qualified package inventory changed')
     receipt = json.loads((directory / 'receipt.json').read_text())
     require(receipt['run_id'] == str(FIRST_RUN) and receipt['source_commit'] == FIRST_SOURCE
         and receipt['workflow'] == WORKFLOW, 'original package receipt changed')
     data = scalar.files((directory / 'artifact.zip').read_bytes(), receipt['artifact_digest'])
+    require(json.loads((directory / 'delivery.json').read_text()) == delivery(data), 'original delivery omissions changed')
     with tempfile.TemporaryDirectory(prefix='fr-original-text-package-') as temporary:
         original = original_audit(data, Path(temporary))
     projects = sorted([SELECTION['repository'], 'dateutil/dateutil', 'mahmoud/boltons', 'phn/jdcal'])
@@ -148,12 +238,13 @@ def retain(run_id, prefix):
     directory.mkdir()
     (directory / 'artifact.zip').write_bytes(archive)
     save(directory / 'receipt.json', receipt)
+    save(directory / 'delivery.json', delivery(data))
     result = {'schema': 'fr-qualified-text-package', 'complete': True, 'source_bindings': bindings(),
         'original_source_commit': FIRST_SOURCE, 'independent_projects': original['independent_projects'],
         'original_unread': {'project': SELECTION['repository'], 'qualified': True, 'first_evaluation_run': FIRST_RUN},
         'milestone_1_demonstrated': True, 'milestone_2_demonstrated': True, 'milestones_complete': True,
-        'claim': 'Audit the first Stringcase evaluation in its original committed procedure. The current native checker and Python client must match that first evaluation exactly. Boltons, dateutil and JDcal were familiar maintenance checks.',
-        'files': {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json')}}
+        'claim': 'Check the first Stringcase results with their original semantic validators. Current native checker and Python client source must match that first evaluation exactly. Record omitted internal native cache payloads explicitly; recover original source from its retained archives. Boltons, dateutil and JDcal were familiar maintenance checks.',
+        'files': {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json', 'delivery.json')}}
     save(directory / 'result.json', result)
     audit(directory)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'

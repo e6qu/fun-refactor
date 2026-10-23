@@ -62,3 +62,10 @@ jobs:
           git add "tests/agent-eval/results/$PREFIX-python-text-package" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain the first text package result with its original procedure'
           git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qualified-text-package
+          path: tests/agent-eval/results/${{ inputs.prefix }}-python-text-package
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

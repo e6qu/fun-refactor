@@ -157,6 +157,10 @@ GitHub confirms that run skipped source inspection. The fixed worker receives th
 The frozen record preserves that stop alongside the successful first inspection.
 The current record keeps the original artifact and audits it at its recorded Git revision, meaning its saved source state.
 It separately checks that the compiled checker and Python client still have the same source as the first test.
+The first upload omitted 20 hidden project files and 122 internal native cache files.
+The audit restores the project files from the original source archives and verifies their recorded hashes.
+It lists the unavailable cache payloads explicitly. All answers, commands and SDK saved objects must remain present.
+This result makes no timing or native-cache storage claim. New deliveries keep source inside archives so hidden files survive upload.
 
 These results concern the selected questions. Full Toolz, Funcy and Pydash imports still leave incomplete answers.
 The comparison checks correctness; it measures no speed or agent savings.
