@@ -36,6 +36,9 @@ pub(super) fn call_contract() -> Value {
 #[path = "flow_expressions.rs"]
 mod expressions;
 
+#[path = "flow_effects.rs"]
+mod effects;
+
 pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
@@ -271,6 +274,7 @@ struct Analyzer<'a, 'p, 't> {
     active: Vec<String>,
     local_bindings: Vec<BTreeSet<String>>,
     cutoffs: BTreeSet<String>,
+    effect_limits: BTreeMap<String, Value>,
     events: Vec<Value>,
     witnesses: BTreeMap<String, Value>,
     graphs: BTreeMap<String, Value>,
@@ -349,6 +353,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if !self.tick(node, "use") {
             return Flow::new();
         }
+        self.expression_effect_limit(node);
         match node.kind() {
             "integer" | "float" | "true" | "false" | "none" => Flow::new(),
             "string" => {
@@ -439,6 +444,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         })
                 }))
         {
+            self.effect_limit(node, "dynamic-call",
+                "A call through an object or computed function may read or change shared state; this analysis cannot determine its effects.");
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
@@ -777,9 +784,25 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 
     fn statement(&mut self, node: Node<'t>, state: &mut Environment) {
+        if node.kind() == "try_statement" {
+            self.effect_limit(node, "exception-handler",
+                "Exception matching, handlers and finally blocks are outside this scalar control-flow model.");
+        }
+        if node.kind() == "with_statement" {
+            self.effect_limit(node, "resource-lifetime",
+                "Entering and leaving a context can call code and change exception handling; those effects are unchecked.");
+        }
         match node.kind() {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
+                    if matches!(expression.kind(), "assignment" | "augmented_assignment") {
+                        if let Some(target) = expression.child_by_field_name("left") {
+                            if matches!(target.kind(), "subscript" | "attribute") {
+                                self.effect_limit(target, "shared-write",
+                                    "Writing an item or attribute can change the object seen through another name; this scalar analysis does not track that mutation.");
+                            }
+                        }
+                    }
                     if expression.kind() == "assignment" && self.solver.enabled {
                         self.scalar_assignment(expression, state);
                     } else if expression.kind() == "assignment" {
@@ -1748,6 +1771,7 @@ impl Project<'_> {
             active: Vec::new(),
             local_bindings: Vec::new(),
             cutoffs: BTreeSet::new(),
+            effect_limits: BTreeMap::new(),
             events: Vec::new(),
             witnesses: BTreeMap::new(),
             graphs: BTreeMap::new(),
@@ -1822,6 +1846,9 @@ impl Project<'_> {
             "semantics": if options.summaries {"python-scalar-summaries"} else {"python-scalar-fixed-point"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
+            "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
+            "runtime_effects":{"exception_safety_established":false,"shared_mutable_values_supported":false,
+                "complete_means":"Complete within the declared scalar model; not a claim that execution cannot raise or that mutable objects are tracked."},
             "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
@@ -1842,6 +1869,7 @@ impl Project<'_> {
         }
         let mut omitted = serde_json::Map::new();
         for field in [
+            "effect_limits",
             "initialization",
             "control_flow",
             "events",
