@@ -1,251 +1,187 @@
 import argparse
+from datetime import datetime
 import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
-import urllib.request
-import re
+
+from evidence_basis import native_source_bindings, native_source_roots
 
 ROOT = Path(__file__).resolve().parents[1]
+FIRST_RUN = 40026358439
+FIRST_SOURCE = '37d9cad03424fc02526db49a45a544083af0b511'
+WORKFLOW = '.github/workflows/python-text-package.yml'
+SELECTION_PATH = 'tests/agent-eval/python-text-flow/selection.json'
+SELECTION = json.loads((ROOT / SELECTION_PATH).read_text())
+spec = importlib.util.spec_from_file_location('text_package_retention', ROOT / 'tools/retain-scalar-evidence.py')
+scalar = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(scalar)
+require = scalar.require
 
 
-def load(name):
-    spec = importlib.util.spec_from_file_location(name.replace('-', '_'), ROOT / 'tools' / (name + '.py'))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-text = load('python-text-flow')
-packages = load('package-questions')
-replay = load('package_question_replay')
-scalar = load('retain-scalar-evidence')
-require, save, digest = text.require, text.save, text.digest
-SELECTION = json.loads((text.FIXTURE / 'selection.json').read_text())
-PRE_INSPECTION_STOPS = [40025200394]
-PROJECT = {'id': 'stringcase', 'repository': SELECTION['repository'],
-    'revision': SELECTION['revision'], 'role': 'held-out', 'python_root': '.',
-    'module': SELECTION['module'], 'function': SELECTION['function'],
-    'expression': 'relay(VALUE)', 'overwrite': repr(SELECTION['replacement']),
-    'values': SELECTION['inputs'], 'expected': SELECTION['expected'],
-    'blocked': SELECTION['replacement_expected'], 'standard_library': ['builtins', 're']}
+def save(path, value):
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def checker_bindings():
+    return native_source_bindings(ROOT) | {str(path.relative_to(ROOT)): digest(path)
+        for path in (ROOT / 'sdk/python/src').rglob('*.py')}
 
 
 def bindings():
-    names = ['tools/python-text-package.py', '.github/workflows/python-text-package.yml']
-    return replay.bindings() | text.bindings() | {name: digest(ROOT / name) for name in names}
+    names = ['tools/python-text-package.py', 'tools/test-python-text-package.py',
+        'tools/retain-scalar-evidence.py', 'tools/retain-python-contract.py', 'tools/python-contract.py', 'tools/evidence_basis.py',
+        WORKFLOW, SELECTION_PATH]
+    return checker_bindings() | {name: digest(ROOT / name) for name in names}
 
 
-def freeze(coverage_run, directory):
-    require(os.environ.get('GITHUB_ACTIONS') == 'true', 'freeze and inspect the package on GitHub')
-    data, identity = scalar.collect(coverage_run, 'language-behavior', 'language-behavior', os.environ['GITHUB_REPOSITORY'])
-    selected = {name.removeprefix('language-behavior/text/'): value for name, value in data.items()
-                if name.startswith('language-behavior/text/')}
-    with tempfile.TemporaryDirectory() as temporary:
-        coverage = Path(temporary)
-        for name, value in selected.items():
-            path = coverage / name
+def checked_collection(run, artifact, jobs, repository):
+    require(run['id'] == FIRST_RUN and run['head_sha'] == FIRST_SOURCE
+        and run['path'] == WORKFLOW and run['event'] == 'workflow_dispatch'
+        and run['status'] == 'completed' and run['conclusion'] == 'success' and run['run_attempt'] == 1
+        and run['repository']['full_name'] == repository and run['head_repository']['full_name'] == repository,
+        'retain the successful first package collection from its declared workflow and source')
+    require(artifact['name'] == 'python-text-package' and artifact['expired'] is False
+        and artifact['workflow_run']['id'] == FIRST_RUN and artifact['workflow_run']['head_sha'] == FIRST_SOURCE
+        and artifact['size_in_bytes'] <= 16 * 1024 * 1024, 'package artifact identity or admission changed')
+    produced = datetime.fromisoformat(artifact['created_at'])
+    producers = [job for job in jobs if job['name'] == 'question' and job['run_id'] == FIRST_RUN
+        and job['status'] == 'completed' and job['conclusion'] == 'success' and job['run_attempt'] == 1
+        and datetime.fromisoformat(job['started_at']) <= produced <= datetime.fromisoformat(job['completed_at'])]
+    require(len(producers) == 1, 'package artifact requires one successful matching producer')
+    return {'run_id': str(FIRST_RUN), 'source_commit': FIRST_SOURCE, 'workflow': WORKFLOW,
+        'attempt': 1, 'producer_job_id': producers[0]['id'], 'artifact_id': artifact['id'],
+        'artifact_digest': artifact['digest'], 'url': run['html_url']}
+
+
+def original_audit(data, directory):
+    original = json.loads(data['result.json'])
+    require(original['source_commit'] == FIRST_SOURCE and original['complete'] is True,
+        'original package result did not pass at its recorded source')
+    frozen = json.loads(data['freeze.json'])
+    require(frozen['source_commit'] == FIRST_SOURCE and frozen['selection'] == SELECTION,
+        'original frozen question changed')
+    roots = (*native_source_roots(ROOT), 'sdk/python/src')
+    recorded = {name: value for name, value in original['source_bindings'].items()
+        if any(name == root or name.startswith(root + '/') for root in roots)}
+    require(recorded == checker_bindings(), 'current checker differs from the first evaluation')
+    subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', FIRST_SOURCE], cwd=ROOT,
+        check=True, capture_output=True, timeout=60)
+    paths = {'tools/', 'sdk/python/src/', *original['source_bindings']}
+    require(all(not Path(name).is_absolute() and '..' not in Path(name).parts
+        and not any(char in name for char in '\\!*?[]') for name in paths), 'unsafe historical source input')
+    source = directory / 'procedure'
+    subprocess.run(['git', 'worktree', 'add', '--no-checkout', '--detach', str(source), FIRST_SOURCE],
+        cwd=ROOT, check=True, capture_output=True, timeout=60)
+    try:
+        subprocess.run(['git', 'sparse-checkout', 'set', '--no-cone', '--stdin'], cwd=source,
+            input=''.join('/' + name + '\n' for name in sorted(paths)), text=True, check=True, timeout=60)
+        subprocess.run(['git', 'checkout', '--force', '--detach', FIRST_SOURCE], cwd=source,
+            check=True, capture_output=True, timeout=60)
+        records = directory / 'original'
+        records.mkdir()
+        for name, value in data.items():
+            path = records / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(value)
-        text.audit(coverage)
-    require(not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], cwd=ROOT),
-            'commit the checker and procedure before opening the package')
-    stopped = []
-    for run_id in PRE_INSPECTION_STOPS:
-        run = scalar.retain.api(f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run_id}')
-        jobs = scalar.retain.api(f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
-        require(run['conclusion'] == 'cancelled' and run['path'] == '.github/workflows/python-text-package.yml',
-                'pre-inspection stop metadata changed')
-        question, = [job for job in jobs if job['name'] == 'question']
-        inspection, = [step for step in question['steps'] if step['name'] == 'Freeze the checker before opening the reserved package']
-        require(inspection['conclusion'] == 'skipped', 'an earlier attempt opened the reserved implementation')
-        stopped.append({'run': run_id, 'source_commit': run['head_sha'], 'inspection': inspection})
-    record = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-        'source_bindings': bindings(), 'selection': SELECTION, 'coverage': identity,
-        'coverage_result_sha256': packages.flow.sha(selected['result.json']),
-        'pre_inspection_stops': stopped,
-        'implementation_and_tests_unread': True,
-        'boundary': 'The original package implementation is first opened after writing this freeze. All prior projects are familiar.'}
-    save(directory / 'freeze.json', record)
-    return record
+        subprocess.run(['python3', '-B', 'tools/python-text-package.py', 'audit', '--directory', str(records)],
+            cwd=source, check=True, timeout=120)
+    finally:
+        subprocess.run(['git', 'worktree', 'remove', '--force', str(source)], cwd=ROOT,
+            check=True, capture_output=True, timeout=60)
+    return original
 
 
 def audit(directory):
     result = json.loads((directory / 'result.json').read_text())
-    frozen = json.loads((directory / 'freeze.json').read_text())
-    require(result['schema'] == 'fr-python-text-package' and result['complete'] is True,
-            'package question did not complete')
-    require(frozen['selection'] == SELECTION and frozen['source_bindings'] == bindings()
-            and frozen['implementation_and_tests_unread'] is True, 'frozen checker or question changed')
-    require(result['source_bindings'] == frozen['source_bindings'], 'package source bindings changed')
-    require(result['freeze_sha256'] == digest(directory / 'freeze.json'), 'freeze record changed')
-    require(result['source_commit'] == frozen['source_commit'], 'package source commit changed')
-    require(result['benchmark'] is False and result['live_model_calls'] == 0, 'unsupported cost or model-use claim')
-    packages.checked_questions([result['project']], {'stringcase': PROJECT}, True)
-    work = directory / 'stringcase'
-    reports = [work / (cell['variant'] + '-' + cell['case'] + '.json') for cell in result['project']['cases']]
-    reports += [work / (stage + '-' + kind + '.json') for stage, _, _ in packages.CACHE_STAGES
-                for kind in ('saved', 'fresh')]
-    for path in reports:
-        value = json.loads(path.read_text())
-        limits = SELECTION['limits']
-        require(value['budget']['response_bytes'] == limits['report_bytes']
-                and value['budget']['call_depth'] == limits['depth']
-                and value['budget']['steps'] == (1 if path.stem.endswith('-steps') else limits['steps'])
-                and value['inputs']['modules']['limits']['modules'] == limits['modules']
-                and value['inputs']['modules']['limits']['source_bytes'] == limits['source_bytes'],
-                'reserved package analysis limits changed')
-    original = directory / 'stringcase/upstream'
-    archive = directory / 'stringcase/source.tar.gz'
-    require(digest(archive) == result['project']['archive_sha256'], 'reserved package archive changed')
-    with tempfile.TemporaryDirectory() as temporary:
-        require(packages.flow.snapshot(archive.read_bytes(), PROJECT, Path(temporary))
-                == result['project']['source_files'], 'original package inventory changed')
-    for name, expected in result['project']['source_files'].items():
-        require(digest(original / name) == expected, 'original package source changed')
-    require(result['independent_projects'] == sorted([SELECTION['repository'], 'dateutil/dateutil',
-        'mahmoud/boltons', 'phn/jdcal']), 'project inventory changed')
-    replay.audit(directory / 'earlier-questions')
-    earlier = json.loads((directory / 'earlier-questions/result.json').read_text())
-    require(earlier['binary_sha256'] == result['binary_sha256'], 'projects used different checker executables')
-    require(result['unread_project'] == SELECTION['repository'], 'unread project changed')
-    require(set(result['files']) == {str(path.relative_to(directory)) for path in directory.rglob('*')
-        if path.is_file() and path not in (directory / 'receipt.json', directory / 'result.json')},
-        'package result file inventory changed')
-    for name, expected in result['files'].items():
-        path = directory / name
-        require(path.resolve().is_relative_to(directory.resolve()) and digest(path) == expected,
-                'retained package question file changed')
+    require(result['schema'] == 'fr-qualified-text-package' and result['complete'] is True,
+        'unknown or unfinished qualified package record')
+    require(result['source_bindings'] == bindings(), 'current package auditor or checker changed')
+    require(result['original_source_commit'] == FIRST_SOURCE, 'original procedure source changed')
+    require(result['files'] == {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json')},
+        'original package archive or collection identity changed')
+    require({path.name for path in directory.iterdir()} == {'result.json', 'receipt.json', 'artifact.zip'},
+        'qualified package inventory changed')
+    receipt = json.loads((directory / 'receipt.json').read_text())
+    require(receipt['run_id'] == str(FIRST_RUN) and receipt['source_commit'] == FIRST_SOURCE
+        and receipt['workflow'] == WORKFLOW, 'original package receipt changed')
+    data = scalar.files((directory / 'artifact.zip').read_bytes(), receipt['artifact_digest'])
+    with tempfile.TemporaryDirectory(prefix='fr-original-text-package-') as temporary:
+        original = original_audit(data, Path(temporary))
+    projects = sorted([SELECTION['repository'], 'dateutil/dateutil', 'mahmoud/boltons', 'phn/jdcal'])
+    require(original['independent_projects'] == result['independent_projects'] == projects,
+        'independent project inventory changed')
+    require(result['original_unread'] == {'project': SELECTION['repository'], 'qualified': True,
+        'first_evaluation_run': FIRST_RUN} and original['unread_project'] == SELECTION['repository'],
+        'original unread-project qualification changed')
+    require(all(result[key] is True and original[key] is True for key in
+        ('milestone_1_demonstrated', 'milestone_2_demonstrated', 'milestones_complete')),
+        'package milestone checks did not pass')
     return result
 
 
-def collect(binary, directory, coverage_run):
-    directory.mkdir(parents=True, exist_ok=False)
-    directory, binary = directory.resolve(), binary.resolve()
-    frozen = freeze(coverage_run, directory)
-    result = {'schema': 'fr-python-text-package', 'complete': False, 'source_commit': frozen['source_commit'],
-        'source_bindings': frozen['source_bindings'],
-        'freeze_sha256': digest(directory / 'freeze.json'), 'binary_sha256': digest(binary),
-        'benchmark': False, 'live_model_calls': 0, 'project': None,
-        'claim': 'One fixed checker answers four original-package questions. Stringcase was reserved from its README; the other three projects are familiar maintenance checks.'}
-    save(directory / 'result.json', result)
-    try:
-        work = directory / 'stringcase'
-        work.mkdir()
-        url = 'https://codeload.github.com/' + PROJECT['repository'] + '/tar.gz/' + PROJECT['revision']
-        with urllib.request.urlopen(url, timeout=30) as response:
-            data = response.read(packages.flow.COHORT['budgets']['archive_bytes'] + 1)
-        (work / 'source.tar.gz').write_bytes(data)
-        upstream = work / 'upstream'
-        upstream.mkdir()
-        files = packages.flow.snapshot(data, PROJECT, upstream)
-        readme = (upstream / SELECTION['readme']).read_bytes()
-        blob = b'blob ' + str(len(readme)).encode() + b'\0' + readme
-        require(hashlib.sha1(blob).hexdigest() == SELECTION['readme_blob'], 'reserved README changed')
-        admission = packages.admission(upstream)
-        require(any('MIT License' in row['text'] or 'Permission is hereby granted' in row['text']
-                    for row in admission['licenses']), 'review the reserved package license')
-        row = {'project': PROJECT, 'cases': [], 'error': None, 'complete': False,
-            'source_files': files, 'archive_sha256': packages.flow.sha(data), 'admission': admission}
-        result['project'] = row
-        for variant in ('original', 'renamed-relocated'):
-            for case in ('positive', 'overwritten', 'unknown', 'steps'):
-                path, entry, adapter = packages.prepare(upstream, PROJECT, variant, case)
-                name = variant + '-' + case
-                cell = {'variant': variant, 'case': case, 'path': path, 'entry': entry,
-                    'adapter': adapter, 'runtime': []}
-                row['cases'].append(cell)
-                request = {'mode': 'analysis', 'scope': str(upstream), 'path': path, 'entry': entry,
-                    'report_bytes': SELECTION['limits']['report_bytes'],
-                    'project': PROJECT, 'case': case, 'fr': str(binary), 'report': str(work / (name + '.json'))}
-                cell['analysis'] = packages.execute(work, name, request, upstream)
-                save(directory / 'result.json', result)
-                for index, value in enumerate(PROJECT['values']):
-                    request = {'mode': 'runtime', 'scope': str(upstream), 'path': path, 'entry': entry, 'value': value}
-                    observed = packages.execute(work, name + '-python-' + str(index), request, upstream)
-                    expected = PROJECT['blocked'] if case == 'overwritten' else PROJECT['expected'][index]
-                    cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
-                save(directory / 'result.json', result)
-        packages.collect_cache_controls(upstream, PROJECT, work, binary, row, result, directory,
-            report_bytes=SELECTION['limits']['report_bytes'])
-        row.update(complete=True, original_sources_unchanged=all(digest(upstream / name) == value
-            for name, value in files.items()))
-        packages.checked_questions([row], {'stringcase': PROJECT}, True)
-        replay.collect(binary, directory / 'earlier-questions')
-        require(bindings() == frozen['source_bindings'], 'checker or evaluator changed after freeze')
-        result.update(complete=True, independent_projects=sorted([PROJECT['repository'], 'dateutil/dateutil',
-            'mahmoud/boltons', 'phn/jdcal']), milestone_1_demonstrated=True,
-            milestone_2_demonstrated=True, milestones_complete=True, unread_project=SELECTION['repository'])
-    except Exception as error:
-        result['error'] = type(error).__name__ + ': ' + str(error)
-        raise
-    finally:
-        result['files'] = {str(path.relative_to(directory)): digest(path) for path in directory.rglob('*')
-            if path.is_file() and path != directory / 'result.json'}
-        save(directory / 'result.json', result)
-    return audit(directory)
-
-
-def retain(run, prefix):
-    require(os.environ.get('GITHUB_ACTIONS') == 'true', 'retain package records on GitHub')
+def retain(run_id, prefix):
+    require(os.environ.get('GITHUB_ACTIONS') == 'true' and run_id == FIRST_RUN,
+        'retain the first package result on GitHub')
     require(os.environ['GITHUB_REF'].startswith('refs/heads/') and os.environ['GITHUB_REF'] != 'refs/heads/main',
-            'retain package records into the working branch')
+        'retain into the working branch')
     require(re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix), 'supply a plain dated prefix')
-    data, identity = scalar.collect(run, 'python-text-package', 'question', os.environ['GITHUB_REPOSITORY'])
-    result = json.loads(data['result.json'])
-    require(result['source_commit'] == identity['source_commit']
-            and set(data) == {'result.json', *result['files']}, 'package artifact source or inventory changed')
+    repository = os.environ['GITHUB_REPOSITORY']
+    run = scalar.retain.api(f'repos/{repository}/actions/runs/{run_id}')
+    artifacts = scalar.retain.api(f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+    artifact, = [item for item in artifacts if item['name'] == 'python-text-package' and not item['expired']]
+    jobs = scalar.retain.api(f'repos/{repository}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
+    receipt = checked_collection(run, artifact, jobs, repository)
+    archive = scalar.retain.download_artifact(repository, artifact['id'])
+    data = scalar.files(archive, artifact['digest'])
+    original = json.loads(data['result.json'])
     relative = Path('tests/agent-eval/results') / (prefix + '-python-text-package')
     directory = ROOT / relative
     directory.mkdir()
-    for name, value in data.items():
-        path = directory / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(value)
+    (directory / 'artifact.zip').write_bytes(archive)
+    save(directory / 'receipt.json', receipt)
+    result = {'schema': 'fr-qualified-text-package', 'complete': True, 'source_bindings': bindings(),
+        'original_source_commit': FIRST_SOURCE, 'independent_projects': original['independent_projects'],
+        'original_unread': {'project': SELECTION['repository'], 'qualified': True, 'first_evaluation_run': FIRST_RUN},
+        'milestone_1_demonstrated': True, 'milestone_2_demonstrated': True, 'milestones_complete': True,
+        'claim': 'Audit the first Stringcase evaluation in its original committed procedure. The current native checker and Python client must match that first evaluation exactly. Boltons, dateutil and JDcal were familiar maintenance checks.',
+        'files': {name: digest(directory / name) for name in ('artifact.zip', 'receipt.json')}}
+    save(directory / 'result.json', result)
     audit(directory)
-    save(directory / 'receipt.json', {'collection': identity,
-        'files': {name: packages.flow.sha(value) for name, value in data.items()}})
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
     entry.update(path=str(relative / 'result.json'), sha256=digest(directory / 'result.json'),
-        scope='Four original-package questions with one unchanged checker. Stringcase was unread until freeze; Boltons, dateutil and JDcal are familiar maintenance checks. Includes independent Python outcomes, renamed callers and saved-answer controls.',
+        scope='Four original-package questions with one unchanged checker. Stringcase passed its first frozen evaluation; audit that procedure at its recorded source. The other three projects were familiar maintenance checks.',
         audit='python3 tools/python-text-package.py audit --directory ' + str(relative))
     obligation, = [row for row in catalog['obligations'] if row['id'] == 'B.repository-flow']
+    checks = [(key, True) for key in ('complete', 'milestone_1_demonstrated', 'milestone_2_demonstrated', 'milestones_complete')]
+    checks += [('independent_projects', original['independent_projects']), ('original_unread/qualified', True),
+        ('original_unread/project', SELECTION['repository'])]
     obligation['requires'] = [{'evidence': 'original-package-questions', 'assertions': [
-        {'pointer': '/complete', 'equals': True},
-        {'pointer': '/independent_projects', 'equals': result['independent_projects']},
-        {'pointer': '/unread_project', 'equals': SELECTION['repository']}]}]
-    obligation['next'] = 'Keep these four original-package questions passing. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.'
+        {'pointer': '/' + key, 'equals': value} for key, value in checks]}]
+    obligation['next'] = 'Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.'
     save(catalog_path, catalog)
     subprocess.run(['python3', '-B', 'tools/roadmap-status.py', '--write'], cwd=ROOT, check=True)
     return result
 
 
-def main():
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='command', required=True)
-    capture = sub.add_parser('collect')
-    capture.add_argument('--binary', required=True, type=Path)
-    capture.add_argument('--output', required=True, type=Path)
-    capture.add_argument('--coverage-run', required=True, type=int)
-    check = sub.add_parser('audit')
-    check.add_argument('--directory', required=True, type=Path)
     keep = sub.add_parser('retain')
     keep.add_argument('--run', required=True, type=int)
     keep.add_argument('--prefix', required=True)
+    check = sub.add_parser('audit')
+    check.add_argument('--directory', required=True, type=Path)
     args = parser.parse_args()
-    if args.command == 'collect':
-        result = collect(args.binary, args.output, args.coverage_run)
-    elif args.command == 'audit':
-        result = audit(args.directory)
-    else:
-        result = retain(args.run, args.prefix)
+    result = retain(args.run, args.prefix) if args.command == 'retain' else audit(args.directory)
     print(json.dumps({'complete': result['complete'], 'projects': len(result['independent_projects'])}))
-
-
-if __name__ == '__main__':
-    main()

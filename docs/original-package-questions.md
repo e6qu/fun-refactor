@@ -155,6 +155,8 @@ The report can use at most 256 KiB. Work stops after 4,096 analysis steps or a h
 An earlier run stopped during its build when we found that a reused test worker requested a larger report.
 GitHub confirms that run skipped source inspection. The fixed worker receives the declared report limit explicitly.
 The frozen record preserves that stop alongside the successful first inspection.
+The current record keeps the original artifact and audits it at its recorded Git revision, meaning its saved source state.
+It separately checks that the compiled checker and Python client still have the same source as the first test.
 
 These results concern the selected questions. Full Toolz, Funcy and Pydash imports still leave incomplete answers.
 The comparison checks correctness; it measures no speed or agent savings.
