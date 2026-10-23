@@ -1,0 +1,16 @@
+[
+  {"id":"convert-lower", "body":"return send(str(read_user()).lower())", "input":"<SCRIPT>", "sent":["<script>"], "returned":"<script>", "raised":null, "complete":true, "witness":true},
+  {"id":"local-chain", "body":"label = str(read_user())\nlabel = label.strip().upper()\nreturn send(label)", "input":"  Café  ", "sent":["CAFÉ"], "returned":"CAFÉ", "raised":null, "complete":true, "witness":true},
+  {"id":"overwritten", "body":"label = str(read_user())\nlabel = 'PUBLIC'\nreturn send(label.lower())", "input":"private", "sent":["public"], "returned":"public", "raised":null, "complete":true, "witness":false},
+  {"id":"replacement-input", "body":"return send('NAME'.replace('NAME', str(read_user())))", "input":"Alice", "sent":["Alice"], "returned":"Alice", "raised":null, "complete":true, "witness":true},
+  {"id":"helper-return", "prelude":"def normalized(value):\n    return str(value).strip()\n", "body":"return send(normalized(read_user()).lower())", "input":" MiXeD ", "sent":["mixed"], "returned":"mixed", "raised":null, "complete":true, "witness":true},
+  {"id":"parallel-assignment", "body":"first, second = str(read_user()), 7\nfirst, second = second, first\nreturn send(second.lower())", "input":"MiXeD", "sent":["mixed"], "returned":"mixed", "raised":null, "complete":true, "witness":true},
+  {"id":"both-branches-text", "body":"if read_user():\n    label = 'FIRST'\nelse:\n    label = 'SECOND'\nreturn send(label.lower())", "input":"yes", "sent":["first"], "returned":"first", "raised":null, "complete":true, "witness":false},
+  {"id":"mixed-branch", "body":"label = str(read_user())\nif True:\n    label = 7\nreturn send(label.lower())", "input":"MiXeD", "sent":[], "returned":null, "raised":"AttributeError", "complete":false, "witness":null},
+  {"id":"object-reassignment", "prelude":"class Other:\n    def lower(self):\n        return 0\n", "body":"label = str(read_user())\nlabel = Other()\nreturn send(label.lower())", "input":"MiXeD", "sent":[0], "returned":0, "raised":null, "complete":false, "witness":null},
+  {"id":"shadowed-constructor", "prelude":"class Other:\n    def lower(self):\n        return 0\ndef str(value):\n    return Other()\n", "body":"return send(str(read_user()).lower())", "input":"MiXeD", "sent":[0], "returned":0, "raised":null, "complete":false, "witness":null},
+  {"id":"expanded-arguments", "body":"return send(str(read_user()).lower(*[]))", "input":"MiXeD", "sent":["mixed"], "returned":"mixed", "raised":null, "complete":false, "witness":null},
+  {"id":"wrong-text-argument", "body":"return send(str(read_user()).replace('x', 7))", "input":"x", "sent":[], "returned":null, "raised":"TypeError", "complete":false, "witness":null},
+  {"id":"stripping-argument", "body":"return send('abPRIVATEba'.strip(str(read_user())))", "input":"ab", "sent":["PRIVATE"], "returned":"PRIVATE", "raised":null, "complete":true, "witness":true},
+  {"id":"no-implicit-model", "body":"return send(str(read_user()).lower())", "input":"MiXeD", "sent":["mixed"], "returned":"mixed", "raised":null, "complete":false, "witness":null, "standard_library":[]}
+]

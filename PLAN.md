@@ -68,9 +68,10 @@ A shared list mutation changes an object that another name can read later.
 PR #571 checked a page-count helper in both Rust/Python directions and fixed precision loss in integer division.
 It also located unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
 The [complete example](docs/check-language-behavior.md) explains the inputs, independent checks and remaining limits.
-Next, use the full Toolz, Funcy and Pydash imports to identify the remaining setup and source-budget obstacles with the current checker.
-Choose general rules from those recorded failures, keep existing limits, and preserve every unfinished answer.
-Reserve another unread project before freezing a new unfamiliar-project comparison.
+Next, follow customer text through conversions and read-only string methods, including helper returns and reassignment.
+Check ordinary Python outcomes and the original package imports. Stringcase's README supplied a reserved lowercase question before implementation.
+Its implementation stays unread until the checker and test procedure are fixed.
+Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
 Full exception and shared-object analysis remain open work in this delivery package.
 
 - Handle package imports, exceptions and shared mutable values exposed by the chosen tasks.

@@ -1,0 +1,19 @@
+{
+  "selected_at": "2026-10-23",
+  "repository": "okunishinishi/python-stringcase",
+  "revision": "57aae96649f5cf7fc98e50b1d62479456d492715",
+  "readme_blob": "b324c3764a03078b532324ee0e2ce66bbc517887",
+  "readme": "README.rst",
+  "implementation": "stringcase.py",
+  "module": "stringcase",
+  "function": "lowercase",
+  "question": "After the original import, can a customer label reach send through lowercase?",
+  "public_example": {"input": "FooBarBaz", "expected": "foobarbaz"},
+  "inputs": ["FooBarBaz", "CUSTOMER_LABEL"],
+  "expected": ["foobarbaz", "customer_label"],
+  "replacement": "PUBLIC",
+  "replacement_expected": "public",
+  "selection_source": "Repository metadata, root filenames and README only. Implementation and tests remain unread until the analyzer and evaluator freeze.",
+  "qualification": "The first held-out attempt must retain failures. Later maintenance runs cannot claim another first evaluation.",
+  "limits": {"modules": 16, "source_bytes": 262144, "steps": 4096, "depth": 8, "report_bytes": 262144}
+}

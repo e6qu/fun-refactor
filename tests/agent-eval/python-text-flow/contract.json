@@ -1,0 +1,19 @@
+{
+  "scope": "Possible value connections through plain Python strings. Not runtime exception safety or shared-object support.",
+  "model": "Explicit CPython builtins model; ordinary scalar values and plain str, without replacement builtins or overloaded object protocols.",
+  "receiver": "A receiver is the value before a method name: label in label.lower(). Establish plain str from literals, checked conversions, local assignments and normal helper returns.",
+  "methods": {
+    "lower": [0, 0], "upper": [0, 0], "casefold": [0, 0], "capitalize": [0, 0],
+    "swapcase": [0, 0], "title": [0, 0],
+    "strip": [0, 1], "lstrip": [0, 1], "rstrip": [0, 1],
+    "removeprefix": [1, 1], "removesuffix": [1, 1], "replace": [2, 3]
+  },
+  "arguments": "Positional arguments only. Text arguments require plain str; stripping also accepts None. A replacement count requires a literal integer.",
+  "evaluation": "Evaluate the receiver once, then arguments from left to right. Return a string without changing the receiver.",
+  "propagation": "Keep possible origins from the receiver and every argument. Changing case does not sanitize customer input.",
+  "merges": "Keep a string fact at a branch or loop join only when every arriving path establishes it. Reassignment replaces the prior fact.",
+  "summaries": "A helper return supports string methods only after every modeled normal return establishes plain str. Annotation text alone supplies no such fact.",
+  "refusals": "Unknown objects, replaced str, unknown method signatures, expanded arguments and exhausted receiver checks stay incomplete.",
+  "generalization": "Repeat examples after renaming functions and moving files. Check ordinary Python outcomes before examining the reserved package.",
+  "benchmark": false
+}
