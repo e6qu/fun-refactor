@@ -88,6 +88,11 @@ def run(task, host, setup, output):
     try:
         original = output / "original"
         BASE.unpack(original, task)
+        # The native image copies this repository; no background Git maintenance
+        # may rewrite its object database while the build context is staged.
+        BASE.git(original, "init", "-q", "-b", "main")
+        BASE.git(original, "config", "maintenance.auto", "false")
+        BASE.git(original, "config", "gc.auto", "0")
         BASE.initialize(original)
         recipe = scenario(task, original)
         write(output / "scenario.json", recipe)
