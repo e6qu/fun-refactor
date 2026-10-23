@@ -2,7 +2,12 @@ name: Check the reserved Python text package
 on:
   push:
     branches: [feat/python-package-questions]
-    paths: [.github/workflows/python-text-package.yml]
+    paths:
+      - .github/workflows/python-text-package.yml
+      - tools/python-text-package.py
+      - tools/package-questions.py
+      - tools/package_question_replay.py
+      - tools/test-package-questions.py
   workflow_dispatch:
     inputs:
       coverage_run:
@@ -34,6 +39,7 @@ jobs:
         with:
           python-version: '3.14.8'
       - run: python3 -B tools/test-python-text-flow.py
+      - run: python3 -B tools/test-package-questions.py
       - run: python3 -B -m py_compile tools/python-text-package.py
   question:
     if: github.event_name == 'workflow_dispatch' && inputs.collection_run == '0'

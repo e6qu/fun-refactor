@@ -182,6 +182,24 @@ class PublicQuestionChecks(unittest.TestCase):
                     questions.checked_questions([row], {project['id']: project}, False)
 
 
+class ReportLimits(unittest.TestCase):
+    def test_worker_uses_the_declared_report_limit_for_capture_and_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            request = {'scope': directory, 'fr': '/unused/fr', 'entry': 'entry', 'path': 'question.py',
+                'project': {'standard_library': ['builtins']}, 'case': 'positive',
+                'report': str(Path(directory) / 'answer.json'), 'report_bytes': 262144}
+            with patch.object(questions, 'FrClient') as client, patch.object(questions, 'FlowCache') as cache:
+                answer = cache.return_value.analyze.return_value
+                answer.report.to_data.return_value = {'complete': True, 'cutoffs': []}
+                answer.witnesses = [{}]
+                questions.analysis(request)
+                self.assertEqual(client.call_args.kwargs['max_output_bytes'], 262144)
+                self.assertEqual(cache.return_value.analyze.call_args.kwargs['max_bytes'], 262144)
+            del request['report_bytes']
+            with self.assertRaises(KeyError):
+                questions.analysis(request)
+
+
 class CacheWorkerStops(unittest.TestCase):
     def test_stopped_workers_preserve_the_failure_and_restore_original_source(self):
         for stopped in ('helper-replaced', 'import-replaced'):
@@ -200,6 +218,7 @@ class CacheWorkerStops(unittest.TestCase):
                 seen = []
 
                 def worker(_output, _name, request, _scope):
+                    self.assertEqual(request['report_bytes'], 262144)
                     label = questions.CACHE_STAGES[request['stage']][0]
                     seen.append(label)
                     return {'exit_code': 125 if label == stopped else 0,
@@ -208,7 +227,8 @@ class CacheWorkerStops(unittest.TestCase):
 
                 with patch.object(questions, 'execute', side_effect=worker):
                     with self.assertRaisesRegex(ValueError, 'resource budget: ' + stopped):
-                        questions.collect_cache_controls(scope, project, output, Path('/unused/fr'), row, collection, output)
+                        questions.collect_cache_controls(scope, project, output, Path('/unused/fr'), row, collection, output,
+                            report_bytes=262144)
                 self.assertEqual(helper.read_bytes(), original)
                 self.assertFalse(helper.with_suffix('').exists())
                 self.assertFalse(helper.with_suffix('.question-original').exists())

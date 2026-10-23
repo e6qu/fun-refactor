@@ -97,6 +97,7 @@ def collect(binary, output):
                 cell = {'variant': variant, 'case': case, 'path': path, 'entry': entry, 'adapter': adapter, 'runtime': []}
                 row['cases'].append(cell)
                 request = {'mode': 'analysis', 'scope': str(scope), 'path': path, 'entry': entry,
+                    'report_bytes': 1048576,
                     'project': project, 'case': case, 'fr': str(binary), 'report': str(directory / (name + '.json'))}
                 cell['analysis'] = packages.execute(directory, name, request, scope)
                 for index, value in enumerate(project['values']):
@@ -106,7 +107,7 @@ def collect(binary, output):
                     cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
                 save(output / 'result.json', result)
         if project['role'] == 'coverage':
-            packages.collect_cache_controls(scope, project, directory, binary, row, result, output)
+            packages.collect_cache_controls(scope, project, directory, binary, row, result, output, report_bytes=1048576)
         row.update(complete=True, original_sources_unchanged=all(digest(upstream / path) == expected
             for path, expected in source_files.items()), seconds=time.monotonic() - started)
         assert row['seconds'] <= 180

@@ -25,6 +25,7 @@ replay = load('package_question_replay')
 scalar = load('retain-scalar-evidence')
 require, save, digest = text.require, text.save, text.digest
 SELECTION = json.loads((text.FIXTURE / 'selection.json').read_text())
+PRE_INSPECTION_STOPS = [40025200394]
 PROJECT = {'id': 'stringcase', 'repository': SELECTION['repository'],
     'revision': SELECTION['revision'], 'role': 'held-out', 'python_root': '.',
     'module': SELECTION['module'], 'function': SELECTION['function'],
@@ -52,9 +53,20 @@ def freeze(coverage_run, directory):
         text.audit(coverage)
     require(not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], cwd=ROOT),
             'commit the checker and procedure before opening the package')
+    stopped = []
+    for run_id in PRE_INSPECTION_STOPS:
+        run = scalar.retain.api(f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run_id}')
+        jobs = scalar.retain.api(f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
+        require(run['conclusion'] == 'cancelled' and run['path'] == '.github/workflows/python-text-package.yml',
+                'pre-inspection stop metadata changed')
+        question, = [job for job in jobs if job['name'] == 'question']
+        inspection, = [step for step in question['steps'] if step['name'] == 'Freeze the checker before opening the reserved package']
+        require(inspection['conclusion'] == 'skipped', 'an earlier attempt opened the reserved implementation')
+        stopped.append({'run': run_id, 'source_commit': run['head_sha'], 'inspection': inspection})
     record = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'source_bindings': bindings(), 'selection': SELECTION, 'coverage': identity,
         'coverage_result_sha256': packages.flow.sha(selected['result.json']),
+        'pre_inspection_stops': stopped,
         'implementation_and_tests_unread': True,
         'boundary': 'The original package implementation is first opened after writing this freeze. All prior projects are familiar.'}
     save(directory / 'freeze.json', record)
@@ -73,6 +85,19 @@ def audit(directory):
     require(result['source_commit'] == frozen['source_commit'], 'package source commit changed')
     require(result['benchmark'] is False and result['live_model_calls'] == 0, 'unsupported cost or model-use claim')
     packages.checked_questions([result['project']], {'stringcase': PROJECT}, True)
+    work = directory / 'stringcase'
+    reports = [work / (cell['variant'] + '-' + cell['case'] + '.json') for cell in result['project']['cases']]
+    reports += [work / (stage + '-' + kind + '.json') for stage, _, _ in packages.CACHE_STAGES
+                for kind in ('saved', 'fresh')]
+    for path in reports:
+        value = json.loads(path.read_text())
+        limits = SELECTION['limits']
+        require(value['budget']['response_bytes'] == limits['report_bytes']
+                and value['budget']['call_depth'] == limits['depth']
+                and value['budget']['steps'] == (1 if path.stem.endswith('-steps') else limits['steps'])
+                and value['inputs']['modules']['limits']['modules'] == limits['modules']
+                and value['inputs']['modules']['limits']['source_bytes'] == limits['source_bytes'],
+                'reserved package analysis limits changed')
     original = directory / 'stringcase/upstream'
     archive = directory / 'stringcase/source.tar.gz'
     require(digest(archive) == result['project']['archive_sha256'], 'reserved package archive changed')
@@ -134,6 +159,7 @@ def collect(binary, directory, coverage_run):
                     'adapter': adapter, 'runtime': []}
                 row['cases'].append(cell)
                 request = {'mode': 'analysis', 'scope': str(upstream), 'path': path, 'entry': entry,
+                    'report_bytes': SELECTION['limits']['report_bytes'],
                     'project': PROJECT, 'case': case, 'fr': str(binary), 'report': str(work / (name + '.json'))}
                 cell['analysis'] = packages.execute(work, name, request, upstream)
                 save(directory / 'result.json', result)
@@ -143,7 +169,8 @@ def collect(binary, directory, coverage_run):
                     expected = PROJECT['blocked'] if case == 'overwritten' else PROJECT['expected'][index]
                     cell['runtime'].append({'input': value, 'expected': expected, 'observation': observed})
                 save(directory / 'result.json', result)
-        packages.collect_cache_controls(upstream, PROJECT, work, binary, row, result, directory)
+        packages.collect_cache_controls(upstream, PROJECT, work, binary, row, result, directory,
+            report_bytes=SELECTION['limits']['report_bytes'])
         row.update(complete=True, original_sources_unchanged=all(digest(upstream / name) == value
             for name, value in files.items()))
         packages.checked_questions([row], {'stringcase': PROJECT}, True)
@@ -184,7 +211,6 @@ def retain(run, prefix):
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
-    entry.pop('receipt_sha256', None)
     entry.update(path=str(relative / 'result.json'), sha256=digest(directory / 'result.json'),
         scope='Four original-package questions with one unchanged checker. Stringcase was unread until freeze; Boltons, dateutil and JDcal are familiar maintenance checks. Includes independent Python outcomes, renamed callers and saved-answer controls.',
         audit='python3 tools/python-text-package.py audit --directory ' + str(relative))
