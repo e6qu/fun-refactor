@@ -62,40 +62,33 @@
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-release-structural-change",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/flow_standard_library.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_assignments.rs",
-        "src/project/flow_standard_library.rs",
-        "src/project/flow_summaries.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons",
       "changed_sources": [],
       "freshness": "historical",
       "id": "model-relations",
       "integrity": "checked",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions."
     },
     {
@@ -181,41 +174,14 @@
       "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
     },
     {
-      "audit": "python3 tools/package_question_replay.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files",
-      "changed_sources": [
-        ".github/workflows/refinement-evidence.yml",
-        "sdk/python/src/fr_ir/context.py",
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_standard_library.py",
-        "sdk/python/src/fr_ir/http_store.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "sdk/python/tests/test_compiler_evidence.py",
-        "sdk/python/tests/test_correspondence.py",
-        "sdk/python/tests/test_flow.py",
-        "sdk/python/tests/test_flow_facts.py",
-        "sdk/python/tests/test_flow_storage.py",
-        "sdk/python/tests/test_investigation.py",
-        "sdk/python/tests/test_investigation_proofs.py",
-        "sdk/python/tests/test_ir.py",
-        "sdk/python/tests/test_runtime.py",
-        "sdk/python/tests/test_saved_startup.py",
-        "sdk/python/tests/test_semantic_evidence.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_assignments.rs",
-        "src/project/flow_cache.rs",
-        "src/project/flow_standard_library.rs",
-        "src/project/flow_summaries.rs",
-        "src/transpile/write.rs",
-        "tools/package-questions.py",
-        "tools/package_question_replay.py",
-        "tools/retain-scalar-evidence.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-text-package.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-package",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files/result.json",
-      "scope": "Current replay of the three earlier package questions. All are familiar now; the original unread result is checked against its original source."
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-package/result.json",
+      "scope": "Four original-package questions with one unchanged checker. Stringcase passed its first frozen evaluation; audit that procedure at its recorded source. The other three projects were familiar maintenance checks."
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -346,15 +312,13 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [
-        "B.repository-flow"
-      ],
+      "remaining": [],
       "state": "open",
       "total": 4
     },
@@ -564,16 +528,17 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding",
-        "original-package-questions: missing /independent_projects"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "next": "Keep the three original-package questions reproducible. Broader project changes, effects and total agent costs remain separate requirements.",
+      "next": "Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.",
       "requires": [
         {
           "assertions": [
+            {
+              "equals": true,
+              "pointer": "/complete"
+            },
             {
               "equals": true,
               "pointer": "/milestone_1_demonstrated"
@@ -590,15 +555,24 @@
               "equals": [
                 "dateutil/dateutil",
                 "mahmoud/boltons",
+                "okunishinishi/python-stringcase",
                 "phn/jdcal"
               ],
               "pointer": "/independent_projects"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/qualified"
+            },
+            {
+              "equals": "okunishinishi/python-stringcase",
+              "pointer": "/original_unread/project"
             }
           ],
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
