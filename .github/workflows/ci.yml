@@ -186,6 +186,19 @@ jobs:
         run: >-
           python3 -B tools/audit-historical-package-questions.py
           --source-commit 06294a686ef7ebe29987787bd2ef29b441ac0147
+      - name: Audit the current text examples and reserved package result
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          for name, script in [('python-text-flow', 'python-text-flow'), ('original-package-questions', 'python-text-package')]:
+              entry, = [row for row in catalog['evidence'] if row['id'] == name]
+              path = Path(entry['path'])
+              assert path.resolve().is_relative_to(Path.cwd())
+              assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
+              subprocess.run(['python3', '-B', 'tools/' + script + '.py', 'audit', '--directory', str(path.parent)], check=True)
+          PY
 
   toolchain:
     name: Pinned Zig toolchain

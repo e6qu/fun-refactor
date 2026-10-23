@@ -24,6 +24,8 @@ PAGE = Path('docs/roadmap-status.md')
 KINDS = {
     'fr-checked-translation': 'deterministic',
     'fr-python-effects': 'deterministic',
+    'fr-python-text-flow': 'deterministic',
+    'fr-python-text-package': 'deterministic',
     'fr-flow-facts-acceptance-1': 'deterministic',
     'fr-package-flow-acceptance-1': 'deterministic',
     'fr-flow-cache-acceptance-1': 'measurement',

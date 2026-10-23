@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -34,7 +35,7 @@ PROJECT = {'id': 'stringcase', 'repository': SELECTION['repository'],
 
 def bindings():
     names = ['tools/python-text-package.py', '.github/workflows/python-text-package.yml']
-    return text.bindings() | replay.bindings() | {name: digest(ROOT / name) for name in names}
+    return replay.bindings() | text.bindings() | {name: digest(ROOT / name) for name in names}
 
 
 def freeze(coverage_run, directory):
@@ -67,6 +68,7 @@ def audit(directory):
             'package question did not complete')
     require(frozen['selection'] == SELECTION and frozen['source_bindings'] == bindings()
             and frozen['implementation_and_tests_unread'] is True, 'frozen checker or question changed')
+    require(result['source_bindings'] == frozen['source_bindings'], 'package source bindings changed')
     require(result['freeze_sha256'] == digest(directory / 'freeze.json'), 'freeze record changed')
     require(result['source_commit'] == frozen['source_commit'], 'package source commit changed')
     require(result['benchmark'] is False and result['live_model_calls'] == 0, 'unsupported cost or model-use claim')
@@ -100,6 +102,7 @@ def collect(binary, directory, coverage_run):
     directory, binary = directory.resolve(), binary.resolve()
     frozen = freeze(coverage_run, directory)
     result = {'schema': 'fr-python-text-package', 'complete': False, 'source_commit': frozen['source_commit'],
+        'source_bindings': frozen['source_bindings'],
         'freeze_sha256': digest(directory / 'freeze.json'), 'binary_sha256': digest(binary),
         'benchmark': False, 'live_model_calls': 0, 'project': None,
         'claim': 'One fixed checker answers four original-package questions. Stringcase was reserved from its README; the other three projects are familiar maintenance checks.'}
@@ -114,6 +117,9 @@ def collect(binary, directory, coverage_run):
         upstream = work / 'upstream'
         upstream.mkdir()
         files = packages.flow.snapshot(data, PROJECT, upstream)
+        readme = (upstream / SELECTION['readme']).read_bytes()
+        blob = b'blob ' + str(len(readme)).encode() + b'\0' + readme
+        require(hashlib.sha1(blob).hexdigest() == SELECTION['readme_blob'], 'reserved README changed')
         admission = packages.admission(upstream)
         require(any('MIT License' in row['text'] or 'Permission is hereby granted' in row['text']
                     for row in admission['licenses']), 'review the reserved package license')
@@ -178,6 +184,7 @@ def retain(run, prefix):
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
+    entry.pop('receipt_sha256', None)
     entry.update(path=str(relative / 'result.json'), sha256=digest(directory / 'result.json'),
         scope='Four original-package questions with one unchanged checker. Stringcase was unread until freeze; Boltons, dateutil and JDcal are familiar maintenance checks. Includes independent Python outcomes, renamed callers and saved-answer controls.',
         audit='python3 tools/python-text-package.py audit --directory ' + str(relative))
