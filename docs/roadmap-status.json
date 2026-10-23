@@ -249,6 +249,8 @@
         "src/project/flow_standard_library.rs",
         "src/project/flow_summaries.rs",
         "src/transpile/write.rs",
+        "tools/package-questions.py",
+        "tools/package_question_replay.py",
         "tools/retain-scalar-evidence.py"
       ],
       "freshness": "stale",
@@ -285,6 +287,8 @@
         "src/project/flow_standard_library.rs",
         "src/project/flow_summaries.rs",
         "src/transpile/write.rs",
+        "tools/package-questions.py",
+        "tools/package_question_replay.py",
         "tools/retain-scalar-evidence.py"
       ],
       "freshness": "stale",
@@ -367,13 +371,13 @@
       "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-pr573-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-pr573-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
