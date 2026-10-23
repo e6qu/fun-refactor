@@ -164,6 +164,22 @@
       "path": "tests/agent-eval/results/2026-10-23-pr569-release-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
       "sha256": "3818334677e362ef2969688a12a6f66018ec0102bde78324158955f8dc8b0902"
+    },
+    {
+      "id": "checked-translation",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-23-pr571-checked-translation/result.json",
+      "sha256": "efbad448b10b831d5fe4143416052b193d48aef887bf589c6775e4c0503e98c5",
+      "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-23-pr571-checked-translation"
+    },
+    {
+      "id": "python-effects",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-23-pr571-python-effects/result.json",
+      "sha256": "e4b7b87953a488fa74692c5d9538871b8b9acc3ca59e93f3d6a09ea3b319c36e",
+      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-23-pr571-python-effects"
     }
   ],
   "obligations": [
@@ -367,8 +383,34 @@
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "Prioritize unsupported effects exposed by the selected project-change tasks. Add general rules and independent reaching-input and blocked-input tests without treating unknown startup behavior as harmless.",
-      "requires": [],
+      "next": "Keep unchecked runtime effects visible at exact source locations. Supporting handlers and shared mutable objects still needs language rules and independent project examples.",
+      "requires": [
+        {
+          "evidence": "python-effects",
+          "assertions": [
+            {
+              "pointer": "/passed",
+              "equals": true
+            },
+            {
+              "pointer": "/coverage/examples",
+              "equals": 9
+            },
+            {
+              "pointer": "/coverage/renamed_and_moved_cases",
+              "equals": 18
+            },
+            {
+              "pointer": "/coverage/runtime_executions",
+              "equals": 36
+            },
+            {
+              "pointer": "/coverage/preserves_model_runtime_difference",
+              "equals": true
+            }
+          ]
+        }
+      ],
       "title": "Handle exceptions and shared mutable values honestly"
     },
     {
@@ -539,8 +581,34 @@
       "acceptance": "Translate one pure function between Rust and Python with integer arithmetic and branches. Specify input ranges, overflow, errors and evaluation order. Independently compare every input in a bounded range and the declared boundary cases.",
       "id": "D.translation",
       "kind": "deterministic",
-      "next": "Choose the function and its behavior contract before implementing support; express support as language rules reusable by other functions.",
-      "requires": [],
+      "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
+      "requires": [
+        {
+          "evidence": "checked-translation",
+          "assertions": [
+            {
+              "pointer": "/passed",
+              "equals": true
+            },
+            {
+              "pointer": "/coverage/exhaustive_pairs",
+              "equals": 9030
+            },
+            {
+              "pointer": "/coverage/boundary_pairs",
+              "equals": 11
+            },
+            {
+              "pointer": "/coverage/directions",
+              "equals": 2
+            },
+            {
+              "pointer": "/coverage/renamed_and_moved",
+              "equals": true
+            }
+          ]
+        }
+      ],
       "title": "Translate a function without changing its promised behavior"
     },
     {
