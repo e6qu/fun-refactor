@@ -48,16 +48,20 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: follow the original package imports
+## Next: follow customer text through a helper
 
 PR #569 completed the scripted agent-comparison preparation. Live attempts still need agreed models, settings and spending limits.
 Continue PR 2 in the [agreed roadmap](../PLAN.md#next-three-prs) while that decision remains open.
 PR #571 checked a page-count calculation in both Rust/Python directions and fixed large-integer division.
 It also gave unchecked Python runtime effects exact source locations, including after saved-answer reuse.
 Use the [behavior lesson](check-language-behavior.md) for the concrete examples and finite scope.
-Refresh the familiar Toolz, Funcy and Pydash questions before choosing the next language changes.
-Keep their full package imports, record the first remaining obstacle and preserve the existing limits.
-These projects are development examples; a later unfamiliar-project comparison needs a new reservation and a fixed checker.
+The fresh Toolz, Funcy and Pydash baseline still has no complete full-package answers.
+Keep their original imports, startup failures and existing limits visible.
+The next change follows `send(str(customer_input).lower())` through conversions and read-only string methods.
+It must distinguish a plain string from an arbitrary object that supplies its own `lower` method.
+Check reassignment, branches, helper returns and saved answers against ordinary Python.
+Stringcase's README supplied a reserved lowercase question; its implementation stays unread until the checker and procedure are fixed.
+Recheck Boltons, dateutil and JDcal with that same checker. They are familiar projects now.
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
 They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.

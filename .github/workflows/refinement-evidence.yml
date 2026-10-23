@@ -865,6 +865,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "tests/agent-eval/results/$EVIDENCE_PREFIX-checked-translation" \
             "tests/agent-eval/results/$EVIDENCE_PREFIX-python-effects" \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-python-text-flow" \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain checked translations and Python effect explanations'
           git push origin "HEAD:refs/heads/$BRANCH"

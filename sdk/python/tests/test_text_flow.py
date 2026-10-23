@@ -54,3 +54,18 @@ def test_a_saved_string_answer_rebinds_to_the_current_source_revision(tmp_path):
     assert reused.reused and reused.report.at('/revision') != first.report.at('/revision')
     assert reused.witnesses == fresh.witnesses
     assert reused.runtime_effects == fresh.runtime_effects
+
+
+def test_an_imported_function_named_lower_uses_its_own_return_behavior(tmp_path):
+    (tmp_path / 'helpers.py').write_text('def lower(value):\n    return 7\n')
+    (tmp_path / 'subject.py').write_text('import helpers\ndef entry():\n'
+        '    return send(helpers.lower(read_user()))\n')
+    rules = tmp_path / 'rules.json'
+    rules.write_text(json.dumps({'version': 'text-flow', 'sources': ['read_user'], 'sinks': ['send'],
+        'sanitizers': {}, 'propagators': []}))
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=262144)
+    result = analyze(client, rules, FlowCache(MemoryObjectStore()))
+    assert result.report.at('/complete') and not result.witnesses
+    (tmp_path / 'helpers.py').write_text('def lower(value):\n    return str(value)\n')
+    result = analyze(client, rules, FlowCache(MemoryObjectStore()))
+    assert result.report.at('/complete') and result.witnesses

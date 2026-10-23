@@ -1,0 +1,86 @@
+name: Check the reserved Python text package
+on:
+  workflow_dispatch:
+    inputs:
+      coverage_run:
+        description: Passing language-behavior run with unchanged text-flow inputs
+        type: string
+        required: true
+      collection_run:
+        description: Collection to retain, or 0 when collecting
+        type: string
+        required: true
+      prefix:
+        description: New dated directory prefix for retention
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: python-text-package-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  question:
+    if: inputs.collection_run == '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - run: python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - name: Freeze the checker before opening the reserved package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN: ${{ inputs.coverage_run }}
+        run: >-
+          python3 -B tools/python-text-package.py collect --binary target/debug/fr
+          --output "$RUNNER_TEMP/text-package" --coverage-run "$COVERAGE_RUN"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-text-package
+          path: ${{ runner.temp }}/text-package
+          if-no-files-found: error
+          retention-days: 30
+  retain:
+    if: inputs.collection_run != '0' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Authenticate and audit the package collection
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/python-text-package.py retain --run "$COLLECTION_RUN" --prefix "$PREFIX"
+      - name: Commit the checked record and tracking
+        env:
+          PREFIX: ${{ inputs.prefix }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$PREFIX-python-text-package" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain the frozen text package question and earlier checks'
+          git push origin "HEAD:refs/heads/$BRANCH"
