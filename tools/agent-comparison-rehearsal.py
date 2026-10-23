@@ -76,9 +76,9 @@ def rehearsal(image, setup, output, negative_control, host, exercise):
                    "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
                    "--cpus=0.5", "--memory=512m", "--memory-swap=512m", "--pids-limit=64",
                    "--log-driver=none", "--workdir=/workspace", "--env=HOME=" + home,
-                   "--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,mode=1777",
+                   "--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700",
                    "--tmpfs=/tmp:rw,exec,nosuid,nodev,size=64m,mode=1777",
-                   *(["--tmpfs=/home/control:rw,exec,nosuid,nodev,size=64m,mode=1777"] if host != "tools" else []),
+                   *(["--tmpfs=/home/control:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700"] if host != "tools" else []),
                    image, "python3", "-c", "import time; time.sleep(150)", timeout=10)
             docker("start", name, timeout=10)
             docker("exec", name, "mkdir", "-p", home, timeout=5)

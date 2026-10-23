@@ -26,7 +26,12 @@ def steps(host, setup, scenario, phase):
 def probe(host, setup):
     require(not any(Path("/probe").glob("*grade*")) and not Path("/probe/oracle.py").exists(), "private grader leaked into the native image")
     scenario = json.loads(Path("/opt/handoff.json").read_text())
-    shutil.copytree("/opt/project", ".", dirs_exist_ok=True)
+    # The tmpfs mount root belongs to root. Copy owned children without chmod/utime on that mount.
+    for source in Path("/opt/project").iterdir():
+        if source.is_dir():
+            shutil.copytree(source, source.name)
+        else:
+            shutil.copy2(source, source.name)
     env, identity, version = native.prepare(host, setup)
     result = {"task": scenario["task"], "host": host, "setup": setup, "client_release": identity,
               "version": version, "live_model_calls": 0, "passed": False,
