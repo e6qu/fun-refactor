@@ -15,7 +15,7 @@ spec.loader.exec_module(reports)
 
 class ReportRetention(unittest.TestCase):
     def retain(self, root, *, mixed=False, extra=False, reject=False, only=None, tamper_structural=False,
-               omit_repository_artifact=False, wrong_repository_revision=False):
+               omit_repository_artifact=False, wrong_repository_revision=False, format_rust=False):
         prefix = 'test-reports'
         payload = b'{"sample":0.10000000000000001}\n'
         groups = list(reports.GROUPS.values())
@@ -72,6 +72,10 @@ class ReportRetention(unittest.TestCase):
         self.commands = []
         def execute(command, **_):
             self.commands.append(command)
+            if format_rust and 'rustfmt' in command:
+                for name in command[command.index('2021') + 1:]:
+                    path = root / name
+                    path.write_text(path.read_text() + '\n')
             if reject and '--audit' in command:
                 raise subprocess.CalledProcessError(1, command)
         runs = {group: index for index, group in enumerate(reports.GROUPS, 1)}
@@ -112,6 +116,21 @@ class ReportRetention(unittest.TestCase):
             for group in reports.ACTIVE_FUNCTIONS:
                 self.assertIn(f'"tests/agent-eval/results/test-reports-{group}/result.json"',
                               (root / 'tests/python_sdk.rs').read_text())
+
+    def test_updated_rust_references_are_formatted_before_recording_runner_fingerprints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['completion-workflows', 'structural-change'], format_rust=True)
+            formatting, = [command for command in self.commands if 'rustfmt' in command]
+            self.assertEqual(formatting, ['rustup', 'run', '1.99.1', 'rustfmt', '--edition', '2021',
+                'tests/completion_workflows.rs', 'tests/structural_change.rs'])
+            registry = json.loads((root / 'tests/agent-eval/representative-acceptance.json').read_text())
+            case, = [row for row in registry['cases'] if row['runner'] == 'tests/structural_change.rs']
+            formatted = (root / case['runner']).read_bytes()
+            self.assertTrue(formatted.endswith(b'\n\n'))
+            self.assertEqual(case['runner_sha256'], hashlib.sha256(formatted).hexdigest())
+            self.assertLess(self.commands.index(formatting),
+                self.commands.index(['python3', '-B', 'tools/representative-acceptance.py', 'audit']))
 
     def test_mixed_collection_sources_are_rejected_before_saving(self):
         with tempfile.TemporaryDirectory() as directory:

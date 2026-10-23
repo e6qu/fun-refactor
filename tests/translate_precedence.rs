@@ -128,7 +128,10 @@ fn a_body_that_ends_in_a_statement_gains_no_return() {
 fn dividing_two_integers_still_truncates_in_python() {
     let source = "pub fn half(a: i64, b: i64) -> i64 {\n    return a / b;\n}\n";
     assert_eq!(
-        python_answers(source, "[half(7, 3), half(-7, 3), half(7, -3), half(-7, -3)]"),
+        python_answers(
+            source,
+            "[half(7, 3), half(-7, 3), half(7, -3), half(-7, -3)]"
+        ),
         serde_json::json!([2, -2, -2, 2])
     );
 }

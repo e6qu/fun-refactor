@@ -233,8 +233,12 @@ def main():
         text, count = re.subn(pattern, lambda match: match[1] + reference, test.read_text(), flags=re.S)
         require(count == 1, 'expected one active SDK comparison reference for ' + group)
         test.write_text(text)
+    rust_tests = {ACTIVE_REFERENCES[group] for group in receipts.keys() & ACTIVE_REFERENCES.keys()
+                  if ACTIVE_REFERENCES[group].endswith('.rs')}
     if receipts.keys() & ACTIVE_FUNCTIONS.keys():
-        subprocess.run(['rustup', 'run', '1.99.1', 'rustfmt', '--edition', '2021', 'tests/python_sdk.rs'],
+        rust_tests.add('tests/python_sdk.rs')
+    if rust_tests:
+        subprocess.run(['rustup', 'run', '1.99.1', 'rustfmt', '--edition', '2021', *sorted(rust_tests)],
                        cwd=ROOT, check=True, timeout=30)
     registered = receipts.keys() & REGISTERED_REPORTS.keys()
     if registered:
