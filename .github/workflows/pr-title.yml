@@ -19,6 +19,9 @@ jobs:
   # and a third-party action here would run on every pull request with the
   # repository's token.
   title:
+    # Descriptions change while CI is running. Recheck only an edited title;
+    # every new commit and reopened request still gets the ordinary title gate.
+    if: github.event.action != 'edited' || github.event.changes.title != null
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -36,9 +36,11 @@ The CLI and Python comparison now includes startup, edits, validation and shutdo
 Direct CLI calls were fastest in these small sessions; keeping Python running reduced its overhead.
 Saving and validating answers still cost more than asking again. These results do not measure agent savings.
 
-The [comparison preparation](docs/agent-comparison-preparation.md) now defines eighteen first attempts and checks isolated tools and complete background-process shutdown without model calls.
-Next: rehearse the actual application configurations and grading commands, then agree model settings and spending limits before live calls.
-The direct CodeGraph protocol control does not yet establish its integration with all three applications.
+The [comparison preparation](docs/agent-comparison-preparation.md) defines eighteen first attempts.
+Its controls exercise the real applications in all nine tool setups, retain their configurations and prompts, and check complete background-process shutdown.
+Task controls must reject unchanged and incomplete code, accept the reference repair and replay its patch independently. These controls use no live models.
+Next: rehearse both complete task phases and the interruption between them.
+Then agree live models, offered tools, credentials, prices and full-attempt limits before paying for attempts.
 
 - Keep one portable skill with explicit setup for Claude Code, Codex and OpenCode.
   Check discovery in clean sessions and record actual tool use separately from scripted integration controls.

@@ -38,9 +38,9 @@ class FailureRetention(unittest.TestCase):
                  patch.object(control, "audit", return_value=checked):
                 if create_fails or cleanup_fails or audit_fails:
                     with self.assertRaises(ValueError):
-                        control.rehearsal("sha256:" + "a" * 64, "files", output, False)
+                        control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
                 else:
-                    control.rehearsal("sha256:" + "a" * 64, "files", output, False)
+                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
             retained = json.loads((output / "result.json").read_text())
             self.assertEqual(retained["passed"], not (create_fails or cleanup_fails or audit_fails))
             self.assertEqual(retained["resources"], {"retained": True})
@@ -64,6 +64,33 @@ class FailureRetention(unittest.TestCase):
 
     def test_success_is_written_only_after_cleanup_and_audit(self):
         self.exercise(create_fails=False, cleanup_fails=False, audit_fails=False)
+
+    def test_budget_stop_keeps_output_from_the_command_that_triggered_it(self):
+        scope = Mock()
+        scope.finish.return_value = {"stop_reason": "pids"}
+        retained = None
+        def resources(*_, execute):
+            nonlocal retained
+            retained = execute
+            return Mock(start=Mock(return_value=scope))
+        def bounded(argv, *args):
+            if "--setup" in argv:
+                retained(argv, *args)
+                raise ValueError("container resource budget stopped the attempt")
+            return {"exit_code": 0, "stop_reason": None}, b"", b""
+        scope.invoke.side_effect = bounded
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "result"
+            with patch.dict(control.os.environ, {"GITHUB_ACTIONS": "true"}), \
+                 patch.object(control, "isolated_budget", return_value=nullcontext("fixture.slice")), \
+                 patch.object(control, "ContainerResources", side_effect=resources), \
+                 patch.object(control, "invoke", return_value=({"exit_code": 0, "stop_reason": None}, b"", b"thread diagnosis")):
+                with self.assertRaisesRegex(ValueError, "budget stopped"):
+                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
+            result = json.loads((output / "result.json").read_text())
+            self.assertFalse(result["passed"])
+            self.assertEqual(result["commands"][0]["stderr"], "thread diagnosis")
+            self.assertEqual(result["resources"]["stop_reason"], "pids")
 
 
 if __name__ == "__main__":
