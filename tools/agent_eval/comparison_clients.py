@@ -27,7 +27,8 @@ def native_config(host, setup, endpoint):
     require(endpoint.rsplit(":", 1)[1].isascii() and 1 <= int(endpoint.rsplit(":", 1)[1]) <= 65535,
             "rehearsal port must be between 1 and 65535")
     server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace"],
-              "env": dict(WORKERS), "cwd": "/workspace"}
+              "env": {**WORKERS, "NODE_OPTIONS": WORKERS["NODE_OPTIONS"] +
+                      " --max-old-space-size=64 --max-semi-space-size=1"}, "cwd": "/workspace"}
     if host == "claude":
         return {"model": MODEL, "tools": ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"],
                 "mcp": {"mcpServers": {"codegraph": server} if setup == "codegraph" else {}},
@@ -55,7 +56,7 @@ def native_config(host, setup, endpoint):
                 "options": {"baseURL": endpoint + "/v1", "apiKey": "scripted-no-live-credential"},
                 "models": {MODEL: {"name": MODEL, "limit": {"context": 32768, "output": 1024}}}}},
             "mcp": {"codegraph": {"type": "local", "enabled": True,
-                "command": [server["command"], *server["args"]], "environment": dict(WORKERS),
+                "command": [server["command"], *server["args"]], "environment": dict(server["env"]),
                 "cwd": "/workspace", "timeout": 10000}} if setup == "codegraph" else {}}
 
 

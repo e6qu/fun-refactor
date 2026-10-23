@@ -171,8 +171,8 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        host: [claude, codex, opencode]
-        task: [unicode-dice, regex-escape-len]
+        host: [opencode, codex, claude]
+        task: [regex-escape-len, unicode-dice]
         setup: [files, fr, codegraph]
     env:
       CARGO_HOME: ${{ github.workspace }}/target/cargo-home

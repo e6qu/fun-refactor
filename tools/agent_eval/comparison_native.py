@@ -34,12 +34,17 @@ def trace(stage):
     for status in Path("/proc").glob("[0-9]*/status"):
         try:
             fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
-            processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"]),
+            processes.append({"pid": int(status.parent.name), "ppid": int(fields["PPid"]),
+                              "name": fields["Name"].strip(), "threads": int(fields["Threads"]),
                               "rss_kib": int(fields.get("VmRSS", "0 kB").split()[0]),
+                              "anonymous_rss_kib": int(fields.get("RssAnon", "0 kB").split()[0]),
                               "command": (status.parent / "cmdline").read_bytes()[:160].replace(b"\0", b" ").decode(errors="replace")})
         except (FileNotFoundError, ProcessLookupError):
             continue
-    print(json.dumps({"stage": stage, "processes": processes}), file=sys.stderr, flush=True)
+    memory = {name: int(value) for name, value in (line.split() for line in
+              Path("/sys/fs/cgroup/memory.stat").read_text().splitlines())
+              if name in {"anon", "file", "kernel", "shmem"}}
+    print(json.dumps({"stage": stage, "memory_bytes": memory, "processes": processes}), file=sys.stderr, flush=True)
 
 
 def command(argv, env):
