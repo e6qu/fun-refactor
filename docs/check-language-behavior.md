@@ -46,6 +46,8 @@ Rust can overflow when an integer calculation exceeds its fixed range; Python in
 The test enables Rust's overflow checks explicitly.
 The function avoids the tempting expression `items + size - 1`, which can overflow before division.
 Its actual quotient and possible increment remain in range under the contract.
+The large-input check caught a real translator error: converting a Rust integer quotient through Python's floating-point division rounded the result.
+The translator now keeps that division in integer arithmetic and evaluates each operand once in source order.
 See the [Rust operator rules](https://doc.rust-lang.org/reference/expressions/operator-expr.html) and [Python arithmetic rules](https://docs.python.org/3.14/reference/expressions.html#binary-arithmetic-operations).
 The finite tests and this arithmetic argument do not prove arbitrary translations correct.
 
@@ -79,6 +81,9 @@ print(values[0])  # Prints 17: both names refer to the same list.
 The scalar model does not track shared list identities or writes through another name.
 It keeps such answers incomplete and identifies the item write, item read or unchecked method call.
 An empty witness list in an incomplete answer cannot show that customer input never reaches an output.
+Python SDK users can inspect `analysis.runtime_effects.sites`, including each site's kind, explanation and source occurrence.
+The SDK refuses missing disclosures, altered safety claims and locations omitted by a response budget.
+Saved-answer reuse also refuses a record that turns the scalar model into an exception-safety claim.
 
 The independent examples exercise explicit raises, division errors, handlers, `finally`, list writes through another name and list methods.
 Each runs with inputs 17 and 31, then runs again after renaming the input/output operations and moving the source file.

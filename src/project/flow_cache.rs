@@ -195,6 +195,10 @@ impl Project<'_> {
             "retained flow has inconsistent assignment control."
         );
         ensure!(
+            report["runtime_effects"] == super::dataflow::effect_contract(),
+            "retained flow changed the runtime effect contract."
+        );
+        ensure!(
             report["initialization"] == json!({"sites":[],"omitted":0,"by_file":{}}),
             "complete retained flow has unchecked initialization."
         );

@@ -58,7 +58,7 @@ def bindings():
 def command(argv, directory, timeout):
     result = subprocess.run([str(item) for item in argv], cwd=directory, capture_output=True, timeout=timeout)
     require(len(result.stdout) + len(result.stderr) <= 1024**2, "effect check output exceeds 1 MiB")
-    (directory / "last-command.json").write_text(json.dumps({"argv": list(map(str, argv)),
+    (directory.parent / (directory.name + "-last-command.json")).write_text(json.dumps({"argv": list(map(str, argv)),
         "exit_code": result.returncode, "stdout": result.stdout.decode(errors="replace"),
         "stderr": result.stderr.decode(errors="replace")}, indent=2) + "\n")
     require(result.returncode == 0, "effect check command failed: " + result.stderr.decode(errors="replace")[-8192:])

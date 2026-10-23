@@ -43,6 +43,11 @@ pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
 
+pub(super) fn effect_contract() -> Value {
+    json!({"exception_safety_established":false,"shared_mutable_values_supported":false,
+        "complete_means":"Complete within the declared scalar model; not a claim that execution cannot raise or that mutable objects are tracked."})
+}
+
 #[path = "flow_modules.rs"]
 mod modules;
 
@@ -473,6 +478,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .last()
                 .is_some_and(|names| names.contains(base))
         {
+            if function.kind() == "attribute" {
+                self.effect_limit(node, "dynamic-call",
+                    "A call through a local object may read or change shared state; this analysis cannot determine its effects.");
+            }
             self.cutoff(format!("ambiguous-call:{name}"));
             return joined;
         }
@@ -1847,8 +1856,7 @@ impl Project<'_> {
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
-            "runtime_effects":{"exception_safety_established":false,"shared_mutable_values_supported":false,
-                "complete_means":"Complete within the declared scalar model; not a claim that execution cannot raise or that mutable objects are tracked."},
+            "runtime_effects":effect_contract(),
             "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,

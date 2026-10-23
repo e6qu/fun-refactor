@@ -865,6 +865,12 @@ jobs:
           key: default
       - id: build
         run: cargo build --locked --bin fr
+      - name: Check exact integer division and saved effect disclosures
+        run: |
+          cargo test --locked --test transpile_integer_division -- --test-threads=1
+          cargo test --locked --test language_behavior saved_flow_cannot_turn_a_scalar_answer_into_an_exception_safety_claim -- --exact
+          python3 -m pip install 'pytest==9.1.1'
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_runtime_effects.py
       - name: Compare both translation directions with independent arithmetic
         run: >-
           python3 -B tools/checked-translation.py collect --binary target/debug/fr
