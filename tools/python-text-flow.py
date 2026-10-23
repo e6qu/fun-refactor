@@ -27,7 +27,7 @@ def digest(path):
 
 def bindings():
     names = ['tools/python-text-flow.py', 'tools/test-python-text-flow.py', 'tools/evidence_basis.py',
-             'tests/language_behavior.rs', 'sdk/python/tests/test_text_flow.py']
+             'tests/language_behavior.rs', 'sdk/python/tests/test_text_flow.py', 'docs/check-language-behavior.md']
     paths = [ROOT / name for name in names] + list(FIXTURE.iterdir())
     paths += list((ROOT / 'sdk/python/src').rglob('*.py'))
     require(all(path.is_file() for path in paths), 'required text-flow input missing')

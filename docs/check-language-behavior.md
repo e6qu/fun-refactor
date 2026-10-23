@@ -93,6 +93,78 @@ The checker compares ordinary Python executions with expectations written before
 The division example deliberately retains the difference between Python and the scalar model.
 No exception engine or shared-object analysis is claimed by these explanations.
 
+## Follow customer text through string operations
+
+Suppose a service trims spaces from a customer label and changes it to lowercase before sending it.
+Changing the spelling keeps the customer's value connected to the output.
+For example, `<SCRIPT>` becomes `<script>` and still needs the service's usual HTML escaping.
+
+Create `subject.py` in a scratch project:
+
+```python
+def read_user():
+    return '<SCRIPT>'
+
+def send(value):
+    return value
+
+def entry():
+    label = str(read_user())
+    return send(label.strip().lower())
+```
+
+`str` converts a value to text. `strip` removes spaces at either end; `lower` changes letter case.
+Each returns a new string. The receiver is the value before the method name: `label` in `label.strip()`.
+The example supplies small stand-ins for the service's input and output functions.
+Create `rules.json` to name them for this question:
+
+```json
+{"version":"text-flow","sources":["read_user"],"sinks":["send"],"sanitizers":{},"propagators":[]}
+```
+
+A source supplies the value to follow. A sink receives it.
+The empty sanitizer map declares no operation that makes the value safe for HTML.
+Find the entry function:
+
+```sh
+fr --json -C /path/to/scratch project find entry --in subject.py
+```
+
+Copy its handle, the identifier for that function in this source revision, into the following command:
+
+```sh
+fr --json -C /path/to/scratch project dataflow HANDLE \
+  --imports --summaries --standard-library builtins \
+  --rules /path/to/scratch/rules.json --context html \
+  --steps 4096 --depth 8 --bytes 262144
+```
+
+`--imports` includes imported Python files. `--summaries` checks helper return behavior and reuses it within the question.
+`--standard-library builtins` explicitly selects the CPython builtins model, including `str` and the checked string methods.
+The three limits bound analysis steps, helper-call depth and report bytes.
+The answer should finish and retain a possible connection from `read_user` to `send`.
+
+Now insert `label = 'PUBLIC'` before the return.
+The answer should finish without that connection: reassignment replaced the customer value.
+Instead assigning an arbitrary object keeps the answer incomplete, even if that object has a method called `lower`.
+That method can return a number or run unrelated code.
+
+The model accepts plain strings from literals, checked conversions, local assignments and helpers whose modeled normal returns all produce strings.
+A helper that sometimes returns text and sometimes returns a number cannot support the same conclusion.
+At a branch or loop join, every arriving path must establish the string fact.
+Type annotations alone do not establish the runtime value.
+
+The checked methods are `lower`, `upper`, `casefold`, `capitalize`, `swapcase`, `title`, `strip`, `lstrip`, `rstrip`, `removeprefix`, `removesuffix` and `replace`.
+Arguments must be positional text values. Stripping also accepts `None`; a replacement count must be a literal integer.
+Unknown receivers, expanded arguments and unsupported signatures leave the answer incomplete.
+Possible origins from both the receiver and arguments remain visible.
+This model follows value connections. Input that only chooses between branches needs a separate information-flow model.
+The runtime exception and shared-object limits explained above still apply.
+
+The [authored examples](../tests/agent-eval/python-text-flow/cases.json) state Python outputs and expected analysis results before collection.
+They include Unicode, reassignment, mixed return types, recursion and unsupported calls, then repeat after renaming and moving.
+These are correctness checks. They measure neither speed nor language overhead.
+
 ## Repeat the checks
 
 Use the hosted `language-behavior` group in the [evidence workflow](../.github/workflows/refinement-evidence.yml).

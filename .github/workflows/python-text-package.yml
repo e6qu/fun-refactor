@@ -54,7 +54,9 @@ jobs:
         with:
           key: default
       - run: cargo build --locked --bin fr
-      - run: python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - run: >-
+          python3 -m pip install --only-binary=:all: --require-hashes
+          -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
       - name: Freeze the checker before opening the reserved package
         env:
           GH_TOKEN: ${{ github.token }}
