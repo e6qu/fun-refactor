@@ -126,6 +126,10 @@ The complete-task controls close the unused daemon between application phases wi
 They verify its identity and require it to exit within five seconds before the external source edit, then run `codegraph sync /workspace --quiet` before starting the next application.
 This releases the old phase's in-memory index and avoids overlapping source synchronization with a fresh application startup.
 The saved project and index remain on disk. Synchronization, shutdown and cold startup all count toward the same attempt budget.
+Native-client controls pass `--no-watch` to CodeGraph and refresh its index explicitly before each phase's query.
+Automatic watching would reindex the temporary apply, undo and redo states while the application finishes its reply; that concurrent work also exceeded the shared cap.
+The original project is indexed during setup, and the intervening edit is synchronized before the resumed query.
+These are explicitly refreshed controls. Automatic watching and keeping a daemon warm require separate live-attempt admission.
 These controls test resumption after process cleanup; they do not measure keeping a warm daemon across the pause.
 The separate tool-only control retains the default linger so it can demonstrate that a detached daemon outlives its client and still belongs to the container budget.
 Diagnostics distinguish anonymous memory from filesystem-backed memory, and the workflow runs the larger OpenCode tasks first.

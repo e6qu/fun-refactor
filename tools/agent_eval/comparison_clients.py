@@ -26,7 +26,7 @@ def native_config(host, setup, endpoint):
             "rehearsal provider must be an explicit loopback endpoint")
     require(endpoint.rsplit(":", 1)[1].isascii() and 1 <= int(endpoint.rsplit(":", 1)[1]) <= 65535,
             "rehearsal port must be between 1 and 65535")
-    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace"],
+    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace", "--no-watch"],
               "env": dict(WORKERS), "cwd": "/workspace"}
     if host == "claude":
         return {"model": MODEL, "tools": ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"],
