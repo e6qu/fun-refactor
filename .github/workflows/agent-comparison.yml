@@ -164,6 +164,7 @@ jobs:
           if-no-files-found: error
   handoff:
     name: Pause, refresh and deliver (${{ matrix.host }}, ${{ matrix.task }}, ${{ matrix.setup }})
+    needs: preparation
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
