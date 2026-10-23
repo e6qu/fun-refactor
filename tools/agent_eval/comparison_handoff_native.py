@@ -38,6 +38,8 @@ def probe(host, setup):
         result["delivery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "deliver"), scenario["prompts"]["deliver"])
         result["checks"] = json.loads((actions.ARTIFACTS / "delivery.json").read_text())
         result["stale_refusal"] = json.loads((actions.ARTIFACTS / "stale-refusal.json").read_text())
+        if setup == "fr":
+            result["reviews"] = {name: json.loads((actions.ARTIFACTS / (name + "-review.json")).read_text()) for name in ("old", "fresh")}
         result["patch"] = Path("change.patch").read_text()
         require(hashlib.sha256(result["patch"].encode()).hexdigest() == result["checks"]["patch_sha256"], "delivered patch changed")
         require(result["intervention"]["resumed"] == result["checks"]["before"], "delivery did not start from the intervening source")

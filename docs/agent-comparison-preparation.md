@@ -123,7 +123,7 @@ The generated schedule includes exact rehearsal configuration objects and launch
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.
 The discovery prompt asks for a `HANDOFF.md` diagnosis; the delivery prompt asks the next process to read it,
 inspect current source, implement the repair and export `change.patch`.
-These prompts describe the planned handoff. The native fixture controls do not execute that complete two-phase task.
+The small fixture controls check tool connections. The complete-project controls below execute both phases with these prompts.
 The rehearsal configurations deliberately use a scripted provider and a single controlled CodeGraph query.
 Agree and freeze the complete offered tool set and real model settings before live attempts.
 
@@ -138,7 +138,55 @@ The schedule records the separate `grade --candidate CANDIDATE_DIRECTORY` comman
 Keep grading outside the candidate directory. The current controls execute trusted pinned fixtures on a dedicated runner;
 they do not establish isolation for arbitrary hostile submitted code.
 Failures retain their diagnostics. A timeout or compilation error cannot become the expected missing-API result.
-Reference implementations and private checker details stay outside agent containers and prompts.
+Private checkers stay outside the application container. Trusted task-control images contain prescribed repair recipes, as explained below.
+
+## Resume a complete task after another person edits the code
+
+Suppose an agent is repairing Unicode text comparison and saves its diagnosis before stopping.
+While it is paused, another maintainer renames the matching-pair counter from `intersection_size` to `shared_bigrams`.
+The old reviewed edit refers to the previous source. Resuming must reject it and prepare a new repair that keeps the maintainer's rename.
+
+The workflow rehearses that sequence for both complete pinned Rust projects in all nine application/tool setups: eighteen controls.
+For the escaping task, the intervention renames the output variable from `quoted` to `escaped`.
+Escaping turns punctuation such as `.` into `\.` so a regular expression treats it as plain text.
+The repair must still provide the requested byte-length APIs and reserve enough space for the escaped output.
+
+1. Start the application with the discovery prompt. Inspect the assigned code and save `HANDOFF.md` plus a reviewed, unapplied repair.
+2. Let that application process exit. Rename the local variable and record the new source as the delivery starting point.
+3. Start a fresh application process with the delivery prompt. Verify the handoff, refuse the old edit without changing source, and review the current implementation.
+4. Apply the refreshed repair, undo it exactly to the intervening source, then redo it exactly. Export only the repair as `change.patch`.
+5. Remove the application container and require complete process cleanup. Apply the patch in a separate checkout containing the same intervening rename.
+
+The fr setup uses current declaration handles, saved authoring plans and history apply, undo and redo commands.
+The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
+CodeGraph must answer the assigned function query through the application's actual tool connection in both phases.
+The check does not establish that every CodeGraph finding is current after arbitrary source changes.
+
+The application runs `git diff --check`, which checks patch whitespace, and reports upstream tests as pending.
+After its container is removed, the independent grader runs the real upstream Rust tests and behavior checks on the receiving checkout.
+It checks that the local-variable rename remains present, rejects unexpected source paths, and reverses and reapplies the delivered patch exactly.
+Compilation errors and timeouts cannot establish a passing repair. Failures retain command output and resource diagnostics.
+
+These are trusted scripted controls. The repair recipe supplies known operations; no model discovers or chooses a solution.
+Claude Code and OpenCode consume fixed provider replies; Codex uses its native command and tool APIs without starting inference.
+Task-control images include those prescribed recipes and must not be used for live agents.
+Private graders are not copied into those images. The proposed eighteen live attempts remain unstarted, with outcomes, usage and costs unknown.
+
+The application processes and background tools retain the existing shared 512 MiB, sixty CPU seconds and sixty-four-process limits.
+Both phases share one container budget. Each application invocation and tool call retains its existing deadline.
+The private Rust grading runs afterward on the GitHub runner, outside those container counters.
+Image preparation and grading are not included in a complete cost result here; these controls make no performance or savings claim.
+Full-attempt grading isolation, credential access and resource admission still need a separate live-trial review.
+
+To run one prescribed control on GitHub:
+
+```sh
+python3 -B tools/agent-comparison-handoff.py \
+  --host claude --task unicode-dice --setup fr --output NEW_DIRECTORY
+```
+
+`--host` names the application, `--task` selects one of the two pinned tasks, and `--setup` selects its offered tools.
+Use a new output directory so earlier failures remain available. Full builds and these controls run on GitHub, not a shared workstation.
 
 ## What must happen before live attempts
 
@@ -160,7 +208,7 @@ This belongs to the Codex runner: the shared evaluator and its recorded comparis
 This fixes implicit settings in that runner; it does not turn its two-setup protocol into this proposed three-setup study.
 
 Then freeze the live application configurations and offered tools, fr source revision and binary, credential access and full-attempt resource limits.
-Rehearse both complete task phases, their intervening source change and independent private grading under those limits.
+Carry the complete-task rehearsal into the agreed live configurations, including independent private grading under those limits.
 For Codex, verify the chosen release's behavior against its [configuration reference](https://developers.openai.com/codex/config-reference) and [app-server interface](https://developers.openai.com/codex/app-server).
 The container control alone does not establish native application integration, correct grading or bounded live model usage.
 

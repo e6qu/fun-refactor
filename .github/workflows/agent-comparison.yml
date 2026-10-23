@@ -202,6 +202,7 @@ jobs:
           name: comparison-handoff-${{ matrix.host }}-${{ matrix.task }}-${{ matrix.setup }}
           path: |
             ${{ runner.temp }}/comparison-handoff/result.json
+            ${{ runner.temp }}/comparison-handoff/scenario.json
             ${{ runner.temp }}/comparison-handoff/native/result.json
             ${{ runner.temp }}/comparison-handoff/grade.json
             ${{ runner.temp }}/comparison-handoff/change.patch
