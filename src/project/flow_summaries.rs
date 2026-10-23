@@ -35,7 +35,9 @@ pub(super) struct Solver {
 
 impl Solver {
     pub(super) fn returns_plain_string(&self, name: &str) -> bool {
-        self.table.get(name).is_some_and(|summary| summary.normal_return && summary.plain_string_return)
+        self.table
+            .get(name)
+            .is_some_and(|summary| summary.normal_return && summary.plain_string_return)
     }
     pub fn new(enabled: bool) -> Self {
         Self {

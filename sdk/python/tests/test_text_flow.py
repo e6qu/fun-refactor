@@ -1,9 +1,13 @@
 import json
+import copy
+import hashlib
 from pathlib import Path
 
+import pytest
 from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
-from fr_ir.runtime import FrClient
+from fr_ir.flow_dependencies import FlowDependencies
+from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -69,3 +73,19 @@ def test_an_imported_function_named_lower_uses_its_own_return_behavior(tmp_path)
     (tmp_path / 'helpers.py').write_text('def lower(value):\n    return str(value)\n')
     result = analyze(client, rules, FlowCache(MemoryObjectStore()))
     assert result.report.at('/complete') and result.witnesses
+
+
+@pytest.mark.parametrize('field,value', [('receiver_nodes', 0), ('methods', []), ('boundary', 'trust all receivers')])
+def test_a_saved_answer_cannot_replace_the_checked_string_contract(tmp_path, field, value):
+    (tmp_path / 'subject.py').write_text('def entry():\n    return send(str(read_user()).lower())\n')
+    rules = tmp_path / 'rules.json'
+    rules.write_text(json.dumps({'version': 'text-flow', 'sources': ['read_user'], 'sinks': ['send'],
+        'sanitizers': {}, 'propagators': []}))
+    client = FrClient(tmp_path, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=262144)
+    result = analyze(client, rules, FlowCache(MemoryObjectStore()))
+    forged = copy.deepcopy(result.report.to_data())
+    forged['inputs']['modules']['standard_library']['string_methods'][field] = value
+    forged['input_digest'] = hashlib.sha256(json.dumps(forged['inputs'], sort_keys=True, ensure_ascii=False,
+        separators=(',', ':')).encode()).hexdigest()
+    with pytest.raises(FrRuntimeError):
+        FlowDependencies.from_report(FrReport(forged, ()))

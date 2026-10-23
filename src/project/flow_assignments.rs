@@ -164,8 +164,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 self.extend(values[index].clone(), target, "definition"),
             );
             state.defined.insert(name.clone());
-            if plain_strings[index] { state.plain_strings.insert(name); }
-            else { state.plain_strings.remove(&name); }
+            if plain_strings[index] {
+                state.plain_strings.insert(name);
+            } else {
+                state.plain_strings.remove(&name);
+            }
         }
     }
 }

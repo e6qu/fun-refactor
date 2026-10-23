@@ -86,7 +86,7 @@ def audit(directory):
     require(earlier['binary_sha256'] == result['binary_sha256'], 'projects used different checker executables')
     require(result['unread_project'] == SELECTION['repository'], 'unread project changed')
     require(set(result['files']) == {str(path.relative_to(directory)) for path in directory.rglob('*')
-        if path.is_file() and path.name != 'receipt.json' and path != directory / 'result.json'},
+        if path.is_file() and path not in (directory / 'receipt.json', directory / 'result.json')},
         'package result file inventory changed')
     for name, expected in result['files'].items():
         path = directory / name

@@ -262,7 +262,11 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
         into.defined = defined;
         changed = true;
     }
-    let strings = into.plain_strings.intersection(&from.plain_strings).cloned().collect();
+    let strings = into
+        .plain_strings
+        .intersection(&from.plain_strings)
+        .cloned()
+        .collect();
     if into.plain_strings != strings {
         into.plain_strings = strings;
         changed = true;
@@ -548,23 +552,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return self.extend(joined, node, "propagation-rule");
         }
         if let Some(standard) = self.standard_call_name(function, env) {
-                if let Some((minimum, maximum)) = standard_library::arity(&standard) {
-                    let exception = matches!(
-                        standard.as_str(),
-                        "builtins.ValueError" | "builtins.TypeError"
-                    );
-                    if argument_names.iter().any(Option::is_some)
-                        || !(minimum..=maximum).contains(&arguments.len())
-                        || exception
-                            && node
-                                .parent()
-                                .is_none_or(|parent| parent.kind() != "raise_statement")
-                    {
-                        self.cutoff(format!("unsupported-standard-call:{standard}"));
-                        return joined;
-                    }
-                    return self.extend(joined, node, "standard-call-result");
+            if let Some((minimum, maximum)) = standard_library::arity(&standard) {
+                let exception = matches!(
+                    standard.as_str(),
+                    "builtins.ValueError" | "builtins.TypeError"
+                );
+                if argument_names.iter().any(Option::is_some)
+                    || !(minimum..=maximum).contains(&arguments.len())
+                    || exception
+                        && node
+                            .parent()
+                            .is_none_or(|parent| parent.kind() != "raise_statement")
+                {
+                    self.cutoff(format!("unsupported-standard-call:{standard}"));
+                    return joined;
                 }
+                return self.extend(joined, node, "standard-call-result");
+            }
         }
         let Some(function) = self.functions.get(&resolved).copied() else {
             self.cutoff(format!("unknown-external-call:{name}"));
@@ -750,8 +754,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         }
                         if block.operation == Operation::Return {
                             let plain = node.named_child_count() == 1
-                                && node.named_child(0).is_some_and(|value| self.plain_string(value, &state));
-                            self.return_text = Some(self.return_text.is_none_or(|prior| prior) && plain);
+                                && node
+                                    .named_child(0)
+                                    .is_some_and(|value| self.plain_string(value, &state));
+                            self.return_text =
+                                Some(self.return_text.is_none_or(|prior| prior) && plain);
                             self.normal_return = true;
                             merge(&mut result, value);
                         } else {
@@ -831,8 +838,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 .insert(name.clone(), self.extend(value, left, "definition"));
                             state.defined.insert(name);
                             let name = self.text(left).to_owned();
-                            if plain { state.plain_strings.insert(name); }
-                            else { state.plain_strings.remove(&name); }
+                            if plain {
+                                state.plain_strings.insert(name);
+                            } else {
+                                state.plain_strings.remove(&name);
+                            }
                         } else {
                             self.cutoff("alias-or-destructuring-assignment");
                         }
