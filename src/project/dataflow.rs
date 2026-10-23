@@ -279,7 +279,7 @@ struct Analyzer<'a, 'p, 't> {
     active: Vec<String>,
     local_bindings: Vec<BTreeSet<String>>,
     cutoffs: BTreeSet<String>,
-    effect_limits: BTreeMap<String, Value>,
+    effect_limits: BTreeMap<(String, usize, usize, String), Value>,
     events: Vec<Value>,
     witnesses: BTreeMap<String, Value>,
     graphs: BTreeMap<String, Value>,

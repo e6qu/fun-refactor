@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from evidence_basis import native_source_bindings
+
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/agent-eval/checked-translation"
 
@@ -23,11 +25,19 @@ def digest(path):
 
 
 def bindings():
-    names = ["Cargo.toml", "Cargo.lock", "src/cli.rs", "src/translate.rs", "src/parse.rs",
-             "src/lang.rs", "src/edit.rs", "src/vfs.rs", "tools/checked-translation.py", "tools/test-checked-translation.py"]
+    names = ["tools/evidence_basis.py", "tools/checked-translation.py", "tools/test-checked-translation.py"]
     paths = [ROOT / name for name in names]
-    paths += sorted((ROOT / "src/transpile").rglob("*.rs")) + sorted(FIXTURE.iterdir())
-    return {str(path.relative_to(ROOT)): digest(path) for path in paths if path.is_file()}
+    paths += sorted(FIXTURE.iterdir())
+    return {**native_source_bindings(ROOT),
+            **{str(path.relative_to(ROOT)): digest(path) for path in paths if path.is_file()}}
+
+
+def coverage(contract):
+    spans = contract["exhaustive"]
+    return {"exhaustive_pairs": (spans["items"][1] - spans["items"][0] + 1) *
+                               (spans["size"][1] - spans["size"][0] + 1),
+            "boundary_pairs": len(contract["boundary_pairs"]), "directions": len(contract["directions"]),
+            "renamed_and_moved": True}
 
 
 def cases(contract):
@@ -86,7 +96,9 @@ def audit(directory):
     contract = json.loads((FIXTURE / "contract.json").read_text())
     pairs = cases(contract)
     result = json.loads((directory / "result.json").read_text())
-    require(result["passed"] is True and result["source_bindings"] == bindings(), "translation inputs changed")
+    require(result["schema"] == "fr-checked-translation" and result["passed"] is True and
+            result["source_bindings"] == bindings(), "translation inputs changed")
+    require(result["coverage"] == coverage(contract), "translation coverage changed")
     require(result["input_pairs"] == [list(pair) for pair in pairs], "declared inputs were omitted or changed")
     require(result["live_model_calls"] == 0 and result["runtime_benchmark"] is False, "unsupported comparison claim")
     answer = expected(pairs)
@@ -118,7 +130,8 @@ def collect(binary, directory):
     pairs = cases(contract)
     data = "".join(f"{items} {size}\n" for items, size in pairs).encode()
     answer = expected(pairs)
-    result = {"passed": False, "source_bindings": bindings(), "input_pairs": pairs,
+    result = {"schema": "fr-checked-translation", "passed": False, "source_bindings": bindings(), "input_pairs": pairs,
+              "coverage": coverage(contract),
               "live_model_calls": 0, "runtime_benchmark": False, "translations": [],
               "scope": contract["scope"], "trusted": ["fr translation and parser", "rustc with overflow checks",
                   "Python integer arithmetic and interpreter", "collector and retained-output audit"]}

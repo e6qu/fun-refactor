@@ -103,14 +103,35 @@ def validate(example, report, executions, program, relative):
             start, end = span["start"], span["end"]
             selected = program.encode()[start:end].decode()
             require(occurrence["path"] == relative and selected, "effect location escapes the selected source")
+            for edge, offset in (("start", start), ("end", end)):
+                prefix = program.encode()[:offset].decode()
+                wanted = {"line": prefix.count("\n") + 1, "col": len(prefix.rsplit("\n", 1)[-1]) + 1}
+                require(occurrence["location"]["range"][edge] == wanted, "effect line or column disagrees with source bytes")
             if fragment in selected:
                 located = True
         require(located, "unchecked effect points at the wrong source construct")
+    if example["id"].startswith("explicit-"):
+        raises = [node for graph in report["control_flow"].values() for node in graph["nodes"]
+                  if node["operation"] == "raise"]
+        require(len(raises) == 1 and raises[0]["origins"]["status"] == "exact", "explicit raise lacks an exact location")
+        occurrence = raises[0]["origins"]["occurrence"]
+        span = occurrence["location"]["span"]
+        require(occurrence["path"] == relative and
+                program.encode()[span["start"]:span["end"]].decode() == "raise ValueError(value)",
+                "explicit raise points at the wrong source")
+
+
+def coverage():
+    return {"examples": len(EXAMPLES), "renamed_and_moved_cases": len(EXAMPLES) * 2,
+            "runtime_executions": len(EXAMPLES) * 4, "runtime_inputs": [17, 31],
+            "preserves_model_runtime_difference": True}
 
 
 def audit(directory):
     result = json.loads((directory / "result.json").read_text())
-    require(result["passed"] is True and result["source_bindings"] == bindings(), "effect-check inputs changed")
+    require(result["schema"] == "fr-python-effects" and result["passed"] is True and
+            result["source_bindings"] == bindings(), "effect-check inputs changed")
+    require(result["coverage"] == coverage(), "effect coverage changed")
     require(len(result["cases"]) == len(EXAMPLES) * 2 and result["live_model_calls"] == 0, "effect cases are missing")
     expected = {(example["id"], renamed) for example in EXAMPLES for renamed in (False, True)}
     require({(row["id"], row["renamed_and_moved"]) for row in result["cases"]} == expected, "effect case identities changed")
@@ -136,7 +157,8 @@ def collect(binary, directory):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "collect Python effects on GitHub")
     binary, directory = binary.resolve(), directory.resolve()
     directory.mkdir(parents=True, exist_ok=False)
-    result = {"passed": False, "source_bindings": bindings(), "cases": [], "live_model_calls": 0,
+    result = {"schema": "fr-python-effects", "passed": False, "source_bindings": bindings(),
+              "coverage": coverage(), "cases": [], "live_model_calls": 0,
               "scope": "Known scalar examples, including visible model/runtime disagreement; not complete exception or shared-heap support."}
     try:
         for example in EXAMPLES:

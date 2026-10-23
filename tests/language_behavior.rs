@@ -83,7 +83,12 @@ fn saved_flow_cannot_turn_a_scalar_answer_into_an_exception_safety_claim() {
     let digest = hex::encode(Sha256::digest(&encoded));
     std::fs::write(&saved, encoded).unwrap();
     let mut reuse = arguments.to_vec();
-    reuse.extend(["--reuse", saved.to_str().unwrap(), "--reuse-digest", &digest]);
+    reuse.extend([
+        "--reuse",
+        saved.to_str().unwrap(),
+        "--reuse-digest",
+        &digest,
+    ]);
     let current = run(&reuse);
     assert!(current.status.success(), "{current:?}");
     report["runtime_effects"]["exception_safety_established"] = serde_json::json!(true);

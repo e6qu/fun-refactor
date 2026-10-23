@@ -4,7 +4,12 @@ use super::*;
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     pub(super) fn effect_limit(&mut self, node: Node<'t>, kind: &str, reason: &str) {
         let occurrence = self.occurrence(node, "unchecked-effect");
-        let key = format!("{}:{kind}", occurrence.id);
+        let key = (
+            occurrence.path.clone(),
+            occurrence.location.span.start,
+            occurrence.location.span.end,
+            kind.to_owned(),
+        );
         self.effect_limits
             .entry(key)
             .or_insert_with(|| json!({"kind":kind,"reason":reason,"occurrence":occurrence}));

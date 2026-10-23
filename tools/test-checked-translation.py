@@ -40,7 +40,8 @@ class Arithmetic(unittest.TestCase):
                      "translated_answers": answer.name, "commands": commands.name,
                      "files": {answer.name: translation.digest(answer), commands.name: translation.digest(commands)}}
                     for direction in contract["directions"] for renamed in (False, True)]
-            result = {"passed": True, "source_bindings": {}, "input_pairs": pairs, "live_model_calls": 0,
+            result = {"schema": "fr-checked-translation", "passed": True, "source_bindings": {},
+                      "coverage": translation.coverage(contract), "input_pairs": pairs, "live_model_calls": 0,
                       "runtime_benchmark": False, "translations": rows}
             report = directory / "result.json"
             report.write_text(json.dumps(result))

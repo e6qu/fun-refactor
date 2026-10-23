@@ -18,7 +18,8 @@ class Effects(unittest.TestCase):
         report = {"complete": True, "witnesses": [{}], "runtime_effects": {
             "exception_safety_established": False, "shared_mutable_values_supported": False},
             "effect_limits": [{"kind": "implicit-exception", "occurrence": {"path": "subject.py",
-                "location": {"span": {"start": start, "end": start + 6}}}}]}
+                "location": {"span": {"start": start, "end": start + 6},
+                    "range": {"start": {"line": 4, "col": 5}, "end": {"line": 4, "col": 11}}}}}]}
         execution = [{"sent": [], "raised": "ZeroDivisionError"}] * 2
         return example, program, report, execution
 

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def workspace(tmp_path):
-    (tmp_path / "subject.py").write_text("def entry():\n    return send(read_user() // 2)\n")
+    (tmp_path / "subject.py").write_text("def entry():\n    return send((read_user() // 2) % 7)\n")
     rules = tmp_path / "rules.json"
     rules.write_text(json.dumps({"version": "effects", "sources": ["read_user"], "sinks": ["send"],
                                  "propagators": [], "sanitizers": {}}))
@@ -34,7 +34,7 @@ def test_typed_effect_sites_rebind_to_the_current_revision_when_a_saved_answer_i
     effects = first.runtime_effects
     assert not effects.exception_safety_established
     assert not effects.shared_mutable_values_supported
-    assert len(effects.sites) == 1 and effects.sites[0].kind == "implicit-exception"
+    assert len(effects.sites) == 2 and all(site.kind == "implicit-exception" for site in effects.sites)
     assert effects.sites[0].occurrence.path == "subject.py"
     (tmp_path / "unrelated.py").write_text("def other():\n    return 0\n")
     reused = analyze(client, rules, cache)
@@ -42,6 +42,8 @@ def test_typed_effect_sites_rebind_to_the_current_revision_when_a_saved_answer_i
     current = reused.runtime_effects.sites[0].occurrence
     assert current.revision != effects.sites[0].occurrence.revision
     assert current.revision == reused.report.at("/revision")
+    clean = analyze(client, rules, FlowCache(MemoryObjectStore()))
+    assert reused.runtime_effects == clean.runtime_effects
 
 
 @pytest.mark.parametrize("change", ["safety", "missing", "omitted", "outside", "duplicate"])
