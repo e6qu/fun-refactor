@@ -48,6 +48,11 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
+After changing the checker or Python client, also refresh the report for finding affected code and delivering a checked repair.
+That report lives outside the general analysis and proof refresh groups.
+Run the hosted `project-change-consumer-scope` group; it updates the test and both guide links after the new report passes.
+For example, new Python support must expire a report from the previous checker, even when the example repair still works.
+
 ## Next: choose a project change that exposes a remaining Python gap
 
 PR #569 completed the scripted agent-comparison preparation. Live attempts still need agreed models, settings and spending limits.
