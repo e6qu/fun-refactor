@@ -166,20 +166,20 @@
       "sha256": "5cfa02049809d93a98d9415e4865c9b8e52e5bf9df523bb694168fa2731b644d"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-23-pr571-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-checked-translation/result.json",
+      "sha256": "50846ec40a21ed46d74a069fc93ea53d9d5b8f1de68fc8872c085a9f15e934d9",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "efbad448b10b831d5fe4143416052b193d48aef887bf589c6775e4c0503e98c5"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-pr573-checked-translation"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-23-pr571-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-effects/result.json",
+      "sha256": "81f583beb06540a005f42f5676d19dd3087a420253fa5dfb384f6bd0c848194c",
       "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
-      "sha256": "e4b7b87953a488fa74692c5d9538871b8b9acc3ca59e93f3d6a09ea3b319c36e"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-effects"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-23-pr571-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -188,6 +188,14 @@
       "path": "tests/agent-eval/results/2026-10-23-pr571-release-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
       "sha256": "b7e0f3ac14a469c357aeb97f168a773a8209916f09cea2ea037cc0eff1be51f5"
+    },
+    {
+      "id": "python-text-flow",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-flow/result.json",
+      "sha256": "ee5b04f63727d18fb13c2ffe9c76982c0b22ac28d9387b9bb4ef102a198fa4a5",
+      "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow"
     }
   ],
   "obligations": [
@@ -394,29 +402,29 @@
       "next": "Keep unchecked runtime effects visible at exact source locations. Supporting handlers and shared mutable objects still needs language rules and independent project examples.",
       "requires": [
         {
+          "evidence": "python-effects",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9,
-              "pointer": "/coverage/examples"
+              "pointer": "/coverage/examples",
+              "equals": 9
             },
             {
-              "equals": 18,
-              "pointer": "/coverage/renamed_and_moved_cases"
+              "pointer": "/coverage/renamed_and_moved_cases",
+              "equals": 18
             },
             {
-              "equals": 36,
-              "pointer": "/coverage/runtime_executions"
+              "pointer": "/coverage/runtime_executions",
+              "equals": 36
             },
             {
-              "equals": true,
-              "pointer": "/coverage/preserves_model_runtime_difference"
+              "pointer": "/coverage/preserves_model_runtime_difference",
+              "equals": true
             }
-          ],
-          "evidence": "python-effects"
+          ]
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -592,29 +600,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
+          "evidence": "checked-translation",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9030,
-              "pointer": "/coverage/exhaustive_pairs"
+              "pointer": "/coverage/exhaustive_pairs",
+              "equals": 9030
             },
             {
-              "equals": 11,
-              "pointer": "/coverage/boundary_pairs"
+              "pointer": "/coverage/boundary_pairs",
+              "equals": 11
             },
             {
-              "equals": 2,
-              "pointer": "/coverage/directions"
+              "pointer": "/coverage/directions",
+              "equals": 2
             },
             {
-              "equals": true,
-              "pointer": "/coverage/renamed_and_moved"
+              "pointer": "/coverage/renamed_and_moved",
+              "equals": true
             }
-          ],
-          "evidence": "checked-translation"
+          ]
         }
       ],
       "title": "Translate a function without changing its promised behavior"
