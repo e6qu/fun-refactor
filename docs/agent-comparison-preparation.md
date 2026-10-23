@@ -110,14 +110,13 @@ This avoids loading an unused installer and trying to download packages inside t
 The control requires skill discovery to work and rejects generated package manifests or installed modules.
 The schedule retains these runtime settings for every setup. They are preparation choices, not a measured performance advantage.
 
-The native controls ask one server one question at a time.
-They explicitly select CodeGraph's [direct server mode](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/index.ts) with `CODEGRAPH_NO_DAEMON=1`.
-`CODEGRAPH_QUERY_POOL_SIZE=0` runs the query in that server instead of starting a separate query worker.
-All three applications receive these same settings before startup; the real MCP query must still succeed.
-The separate tool control above continues to test the detached daemon and its complete shutdown.
-OpenCode with CodeGraph's daemon exceeded the shared 512 MiB cap during preparation.
-Garbage-collection hints did not resolve it. That configuration remains unqualified under this cap; the control does not raise it.
-Agree the actual live-attempt mode and include its costs before comparing agent performance.
+Native clients use `/home/control` as their isolated home, allowing Codex to create its required helper aliases outside temporary directories.
+The image installs bubblewrap, Codex's Linux sandbox dependency.
+CodeGraph retains its daemon and one query worker in these controls.
+The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
+This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
+The initial OpenCode and CodeGraph setup exceeded the shared 512 MiB cap; garbage-collection hints did not resolve it.
+Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.

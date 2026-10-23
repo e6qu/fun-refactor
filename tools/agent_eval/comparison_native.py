@@ -36,7 +36,7 @@ def trace(stage):
             processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"]),
                               "rss_kib": int(fields.get("VmRSS", "0 kB").split()[0]),
                               "command": (status.parent / "cmdline").read_bytes()[:160].replace(b"\0", b" ").decode(errors="replace")})
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             continue
     print(json.dumps({"stage": stage, "processes": processes}), file=sys.stderr, flush=True)
 
@@ -240,16 +240,16 @@ def probe(host, setup):
     require(available == ({setup} if setup != "files" else set()), "specialized executable leaked into a setup")
     require({n for n in HOSTS if shutil.which(n)} == {host}, "wrong native application installed")
     Path("app.py").write_text("def normalize_total(value):\n    return max(value, 0)\n\ndef checkout(value):\n    return normalize_total(value)\n")
-    env = {"PATH": os.environ["PATH"], "HOME": "/tmp/home", "LANG": "C.UTF-8", **WORKERS,
-        "CODEX_HOME": "/tmp/home/.codex", "CLAUDE_CONFIG_DIR": "/tmp/home/.claude",
-        "XDG_CONFIG_HOME": "/tmp/home/.config", "XDG_DATA_HOME": "/tmp/home/.local/share",
-        "XDG_CACHE_HOME": "/tmp/home/.cache", "XDG_STATE_HOME": "/tmp/home/.local/state",
+    env = {"PATH": os.environ["PATH"], "HOME": "/home/control", "LANG": "C.UTF-8", **WORKERS,
+        "CODEX_HOME": "/home/control/.codex", "CLAUDE_CONFIG_DIR": "/home/control/.claude",
+        "XDG_CONFIG_HOME": "/home/control/.config", "XDG_DATA_HOME": "/home/control/.local/share",
+        "XDG_CACHE_HOME": "/home/control/.cache", "XDG_STATE_HOME": "/home/control/.local/state",
         "FR_REHEARSAL_KEY": "scripted-no-live-credential", "CI": "true", "DISABLE_AUTOUPDATER": "1",
         "DISABLE_TELEMETRY": "1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"}
     for name in ("AUTOUPDATE", "CLAUDE_CODE", "MODELS_FETCH", "LSP_DOWNLOAD", "DEFAULT_PLUGINS"):
         env["OPENCODE_DISABLE_" + name] = "1"
     for folder in (".codex", ".claude", ".config/opencode", ".local/share", ".cache", ".local/state"):
-        Path("/tmp/home", folder).mkdir(parents=True, exist_ok=True)
+        Path("/home/control", folder).mkdir(parents=True, exist_ok=True)
     identity = json.loads(Path("/opt/client/identity.json").read_text())
     version = command([host, "--version"], env)
     require(identity["version"] in version["stdout"], "native release differs from its frozen version")
@@ -260,7 +260,7 @@ def probe(host, setup):
     if host == "opencode":
         # The pinned client otherwise loads npm's installer to scaffold an unused plugin SDK.
         # Its supported read-only-config path skips installation while retaining skill discovery.
-        for folder in (Path("/tmp/home/.config/opencode"), Path("/workspace/.opencode")):
+        for folder in (Path("/home/control/.config/opencode"), Path("/workspace/.opencode")):
             folder.mkdir(exist_ok=True)
             folder.chmod(0o555)
             require(not os.access(folder, os.W_OK), "OpenCode configuration must be read-only")
@@ -284,7 +284,7 @@ def probe(host, setup):
             discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
             require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
             result = command(launch_command(host, setup, config), env)
-            for folder in (Path("/tmp/home/.config/opencode"), Path("/workspace/.opencode")):
+            for folder in (Path("/home/control/.config/opencode"), Path("/workspace/.opencode")):
                 require(not any((folder / name).exists() for name in ("node_modules", "package.json", "package-lock.json")),
                         "OpenCode attempted plugin SDK scaffolding")
         require(not errors, "; ".join(errors))

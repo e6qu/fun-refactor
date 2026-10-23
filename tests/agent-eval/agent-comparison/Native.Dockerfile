@@ -1,5 +1,5 @@
 FROM python:3.14-slim-bookworm
-RUN apt-get update && apt-get install --yes --no-install-recommends git ca-certificates ripgrep \
+RUN apt-get update && apt-get install --yes --no-install-recommends git ca-certificates ripgrep bubblewrap \
     && rm -rf /var/lib/apt/lists/*
 COPY tool /opt/tool
 COPY client /opt/client
