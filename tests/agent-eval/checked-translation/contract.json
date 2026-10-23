@@ -1,0 +1,28 @@
+{
+  "purpose": "Count pages without losing items or dividing by an invalid page size.",
+  "function": "page_count",
+  "parameters": ["items", "size"],
+  "integers": "Both inputs and the result are signed 64-bit integers. Python receives ordinary int values in that range; bool and other Python objects are outside this contract.",
+  "valid_result": "For items >= 0 and size > 0, return the least nonnegative integer p such that p * size >= items. The mathematical specification uses unbounded integers.",
+  "invalid_result": "Return -1 when items < 0 or size <= 0. Do not divide or calculate a remainder on those paths.",
+  "evaluation": "Evaluate the invalid-input guard left to right with short circuiting. On valid inputs, evaluate the quotient, then the remainder, then the selected return. Arguments have no side effects.",
+  "overflow": "The quotient is at most items. A nonzero remainder implies size >= 2 and quotient < items, so adding one is within i64. The implementation never calculates items + size - 1 or p * size in i64.",
+  "errors": "The function returns the invalid-input sentinel rather than raising or panicking. There are no other errors within the declared input and resource assumptions.",
+  "exhaustive": {"items": [-2, 255], "size": [-2, 32]},
+  "boundary_pairs": [
+    [-9223372036854775808, 1],
+    [9223372036854775807, 0],
+    [9223372036854775807, -9223372036854775808],
+    [0, 9223372036854775807],
+    [1, 9223372036854775807],
+    [9223372036854775807, 1],
+    [9223372036854775807, 2],
+    [9223372036854775807, 3],
+    [9223372036854775806, 3],
+    [9223372036854775807, 9223372036854775807],
+    [9223372036854775806, 9223372036854775807]
+  ],
+  "directions": ["rust-to-python", "python-to-rust"],
+  "generalization": "Repeat both directions after renaming the function and moving its source. No repository identity or function name may select translation semantics.",
+  "scope": "An independently checked bounded translation example, not a proof of arbitrary programs, complete language equivalence or a runtime benchmark. The Rust and Python implementations are authored development examples, not unfamiliar repositories."
+}
