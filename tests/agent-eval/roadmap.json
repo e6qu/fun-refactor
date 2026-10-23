@@ -70,28 +70,28 @@
       "sha256": "85e4163be5d35120f41f34a0b545f196eb9cf86b9a0e82283d5329055b603dbf"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "sha256": "ae36031d04737b0dc91469d75377db238e0305e78cd42c610ff4060484f2eff7"
+      "sha256": "1834df190662f33189f8cec074f2ac2c357a1af66ececcbaa0b310de67db39db"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-release-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "fb08c1f7c4aa9bf868b87071780210e645f3f5602f8b06e52af94081fe4495ac"
+      "sha256": "84c5dd4403e00fdacde93e2c7cb6fbbd791d7fa1083f43938547562ca71de79d"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions.",
-      "sha256": "1188d11a9ce602e57f35b8743252c29aed91c094f4d3729fa0ac923ac84555cd"
+      "sha256": "eded08c36aba45c28f94d328510bda09676cca700056d233aeb8ef0619c3d687"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",

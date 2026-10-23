@@ -1,0 +1,76 @@
+{
+  "schema": "fr-host-recovery-acceptance-1",
+  "source_bindings": {
+    "tools/host-recovery-acceptance.py": "9c6f55bfce6a6c532946556bc2cf78e359197f0462eb3abab345ad32c9b4ea79",
+    "tools/evidence_basis.py": "9ea1b27410e70c355088530c07b52795b481a11ee2eca57d76b47a347f68bda6",
+    "tests/host_recovery.rs": "0d77977acb8197453e834c6b6f3c91100feb0efadda859847c5f6ef2482f3992",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/history/host.rs": "531271f88fee6251671ac472a44815967a2625036b0e39843fc838114c9d89a9",
+    "src/history/host/tests.rs": "34d885ad96ad601db38a1a09bc0d79b8c744d3dfbe2ff5c0e4d47026f45f05a5",
+    "src/history/failure.rs": "cff93ca07a547c2c1120ef1ba165048210e8a18f024e67aa1221f7d36195f8ba",
+    "src/cli.rs": "ec49dc3b46d212f7937590b6b11a67fd2b91d4b9e9ab2db83dce8bcbe5f0bd55",
+    "src/transaction_kernel.rs": "594f9c99dbfe3bc75e803e12f96e59d74042cf4bb33a978e759a894342d58e67",
+    "tests/lean_kernels.rs": "5db221495bbe84218fda47988d5bbe39ec22313f0f162767f17555285c47c420",
+    "tools/lean-guard.py": "6d1f352815a9a6282dd05c952707a63839cd48655f522b1a59fc36d168ead403",
+    "tools/lean-resources.sh": "2b8dd9f9c84fae0520926d50318adeaa851b2a3ea7a1e9b6ab93dcc9e5fa8946",
+    "kernels/FrKernels/HostRecovery.lean": "79f7f2762e634cfe40c5f9e713791d94303f46adacf71c20a4b2d5cba9d0d783",
+    "kernels/FrKernels/EditPlan.lean": "003514abcf9602abfa6adb053fd0b8697816a097eccee232ead069971fdd94e3",
+    "kernels/HistoryMain.lean": "fd2c999e5ed7605820515f7429edcae0c844df303e313c283382abdd6608f539",
+    "tests/agent-eval/host-recovery/task.json": "5b1a81ed5490b2daf561e1c79ac340bb6a7aef322f4b5884cc0d030e6e5628c6",
+    "tests/agent-eval/host-recovery/baseline.json": "b8188bd929b7680cc114c6dbd3348102717d5851d8288865485115e2c9e1f290"
+  },
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "baseline": {
+    "revision": "06ff94aae5870be331cd6f4a4346637b620a714a",
+    "command": "cargo test --lib history:: -- --test-threads 2",
+    "passed": 22,
+    "failed": 0,
+    "seconds": 6.26,
+    "coverage": "Existing post-publication faults only; staging, journal writes and synchronization do not have injection boundaries.",
+    "gap": "Staged files are renamed without checking their content and kind against the reviewed snapshot. Recovery clears pending state without rechecking and syncing paths it found already restored."
+  },
+  "boundaries": {
+    "handled": 430,
+    "process-exit": 430
+  },
+  "model_cases": 224,
+  "runs": [
+    {
+      "arguments": [
+        "cargo",
+        "test",
+        "--lib",
+        "history::host::tests::",
+        "--",
+        "--test-threads",
+        "1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "seconds": 66.25056534800001,
+      "output": "    Updating crates.io index\n   Compiling tree-sitter-language v0.1.8 (/home/runner/work/fun-refactor/fun-refactor/crates/tree-sitter-language)\n   Compiling autocfg v1.5.1\n   Compiling libc v0.2.189\n   Compiling num-traits v0.2.19\n   Compiling syn v2.0.119\n   Compiling aho-corasick v1.1.5\n   Compiling regex-automata v0.4.18\n   Compiling toml_edit v0.25.15+spec-1.1.0\n   Compiling rstest_macros v0.27.0\n   Compiling bstr v1.13.1\n   Compiling predicates-core v1.0.10\n   Compiling proc-macro-crate v3.5.0\n   Compiling float-cmp v0.10.0\n   Compiling tree-sitter v0.27.0\n   Compiling tracing-attributes v0.1.31\n   Compiling regex v1.13.1\n   Compiling fun-refactor-zig-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/zig)\n   Compiling fun-refactor-scss-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/scss)\n   Compiling fun-refactor-python-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/python)\n   Compiling fun-refactor-go-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/go)\n   Compiling fun-refactor-typescript-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/typescript)\n   Compiling fun-refactor-sass-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/sass)\n   Compiling fun-refactor-lean-grammar v0.81.2 (/home/runner/work/fun-refactor/fun-refactor/grammars/lean)\n   Compiling assert_cmd v2.2.2\n   Compiling futures-core v0.3.34\n   Compiling normalize-line-endings v0.3.0\n   Compiling relative-path v1.9.3\n   Compiling glob v0.3.4\n   Compiling termtree v0.5.1\n   Compiling difflib v0.4.0\n   Compiling futures-task v0.3.34\n   Compiling futures-util v0.3.34\n   Compiling predicates v3.1.4\n   Compiling predicates-tree v1.0.13\n   Compiling tree-sitter-xml v0.7.0\n   Compiling tree-sitter-css v0.25.0\n   Compiling tree-sitter-rust v0.24.2\n   Compiling tree-sitter-bash v0.25.1\n   Compiling tree-sitter-yaml v0.7.2\n   Compiling tree-sitter-java v0.23.5\n   Compiling tree-sitter-hcl v1.1.0\n   Compiling tree-sitter-md-025 v0.5.6\n   Compiling tree-sitter-json v0.24.8\n   Compiling tree-sitter-html v0.23.2\n   Compiling tracing v0.1.44\n   Compiling getrandom v0.4.3\n   Compiling fun-refactor v0.81.2 (/home/runner/work/fun-refactor/fun-refactor)\n   Compiling globset v0.4.20\n   Compiling wait-timeout v0.2.1\n   Compiling futures-timer v3.0.4\n   Compiling tempfile v3.27.0\n   Compiling tracing-subscriber v0.3.23\n   Compiling ignore v0.4.33\n   Compiling rstest v0.27.0\n    Finished `test` profile [unoptimized] target(s) in 54.65s\n     Running unittests src/lib.rs (target/debug/deps/fun_refactor-17017243480a0bb4)\n\nrunning 7 tests\ntest history::host::tests::already_restored_recovery_syncs_parents_before_clearing_pending ... ok\ntest history::host::tests::altered_staged_bytes_modes_and_kinds_never_reach_targets ... ok\ntest history::host::tests::altered_staged_symlink_refuses_and_rolls_back_prior_writes ... ok\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk ... host-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Recover boundaries: 94\nhost-recovery handled boundaries: 430\nok\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk ... host-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Recover boundaries: 94\nhost-recovery process-exit boundaries: 430\nok\ntest history::host::tests::recovery_rechecks_paths_already_restored_before_clearing_pending ... ok\ntest history::host::tests::rollback_failure_retains_both_errors_and_can_resume ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 458 filtered out; finished in 11.57s\n\n"
+    },
+    {
+      "arguments": [
+        "cargo",
+        "test",
+        "--test",
+        "lean_kernels",
+        "host_recovery_decisions",
+        "--",
+        "--test-threads",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 100.61531413199998,
+      "output": "   Compiling fun-refactor v0.81.2 (/home/runner/work/fun-refactor/fun-refactor)\n    Finished `test` profile [unoptimized] target(s) in 41.14s\n     Running tests/lean_kernels.rs (target/debug/deps/lean_kernels-0a80add39aaf1435)\n\nrunning 1 test\ntest host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 101 filtered out; finished in 59.45s\n\n"
+    }
+  ],
+  "claims": {
+    "process_interruption": true,
+    "power_loss": false,
+    "source_correspondence_proved": false,
+    "live_agent_trial": false
+  }
+}
