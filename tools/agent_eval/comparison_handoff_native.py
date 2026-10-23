@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import time
 
 import comparison_native as native
 import comparison_handoff_actions as actions
@@ -39,7 +40,23 @@ def probe(host, setup):
     try:
         result["discovery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "discover"), scenario["prompts"]["discover"])
         result["handoff"] = Path("HANDOFF.md").read_text()
+        if setup == "codegraph":
+            state = json.loads((actions.ARTIFACTS / "discovery.json").read_text())
+            pid = state["codegraph_daemon_pid"]
+            deadline = time.monotonic() + 5
+            while True:
+                try:
+                    status = Path(f"/proc/{pid}/stat").read_text().split(") ", 1)[1].split()[0]
+                except FileNotFoundError:
+                    break
+                if status == "Z":
+                    break
+                require(time.monotonic() < deadline, "unused CodeGraph daemon did not stop before the pause")
+                time.sleep(0.05)
+            result["codegraph_pause"] = {"daemon_pid": pid, "idle_shutdown_before_edit": True}
         result["intervention"] = actions.intervene(scenario)
+        if setup == "codegraph":
+            result["codegraph_resume_sync"] = native.command(["codegraph", "sync", "/workspace", "--quiet"], env)
         result["delivery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "deliver"), scenario["prompts"]["deliver"])
         result["checks"] = json.loads((actions.ARTIFACTS / "delivery.json").read_text())
         result["stale_refusal"] = json.loads((actions.ARTIFACTS / "stale-refusal.json").read_text())
@@ -56,7 +73,7 @@ def probe(host, setup):
         raise
     finally:
         (native.DIAGNOSTICS / "handoff-summary.json").write_text(json.dumps({key: result[key] for key in (
-            "task", "host", "setup", "passed", "error", "checks", "intervention") if key in result}) + "\n")
+            "task", "host", "setup", "passed", "error", "checks", "intervention", "codegraph_pause") if key in result}) + "\n")
         (native.DIAGNOSTICS / "handoff-result.json").write_text(json.dumps(result, ensure_ascii=False) + "\n")
 
 

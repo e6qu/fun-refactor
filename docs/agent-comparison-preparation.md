@@ -114,7 +114,7 @@ The schedule retains these runtime settings for every setup. They are preparatio
 Native clients use `/home/control` as their isolated home, allowing Codex to create its required helper aliases outside temporary directories.
 The image installs bubblewrap, Codex's Linux sandbox dependency.
 Codex plugins are explicitly disabled; these controls need the installed skill and declared tools.
-CodeGraph retains its daemon and liveness watchdogs in these controls. Its project path is explicit.
+CodeGraph uses its daemon and liveness watchdogs in these controls. Its project path is explicit.
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
 The [serial query path](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/query-pool.ts) avoids an additional query worker and database connection for these single-query controls.
@@ -122,6 +122,12 @@ OpenCode explicitly uses its [ripgrep search backend](https://github.com/anomaly
 This avoids initializing its optional native file-finder index alongside CodeGraph's index. The same ordinary search and editing tools remain available in every setup.
 The resumed regex pair previously reached the shared 512 MiB cap; heap tuning alone did not resolve it.
 Native allocations, temporary filesystem contents and every watchdog still count toward the unchanged cap.
+The complete-task controls close the unused daemon between application phases, using its explicit one-second idle setting.
+They require it to stop before the external source edit, then run `codegraph sync /workspace --quiet` before starting the next application.
+This releases the old phase's in-memory index and avoids overlapping source synchronization with a fresh application startup.
+The saved project and index remain on disk. Synchronization, shutdown and cold startup all count toward the same attempt budget.
+These controls test resumption after process cleanup; they do not measure keeping a warm daemon across the pause.
+The separate tool-only control retains the default linger so it can demonstrate that a detached daemon outlives its client and still belongs to the container budget.
 Diagnostics distinguish anonymous memory from filesystem-backed memory, and the workflow runs the larger OpenCode tasks first.
 Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
@@ -158,7 +164,7 @@ Escaping turns punctuation such as `.` into `\.` so a regular expression treats 
 The repair must still provide the requested byte-length APIs and reserve enough space for the escaped output.
 
 1. Start the application with the discovery prompt. Inspect the assigned code and save `HANDOFF.md` plus a reviewed, unapplied repair.
-2. Let that application process exit. Rename the local variable and record the new source as the delivery starting point.
+2. Let that application process exit and require CodeGraph's unused daemon to stop. Rename the local variable and record the new source as the delivery starting point.
 3. Start a fresh application process with the delivery prompt. Verify the handoff, refuse the old edit without changing source, and review the current implementation.
 4. Apply the refreshed repair, undo it exactly to the intervening source, then redo it exactly. Export only the repair as `change.patch`.
 5. Remove the application container and require complete process cleanup. Apply the patch in a separate checkout containing the same intervening rename.

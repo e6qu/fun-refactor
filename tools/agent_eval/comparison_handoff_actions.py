@@ -109,7 +109,7 @@ def discover(scenario, setup):
     handoff = ("# Prescribed task handoff\n\n" + scenario["diagnosis"] + "\n\n" +
                "Sources inspected: " + ", ".join(scenario["paths"]) + "\n\n" +
                "A repair was reviewed but has not been applied. Read current source before resuming.\n\n" +
-               "Upstream tests have not run in this container. Independent grading is still pending.\n")
+               "The project's tests have not run in this container. Independent grading is still pending.\n")
     Path("HANDOFF.md").write_text(handoff)
     if setup == "fr":
         saved = review(scenario["original_edits"], "old")
@@ -121,6 +121,11 @@ def discover(scenario, setup):
     require(snapshot() == before, "discovery changed tracked source")
     state = {"before": before, "handoff_sha256": hashlib.sha256(handoff.encode()).hexdigest(), "saved": saved,
              "old_review_accepted": True}
+    if setup == "codegraph":
+        daemon = json.loads(Path(".codegraph/daemon.pid").read_text())
+        require(daemon["version"] == "1.6.2", "unexpected CodeGraph daemon version")
+        require(b"codegraph" in Path(f"/proc/{daemon['pid']}/cmdline").read_bytes(), "daemon PID does not identify CodeGraph")
+        state["codegraph_daemon_pid"] = daemon["pid"]
     write("discovery.json", state)
     print(json.dumps({"status": "DISCOVER_OK", "source": fingerprint(before), "paths": scenario["paths"],
                       "reviewed_not_applied": True, "upstream_checks": "pending"}))

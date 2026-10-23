@@ -64,6 +64,7 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Isolated tools and complete shutdown (${{ matrix.setup }})
+    needs: preparation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -136,6 +137,7 @@ jobs:
           if-no-files-found: error
   native:
     name: Native application and assigned tools (${{ matrix.host }})
+    needs: preparation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -212,6 +214,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
   grading:
+    needs: preparation
     name: Independent comparison grading (${{ matrix.task }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
