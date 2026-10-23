@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import sys
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 import urllib.error
 import urllib.request
 
@@ -87,7 +87,7 @@ class ScriptedProvider(unittest.TestCase):
         steps = [{"kind": "mcp", "name": "mcp__codegraph__codegraph_explore", "arguments": {}, "expected": ["first result"]},
                  {"kind": "command", "name": "Bash", "arguments": {"command": "true"}, "expected": ["second result"]}]
         messages = []
-        with patch.object(native, "trace"), patch.object(native, "Path", return_value=Mock()), \
+        with patch.object(native, "trace"), patch.object(native, "DIAGNOSTICS", MagicMock()), \
              native.provider("claude", "codegraph", steps) as (endpoint, requests, errors):
             def request():
                 data = {"model": MODEL, "tools": [{"name": step["name"]} for step in steps], "messages": messages}

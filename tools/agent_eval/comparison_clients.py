@@ -83,7 +83,7 @@ def launch_command(host, setup, config, prompt):
             "--verbose", "--model", config["model"], "--max-turns", str(config["max_turns"]),
             "--no-session-persistence", "--setting-sources", "project", "--settings", json.dumps(config["settings"]),
             "--tools", ",".join(config["tools"]), "--allowedTools", *allowed,
-            "--strict-mcp-config", "--mcp-config", "/workspace/mcp.json"]
+            "--strict-mcp-config", "--mcp-config", "/tmp/control/mcp.json"]
 
 
 def inputs(root):

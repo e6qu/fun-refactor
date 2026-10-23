@@ -50,9 +50,9 @@ def probe(host, setup):
         result["error"] = type(error).__name__ + ": " + str(error)[:4096]
         raise
     finally:
-        Path("handoff-summary.json").write_text(json.dumps({key: result[key] for key in (
+        (native.DIAGNOSTICS / "handoff-summary.json").write_text(json.dumps({key: result[key] for key in (
             "task", "host", "setup", "passed", "error", "checks", "intervention") if key in result}) + "\n")
-        Path("handoff-result.json").write_text(json.dumps(result, ensure_ascii=False) + "\n")
+        (native.DIAGNOSTICS / "handoff-result.json").write_text(json.dumps(result, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":

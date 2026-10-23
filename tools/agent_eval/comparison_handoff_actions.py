@@ -95,18 +95,21 @@ def discover(scenario, setup):
     before = snapshot()
     for path in scenario["paths"]:
         require(Path(path).is_file(), "task source is missing")
-    if setup == "fr":
-        saved = review(scenario["original_edits"], "old")
-    else:
-        (ARTIFACTS / "old.patch").write_text(patch(scenario["original_edits"]))
-        saved = None
-    require(snapshot() == before, "discovery changed tracked source")
     handoff = ("# Prescribed task handoff\n\n" + scenario["diagnosis"] + "\n\n" +
                "Sources inspected: " + ", ".join(scenario["paths"]) + "\n\n" +
                "A repair was reviewed but has not been applied. Read current source before resuming.\n\n" +
                "Upstream tests have not run in this container. Independent grading is still pending.\n")
     Path("HANDOFF.md").write_text(handoff)
-    state = {"before": before, "handoff_sha256": hashlib.sha256(handoff.encode()).hexdigest(), "saved": saved}
+    if setup == "fr":
+        saved = review(scenario["original_edits"], "old")
+        fr("history", "apply", str(saved["transaction"]))
+    else:
+        (ARTIFACTS / "old.patch").write_text(patch(scenario["original_edits"]))
+        git("apply", "--check", str(ARTIFACTS / "old.patch"))
+        saved = None
+    require(snapshot() == before, "discovery changed tracked source")
+    state = {"before": before, "handoff_sha256": hashlib.sha256(handoff.encode()).hexdigest(), "saved": saved,
+             "old_review_accepted": True}
     write("discovery.json", state)
     print(json.dumps({"status": "DISCOVER_OK", "source": fingerprint(before), "paths": scenario["paths"],
                       "reviewed_not_applied": True, "upstream_checks": "pending"}))
@@ -170,6 +173,8 @@ def deliver(scenario, setup):
     require(snapshot() == changed and changed != before, "redo did not restore the changed source exactly")
     require(sorted(path for path in before if before[path] != changed[path]) == scenario["paths"], "repair changed an unexpected path")
     require(scenario["preserved_name"] in Path(scenario["intervention"]["path"]).read_text(), "repair overwrote the intervening change")
+    require(scenario["resumed_edits"][0]["new"] in Path(scenario["intervention"]["path"]).read_text(),
+            "the delivered function differs from the prescribed current-source repair")
     git("diff", "--check")
     data = git("diff", "--binary")
     require(0 < len(data) <= 256 * 1024, "invalid delivered patch size")

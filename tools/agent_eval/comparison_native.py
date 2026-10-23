@@ -15,6 +15,7 @@ import time
 from agent_eval.comparison_clients import CONTROL_PROMPT, HOSTS, MODEL, SETUPS, WORKERS, launch_command, native_config, require
 
 CAP = 1024**2
+DIAGNOSTICS = Path("/tmp/control")
 QUERY = {"query": "normalize_total", "maxFiles": 2, "projectPath": "/workspace"}
 READ = "python3 -c 'from pathlib import Path; print(\"app.py\"); print(Path(\"app.py\").read_text())'"
 FIND = "fr --json project find normalize_total --signature"
@@ -45,8 +46,8 @@ def command(argv, env):
     trace("before " + " ".join(argv[:2]))
     result = subprocess.run(argv, cwd="/workspace", env=env, capture_output=True, timeout=60)
     trace("after " + " ".join(argv[:2]))
-    Path("/workspace/native.stdout").write_bytes(result.stdout[:CAP])
-    Path("/workspace/native.stderr").write_bytes(result.stderr[:CAP])
+    (DIAGNOSTICS / "native.stdout").write_bytes(result.stdout[:CAP])
+    (DIAGNOSTICS / "native.stderr").write_bytes(result.stderr[:CAP])
     require(len(result.stdout) + len(result.stderr) <= CAP, "native output exceeds 1 MiB")
     require(result.returncode == 0, f"{argv!r}: {result.returncode}: " +
             result.stdout[-4096:].decode(errors="replace") + result.stderr[-4096:].decode(errors="replace"))
@@ -163,11 +164,11 @@ def provider(host, setup, steps):
     try:
         yield "http://127.0.0.1:" + str(server.server_port), requests, errors
     finally:
-        Path("/workspace/provider-summary.json").write_text(json.dumps({"errors": errors, "requests": [
+        (DIAGNOSTICS / "provider-summary.json").write_text(json.dumps({"errors": errors, "requests": [
             {"path": r["path"], "model": r["body"].get("model"),
              "tools": [t.get("name") if host == "claude" else t.get("function", {}).get("name")
                        for t in r["body"].get("tools", [])]} for r in requests]}) + "\n")
-        Path("/workspace/provider.json").write_text(json.dumps({"requests": requests, "errors": errors}) + "\n")
+        (DIAGNOSTICS / "provider.json").write_text(json.dumps({"requests": requests, "errors": errors}) + "\n")
         server.shutdown()
         server.server_close()
         worker.join(timeout=2)
@@ -176,7 +177,7 @@ def provider(host, setup, steps):
 def codex(config, env, setup, steps, prompt):
     Path(env["CODEX_HOME"], "config.toml").write_text("\n".join(k + " = " + toml(v) for k, v in config.items()) + "\n")
     transcript = []
-    with Path("/workspace/native.stderr").open("wb") as stderr:
+    with (DIAGNOSTICS / "native.stderr").open("wb") as stderr:
         process = subprocess.Popen(launch_command("codex", setup, config, prompt), cwd="/workspace", env=env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr)
         selector = selectors.DefaultSelector()
@@ -249,6 +250,7 @@ def codex(config, env, setup, steps, prompt):
 
 
 def prepare(host, setup):
+    DIAGNOSTICS.mkdir(exist_ok=True)
     # A CPU quota throttles time but leaves the runner's cores visible to worker pools.
     os.sched_setaffinity(0, {min(os.sched_getaffinity(0))})
     available = {n for n in ("fr", "codegraph") if shutil.which(n)}
@@ -286,13 +288,13 @@ def prepare(host, setup):
 def exercise(host, setup, env, steps, prompt):
     with provider(host, setup, steps) as (endpoint, requests, errors):
         config = native_config(host, setup, endpoint)
-        Path("native-config.json").write_text(json.dumps(config, indent=2) + "\n")
+        (DIAGNOSTICS / "native-config.json").write_text(json.dumps(config, indent=2) + "\n")
         if host == "codex":
             result = codex(config, env, setup, steps, prompt)
             require(not requests, "Codex contacted the scripted inference endpoint")
         elif host == "claude":
             env.update(ANTHROPIC_BASE_URL=endpoint, ANTHROPIC_API_KEY="scripted-no-live-credential")
-            Path("mcp.json").write_text(json.dumps(config["mcp"]))
+            (DIAGNOSTICS / "mcp.json").write_text(json.dumps(config["mcp"]))
             result = command(launch_command(host, setup, config, prompt), env)
             events = [json.loads(line) for line in result["stdout"].splitlines() if line.strip()]
             initial, = [row for row in events if row.get("type") == "system" and row.get("subtype") == "init"]

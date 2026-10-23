@@ -60,6 +60,7 @@ def receiver(task, recipe, patch, output):
     after = BASE.snapshot(project)
     require(sorted(path for path in before if before[path] != after[path]) == recipe["paths"], "receiver patch changed unexpected paths")
     require(recipe["preserved_name"] in source.read_text(), "receiver patch lost the intervening edit")
+    require(recipe["resumed_edits"][0]["new"] in source.read_text(), "receiver function lost the prescribed current-source repair")
     result = grade(project, task)
     write(output / "grade.json", result)
     require(result["passed"], "delivered repair failed independent upstream or behavior checks")

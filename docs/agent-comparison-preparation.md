@@ -157,6 +157,9 @@ The repair must still provide the requested byte-length APIs and reserve enough 
 4. Apply the refreshed repair, undo it exactly to the intervening source, then redo it exactly. Export only the repair as `change.patch`.
 5. Remove the application container and require complete process cleanup. Apply the patch in a separate checkout containing the same intervening rename.
 
+Before pausing, the old review must pass a preview or patch check without applying it.
+Control logs stay outside the project, so writing diagnostics cannot make that review stale.
+
 The fr setup uses current declaration handles, saved authoring plans and history apply, undo and redo commands.
 The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
 CodeGraph must answer the assigned function query through the application's actual tool connection in both phases.
