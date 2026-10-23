@@ -11,7 +11,8 @@ Finding the calculation is only part of that outcome.
 
 `fr` can find functions and callers, preview edits, run declared checks, undo changes and resume saved work.
 Selected Rust and Python project changes pass behavior checks and patch replay in another checkout.
-Some Python input-to-output questions work through real package imports; broader imports, exceptions and shared mutable values remain incomplete.
+Selected number, date and text questions work through original Python package imports.
+Broader imports, exceptions and shared mutable values remain incomplete.
 
 We have not demonstrated general time or cost savings for agents.
 The [complete session comparison](docs/project-session-cost.md) measures direct CLI calls, restarted Python clients and Python clients kept running across questions.
@@ -19,6 +20,7 @@ It also compares saving and validating answers with asking again. Read its inclu
 
 The [status report](docs/roadmap-status.md) owns current test counts and completion claims.
 Milestone C, correct resumption and reuse, meets its stated requirements. A, B and D remain open.
+The four-package check meets the specific project-tracing requirement; milestone B still needs broader reusable language rules.
 The [product review](docs/product-review.md) explains the evidence and agent integration gaps.
 
 ## Next three PRs

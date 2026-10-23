@@ -251,7 +251,7 @@ def markdown(report):
         '## What works and what still gets in the way', '',
         '| User task | What we have now | What remains |', '|---|---|---|',
         '| Find the code behind a bug | Function locations, known callers and selected source reads | Reliable explanations on unfamiliar tasks with less wasted reading |',
-        '| Trace input to an output | Selected original-package questions in Boltons, dateutil and JDcal, plus small Python examples | Other imports and unsupported behavior still leave many answers incomplete |',
+        '| Trace input to an output | Selected original-package questions in Boltons, dateutil, JDcal and Stringcase, including number, date and text values | Other imports and unsupported behavior still leave many answers incomplete |',
         f'| Continue after a failed attempt | {resumed_work} | {resuming_remaining} |',
         f'| Deliver a repair or check a property | {delivered_changes} | Independent agent task success and a checked connection between proofs and actual code |', '',
         '**We have not demonstrated general time or cost savings.** The older two-task comparison '
