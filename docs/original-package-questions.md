@@ -147,7 +147,7 @@ We chose the question and expected results from the README before opening implem
 After fixing the checker and procedure, its first evaluation passed.
 That same executable also passed the earlier Boltons, dateutil and JDcal questions, which are familiar projects now.
 The [current record](../tests/agent-eval/results/2026-10-24-pr573-python-text-package/result.json)
-retains all four questions, renamed and moved callers, unknown-call refusals, exhausted budgets and saved-answer controls.
+retains all four questions, renamed and moved callers, unfinished answers for unknown calls and exhausted limits, and checks on saved answers.
 
 The reserved question allows at most 16 Python modules and 256 KiB of source.
 A module is Python code loaded by an import; one KiB means 1,024 bytes.
