@@ -100,7 +100,7 @@ unused formal parameters and retained source anchors. Direct-edit boundaries are
 
 ## Consumer scope and delivery
 
-The [consumer-scope evaluation](../tests/agent-eval/results/2026-10-23-pr571-consumer-scope-change-scope/manifest.json)
+The [consumer-scope evaluation](../tests/agent-eval/results/2026-10-23-pr571-release-change-scope/manifest.json)
 pins a four-file Python caller chain. Independent inspection of the parsed syntax tree and native discovery agree on all
 three direct call sites. Both prescribed editing arms repair subtotal and add the API fee, then
 pass 147 public results plus the discovered test. Separate receivers apply, reverse and reapply
