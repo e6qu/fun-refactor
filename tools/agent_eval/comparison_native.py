@@ -290,7 +290,7 @@ def prepare(host, setup):
     return env, identity, version
 
 
-def exercise(host, setup, env, steps, prompt):
+def exercise(host, setup, env, steps, prompt, inspect_opencode_skills):
     with provider(host, setup, steps) as (endpoint, requests, errors):
         config = native_config(host, setup, endpoint)
         (DIAGNOSTICS / "native-config.json").write_text(json.dumps(config, indent=2) + "\n")
@@ -306,8 +306,9 @@ def exercise(host, setup, env, steps, prompt):
             require(("fr" in initial.get("slash_commands", [])) == (setup == "fr"), "wrong Claude skill availability")
         else:
             env.update(OPENCODE_CONFIG_CONTENT=json.dumps(config))
-            discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
-            require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
+            if inspect_opencode_skills:
+                discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
+                require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
             result = command(launch_command(host, setup, config, prompt), env)
             for folder in (Path("/home/control/.config/opencode"), Path("/workspace/.opencode")):
                 require(not any((folder / name).exists() for name in ("node_modules", "package.json", "package-lock.json")),
@@ -316,13 +317,14 @@ def exercise(host, setup, env, steps, prompt):
         if host != "codex":
             route = "/v1/messages" if host == "claude" else "/v1/chat/completions"
             require(len([r for r in requests if r["path"].split("?")[0] == route]) == len(steps) + 1, "scripted tool loop did not complete")
-        return {"prompt": prompt, "config": config, "result": result, "provider_requests": requests}
+        return {"prompt": prompt, "config": config, "result": result, "provider_requests": requests,
+                "opencode_skill_list_checked": host == "opencode" and inspect_opencode_skills}
 
 
 def probe(host, setup):
     Path("app.py").write_text("def normalize_total(value):\n    return max(value, 0)\n\ndef checkout(value):\n    return normalize_total(value)\n")
     env, identity, version = prepare(host, setup)
-    result = exercise(host, setup, env, control_steps(host, setup), CONTROL_PROMPT)
+    result = exercise(host, setup, env, control_steps(host, setup), CONTROL_PROMPT, True)
     return {"host": host, "setup": setup, "client_release": identity, "version": version, **result,
                 "cpu_affinity": sorted(os.sched_getaffinity(0)),
                 "live_model_calls": 0, "scope": "Scripted native integration control; not agent adoption, performance or billing evidence."}

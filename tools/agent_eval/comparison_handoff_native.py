@@ -40,7 +40,7 @@ def probe(host, setup):
               "version": version, "live_model_calls": 0, "passed": False,
               "scope": "Prescribed complete-project repair and handoff; no autonomous agent, adoption, cost or unfamiliar-task claim."}
     try:
-        result["discovery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "discover"), scenario["prompts"]["discover"])
+        result["discovery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "discover"), scenario["prompts"]["discover"], False)
         result["handoff"] = Path("HANDOFF.md").read_text()
         if setup == "codegraph":
             state = json.loads((actions.ARTIFACTS / "discovery.json").read_text())
@@ -61,7 +61,7 @@ def probe(host, setup):
         result["intervention"] = actions.intervene(scenario)
         if setup == "codegraph":
             result["codegraph_resume_sync"] = native.command(["codegraph", "sync", "/workspace", "--quiet"], env)
-        result["delivery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "deliver"), scenario["prompts"]["deliver"])
+        result["delivery"] = native.exercise(host, setup, dict(env), steps(host, setup, scenario, "deliver"), scenario["prompts"]["deliver"], False)
         result["checks"] = json.loads((actions.ARTIFACTS / "delivery.json").read_text())
         result["stale_refusal"] = json.loads((actions.ARTIFACTS / "stale-refusal.json").read_text())
         if setup == "fr":

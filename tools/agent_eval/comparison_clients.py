@@ -92,6 +92,7 @@ def inputs(root):
     tasks = json.loads((root / "tests/agent-eval/unknown-target/task.json").read_text())["tasks"]
     result = {"live_calls_enabled": False, "ordinary_operations": list(ORDINARY), "cpu_affinity_count": 1,
               "worker_environment": dict(WORKERS), "handoff_fr_max_file_bytes": FR_SOURCE_BYTES,
+              "opencode_skill_list_check": "Dedicated native setup controls; not repeated before each complete-task phase.",
               "readonly_opencode_configuration": ["/home/control/.config/opencode", "/workspace/.opencode"],
               "rehearsal_model": MODEL, "applications": {}, "commands": {}, "tasks": {}}
     for host in HOSTS:

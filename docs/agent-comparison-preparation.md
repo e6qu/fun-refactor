@@ -82,6 +82,9 @@ They must not be presented as complete live-attempt costs.
 
 The same workflow now exercises three fresh containers per application: ordinary tools, fr, and CodeGraph.
 Only the assigned specialized executable is installed. The fr skill is installed only in the fr setup.
+These setup controls check OpenCode's installed-skill list with `opencode debug skill`.
+Complete-task controls use the same pinned application, installed instructions and configuration, and avoid launching OpenCode again solely to repeat that list before each phase.
+Claude Code's startup event and Codex's existing app-server session already report discovery without an extra application launch; those checks remain in each process.
 For example, Claude Code receives the same ordinary read, edit and shell tools in every setup;
 the CodeGraph setup also connects its real MCP server. A scripted response asks the application to query the fixture.
 The next provider request must contain the successful tool result. Errors and missing tools fail the control.
