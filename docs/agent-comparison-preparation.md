@@ -118,7 +118,7 @@ CodeGraph retains its daemon and liveness watchdogs in these controls. Its proje
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
 The initial OpenCode and CodeGraph setup exceeded the shared 512 MiB cap; garbage-collection hints did not resolve it.
-The complete regex task also reached that cap with a separate query worker; the serial query path removes that unnecessary process without increasing memory or time limits.
+The complete regex task also reached that cap with a separate query worker; the [serial query path](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/query-pool.ts) avoids that worker and its database connection without increasing memory or time limits.
 Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
