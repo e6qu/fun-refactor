@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-23-pr571-ci-checked-outcomes",
+        "tests/agent-eval/results/2026-10-24-pr573-ci-checked-outcomes",
     ]);
 }
 
@@ -133,7 +133,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-23-pr571-ci-project-batch-context/result.json",
+        "tests/agent-eval/results/2026-10-24-pr573-ci-project-batch-context/result.json",
     ]);
 }
 
@@ -215,7 +215,7 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-23-pr571-ci-workflow-context/result.json",
+        "tests/agent-eval/results/2026-10-24-pr573-ci-workflow-context/result.json",
     ]);
 }
 
@@ -231,7 +231,7 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
     python(&[
         "tools/task-bundle-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-23-pr571-ci-task-bundle-context/result.json",
+        "tests/agent-eval/results/2026-10-24-pr573-ci-task-bundle-context/result.json",
     ]);
 }
 #[test]
