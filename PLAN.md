@@ -70,7 +70,7 @@ It also located unchecked Python exceptions and shared-object operations, includ
 The [complete example](docs/check-language-behavior.md) explains the inputs, independent checks and remaining limits.
 Next, follow customer text through conversions and read-only string methods, including helper returns and reassignment.
 Check ordinary Python outcomes and the original package imports. Stringcase's README supplied a reserved lowercase question before implementation.
-Its implementation stays unread until the checker and test procedure are fixed.
+Freeze the checker and test procedure before reading its implementation.
 Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
 Full exception and shared-object analysis remain open work in this delivery package.
 

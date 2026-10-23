@@ -146,8 +146,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
         }
         let mut values = Vec::new();
+        let mut plain_strings = Vec::new();
         for leaf in leaves {
             values.push(self.expression(leaf, state));
+            plain_strings.push(self.plain_string(leaf, state));
             if !self.normal {
                 return;
             }
@@ -161,7 +163,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 name.clone(),
                 self.extend(values[index].clone(), target, "definition"),
             );
-            state.defined.insert(name);
+            state.defined.insert(name.clone());
+            if plain_strings[index] { state.plain_strings.insert(name); }
+            else { state.plain_strings.remove(&name); }
         }
     }
 }

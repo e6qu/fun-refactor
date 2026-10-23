@@ -14,12 +14,18 @@ pub(super) fn members(module: &str) -> Option<&'static [&'static str]> {
             "abs",
             "int",
             "float",
+            "str",
             "bool",
             "round",
             "min",
             "max",
             "ValueError",
             "TypeError",
+        ],
+        "re" => &[
+            "compile", "escape", "sub", "subn", "split", "findall", "finditer", "match", "fullmatch", "search",
+            "Pattern", "Match", "RegexFlag", "PatternError", "error", "purge",
+            "ASCII", "IGNORECASE", "MULTILINE", "DOTALL", "VERBOSE", "NOFLAG", "UNICODE", "LOCALE",
         ],
         "math" => &[
             "ceil", "floor", "trunc", "sqrt", "fabs", "isfinite", "isinf", "isnan", "inf", "nan",
@@ -85,7 +91,8 @@ pub(super) fn contract(selected: &BTreeSet<String>) -> Result<Value> {
         "runtime":"CPython 3.14.8",
         "namespace_digest":hex::encode(Sha256::digest(STANDARD_MODULES.as_bytes())),
         "imports":"Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.",
-        "calls":"Scalar abs/int/float/bool/round and multi-argument min/max; ValueError/TypeError construction in raise; math scalar functions and datetime.date. Other calls remain unchecked.",
+        "calls":"Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.",
+        "string_methods":if selected.contains("builtins") {super::text_values::contract()} else {Value::Null},
         "boundary":"Standard CPython library and builtins, scalar arguments and immutable dates; no replacement import hooks, monkey patching, overloaded protocols or implicit exception model."}),
     )
 }
@@ -124,7 +131,7 @@ pub(super) fn arity(name: &str) -> Option<(usize, usize)> {
     Some(match name {
         "abs" | "math.ceil" | "math.floor" | "math.trunc" | "math.sqrt" | "math.fabs"
         | "math.isfinite" | "math.isinf" | "math.isnan" => (1, 1),
-        "int" | "float" | "bool" => (0, 1),
+        "int" | "float" | "str" | "bool" => (0, 1),
         "round" => (1, 2),
         "min" | "max" => (2, 128),
         "datetime.date" => (3, 3),

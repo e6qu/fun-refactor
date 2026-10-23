@@ -17,6 +17,8 @@ struct Summary {
     exceptional_returns: Flow,
     sinks: BTreeMap<String, SinkFlow>,
     normal_return: bool,
+    #[serde(skip)]
+    plain_string_return: bool,
     may_raise: bool,
     callees: BTreeSet<String>,
     evaluations: usize,
@@ -32,6 +34,9 @@ pub(super) struct Solver {
 }
 
 impl Solver {
+    pub(super) fn returns_plain_string(&self, name: &str) -> bool {
+        self.table.get(name).is_some_and(|summary| summary.normal_return && summary.plain_string_return)
+    }
     pub fn new(enabled: bool) -> Self {
         Self {
             enabled,
@@ -196,6 +201,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     })
                     .collect();
                 self.normal_return = false;
+                self.return_text = None;
                 self.may_raise = false;
                 self.exceptional_returns.clear();
                 self.sink_flows.clear();
@@ -219,6 +225,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 changed |= add_sinks(&mut summary.sinks, std::mem::take(&mut self.sink_flows));
                 changed |= (self.normal_return && !summary.normal_return)
                     || (self.may_raise && !summary.may_raise);
+                if self.normal_return {
+                    let plain = self.return_text == Some(true)
+                        && (!summary.normal_return || summary.plain_string_return);
+                    changed |= plain != summary.plain_string_return;
+                    summary.plain_string_return = plain;
+                }
                 summary.normal_return |= self.normal_return;
                 summary.may_raise |= self.may_raise;
             }

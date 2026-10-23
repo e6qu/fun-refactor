@@ -34,6 +34,11 @@ fn effect_locations_and_model_limits_match_independent_python_executions() {
 }
 
 #[test]
+fn plain_text_matches_python_and_unknown_receivers_stay_incomplete() {
+    collect("tools/python-text-flow.py");
+}
+
+#[test]
 fn saved_flow_cannot_turn_a_scalar_answer_into_an_exception_safety_claim() {
     let directory = tempfile::tempdir().unwrap();
     let project = directory.path().join("project");
