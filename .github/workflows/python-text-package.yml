@@ -1,5 +1,8 @@
 name: Check the reserved Python text package
 on:
+  push:
+    branches: [feat/python-package-questions]
+    paths: [.github/workflows/python-text-package.yml]
   workflow_dispatch:
     inputs:
       coverage_run:
@@ -21,8 +24,19 @@ concurrency:
   group: python-text-package-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  procedure:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-python-text-flow.py
+      - run: python3 -B -m py_compile tools/python-text-package.py
   question:
-    if: inputs.collection_run == '0'
+    if: github.event_name == 'workflow_dispatch' && inputs.collection_run == '0'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -56,7 +70,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   retain:
-    if: inputs.collection_run != '0' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.collection_run != '0' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
