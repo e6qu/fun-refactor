@@ -12,21 +12,14 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39680136839",
-      "changed_sources": [
-        ".github/workflows/saved-answer-improvement.yml",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/flow.py",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "src/transpile/write.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-23-distinct-answers-39986199537",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json",
-      "scope": "Previous and current SDK storage sessions on three familiar projects. The direct CLI/Python comparison has a separate current record."
+      "path": "tests/agent-eval/results/2026-10-23-distinct-answers-39986199537/result.json",
+      "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-flow-facts/result.json",
@@ -79,15 +72,13 @@
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-structural-change",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-release-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-23-pr571-release-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
@@ -267,15 +258,13 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39976119637",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39986174778",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39976119637/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39986174778/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
@@ -337,16 +326,14 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [
-        "C.performance"
-      ],
-      "state": "open",
+      "remaining": [],
+      "state": "complete",
       "total": 4
     },
     "D": {
@@ -364,7 +351,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 0,
+  "milestones_complete": 1,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -695,9 +682,7 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [
-        "current-saved-work-cost: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -740,7 +725,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
