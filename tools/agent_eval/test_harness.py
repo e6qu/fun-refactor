@@ -345,7 +345,7 @@ class ProjectBatchAgentEvidence(unittest.TestCase):
 
 class TaskChangeEvidence(unittest.TestCase):
     def test_retained_comparison_is_bound_and_equivalent(self):
-        path = TOOLS.parent / "tests/agent-eval/results/2026-10-20-project-ci-task-change-context/result.json"
+        path = TOOLS.parent / "tests/agent-eval/results/2026-10-23-pr571-ci-task-change-context/result.json"
         report = task_change_measurement.audit(path)
         self.assertEqual(report["summary"]["composed"]["calls"], 5)
         self.assertEqual(report["summary"]["task_change"]["calls"], 2)
