@@ -1,4 +1,4 @@
-# Check what a translation and a value trace actually promise
+# Check a translation and understand a value trace
 
 Suppose a service has 11 items and puts five on each page. It needs three pages.
 A helper moved from Rust to Python must still return three, reject an invalid page size, and handle large counts without rounding through a floating-point number.
@@ -12,6 +12,7 @@ A behavior contract states the inputs a function accepts, the result it promises
 We committed the [chosen contract](../tests/agent-eval/checked-translation/contract.json) before collecting results or changing translation support.
 Both inputs are signed 64-bit integers: whole numbers from -9,223,372,036,854,775,808 through 9,223,372,036,854,775,807.
 The Python inputs are ordinary `int` values in that range. Objects with custom arithmetic and Python's `bool` type are outside this contract.
+The quotient counts full pages. The remainder counts items left after those pages.
 
 The function promises:
 
@@ -32,6 +33,7 @@ fr --json -C /path/to/scratch translate pages.rs python --out pages.py
 The preview describes the proposed edit and leaves `pages.py` unwritten.
 After reviewing it, run the same command with `--write` to create the file.
 For the other direction, start with the Python file in another scratch directory and name `rust` as the target.
+A signature describes a function's name, named inputs and returned value type.
 The translation report counts supported signatures and anything carried into the output without a translation.
 A clean report alone does not check the generated program's behavior.
 
