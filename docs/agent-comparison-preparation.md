@@ -117,12 +117,11 @@ Codex plugins are explicitly disabled; these controls need the installed skill a
 CodeGraph retains its daemon and liveness watchdogs in these controls. Its project path is explicit.
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
-The initial OpenCode and CodeGraph setup exceeded the shared 512 MiB cap; garbage-collection hints did not resolve it.
-The complete regex task also reached that cap with a separate query worker; the [serial query path](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/query-pool.ts) avoids that worker and its database connection without increasing memory or time limits.
-That change alone was insufficient: the daemon retained about 199 MiB while OpenCode grew beyond 320 MiB during resumption.
-Limiting Node's JavaScript heap alone did not keep the resumed pair below the cap.
-The Bun applications receive `BUN_OPTIONS=--smol`, its [documented low-memory runtime mode for standalone executables](https://bun.com/docs/bundler/executables#runtime-arguments-via-bun-options).
-This trades execution speed for more frequent collection of unused memory. Native allocations, temporary filesystem contents and every watchdog still count toward the unchanged shared cap.
+The [serial query path](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/query-pool.ts) avoids an additional query worker and database connection for these single-query controls.
+OpenCode explicitly uses its [ripgrep search backend](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core/src/filesystem/search.ts) through `OPENCODE_DISABLE_FFF=1`.
+This avoids initializing its optional native file-finder index alongside CodeGraph's index. The same ordinary search and editing tools remain available in every setup.
+The resumed regex pair previously reached the shared 512 MiB cap; heap tuning alone did not resolve it.
+Native allocations, temporary filesystem contents and every watchdog still count toward the unchanged cap.
 Diagnostics distinguish anonymous memory from filesystem-backed memory, and the workflow runs the larger OpenCode tasks first.
 Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
