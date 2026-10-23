@@ -112,6 +112,7 @@ The schedule retains these runtime settings for every setup. They are preparatio
 
 Native clients use `/home/control` as their isolated home, allowing Codex to create its required helper aliases outside temporary directories.
 The image installs bubblewrap, Codex's Linux sandbox dependency.
+Codex plugins are explicitly disabled; these controls need the installed skill and declared tools.
 CodeGraph retains its daemon and one query worker in these controls.
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.

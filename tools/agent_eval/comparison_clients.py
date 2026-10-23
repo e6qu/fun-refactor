@@ -34,6 +34,7 @@ def native_config(host, setup, endpoint):
     if host == "codex":
         return {"model": MODEL, "model_provider": "rehearsal", "model_reasoning_effort": "low",
                 "service_tier": "default", "approval_policy": "never", "sandbox_mode": "workspace-write",
+                "features": {"plugins": False},
                 "web_search": "disabled", "model_providers": {"rehearsal": {
                     "name": "Scripted control only", "base_url": endpoint + "/v1", "wire_api": "responses",
                     "env_key": "FR_REHEARSAL_KEY", "requires_openai_auth": False}},
