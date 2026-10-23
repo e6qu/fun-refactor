@@ -30,6 +30,10 @@ def scenario(task, project):
     intervention = {"path": first["path"], "old": first["old"], "new": first["old"].replace(old_name, new_name)}
     target = project / first["path"]
     before = target.read_bytes()
+    text = before.decode()
+    require(text.count(first["old"]) == 1, "the selected function must occur exactly once")
+    start = text[:text.index(first["old"])].count("\n") + 1
+    end = start + first["old"].count("\n")
     try:
         target.write_text(before.decode().replace(intervention["old"], intervention["new"], 1))
         current = edits(task, project)
@@ -37,6 +41,8 @@ def scenario(task, project):
         target.write_bytes(before)
     requirement = json.loads((ROOT / "tests/agent-eval/unknown-target/task.json").read_text())["tasks"][task]["requirement"]
     return {"task": task, "symbol": "sorensen_dice" if task == "unicode-dice" else "escape",
+            "codegraph_query": f"{first['path']}:{start}-{end}", "definition_path": first["path"],
+            "query_variable": {"discover": old_name + " =", "deliver": new_name + " ="},
             "paths": sorted(BASE.edit_paths(task)), "prompts": prompts(requirement), "original_edits": original,
             "resumed_edits": current, "intervention": intervention, "preserved_name": new_name,
             "diagnosis": "Count Unicode scalars consistently for both inputs." if task == "unicode-dice" else

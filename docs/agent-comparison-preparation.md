@@ -188,7 +188,11 @@ The regex workspace includes larger generated Unicode tables and parser files; p
 Those larger files stay in the complete checkout and in the independent tests, but are outside this control's fr analysis coverage.
 This does not establish complete caller discovery or whole-workspace analysis within ten seconds.
 The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
-CodeGraph must answer the assigned function query through the application's actual tool connection in both phases.
+CodeGraph must return the selected function through the application's actual tool connection in both phases.
+The trusted recipe supplies its file and line range: `src/lib.rs:10-20`, for example, means lines 10 through 20 of that file.
+The request returns at most one source file, avoiding a broad graph-context search for a location the control already knows.
+Each response must contain the function declaration and the expected local-variable assignment; the resumed response must show the maintainer's new name.
+This checks selected-source freshness and tool wiring. Finding an unknown repair location remains part of the live comparison.
 The check does not establish that every CodeGraph finding is current after arbitrary source changes.
 
 The application runs `git diff --check`, which checks patch whitespace, and reports upstream tests as pending.

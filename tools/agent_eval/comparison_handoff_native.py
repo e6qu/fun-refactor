@@ -17,8 +17,8 @@ def steps(host, setup, scenario, phase):
     result = []
     if setup == "codegraph":
         result.append({"kind": "mcp", "name": "mcp__codegraph__codegraph_explore" if host == "claude" else "codegraph_codegraph_explore",
-                       "arguments": {"query": scenario["symbol"], "maxFiles": 2, "projectPath": "/workspace"},
-                       "expected": [scenario["symbol"], "src/lib.rs"]})
+                       "arguments": {"query": scenario["codegraph_query"], "maxFiles": 1, "projectPath": "/workspace"},
+                       "expected": ["fn " + scenario["symbol"], scenario["definition_path"], scenario["query_variable"][phase]]})
     result.append({"kind": "command", "name": "Bash" if host == "claude" else "bash",
                    "arguments": {"command": f"python3 /probe/comparison_handoff_actions.py {phase} --setup {setup}",
                                  "description": f"Run the prescribed {phase} control on current task source"},
