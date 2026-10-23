@@ -122,8 +122,8 @@ OpenCode explicitly uses its [ripgrep search backend](https://github.com/anomaly
 This avoids initializing its optional native file-finder index alongside CodeGraph's index. The same ordinary search and editing tools remain available in every setup.
 The resumed regex pair previously reached the shared 512 MiB cap; heap tuning alone did not resolve it.
 Native allocations, temporary filesystem contents and every watchdog still count toward the unchanged cap.
-The complete-task controls close the unused daemon between application phases, using its explicit one-second idle setting.
-They require it to stop before the external source edit, then run `codegraph sync /workspace --quiet` before starting the next application.
+The complete-task controls close the unused daemon between application phases with its supported graceful-shutdown signal, `SIGTERM`.
+They verify its identity and require it to exit within five seconds before the external source edit, then run `codegraph sync /workspace --quiet` before starting the next application.
 This releases the old phase's in-memory index and avoids overlapping source synchronization with a fresh application startup.
 The saved project and index remain on disk. Synchronization, shutdown and cold startup all count toward the same attempt budget.
 These controls test resumption after process cleanup; they do not measure keeping a warm daemon across the pause.

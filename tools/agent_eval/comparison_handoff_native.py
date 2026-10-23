@@ -2,8 +2,10 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
+import signal
 import time
 
 import comparison_native as native
@@ -43,6 +45,8 @@ def probe(host, setup):
         if setup == "codegraph":
             state = json.loads((actions.ARTIFACTS / "discovery.json").read_text())
             pid = state["codegraph_daemon_pid"]
+            require(b"codegraph" in Path(f"/proc/{pid}/cmdline").read_bytes(), "daemon identity changed before shutdown")
+            os.kill(pid, signal.SIGTERM)
             deadline = time.monotonic() + 5
             while True:
                 try:
@@ -51,9 +55,9 @@ def probe(host, setup):
                     break
                 if status == "Z":
                     break
-                require(time.monotonic() < deadline, "unused CodeGraph daemon did not stop before the pause")
+                require(time.monotonic() < deadline, "CodeGraph daemon did not stop after graceful shutdown")
                 time.sleep(0.05)
-            result["codegraph_pause"] = {"daemon_pid": pid, "idle_shutdown_before_edit": True}
+            result["codegraph_pause"] = {"daemon_pid": pid, "signal": "SIGTERM", "shutdown_before_edit": True}
         result["intervention"] = actions.intervene(scenario)
         if setup == "codegraph":
             result["codegraph_resume_sync"] = native.command(["codegraph", "sync", "/workspace", "--quiet"], env)

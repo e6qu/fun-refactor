@@ -11,7 +11,6 @@ ORDINARY = ("read", "search", "edit", "run checks", "export a Git patch")
 FR_SOURCE_BYTES = 65536
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
            "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
-           "CODEGRAPH_DAEMON_IDLE_TIMEOUT_MS": "1000",
            "TOKIO_WORKER_THREADS": "1", "UV_THREADPOOL_SIZE": "1", "NODE_OPTIONS": "--v8-pool-size=1",
            "BUN_JSC_useJIT": "false", "OPENCODE_DISABLE_FFF": "1"}
 
