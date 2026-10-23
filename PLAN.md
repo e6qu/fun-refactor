@@ -23,7 +23,8 @@ The [product review](docs/product-review.md) explains the evidence and agent int
 
 ## Next three PRs
 
-Do these in order. Findings in PR 1 should shape the detailed tasks in PRs 2 and 3.
+The model-free preparation in PR 1 has merged. Its live comparison needs agreed models, settings and spending limits.
+Continue the language work in PR 2 while that decision remains open. Its results should shape PR 3.
 Each PR includes its implementation, independent checks, examples, limitations and tracking updates.
 These are three delivery packages, not replacements for the four milestones below.
 
@@ -63,6 +64,11 @@ The stopped studies stay stopped; this roadmap does not authorize their restart.
 
 Example: determine whether customer input reaches `send(value)` through an imported helper, including an exception or a shared list mutation.
 A shared list mutation changes an object that another name can read later.
+
+Current work checks a page-count helper in both Rust/Python directions and fixes precision loss in integer division.
+It also locates unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
+The [complete example](docs/check-language-behavior.md) explains the inputs, independent checks and remaining limits.
+Broader package imports and full exception or shared-object analysis remain separate work in this delivery package.
 
 - Handle package imports, exceptions and shared mutable values exposed by the chosen tasks.
   Use the original package imports. A copied helper in an isolated file answers a different question.
@@ -143,7 +149,7 @@ Broader caller discovery and proof invalidation also remain implementation work.
 
 - [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
 - [x] Add general language rules needed by observed structural changes.
-- [ ] Translate a function under explicit arithmetic, error and evaluation-order rules.
+- [x] Translate a function under explicit arithmetic, error and evaluation-order rules.
 - [ ] Connect proofs to an existing implementation and to a new implementation developed with its specification.
 - [ ] Retain proof inputs for edits and translations, rejecting outdated claims.
 - [x] Check small models governing edits, task transitions and interrupted-write recovery.

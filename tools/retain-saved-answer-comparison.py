@@ -4,7 +4,7 @@ import importlib.util
 import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import zipfile
 
@@ -13,7 +13,6 @@ spec = importlib.util.spec_from_file_location('comparison', ROOT / 'tools/saved-
 comparison = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(comparison)
 cost = comparison.cost
-DIRECTORY = ROOT / 'tests/agent-eval/distinct-answer-hashing-lifetime'
 BEFORE_RUN = 39612376706
 BEFORE_SOURCE = '3e4649c2286b801cf2ab0f9cd65d51a8cfd0c3f8'
 
@@ -28,7 +27,7 @@ def authenticate(run_id, expected_head):
     return run, jobs
 
 
-def retain_profile(run_id, expected_head, name):
+def retain_profile(run_id, expected_head, name, publication):
     run, jobs = authenticate(run_id, expected_head)
     rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
     artifact, = [row for row in rows if row['name'] == 'saved-answer-profile']
@@ -39,13 +38,14 @@ def retain_profile(run_id, expected_head, name):
                      'unexpected diagnostic profile')
         profile = archive.read(entry)
         cost.require(set(json.loads(profile)) == {'glob', 'boltons', 'jmespath'}, 'missing profiled answers')
-    (DIRECTORY / (name + '.zip')).write_bytes(data)
-    (DIRECTORY / (name + '.json')).write_bytes(profile)
+    (publication / (name + '.zip')).write_bytes(data)
+    (publication / (name + '.json')).write_bytes(profile)
     return {'run': run, 'jobs': jobs, 'artifact': artifact,
             'profile_sha256': hashlib.sha256(profile).hexdigest()}
 
 
-def markdown(report):
+def markdown(report, publication):
+    relative = publication.relative_to(ROOT).as_posix()
     lines = ['# Hash each distinct answer piece once', '',
         'A user asks where `glob_with` appears and which code a change could affect.',
         'The Python helper library, called the SDK, can save that answer and the inputs it depends on.',
@@ -64,6 +64,7 @@ def markdown(report):
         'The [unfixed regression run](https://github.com/e6qu/fun-refactor/actions/runs/39679273061) preserves the failures before the correction.',
         'The same JSON input still produces the same pieces and fingerprints, with the same corruption checks.', '',
         '## What is compared', '',
+        'This refresh compares complete SDK snapshots. Time changes include later SDK additions as well as hashing changes.',
         'The previous SDK is the code merged in PR #555, which already writes an answer\'s pieces together into one database.',
         'Both SDKs call the same compiled `fr` program, built with optimizations, on the same runner.',
         'This rerun includes the current release and the memory-lifetime fix. Earlier trials retain their actual source revisions.',
@@ -134,8 +135,8 @@ def markdown(report):
         'These scripted requests establish no general agent, model-token or billing savings.',
         'All projects are familiar. The original first JMESPath result remains unchanged and separately audited.',
         'The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.', '',
-        '[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-lifetime/record.json) | '
-        '[Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-lifetime/publication.json) | '
+        f'[Measurements and raw archives](../{relative}/record.json) | '
+        f'[Authenticated profiles and workflow steps](../{relative}/publication.json) | '
         '[Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | '
         '[First distinct-piece comparison](distinct-answer-hashing-first-results.md) | '
         '[Previous storage comparison](batched-answer-storage.md) | '
@@ -143,13 +144,15 @@ def markdown(report):
     return '\n'.join(lines)
 
 
-def retain_measurement(run_id):
+def retain_measurement(run_id, publication):
+    cost.require(not publication.exists(), 'preserve the completed hashing publication')
     run = cost.api(f'actions/runs/{run_id}')
     authenticate(run_id, run['head_sha'])
     rows = cost.api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
     artifact, = [row for row in rows if row['name'] == 'saved-answer-comparison']
     data = cost.artifact_bytes(artifact)
-    directory = ROOT / f'tests/agent-eval/results/2026-10-21-distinct-answers-{run_id}'
+    day = run['created_at'].split('T', 1)[0]
+    directory = ROOT / f'tests/agent-eval/results/{day}-distinct-answers-{run_id}'
     cost.require(not directory.exists(), 'preserve existing matched measurements')
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         entries = archive.infolist()
@@ -162,14 +165,25 @@ def retain_measurement(run_id):
     report = comparison.audit(directory)
     cost.require(report['source_commit'] == run['head_sha'] and report['run_id'] == run_id,
                  'measurement source differs from its producer')
-    cost.require(not DIRECTORY.exists(), 'preserve the completed hashing publication')
-    DIRECTORY.mkdir(parents=True)
+    publication.mkdir(parents=True)
     pointer = {'directory': str(directory.relative_to(ROOT)),
                'sha256': cost.file_digest(directory / 'result.json'), 'run_id': run_id}
-    cost.save(DIRECTORY / 'record.json', pointer)
-    cost.save(DIRECTORY / 'collection.json', {'run': run, 'artifact': artifact})
+    cost.save(publication / 'record.json', pointer)
+    cost.save(publication / 'collection.json', {'run': run, 'artifact': artifact})
     subprocess.run(['git', 'add', '--', str(directory.relative_to(ROOT))], cwd=ROOT, check=True)
     return pointer, report
+
+
+def previous_record(root, catalog):
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
+    path = PurePosixPath(entry['path'])
+    cost.require(not path.is_absolute() and '..' not in path.parts and str(path) == entry['path']
+                 and path.parts[:3] == ('tests', 'agent-eval', 'results'), 'unsafe current cost record')
+    cost.require(cost.file_digest(root / path) == entry['sha256'], 'previous current cost record changed')
+    value = json.loads((root / path).read_text())
+    cost.require(value['schema'] == 'fr-saved-answer-improvement' and value['passed'] is True,
+                 'expected a completed answer-storage comparison')
+    return {'path': entry['path'], 'sha256': entry['sha256']}
 
 
 def main():
@@ -178,28 +192,28 @@ def main():
                  and os.environ['GITHUB_REF'] != 'refs/heads/main', 'publish on the work branch')
     run_id = os.environ['COLLECTION_RUN']
     cost.require(run_id.isdigit() and int(run_id) > 0, 'declare the completed collection run')
-    pointer, report = retain_measurement(int(run_id))
+    publication = ROOT / f'tests/agent-eval/distinct-answer-hashing-{run_id}'
+    catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
+    catalog = json.loads(catalog_path.read_text())
+    previous = previous_record(ROOT, catalog)
+    pointer, report = retain_measurement(int(run_id), publication)
     run, jobs = authenticate(pointer['run_id'], report['source_commit'])
     names = {job['name'] for job in jobs if job['conclusion'] == 'success'}
     cost.require({'compare', 'profile', 'Original saved answer comparison'} <= names, 'incomplete comparison gate')
-    before = retain_profile(BEFORE_RUN, BEFORE_SOURCE, 'profile-before')
-    after = retain_profile(pointer['run_id'], report['source_commit'], 'profile-after')
+    before = retain_profile(BEFORE_RUN, BEFORE_SOURCE, 'profile-before', publication)
+    after = retain_profile(pointer['run_id'], report['source_commit'], 'profile-after', publication)
     subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', BEFORE_SOURCE], check=True)
     subprocess.run(['git', 'diff', '--exit-code', comparison.BASELINE,
                     BEFORE_SOURCE, '--', 'sdk/python/src', 'tools/profile-saved-answers.py'], check=True)
-    cost.save(DIRECTORY / 'publication.json', {'collection_run': run, 'jobs': jobs,
+    cost.save(publication / 'publication.json', {'collection_run': run, 'jobs': jobs, 'previous_current_record': previous,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
-    catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
-    catalog = json.loads(catalog_path.read_text())
-    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
-    cost.require(entry['path'] == 'tests/agent-eval/results/2026-10-21-distinct-answers-39670459804/result.json',
-                 'review the previous current cost record before replacing its selection')
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
     entry.update(path=pointer['directory'] + '/result.json', sha256=pointer['sha256'],
                  audit='python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],
-                 scope='Matched complete sessions before and after hashing distinct pieces once on three familiar projects. '
-                       'Includes fresh baselines, full answer agreement and unchanged first-project qualification.')
+                 scope='Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. '
+                       'The direct CLI/Python comparison has its own current record.')
     cost.save(catalog_path, catalog)
-    (ROOT / 'docs/distinct-answer-hashing.md').write_text(markdown(report))
+    (ROOT / 'docs/distinct-answer-hashing.md').write_text(markdown(report, publication))
 
 
 if __name__ == '__main__':

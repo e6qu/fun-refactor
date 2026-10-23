@@ -22,6 +22,8 @@ CATALOG = Path('tests/agent-eval/roadmap.json')
 REPORT = Path('docs/roadmap-status.json')
 PAGE = Path('docs/roadmap-status.md')
 KINDS = {
+    'fr-checked-translation': 'deterministic',
+    'fr-python-effects': 'deterministic',
     'fr-flow-facts-acceptance-1': 'deterministic',
     'fr-package-flow-acceptance-1': 'deterministic',
     'fr-flow-cache-acceptance-1': 'measurement',

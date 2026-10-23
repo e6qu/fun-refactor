@@ -53,6 +53,7 @@ jobs:
           PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_object_store.py
           python3 -B tools/test-saved-work-cost.py
           python3 -B tools/test-saved-answer-comparison.py
+          python3 -B tools/test-retain-saved-answer-comparison.py
       - name: Profile the retained real answers without native rebuilds
         id: diagnostic
         run: python3 -B tools/profile-saved-answers.py --output "$RUNNER_TEMP/saved-answer-profile.json"
@@ -170,12 +171,53 @@ jobs:
           python-version: '3.14.8'
       - run: |
           python3 -B tools/test-saved-answer-comparison.py
+          python3 -B tools/test-retain-saved-answer-comparison.py
           python3 -B - <<'PY'
           import hashlib, json, subprocess
           from pathlib import Path
-          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-lifetime/record.json').read_text())
-          directory = Path(record['directory'])
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          record, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
+          directory = Path(record['path']).parent
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
+          subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
+          PY
+  lifetime:
+    name: Original comparison after releasing temporary state
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          sparse-checkout: |
+            tests/agent-eval/distinct-answer-hashing-lifetime
+            tests/agent-eval/results/2026-10-21-distinct-answers-39680136839
+      - name: Preserve the original measurement identity
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, shutil
+          from pathlib import Path
+          record = json.loads(Path('tests/agent-eval/distinct-answer-hashing-lifetime/record.json').read_text())
+          path = Path(record['directory']) / 'result.json'
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256']
+          Path(os.environ['RUNNER_TEMP'], 'lifetime-cost-sha256').write_text(record['sha256'])
+          shutil.copytree(path.parent, Path(os.environ['RUNNER_TEMP'], 'lifetime-original'))
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: 9d0f534f772b32b4ec7e2efd0c877cce1bed6c29
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit the original result beside its measured SDK
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP'], 'lifetime-original')
+          assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == Path(os.environ['RUNNER_TEMP'], 'lifetime-cost-sha256').read_text()
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)
           PY
   previous:
@@ -361,11 +403,12 @@ jobs:
       - name: Commit the results and reviewed tracking
         env:
           BRANCH: ${{ github.ref_name }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/distinct-answer-hashing.md tests/agent-eval/distinct-answer-hashing-lifetime \
+          git add docs/distinct-answer-hashing.md "tests/agent-eval/distinct-answer-hashing-$COLLECTION_RUN" \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md tools/PROSE-DEBT
           git commit -m 'docs: publish saved answer costs and reconcile current evidence'
           git push origin "HEAD:refs/heads/$BRANCH"

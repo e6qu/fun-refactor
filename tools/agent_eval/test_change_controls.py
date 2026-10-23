@@ -3,6 +3,8 @@ import ast
 import base64
 import copy
 import hashlib
+import importlib.util
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -15,6 +17,31 @@ from agent_eval.study import load
 
 ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / "tests/agent-eval/opencode/candidates"
+
+
+class ImagePreparationEvidence(unittest.TestCase):
+    def test_failed_or_stopped_pull_keeps_its_output_before_grading(self):
+        spec = importlib.util.spec_from_file_location("check_trials", ROOT / "tools/check-code-change-trials.py")
+        checker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        for exit_code, stop_reason in ((124, "wall_seconds"), (1, None), (0, "wall_seconds")):
+            with self.subTest(exit_code=exit_code, stop_reason=stop_reason), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary) / "evidence"
+                process = {"exit_code": exit_code, "stop_reason": stop_reason, "elapsed_seconds": 90.0}
+                with patch.dict("os.environ", {"GITHUB_ACTIONS": "true"}), \
+                        patch.object(sys, "argv", ["check-code-change-trials.py", "--task-pack", str(PACK),
+                            "--controls-only", "--output", str(output)]), \
+                        patch.object(checker.isolated_grade, "invoke", return_value=(process, b"layer pending", b"registry detail")) as invoke, \
+                        patch.object(checker.change_controls, "verify_sources") as verify:
+                    with self.assertRaisesRegex(ValueError, "pinned grading image unavailable:.*registry detail"):
+                        checker.main()
+                evidence = json.loads((output / "image-pull.json").read_text())
+                self.assertEqual(evidence["process"], process)
+                self.assertEqual(evidence["stdout"], "layer pending")
+                self.assertEqual(evidence["stderr"], "registry detail")
+                self.assertEqual(invoke.call_args.args[-2:], (90, 131072))
+                self.assertEqual(evidence["command"], invoke.call_args.args[0])
+                verify.assert_not_called()
 
 
 def declarations(raw):

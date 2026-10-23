@@ -19,6 +19,7 @@ The same JSON input still produces the same pieces and fingerprints, with the sa
 
 ## What is compared
 
+This refresh compares complete SDK snapshots. Time changes include later SDK additions as well as hashing changes.
 The previous SDK is the code merged in PR #555, which already writes an answer's pieces together into one database.
 Both SDKs call the same compiled `fr` program, built with optimizations, on the same runner.
 This rerun includes the current release and the memory-lifetime fix. Earlier trials retain their actual source revisions.
@@ -45,9 +46,9 @@ Builds, dependency installation and initial downloads remain separate in raw rep
 
 | Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |
 |---|---:|---:|---:|---:|---:|---:|
-| boltons | 2.948 | 2.960 | +0.4% | 2.837 | 2.807 | +5.5% |
-| glob | 1.426 | 1.311 | -8.1% | 1.088 | 1.080 | +21.3% |
-| jmespath | 1.967 | 1.800 | -8.5% | 1.437 | 1.430 | +25.8% |
+| boltons | 1.691 | 1.683 | -0.4% | 1.582 | 1.571 | +7.1% |
+| glob | 0.820 | 0.777 | -5.2% | 0.644 | 0.647 | +20.2% |
+| jmespath | 1.129 | 1.041 | -7.8% | 0.853 | 0.854 | +21.8% |
 
 Negative change means less time than the previous saved approach.
 Positive overhead means saving costs more than asking again with the current SDK.
@@ -71,12 +72,12 @@ One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
 | Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |
 |---|---:|---:|---:|---:|
-| boltons / previous | 0.288 | 2.819 | 85.4 | 208.1 |
-| boltons / current | 0.294 | 2.830 | 85.1 | 208.1 |
-| glob / previous | 0.306 | 1.311 | 49.0 | 512.1 |
-| glob / current | 0.303 | 1.198 | 51.5 | 512.1 |
-| jmespath / previous | 0.339 | 1.830 | 56.7 | 856.1 |
-| jmespath / current | 0.341 | 1.666 | 60.6 | 856.1 |
+| boltons / previous | 0.174 | 1.592 | 81.2 | 204.1 |
+| boltons / current | 0.174 | 1.588 | 81.4 | 204.1 |
+| glob / previous | 0.167 | 0.739 | 53.1 | 524.1 |
+| glob / current | 0.169 | 0.690 | 55.8 | 524.1 |
+| jmespath / previous | 0.190 | 1.036 | 58.3 | 864.1 |
+| jmespath / current | 0.192 | 0.950 | 58.4 | 864.1 |
 
 ## What the checks establish
 
@@ -98,4 +99,4 @@ These scripted requests establish no general agent, model-token or billing savin
 All projects are familiar. The original first JMESPath result remains unchanged and separately audited.
 The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.
 
-[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-lifetime/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-lifetime/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)
+[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-39986199537/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-39986199537/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)

@@ -15,6 +15,7 @@ from .flow_summaries import FunctionSummaries
 from .flow_dependencies import FlowDependencies
 from .flow_standard_library import contract as standard_contract
 from .flow_initialization import FlowInitialization
+from .flow_effects import RuntimeEffects
 from .flow_storage import restore_flow_report, store_flow_report
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
@@ -114,6 +115,10 @@ class FlowAnalysis:
     @property
     def initialization(self) -> FlowInitialization:
         return FlowInitialization.from_report(self.report)
+
+    @property
+    def runtime_effects(self) -> RuntimeEffects:
+        return RuntimeEffects.from_report(self.report)
 
 
 class FlowCache:

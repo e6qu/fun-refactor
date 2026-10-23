@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-22-hash-lifetime-compiler-profile/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-23-pr571-scalar-compiler-profile/result.json'
 
 
 def retained_report(path):
