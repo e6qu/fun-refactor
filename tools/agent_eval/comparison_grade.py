@@ -70,12 +70,12 @@ def controls(task, output):
     output.mkdir(parents=True, exist_ok=False)
     original = output / "original"
     BASE.unpack(original, task)
-    BASE.initialize(original)
-    before = BASE.snapshot(original)
     results = {}
     for variant in ("unchanged", "incomplete", "reference"):
         project = output / variant
+        # Copy immutable source, not a Git database that maintenance can change.
         shutil.copytree(original, project)
+        BASE.initialize(project)
         if variant != "unchanged":
             edit(project, task, variant)
         results[variant] = grade(project, task)
@@ -95,6 +95,7 @@ def controls(task, output):
     receiver = output / "receiver"
     BASE.unpack(receiver, task)
     BASE.initialize(receiver)
+    before = BASE.snapshot(receiver)
     BASE.git(receiver, "apply", "--check", "-", data=patch)
     BASE.git(receiver, "apply", "-", data=patch)
     results["receiver"] = grade(receiver, task)

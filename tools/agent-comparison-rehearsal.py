@@ -38,17 +38,18 @@ def isolated_budget(directory, budget):
         (Path(tempfile.gettempdir()) / (name + ".lock")).unlink(missing_ok=True)
 
 
-def rehearsal(image, setup, output, negative_control, host):
+def rehearsal(image, setup, output, negative_control, host, exercise):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run this rehearsal on GitHub, not a workstation")
     require(image.startswith("sha256:") and len(image) == 71, "use the immutable local image ID")
     require(host in {"tools", "claude", "codex", "opencode"}, "declare the rehearsed application")
+    require(exercise in {"tools", "handoff"} and (exercise != "handoff" or host != "tools"), "declare the exercise and native application")
     require(not negative_control or host == "tools", "detached-worker control has no native application")
     output.mkdir(parents=True, exist_ok=False)
     budget = {**limits(), "memory_bytes": 512 * 1024**2,
               "cpu_seconds": 0.5 if negative_control else 60}
     name = "fr-comparison-" + uuid.uuid4().hex
     started = time.monotonic()
-    report = {"setup": setup, "host": host, "negative_control": negative_control, "image": image,
+    report = {"setup": setup, "host": host, "exercise": exercise, "negative_control": negative_control, "image": image,
               "model_calls": 0, "passed": False,
               "scope": "All processes in one attempt container, including the scripted host and detached daemon. "
                        "Excludes image download/build, outer controller, Docker service and model inference. "
@@ -75,9 +76,9 @@ def rehearsal(image, setup, output, negative_control, host):
                    "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
                    "--cpus=0.5", "--memory=512m", "--memory-swap=512m", "--pids-limit=64",
                    "--log-driver=none", "--workdir=/workspace", "--env=HOME=" + home,
-                   "--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,mode=1777",
+                   "--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700",
                    "--tmpfs=/tmp:rw,exec,nosuid,nodev,size=64m,mode=1777",
-                   *(["--tmpfs=/home/control:rw,exec,nosuid,nodev,size=64m,mode=1777"] if host != "tools" else []),
+                   *(["--tmpfs=/home/control:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700"] if host != "tools" else []),
                    image, "python3", "-c", "import time; time.sleep(150)", timeout=10)
             docker("start", name, timeout=10)
             docker("exec", name, "mkdir", "-p", home, timeout=5)
@@ -98,7 +99,8 @@ def rehearsal(image, setup, output, negative_control, host):
                 require(scope.reason == "cpu_seconds", "detached CPU worker escaped the shared budget")
             else:
                 probe = ["python3", "/probe/comparison_probe.py", "--setup", setup] if host == "tools" else [
-                    "python3", "/probe/comparison_native.py", "--host", host, "--setup", setup]
+                    "python3", "/probe/comparison_handoff_native.py" if exercise == "handoff" else "/probe/comparison_native.py",
+                    "--host", host, "--setup", setup]
                 data = docker("exec", name, *probe, timeout=100)
                 report["probe"] = json.loads(data)
                 scope.check()
@@ -113,8 +115,8 @@ def rehearsal(image, setup, output, negative_control, host):
             # This does not restart it or bypass a stopped kernel budget.
             diagnostic, stdout, stderr = invoke(DOCKER + ["exec", name, "python3", "-c",
                 "from pathlib import Path; import json; print(json.dumps({str(p):p.read_bytes()[:16384].decode(errors='replace') "
-                "for p in Path('/workspace').rglob('*') if p.is_file() and "
-                "p.name in ('mcp.json','mcp.stderr','daemon.log','native.stdout','native.stderr','provider.json','provider-summary.json','native-config.json')}))"],
+                "for root in (Path('/workspace'),Path('/tmp/control')) for p in root.rglob('*') if p.is_file() and "
+                "p.name in ('mcp.json','mcp.stderr','daemon.log','native.stdout','native.stderr','provider.json','provider-summary.json','native-config.json','handoff-summary.json')}))"],
                 b"", output, 5, 256 * 1024)
             report["diagnostics"] = {"process": diagnostic, "stdout": stdout.decode(errors="replace"),
                                      "stderr": stderr.decode(errors="replace")}
@@ -146,7 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--image", required=True)
     parser.add_argument("--setup", choices=("files", "fr", "codegraph"), required=True)
     parser.add_argument("--host", choices=("tools", "claude", "codex", "opencode"), required=True)
+    parser.add_argument("--exercise", choices=("tools", "handoff"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--negative-control", action="store_true")
     args = parser.parse_args()
-    rehearsal(args.image, args.setup, args.output.resolve(), args.negative_control, args.host)
+    rehearsal(args.image, args.setup, args.output.resolve(), args.negative_control, args.host, args.exercise)

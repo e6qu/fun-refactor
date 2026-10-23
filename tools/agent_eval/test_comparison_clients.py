@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tomllib
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import comparison_clients as clients, comparison_native as native
@@ -32,7 +32,7 @@ class NativeInputs(unittest.TestCase):
             self.assertEqual(graph, ordinary, host)
             for setup in ("files", "fr"):
                 config = clients.native_config(host, setup, "http://127.0.0.1:1234")
-                self.assertNotIn("codegraph", json.dumps(clients.launch_command(host, setup, config)))
+                self.assertNotIn("codegraph", json.dumps(clients.launch_command(host, setup, config, clients.CONTROL_PROMPT)))
 
     def test_rehearsal_cannot_be_pointed_to_a_live_provider(self):
         for endpoint in ("https://api.openai.com", "https://api.anthropic.com", "http://localhost:12",
@@ -43,9 +43,9 @@ class NativeInputs(unittest.TestCase):
 
     def test_native_launches_keep_project_skills_and_avoid_title_inference(self):
         for setup in clients.SETUPS:
-            claude = clients.launch_command("claude", setup, clients.native_config("claude", setup, "http://127.0.0.1:1234"))
+            claude = clients.launch_command("claude", setup, clients.native_config("claude", setup, "http://127.0.0.1:1234"), clients.CONTROL_PROMPT)
             self.assertEqual(claude[claude.index("--setting-sources") + 1], "project")
-            opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"))
+            opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"), clients.CONTROL_PROMPT)
             self.assertEqual(opencode[opencode.index("--title") + 1], "Scripted native tool control")
             config = clients.native_config("opencode", setup, "http://127.0.0.1:1234")
             self.assertEqual(config["permission"]["bash"], "allow")
@@ -92,7 +92,7 @@ class NativeInputs(unittest.TestCase):
     def test_native_client_error_keeps_both_streams_and_exit_status(self):
         result = subprocess.CompletedProcess(["claude"], 1, b"stdout diagnosis", b"stderr diagnosis")
         with patch.object(native.subprocess, "run", return_value=result), \
-             patch.object(native, "trace"), patch.object(native, "Path", return_value=Mock()):
+             patch.object(native, "trace"), patch.object(native, "DIAGNOSTICS", MagicMock()):
             with self.assertRaises(ValueError) as failed:
                 native.command(["claude"], {})
         for text in ("stdout diagnosis", "stderr diagnosis", "1"):

@@ -6,11 +6,13 @@ from pathlib import Path
 HOSTS = ("claude", "codex", "opencode")
 SETUPS = ("files", "fr", "codegraph")
 MODEL = "fr-scripted-control"
+CONTROL_PROMPT = "Inspect the fixture and report readiness."
 ORDINARY = ("read", "search", "edit", "run checks", "export a Git patch")
+FR_SOURCE_BYTES = 65536
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
-           "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
+           "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
            "TOKIO_WORKER_THREADS": "1", "UV_THREADPOOL_SIZE": "1", "NODE_OPTIONS": "--v8-pool-size=1",
-           "BUN_JSC_useJIT": "false"}
+           "BUN_JSC_useJIT": "false", "OPENCODE_DISABLE_FFF": "1"}
 
 
 def require(condition, message):
@@ -24,7 +26,7 @@ def native_config(host, setup, endpoint):
             "rehearsal provider must be an explicit loopback endpoint")
     require(endpoint.rsplit(":", 1)[1].isascii() and 1 <= int(endpoint.rsplit(":", 1)[1]) <= 65535,
             "rehearsal port must be between 1 and 65535")
-    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp"],
+    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace", "--no-watch"],
               "env": dict(WORKERS), "cwd": "/workspace"}
     if host == "claude":
         return {"model": MODEL, "tools": ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"],
@@ -53,7 +55,7 @@ def native_config(host, setup, endpoint):
                 "options": {"baseURL": endpoint + "/v1", "apiKey": "scripted-no-live-credential"},
                 "models": {MODEL: {"name": MODEL, "limit": {"context": 32768, "output": 1024}}}}},
             "mcp": {"codegraph": {"type": "local", "enabled": True,
-                "command": [server["command"], *server["args"]], "environment": dict(WORKERS),
+                "command": [server["command"], *server["args"]], "environment": dict(server["env"]),
                 "cwd": "/workspace", "timeout": 10000}} if setup == "codegraph" else {}}
 
 
@@ -70,31 +72,32 @@ def prompts(requirement):
             "export change.patch with Git, and explain the result and any remaining limitations.\n"}
 
 
-def launch_command(host, setup, config):
+def launch_command(host, setup, config, prompt):
     require(host in HOSTS and setup in SETUPS, "unknown application or tool setup")
     if host == "codex":
         return ["codex", "app-server", "--listen", "stdio://"]
     if host == "opencode":
         return ["opencode", "run", "--format", "json", "--title", "Scripted native tool control", "--model", config["model"],
-                "Inspect the fixture and report readiness."]
+                prompt]
     allowed = config["tools"] + (["mcp__codegraph__codegraph_explore"] if setup == "codegraph" else [])
-    return ["claude", "-p", "Inspect the fixture and report readiness.", "--output-format", "stream-json",
+    return ["claude", "-p", prompt, "--output-format", "stream-json",
             "--verbose", "--model", config["model"], "--max-turns", str(config["max_turns"]),
             "--no-session-persistence", "--setting-sources", "project", "--settings", json.dumps(config["settings"]),
             "--tools", ",".join(config["tools"]), "--allowedTools", *allowed,
-            "--strict-mcp-config", "--mcp-config", "/workspace/mcp.json"]
+            "--strict-mcp-config", "--mcp-config", "/tmp/control/mcp.json"]
 
 
 def inputs(root):
     root = Path(root)
     tasks = json.loads((root / "tests/agent-eval/unknown-target/task.json").read_text())["tasks"]
     result = {"live_calls_enabled": False, "ordinary_operations": list(ORDINARY), "cpu_affinity_count": 1,
-              "worker_environment": dict(WORKERS),
+              "worker_environment": dict(WORKERS), "handoff_fr_max_file_bytes": FR_SOURCE_BYTES,
+              "opencode_skill_list_check": "Dedicated native setup controls; not repeated before each complete-task phase.",
               "readonly_opencode_configuration": ["/home/control/.config/opencode", "/workspace/.opencode"],
               "rehearsal_model": MODEL, "applications": {}, "commands": {}, "tasks": {}}
     for host in HOSTS:
         result["applications"][host] = {setup: native_config(host, setup, "http://127.0.0.1:1") for setup in SETUPS}
-        result["commands"][host] = {setup: launch_command(host, setup, result["applications"][host][setup]) for setup in SETUPS}
+        result["commands"][host] = {setup: launch_command(host, setup, result["applications"][host][setup], CONTROL_PROMPT) for setup in SETUPS}
     for name in ("unicode-dice", "regex-escape-len"):
         result["tasks"][name] = {"prompts": prompts(tasks[name]["requirement"]),
             "grader": ["python3", "-B", "tools/agent-comparison-grade.py", "grade", "--task", name,

@@ -55,8 +55,10 @@ The [comparison preparation guide](agent-comparison-preparation.md) explains the
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
 They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.
 Independent task controls reject unchanged and incomplete code, check the reference repair and replay its patch in a fresh checkout.
-These checks make no live model calls. Next, rehearse the complete two-phase tasks and their intervening source change.
-Agree exact live models, offered tools, credentials, prices, spending caps and full-attempt resource limits before live attempts.
+Complete-task controls now run both phases in fresh application processes with an intervening local-variable rename.
+They reject the old edit, preserve the rename in the refreshed repair, and check undo and patch replay independently.
+These are prescribed controls on familiar projects and make no live model calls.
+Next: agree exact live models, offered tools, credentials, prices, runtime settings, spending caps and full-attempt resource limits.
 Claude Code, Codex and OpenCode now discover the portable skill in isolated native-client checks.
 The introductory lesson executes the complete find, preview, check and undo route.
 The [agent setup review](product-review.md#agent-setup-review-22-october-2026) explains what passed and what remains unmeasured.
@@ -64,7 +66,7 @@ Discovery makes the instructions available; a live attempt must show whether an 
 
 The [complete CLI and Python comparison](project-session-cost.md) now covers startup, validation, edits, memory, storage and shutdown.
 All 135 answers agree. Direct CLI calls were fastest; keeping Python running reduced its overhead.
-Saving and validating answers still cost more than asking again in these familiar-project sessions.
+Every Python approach cost more than the direct CLI baseline. Saving answers showed no consistent advantage over fresh Python checks.
 Preserve these results without claiming general agent savings.
 
 The proposed [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph)

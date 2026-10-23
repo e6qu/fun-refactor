@@ -61,7 +61,8 @@ A Linux kernel resource group counts the entire container, including the scripte
 Its explicit limits are half a CPU core, sixty CPU seconds, 512 MiB of memory, no swap and sixty-four processes.
 CPU seconds count time spent executing; they differ from elapsed time while waiting.
 The [pinned CodeGraph parser](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/extraction/parse-pool.ts) chooses its worker count from the host's cores, which can exceed the container's CPU allowance.
-This rehearsal explicitly sets its parse, query and resolver worker limits to one, and sets fr's Rayon worker limit to one.
+This rehearsal explicitly sets its parse and resolver worker limits to one, and sets fr's Rayon worker limit to one.
+CodeGraph's query pool is explicitly disabled: these controls issue one query at a time, so its daemon handles them without an additional worker and database connection.
 A worker is a program or thread doing part of the tool's work. These limits avoid competing startup work on the shared half core; they do not disable CodeGraph's daemon or increase any deadline.
 The container also has bounded temporary storage and no writable host mounts.
 After the query, the controller removes the container and requires an empty resource group.
@@ -81,6 +82,9 @@ They must not be presented as complete live-attempt costs.
 
 The same workflow now exercises three fresh containers per application: ordinary tools, fr, and CodeGraph.
 Only the assigned specialized executable is installed. The fr skill is installed only in the fr setup.
+These setup controls check OpenCode's installed-skill list with `opencode debug skill`.
+Complete-task controls use the same pinned application, installed instructions and configuration, and avoid launching OpenCode again solely to repeat that list before each phase.
+Claude Code's startup event and Codex's existing app-server session already report discovery without an extra application launch; those checks remain in each process.
 For example, Claude Code receives the same ordinary read, edit and shell tools in every setup;
 the CodeGraph setup also connects its real MCP server. A scripted response asks the application to query the fixture.
 The next provider request must contain the successful tool result. Errors and missing tools fail the control.
@@ -113,21 +117,36 @@ The schedule retains these runtime settings for every setup. They are preparatio
 Native clients use `/home/control` as their isolated home, allowing Codex to create its required helper aliases outside temporary directories.
 The image installs bubblewrap, Codex's Linux sandbox dependency.
 Codex plugins are explicitly disabled; these controls need the installed skill and declared tools.
-CodeGraph retains its daemon and one query worker in these controls.
+CodeGraph uses its daemon and liveness watchdogs in these controls. Its project path is explicit.
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
-The initial OpenCode and CodeGraph setup exceeded the shared 512 MiB cap; garbage-collection hints did not resolve it.
+The [serial query path](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/mcp/query-pool.ts) avoids an additional query worker and database connection for these single-query controls.
+OpenCode explicitly uses its [ripgrep search backend](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/core/src/filesystem/search.ts) through `OPENCODE_DISABLE_FFF=1`.
+This avoids initializing its optional native file-finder index alongside CodeGraph's index. The same ordinary search and editing tools remain available in every setup.
+The resumed regex pair previously reached the shared 512 MiB cap; heap tuning alone did not resolve it.
+Native allocations, temporary filesystem contents and every watchdog still count toward the unchanged cap.
+The complete-task controls close the unused daemon between application phases with its supported graceful-shutdown signal, `SIGTERM`.
+They verify its identity and require it to exit within five seconds before the external source edit, then run `codegraph sync /workspace --quiet` before starting the next application.
+This releases the old phase's in-memory index and avoids overlapping source synchronization with a fresh application startup.
+The saved project and index remain on disk. Synchronization, shutdown and cold startup all count toward the same attempt budget.
+Native-client controls pass `--no-watch` to CodeGraph and refresh its index explicitly before each phase's query.
+Automatic watching would reindex the temporary apply, undo and redo states while the application finishes its reply; that concurrent work also exceeded the shared cap.
+The original project is indexed during setup, and the intervening edit is synchronized before the resumed query.
+These are explicitly refreshed controls. Automatic watching and keeping a daemon warm require separate live-attempt admission.
+These controls test resumption after process cleanup; they do not measure keeping a warm daemon across the pause.
+The separate tool-only control retains the default linger so it can demonstrate that a detached daemon outlives its client and still belongs to the container budget.
+Diagnostics distinguish anonymous memory from filesystem-backed memory, and the workflow runs the larger OpenCode tasks first.
 Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
 It also includes discovery and delivery prompts for both tasks. Every application and setup gets the same task wording.
 The discovery prompt asks for a `HANDOFF.md` diagnosis; the delivery prompt asks the next process to read it,
 inspect current source, implement the repair and export `change.patch`.
-These prompts describe the planned handoff. The native fixture controls do not execute that complete two-phase task.
+The small fixture controls check tool connections. The complete-project controls below execute both phases with these prompts.
 The rehearsal configurations deliberately use a scripted provider and a single controlled CodeGraph query.
 Agree and freeze the complete offered tool set and real model settings before live attempts.
 
-For each task, a separate GitHub job runs the pinned upstream tests and the existing independent behavior checker:
+For each task, a separate GitHub job runs the tests shipped with the pinned project and the existing independent behavior checker:
 
 - Unchanged Unicode code must fail the 67,081-pair behavior check. The original regex code must fail because the new public API is absent.
 - An incomplete Unicode repair fixes one length calculation but leaves the other wrong. The incomplete regex change adds length APIs but leaves extra allocations. Both must be rejected.
@@ -138,7 +157,69 @@ The schedule records the separate `grade --candidate CANDIDATE_DIRECTORY` comman
 Keep grading outside the candidate directory. The current controls execute trusted pinned fixtures on a dedicated runner;
 they do not establish isolation for arbitrary hostile submitted code.
 Failures retain their diagnostics. A timeout or compilation error cannot become the expected missing-API result.
-Reference implementations and private checker details stay outside agent containers and prompts.
+Private checkers stay outside the application container. Trusted task-control images contain prescribed repair recipes, as explained below.
+
+## Resume a complete task after another person edits the code
+
+Suppose an agent is repairing Unicode text comparison and saves its diagnosis before stopping.
+While it is paused, another maintainer renames the matching-pair counter from `intersection_size` to `shared_bigrams`.
+The old reviewed edit refers to the previous source. Resuming must reject it and prepare a new repair that keeps the maintainer's rename.
+
+The workflow rehearses that sequence for both complete pinned Rust projects in all nine application/tool setups: eighteen controls.
+For the escaping task, the intervention renames the output variable from `quoted` to `escaped`.
+Escaping turns punctuation such as `.` into `\.` so a regular expression treats it as plain text.
+The repair must still provide the requested byte-length APIs and reserve enough space for the escaped output.
+
+1. Start the application with the discovery prompt. Inspect the assigned code and save `HANDOFF.md` plus a reviewed, unapplied repair.
+2. Let that application process exit and require CodeGraph's unused daemon to stop. Rename the local variable and record the new source as the delivery starting point.
+3. Start a fresh application process with the delivery prompt. Verify the handoff, refuse the old edit without changing source, and review the current implementation.
+4. Apply the refreshed repair, undo it exactly to the intervening source, then redo it exactly. Export only the repair as `change.patch`.
+5. Remove the application container and require complete process cleanup. Apply the patch in a separate checkout containing the same intervening rename.
+
+Before pausing, the old review must pass a preview or patch check without applying it.
+Control logs stay outside the project, so writing diagnostics cannot make that review stale.
+
+The fr setup uses a handle, an identifier for a selected function or file in the inspected source.
+Its saved plan keeps the reviewed edits and their starting contents.
+The control applies, undoes and redoes that plan through fr history.
+It batches the declaration and file lookups into one fr query, sharing one inspected project view instead of rebuilding it for each target.
+The prescribed fr edits explicitly limit analyzed source files to 65,536 bytes. Both task files and their repaired forms must fit that limit.
+The regex workspace includes larger generated Unicode tables and parser files; parsing all of them for a selected-function edit exhausted Codex's ten-second command window.
+Those larger files stay in the complete checkout and in the independent tests, but are outside this control's fr analysis coverage.
+This does not establish complete caller discovery or whole-workspace analysis within ten seconds.
+The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
+CodeGraph must return the selected function through the application's actual tool connection in both phases.
+The trusted recipe supplies its file and line range: `src/lib.rs:10-20`, for example, means lines 10 through 20 of that file.
+The request returns at most one source file, avoiding a broad graph-context search for a location the control already knows.
+Each response must contain the function declaration and the expected local-variable assignment; the resumed response must show the maintainer's new name.
+This checks selected-source freshness and tool wiring. Finding an unknown repair location remains part of the live comparison.
+The check does not establish that every CodeGraph finding is current after arbitrary source changes.
+
+The application runs `git diff --check`, which checks patch whitespace, and reports upstream tests as pending.
+After its container is removed, the independent grader runs the project's existing Rust tests and behavior checks on the receiving checkout.
+It checks that the local-variable rename remains present, rejects unexpected source paths, and reverses and reapplies the delivered patch exactly.
+Compilation errors and timeouts cannot establish a passing repair. Failures retain command output and resource diagnostics.
+
+These are trusted scripted controls. The repair recipe supplies known operations; no model discovers or chooses a solution.
+Claude Code and OpenCode consume fixed provider replies; Codex uses its native command and tool APIs without starting inference.
+Task-control images include those prescribed recipes and must not be used for live agents.
+Private graders are not copied into those images. The proposed eighteen live attempts remain unstarted, with outcomes, usage and costs unknown.
+
+The application processes and background tools retain the existing shared 512 MiB, sixty CPU seconds and sixty-four-process limits.
+Both phases share one container budget. Each application invocation and tool call retains its existing deadline.
+The private Rust grading runs afterward on the GitHub runner, outside those container counters.
+Image preparation and grading are not included in a complete cost result here; these controls make no performance or savings claim.
+Full-attempt grading isolation, credential access and resource admission still need a separate live-trial review.
+
+To run one prescribed control on GitHub:
+
+```sh
+python3 -B tools/agent-comparison-handoff.py \
+  --host claude --task unicode-dice --setup fr --output NEW_DIRECTORY
+```
+
+`--host` names the application, `--task` selects one of the two pinned tasks, and `--setup` selects its offered tools.
+Use a new output directory so earlier failures remain available. Full builds and these controls run on GitHub, not a shared workstation.
 
 ## What must happen before live attempts
 
@@ -160,7 +241,7 @@ This belongs to the Codex runner: the shared evaluator and its recorded comparis
 This fixes implicit settings in that runner; it does not turn its two-setup protocol into this proposed three-setup study.
 
 Then freeze the live application configurations and offered tools, fr source revision and binary, credential access and full-attempt resource limits.
-Rehearse both complete task phases, their intervening source change and independent private grading under those limits.
+Carry the complete-task rehearsal into the agreed live configurations, including independent private grading under those limits.
 For Codex, verify the chosen release's behavior against its [configuration reference](https://developers.openai.com/codex/config-reference) and [app-server interface](https://developers.openai.com/codex/app-server).
 The container control alone does not establish native application integration, correct grading or bounded live model usage.
 

@@ -34,13 +34,15 @@ Example: an agent finds a helper, previews its rename, checks its callers and un
 Done: all three applications discover the project skill, and the introductory change lesson passes.
 The CLI and Python comparison now includes startup, edits, validation and shutdown.
 Direct CLI calls were fastest in these small sessions; keeping Python running reduced its overhead.
-Saving and validating answers still cost more than asking again. These results do not measure agent savings.
+Every measured Python approach cost more than the direct CLI baseline.
+Saving answers did not show consistent savings over fresh Python checks. These results do not measure agent savings.
 
 The [comparison preparation](docs/agent-comparison-preparation.md) defines eighteen first attempts.
 Its controls exercise the real applications in all nine tool setups, retain their configurations and prompts, and check complete background-process shutdown.
 Task controls must reject unchanged and incomplete code, accept the reference repair and replay its patch independently. These controls use no live models.
-Next: rehearse both complete task phases and the interruption between them.
-Then agree live models, offered tools, credentials, prices and full-attempt limits before paying for attempts.
+Complete-task controls now pause each application, rename a local variable, reject the stale edit and deliver a refreshed repair.
+They preserve the intervening change and grade the patch in another checkout. These are scripted controls on familiar tasks.
+Next: agree live models, offered tools, credentials, prices, runtime settings and full-attempt limits before paying for attempts.
 
 - Keep one portable skill with explicit setup for Claude Code, Codex and OpenCode.
   Check discovery in clean sessions and record actual tool use separately from scripted integration controls.

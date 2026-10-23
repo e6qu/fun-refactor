@@ -31,6 +31,8 @@ INPUTS = (
     "tools/agent-comparison-native.py",
     "tools/agent-comparison-grade.py", "tools/agent_eval/comparison_grade.py",
     "tools/agent_eval/investigation_rehearsal.py",
+    "tools/agent-comparison-handoff.py", "tools/agent_eval/comparison_handoff_actions.py",
+    "tools/agent_eval/comparison_handoff_native.py",
 )
 
 

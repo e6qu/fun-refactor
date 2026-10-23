@@ -12,9 +12,10 @@ import sys
 import threading
 import time
 
-from agent_eval.comparison_clients import HOSTS, MODEL, SETUPS, WORKERS, launch_command, native_config, require
+from agent_eval.comparison_clients import CONTROL_PROMPT, HOSTS, MODEL, SETUPS, WORKERS, launch_command, native_config, require
 
 CAP = 1024**2
+DIAGNOSTICS = Path("/tmp/control")
 QUERY = {"query": "normalize_total", "maxFiles": 2, "projectPath": "/workspace"}
 READ = "python3 -c 'from pathlib import Path; print(\"app.py\"); print(Path(\"app.py\").read_text())'"
 FIND = "fr --json project find normalize_total --signature"
@@ -33,20 +34,25 @@ def trace(stage):
     for status in Path("/proc").glob("[0-9]*/status"):
         try:
             fields = dict(line.split(":", 1) for line in status.read_text().splitlines() if ":" in line)
-            processes.append({"name": fields["Name"].strip(), "threads": int(fields["Threads"]),
+            processes.append({"pid": int(status.parent.name), "ppid": int(fields["PPid"]),
+                              "name": fields["Name"].strip(), "threads": int(fields["Threads"]),
                               "rss_kib": int(fields.get("VmRSS", "0 kB").split()[0]),
+                              "anonymous_rss_kib": int(fields.get("RssAnon", "0 kB").split()[0]),
                               "command": (status.parent / "cmdline").read_bytes()[:160].replace(b"\0", b" ").decode(errors="replace")})
         except (FileNotFoundError, ProcessLookupError):
             continue
-    print(json.dumps({"stage": stage, "processes": processes}), file=sys.stderr, flush=True)
+    memory = {name: int(value) for name, value in (line.split() for line in
+              Path("/sys/fs/cgroup/memory.stat").read_text().splitlines())
+              if name in {"anon", "file", "kernel", "shmem"}}
+    print(json.dumps({"stage": stage, "memory_bytes": memory, "processes": processes}), file=sys.stderr, flush=True)
 
 
 def command(argv, env):
     trace("before " + " ".join(argv[:2]))
     result = subprocess.run(argv, cwd="/workspace", env=env, capture_output=True, timeout=60)
     trace("after " + " ".join(argv[:2]))
-    Path("/workspace/native.stdout").write_bytes(result.stdout[:CAP])
-    Path("/workspace/native.stderr").write_bytes(result.stderr[:CAP])
+    (DIAGNOSTICS / "native.stdout").write_bytes(result.stdout[:CAP])
+    (DIAGNOSTICS / "native.stderr").write_bytes(result.stderr[:CAP])
     require(len(result.stdout) + len(result.stderr) <= CAP, "native output exceeds 1 MiB")
     require(result.returncode == 0, f"{argv!r}: {result.returncode}: " +
             result.stdout[-4096:].decode(errors="replace") + result.stderr[-4096:].decode(errors="replace"))
@@ -61,8 +67,15 @@ def call_for(host, setup):
     return name, {"command": FIND if setup == "fr" else READ, "description": "Inspect the fixture function"}
 
 
+def control_steps(host, setup):
+    name, arguments = call_for(host, setup)
+    return [{"kind": "mcp" if setup == "codegraph" else "command", "name": name,
+             "arguments": arguments, "expected": ["normalize_total", "app.py"]}]
+
+
 @contextmanager
-def provider(host, setup):
+def provider(host, setup, steps):
+    require(1 <= len(steps) <= 2, "scripted controls require one or two explicit tool calls")
     requests, errors = [], []
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -84,29 +97,31 @@ def provider(host, setup):
                     expected = "/v1/messages" if host == "claude" else "/v1/chat/completions"
                     require(self.path.split("?")[0] == expected, "unexpected provider route")
                     turns = [r for r in requests if r["path"].split("?")[0] == expected]
-                    require(len(turns) <= 2, "unexpected additional inference request")
-                    first = len(turns) == 1
-                    name, arguments = call_for(host, setup)
+                    require(len(turns) <= len(steps) + 1, "unexpected additional inference request")
+                    index = len(turns) - 1
+                    first = index < len(steps)
+                    step = steps[min(index, len(steps) - 1)]
+                    name, arguments = step["name"], step["arguments"]
                     names = {t["name"] if host == "claude" else t["function"]["name"] for t in value["tools"]}
                     require(name in names, f"native client did not offer {name}: {sorted(names)}")
                     require(any("codegraph_explore" in n for n in names) == (setup == "codegraph"),
                             "CodeGraph tools leaked or were not connected")
-                    if not first:
+                    if index:
                         if host == "claude":
                             results = [block for message in value["messages"] if isinstance(message["content"], list)
                                        for block in message["content"] if block.get("type") == "tool_result"]
-                            require(len(results) == 1 and not results[0].get("is_error", False), "native tool failed")
-                            content = json.dumps(results[0]["content"], ensure_ascii=False)
+                            require(len(results) == index and not any(r.get("is_error", False) for r in results), "native tool failed")
+                            content = json.dumps(results[-1]["content"], ensure_ascii=False)
                         else:
                             results = [message for message in value["messages"] if message["role"] == "tool"]
-                            require(len(results) == 1, "missing native tool result")
-                            content = json.dumps(results[0]["content"], ensure_ascii=False)
-                        require("normalize_total" in content and "app.py" in content,
+                            require(len(results) == index, "missing native tool result")
+                            content = json.dumps(results[-1]["content"], ensure_ascii=False)
+                        require(all(item in content for item in steps[index - 1]["expected"]),
                                 "the native tool result was not returned to the provider")
                     if host == "claude":
-                        payload = self.anthropic(value, first, name, arguments)
+                        payload = self.anthropic(value, first, name, arguments, index)
                     else:
-                        payload = self.openai(value, first, name, arguments)
+                        payload = self.openai(value, first, name, arguments, index)
                     content_type = "text/event-stream"
                 self.send_response(200)
                 self.send_header("Content-Type", content_type)
@@ -117,11 +132,11 @@ def provider(host, setup):
                 errors.append(str(error))
                 self.send_error(400, "scripted control refused request")
 
-        def anthropic(self, value, first, name, arguments):
+        def anthropic(self, value, first, name, arguments, index):
             message = {"id": "msg_control", "type": "message", "role": "assistant", "model": MODEL,
                        "content": [], "stop_reason": None, "stop_sequence": None,
                        "usage": {"input_tokens": 1, "output_tokens": 1}}
-            block = {"type": "tool_use", "id": "call_control", "name": name, "input": {}} if first else {"type": "text", "text": ""}
+            block = {"type": "tool_use", "id": f"call_control_{index}", "name": name, "input": {}} if first else {"type": "text", "text": ""}
             delta = {"type": "input_json_delta", "partial_json": json.dumps(arguments)} if first else {
                 "type": "text_delta", "text": "Scripted native tool control completed."}
             events = [("message_start", {"message": message}),
@@ -133,10 +148,10 @@ def provider(host, setup):
             return "".join("event: " + key + "\ndata: " + json.dumps({"type": key, **body}) + "\n\n"
                            for key, body in events).encode()
 
-        def openai(self, value, first, name, arguments):
+        def openai(self, value, first, name, arguments, index):
             message = {"role": "assistant", "content": None if first else "Scripted native tool control completed."}
             if first:
-                message["tool_calls"] = [{"index": 0, "id": "call_control", "type": "function",
+                message["tool_calls"] = [{"index": 0, "id": f"call_control_{index}", "type": "function",
                     "function": {"name": name, "arguments": json.dumps(arguments)}}]
             common = {"id": "chatcmpl_control", "object": "chat.completion.chunk", "created": 1, "model": MODEL}
             chunks = [{**common, "choices": [{"index": 0, "delta": message, "finish_reason": None}]},
@@ -154,21 +169,21 @@ def provider(host, setup):
     try:
         yield "http://127.0.0.1:" + str(server.server_port), requests, errors
     finally:
-        Path("/workspace/provider-summary.json").write_text(json.dumps({"errors": errors, "requests": [
+        (DIAGNOSTICS / "provider-summary.json").write_text(json.dumps({"errors": errors, "requests": [
             {"path": r["path"], "model": r["body"].get("model"),
              "tools": [t.get("name") if host == "claude" else t.get("function", {}).get("name")
                        for t in r["body"].get("tools", [])]} for r in requests]}) + "\n")
-        Path("/workspace/provider.json").write_text(json.dumps({"requests": requests, "errors": errors}) + "\n")
+        (DIAGNOSTICS / "provider.json").write_text(json.dumps({"requests": requests, "errors": errors}) + "\n")
         server.shutdown()
         server.server_close()
         worker.join(timeout=2)
 
 
-def codex(config, env, setup):
+def codex(config, env, setup, steps, prompt):
     Path(env["CODEX_HOME"], "config.toml").write_text("\n".join(k + " = " + toml(v) for k, v in config.items()) + "\n")
     transcript = []
-    with Path("/workspace/native.stderr").open("wb") as stderr:
-        process = subprocess.Popen(launch_command("codex", setup, config), cwd="/workspace", env=env,
+    with (DIAGNOSTICS / "native.stderr").open("wb") as stderr:
+        process = subprocess.Popen(launch_command("codex", setup, config, prompt), cwd="/workspace", env=env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr)
         selector = selectors.DefaultSelector()
         selector.register(process.stdout, selectors.EVENT_READ)
@@ -208,23 +223,29 @@ def codex(config, env, setup):
             require(len(discovered) == 1 and not discovered[0]["errors"], "native skill discovery failed")
             require(any(s["name"] == "fr" for s in discovered[0]["skills"]) == (setup == "fr"), "wrong Codex skill availability")
             thread = request("thread/start", {"cwd": "/workspace", "model": MODEL, "modelProvider": "rehearsal",
-                "approvalPolicy": "never", "sandbox": "workspace-write", "ephemeral": True})["thread"]["id"]
+                "approvalPolicy": "never", "sandbox": "workspace-write", "ephemeral": True,
+                "baseInstructions": prompt})["thread"]["id"]
             status = request("mcpServerStatus/list", {"threadId": thread, "limit": 100, "detail": "toolsAndAuthOnly"})
             require({r["name"] for r in status["data"]} == ({"codegraph"} if setup == "codegraph" else set()),
                     "Codex loaded the wrong MCP servers")
             if setup == "codegraph":
                 require(any(t["name"] == "codegraph_explore" for t in status["data"][0]["tools"].values()),
                         "Codex did not discover the configured CodeGraph tool")
-                answer = request("mcpServer/tool/call", {"threadId": thread, "server": "codegraph",
-                    "tool": "codegraph_explore", "arguments": QUERY})
-                require(not answer.get("isError", False), "native MCP tool failed")
-            else:
-                answer = request("command/exec", {"command": ["/bin/sh", "-c", FIND if setup == "fr" else READ],
-                    "cwd": "/workspace", "timeoutMs": 10000,
-                    "sandboxPolicy": {"type": "externalSandbox", "networkAccess": "restricted"}})
-                require(answer["exitCode"] == 0, "native command failed")
-            require("normalize_total" in json.dumps(answer) and "app.py" in json.dumps(answer), "Codex query did not succeed")
-            return {"effective_config": effective, "mcp": status, "answer": answer, "transcript": transcript}
+            answers = []
+            for step in steps:
+                if step["kind"] == "mcp":
+                    answer = request("mcpServer/tool/call", {"threadId": thread, "server": "codegraph",
+                        "tool": "codegraph_explore", "arguments": step["arguments"]})
+                    require(not answer.get("isError", False), "native MCP tool failed")
+                else:
+                    require(step["kind"] == "command", "unknown control step")
+                    answer = request("command/exec", {"command": ["/bin/sh", "-c", step["arguments"]["command"]],
+                        "cwd": "/workspace", "timeoutMs": 10000,
+                        "sandboxPolicy": {"type": "externalSandbox", "networkAccess": "restricted"}})
+                    require(answer["exitCode"] == 0, "native command failed: " + json.dumps(answer))
+                require(all(item in json.dumps(answer, ensure_ascii=False) for item in step["expected"]), "Codex control step did not succeed")
+                answers.append(answer)
+            return {"effective_config": effective, "mcp": status, "answers": answers, "transcript": transcript}
         finally:
             process.terminate()
             process.wait(timeout=5)
@@ -233,13 +254,13 @@ def codex(config, env, setup):
             selector.close()
 
 
-def probe(host, setup):
+def prepare(host, setup):
+    DIAGNOSTICS.mkdir(exist_ok=True)
     # A CPU quota throttles time but leaves the runner's cores visible to worker pools.
     os.sched_setaffinity(0, {min(os.sched_getaffinity(0))})
     available = {n for n in ("fr", "codegraph") if shutil.which(n)}
     require(available == ({setup} if setup != "files" else set()), "specialized executable leaked into a setup")
     require({n for n in HOSTS if shutil.which(n)} == {host}, "wrong native application installed")
-    Path("app.py").write_text("def normalize_total(value):\n    return max(value, 0)\n\ndef checkout(value):\n    return normalize_total(value)\n")
     env = {"PATH": os.environ["PATH"], "HOME": "/home/control", "LANG": "C.UTF-8", **WORKERS,
         "CODEX_HOME": "/home/control/.codex", "CLAUDE_CONFIG_DIR": "/home/control/.claude",
         "XDG_CONFIG_HOME": "/home/control/.config", "XDG_DATA_HOME": "/home/control/.local/share",
@@ -266,33 +287,45 @@ def probe(host, setup):
             require(not os.access(folder, os.W_OK), "OpenCode configuration must be read-only")
     if setup == "codegraph":
         command(["codegraph", "init", "--yes"], env)
-    with provider(host, setup) as (endpoint, requests, errors):
+    return env, identity, version
+
+
+def exercise(host, setup, env, steps, prompt, inspect_opencode_skills):
+    with provider(host, setup, steps) as (endpoint, requests, errors):
         config = native_config(host, setup, endpoint)
-        Path("native-config.json").write_text(json.dumps(config, indent=2) + "\n")
+        (DIAGNOSTICS / "native-config.json").write_text(json.dumps(config, indent=2) + "\n")
         if host == "codex":
-            result = codex(config, env, setup)
+            result = codex(config, env, setup, steps, prompt)
             require(not requests, "Codex contacted the scripted inference endpoint")
         elif host == "claude":
             env.update(ANTHROPIC_BASE_URL=endpoint, ANTHROPIC_API_KEY="scripted-no-live-credential")
-            Path("mcp.json").write_text(json.dumps(config["mcp"]))
-            result = command(launch_command(host, setup, config), env)
+            (DIAGNOSTICS / "mcp.json").write_text(json.dumps(config["mcp"]))
+            result = command(launch_command(host, setup, config, prompt), env)
             events = [json.loads(line) for line in result["stdout"].splitlines() if line.strip()]
             initial, = [row for row in events if row.get("type") == "system" and row.get("subtype") == "init"]
             require(("fr" in initial.get("slash_commands", [])) == (setup == "fr"), "wrong Claude skill availability")
         else:
             env.update(OPENCODE_CONFIG_CONTENT=json.dumps(config))
-            discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
-            require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
-            result = command(launch_command(host, setup, config), env)
+            if inspect_opencode_skills:
+                discovered = json.loads(command(["opencode", "debug", "skill"], env)["stdout"])
+                require(any(s["name"] == "fr" for s in discovered) == (setup == "fr"), "wrong OpenCode skill availability")
+            result = command(launch_command(host, setup, config, prompt), env)
             for folder in (Path("/home/control/.config/opencode"), Path("/workspace/.opencode")):
                 require(not any((folder / name).exists() for name in ("node_modules", "package.json", "package-lock.json")),
                         "OpenCode attempted plugin SDK scaffolding")
         require(not errors, "; ".join(errors))
         if host != "codex":
             route = "/v1/messages" if host == "claude" else "/v1/chat/completions"
-            require(len([r for r in requests if r["path"].split("?")[0] == route]) == 2, "scripted tool loop did not complete")
-        return {"host": host, "setup": setup, "client_release": identity, "version": version,
-                "config": config, "result": result, "provider_requests": requests,
+            require(len([r for r in requests if r["path"].split("?")[0] == route]) == len(steps) + 1, "scripted tool loop did not complete")
+        return {"prompt": prompt, "config": config, "result": result, "provider_requests": requests,
+                "opencode_skill_list_checked": host == "opencode" and inspect_opencode_skills}
+
+
+def probe(host, setup):
+    Path("app.py").write_text("def normalize_total(value):\n    return max(value, 0)\n\ndef checkout(value):\n    return normalize_total(value)\n")
+    env, identity, version = prepare(host, setup)
+    result = exercise(host, setup, env, control_steps(host, setup), CONTROL_PROMPT, True)
+    return {"host": host, "setup": setup, "client_release": identity, "version": version, **result,
                 "cpu_affinity": sorted(os.sched_getaffinity(0)),
                 "live_model_calls": 0, "scope": "Scripted native integration control; not agent adoption, performance or billing evidence."}
 

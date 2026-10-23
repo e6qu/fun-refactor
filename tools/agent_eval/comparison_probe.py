@@ -109,6 +109,7 @@ def probe(setup):
             require(wanted in versions[name], f"{name} version differs from the pinned release")
     Path("app.py").write_text("def normalize_total(value):\n    return max(value, 0)\n\ndef checkout(value):\n    return normalize_total(value)\n")
     shutil.copyfile("/probe/comparison_plan.py", "comparison_plan.py")
+    shutil.copyfile("/probe/comparison_handoff_actions.py", "comparison_handoff_actions.py")
     command(["git", "init", "-q", "-b", "main"])
     if setup == "files":
         answer = [node.name for node in ast.walk(ast.parse(Path("app.py").read_text()))
@@ -121,14 +122,16 @@ def probe(setup):
         require(any(row["name"] == "normalize_total" for row in rows), "fr did not find fixture function")
         own_code = json.loads(command(["fr", "--json", "project", "find", "settings", "--signature"]))
         require(own_code["rows"], "fr did not find the settings validator in its own comparison code")
-        result = {"answer": answer, "dogfood_comparison_settings": own_code}
+        own_edits = json.loads(command(["fr", "--json", "project", "find", "patched", "--in", "comparison_handoff_actions.py", "--signature"]))
+        require(own_edits["rows"], "fr did not find this PR's handoff edit function")
+        result = {"answer": answer, "dogfood_comparison_settings": own_code, "dogfood_handoff_edits": own_edits}
     else:
         result = codegraph()
     controls = {name: os.environ[name] for name in (
         "CODEGRAPH_TELEMETRY", "CODEGRAPH_PARSE_WORKERS", "CODEGRAPH_QUERY_POOL_SIZE",
         "CODEGRAPH_RESOLVE_WORKERS", "RAYON_NUM_THREADS")}
     require(controls == {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
-                         "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1",
+                         "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1",
                          "RAYON_NUM_THREADS": "1"}, "worker settings differ from the rehearsal")
     return {"setup": setup, "available_tools": paths, "versions": versions, "worker_settings": controls, **result}
 

@@ -64,6 +64,7 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Isolated tools and complete shutdown (${{ matrix.setup }})
+    needs: preparation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -111,6 +112,7 @@ jobs:
               shutil.rmtree(root / 'unpacked')
           shutil.copyfile('tools/agent_eval/comparison_probe.py', root / 'comparison_probe.py')
           shutil.copyfile('tools/agent_eval/comparison_plan.py', root / 'comparison_plan.py')
+          shutil.copyfile('tools/agent_eval/comparison_handoff_actions.py', root / 'comparison_handoff_actions.py')
           shutil.copyfile('tests/agent-eval/agent-comparison/Dockerfile', root / 'Dockerfile')
           PY
       - name: Build an isolated model-free control image
@@ -120,12 +122,12 @@ jobs:
       - name: Exercise the real tool and stop every container process
         run: >-
           python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
-          --setup '${{ matrix.setup }}' --host tools --output "$RUNNER_TEMP/comparison-normal"
+          --setup '${{ matrix.setup }}' --host tools --exercise tools --output "$RUNNER_TEMP/comparison-normal"
       - name: Catch a detached worker after its launcher exits
         if: matrix.setup == 'files'
         run: >-
           python3 -B tools/agent-comparison-rehearsal.py --image "$COMPARISON_IMAGE"
-          --setup files --host tools --negative-control --output "$RUNNER_TEMP/comparison-detached"
+          --setup files --host tools --exercise tools --negative-control --output "$RUNNER_TEMP/comparison-detached"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -135,6 +137,7 @@ jobs:
           if-no-files-found: error
   native:
     name: Native application and assigned tools (${{ matrix.host }})
+    needs: preparation
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -161,7 +164,57 @@ jobs:
             ${{ runner.temp }}/native-comparison/*/result.json
           retention-days: 30
           if-no-files-found: error
+  handoff:
+    name: Pause, refresh and deliver (${{ matrix.host }}, ${{ matrix.task }}, ${{ matrix.setup }})
+    needs: preparation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        host: [opencode, codex, claude]
+        task: [regex-escape-len, unicode-dice]
+        setup: [files, fr, codegraph]
+    env:
+      CARGO_HOME: ${{ github.workspace }}/target/cargo-home
+      CARGO_BUILD_JOBS: '1'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - name: Fetch private grader dependencies before offline execution
+        if: matrix.task == 'regex-escape-len'
+        run: |
+          python3 -B tools/regex-workspace-check.py unpack "$RUNNER_TEMP/handoff-dependencies"
+          cargo fetch --locked --manifest-path "$RUNNER_TEMP/handoff-dependencies/Cargo.toml"
+      - name: Resume the real project after an intervening source edit
+        run: >-
+          python3 -B tools/agent-comparison-handoff.py --host '${{ matrix.host }}'
+          --task '${{ matrix.task }}' --setup '${{ matrix.setup }}'
+          --output "$RUNNER_TEMP/comparison-handoff"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: comparison-handoff-${{ matrix.host }}-${{ matrix.task }}-${{ matrix.setup }}
+          path: |
+            ${{ runner.temp }}/comparison-handoff/result.json
+            ${{ runner.temp }}/comparison-handoff/scenario.json
+            ${{ runner.temp }}/comparison-handoff/native/result.json
+            ${{ runner.temp }}/comparison-handoff/grade.json
+            ${{ runner.temp }}/comparison-handoff/change.patch
+            ${{ runner.temp }}/comparison-handoff/HANDOFF.md
+          retention-days: 30
+          if-no-files-found: error
   grading:
+    needs: preparation
     name: Independent comparison grading (${{ matrix.task }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
