@@ -165,6 +165,7 @@ Control logs stay outside the project, so writing diagnostics cannot make that r
 The fr setup uses a handle, an identifier for a selected function or file in the inspected source.
 Its saved plan keeps the reviewed edits and their starting contents.
 The control applies, undoes and redoes that plan through fr history.
+It batches the declaration and file lookups into one fr query, sharing one inspected project view instead of rebuilding it for each target.
 The prescribed fr edits explicitly limit analyzed source files to 65,536 bytes. Both task files and their repaired forms must fit that limit.
 The regex workspace includes larger generated Unicode tables and parser files; parsing all of them for a selected-function edit exhausted Codex's ten-second command window.
 Those larger files stay in the complete checkout and in the independent tests, but are outside this control's fr analysis coverage.

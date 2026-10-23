@@ -62,11 +62,20 @@ def fr(*args):
 
 
 def review(edits, prefix):
+    lookups = ARTIFACTS / (prefix + "-lookups")
+    lookups.write_text(json.dumps({"schema": "fr-project-batch-1", "requests": [
+        {"id": str(index), "arguments":
+         ["find", edit["name"], "--in", edit["path"], "--source", "--bytes", "8192"] if edit["name"] else
+         ["map", edit["path"], "--depth", "0", "--fields", "handle,kind"]}
+        for index, edit in enumerate(edits)]}))
+    inspected = fr("project", "batch", "--from", str(lookups), "--report-bytes", "65536")
+    require(len(inspected["requests"]) == len(edits) and
+            all(row["status"] == "returned" for row in inspected["requests"]), "fr omitted a required edit target")
     operations = []
     for index, edit in enumerate(edits):
         path, name = edit["path"], edit["name"]
+        found = inspected["requests"][index]["report"]
         if name:
-            found = fr("project", "find", name, "--in", path, "--source", "--bytes", "8192")
             rows = [dict(zip(found["columns"], row)) for row in found["rows"]]
             rows = [row for row in rows if row["name"] == name]
             require(len(rows) == 1, "fr must resolve exactly one current declaration")
@@ -74,7 +83,6 @@ def review(edits, prefix):
             fragment = edit["new"][edit["new"].index("{"):]
             operation = "replace-body"
         else:
-            found = fr("project", "map", path, "--depth", "0", "--fields", "handle,kind")
             require(len(found["rows"]) == 1, "fr must resolve one file insertion target")
             handle, fragment, operation = found["rows"][0][0], edit["new"], "insert-declaration"
         body = ARTIFACTS / f"{prefix}-{index}.txt"
@@ -86,7 +94,7 @@ def review(edits, prefix):
     preview = fr("author", "batch", "--from", str(manifest))
     saved = fr("author", "batch", "--from", str(manifest), "--save-plan", "--plan-basis", preview["plan_context_basis"])
     require(saved["transaction"] is not None, "prescribed repair must save a transaction")
-    write(prefix + "-review.json", {"preview": preview, "saved": saved})
+    write(prefix + "-review.json", {"inspected": inspected, "preview": preview, "saved": saved})
     return saved
 
 
