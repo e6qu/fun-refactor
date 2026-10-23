@@ -1,4 +1,3 @@
-//! Integer division stays exact without evaluating either operand twice.
 use fun_refactor::{lang::Language, transpile};
 use serde_json::{json, Value};
 use std::{fs, process::Command};

@@ -5626,7 +5626,6 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 (BinaryOp::Ne, true) => "is not",
                 (other, _) => other.python(),
             };
-            // Every other language here truncates when it divides two integers.
             if *op == BinaryOp::Rem && holds_an_integer(out, left) && holds_an_integer(out, right) {
                 out.zig_helpers.insert("python_trunc_rem");
                 return format!(
@@ -5636,9 +5635,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 );
             }
             if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
-                // Bind both operands once, left-to-right. Python's floor quotient
-                // needs one exact integer adjustment when the signs differ;
-                // int(left / right) loses precision by passing through a float.
+                // Integer division stays exact and evaluates operands once, left-to-right.
                 return format!(
                     "(lambda dividend, divisor: dividend // divisor + (1 if (dividend < 0) != (divisor < 0) and dividend % divisor != 0 else 0))({}, {})",
                     python_expr(out, left),

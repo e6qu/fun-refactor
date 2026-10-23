@@ -23,6 +23,7 @@ FLOW = {
     'expressions': ['expression-control', 'call-binding', 'literal-defaults', 'namespace-packages', 'scalar-assignments'],
     'cache': ['flow-cache'],
 }
+LANGUAGE = {'checked-translation': 'translation', 'python-effects': 'effects'}
 SCRIPTS = {'flow-fixed-point': 'flow-acceptance', 'compiler-profile': 'compiler-profile',
            'index-resolution': 'index-resolution-acceptance', 'python-repositories': 'python-repository-acceptance',
            'fixed-arity-probes': 'python-fixed-arity-probes'}
@@ -47,6 +48,8 @@ def verify_sources(root, revisions):
 
 
 def audit_arguments(group, path):
+    if group in LANGUAGE:
+        return [f'tools/{group}.py', 'audit', '--directory', str(Path(path).parent)]
     flag = '--verify' if group == 'index-resolution' else '--audit'
     return [f'tools/{SCRIPTS[group]}.py', flag, str(path)]
 

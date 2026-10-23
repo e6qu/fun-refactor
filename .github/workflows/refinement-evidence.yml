@@ -59,6 +59,7 @@ on:
           - retain-repository-flow
           - flow-contract
           - language-behavior
+          - retain-language-behavior
           - scalar-development
           - package-questions-development
           - package-questions-coverage
@@ -449,7 +450,7 @@ jobs:
           git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
-    if: inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
+    if: inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -833,6 +834,48 @@ jobs:
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
 
+  retain-language-behavior:
+    if: inputs.group == 'retain-language-behavior' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-retain-language-behavior.py
+      - name: Retain the authenticated source and output records
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: >-
+          python3 -B tools/retain-language-behavior.py --run "$COLLECTION_RUN"
+          --prefix "$EVIDENCE_PREFIX"
+      - name: Commit the checked records and roadmap
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$EVIDENCE_PREFIX-checked-translation" \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-python-effects" \
+            tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain checked translations and Python effect explanations'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: retained-language-behavior
+          path: tests/agent-eval/results/${{ inputs.prefix }}-*
+          retention-days: 30
+          if-no-files-found: error
+
   language-behavior:
     if: inputs.group == 'language-behavior'
     runs-on: ubuntu-latest
@@ -853,8 +896,10 @@ jobs:
       - run: rustup toolchain install stable --profile minimal --component rustfmt
       - name: Check the independent expectations and tampered-record controls
         run: |
+          python3 -B tools/check-prose.py
           python3 -B tools/test-checked-translation.py
           python3 -B tools/test-python-effects.py
+          python3 -B tools/test-retain-language-behavior.py
       - name: Retain formatting differences
         run: |
           cargo fmt --all

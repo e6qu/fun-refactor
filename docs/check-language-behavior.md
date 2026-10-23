@@ -9,7 +9,7 @@ These are behavior checks, not speed comparisons. They do not measure agent savi
 ## Translate a page-count calculation
 
 A behavior contract states the inputs a function accepts, the result it promises and how it handles errors.
-The [chosen contract](../tests/agent-eval/checked-translation/contract.json) was committed before collecting results or changing translation support.
+We committed the [chosen contract](../tests/agent-eval/checked-translation/contract.json) before collecting results or changing translation support.
 Both inputs are signed 64-bit integers: whole numbers from -9,223,372,036,854,775,808 through 9,223,372,036,854,775,807.
 The Python inputs are ordinary `int` values in that range. Objects with custom arithmetic and Python's `bool` type are outside this contract.
 
@@ -87,7 +87,7 @@ Saved-answer reuse also refuses a record that turns the scalar model into an exc
 
 The independent examples exercise explicit raises, division errors, handlers, `finally`, list writes through another name and list methods.
 Each runs with inputs 17 and 31, then runs again after renaming the input/output operations and moving the source file.
-The ordinary Python executions are checked against expectations written before collection.
+The checker compares ordinary Python executions with expectations written before collection.
 The division example deliberately retains the difference between Python and the scalar model.
 No exception engine or shared-object analysis is claimed by these explanations.
 

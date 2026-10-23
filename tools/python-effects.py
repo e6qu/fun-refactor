@@ -158,6 +158,7 @@ def collect(binary, directory):
     binary, directory = binary.resolve(), directory.resolve()
     directory.mkdir(parents=True, exist_ok=False)
     result = {"schema": "fr-python-effects", "passed": False, "source_bindings": bindings(),
+              "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, timeout=5).strip(),
               "coverage": coverage(), "cases": [], "live_model_calls": 0,
               "scope": "Known scalar examples, including visible model/runtime disagreement; not complete exception or shared-heap support."}
     try:

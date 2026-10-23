@@ -45,7 +45,7 @@ pub(super) fn expression_contract() -> Value {
 
 pub(super) fn effect_contract() -> Value {
     json!({"exception_safety_established":false,"shared_mutable_values_supported":false,
-        "complete_means":"Complete within the declared scalar model; not a claim that execution cannot raise or that mutable objects are tracked."})
+        "complete_means":"The scalar model finished; it does not check runtime exception safety or shared mutable objects."})
 }
 
 #[path = "flow_modules.rs"]

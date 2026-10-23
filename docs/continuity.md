@@ -48,9 +48,13 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: finish preparing the agent comparison
+## Next: check translations and explain Python limits
 
-Continue PR 1 in the [agreed roadmap](../PLAN.md#next-three-prs).
+PR #569 completed the scripted agent-comparison preparation. Live attempts still need agreed models, settings and spending limits.
+Continue PR 2 in the [agreed roadmap](../PLAN.md#next-three-prs) while that decision remains open.
+The current work checks a page-count calculation in both Rust/Python directions and fixes large-integer division.
+It also gives unchecked Python runtime effects exact source locations, including after saved-answer reuse.
+Use the [behavior lesson](check-language-behavior.md) for the concrete examples and finite scope.
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
 They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.

@@ -131,6 +131,7 @@ def collect(binary, directory):
     data = "".join(f"{items} {size}\n" for items, size in pairs).encode()
     answer = expected(pairs)
     result = {"schema": "fr-checked-translation", "passed": False, "source_bindings": bindings(), "input_pairs": pairs,
+              "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, timeout=5).strip(),
               "coverage": coverage(contract),
               "live_model_calls": 0, "runtime_benchmark": False, "translations": [],
               "scope": contract["scope"], "trusted": ["fr translation and parser", "rustc with overflow checks",

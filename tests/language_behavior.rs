@@ -1,4 +1,3 @@
-//! Execute the documented bounded translations and Python effect counterexamples.
 use sha2::{Digest, Sha256};
 use std::process::Command;
 

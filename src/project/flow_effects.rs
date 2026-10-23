@@ -1,4 +1,3 @@
-//! Locations where the scalar model leaves runtime effects unchecked.
 use super::*;
 
 impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
