@@ -127,7 +127,7 @@ The small fixture controls check tool connections. The complete-project controls
 The rehearsal configurations deliberately use a scripted provider and a single controlled CodeGraph query.
 Agree and freeze the complete offered tool set and real model settings before live attempts.
 
-For each task, a separate GitHub job runs the pinned upstream tests and the existing independent behavior checker:
+For each task, a separate GitHub job runs the tests shipped with the pinned project and the existing independent behavior checker:
 
 - Unchanged Unicode code must fail the 67,081-pair behavior check. The original regex code must fail because the new public API is absent.
 - An incomplete Unicode repair fixes one length calculation but leaves the other wrong. The incomplete regex change adds length APIs but leaves extra allocations. Both must be rejected.
@@ -160,13 +160,15 @@ The repair must still provide the requested byte-length APIs and reserve enough 
 Before pausing, the old review must pass a preview or patch check without applying it.
 Control logs stay outside the project, so writing diagnostics cannot make that review stale.
 
-The fr setup uses current declaration handles, saved authoring plans and history apply, undo and redo commands.
+The fr setup uses a handle, an identifier for a selected function or file in the inspected source.
+Its saved plan keeps the reviewed edits and their starting contents.
+The control applies, undoes and redoes that plan through fr history.
 The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
 CodeGraph must answer the assigned function query through the application's actual tool connection in both phases.
 The check does not establish that every CodeGraph finding is current after arbitrary source changes.
 
 The application runs `git diff --check`, which checks patch whitespace, and reports upstream tests as pending.
-After its container is removed, the independent grader runs the real upstream Rust tests and behavior checks on the receiving checkout.
+After its container is removed, the independent grader runs the project's existing Rust tests and behavior checks on the receiving checkout.
 It checks that the local-variable rename remains present, rejects unexpected source paths, and reverses and reapplies the delivered patch exactly.
 Compilation errors and timeouts cannot establish a passing repair. Failures retain command output and resource diagnostics.
 

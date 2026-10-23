@@ -34,7 +34,8 @@ Example: an agent finds a helper, previews its rename, checks its callers and un
 Done: all three applications discover the project skill, and the introductory change lesson passes.
 The CLI and Python comparison now includes startup, edits, validation and shutdown.
 Direct CLI calls were fastest in these small sessions; keeping Python running reduced its overhead.
-Saving and validating answers still cost more than asking again. These results do not measure agent savings.
+Every measured Python approach cost more than the direct CLI baseline.
+Saving answers did not show consistent savings over fresh Python checks. These results do not measure agent savings.
 
 The [comparison preparation](docs/agent-comparison-preparation.md) defines eighteen first attempts.
 Its controls exercise the real applications in all nine tool setups, retain their configurations and prompts, and check complete background-process shutdown.

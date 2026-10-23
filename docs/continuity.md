@@ -66,7 +66,7 @@ Discovery makes the instructions available; a live attempt must show whether an 
 
 The [complete CLI and Python comparison](project-session-cost.md) now covers startup, validation, edits, memory, storage and shutdown.
 All 135 answers agree. Direct CLI calls were fastest; keeping Python running reduced its overhead.
-Saving and validating answers still cost more than asking again in these familiar-project sessions.
+Every Python approach cost more than the direct CLI baseline. Saving answers showed no consistent advantage over fresh Python checks.
 Preserve these results without claiming general agent savings.
 
 The proposed [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph)
