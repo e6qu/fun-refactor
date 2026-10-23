@@ -12,7 +12,7 @@ FR_SOURCE_BYTES = 65536
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
            "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
            "TOKIO_WORKER_THREADS": "1", "UV_THREADPOOL_SIZE": "1", "NODE_OPTIONS": "--v8-pool-size=1",
-           "BUN_JSC_useJIT": "false"}
+           "BUN_JSC_useJIT": "false", "BUN_OPTIONS": "--smol"}
 
 
 def require(condition, message):
@@ -27,8 +27,7 @@ def native_config(host, setup, endpoint):
     require(endpoint.rsplit(":", 1)[1].isascii() and 1 <= int(endpoint.rsplit(":", 1)[1]) <= 65535,
             "rehearsal port must be between 1 and 65535")
     server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace"],
-              "env": {**WORKERS, "NODE_OPTIONS": WORKERS["NODE_OPTIONS"] +
-                      " --max-old-space-size=64 --max-semi-space-size=1"}, "cwd": "/workspace"}
+              "env": dict(WORKERS), "cwd": "/workspace"}
     if host == "claude":
         return {"model": MODEL, "tools": ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"],
                 "mcp": {"mcpServers": {"codegraph": server} if setup == "codegraph" else {}},
