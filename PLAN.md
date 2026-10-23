@@ -65,10 +65,13 @@ The stopped studies stay stopped; this roadmap does not authorize their restart.
 Example: determine whether customer input reaches `send(value)` through an imported helper, including an exception or a shared list mutation.
 A shared list mutation changes an object that another name can read later.
 
-Current work checks a page-count helper in both Rust/Python directions and fixes precision loss in integer division.
-It also locates unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
+PR #571 checked a page-count helper in both Rust/Python directions and fixed precision loss in integer division.
+It also located unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
 The [complete example](docs/check-language-behavior.md) explains the inputs, independent checks and remaining limits.
-Broader package imports and full exception or shared-object analysis remain separate work in this delivery package.
+Next, use the full Toolz, Funcy and Pydash imports to identify the remaining setup and source-budget obstacles with the current checker.
+Choose general rules from those recorded failures, keep existing limits, and preserve every unfinished answer.
+Reserve another unread project before freezing a new unfamiliar-project comparison.
+Full exception and shared-object analysis remain open work in this delivery package.
 
 - Handle package imports, exceptions and shared mutable values exposed by the chosen tasks.
   Use the original package imports. A copied helper in an isolated file answers a different question.
