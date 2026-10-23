@@ -175,14 +175,14 @@ def retain_measurement(run_id, publication):
 
 
 def previous_record(root, catalog):
-    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
     path = PurePosixPath(entry['path'])
     cost.require(not path.is_absolute() and '..' not in path.parts and str(path) == entry['path']
                  and path.parts[:3] == ('tests', 'agent-eval', 'results'), 'unsafe current cost record')
     cost.require(cost.file_digest(root / path) == entry['sha256'], 'previous current cost record changed')
     value = json.loads((root / path).read_text())
     cost.require(value['schema'] == 'fr-saved-answer-improvement' and value['passed'] is True,
-                 'previous current cost record did not finish')
+                 'expected a completed answer-storage comparison')
     return {'path': entry['path'], 'sha256': entry['sha256']}
 
 
@@ -207,11 +207,11 @@ def main():
                     BEFORE_SOURCE, '--', 'sdk/python/src', 'tools/profile-saved-answers.py'], check=True)
     cost.save(publication / 'publication.json', {'collection_run': run, 'jobs': jobs, 'previous_current_record': previous,
         'comparison_sha256': pointer['sha256'], 'before': before, 'after': after})
-    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+    entry, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
     entry.update(path=pointer['directory'] + '/result.json', sha256=pointer['sha256'],
                  audit='python3 -B tools/saved-answer-comparison.py --audit ' + pointer['directory'],
-                 scope='Matched complete sessions before and after hashing distinct pieces once on three familiar projects. '
-                       'Includes fresh baselines, full answer agreement and unchanged first-project qualification.')
+                 scope='Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. '
+                       'The direct CLI/Python comparison has its own current record.')
     cost.save(catalog_path, catalog)
     (ROOT / 'docs/distinct-answer-hashing.md').write_text(markdown(report, publication))
 

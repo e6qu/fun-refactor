@@ -176,7 +176,7 @@ jobs:
           import hashlib, json, subprocess
           from pathlib import Path
           catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
-          record, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
+          record, = [row for row in catalog['evidence'] if row['id'] == 'current-answer-storage-cost']
           directory = Path(record['path']).parent
           assert hashlib.sha256((directory / 'result.json').read_bytes()).hexdigest() == record['sha256']
           subprocess.run(['python3', '-B', 'tools/saved-answer-comparison.py', '--audit', str(directory)], check=True)

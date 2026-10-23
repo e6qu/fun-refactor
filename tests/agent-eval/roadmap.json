@@ -30,6 +30,14 @@
   },
   "evidence": [
     {
+      "id": "current-answer-storage-cost",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/result.json",
+      "sha256": "4e15441662a081651e0d202267aa4c0e424516645c15bfe67158ef95c919f59f",
+      "scope": "Previous and current SDK storage sessions on three familiar projects. The direct CLI/Python comparison has a separate current record.",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-21-distinct-answers-39680136839"
+    },
+    {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",

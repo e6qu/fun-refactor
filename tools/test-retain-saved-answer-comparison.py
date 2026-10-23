@@ -21,7 +21,9 @@ class CurrentSelection(unittest.TestCase):
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({'schema': 'fr-saved-answer-improvement', 'passed': True}))
             fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
-            catalog = {'evidence': [{'id': 'current-saved-work-cost', 'path': relative, 'sha256': fingerprint}]}
+            catalog = {'evidence': [
+                {'id': 'current-saved-work-cost', 'path': 'tests/agent-eval/results/session-cost/result.json', 'sha256': 'another-study'},
+                {'id': 'current-answer-storage-cost', 'path': relative, 'sha256': fingerprint}]}
             before = path.read_bytes()
             self.assertEqual(retained.previous_record(root, catalog), {'path': relative, 'sha256': fingerprint})
             self.assertEqual(path.read_bytes(), before)
@@ -33,7 +35,7 @@ class CurrentSelection(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             for path in ('/escape.json', 'tests/agent-eval/results/../escape.json', 'outside/result.json'):
-                catalog = {'evidence': [{'id': 'current-saved-work-cost', 'path': path, 'sha256': 'invalid'}]}
+                catalog = {'evidence': [{'id': 'current-answer-storage-cost', 'path': path, 'sha256': 'invalid'}]}
                 with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'unsafe current cost record'):
                     retained.previous_record(root, catalog)
             with self.assertRaises(ValueError):
