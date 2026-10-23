@@ -1877,7 +1877,6 @@ impl Project<'_> {
         }
         let mut omitted = serde_json::Map::new();
         for field in [
-            "effect_limits",
             "initialization",
             "control_flow",
             "events",
@@ -1887,6 +1886,10 @@ impl Project<'_> {
             "exceptional_returns",
             "returns",
             "origins",
+            "effect_limits",
+            "call_binding",
+            "assignment_control",
+            "expression_control",
         ] {
             if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
                 break;
@@ -1900,7 +1903,7 @@ impl Project<'_> {
                     .or_else(|| report[field].as_object().map(serde_json::Map::len))
                     .unwrap_or(0)
             };
-            if field == "initialization" && count == 0 {
+            if count == 0 {
                 continue;
             }
             omitted.insert(field.into(), json!(count));
@@ -1916,6 +1919,11 @@ impl Project<'_> {
                     | "function_summaries"
             ) {
                 json!({})
+            } else if matches!(
+                field,
+                "call_binding" | "assignment_control" | "expression_control"
+            ) {
+                Value::Null
             } else {
                 json!([])
             };

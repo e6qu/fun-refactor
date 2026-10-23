@@ -915,7 +915,7 @@ jobs:
           cargo test --locked --test transpile_integer_division -- --test-threads=1
           cargo test --locked --test language_behavior saved_flow_cannot_turn_a_scalar_answer_into_an_exception_safety_claim -- --exact
           python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_runtime_effects.py
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_flow_summaries.py::test_exhausted_solver_and_clipped_reports_cannot_establish_absence
       - name: Compare both translation directions with independent arithmetic
         run: >-
           python3 -B tools/checked-translation.py collect --binary target/debug/fr
