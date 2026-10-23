@@ -111,6 +111,7 @@ jobs:
               shutil.rmtree(root / 'unpacked')
           shutil.copyfile('tools/agent_eval/comparison_probe.py', root / 'comparison_probe.py')
           shutil.copyfile('tools/agent_eval/comparison_plan.py', root / 'comparison_plan.py')
+          shutil.copyfile('tools/agent_eval/comparison_handoff_actions.py', root / 'comparison_handoff_actions.py')
           shutil.copyfile('tests/agent-eval/agent-comparison/Dockerfile', root / 'Dockerfile')
           PY
       - name: Build an isolated model-free control image

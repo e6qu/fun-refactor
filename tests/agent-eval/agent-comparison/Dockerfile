@@ -4,7 +4,7 @@ FROM python:3.14-slim-bookworm
 RUN apt-get update && apt-get install --yes --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY tool /opt/tool
-COPY comparison_probe.py comparison_plan.py /probe/
+COPY comparison_probe.py comparison_plan.py comparison_handoff_actions.py /probe/
 ENV PATH="/opt/tool/bin:/usr/local/bin:/usr/bin:/bin" \
     PYTHONDONTWRITEBYTECODE=1 \
     CODEGRAPH_TELEMETRY=0 \
