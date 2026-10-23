@@ -8,8 +8,9 @@ SETUPS = ("files", "fr", "codegraph")
 MODEL = "fr-scripted-control"
 CONTROL_PROMPT = "Inspect the fixture and report readiness."
 ORDINARY = ("read", "search", "edit", "run checks", "export a Git patch")
+FR_SOURCE_BYTES = 65536
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
-           "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
+           "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
            "TOKIO_WORKER_THREADS": "1", "UV_THREADPOOL_SIZE": "1", "NODE_OPTIONS": "--v8-pool-size=1",
            "BUN_JSC_useJIT": "false"}
 
@@ -25,7 +26,7 @@ def native_config(host, setup, endpoint):
             "rehearsal provider must be an explicit loopback endpoint")
     require(endpoint.rsplit(":", 1)[1].isascii() and 1 <= int(endpoint.rsplit(":", 1)[1]) <= 65535,
             "rehearsal port must be between 1 and 65535")
-    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp"],
+    server = {"command": "/opt/tool/bin/codegraph", "args": ["serve", "--mcp", "--path", "/workspace"],
               "env": dict(WORKERS), "cwd": "/workspace"}
     if host == "claude":
         return {"model": MODEL, "tools": ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"],
@@ -90,7 +91,7 @@ def inputs(root):
     root = Path(root)
     tasks = json.loads((root / "tests/agent-eval/unknown-target/task.json").read_text())["tasks"]
     result = {"live_calls_enabled": False, "ordinary_operations": list(ORDINARY), "cpu_affinity_count": 1,
-              "worker_environment": dict(WORKERS),
+              "worker_environment": dict(WORKERS), "handoff_fr_max_file_bytes": FR_SOURCE_BYTES,
               "readonly_opencode_configuration": ["/home/control/.config/opencode", "/workspace/.opencode"],
               "rehearsal_model": MODEL, "applications": {}, "commands": {}, "tasks": {}}
     for host in HOSTS:

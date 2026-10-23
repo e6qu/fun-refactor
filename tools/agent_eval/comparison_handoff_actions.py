@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import subprocess
 
-from agent_eval.comparison_clients import require
+from agent_eval.comparison_clients import FR_SOURCE_BYTES, require
 
 ARTIFACTS = Path("/tmp/handoff")
 
@@ -56,7 +56,7 @@ def patch(edits):
 
 
 def fr(*args):
-    result = json.loads(run(["fr", "--json", *args], 0).stdout)
+    result = json.loads(run(["fr", "--json", "--max-file-size", str(FR_SOURCE_BYTES), *args], 0).stdout)
     require("error" not in result, "fr refused the prescribed current operation")
     return result
 
@@ -95,6 +95,9 @@ def discover(scenario, setup):
     before = snapshot()
     for path in scenario["paths"]:
         require(Path(path).is_file(), "task source is missing")
+        require(Path(path).stat().st_size <= FR_SOURCE_BYTES, "task source exceeds the declared fr scan limit")
+    require(all(len(text.encode()) <= FR_SOURCE_BYTES for text in patched(scenario["original_edits"]).values()),
+            "repaired task source exceeds the declared fr scan limit")
     handoff = ("# Prescribed task handoff\n\n" + scenario["diagnosis"] + "\n\n" +
                "Sources inspected: " + ", ".join(scenario["paths"]) + "\n\n" +
                "A repair was reviewed but has not been applied. Read current source before resuming.\n\n" +
@@ -139,7 +142,7 @@ def deliver(scenario, setup):
     require(before == state["resumed"] and before != state["before"], "delivery needs the changed current source")
     if setup == "fr":
         saved = state["saved"]
-        refused = run(["fr", "--json", "history", "apply", str(saved["transaction"]), "--write", "--no-diff",
+        refused = run(["fr", "--json", "--max-file-size", str(FR_SOURCE_BYTES), "history", "apply", str(saved["transaction"]), "--write", "--no-diff",
                        "--context-basis", saved["transaction_context_basis"]], 1)
         require(b"project source changed after planning" in refused.stdout + refused.stderr, "old plan failed for an unexpected reason")
     else:
@@ -151,6 +154,8 @@ def deliver(scenario, setup):
     for edit in scenario["resumed_edits"]:
         if edit["old"]:
             require(Path(edit["path"]).read_text().count(edit["old"]) == 1, "read current source before the new review")
+    require(all(len(text.encode()) <= FR_SOURCE_BYTES for text in patched(scenario["resumed_edits"]).values()),
+            "resumed task source exceeds the declared fr scan limit")
     if setup == "fr":
         saved = review(scenario["resumed_edits"], "fresh")
         transaction = str(saved["transaction"])

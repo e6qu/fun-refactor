@@ -131,7 +131,7 @@ def probe(setup):
         "CODEGRAPH_TELEMETRY", "CODEGRAPH_PARSE_WORKERS", "CODEGRAPH_QUERY_POOL_SIZE",
         "CODEGRAPH_RESOLVE_WORKERS", "RAYON_NUM_THREADS")}
     require(controls == {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
-                         "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1",
+                         "CODEGRAPH_QUERY_POOL_SIZE": "0", "CODEGRAPH_RESOLVE_WORKERS": "1",
                          "RAYON_NUM_THREADS": "1"}, "worker settings differ from the rehearsal")
     return {"setup": setup, "available_tools": paths, "versions": versions, "worker_settings": controls, **result}
 

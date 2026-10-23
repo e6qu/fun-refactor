@@ -26,7 +26,7 @@ def steps(host, setup, scenario, phase):
 def probe(host, setup):
     require(not any(Path("/probe").glob("*grade*")) and not Path("/probe/oracle.py").exists(), "private grader leaked into the native image")
     scenario = json.loads(Path("/opt/handoff.json").read_text())
-    # The tmpfs mount root belongs to root. Copy owned children without chmod/utime on that mount.
+    # Copy children without replacing the explicitly configured mount-root metadata.
     for source in Path("/opt/project").iterdir():
         if source.is_dir():
             shutil.copytree(source, source.name)

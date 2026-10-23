@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent_eval import comparison_handoff_actions as actions
 from agent_eval import comparison_native as native
-from agent_eval.comparison_clients import CONTROL_PROMPT, MODEL, inputs, launch_command, native_config
+from agent_eval.comparison_clients import CONTROL_PROMPT, FR_SOURCE_BYTES, MODEL, inputs, launch_command, native_config
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("handoff_controller", ROOT / "tools/agent-comparison-handoff.py")
@@ -34,6 +34,7 @@ class Handoff(unittest.TestCase):
                 self.assertEqual(before, {name: (project / name).read_bytes() for name in before})
                 self.assertNotEqual(recipe["original_edits"], recipe["resumed_edits"])
                 self.assertIn(recipe["preserved_name"], recipe["resumed_edits"][0]["old"])
+                self.assertTrue(all((project / name).stat().st_size <= FR_SOURCE_BYTES for name in before))
                 self.assertEqual(recipe["prompts"], frozen["tasks"][task]["prompts"])
                 for host in ("claude", "opencode"):
                     config = native_config(host, "files", "http://127.0.0.1:1234")

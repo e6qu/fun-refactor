@@ -61,7 +61,8 @@ A Linux kernel resource group counts the entire container, including the scripte
 Its explicit limits are half a CPU core, sixty CPU seconds, 512 MiB of memory, no swap and sixty-four processes.
 CPU seconds count time spent executing; they differ from elapsed time while waiting.
 The [pinned CodeGraph parser](https://github.com/colbymchenry/codegraph/blob/v1.6.2/src/extraction/parse-pool.ts) chooses its worker count from the host's cores, which can exceed the container's CPU allowance.
-This rehearsal explicitly sets its parse, query and resolver worker limits to one, and sets fr's Rayon worker limit to one.
+This rehearsal explicitly sets its parse and resolver worker limits to one, and sets fr's Rayon worker limit to one.
+CodeGraph's query pool is explicitly disabled: these controls issue one query at a time, so its daemon handles them without an additional worker and database connection.
 A worker is a program or thread doing part of the tool's work. These limits avoid competing startup work on the shared half core; they do not disable CodeGraph's daemon or increase any deadline.
 The container also has bounded temporary storage and no writable host mounts.
 After the query, the controller removes the container and requires an empty resource group.
@@ -113,10 +114,11 @@ The schedule retains these runtime settings for every setup. They are preparatio
 Native clients use `/home/control` as their isolated home, allowing Codex to create its required helper aliases outside temporary directories.
 The image installs bubblewrap, Codex's Linux sandbox dependency.
 Codex plugins are explicitly disabled; these controls need the installed skill and declared tools.
-CodeGraph retains its daemon and one query worker in these controls.
+CodeGraph retains its daemon and liveness watchdogs in these controls. Its project path is explicit.
 The Bun applications receive `BUN_JSC_useJIT=false`, disabling their runtime compiler for these setup checks.
 This changes how JavaScript executes, so these controls cannot establish normal runtime performance.
 The initial OpenCode and CodeGraph setup exceeded the shared 512 MiB cap; garbage-collection hints did not resolve it.
+The complete regex task also reached that cap with a separate query worker; the serial query path removes that unnecessary process without increasing memory or time limits.
 Agree the actual live-attempt runtime settings and include their costs before comparing agent performance.
 
 The generated schedule includes exact rehearsal configuration objects and launch arguments for all nine setups.
@@ -163,6 +165,10 @@ Control logs stay outside the project, so writing diagnostics cannot make that r
 The fr setup uses a handle, an identifier for a selected function or file in the inspected source.
 Its saved plan keeps the reviewed edits and their starting contents.
 The control applies, undoes and redoes that plan through fr history.
+The prescribed fr edits explicitly limit analyzed source files to 65,536 bytes. Both task files and their repaired forms must fit that limit.
+The regex workspace includes larger generated Unicode tables and parser files; parsing all of them for a selected-function edit exhausted Codex's ten-second command window.
+Those larger files stay in the complete checkout and in the independent tests, but are outside this control's fr analysis coverage.
+This does not establish complete caller discovery or whole-workspace analysis within ten seconds.
 The ordinary-tools and CodeGraph setups use reviewed Git patches for editing and reversal.
 CodeGraph must answer the assigned function query through the application's actual tool connection in both phases.
 The check does not establish that every CodeGraph finding is current after arbitrary source changes.
