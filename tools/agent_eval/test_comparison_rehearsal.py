@@ -38,9 +38,9 @@ class FailureRetention(unittest.TestCase):
                  patch.object(control, "audit", return_value=checked):
                 if create_fails or cleanup_fails or audit_fails:
                     with self.assertRaises(ValueError):
-                        control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
+                        control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools", "tools")
                 else:
-                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
+                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools", "tools")
             retained = json.loads((output / "result.json").read_text())
             self.assertEqual(retained["passed"], not (create_fails or cleanup_fails or audit_fails))
             self.assertEqual(retained["resources"], {"retained": True})
@@ -86,7 +86,7 @@ class FailureRetention(unittest.TestCase):
                  patch.object(control, "ContainerResources", side_effect=resources), \
                  patch.object(control, "invoke", return_value=({"exit_code": 0, "stop_reason": None}, b"", b"thread diagnosis")):
                 with self.assertRaisesRegex(ValueError, "budget stopped"):
-                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools")
+                    control.rehearsal("sha256:" + "a" * 64, "files", output, False, "tools", "tools")
             result = json.loads((output / "result.json").read_text())
             self.assertFalse(result["passed"])
             self.assertEqual(result["commands"][0]["stderr"], "thread diagnosis")

@@ -36,6 +36,48 @@ def download(entry, destination):
     return destination / "unpacked"
 
 
+def build(host, setup, output, native, project, scenario):
+    context = output / (setup + "-image")
+    context.mkdir()
+    (context / "client/bin").mkdir(parents=True)
+    shutil.copyfile(native, context / "client/bin" / host)
+    (context / "client/bin" / host).chmod(0o755)
+    client = json.loads((ROOT / "tests/agent-eval/agent-first-use/hosts.json").read_text())[host]
+    (context / "client/identity.json").write_text(json.dumps(client) + "\n")
+    (context / "tool/bin").mkdir(parents=True)
+    if setup != "files":
+        relative = "tests/agent-eval/agent-first-use/codegraph.json" if setup == "codegraph" else "tests/agent-eval/agent-comparison/tools.json"
+        entry = json.loads((ROOT / relative).read_text())
+        if setup == "fr":
+            entry = entry["fr"]
+        package = download(entry, output / (setup + "-package"))
+        if setup == "codegraph":
+            shutil.copytree(package / "codegraph-linux-x64", context / "tool", dirs_exist_ok=True)
+        else:
+            binary, = (p for p in package.rglob("fr") if p.is_file())
+            shutil.copyfile(binary, context / "tool/bin/fr")
+            (context / "tool/bin/fr").chmod(0o755)
+    if setup == "fr":
+        shutil.copytree(ROOT / "skills/fr", context / "skill")
+    else:
+        (context / "skill").mkdir()
+    if project is None:
+        require(scenario is None, "a task recipe needs its complete pinned project")
+        (context / "project").mkdir()
+    else:
+        require(scenario is not None, "declare the task recipe")
+        shutil.copytree(project, context / "project")
+    (context / "handoff.json").write_text(json.dumps(scenario) + "\n")
+    for module in ("comparison_clients.py", "comparison_native.py", "comparison_handoff_actions.py", "comparison_handoff_native.py"):
+        shutil.copyfile(ROOT / "tools/agent_eval" / module, context / module)
+    shutil.copyfile(ROOT / "tests/agent-eval/agent-comparison/Native.Dockerfile", context / "Dockerfile")
+    subprocess.run(["docker", "build", "--tag", "fr-native-" + host + "-" + setup, str(context)], check=True, timeout=120)
+    image = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}",
+                                     "fr-native-" + host + "-" + setup], timeout=10).decode().strip()
+    shutil.rmtree(context)
+    return image
+
+
 def run(host, output):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run native rehearsals on GitHub, not a workstation")
     output.mkdir(parents=True, exist_ok=False)
@@ -49,37 +91,8 @@ def run(host, output):
         native.chmod(0o755)
         for setup in SETUPS:
             summary["setups"][setup] = {"status": "running"}
-            context = output / (setup + "-image")
-            context.mkdir()
-            (context / "client/bin").mkdir(parents=True)
-            shutil.copyfile(native, context / "client/bin" / host)
-            (context / "client/bin" / host).chmod(0o755)
-            (context / "client/identity.json").write_text(json.dumps(client) + "\n")
-            (context / "tool/bin").mkdir(parents=True)
-            if setup != "files":
-                relative = "tests/agent-eval/agent-first-use/codegraph.json" if setup == "codegraph" else "tests/agent-eval/agent-comparison/tools.json"
-                entry = json.loads((ROOT / relative).read_text())
-                if setup == "fr":
-                    entry = entry["fr"]
-                package = download(entry, output / (setup + "-package"))
-                if setup == "codegraph":
-                    shutil.copytree(package / "codegraph-linux-x64", context / "tool", dirs_exist_ok=True)
-                else:
-                    binary, = (p for p in package.rglob("fr") if p.is_file())
-                    shutil.copyfile(binary, context / "tool/bin/fr")
-                    (context / "tool/bin/fr").chmod(0o755)
-            if setup == "fr":
-                shutil.copytree(ROOT / "skills/fr", context / "skill")
-            else:
-                (context / "skill").mkdir()
-            for module in ("comparison_clients.py", "comparison_native.py"):
-                shutil.copyfile(ROOT / "tools/agent_eval" / module, context / module)
-            shutil.copyfile(ROOT / "tests/agent-eval/agent-comparison/Native.Dockerfile", context / "Dockerfile")
-            subprocess.run(["docker", "build", "--tag", "fr-native-" + host + "-" + setup, str(context)], check=True, timeout=120)
-            image = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}",
-                                             "fr-native-" + host + "-" + setup], timeout=10).decode().strip()
-            shutil.rmtree(context)
-            report = boundary.rehearsal(image, setup, output / setup, False, host)
+            image = build(host, setup, output, native, None, None)
+            report = boundary.rehearsal(image, setup, output / setup, False, host, "tools")
             require(report["passed"], "native rehearsal did not pass")
             summary["setups"][setup] = {"status": "passed", "image": image, "result": setup + "/result.json"}
         summary["passed"] = True

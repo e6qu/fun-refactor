@@ -32,7 +32,7 @@ class NativeInputs(unittest.TestCase):
             self.assertEqual(graph, ordinary, host)
             for setup in ("files", "fr"):
                 config = clients.native_config(host, setup, "http://127.0.0.1:1234")
-                self.assertNotIn("codegraph", json.dumps(clients.launch_command(host, setup, config)))
+                self.assertNotIn("codegraph", json.dumps(clients.launch_command(host, setup, config, clients.CONTROL_PROMPT)))
 
     def test_rehearsal_cannot_be_pointed_to_a_live_provider(self):
         for endpoint in ("https://api.openai.com", "https://api.anthropic.com", "http://localhost:12",
@@ -43,9 +43,9 @@ class NativeInputs(unittest.TestCase):
 
     def test_native_launches_keep_project_skills_and_avoid_title_inference(self):
         for setup in clients.SETUPS:
-            claude = clients.launch_command("claude", setup, clients.native_config("claude", setup, "http://127.0.0.1:1234"))
+            claude = clients.launch_command("claude", setup, clients.native_config("claude", setup, "http://127.0.0.1:1234"), clients.CONTROL_PROMPT)
             self.assertEqual(claude[claude.index("--setting-sources") + 1], "project")
-            opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"))
+            opencode = clients.launch_command("opencode", setup, clients.native_config("opencode", setup, "http://127.0.0.1:1234"), clients.CONTROL_PROMPT)
             self.assertEqual(opencode[opencode.index("--title") + 1], "Scripted native tool control")
             config = clients.native_config("opencode", setup, "http://127.0.0.1:1234")
             self.assertEqual(config["permission"]["bash"], "allow")

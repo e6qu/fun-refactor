@@ -6,6 +6,7 @@ from pathlib import Path
 HOSTS = ("claude", "codex", "opencode")
 SETUPS = ("files", "fr", "codegraph")
 MODEL = "fr-scripted-control"
+CONTROL_PROMPT = "Inspect the fixture and report readiness."
 ORDINARY = ("read", "search", "edit", "run checks", "export a Git patch")
 WORKERS = {"CODEGRAPH_TELEMETRY": "0", "CODEGRAPH_PARSE_WORKERS": "1",
            "CODEGRAPH_QUERY_POOL_SIZE": "1", "CODEGRAPH_RESOLVE_WORKERS": "1", "RAYON_NUM_THREADS": "1",
@@ -70,15 +71,15 @@ def prompts(requirement):
             "export change.patch with Git, and explain the result and any remaining limitations.\n"}
 
 
-def launch_command(host, setup, config):
+def launch_command(host, setup, config, prompt):
     require(host in HOSTS and setup in SETUPS, "unknown application or tool setup")
     if host == "codex":
         return ["codex", "app-server", "--listen", "stdio://"]
     if host == "opencode":
         return ["opencode", "run", "--format", "json", "--title", "Scripted native tool control", "--model", config["model"],
-                "Inspect the fixture and report readiness."]
+                prompt]
     allowed = config["tools"] + (["mcp__codegraph__codegraph_explore"] if setup == "codegraph" else [])
-    return ["claude", "-p", "Inspect the fixture and report readiness.", "--output-format", "stream-json",
+    return ["claude", "-p", prompt, "--output-format", "stream-json",
             "--verbose", "--model", config["model"], "--max-turns", str(config["max_turns"]),
             "--no-session-persistence", "--setting-sources", "project", "--settings", json.dumps(config["settings"]),
             "--tools", ",".join(config["tools"]), "--allowedTools", *allowed,
@@ -94,7 +95,7 @@ def inputs(root):
               "rehearsal_model": MODEL, "applications": {}, "commands": {}, "tasks": {}}
     for host in HOSTS:
         result["applications"][host] = {setup: native_config(host, setup, "http://127.0.0.1:1") for setup in SETUPS}
-        result["commands"][host] = {setup: launch_command(host, setup, result["applications"][host][setup]) for setup in SETUPS}
+        result["commands"][host] = {setup: launch_command(host, setup, result["applications"][host][setup], CONTROL_PROMPT) for setup in SETUPS}
     for name in ("unicode-dice", "regex-escape-len"):
         result["tasks"][name] = {"prompts": prompts(tasks[name]["requirement"]),
             "grader": ["python3", "-B", "tools/agent-comparison-grade.py", "grade", "--task", name,
