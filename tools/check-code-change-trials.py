@@ -27,10 +27,14 @@ def main():
     task_root = args.task_pack
     manifest = load(task_root / "manifest.json")
     image = load(task_root / manifest["tasks"][0]["grader"])["image"]
-    result, _, _ = isolated_grade.invoke(isolated_grade.DOCKER + ["pull", image], b"", task_root, 90, 131072)
-    require(result["exit_code"] == 0 and not result["stop_reason"], "pinned grading image unavailable")
     destination = args.output
     destination.mkdir(parents=True, exist_ok=True)
+    command = isolated_grade.DOCKER + ["pull", image]
+    result, stdout, stderr = isolated_grade.invoke(command, b"", task_root, 90, 131072)
+    (destination / "image-pull.json").write_bytes(encode({"command": command, "process": result,
+        "stdout": stdout.decode("utf-8", errors="replace"), "stderr": stderr.decode("utf-8", errors="replace")}))
+    require(result["exit_code"] == 0 and not result["stop_reason"],
+            "pinned grading image unavailable: " + json.dumps(isolated_grade.failure_details(result, stdout, stderr)))
     tasks = [task for task in manifest["tasks"] if args.task is None or task["id"] == args.task]
     require(bool(tasks), "unknown control task")
     change_controls.verify_sources(task_root, manifest["tasks"])

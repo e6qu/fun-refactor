@@ -18,10 +18,24 @@ fn translated(source: &str, to: Language) -> String {
     transpile::plan(&path, to).expect("a translation").output
 }
 
+fn python_answers(source: &str, expression: &str) -> serde_json::Value {
+    let output = translated(source, Language::Python);
+    let program = format!("{output}\nimport json\nprint(json.dumps({expression}))\n");
+    let result = std::process::Command::new("python3")
+        .args(["-I", "-B", "-c", &program])
+        .output()
+        .expect("run the translated Python");
+    assert!(
+        result.status.success(),
+        "{}\n{output}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    serde_json::from_slice(&result.stdout).expect("Python answers")
+}
+
 #[test]
 fn a_group_the_source_wrote_survives() {
-    // Zig refuses `/` on signed integers and names the rounding instead, so the
-    // grouping shows up inside its call rather than inside brackets.
+    // Python and Zig pass the whole denominator as one call argument.
     for (body, expected, in_zig) in [
         ("return (a + b) * c;", "(a + b) * c", "(a + b) * c"),
         ("return a - (b - c);", "a - (b - c)", "a - (b - c)"),
@@ -31,6 +45,7 @@ fn a_group_the_source_wrote_survives() {
         for target in TARGETS {
             let out = translated(&source, *target);
             let wanted = match target {
+                Language::Python if body == "return a / (b * c);" => "(a, b * c)",
                 Language::Zig => in_zig,
                 _ => expected,
             };
@@ -111,17 +126,20 @@ fn a_body_that_ends_in_a_statement_gains_no_return() {
 
 #[test]
 fn dividing_two_integers_still_truncates_in_python() {
-    // Every other language here truncates when it divides two integers.
     let source = "pub fn half(a: i64, b: i64) -> i64 {\n    return a / b;\n}\n";
-    let out = translated(source, Language::Python);
-    assert!(out.contains("return int(a / b)"), "{out}");
+    assert_eq!(
+        python_answers(source, "[half(7, 3), half(-7, 3), half(7, -3), half(-7, -3)]"),
+        serde_json::json!([2, -2, -2, 2])
+    );
 }
 
 #[test]
 fn integer_division_sees_through_arithmetic() {
     let source = "pub fn mid(a: i64, b: i64) -> i64 {\n    return (a + b) / 2;\n}\n";
-    let out = translated(source, Language::Python);
-    assert!(out.contains("return int((a + b) / 2)"), "{out}");
+    assert_eq!(
+        python_answers(source, "[mid(13, -4), mid(-13, 4)]"),
+        serde_json::json!([4, -4])
+    );
 }
 
 #[test]
