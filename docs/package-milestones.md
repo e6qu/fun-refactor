@@ -18,6 +18,12 @@ The [next work](../PLAN.md#next-three-prs) combines agent setup, measured costs 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.
 
+The [current text question](original-package-questions.md#follow-a-customer-label-through-stringcase)
+adds Stringcase to the three earlier projects with one unchanged checker.
+Its implementation stayed unread while we fixed the checker and procedure; its first inspection passed.
+The new record also rechecks all three familiar projects and preserves the original unread results separately.
+The dated records below continue to explain the earlier milestones and failed attempts.
+
 The question is concrete: after importing a real package, can an input passed to
 one of its helpers reach a selected output? For example, if a helper adds one,
 `record_value(helper(emit_value()))` carries the input to the output.

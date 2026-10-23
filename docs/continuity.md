@@ -48,7 +48,7 @@ The fixes preserve local Python import names, distinguish same-named Rust declar
 Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
 The recurring CI check replays the recorded experiment and rejects altered completion claims.
 
-## Next: follow customer text through a helper
+## Next: choose a project change that exposes a remaining Python gap
 
 PR #569 completed the scripted agent-comparison preparation. Live attempts still need agreed models, settings and spending limits.
 Continue PR 2 in the [agreed roadmap](../PLAN.md#next-three-prs) while that decision remains open.
@@ -57,11 +57,14 @@ It also gave unchecked Python runtime effects exact source locations, including 
 Use the [behavior lesson](check-language-behavior.md) for the concrete examples and finite scope.
 The fresh Toolz, Funcy and Pydash baseline still has no complete full-package answers.
 Keep their original imports, startup failures and existing limits visible.
-The next change follows `send(str(customer_input).lower())` through conversions and read-only string methods.
-It must distinguish a plain string from an arbitrary object that supplies its own `lower` method.
-Check reassignment, branches, helper returns and saved answers against ordinary Python.
-Stringcase's README supplied a reserved lowercase question; its implementation stays unread until the checker and procedure are fixed.
-Recheck Boltons, dateutil and JDcal with that same checker. They are familiar projects now.
+Text conversions and twelve read-only string methods now pass 68 comparisons with ordinary Python.
+For example, `send(str(customer_input).lower())` keeps the input's possible value connection.
+Reassignment, mixed return types, arbitrary objects and saved answers have explicit controls.
+Stringcase's README supplied a reserved lowercase question; its first inspection passed after fixing the checker and procedure.
+The same executable also passed the Boltons, dateutil and JDcal questions. Those three projects are familiar now.
+The [current package example](original-package-questions.md#follow-a-customer-label-through-stringcase) links the frozen record and its limits.
+Choose a concrete change task that exposes one remaining import or runtime-effect gap before extending the model again.
+Stringcase is familiar after this evaluation; another independent first attempt needs a new reservation.
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
 They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.
