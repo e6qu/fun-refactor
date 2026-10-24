@@ -182,20 +182,20 @@
       "sha256": "81f583beb06540a005f42f5676d19dd3087a420253fa5dfb384f6bd0c848194c"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "id": "current-project-changes",
-      "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck/result.json",
-      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "0a915d412ec6c252c5d5376aeecc982aa82cb5f11f49a018aabefbd17bcefe02"
-    },
-    {
       "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
       "sha256": "ee5b04f63727d18fb13c2ffe9c76982c0b22ac28d9387b9bb4ef102a198fa4a5"
+    },
+    {
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "id": "current-project-changes",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck/result.json",
+      "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
+      "sha256": "5df4705b48a2f2ce5f716943323e160db94b0f5e004cb7ed6137195b39cea250"
     }
   ],
   "obligations": [
