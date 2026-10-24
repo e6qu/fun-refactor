@@ -583,8 +583,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 if argument_names.iter().any(Option::is_some)
                     || !(minimum..=maximum).contains(&arguments.len())
                     || exception
-                        && node
-                            .parent()
+                        && std::iter::successors(node.parent(), |parent| parent.parent())
+                            .find(|parent| parent.kind() != "parenthesized_expression")
                             .is_none_or(|parent| parent.kind() != "raise_statement")
                 {
                     self.cutoff(format!("unsupported-standard-call:{standard}"));
