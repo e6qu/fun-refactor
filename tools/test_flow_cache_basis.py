@@ -99,11 +99,25 @@ class FlowCacheBasisTests(unittest.TestCase):
                 (root / "source.rs").write_text("fn answer() -> u8 { 1 }")
                 (root / "native-source-inputs.txt").write_text(
                     "Cargo.toml\nCargo.lock\nsource.rs\nnative-source-inputs.txt\n")
+                client = root / 'sdk/python/src/fr_ir'
+                client.mkdir(parents=True)
+                (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\nversion="1.0.0"\n')
+                (client / '__init__.py').write_text('')
+                helper = client / 'flow_completion.py'
+                helper.write_text('def validate(): return False\n')
                 baseline = evaluator.bindings()
                 (root / "Cargo.toml").write_bytes(manifest("0.34.1"))
                 (root / "Cargo.lock").write_bytes(lock("0.34.1"))
                 self.assertEqual(baseline, evaluator.bindings())
                 self.assertEqual(baseline["Cargo.lock"], file_digest(root / "Cargo.lock"))
+                helper.write_text('def validate(): return True\n')
+                self.assertNotEqual(baseline, evaluator.bindings())
+                helper.write_text('def validate(): return False\n')
+                added = client / 'another_rule.py'
+                added.write_text('rule = True\n')
+                self.assertNotEqual(baseline, evaluator.bindings())
+                added.unlink()
+                self.assertEqual(baseline, evaluator.bindings())
                 (root / "source.rs").write_text("fn answer() -> u8 { 2 }")
                 self.assertNotEqual(baseline["source.rs"], evaluator.bindings()["source.rs"])
                 (root / "native-source-inputs.txt").unlink()
