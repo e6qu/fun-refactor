@@ -88,7 +88,8 @@ def binding_digest(path, schema, root):
         members = {root / ('Cargo.toml' if member == '.' else member + '/Cargo.toml') for member in workspace}
         if path in members:
             return hashlib.sha256(cargo_manifest_basis(path.read_bytes())).hexdigest()
-    if schema in ('fr-python-repository-acceptance-2', 'fr-original-package-questions', 'fr-rechecked-package-questions'):
+    if schema in ('fr-python-repository-acceptance-2', 'fr-original-package-questions',
+                  'fr-rechecked-package-questions', 'fr-rechecked-text-package'):
         return python_repository_digest(path)
     return file_digest(path)
 
