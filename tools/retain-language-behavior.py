@@ -33,7 +33,8 @@ def register(catalog, group, relative, receipt):
              'and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.'
              if group == 'checked-translation' else
              'Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. '
-             'Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.')
+             'Exact source locations and visible model/runtime disagreement; implicit errors, bound error objects '
+             'and shared objects remain unchecked.')
     if group == 'python-text-flow':
         scope = ('Plain string conversions and twelve read-only string methods, repeated after renaming and moving. '
                  'Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.')
@@ -62,8 +63,9 @@ def register(catalog, group, relative, receipt):
     selected['next'] = ('Keep exact integer division, operand evaluation order and the independent bounded checks passing. '
                         'Other functions and input domains need their own contracts and checks.'
                         if group == 'checked-translation' else
-                        'Keep unchecked runtime effects visible at exact source locations. Supporting handlers and shared '
-                        'mutable objects still needs language rules and independent project examples.')
+                        'Keep the original-import error-handler repair and exact unchecked-effect locations passing. '
+                        'Choose a concrete project change that needs implicit errors or shared mutable values, then '
+                        'add reusable rules and independent behavior checks.')
 
 
 def main():
@@ -91,3 +93,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
