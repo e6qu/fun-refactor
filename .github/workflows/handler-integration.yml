@@ -1,0 +1,44 @@
+name: Combine checked handler results
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  combine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Combine independently checked results without local data growth
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for branch in main ci/handlers-final-language ci/handlers-final-storage ci/handlers-final-ci ci/handlers-final-scalar; do
+            git fetch --quiet --filter=blob:none --no-tags origin "$branch"
+            if ! git merge --no-ff --no-commit FETCH_HEAD; then
+              while IFS= read -r path; do
+                case "$path" in
+                  docs/roadmap-status.md|docs/roadmap-status.json)
+                    git checkout --ours -- "$path"
+                    git add -- "$path"
+                    ;;
+                  *) echo "Unresolved result integration: $path" >&2; exit 1 ;;
+                esac
+              done < <(git diff --name-only --diff-filter=U)
+            fi
+            if git rev-parse --verify -q MERGE_HEAD >/dev/null; then
+              git commit --quiet -m "Combine checked handler results from $branch"
+            fi
+          done
+          git rm .github/workflows/handler-integration.yml
+          git commit --quiet -m 'Remove the completed result integration job'
+          git push origin HEAD:refs/heads/ci/handlers-final-docs
