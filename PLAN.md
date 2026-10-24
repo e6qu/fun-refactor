@@ -12,7 +12,7 @@ Finding the calculation is only part of that outcome.
 `fr` can find functions and callers, preview edits, run declared checks, undo changes and resume saved work.
 Selected Rust and Python project changes pass behavior checks and patch replay in another checkout.
 Selected number, date and text questions work through original Python package imports.
-Broader imports, exceptions and shared mutable values remain incomplete.
+Broader imports, implicit runtime errors and shared mutable values remain incomplete.
 
 We have not demonstrated general time or cost savings for agents.
 The [complete session comparison](docs/project-session-cost.md) measures direct CLI calls, restarted Python clients and Python clients kept running across questions.
@@ -196,3 +196,4 @@ Fix the cause of failures and timeouts. Keep existing limits and coverage.
 Keep tutorials and historical runs in their guides, not this roadmap.
 Use the [handoff](docs/continuity.md) for investigation details, the [measurement guide](docs/benchmarks.md) for comparison rules,
 and the [evaluation guide](docs/evaluations.md) for results and preserved failures.
+
