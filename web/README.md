@@ -17,6 +17,10 @@ without a server. It does not send changes back to GitHub or hold an access toke
 
 ## Run locally
 
+You need Node.js and npm, its package installer, plus Rust and a C compiler that can produce WebAssembly.
+Use the toolchain setup in the [Pages workflow](../.github/workflows/pages.yml), including its matching `wasm-bindgen` command-line tool.
+That tool generates the JavaScript interface used to load the compiled module in a browser.
+
 Use a dedicated development machine or GitHub runner for the full build.
 From the repository root, enter the web folder and install its dependencies:
 
