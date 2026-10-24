@@ -2,6 +2,15 @@ name: Python cleanup paths
 on:
   push:
     branches: [feat/python-exception-paths]
+    paths:
+      - src/**
+      - sdk/python/src/**
+      - sdk/python/tests/**
+      - tests/agent-eval/python-finally/**
+      - tests/fixtures/python-finally/**
+      - tools/python-effects.py
+      - tools/python-text-flow.py
+      - .github/workflows/python-finally.yml
   workflow_dispatch:
 permissions:
   contents: read
