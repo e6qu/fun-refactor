@@ -1,0 +1,70 @@
+name: Python cleanup paths
+on:
+  push:
+    branches: [feat/python-exception-paths]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: python-finally-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Prepare independent checks
+        run: python3 -m pip install 'pytest==9.1.1'
+      - name: Retain formatting differences
+        run: |
+          cargo fmt --all
+          git diff -- '*.rs' > "$RUNNER_TEMP/cleanup-format.patch"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Use fr to inspect its cleanup implementation
+        run: |
+          target/debug/fr --json --no-cache project find invoke --in src/project/dataflow.rs --source --bytes 4096 > "$RUNNER_TEMP/cleanup-code.json"
+      - name: Compare cleanup with Python and check saved answers
+        env:
+          PYTHONPATH: ${{ github.workspace }}/sdk/python/src
+        run: >-
+          python3 -B -m pytest -q
+          sdk/python/tests/test_finally_flow.py
+          sdk/python/tests/test_flow_summaries.py
+          sdk/python/tests/test_text_flow.py
+          sdk/python/tests/test_runtime_effects.py
+          --junitxml="$RUNNER_TEMP/cleanup-tests.xml"
+      - name: Check effect and text examples with ordinary Python
+        run: |
+          python3 -B tools/python-effects.py collect --binary target/debug/fr --output "$RUNNER_TEMP/cleanup-effects"
+          python3 -B tools/python-text-flow.py collect --binary target/debug/fr --output "$RUNNER_TEMP/cleanup-text"
+      - name: Require committed Rust formatting
+        run: git diff --exit-code -- '*.rs'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-cleanup-paths
+          path: |
+            ${{ runner.temp }}/cleanup-format.patch
+            ${{ runner.temp }}/cleanup-code.json
+            ${{ runner.temp }}/cleanup-tests.xml
+            ${{ runner.temp }}/cleanup-effects
+            ${{ runner.temp }}/cleanup-text
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

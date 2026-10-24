@@ -39,6 +39,13 @@ mod expressions;
 #[path = "flow_effects.rs"]
 mod effects;
 
+#[path = "flow_completion.rs"]
+mod completion;
+
+pub(super) fn completion_contract() -> Value {
+    completion::contract()
+}
+
 #[path = "flow_text.rs"]
 mod text_values;
 
@@ -237,10 +244,18 @@ struct Trace {
 }
 type Flow = BTreeMap<String, Trace>;
 #[derive(Clone)]
+struct PendingReturn {
+    flow: Flow,
+    plain_string: bool,
+}
+
+#[derive(Clone)]
 struct Environment {
     values: BTreeMap<String, Flow>,
     defined: BTreeSet<String>,
     plain_strings: BTreeSet<String>,
+    pending_returns: BTreeMap<usize, PendingReturn>,
+    pending_raises: BTreeMap<usize, Flow>,
 }
 
 fn join_environment(into: &mut Environment, from: &Environment) -> bool {
@@ -271,6 +286,7 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
         into.plain_strings = strings;
         changed = true;
     }
+    changed |= completion::join_pending(into, from);
     changed
 }
 
@@ -638,6 +654,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             defined: values.keys().cloned().collect(),
             values,
             plain_strings: BTreeSet::new(),
+            pending_returns: BTreeMap::new(),
+            pending_raises: BTreeMap::new(),
         };
         let mut locals = initial.defined.clone();
         for block in &graph.blocks {
@@ -700,6 +718,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let mut queued = BTreeSet::from([graph.entry]);
         let mut visits = 0;
         let mut result = Flow::new();
+        let parent_exceptions = std::mem::take(&mut self.exceptional_returns);
+        let parent_may_raise = self.may_raise;
+        let mut exceptions = Flow::new();
+        let mut may_raise = false;
+        let mut normal_return = false;
+        let mut return_text = None;
         let parent_block = self.current_block.clone();
         self.active.push(name.to_owned());
         self.local_bindings.push(locals);
@@ -715,9 +739,40 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .clone()
                 .expect("queued blocks have input states");
             let block = &graph.blocks[id];
+            let before = state.clone();
             self.normal = true;
-            if self.solver.enabled && block.operation == Operation::Exit {
-                self.normal_return = true;
+            self.may_raise = false;
+            self.exceptional_returns.clear();
+            if block.operation == Operation::Exit {
+                normal_return = true;
+                if let Some(value) = state.pending_returns.get(&0) {
+                    merge(&mut result, value.flow.clone());
+                    return_text = Some(return_text.is_none_or(|prior| prior) && value.plain_string);
+                } else {
+                    return_text = Some(false);
+                }
+            }
+            if block.operation == Operation::ExceptionalExit {
+                may_raise = true;
+                if let Some(value) = state.pending_raises.get(&0) {
+                    merge(&mut exceptions, value.clone());
+                }
+            }
+            if matches!(block.operation, Operation::ResumeReturn | Operation::ResumeRaise) {
+                let (source, destination) = block.completion.expect("resume completion slots");
+                if block.operation == Operation::ResumeReturn {
+                    if let Some(value) = state.pending_returns.get(&source).cloned() {
+                        state.pending_returns.insert(destination, value);
+                    } else {
+                        self.cutoff("missing-return-completion");
+                        self.normal = false;
+                    }
+                } else if let Some(value) = state.pending_raises.get(&source).cloned() {
+                    state.pending_raises.insert(destination, value);
+                } else {
+                    self.cutoff("missing-raise-completion");
+                    self.normal = false;
+                }
             }
             self.current_block = Some((name.to_owned(), id));
             if let Some(node) = block.syntax {
@@ -749,51 +804,60 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 "raise"
                             },
                         );
-                        if self.solver.enabled && !self.normal {
-                            continue;
-                        }
-                        if block.operation == Operation::Return {
+                        let slot = block.completion.expect("explicit completion slot").0;
+                        if self.normal && block.operation == Operation::Return {
                             let plain = node.named_child_count() == 1
                                 && node
                                     .named_child(0)
                                     .is_some_and(|value| self.plain_string(value, &state));
-                            self.return_text =
-                                Some(self.return_text.is_none_or(|prior| prior) && plain);
-                            self.normal_return = true;
-                            merge(&mut result, value);
-                        } else {
-                            self.may_raise = true;
+                            state.pending_returns.insert(slot, PendingReturn { flow: value, plain_string: plain });
+                        } else if self.normal {
                             if !self.solver.enabled && self.active.len() > 1 {
                                 self.cutoff("helper-exception-control-unchecked");
                             }
-                            merge(&mut self.exceptional_returns, value);
+                            state.pending_raises.insert(slot, value);
                         }
                     }
                     _ => (),
                 }
             }
-            if self.solver.enabled && !self.normal {
-                continue;
+            let mut successors = Vec::new();
+            if self.may_raise {
+                let mut raised_state = before;
+                raised_state.pending_raises.insert(block.raised.slot, std::mem::take(&mut self.exceptional_returns));
+                successors.push((block.raised.node, raised_state));
             }
-            for (successor, edge) in &block.successors {
-                if *successor == 0 && *edge != "return" {
-                    self.return_text = Some(false);
+            if !self.solver.enabled || self.normal {
+                for (successor, edge) in &block.successors {
+                    let mut outgoing = state.clone();
+                    if *successor == 0 && *edge != "return" {
+                        outgoing.pending_returns.insert(0, PendingReturn { flow: Flow::new(), plain_string: false });
+                    }
+                    successors.push((*successor, outgoing));
                 }
-                let changed = match &mut incoming[*successor] {
-                    Some(previous) => join_environment(previous, &state),
+            }
+            for (successor, outgoing) in successors {
+                let changed = match &mut incoming[successor] {
+                    Some(previous) => join_environment(previous, &outgoing),
                     slot @ None => {
-                        *slot = Some(state.clone());
+                        *slot = Some(outgoing);
                         true
                     }
                 };
-                if changed && queued.insert(*successor) {
-                    queue.push_back(*successor);
+                if changed && queued.insert(successor) {
+                    queue.push_back(successor);
                 }
             }
         }
         self.active.pop();
         self.local_bindings.pop();
         self.current_block = parent_block;
+        self.exceptional_returns = parent_exceptions;
+        merge(&mut self.exceptional_returns, exceptions);
+        self.may_raise = parent_may_raise || may_raise;
+        self.normal_return = normal_return;
+        self.return_text = return_text;
+        self.normal = normal_return;
         self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
             "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
         result
@@ -1738,6 +1802,7 @@ impl Project<'_> {
             "rules":rules_digest,"context":options.context,
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
             "summary_mode":options.summaries,
+            "completion_control":completion_contract(),
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
@@ -1881,6 +1946,7 @@ impl Project<'_> {
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
             "function_summaries":analyzer.solver.report(),
+            "completion_control":completion_contract(),
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
@@ -1905,6 +1971,7 @@ impl Project<'_> {
             "call_binding",
             "assignment_control",
             "expression_control",
+            "completion_control",
         ] {
             if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
                 break;
@@ -1936,7 +2003,7 @@ impl Project<'_> {
                 json!({})
             } else if matches!(
                 field,
-                "call_binding" | "assignment_control" | "expression_control"
+                "call_binding" | "assignment_control" | "expression_control" | "completion_control"
             ) {
                 Value::Null
             } else {
@@ -1986,6 +2053,8 @@ mod lattice_tests {
         Environment {
             values: BTreeMap::from([("value".into(), flow)]),
             plain_strings: BTreeSet::new(),
+            pending_returns: BTreeMap::new(),
+            pending_raises: BTreeMap::new(),
             defined: if bound {
                 BTreeSet::from(["value".into()])
             } else {

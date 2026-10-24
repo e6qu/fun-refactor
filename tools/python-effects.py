@@ -36,8 +36,8 @@ EXAMPLES = [
      "sent": ["input"], "raised": None, "complete": False, "witness": False,
      "limits": [["dynamic-call", "alias.append(read_user())"]]},
     {"id": "finally-overrides-return", "body": "try:\n    return send(read_user())\nfinally:\n    return 0",
-     "sent": ["input"], "raised": None, "complete": False, "witness": False,
-     "limits": [["exception-handler", "try:"]]},
+     "sent": ["input"], "raised": None, "complete": True, "witness": True,
+     "limits": []},
 ]
 
 

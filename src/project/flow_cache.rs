@@ -107,6 +107,12 @@ impl Project<'_> {
         );
         let mut report: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
         ensure!(hash(&report)? == digest, "retained flow digest mismatch");
+        let completion = super::dataflow::completion_contract();
+        ensure!(
+            report["completion_control"] == completion
+                && report["inputs"]["completion_control"] == completion,
+            "retained flow changed the scalar completion contract."
+        );
         ensure!(
             report["schema"] == "fr-dataflow-1",
             "expected a retained dataflow report"
