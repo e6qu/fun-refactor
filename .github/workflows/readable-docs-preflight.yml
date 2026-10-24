@@ -33,7 +33,7 @@ jobs:
             -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
             https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
           echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
-      - name: Check task-based skill links within their original reading limits
+      - name: Check compact skill entry and references within their original limits
         run: |
           python3 -B tools/test-review-docs.py
           python3 -B tools/review-docs.py --write

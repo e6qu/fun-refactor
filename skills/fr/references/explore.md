@@ -1,9 +1,8 @@
 # Explore only the needed structure
 
-For several lookups, use [Batch](batch.md). For report pages, use [Disclosure](disclosure.md).
-To follow a value and explain its source, use [Investigate](investigations.md).
+For report pages, use [Disclosure](disclosure.md).
 
-Find the relevant route and helpers before reading larger source excerpts.
+Find relevant helpers before reading whole files.
 
 A signature lists arguments. Copy each returned code handle unchanged.
 

@@ -4,14 +4,13 @@ description: Use fr to find code and callers, rename functions, preview and chec
 ---
 # Work with fr
 
-Run at the project root or use `-C PATH`. New to fr? Follow [your first checked change](references/first-change.md).
+Run at the project root (`-C PATH`). [First change](references/first-change.md).
 
 ```sh
 fr project find greet --signature
 ```
 
-Read omissions. Copy handles, which identify code in one revision, unchanged.
-For a rename, read [Change](references/change.md); for implementation edits, [Author](references/author.md).
-Then [check and deliver](references/workflow.md). A preview shows proposed edits; `--write` applies them.
-
-Explore unfamiliar code: [Explore](references/explore.md).
+Read omissions. Copy handles unchanged; they identify code in one revision.
+Choose [Rename](references/change.md) or [Author](references/author.md), then [check and deliver](references/workflow.md).
+Preview before `--write`.
+[Explore](references/explore.md) unfamiliar code.
