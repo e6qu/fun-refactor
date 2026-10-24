@@ -162,7 +162,11 @@ class PythonContract(unittest.TestCase):
         self.reject(value)
 
     def test_source_and_grammar_bindings(self):
-        for path in ('src/project/dataflow.rs', 'grammars/python/src/parser.c', 'tools/python_contract_cases.py'):
+        client = {str(path.relative_to(ROOT)) for path in (ROOT / 'sdk/python/src').rglob('*.py')}
+        self.assertTrue(client | {'sdk/python/pyproject.toml'} <= self.report['source_bindings'].keys())
+        for path in ('src/project/dataflow.rs', 'grammars/python/src/parser.c', 'tools/python_contract_cases.py',
+                     'sdk/python/src/fr_ir/flow_standard_library.py', 'sdk/python/pyproject.toml'):
+            self.assertIn(path, self.report['source_bindings'])
             value, _ = self.changed()
             value['source_bindings'][path] = 'stale'
             self.reject(value)

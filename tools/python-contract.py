@@ -22,7 +22,7 @@ from fr_ir.flow_dependencies import FlowDependencies
 from python_contract_oracle import execute
 from python_contract_allocations import audit_declaration
 from fr_ir.runtime import FrReport
-from evidence_basis import file_digest
+from evidence_basis import checker_bindings, file_digest
 
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
@@ -74,7 +74,7 @@ def bindings():
                  'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
-    return dict(sorted(result.items()))
+    return dict(sorted(checker_bindings(ROOT, result).items()))
 
 
 def oracle(case):
