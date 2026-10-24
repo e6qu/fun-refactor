@@ -77,7 +77,9 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "tests/agent-eval/results/$PREFIX-text-package-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          # Upstream .gitignore files must not discard captured evidence.
+          git add --force "tests/agent-eval/results/$PREFIX-text-package-recheck"
+          git add tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain current package answers beside original unread provenance'
           git push origin "HEAD:refs/heads/$BRANCH"
       - uses: actions/upload-artifact@v7
