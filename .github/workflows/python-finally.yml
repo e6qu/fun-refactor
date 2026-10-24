@@ -48,6 +48,7 @@ jobs:
             tests/agent-eval/python-finally
             tests/agent-eval/python-text-flow
             tests/agent-eval/recursive-flow
+            tests/agent-eval/flow-cache
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -78,6 +79,8 @@ jobs:
           sdk/python/tests/test_shared_named_imports.py::test_wide_named_import_fits_the_existing_response_byte_limit
           --junitxml="$RUNNER_TEMP/cleanup-tests.xml"
       - name: Keep the pinned saved-answer comparison on its declared workload
+        env:
+          PYTHONPATH: ${{ github.workspace }}/tools:${{ github.workspace }}/sdk/python/src
         run: |
           python3 -B - <<'PY'
           import importlib.util, tempfile
