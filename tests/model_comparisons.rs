@@ -8,7 +8,7 @@ fn retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal() 
             "--fr",
             env!("CARGO_BIN_EXE_fr"),
             "--audit",
-            "tests/agent-eval/results/2026-10-24-cleanup-final-model-comparisons",
+            "tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
         ])
         .output()
         .unwrap();

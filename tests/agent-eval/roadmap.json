@@ -70,28 +70,28 @@
       "sha256": "0974d7c8bac29978f5fe5e199fb388979d7462924ced4b90c4c98783d23292f5"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "sha256": "2c6684d1fab55bae23fa9cf108e0144282436dfff56b25d1de81d40590cc1b22"
+      "sha256": "a6822756a9c69479a2b1b50717662090a3c031ee420e0382a781f414ef277242"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "0e4e4e7ae2a87adc824a275dbb14db045ebd6c624fdb13e194c3277e37ca7ede"
+      "sha256": "72d254c7e4ad9411390828356577249c85407bf638999f58a25eca2e6ceed42c"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions.",
-      "sha256": "971191a195d30a9fb6b7dc104f6fbd28e25c548e9f840523a09d1085d9a90a85"
+      "sha256": "99ef0c7a090d79ea6fe31cfc993ef768e1e98ce2ac5a5a0e5fa9a22b1ff544b6"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
