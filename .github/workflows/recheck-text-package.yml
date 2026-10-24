@@ -2,6 +2,12 @@ name: Recheck the four familiar Python packages
 on:
   push:
     branches: [ci/cleanup-text-package]
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: New dated directory prefix for the retained maintenance results
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -9,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   recheck:
-    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -20,7 +26,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
-      PREFIX: '2026-10-24-cleanup'
+      PREFIX: ${{ inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
