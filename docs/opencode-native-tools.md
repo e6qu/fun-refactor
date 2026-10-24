@@ -481,8 +481,10 @@ benefit from `fr`. No additional model call produced these reviewed results.
 tool-call, time and memory limits. Earlier schemas and retained reports keep their original rules.
 The flag works with the two ordinary/fr arms or with `--guidance` and all three arms.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 A first `read_source` call can start at a known byte offset with an empty `sha256` because
-the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8 (the text encoding used to count source bytes)
+the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8
 boundaries, stale hashes, missing files and path escapes refuse. This rule applies to the
 native evaluation interface; the general study reader keeps its existing contract.
 

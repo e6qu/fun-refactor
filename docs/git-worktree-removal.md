@@ -128,4 +128,4 @@ The shared configuration predicate also requires the reviewed repository mode an
 A separate abstract namespace model proves that removing selected paths preserves unselected paths.
 Shared Rust/Lean cases cover every boolean predicate input.
 The reversal predicate requires a complete archive, absent checkout and metadata paths, and an unoccupied branch registration; Lean proves all four requirements and abstract destination restoration, unrelated-path preservation and repeated deletion.
-These results do not prove correspondence (the stated connection between two descriptions) for filesystem observation, unlinking, Git transactions or crash durability.
+These model results do not prove the implementation of filesystem observations, deletion, Git transactions or crash recovery.

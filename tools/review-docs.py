@@ -175,10 +175,12 @@ def refresh():
                         line = text[:match.start()].count('\n') + 1
                         print(f'{name}:{line}: {key}: {match[0]}', flush=True)
             if 'long-sentence' in rising:
-                for paragraph in re.split(r'\n\s*\n', text):
-                    for sentence in re.split(r'(?<=[.!?])\s+', paragraph):
-                        if len(sentence.split()) > 25:
-                            print(f'{name}: long sentence: {sentence[:220]}', flush=True)
+                counted = '\n'.join(line for line in text.split('\n') if not line.lstrip().startswith('|'))
+                for sentence in check.sentences(counted):
+                    if '|' in sentence or ('`' in sentence and len(sentence.split()) > 40):
+                        continue
+                    if len(sentence.split()) > check.MAX_WORDS:
+                        print(f'{name}: long sentence: {sentence[:220]}', flush=True)
         raise ValueError(f'Improve the prose; do not raise its budgets: {rising}')
     text = check.BUDGET.read_text()
     for key, value in counts.items():

@@ -77,7 +77,9 @@ fr history redo '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_B
 
 The same retained basis can compact a later redo.
 
-The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 (the text encoding used to count source bytes) `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
 
 Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true`.
 

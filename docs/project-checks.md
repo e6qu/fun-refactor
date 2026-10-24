@@ -111,11 +111,13 @@ stability. A descendant can escape by entering another process group or starting
 Other platforms clean up only the direct child. Interrupting `fr` itself can also leave descendants
 running. Use an external process supervisor when a project needs stronger resource isolation.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Output capture uses temporary files to avoid pipe deadlocks and unbounded in-memory buffering.
 The runner polls every 20 ms and stops a running child above 16 MiB on either stream.
 This is a soft disk limit; a fast writer can exceed it between polls.
 The output budget retains up to 65,536 raw bytes per stream, with exact omitted-byte counts for the observed capture.
-UTF-8 (the text encoding used to count source bytes) replacement decoding and JSON escaping can expand the displayed text beyond that raw-byte budget.
+UTF-8 replacement decoding and JSON escaping can expand the displayed text beyond that raw-byte budget.
 Descendants can keep changing a capture until process-group cleanup completes, or longer when they
 escape that group or run on a platform without group cleanup.
 

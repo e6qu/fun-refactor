@@ -70,8 +70,10 @@ deletion omits it. Compact reveals omit these larger descriptors while retaining
 counts; request the expanded profile before following a structural shortcut. See
 [disclosure-bound semantic editing](disclosed-editing.md#structural-capabilities).
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 The complete response is bounded by `--token-limit`. `used_upper_bound` counts the compact JSON's
-UTF-8 (the text encoding used to count source bytes) bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count
+UTF-8 bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count
 cannot exceed that byte count. The bound is intentionally conservative and does not claim exact
 accounting for a particular model vocabulary. Compact mode accepts 1,024 through 4,096; expanded
 mode accepts up to 16,384 and is explicit in the response and every continuation.

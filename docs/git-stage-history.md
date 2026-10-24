@@ -137,5 +137,5 @@ The crash-review model proves that only the absence of pending, lock and prepara
 The index-entry model proves that replay requires stage zero and rejects intent-to-add while accepting every combination of assume-unchanged and skip-worktree.
 These laws assume correct snapshot identities and replacement of exactly the selected entries.
 The existing history stack laws also describe the intended undo/redo ordering.
-Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence (the stated connection between two descriptions) remain outside these proofs.
+These proofs do not cover filesystem operations, journal parsing, object storage, crash durability or the complete Rust implementation.
 Regression tests cover the implemented journal, replay, recovery and compaction paths.

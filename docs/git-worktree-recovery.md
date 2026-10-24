@@ -110,6 +110,6 @@ The prepared-recovery predicate requires an absent receipt, matching preparation
 The entry-mode predicate requires a blob and exactly one recognized regular, executable or symlink kind.
 Abstract file models prove preservation of accepted existing contents and modes, and refusal of changed files.
 Shared Rust/Lean tests exercise all boolean inputs for these predicates.
-Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence (the stated connection between two descriptions) proofs.
+The model proofs do not cover filesystem ownership, locks, durable receipts or the complete Rust recovery procedure.
 
 Completed receipts support [reviewed removal](git-worktree-removal.md) of clean owned worktrees.

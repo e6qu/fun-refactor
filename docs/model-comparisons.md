@@ -55,9 +55,11 @@ your requirement, then check the remaining connection between the models and the
 
 ## Bounded source and virtual workspaces
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Capture accepts at most 64 KiB of source before parsing. It derives the model from that retained
 text in an isolated in-memory workspace, then checks that the caller's source is unchanged.
-Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 (the text encoding used to count source bytes) bytes.
+Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 bytes.
 Oversized virtual files are rejected before copying; native reads stop after the limit plus one
 byte. Other formalization routes retain their existing limits.
 

@@ -135,7 +135,7 @@ Before live calls, agree and record exact models, reasoning settings, credential
 Changing a task, tool, skill or checking program requires reviewing the prepared schedule again.
 Do not restart the stopped studies.
 
-For every attempt, record correct behavior and regressions, offered tools actually used, retries, setup, indexing, checks and shutdown.
+For every attempt, record correct behavior and regressions, tool use, retries, setup, indexing, checks and shutdown.
 Count model usage, total cost, elapsed time, processor work, memory and storage, including every child program and failed attempt.
 Report missing billing data as unknown. Count first-use setup separately from later reuse.
 

@@ -51,7 +51,7 @@ Review external callers, plugins and unread files before using an unused-code re
 The [boundary tests](tests/analysis_boundaries.rs) check both the uncertainty and the report that explains it.
 The [grammar tests](tests/known_grammar_gaps.rs) check syntax repairs and nearby supported forms.
 
-## Planned work is tracked once
+## Planned features
 
 [R1](PLAN.md#r1-recover-from-invalid-number-input) covers ordinary conversion errors and reading caught errors.
 [R2](PLAN.md#r2-follow-shared-lists-through-original-imports) covers shared lists and remaining original-package questions.

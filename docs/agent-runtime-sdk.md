@@ -158,8 +158,10 @@ A complete semantic scalar guide exposes `guide.semantic_scalar_action()`. It re
 task operation only after matching the guide's ready manifest to the goal, target, checks, delivery
 and required conditions after the edit, so the agent need not restate the same manifest.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`
-serializes it once into canonical UTF-8 (the text encoding used to count source bytes) bytes and passes those bytes on standard input. A
+serializes it once into canonical UTF-8 bytes and passes those bytes on standard input. A
 `TaskReview` requires a ready non-executed preview, the exact manifest SHA-256 and a well-formed
 `frtc1` basis.
 

@@ -40,7 +40,9 @@ declared answers and limitations must remain the same.
 | Python overwrite | Assignment replaces the source value before the sink; runtime sees zero and analysis reports no witness | A finite scalar case, not a general absence proof |
 | Python checked origins | Existing syntax-tree and execution checks complete a task; a source change invalidates it and failed checks stay failed | Checked task evidence remains tied to its inputs |
 
-Offsets are half-open UTF-8 (the text encoding used to count source bytes) source byte ranges. Line and column positions are one-based and count Unicode
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+Offsets are half-open UTF-8 source byte ranges. Line and column positions are one-based and count Unicode
 characters. The independent Python oracle uses CPython's byte-based AST positions and converts
 them to that convention. Rust fixture call positions use separately counted source tokens;
 `rustc` supplies compiler diagnostic positions and executes the runtime drivers.

@@ -11,8 +11,10 @@ Finding a possible connection helps an investigation; running a test checks an a
 
 ## Commands, results and limits
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 `project calls`, `project show --relations` and `project dataflow` expose source occurrences.
-An occurrence carries a revision, relative path, UTF-8 (the text encoding used to count source bytes) byte range with its end position excluded, matching 1-based Unicode
+An occurrence carries a revision, relative path, UTF-8 byte range with its end position excluded, matching 1-based Unicode
 range, role and enclosing declaration handle. Its `fro1` identity distinguishes two calls on one
 line. Relationship endpoints retain declaration locations separately. A call offset without an
 indexed reference has an absent origin; conflicting spans have multiple origins. Neither case
@@ -126,7 +128,7 @@ the default solver stays within one file and does not track changes to shared mu
 The [retained corpus](../tests/agent-eval/results/2026-09-24-recursive-flow/result.json) compares recursive
 flow against independent Python execution and AST positions. Five Lean theorems establish parameter
 selection and monotonicity in the finite-origin model. Native substitution matches all 1,024 executable
-model cases. These theorems do not prove the parser, solver or Python implementation correspondence (the stated connection between two descriptions).
+model cases. These theorems do not prove the parser, solver or agreement with every behavior of Python execution.
 
 ### Static local imports
 

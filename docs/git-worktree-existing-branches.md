@@ -79,5 +79,5 @@ See [removal](git-worktree-removal.md) and [removal resumption](git-worktree-rem
 The anchored branch-selection predicate requires an unused branch and presence matching the selected mode.
 Lean proves both requirements; shared Rust/Lean cases cover all eight boolean inputs.
 An abstract attachment model proves preservation of the reference map when attaching to the expected commit.
-Git registration, reference locking, branch configuration and filesystem behavior remain outside general correspondence (the stated connection between two descriptions) proofs.
+The proofs do not cover Git registration, reference locks, branch configuration or filesystem behavior. Check those operations through the recorded tests.
 CLI tests supply host evidence for preservation, stale reviews, occupied branches, locks and interrupted creation.

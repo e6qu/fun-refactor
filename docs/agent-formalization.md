@@ -64,7 +64,7 @@ anchor the complete source file.
 
 `spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
 semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains
-the current generated model, named term definition and exact correspondence (the stated connection between two descriptions) proposition.
+the current generated model, named term definition and exact proposition connecting the evaluator to that model.
 `source_implementation_proved` remains false. Parser extraction and source semantics still require evidence.
 General Lean laws cover binding resolution, shadowing (a nearer declaration hiding an earlier name), lifted indices, literal substitution,
 evaluation determinism, short-circuit behavior and arithmetic bounds. A conditional multiplication/addition

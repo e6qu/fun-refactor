@@ -143,7 +143,9 @@ the roadmap remains at 7/18 demonstrated items and 0/4 completed milestones.
 | Two Rust bodies | 1,766 | 1,171 | 22,156 |
 | Two Python files, same function name | 1,782 | 1,187 | 23,003 |
 
-The middle columns count complete program UTF-8 (the text encoding used to count source bytes) bytes plus the canonical submission. The helper
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+The middle columns count complete program UTF-8 bytes plus the canonical submission. The helper
 removes 595 bytes in each fixture. Both arms make three fr calls with equal internal byte counts,
 produce identical patches and pass all eight apply, check, reversal and delivery stages and independent behavior checks.
 These are prescribed edits with known replacement bodies. No tokenizer, model, billing, time or
