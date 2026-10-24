@@ -1,0 +1,38 @@
+{
+  "command": [
+    "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+    "-I",
+    "-B",
+    "/home/runner/work/fun-refactor/fun-refactor/tools/package-questions.py",
+    "--worker",
+    "/home/runner/work/_temp/current-text-package/earlier-questions/boltons/cache-unrelated-edit/request.json"
+  ],
+  "elapsed_seconds": 3.8412680090000038,
+  "exit_code": 0,
+  "launch_error": null,
+  "limits": {
+    "cpu_seconds": 10,
+    "disk_bytes": 16777216,
+    "rss_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "wall_seconds": 20
+  },
+  "monitor_error": null,
+  "process_exit_code": 0,
+  "result": {
+    "complete": true,
+    "manifest": "41b0ab84faf7475f38e07cbd112a8e0e05b36f822542fc0c1d4d7724b38f1f7b",
+    "previous_manifest": "46edb912389408e90275a5ff29ca0c37d786f3bcf7bbb2c5b3aa34a15c46ab98",
+    "reaches": true,
+    "reused": true,
+    "stage": "unrelated-edit"
+  },
+  "sampled_aggregate_rss_bytes": 121044992,
+  "sampled_cpu_seconds": 7.0,
+  "sampled_disk_growth_bytes": 1221769,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "ab12ebc4dc242c6776cb85c449d24a6f2b519e819f53d69467075fd24c624eab",
+  "stop_reason": null,
+  "timed_out": false,
+  "transcript_bytes": 248
+}

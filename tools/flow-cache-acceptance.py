@@ -17,7 +17,7 @@ import sys
 import tempfile
 import time
 
-from evidence_basis import native_bindings
+from evidence_basis import checker_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/agent-eval/flow-cache"
@@ -53,7 +53,7 @@ def digest(value):
 
 
 def bindings():
-    return native_bindings(ROOT, BINDINGS)
+    return checker_bindings(ROOT, BINDINGS)
 
 
 def legacy_class():

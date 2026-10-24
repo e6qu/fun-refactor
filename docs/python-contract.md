@@ -77,7 +77,10 @@ behavior and keep a model result separate from a safety claim.
 | “Does an unused function run its body?” | An uncalled plain function can contain unsupported body code without executing it during import. | Decorators and defaults execute during definition. Explicit built-in models check the documented numeric defaults. Use the supported future directive for annotations. |
 | “Can a plain module constant block the trace?” | Distinct `metadata = 0` and literal package metadata bindings are inert during initialization. | Global reads, rebinding, import controls and evaluated initialization remain unsupported. |
 | “Can I follow a helper in another file?” | A supported static local import can retain the helper’s defining file and argument trace. | Missing or ambiguous imports, names read too early in a cycle and unsupported startup code keep the answer incomplete. |
-| “What if the helper raises?” | An explicit supported `raise` ends that modeled path. | Exception types, implicit exceptions (errors an operation can raise without an explicit `raise`) and handlers exceed this model. |
+| “What if the helper raises?” | An explicit supported `raise` leaves through `finally` cleanup. Cleanup can replace a pending return or raise. | Exception matching, implicit exceptions (errors an operation can raise without an explicit `raise`) and handlers exceed this model. |
+
+The [cleanup repair lesson](check-python-cleanup.md) follows customer text through an imported helper.
+It explains why returning a cleanup status hides the customer's message and checks a one-function repair.
 
 ## Import an unused value beside a helper
 
@@ -926,7 +929,8 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Statements | Join `if`/`elif`/`else` paths and loop fixed points. Preserve loop `else`, `break` and `continue`. | Statement conditions retain both CFG edges; joins lose correlations. |
 | Calls | Evaluate explicit argument values in source order. Bind positional and exact keyword arguments to fixed declaration parameters. Uncalled inert declarations defer their bodies. | No dynamic dispatch (choosing a callable from runtime values), referenced variadic values, extra variadic arguments, unpacking, unpostponed annotations, type parameters, unchecked evaluated defaults or coroutine/generator execution. Invalid bindings remain incomplete. |
 | Defaults | Omitted checked scalars have no source origins; explicit arguments replace checked scalar or object defaults. | Consuming object defaults and unchecked definition-time effects remain unfinished. |
-| Returns | Direct helper summaries substitute parameter origins. Returns and explicit raises terminate their paths. | Exception types, implicit exceptions, handlers, causes and bare raises are outside the contract. |
+| Returns | Direct helper summaries substitute parameter origins. Capture return and explicit raise values before cleanup; `finally` can replace the pending exit. | Exception matching, implicit exceptions, handlers, causes and bare raises are outside the contract. |
+| Cleanup | Run a `finally` section after normal flow, return, explicit raise, break or continue. Keep pending values separate in nested sections. A local helper's explicit raise also enters cleanup. | A combined `try`/`except`/`finally` remains incomplete. The existing 512-block limit includes cleanup copies. |
 | Recursion | Direct and mutual recursion grow scalar summaries to a fixed point. Each call substitutes its own arguments. | No modeled normal return does not prove runtime divergence. Stack exhaustion is an implicit exception. |
 | Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Check cyclic imports in execution order. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations, special attribute writes, unavailable cycle members and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
@@ -1016,7 +1020,7 @@ Static module resolution follows the [package-flow contract](agent-investigation
 This corpus does not establish arbitrary imports, multiple names for the same mutable object, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
-The authored corpus pairs every program with a renamed/relocated case across fourteen rules.
+The authored corpus pairs every program with a renamed/relocated case for each declared rule.
 The generated roadmap status owns the active source-bound inventory counts.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures

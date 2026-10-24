@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Release versions are inert; dependency and workflow changes invalidate evidence."""
+"""Native release labels normalize; dependency, client and workflow changes expire reports."""
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -47,6 +47,7 @@ class WorkflowBindings(unittest.TestCase):
                     path.write_text(policy if name == 'native-source-inputs.txt' else name)
             (root / 'Cargo.toml').write_text('[workspace]\nmembers=["."]\n[package]\n'
                 'name="workspace-root"\nversion="0.1.0"\n')
+            (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\nversion="0.1.0"\n')
             original = routes.ROOT
             try:
                 routes.ROOT = root
@@ -56,7 +57,8 @@ class WorkflowBindings(unittest.TestCase):
                 manifest = root / 'Cargo.toml'
                 manifest.write_text(manifest.read_text().replace('0.1.0', '0.2.0'))
                 self.assertEqual(routes.bindings(), baseline)
-                for name in ('src/added_rule.rs', 'grammars/python/src/parser.c', 'queries/python/imports.scm'):
+                for name in ('src/added_rule.rs', 'grammars/python/src/parser.c', 'queries/python/imports.scm',
+                             'sdk/python/src/fr_ir/new_flow_rule.py'):
                     path = root / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text('added checking input')

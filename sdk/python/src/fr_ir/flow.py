@@ -16,6 +16,7 @@ from .flow_dependencies import FlowDependencies
 from .flow_standard_library import contract as standard_contract
 from .flow_initialization import FlowInitialization
 from .flow_effects import RuntimeEffects
+from .flow_completion import CompletionControl
 from .flow_storage import restore_flow_report, store_flow_report
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
@@ -68,7 +69,7 @@ class ControlGraph:
                     raise FrRuntimeError("control-flow origin belongs to another revision")
                 if type(node["id"]) is not int or node["id"] != len(nodes):
                     raise FrRuntimeError("control-flow node IDs must be contiguous")
-                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump"}:
+                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump", "resume-return", "resume-raise"}:
                     raise FrRuntimeError("unknown control-flow operation")
                 nodes.append(ControlNode(node["id"], node["operation"], occurrences, reason))
             ids = range(len(nodes))
@@ -76,7 +77,7 @@ class ControlGraph:
             for edge in value["edges"]:
                 if (type(edge["from"]) is not int or type(edge["to"]) is not int
                         or edge["from"] not in ids or edge["to"] not in ids
-                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue"}):
+                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue", "call-cleanup"}):
                     raise FrRuntimeError("control-flow edge leaves its graph")
                 edges.append(ControlEdge(edge["from"], edge["to"], edge["rule"]))
             if type(value["entry"]) is not int or value["entry"] not in ids:
@@ -119,6 +120,10 @@ class FlowAnalysis:
     @property
     def runtime_effects(self) -> RuntimeEffects:
         return RuntimeEffects.from_report(self.report)
+
+    @property
+    def completion_control(self) -> CompletionControl:
+        return CompletionControl.from_report(self.report)
 
 
 class FlowCache:
@@ -185,6 +190,7 @@ class FlowCache:
             raise FrRuntimeError("flow inputs changed during analysis")
         analysis = FlowAnalysis(report)
         analysis.initialization
+        analysis.completion_control
         analysis.graphs
         analysis.witnesses
         if imports:

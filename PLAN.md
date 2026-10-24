@@ -74,7 +74,10 @@ Text conversions and twelve read-only string methods now pass 68 checks against 
 Stringcase's README supplied a reserved lowercase question before implementation; its first inspection passed after fixing the checker and procedure.
 The same executable also passed the Boltons, dateutil and JDcal questions, with original imports and saved-answer controls.
 The [package example](docs/original-package-questions.md#follow-a-customer-label-through-stringcase) explains the results and preserved limits.
-Next, choose a concrete project change that exposes the remaining import or runtime-effect gaps.
+The [cleanup repair](docs/check-python-cleanup.md) follows a customer message through an imported helper.
+It preserves the pending return while cleanup runs and notices when cleanup replaces it.
+It also follows explicit helper raises through cleanup, including nested sections and loop exits.
+Next, choose a project change that needs exception matching or shared mutable values.
 Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
 Full exception and shared-object analysis remain open work in this delivery package.
 

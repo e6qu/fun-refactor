@@ -67,9 +67,11 @@ Its `effect_limits` list now identifies the division's exact file and source ran
 Its `runtime_effects.exception_safety_established` field is false, including when the scalar report is complete.
 Do not turn that possible value connection into a claim that the send will execute.
 
-An explicit supported `raise` ends the modeled path. Exception handlers are different:
-`try` and `except` can catch an error and resume execution elsewhere, while `finally` can replace a return.
-Those control rules remain unsupported. The report stays incomplete and points to the unchecked `try` statement.
+An explicit supported `raise` leaves through `finally` cleanup, which can replace the pending return or raise.
+The [cleanup repair lesson](check-python-cleanup.md) explains that behavior with a customer-message bug and a checked repair.
+Exception handlers using `try` and `except` can match an error and resume execution elsewhere.
+Matching those handlers remains unsupported, including when the statement also has `finally`.
+The report stays incomplete and points to that unchecked `try` statement.
 
 Two names can also refer to the same mutable object, meaning an object whose contents can change:
 

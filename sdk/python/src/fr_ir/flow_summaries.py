@@ -181,6 +181,8 @@ class FunctionSummaries:
 
     @classmethod
     def from_report(cls, report: FrReport) -> FunctionSummaries:
+        from .flow_completion import CompletionControl
+        CompletionControl.from_report(report)
         FlowInitialization.from_report(report)
         data = report.to_data()
         try:
