@@ -98,6 +98,14 @@ def test_exception_classes_keep_their_own_value_origins_and_rebind_every_saved_t
     summary['PretendError'] = summary.pop('ValueError')
     with pytest.raises(FrRuntimeError, match='exception class'):
         FunctionSummaries.from_report(FrReport(forged, ()))
+    encoded = json.dumps(forged, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()
+    saved = tmp_path / 'forged-answer'
+    saved.write_bytes(encoded)
+    handle = client.project('find', names[3]).definition_target().handle
+    with pytest.raises(FrRuntimeError, match='exception class'):
+        client.project('dataflow', handle, '--summaries', '--imports', '--standard-library', 'builtins',
+            '--rules', str(rules), '--context', 'html', '--steps', '4096', '--depth', '8', '--bytes', '262144',
+            '--reuse', str(saved), '--reuse-digest', hashlib.sha256(encoded).hexdigest())
 
 
 def test_handler_edit_expires_a_saved_answer_and_preserves_step_limits(tmp_path):

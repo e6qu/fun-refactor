@@ -273,7 +273,7 @@ EXAMPLES = [
     example('implicit-exception', 'boundaries', 'value = 1 // 0\nreturn sink(source())', raised='ZeroDivisionError', witness=True,
             difference='Implicit exceptions are outside the contract, even when complete is true.'),
     example('handler', 'boundaries', 'try:\n    return 1 // 0\nexcept ZeroDivisionError:\n    return 7', returned=7,
-            complete=False, cutoff='unsupported'),
+            complete=False, cutoff='exception-handler-type-unchecked'),
     example('container', 'boundaries', 'value = [source()]\nreturn 0', [S], 0,
             complete=False, cutoff='assignment'),
     example('bare-raise', 'boundaries returns', 'raise', raised='RuntimeError', complete=False, cutoff='raise-contract-unchecked'),

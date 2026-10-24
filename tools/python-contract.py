@@ -259,6 +259,7 @@ def audit_case(row, case):
                    for span, name in calls.items() if name == case['names']['sink'])
     if case['imports']:
         dependencies = FlowDependencies.from_report(FrReport(flow, ()))
+        require(dependencies.standard_library == tuple(case['standard_library']), 'explicit standard-library selection changed')
         modules = flow['inputs']['modules']
         for binding in modules['value_bindings']:
             text = case['files'][binding['path']]
