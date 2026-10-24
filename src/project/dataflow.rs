@@ -866,7 +866,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     fn statement(&mut self, node: Node<'t>, state: &mut Environment) {
         if node.kind() == "try_statement" {
             self.effect_limit(node, "exception-handler",
-                "Exception matching, handlers and finally blocks are outside this scalar control-flow model.");
+                "Exception matching, handler clauses and combined try/except/finally statements are outside this scalar control-flow model.");
         }
         if node.kind() == "with_statement" {
             self.effect_limit(node, "resource-lifetime",
@@ -1938,7 +1938,7 @@ impl Project<'_> {
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
             "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
-                "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
+                "external rules are caller-supplied contracts.", "explicit raises leave through modeled finally cleanup; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
             "execution":{"kind":"analyzed","analysis_steps":allowance-analyzer.remaining,

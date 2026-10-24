@@ -38,7 +38,7 @@ jobs:
       - run: cargo build --locked --bin fr
       - name: Use fr to inspect its cleanup implementation
         run: |
-          target/debug/fr --json --no-cache project find invoke --in src/project/dataflow.rs --source --bytes 4096 > "$RUNNER_TEMP/cleanup-code.json"
+          target/debug/fr --json --no-cache -C src/project/dataflow.rs project find invoke --source --bytes 4096 > "$RUNNER_TEMP/cleanup-code.json"
       - name: Compare cleanup with Python and check saved answers
         env:
           PYTHONPATH: ${{ github.workspace }}/sdk/python/src

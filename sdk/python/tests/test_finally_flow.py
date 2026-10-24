@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -12,6 +13,7 @@ from fr_ir.context import MemoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.flow_completion import CompletionControl
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
+from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 
 ROOT = Path(__file__).resolve().parents[3]
 CASES = json.loads((ROOT / 'tests/agent-eval/python-finally/cases.json').read_text())
@@ -122,3 +124,61 @@ def test_forged_cleanup_contract_is_rejected_by_both_clients_even_with_new_diges
         client.project('dataflow', handle, '--summaries', '--imports', '--standard-library', 'builtins',
             '--rules', str(rules), '--context', 'html', '--steps', '4096', '--depth', '8', '--bytes', '262144',
             '--reuse', str(saved), '--reuse-digest', hashlib.sha256(encoded(data)).hexdigest())
+
+
+def test_fr_repairs_the_imported_helper_checks_cleanup_and_replays_the_patch(tmp_path):
+    original = ROOT / 'tests/fixtures/python-finally'
+    root = tmp_path / 'working'
+    root.mkdir()
+    for name in ('app.py', 'delivery.py'):
+        shutil.copyfile(original / name, root / name)
+    (root / '.fr').mkdir()
+    (root / 'artifacts').mkdir()
+    shutil.copyfile(original / 'oracle.py', root / '.fr/oracle.py')
+    oracle = [sys.executable, '-B', '.fr/oracle.py', '.']
+    before = subprocess.run(oracle, cwd=root, capture_output=True, text=True, timeout=10)
+    assert before.returncode != 0 and "('Customer', 'PUBLIC')" in before.stderr
+    for argv in (['git', 'init', '-q'], ['git', 'add', '.']):
+        subprocess.run(argv, cwd=root, check=True, capture_output=True, timeout=10)
+    (root / '.fr/checks.json').write_text(json.dumps({'schema': 1, 'checks': [
+        {'name': 'syntax', 'argv': [sys.executable, '-B', '-c',
+            "import ast; ast.parse(open('delivery.py').read()); ast.parse(open('app.py').read())"],
+            'cwd': '.', 'timeout_seconds': 10, 'covers': ['both Python files']},
+        {'name': 'behavior', 'argv': oracle, 'cwd': '.', 'timeout_seconds': 10,
+            'identity_files': ['.fr/oracle.py'], 'covers': ['four customer labels; cleanup once; cleanup failure preserved']}
+    ]}))
+    rules = root / 'rules.json'
+    rules.write_text(json.dumps({'version': 'finally', 'sources': ['read_user'], 'sinks': ['send'],
+        'propagators': ['finish'], 'sanitizers': {}}))
+    client = FrClient(root, executable=str(ROOT / 'target/debug/fr'), max_output_bytes=262144)
+    cache = FlowCache(MemoryObjectStore())
+    entry = client.project('find', 'entry').definition_target().handle
+    result = cache.analyze(client, entry, standard_library=('builtins',), rules=rules, context='html',
+        steps=4096, depth=8, max_bytes=262144, summaries=True, imports=True)
+    assert result.report.at('/complete') and not result.witnesses
+    selected = client.project('find', 'prepare', '--in', 'delivery.py', '--source', '--bytes', '4096')
+    handle = selected.definition_target().handle
+    body = 'try:\n    return value\nfinally:\n    finish()'
+    change = TaskChange([], [TaskTarget('keep-customer', handle, 'replace-body', fragment=body)],
+        {'files-changed': 1, 'paths-changed': ['delivery.py']}, ['syntax'],
+        TaskDelivery(check_original=True, compact_success=True, exercise_reversal=True,
+            patch='artifacts/cleanup.patch', check_output_bytes=2048), acceptance_checks=['behavior'])
+    review = client.review(change)
+    assert (root / 'delivery.py').read_bytes() == (original / 'delivery.py').read_bytes()
+    delivered = client.execute(review)
+    assert delivered.at('/workflow/passed') is True
+    assert all(stage['status'] == 'passed' for stage in delivered.at('/workflow/stages'))
+    assert any(stage['stage'] == 'undo' for stage in delivered.at('/workflow/stages'))
+    current = client.project('find', 'entry').definition_target().handle
+    refreshed = cache.analyze(client, current, standard_library=('builtins',), rules=rules, context='html',
+        steps=4096, depth=8, max_bytes=262144, summaries=True, imports=True)
+    assert not refreshed.reused and refreshed.report.at('/complete') and refreshed.witnesses
+    receiver = tmp_path / 'receiver'
+    receiver.mkdir()
+    for name in ('app.py', 'delivery.py'):
+        shutil.copyfile(original / name, receiver / name)
+    subprocess.run(['git', 'apply', str(root / 'artifacts/cleanup.patch')], cwd=receiver,
+        check=True, capture_output=True, timeout=10)
+    subprocess.run([sys.executable, '-B', str(original / 'oracle.py'), str(receiver)], cwd=receiver,
+        check=True, capture_output=True, timeout=10)
+    assert (receiver / 'app.py').read_bytes() == (original / 'app.py').read_bytes()
