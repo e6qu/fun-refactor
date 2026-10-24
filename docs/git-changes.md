@@ -61,7 +61,9 @@ The commit identity is null for the default comparison and staged inspection on 
 
 Each entry contains:
 
-- `path`: a repository-relative UTF-8 (the text encoding used to count source bytes) path, preserving whitespace through JSON escaping.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+- `path`: a repository-relative UTF-8 path, preserving whitespace through JSON escaping.
 - `status`: `A`, `D`, `M` or `T` for addition, deletion, content/mode modification or type change.
 - `before_mode` and `after_mode`: Git octal strings, or null for an absent side.
 - `before_oid` and `after_oid`: raw Git object identities, converting all-zero IDs to null.
@@ -116,4 +118,4 @@ The report collects metadata for the complete comparison before paging, without 
 
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI regressions cover state/count joins, malformed data, cursors, scopes, filters, conflicts, worktrees and SHA-256 detail handoff.
-Git execution, metadata correspondence (the stated connection between two descriptions) and aggregation remain outside the formal model.
+The formal model does not cover Git execution, agreement between reported and actual metadata, or combining those observations.

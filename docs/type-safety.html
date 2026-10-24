@@ -56,33 +56,33 @@
 <section id="the-program">
   <div class="shell prose">
     <h2>1. The program we will fix</h2>
-    <p>Albert Hargreaves builds bicycles, and his clerk Ernest wrote the program that runs the books: a bill of materials for the parts, an invoice for each customer, everything in old money at twelve pence to the shilling and twenty shillings to the pound. Ernest didn't annotate anything. His file runs fine in Python and in Node, and it has been getting the sums wrong for months.</p>
+    <p>The example is a bicycle invoicing program. It stores product IDs, customer IDs, prices, quantities and invoice states. Its untyped functions accept values in the wrong slots, so a call can run while producing the wrong invoice.</p>
     <div class="ts-example" data-example="the_program"></div>
-    <p>Every cell on this page is editable, so try it. At the bottom of the file, print <code>bill("roadster", "Mrs. Pemberton")</code> and press Run. Ernest wrote that call with the arguments the wrong way round, and the invoice comes back made out to the roadster.</p>
+    <p>Every code cell is editable. In the first cell, print <code>bill("roadster", "Mrs. Pemberton")</code> and press Run. The swapped customer and product arguments produce an invoice addressed to the product. The following sections add types and checks that distinguish those roles.</p>
     <p>That's one of five mistakes waiting in the file:</p>
     <ul>
-      <li><code>invoice_line</code> takes its four arguments in any order.</li>
+      <li>Unchecked argument types let mismatched values reach <code>invoice_line</code>.</li>
       <li>Prices are plain numbers, and some functions count in pence while others count in pounds.</li>
       <li><code>advance</code> compares the status against <code>darft</code>, so no invoice leaves the draft state and no customer gets billed.</li>
-      <li><code>bill</code> takes its two ids in either order, as you just saw.</li>
+      <li>Customer and product IDs share an unmarked type, so a checker cannot distinguish the swapped call to <code>bill</code>.</li>
       <li><code>load_bom_line</code> passes every field on as text, quantities and prices included.</li>
     </ul>
-    <p>Now press the checker button. Neither checker finds those five domain mistakes. Python's <code>ty</code> accepts the unannotated functions under gradual typing, while <code>tsc --strict</code> stops at their implicit <code>any</code> parameters. Albert can keep finding the real mistakes the hard way, one angry customer at a time. There has to be a better way. Work down the page and take Ernest's mistakes one at a time, changing the types until each one stops being something anybody can write.</p>
+    <p>Press Type check on the starting program. Python's <code>ty</code> accepts its unannotated functions, while TypeScript's <code>tsc --strict</code> reports implicit <code>any</code> parameters. Neither result identifies all five application mistakes. Gradual typing allows unchecked parts alongside checked code; follow each change to see which mistake it catches.</p>
   </div>
 </section>
 
 <section id="simple-types">
   <div class="shell prose">
     <h2>2. Simple types</h2>
-    <p>Start with <code>invoice_line</code>. It takes a description, a price, a quantity and a tax flag, and Ernest passes them in whatever order comes to mind.</p>
+    <p>Start with <code>invoice_line</code>. A parameter is a named slot for an argument. This function needs text for a description, integers for price and quantity, and a boolean tax flag. Distinguishing those types catches some swapped arguments.</p>
     <div class="ts-block" data-block="typed_arguments"></div>
-    <p>Type the four arguments <code>str</code>, <code>int</code> and <code>bool</code>. Now swap the price and the quantity in the call and run the checker: ty gives you the line and the types that don't fit. The annotations cost nothing at run time, because Python never evaluates them and TypeScript strips them out.</p>
-    <p>Money needs more. A price and a discount rate are both numbers, so <code>apply_discount(rate, total)</code> runs perfectly well. Ernest wrote it that way round once, and ten percent off a bill of 1250 pence came back as minus 125 pence.</p>
+    <p>Annotate the parameters with <code>str</code>, <code>int</code> and <code>bool</code>. Put a price in the description slot and ask the checker again. It reports the mismatched types. Price and quantity are both integers, so swapping those two still needs distinct units or a behavior test. Annotations do not add automatic runtime validation.</p>
+    <p>A price and a discount rate can both be numbers while meaning different things. In the next example, reversing the arguments to <code>apply_discount</code> produces the wrong amount. The function needs types that distinguish these roles.</p>
     <div class="ts-block" data-block="money_pence"></div>
-    <p>Wrap the two in <code>Pence</code> and <code>Rate</code>, then write the backwards call again. It won't compile, so nobody can post that discount. TypeScript erases the brand; in Python each constructor call costs about 20 ns.</p>
-    <p>Some customers add a gift note and most don't, so the note is a <code>str | None</code>. Ernest cast it to <code>str</code> to quiet the checker, and the crash arrived with the first noteless order.</p>
+    <p>Define distinct <code>Pence</code> and <code>Rate</code> types, then try the reversed call. The type checker reports a mismatch. TypeScript removes these type labels from generated JavaScript. Python's <code>NewType</code> constructor still runs and returns the supplied value; this page does not measure its cost.</p>
+    <p>A gift note can be text or missing: <code>str | None</code> describes those two possibilities. A cast tells the checker to trust you without checking the value. Casting a missing note to text therefore cannot prevent a runtime failure.</p>
     <div class="ts-block" data-block="note_narrowing"></div>
-    <p>Write the branch instead of the cast: inside <code>if note is not None</code>, use the note as text. Then put a function call between the test and the use and press Type check again: the <code>None</code> is back, because the narrowing only follows simple tests. The branch costs one comparison.</p>
+    <p>Check <code>note is None</code> and return before calling the text method. On the remaining path, the checker can treat the note as text. This is narrowing: a condition reduces the possible types at that point. The condition also executes when the program runs.</p>
     <div class="ts-quiz" data-quiz="any_arguments,typed_arguments_misuse,money_float"></div>
   </div>
 </section>
@@ -90,15 +90,15 @@
 <section id="aliases-and-units">
   <div class="shell prose">
     <h2>3. Aliases and units</h2>
-    <p>The parts file measures spokes by count and tubing by the metre, and to the program both are numbers. Ernest has swapped the two columns before. An alias won't stop him: it renames a type without changing it, so a <code>Meters</code> alias takes a spoke count without complaint.</p>
+    <p>The parts file measures spokes by count and tubing by length. An alias gives an existing type another name; it does not create a distinct unit. A <code>Meters</code> alias for a number therefore still accepts a spoke count.</p>
     <div class="ts-block" data-block="unit_newtype"></div>
-    <p>Declare a <code>NewType</code> in Python or a brand in TypeScript, one for each unit, and hand a spoke count to <code>cut_tubing</code>. It won't compile. TypeScript erases the brand; <code>NewType</code> leaves the value alone and costs about 20 ns per call.</p>
+    <p>Use Python's <code>NewType</code> or a TypeScript brand to distinguish units during checking. A brand is a type label added to an otherwise ordinary value. Pass a spoke count to <code>cut_tubing</code> and inspect the type error. Runtime input checks must still establish that outside values have the promised units.</p>
     <p>Watch the arithmetic, though. Add two branded lengths and the sum comes back a plain number, brand gone.</p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
-    <p>Give the quantities typed operations and multiply a width by a height: you get an area, a unit neither factor had. Every quantity becomes an object, about 135 ns to build in Python. Use this for a bill of materials, not inside a numeric loop.</p>
-    <p>Now Ernest's typo. While the status is a plain <code>str</code>, <code>darft</code> is as good a value as <code>draft</code>.</p>
+    <p>Define operations for the units: adding two lengths returns a length, while multiplying them returns an area. The example uses objects to hold those values, so construction and arithmetic allocate objects. Measure the actual workload before judging that runtime cost.</p>
+    <p>A plain string allows the misspelling <code>darft</code> wherever <code>draft</code> was intended. The next change restricts an invoice status to the three supported values.</p>
     <div class="ts-block" data-block="status_literal"></div>
-    <p>Write the three real statuses into the type, then type <code>darft</code> anywhere and press Type check. It isn't a status any more, so the typo can't get back into the books. Both languages erase literal types before the program runs, so this costs nothing.</p>
+    <p>List the supported statuses in the type, then try <code>darft</code> and press Type check. The checker rejects it. Literal types restrict checked code; input arriving as text still needs runtime validation.</p>
     <div class="ts-quiz" data-quiz="alias_transparent,unit_newtype_misuse,unit_arithmetic_misuse"></div>
   </div>
 </section>
@@ -106,16 +106,16 @@
 <section id="domain-types">
   <div class="shell prose">
     <h2>4. Domain types</h2>
-    <p>Customers write their address on the order form, and anything can arrive: a stray space, a line with no <code>@</code> in it, an empty box. Ernest checked the field once in <code>checkout</code> and passed a plain <code>str</code> on, so everything after it took the address on trust.</p>
+    <p>A customer email field can contain an empty string, surrounding spaces or text without <code>@</code>. Checking it once but returning an ordinary string loses the distinction between checked and unchecked text.</p>
     <div class="ts-block" data-block="email_parse"></div>
-    <p>Return an <code>EmailAddress</code> from <code>parse_email</code> and ask for one in <code>send_receipt</code>. Hold an <code>EmailAddress</code> now and you know the check passed. That's a domain type: it states a fact about your problem. Keep the constructor in one module, because a cast written elsewhere can still forge one. The type is free, and the check runs once, where you put it.</p>
-    <p>A customer id and a product id have the same shape, which is how the roadster got invoiced in section 1.</p>
+    <p>Return <code>EmailAddress</code> from <code>parse_email</code> and require it in <code>send_receipt</code>. This is a domain type: a type representing a rule of the application. Keep construction with the check, because a cast can otherwise claim the rule without enforcing it. The validation still runs; the label alone does not validate an address.</p>
+    <p>A customer ID and a product ID can both be strings. Giving them distinct types lets the checker distinguish the argument slots that were swapped in the first section.</p>
     <div class="ts-block" data-block="entity_ids"></div>
-    <p>Give each id a type and try Ernest's backwards call again. It won't compile. Neither type survives to run time.</p>
-    <p>Ernest's escaper took a note and gave back a plain <code>str</code>, so nothing marked which notes had already been through it. One note went through twice and the ampersands came out doubled.</p>
+    <p>Give each ID a distinct type and repeat the reversed call. The checker reports the mismatch. Outside strings still need the appropriate conversion, and casts can bypass the distinction.</p>
+    <p>Escaping replaces characters so text can be inserted into an HTML context. Returning an ordinary string loses the record of that operation, allowing callers to escape it twice.</p>
     <div class="ts-block" data-block="escape_wrapper"></div>
-    <p>Return an <code>HtmlText</code> from the escaper and accept only <code>HtmlText</code> in the renderer. Raw text can't reach the page, and escaping twice stops type-checking. Each value costs one allocation.</p>
-    <p>Albert ships by two carriers, the Royal Post and a village courier, and each quotes by the kilogram. Here the two languages disagree about what counts as a carrier. TypeScript matches shapes everywhere. Python matches names, so a courier class from somebody else's package doesn't count, however right its <code>quote_pence</code> method looks, and Ernest can't edit that package.</p>
+    <p>Return <code>HtmlText</code> from the escaper and require it in this renderer. The checked signatures distinguish raw text from the example's escaped text. The wrapper allocates a value. This does not establish safety for every HTML, URL or script context.</p>
+    <p>The shipping code needs a carrier with a <code>quote_pence</code> method. Another package can provide that method without inheriting our carrier class. The next example describes the required methods so the checker can recognize that object.</p>
     <div class="ts-block" data-block="carrier_protocol"></div>
     <p>Declare a <code>Protocol</code> and Python matches shapes too: the outside class counts as it stands, with no inheritance asked for. A <code>Protocol</code> exists for the checker alone unless you mark it runtime-checkable.</p>
   </div>
@@ -124,12 +124,12 @@
 <section id="states-and-stages">
   <div class="shell prose">
     <h2>5. States and stages</h2>
-    <p>A distinct name keeps two values apart, and you can still build nonsense out of honest parts. Ernest's payment record carries a settled flag beside an optional receipt, so a payment can say settled and carry no receipt. Albert found one in the ledger in March and lost an afternoon to it.</p>
+    <p>A payment with a boolean settled flag and an optional receipt allows a contradictory combination: settled with no receipt. Describe pending and settled payments as different shapes so checked construction must supply the right fields.</p>
     <div class="ts-block" data-block="payment_states"></div>
-    <p>Split the record in two: give <code>Settled</code> a receipt field and <code>Pending</code> none. Now try to build a settled payment without a receipt. There's no field to leave empty and no constructor that takes one. You pay for one tag field and a comparison to read it.</p>
-    <p>Stages go the same way. Ernest's file relies on everyone remembering that an invoice gets sent before it gets paid, and the only guard is a comment.</p>
+    <p>Give <code>Settled</code> a required receipt field and <code>Pending</code> no receipt. Try constructing a settled payment without its receipt and inspect the error. These are tagged states: the program distinguishes which shape it holds before reading its fields.</p>
+    <p>An invoice should be sent before it can be paid. A comment leaves every caller responsible for remembering that order. Distinct stage types can make the permitted order part of the function signatures.</p>
     <div class="ts-block" data-block="invoice_typestate"></div>
-    <p>Let <code>send</code> return a <code>SentInvoice</code> and let <code>record_payment</code> accept nothing else. Try to pay a draft: there's no such method to call. Each transition allocates one object, and the types are free. The pattern goes by typestate.</p>
+    <p>Let <code>send</code> return <code>SentInvoice</code> and require that type in <code>record_payment</code>. Try passing a draft and inspect the type error. This pattern is called typestate: the available operations depend on the represented stage. The example's transitions also create runtime objects.</p>
     <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
@@ -137,16 +137,16 @@
 <section id="at-the-border">
   <div class="shell prose">
     <h2>6. At the border</h2>
-    <p>The outside world hands the program text. The invoicing job takes its settings on the command line, and Ernest read them into a dictionary of strings. <code>connect</code> checks that the port is a number and in range, then <code>report</code> checks it again, because a checked dictionary and an unchecked one are the same type.</p>
+    <p>Command-line arguments arrive as text. If each function receives a dictionary of strings, it must check again whether the port is numeric and within range. The dictionary's type does not record that a prior check succeeded.</p>
     <div class="ts-block" data-block="config_parse_once"></div>
-    <p>Check the port once in <code>parse_argv</code> and return a <code>Config</code>. Then ask for a <code>Config</code> downstream and delete the checks in <code>connect</code> and <code>report</code>. Every function downstream gets a port that was checked once. Alexis King's slogan for this is: write functions on the data you wish you had.</p>
-    <p>One honest limit: the type records that the check ran, and the world keeps moving. The port was free when you parsed it, and somebody else can still take it before you bind it.</p>
-    <p>Watch what you convert into, though. A type wide enough to hold anything the input might hold rules nothing out. Ernest reached for a faithful <code>Json</code> type when the supplier began sending the price list as JSON, and it spread through every signature that touches a line. Each field access then needs a cast, and a cast asserts without checking.</p>
+    <p>Validate the port in <code>parse_argv</code> and return <code>Config</code>. Functions that accept this checked shape can use its numeric port. Keep untrusted construction at that boundary, the point where outside input enters the application.</p>
+    <p>The type records the validation performed on the input. It cannot reserve a network port or ensure another process will leave it available. Opening the connection still needs its own error handling.</p>
+    <p>A general JSON value can be a number, text, a list, an object or null. Passing that broad shape through every function forces each reader to check its fields again. Convert it into the application's required fields before doing invoice arithmetic.</p>
     <div class="ts-block" data-block="json_parsed"></div>
-    <p>Parse each line at the door into a <code>Line</code>, and stop the <code>Json</code> type there. Downstream, read <code>line.pence</code> without a cast. Remember that decoding isn't parsing: <code>json.loads</code> hands you <code>Any</code> and <code>JSON.parse</code> hands you <code>unknown</code>, and turning either into your own types is a step you write yourself.</p>
-    <p>Copying an outside system's shape into your own types springs the same trap. Resources with a kind, a name and a bag of attributes describe a config file perfectly and tell the program nothing: a server and a database share one type, every attribute is optional, and a misspelled key waits for whoever runs it.</p>
+    <p>Validate each decoded line and return <code>Line</code>. Downstream code can then read <code>line.pence</code> without asserting its type through a cast. JSON decoding only reads the data format. Neither <code>json.loads</code> nor <code>JSON.parse</code> establishes the application's required fields and types.</p>
+    <p>An external configuration can describe servers and databases with one generic bag of attributes. That shape permits misspelled keys and missing fields. Define the distinct settings your own program requires, and validate the external data when importing it.</p>
     <div class="ts-block" data-block="deploy_plan"></div>
-    <p>Model the two fields the program actually uses and read the foreign shape in one place. Then ask that question of every type you add: what does it rule out? If every value the source can produce still fits, you've written documentation.</p>
+    <p>Model the fields this application uses and reject invalid input during conversion. Ask what a proposed type rules out. A broad shape that accepts the same invalid combinations leaves the original behavior checks necessary.</p>
     <div class="ts-quiz" data-quiz="json_blob,json_parsed_misuse,deploy_mirror"></div>
   </div>
 </section>
@@ -154,44 +154,40 @@
 <section id="functions-as-values">
   <div class="shell prose">
     <h2>7. Functions as values</h2>
-    <p>The picking list sorts the invoice lines and takes the sort key as an argument. Ernest typed that argument loosely, so a key that expects something other than an invoice line goes in without complaint and fails when the sort calls it.</p>
+    <p>The picking list takes a function that chooses a sorting key. This is a callback: a function supplied for another function to call. Its declared argument and result types should describe invoice lines and the keys the sort expects.</p>
     <div class="ts-block" data-block="function_values"></div>
-    <p>Write down what the key takes and what it returns. Hand the sort a key it can't call now and the code won't compile. The call doesn't change.</p>
+    <p>Declare what the callback accepts and returns. Pass a callback requiring a different input and ask the checker to identify the mismatch. The declared type adds a check before execution; the program still performs the same callback call.</p>
     <p>Take the handler table next, one handler per order status.</p>
     <div class="ts-block" data-block="dispatch_typed"></div>
-    <p>Declare one handler shape and hold every entry to it. Wire a handler to the wrong case and you find out while you're typing, not when an invoice takes the wrong turn. At run time it's the same lookup and the same call.</p>
-    <p>The supplier's price service drops connections, so Ernest wrapped <code>fetch</code> in a helper that retries it. The helper took any function and returned any function, and the wrapped <code>fetch</code> came back accepting anything at all.</p>
+    <p>A handler table maps each supported status to a function. Declare the argument and result types those functions must share. Try an incompatible handler and inspect the reported mismatch. Runtime dispatch remains a lookup followed by a call.</p>
+    <p>A retry helper receives a function and returns a wrapped function. Giving both the broadest possible type loses the original argument checks. The next change preserves the wrapped function's signature.</p>
     <div class="ts-block" data-block="higher_order"></div>
-    <p>Write the wrapper so it keeps the signature, and every argument check comes through with it. Either way the wrapper adds one call frame.</p>
+    <p>Preserve the argument and return types through the wrapper, then try a call with an invalid argument. The checker should still report it. The wrapper itself executes and adds a function call each time it is used.</p>
   </div>
 </section>
 
 <section id="composition-and-monads">
   <div class="shell prose">
     <h2>8. Composition and monads</h2>
-    <blockquote class="ts-epigraph">
-      <p>A monad is just a monoid in the category of endofunctors.</p>
-      <cite>Anonymous</cite>
-    </blockquote>
-    <p>You already use three:</p>
+    <p>The next examples chain operations that can have several answers, no answer or a delayed answer:</p>
     <ul>
       <li>a comprehension that flattens a list of lists,</li>
       <li><code>await</code>, which unwraps an answer that arrives later,</li>
       <li>the <code>if</code> that clears away a value that may be missing.</li>
     </ul>
     <div class="ts-example" data-example="familiar_monads"></div>
-    <p>Those three share one shape, called a <strong>monad</strong>: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). Use <code>map</code> for a step that can't fail. The ones you'll meet by name:</p>
+    <p>A common design puts a value inside a container and provides a way to chain the next operation. A <strong>monad</strong> is that design with rules for consistent chaining. The examples illustrate the idea; they do not prove those rules. Introduce each container by the problem it handles:</p>
     <ul>
       <li><strong>Option</strong>: the answer may be missing. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
       <li><strong>Result</strong>: the step failed, and the reason matters.</li>
       <li><strong>Promise</strong>: the answer arrives later; chain it with <code>await</code>.</li>
     </ul>
-    <p>Reach for your own language's tools first: <code>None</code> narrowing, exceptions at the edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled monads aren't idiomatic in either language, and most teams treat them as friction. Build <code>Result</code> and stop there. Ernest's <code>quote</code> can fail three ways: the quantity isn't a number, the stock won't cover it, or the price is missing. All three come back as <code>None</code>, so Albert learns that the quote failed and nothing more.</p>
+    <p>Use the language's ordinary operations when they fit: missing-value checks, exceptions, comprehensions and <code>await</code>. Here, <code>quote</code> has three distinct failures: invalid quantity, insufficient stock and missing price. Returning <code>None</code> for all three loses the reason.</p>
     <div class="ts-block" data-block="result_chain"></div>
-    <p>Return <code>Ok</code> with the price or <code>Err</code> with the reason, then thread the steps with <code>and_then</code>, which runs the next step only when the last one produced a value. Albert gets told which of the three went wrong. The failure sits in the signature now, so a caller has to open the <code>Result</code> to reach the price. The shape goes by railway-oriented programming: two tracks and one switch. Each step allocates a wrapper, about 95 ns in Python.</p>
-    <p>Purity is the one idea here that no type can express: a signature saying <code>datetime</code> to <code>timedelta</code> tells you nothing about whether the function reads the clock. Ernest's <code>remaining</code> read it inside, so the answer depended on when you asked and no test could pin it down.</p>
+    <p>Return <code>Ok</code> with the price or <code>Err</code> with a failure reason. The example's <code>and_then</code> calls the next step only after success and carries a failure forward unchanged. This makes the result and failure cases visible to the caller. Each step can allocate a wrapper; no runtime benchmark is recorded here.</p>
+    <p>A function is pure when its result depends on its arguments and it has no outside effects. Its ordinary type signature alone does not establish that property. Reading the clock inside <code>remaining</code> makes the result depend on when it runs.</p>
     <div class="ts-block" data-block="pure_clock"></div>
-    <p>Hand the time in as <code>now</code>. The answer depends on the arguments alone, and a test can assert exactly thirty minutes to dispatch. An argument is cheap, and it shows in the signature.</p>
+    <p>Pass the current time as <code>now</code>. A test can then choose a fixed time and check a thirty-minute result. Inspect the implementation too: accepting the argument alone cannot establish that the function has no other effects.</p>
   </div>
 </section>
 
@@ -200,7 +196,7 @@
     <h2>9. Exercises</h2>
 
     <h3>Exercise 1: make the typo impossible</h3>
-    <p>Ernest's typo killed one branch of <code>advance</code>, and the program runs anyway. Turn the typo into a type error, and catch any status nobody handled while you're there.</p>
+    <p>The misspelled status prevents one branch of <code>advance</code> from running. Restrict the status type and require a case for every supported status.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3 for the literal type. Section 5 for an exhaustive match with
@@ -228,7 +224,7 @@
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
 
     <h3>Exercise 4: separate the currencies</h3>
-    <p>Each amount keeps its currency in a string beside it, so the program adds dollars to euros without a murmur. Move the currency into the types, and that sum stops compiling.</p>
+    <p>A plain numeric amount does not distinguish dollars from euros. Give the currencies distinct types and check that adding them produces a type error.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>In Python, write one class per currency and a constrained type variable,
@@ -297,16 +293,16 @@
     <div class="table-scroll">
     <table>
       <tr><th>Construct</th><th>The checker holds</th><th>At run time, and what it costs</th><th>Reach for it when</th><th>Since</th></tr>
-      <tr><td><code>type</code> alias</td><td>Nothing; the same type under a new name</td><td>Nothing exists, so nothing to pay</td><td>A long signature needs a short, honest name</td><td>3.12 as the <code>type</code> statement</td></tr>
-      <tr><td><code>NewType</code></td><td>The label: <code>Meters</code> can't go where <code>Pence</code> belongs</td><td>The plain value, untouched. Each call through the constructor costs about 20 ns</td><td>Two same-shaped values must never swap</td><td>3.5</td></tr>
+      <tr><td><code>type</code> alias</td><td>Nothing; the same type under a new name</td><td>The alias object can exist in Python; it adds no automatic value validation</td><td>A long signature needs a short, honest name</td><td>3.12 as the <code>type</code> statement</td></tr>
+      <tr><td><code>NewType</code></td><td>The label: <code>Meters</code> can't go where <code>Pence</code> belongs</td><td>The constructor runs and returns the supplied value</td><td>Two same-shaped values must never swap</td><td>3.5</td></tr>
       <tr><td><code>Literal</code></td><td>A closed set of values</td><td>Plain strings and numbers, so nothing to pay</td><td>A field or flag has a fixed menu</td><td>3.8</td></tr>
-      <tr><td><code>Enum</code>, <code>StrEnum</code></td><td>A closed set with a named member for each value</td><td>A real object. Reading a member costs about 12 ns, looking one up by value about 110</td><td>The set must also exist at run time, as when parsing a CSV column</td><td>3.4; <code>StrEnum</code> 3.11</td></tr>
-      <tr><td><code>@dataclass(frozen=True)</code></td><td>The shape: field names and types</td><td>A real object, and frozen blocks mutation. About 135 ns to build, roughly three times a plain class</td><td>Data with named fields, which is most data</td><td>3.7</td></tr>
-      <tr><td><code>NamedTuple</code></td><td>The shape, like a dataclass</td><td>A tuple, so indexing and unpacking still work. About 100 ns to build, and lighter in memory</td><td>You need tuple compatibility; otherwise a dataclass reads better</td><td>3.6</td></tr>
-      <tr><td><code>TypedDict</code></td><td>The keys and value types of a dictionary</td><td>A plain dict, the cheapest of these at about 33 ns. Nothing enforces the shape</td><td>Dictionaries you can't replace, like JSON already flowing through code</td><td>3.8</td></tr>
+      <tr><td><code>Enum</code>, <code>StrEnum</code></td><td>A closed set with a named member for each value</td><td>A runtime member object; construction and lookup execute</td><td>The set must also exist at run time, as when parsing a CSV column</td><td>3.4; <code>StrEnum</code> 3.11</td></tr>
+      <tr><td><code>@dataclass(frozen=True)</code></td><td>The shape: field names and types</td><td>Object construction runs; frozen fields reject ordinary reassignment</td><td>Data with named fields, which is most data</td><td>3.7</td></tr>
+      <tr><td><code>NamedTuple</code></td><td>The shape, like a dataclass</td><td>A tuple instance; construction, indexing and unpacking execute</td><td>You need tuple compatibility; otherwise a dataclass reads better</td><td>3.6</td></tr>
+      <tr><td><code>TypedDict</code></td><td>The keys and value types of a dictionary</td><td>A plain dictionary; the type declaration does not validate its contents</td><td>Dictionaries you can't replace, like JSON already flowing through code</td><td>3.8</td></tr>
       <tr><td>Union of dataclasses + <code>match</code></td><td>Exhaustiveness: every reader handles every state</td><td>Ordinary objects; the match costs one tag comparison</td><td>A value is one of a few shapes, like the payment</td><td>3.10; <code>assert_never</code> 3.11</td></tr>
       <tr><td>Typestate classes</td><td>The order of operations</td><td>Ordinary objects, and every transition allocates one</td><td>Steps must happen in sequence, like the invoice</td><td>3.5, with the first annotations</td></tr>
-      <tr><td>pydantic <code>BaseModel</code></td><td>The shape, like a dataclass</td><td>Validation: it rejects bad data at the door, at about 400 ns per object and 530 from JSON</td><td>The border, where data arrives as text</td><td>a library</td></tr>
+      <tr><td>pydantic <code>BaseModel</code></td><td>The shape, like a dataclass</td><td>Model construction performs the configured validation</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
     </div>
     <h3>TypeScript</h3>
@@ -322,10 +318,10 @@
       <tr><td>Discriminated union + <code>never</code></td><td>Exhaustiveness: every reader handles every state</td><td>Erased, though the tag is a real property in every object</td><td>A value is one of a few shapes, like the payment</td><td>2.0</td></tr>
       <tr><td>Typestate object types</td><td>The order of operations</td><td>Erased, and every transition allocates one object</td><td>Steps must happen in sequence, like the invoice</td><td>2.0</td></tr>
       <tr><td><code>satisfies</code> + <code>as const</code></td><td>Conformance to a type without widening the literal</td><td>Erased</td><td>A value must match a shape and keep its exact keys</td><td>4.9; <code>as const</code> 3.4</td></tr>
-      <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: about 46 ns per object, and 180 ns including <code>JSON.parse</code></td><td>The border, where data arrives as text</td><td>a library</td></tr>
+      <tr><td>zod schema</td><td>The inferred static type</td><td>Schema validation executes; JSON decoding is a separate operation</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
     </div>
-    <p>Those figures come from one laptop, Python 3.14 and Node 26, and yours will differ. Remember the shape, not the numbers. Whatever the checker alone uses is free, because it vanishes before the program runs. Compile the TypeScript above and the alias, the brand, the literal union, the interface and the <code>satisfies</code> leave no trace; only the enum, the class and the values survive. You pay for what exists: an object to allocate, a member to look up, a value to validate. Freezing a dataclass roughly triples the cost of building one, and a validating model costs a hundred times a plain dictionary. Use both at a border, and rarely inside a loop.</p>
+    <p>These tables describe runtime operations, not measured overhead. This page has no retained benchmark supporting nanosecond costs or cross-language speed comparisons. TypeScript removes type-only declarations from generated JavaScript. Python type objects, constructors, validation and data allocation can still do runtime work. Measure the same operation, inputs, versions and build settings against an explicit baseline before claiming a speed difference. The <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/benchmarks.md">measurement guide</a> explains that comparison.</p>
     <p>Count the other costs too:</p>
     <ul>
       <li>Data from the wild arrives dirty, and a model that holds only clean values can't load the record you need to repair.</li>
@@ -339,9 +335,9 @@
 <section>
   <div class="shell prose">
     <h2>Where this goes next</h2>
-    <p>Here's Ernest's file from section 1, rewritten. Try any of his five mistakes in it and press Type check.</p>
+    <p>The final cell combines the changes from this lesson. Try the five starting mistakes again and press Type check. Then run the behavior checks; passing the type checker cannot establish every application rule.</p>
     <div class="ts-example" data-example="the_program_fixed"></div>
-    <p>The Rust side of this repository applies the same ideas: <a href="types.html">Making it unrepresentable</a>. The examples behind this page live in <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>, and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a> keeps them honest.</p>
+    <p>The payments example applies related ideas: <a href="types.html">Making it unrepresentable</a>. The examples behind this page live in <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>, and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a> keeps them honest.</p>
     <div class="ts-mantras">
       <p>Turn your bugs into type errors.</p>
       <p>Make illegal states unrepresentable.</p>
@@ -355,10 +351,10 @@
     <h2>How does this page work?</h2>
     <p>Edit any cell on this page and press a button. Run and lint execute in this browser tab; Python type checking opens Astral's official ty playground.</p>
     <p><strong>Run, Python.</strong> <a href="https://pyodide.org">Pyodide</a> is CPython compiled to WebAssembly. The first click loads it from a CDN. Each run hands your cell to the interpreter with fresh globals and shows what it printed.</p>
-    <p><strong>Type check, Python.</strong> The button copies your edited cell and opens Astral's official <a href="https://play.ty.dev/">ty playground</a>; paste it into <code>main.py</code> to see the diagnostics. The repository gate checks the same files locally with <code>ty==0.0.80</code> and Python 3.14. The captured checker words below come from that pinned CLI. Astral does not publish a browser package for embedding ty here, so the hosted playground may advance before this repository updates its pin.</p>
+    <p><strong>Type check, Python.</strong> The button copies your edited cell and opens Astral's official <a href="https://play.ty.dev/">ty playground</a>; paste it into <code>main.py</code> to see the diagnostics. The GitHub test suite checks the same files with <code>ty==0.0.80</code> and Python 3.14. The captured checker words below come from that pinned CLI. Astral does not publish a browser package for embedding ty here, so the hosted playground may advance before this repository updates its pin.</p>
     <p><strong>TypeScript.</strong> tsc was always JavaScript, so one CDN script is the whole compiler. Diagnostics use the same strict flags as the repository's tests; Run transpiles and evaluates.</p>
     <p><strong>Lint.</strong> <a href="https://docs.astral.sh/ruff/">Ruff</a> is Rust, compiled to WebAssembly. It is Ruff itself.</p>
-    <p><strong>To edit this page.</strong> The prose is <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.html">docs/type-safety.html</a>. The code cells are files under <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety/</a>, one Python and one TypeScript per example; each cell's Edit in GitHub button opens its own pair. Change one, then run <code>UPDATE_SITE_DATA=1 cargo test --test typesafety</code> to re-check it and regenerate the page's data. The buttons live in <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.js">docs/type-safety.js</a>.</p>
+    <p><strong>To edit this page.</strong> The prose is <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.html">docs/type-safety.html</a>. The code cells are files under <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety/</a>, one Python and one TypeScript per example; each cell's Edit in GitHub button opens its own pair. Change one, then use a dedicated runner to run <code>UPDATE_SITE_DATA=1 cargo test --test typesafety</code> to re-check it and regenerate the page's data. The buttons live in <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.js">docs/type-safety.js</a>.</p>
   </div>
 </section>
 </main>

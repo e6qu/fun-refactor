@@ -1,6 +1,8 @@
 # Explore only the needed structure
 
-Find the relevant route and helpers before reading larger source excerpts.
+For report pages, use [Disclosure](disclosure.md).
+
+Find relevant helpers before reading whole files.
 
 A signature lists arguments. Copy each returned code handle unchanged.
 

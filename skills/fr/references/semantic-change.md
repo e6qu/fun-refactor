@@ -20,7 +20,8 @@ Follow every key in the reported path. An integer on the right of a binary insid
 use `/body/0/value/value/value/right`. Inspect wire shapes with
 `fr author semantic-schema change` and the exact node section and kind.
 
-The Python SDK mirrors the operation hierarchy:
+The Python SDK mirrors these operations. This fragment requires `body_basis` and `pointer` copied from the preceding report.
+It changes the selected expression to the integer `2`:
 
 ```python
 from fr_ir.ir import Change, Expr, SemanticChange
@@ -32,7 +33,8 @@ change.write("change.json")
 ```
 
 Use `SemanticChange(body, operations)` when the SDK already holds a complete `SemanticBody`.
-Portable JSON uses this shape:
+The following JSON illustrates the format. Replace the fingerprint placeholder and choose a reported expression pointer before using it.
+The path below is an example; do not assume it identifies the same expression in your function.
 
 ```json
 {

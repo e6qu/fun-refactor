@@ -98,4 +98,4 @@ Use the original record path with `compact-removal` to inspect or finish compact
 An anchored resume predicate accepts absent paths and requires identity, byte and mode matches for present files.
 Lean proves both properties. Shared Rust/Lean cases cover all sixteen boolean inputs.
 The abstract selected-removal model also proves idempotence: applying the same selected removal twice has the same result as applying it once.
-Archive parsing, host observations, Git leases, filesystem deletion and crash durability remain outside general correspondence (the stated connection between two descriptions) proofs.
+The proofs do not cover archive parsing, host observations, Git leases, filesystem deletion or crash durability.

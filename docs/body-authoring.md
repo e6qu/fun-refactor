@@ -72,7 +72,9 @@ For Rust:
 }
 ```
 
-Both the old and new bodies must fit 1 through 65,536 UTF-8 (the text encoding used to count source bytes) bytes. A brace-delimited block is naturally at least two bytes.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+Both the old and new bodies must fit 1 through 65,536 UTF-8 bytes. A brace-delimited block is naturally at least two bytes.
 The input file itself must fit 65,536 bytes, including whitespace outside the block.
 The reader trims surrounding whitespace and preserves all bytes inside the block.
 It refuses non-UTF-8 input, NUL bytes, symlink inputs and nonregular files.
@@ -339,7 +341,7 @@ Lean proves that removing inserted characters at a valid boundary recovers the o
 Reported file and module, impl and trait insertions, including their separators, also produce matching Rust and Lean results.
 The [placement model](lean-specs.md#declaration-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
 Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; ten CLI previews match too.
-These proofs do not establish general correspondence (the stated connection between two descriptions) for AST selection, parsing, type correctness, filesystem operations or the full authoring command.
+These proofs do not cover syntax-tree selection, parsing, type correctness, filesystem operations or the complete authoring command.
 
 The `refactor` batch operation accepts a JSON rename or scalar signature request for a Rust free
 function. [Structural task delivery](structural-changes.md) binds its resulting edits to a reviewed

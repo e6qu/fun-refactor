@@ -196,7 +196,7 @@ report before `basis`, `object_root` and the measured length; `frag1:` additiona
 goal, project revision, all live capability forms/support, recipe vocabulary and semantic catalog.
 
 The verification ladder keeps reparse, compiler, declared checks, behavioral oracles, model theorems
-and implementation correspondence (the stated connection between two descriptions) separate. A route starts with no proved behavior. Agents author
+and whether the model describes the actual implementation separate. A route starts with no proved behavior. Agents author
 properties and tactics. Generated formalization admits typed pure declarations for the languages
 listed by `fr --json audit proofs` and structural snapshots for the remaining parser identities. An
 `implementation` proof expectation returns an explicit unsupported state.

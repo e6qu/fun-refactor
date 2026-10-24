@@ -84,4 +84,4 @@ memory history have separate contracts.
 The [Lean model](../kernels/FrKernels/HostRecovery.lean) proves required publication matches,
 conflict refusal, exact abstract restoration and idempotence. Source anchors bind the two Rust
 predicates; 224 executable results compare Rust and Lean. These results establish finite model
-agreement and model theorems. They do not prove correspondence (the stated connection between two descriptions) for the host filesystem adapter.
+agreement and model theorems. They do not prove that every operation of the filesystem adapter agrees with the model.

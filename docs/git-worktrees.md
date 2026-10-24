@@ -27,8 +27,10 @@ Invocation from a subdirectory or a symlink resolves to that working tree.
 `common_directory` identifies the shared repository metadata directory.
 A linked checkout can report a bare primary repository. Direct invocation from a bare repository refuses.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 `locked` and `prunable` describe Git's registration metadata.
-Optional reasons occupy at most 512 UTF-8 (the text encoding used to count source bytes) bytes each, with separate truncation flags.
+Optional reasons occupy at most 512 UTF-8 bytes each, with separate truncation flags.
 Missing reasons are null; empty reasons remain empty strings.
 Paths and reasons preserve spaces and newlines through NUL-delimited parsing.
 Non-UTF-8 metadata, unknown attributes and incomplete or contradictory records refuse with a diagnostic.
@@ -63,7 +65,7 @@ It reads repository-local configuration but does not inspect file content or inv
 Git still reads all registrations to construct a page; output bounds do not imply constant memory use.
 
 Pagination reuses the source-anchored `page_length` kernel and its Lean bound and progress laws.
-The parser, Git subprocess and complete observation protocol have tests, without a general formal correspondence (the stated connection between two descriptions) proof.
+Tests exercise parsing, Git commands and the observation procedure. No proof covers their complete implementation.
 
 `fr git worktree create` previews and applies a raw checkout on a new or unused existing branch with a separate review basis.
 See [reviewed creation](git-worktree-creation.md) for supported destinations, checkout limits and partial-failure reporting.

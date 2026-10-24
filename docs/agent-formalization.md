@@ -64,7 +64,7 @@ anchor the complete source file.
 
 `spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
 semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains
-the current generated model, named term definition and exact correspondence (the stated connection between two descriptions) proposition.
+the current generated model, named term definition and exact proposition connecting the evaluator to that model.
 `source_implementation_proved` remains false. Parser extraction and source semantics still require evidence.
 General Lean laws cover binding resolution, shadowing (a nearer declaration hiding an earlier name), lifted indices, literal substitution,
 evaluation determinism, short-circuit behavior and arithmetic bounds. A conditional multiplication/addition
@@ -73,6 +73,11 @@ Execution tests compare tested cases with executable Lean and installed source t
 They do not prove general source implementation equivalence.
 
 ## Direct evaluation and Python mirror
+
+This complete Python fragment needs the installed client and a matching `fr` binary.
+It evaluates an illustrated expression without reading project source.
+`let` introduces a local value, `3`. Indexed bindings count outward from the nearest value:
+`bound(0)` reads that local value and `bound(1)` reads the supplied `7`. The addition therefore returns `10`.
 
 ```python
 from fr_ir.formal_kernel import KernelRequest, KernelTerm, KernelValue

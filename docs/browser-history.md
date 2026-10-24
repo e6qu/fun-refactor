@@ -54,10 +54,12 @@ network request. An explicit repository parameter loads that repository and repl
 If storage is unavailable or full, the current edit remains applied and the page reports the storage
 failure. A failed write leaves the prior checkpoint in place.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Rust mutations and browser storage replacement are synchronous. Only a fully completed transaction
 can produce a checkpoint, so reload recovery selects the previous or next complete state. There is no
 pending browser mutation to replay. Invalid saved state is removed and the ordinary loader continues.
-Browser snapshots remain UTF-8 (the text encoding used to count source bytes) regular files projected as mode `0644`; executable modes and symlinks
+Browser snapshots remain UTF-8 regular files projected as mode `0644`; executable modes and symlinks
 remain native-only concerns.
 
 [`FrKernels.MemoryHistory`](../kernels/FrKernels/MemoryHistory.lean) anchors the finite transition
@@ -67,4 +69,4 @@ apply/undo restores the selected snapshot list. Restoration theorems require val
 history and finite file and payload bounds. Compaction theorems cover the retention boundary and the
 zero and complete list cases. Executable comparisons include every transition input and machine-size
 restoration and compaction boundaries. Reindexing, SHA-256, browser storage, JavaScript, Git and full
-Rust/model correspondence (the stated connection between two descriptions) remain tested or trusted boundaries.
+agreement between Rust and the model remain dependent on tests or stated assumptions.

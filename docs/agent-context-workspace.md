@@ -65,7 +65,9 @@ the same evidence model once and select the requested values without progressive
 content fingerprint of a report subtree (its Merkle object digest) per selection; a supplied Python object store verifies and persists those
 subtrees using the same record format.
 
-Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8 (the text encoding used to count source bytes)
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8
 strings split at byte offsets. It requires stable node identity across pages, unique object keys,
 contiguous array indices, gap-free string coverage and a final digest equal to the advertised
 object digest. The returned value is detached from the retained report.
@@ -124,7 +126,7 @@ Rust agree on the same 576-case corpus. Unit and integration tests cover paginat
 pages, empty arrays, duplicate/conflicting storage, session drift, pointer validation, exact call
 bounds and a real `fr` traversal followed by a reviewed write. These proofs cover admission
 predicates. Python execution, SHA-256 collision resistance, JSON and filesystem implementations,
-the subprocess boundary and general correspondence (the stated connection between two descriptions) of the traversal algorithm remain trusted or
+the subprocess boundary and the complete report-traversal implementation remain trusted or
 integration-tested components.
 
 `FrKernels.AgentIntent` models the complete intent admission conjunction. It proves that every

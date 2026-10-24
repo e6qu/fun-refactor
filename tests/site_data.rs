@@ -453,11 +453,9 @@ const ENTRIES: &[Entry] = &[
         sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.5"],
         intent: "The same move, where the language will not have it.",
         invariant: "Nothing changes, because the only change available would not preserve anything, the file would stop parsing as Python.",
-        note: "Python requires every defaulted parameter to come last, so this would \
-               produce `def circ(units=\"m\", r):`, which Python rejects outright. The \
-               engine reparses every edit and would normally catch a broken result, but \
-               tree-sitter parses this without complaint, so the refactoring has to \
-               know the rule itself. It did not until this page asked for it.",
+        note: "A required positional parameter cannot follow a defaulted positional parameter. \
+               This example would produce `def circ(units=\"m\", r):`, which Python rejects. \
+               Tree-sitter accepts its syntax, so the refactoring also checks this language rule.",
         files: &[("src/geometry.py", DEFAULTS_PY)],
         argv: &["signature", "circ", "move:0:2"],
     },
@@ -488,7 +486,7 @@ const ENTRIES: &[Entry] = &[
         name: "Remove unused imports",
         sources: &["The tidying you do after the others, though neither catalogue lists it"],
         intent: "Imports nothing uses go, and the rest sort into order.",
-        invariant: "The file imports the same modules. Only the order changes, and Python does not care about the order of independent imports.",
+        invariant: "The example keeps the imports its source uses and sorts them. Imports can run startup code; check those effects in a real project.",
         note: "Read what it prints above the diff. The name decides liveness, so an \
                import kept for a trait, a registration side effect or a doc comment \
                would look unused, and it says so instead of letting you find out. \
@@ -520,7 +518,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First?. Kent Beck (2023), “Dead Code”",
         ],
         intent: "Code nothing calls goes, rather than staying to maintain.",
-        invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. The deletion is therefore safe rather than a guess.",
+        invariant: "This fixture has no references to the deleted function. In a real project, also inspect external callers and unresolved uses before deleting it.",
         note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: \
                delete refuses anything still referenced, so the list is \
                worth acting on.",
@@ -786,9 +784,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "python-to-typescript",
         title: "Typed Python → TypeScript",
-        blurb: "The signature is the contract. Every parameter, in order, with its type \
-                and the return type, only the spelling changes, to the target's \
-                convention.",
+        blurb: "Translate typed arguments, collections and small method bodies. Review unsupported constructs and test the generated function on the same inputs.",
         files: &[("sensors.py", TYPED_PYTHON)],
         subject: "sensors.py",
         target: "typescript",
@@ -798,8 +794,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "typescript-to-python",
         title: "Typed TypeScript → Python",
-        blurb: "The same crossing in the other direction, over the file the first one \
-                produced by hand-writing what a TypeScript author would have written.",
+        blurb: "Translate the separately authored TypeScript example into Python. Compare its argument and result types, then test the behavior you need.",
         files: &[("sensors.ts", TYPED_TYPESCRIPT)],
         subject: "sensors.ts",
         target: "python",
@@ -809,8 +804,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "go-to-rust",
         title: "Go → Rust",
-        blurb: "The other pair. A Go `struct` is a Rust `struct`, a `range` loop is a \
-                `for … in`, and the exported/unexported convention becomes `pub`.",
+        blurb: "A Go struct becomes a Rust struct, and a range loop becomes a for-in loop. Review visibility and the generated method bodies.",
         files: &[("store.go", TYPED_GO)],
         subject: "store.go",
         target: "rust",
@@ -820,8 +814,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "rust-to-go",
         title: "Rust → Go",
-        blurb: "And back, where Go's capital letter is what `pub` means and the \
-                signature carries unchanged.",
+        blurb: "Translate the Rust example into Go. Exported Go names start with a capital letter; inspect the resulting declarations and callers.",
         files: &[("store.rs", TYPED_RUST)],
         subject: "store.rs",
         target: "go",
@@ -831,10 +824,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "python-to-java",
         title: "Typed Python → Java",
-        blurb: "The language with no top level below the type. A module has to become a \
-                class, `sensors.py` has to become `Sensors.java`, the compiler enforces \
-                that, it is not a convention, and a record that would have been public \
-                becomes a package-private sibling, with a comment saying why.",
+        blurb: "Java needs a class around these module functions. Inspect the generated Sensors.java file and the visibility of its sibling record.",
         files: &[("sensors.py", TYPED_PYTHON)],
         subject: "sensors.py",
         target: "java",
@@ -844,10 +834,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "zig-to-rust",
         title: "Zig → Rust",
-        blurb: "Zig has no keyword for a method: `self` is the first parameter and a \
-                struct is a value bound to a `const`. Rust puts the same shape in an \
-                `impl` block, and `[]const u8`. Zig's string, which is a slice of \
-                bytes that does not change, becomes `String`.",
+        blurb: "Zig places a method's self argument first. Rust writes methods in an impl block. Review conversion of Zig byte slices into Rust strings.",
         files: &[("sensors.zig", TYPED_ZIG)],
         subject: "sensors.zig",
         target: "rust",
@@ -857,10 +844,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "typescript-to-zig",
         title: "Typed TypeScript → Zig",
-        blurb: "The other way, into the language with the least in common with the rest. \
-                There is no `new`, no exception, no interpolated string and no block \
-                comment, so a fragment with no counterpart goes on its own line above \
-                the statement, because `//` in Zig would swallow the semicolon.",
+        blurb: "Review constructs that this Zig writer cannot express. The report counts unsupported pieces and carries their source into comments for manual completion.",
         files: &[("sensors.ts", TYPED_TYPESCRIPT)],
         subject: "sensors.ts",
         target: "zig",
@@ -870,9 +854,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "nextjs-to-fastapi",
         title: "A Next.js API route → FastAPI",
-        blurb: "Not a language translation, a *contract* one. The URL, the method and \
-                the path parameter come from where the file sits on disk, which is the \
-                one thing no content-only translation could recover.",
+        blurb: "This route's URL includes its folder path. Its exported handler names the HTTP method. Inspect both when generating the FastAPI endpoint.",
         files: &[],
         subject: "app/api/posts/[postId]/route.ts",
         target: "fastapi",
@@ -885,9 +867,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "real-python-to-typescript",
         title: "Real code: a FastAPI backend → TypeScript",
-        blurb: "Not a sample written to succeed. This is `backend/app/crud.py` from the \
-                full-stack FastAPI template, unmodified, and the report says where \
-                the translation stops being one.",
+        blurb: "Translate an unchanged FastAPI crud.py file from the pinned public template. Library types and calling conventions still need manual review.",
         files: &[],
         subject: "crud.py",
         target: "typescript",

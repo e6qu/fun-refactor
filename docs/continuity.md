@@ -1,254 +1,96 @@
-# Pick up the current work
+# Continue work without repeating the investigation
 
-Start with the [plan](../PLAN.md) for the goal and [current results](roadmap-status.md) for the checked requirements.
-This page tells the next contributor what needs doing. It keeps current instructions separate from dated experiment history.
+[PLAN.md](../PLAN.md#next-work) owns the upcoming tasks.
+The [status report](roadmap-status.md) owns demonstrated checks.
+[BUGS.md](../BUGS.md) owns reported defects.
+Use this page for the starting point and the checks to preserve.
 
-## What users can do now
+## Start here
 
-An agent can find functions and callers, read selected code, preview an edit and run project-declared checks.
-Saved changes can be inspected, reversed or continued after a pause.
-Small Python examples can also follow a configured input through a helper to an output.
+PR #577 added ordered handlers for selected explicit Python errors.
+Its [worked example](catch-python-errors.md) repairs an application that catches `TypeError` when Boltons raises `ValueError`.
+The [cleanup lesson](check-python-cleanup.md) shows why a return inside `finally` can replace a customer's message.
 
-The [original-package checks](package-milestones.md) now pass for Boltons' integer bounds
-and dateutil's Easter dates. They use the original imports, independently stated Python
-results, renamed and moved callers, and saved versus fresh answers after relevant changes.
-JDcal's leap-year question also passed on its first evaluation after the analyzer freeze.
-This completes both near-term package milestones across three independent projects.
-The same analyzer handled all three. JDcal's README supplied the question before we read its implementation.
-The [milestone record](package-milestones.md) links the original results and limits.
+The next code package is [R1: recover from invalid number input](../PLAN.md#r1-recover-from-invalid-number-input).
+Extend the same authored application through the original Boltons import.
+Commit its requirements and Python behavior checks before changing the analyzer.
+Do not present this familiar example as a new unread-project evaluation.
 
-For example, “does customer input reach `send(value)`?” can return a possible connection with source locations.
-If importing the helper runs unsupported startup code, the question stays partly unanswered.
-An empty trace in that situation cannot establish that the input never reaches the output.
+Follow [R2](../PLAN.md#r2-follow-shared-lists-through-original-imports) for list aliases and the remaining full-package questions.
+An alias is another name for the same object.
+Changing a shared list must affect later reads through either name; changing a separate list must preserve the original.
 
-Toolz, funcy and pydash still give incomplete answers when used through their full packages.
-Some helpers work when copied into small isolated files. That tests a simpler question with different import behavior.
-We have not demonstrated that `fr` saves time or money on unfamiliar tasks.
+## Preserve these working behaviors
 
-## Checked project changes
+- Selected Rust and Python changes pass independent checks, undo, redo and patch replay in another checkout.
+- Saved answers agree with fresh analysis after relevant edits; unrelated findings remain usable.
+- The Boltons, dateutil, JDcal and Stringcase questions use original imports.
+- Explicit supported errors follow matching handlers, helper calls, nested cleanup and known reraises.
+- Claude Code, Codex and OpenCode discover the portable skill and pass scripted change exercises.
+- The bounded [page-count translation](check-language-behavior.md) keeps integer division exact in both directions.
 
-The [project-change milestone](project-change-milestone.md) now has passing original records for both selected outcomes.
-Saved answers agree with fresh checks after seven changes on each of glob, Boltons and Humanize.
-The cases cover renames, moves, deletion, competing imports, project configuration, question settings and an actual checker implementation change.
-An unrelated source finding remains usable in every case.
+An empty trace from an incomplete analysis cannot establish that input never reaches an output.
+A finished simple-value analysis also leaves unsupported runtime operations unchecked.
+The [Python guide](python-contract.md) states the supported rules and the remaining limits.
 
-The Rust task renames `glob_with` to `glob_with_options` while preserving the declared filesystem matching cases.
-The Python task renames `clamp` to `clamp_value` through the original Boltons imports, callers, tests and documentation.
-For example, limiting -5, 17 and 70 to the range 0 through 50 still returns 0, 17 and 50.
-Both tasks pass behavior checks, undo and patch application in a separate checkout.
+## Where current records live
 
-Humanize's implementation and tests stayed unread until the checker, procedure and both checker builds were fixed.
-It passed its first evaluation. The [original record](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json)
-includes that result and all 32 failed or cancelled development attempts.
-The earlier Boltons, dateutil and JDcal questions also pass with the current checker.
-Their original unread result still has its own audit against its original source.
-
-[PR #551](https://github.com/e6qu/fun-refactor/pull/551) contains the implementation and results.
-The fixes preserve local Python import names, distinguish same-named Rust declarations and expire saved answers when checker code changes.
-Boltons' documentation repair uses an exact `fr file replace` operation with a saved review, checks and undo history.
-The recurring CI check replays the recorded experiment and rejects altered completion claims.
-
-After changing the checker or Python client, also refresh the report for finding affected code and delivering a checked repair.
-That report lives outside the general analysis and proof refresh groups.
-Run the hosted `project-change-consumer-scope` group; it updates the test and both guide links after the new report passes.
-For example, new Python support must expire a report from the previous checker, even when the example repair still works.
-
-## Next: choose a project change that exposes a remaining Python gap
-
-PR #569 completed the scripted agent-comparison preparation. Live attempts still need agreed models, settings and spending limits.
-Continue PR 2 in the [agreed roadmap](../PLAN.md#next-three-prs) while that decision remains open.
-PR #571 checked a page-count calculation in both Rust/Python directions and fixed large-integer division.
-It also gave unchecked Python runtime effects exact source locations, including after saved-answer reuse.
-Use the [behavior lesson](check-language-behavior.md) for the concrete examples and finite scope.
-The fresh Toolz, Funcy and Pydash baseline still has no complete full-package answers.
-Keep their original imports, startup failures and existing limits visible.
-Text conversions and twelve read-only string methods now pass 68 comparisons with ordinary Python.
-For example, `send(str(customer_input).lower())` keeps the input's possible value connection.
-Reassignment, mixed return types, arbitrary objects and saved answers have explicit controls.
-Stringcase's README supplied a reserved lowercase question; its first inspection passed after fixing the checker and procedure.
-The same executable also passed the Boltons, dateutil and JDcal questions. Those three projects are familiar now.
-The [current package example](original-package-questions.md#follow-a-customer-label-through-stringcase) links the frozen record and its limits.
-The [cleanup repair](check-python-cleanup.md) supplies the next concrete task: a cleanup return replaces a customer's message with `PUBLIC`.
-It checks the repair through the original local import, independent runtime checks, undo, redo and patch replay.
-Pending return and explicit raise values survive cleanup unless cleanup replaces that exit.
-Explicit helper raises and loop exits also enter cleanup; nested sections keep their pending values separate.
-The [error-handler repair](catch-python-errors.md) uses the original Boltons `clamp` import.
-Its application catches `TypeError` when invalid bounds actually raise `ValueError`.
-The repair changes the matching class and preserves unexpected `TypeError` failures.
-Supported explicit builtin errors now follow ordered handlers, `else`, nested cleanup and known reraises.
-Next, choose a concrete change that needs shared mutable values or implicit error handling before extending those rules.
-Stringcase is familiar after this evaluation; another independent first attempt needs a new reservation.
-The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
-isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.
-They retain configurations, commands and scripted tool results; the proposed schedule binds both phase prompts and grading commands.
-Independent task controls reject unchanged and incomplete code, check the reference repair and replay its patch in a fresh checkout.
-Complete-task controls now run both phases in fresh application processes with an intervening local-variable rename.
-They reject the old edit, preserve the rename in the refreshed repair, and check undo and patch replay independently.
-These are prescribed controls on familiar projects and make no live model calls.
-Next: agree exact live models, offered tools, credentials, prices, runtime settings, spending caps and full-attempt resource limits.
-Claude Code, Codex and OpenCode now discover the portable skill in isolated native-client checks.
-The introductory lesson executes the complete find, preview, check and undo route.
-The [agent setup review](product-review.md#agent-setup-review-22-october-2026) explains what passed and what remains unmeasured.
-Discovery makes the instructions available; a live attempt must show whether an agent uses them effectively.
-
-The [complete CLI and Python comparison](project-session-cost.md) now covers startup, validation, edits, memory, storage and shutdown.
-All 135 answers agree. Direct CLI calls were fastest; keeping Python running reduced its overhead.
-Every Python approach cost more than the direct CLI baseline. Saving answers showed no consistent advantage over fresh Python checks.
-Preserve these results without claiming general agent savings.
-
-The proposed [18-attempt ordinary-tools, CodeGraph and fr comparison](product-review.md#first-comparison-with-codegraph)
-reuses the existing task graders. Carry the rehearsed container boundary into each complete native-agent attempt,
-so detached indexing programs are counted and stopped. No live attempts have started.
-
-The [original saved-work results](saved-work-cost-results.md) preserve the first independent JMESPath evaluation.
-Treat glob, Boltons, Humanize and JMESPath as familiar projects when choosing new independent tasks.
-Historical results remain with their guides and original source; do not rewrite their recorded fingerprints.
-
-PRs 2 and 3 cover broader Python analysis, translation, source-connected proofs and repeated agent comparisons.
-Use concrete task failures to choose language changes. Keep the stopped studies stopped and agree limits before new live calls.
-
-## The current reader review
-
-The reader review covered 120 guides and references, including tutorials, agent instructions and project trackers.
-New guides follow the same rules and receive link and example checks.
-Keep concepts explained where readers first need them, without assuming knowledge of earlier development.
-The [writing guide](style.md) describes the review rules; the [measurement guide](benchmarks.md) names baselines, extra costs and missing measurements.
-
-For a rename lesson, supply the starting files and explain a preview, diff and saved transaction before asking the reader to use them.
-For a speed claim, explain what ran, its comparison, included setup and validation, and what the measurements leave unknown.
-For tracking, state the user outcome and next action before internal IDs or run history.
-
-The Python behavior guide is a recorded test input. Changing its wording requires a new hosted Python collection and audit.
-Agent instruction changes also require refreshing the derived text-size report.
-Do not change recorded fingerprints to disguise outdated results.
-
-## Continue Python work from actual library failures
-
-These findings remain useful when a selected change task asks whether submitted input reaches `send` through a package helper.
-Use the helper through its original package imports. Copying it into a smaller file changes the question.
-Importing a package can run setup code before making its helper available.
-That code can replace a helper, so ignoring it can give the wrong answer.
-
-A small setup function can now fill dictionaries created earlier in its own file.
-For example, `register(labels, table)` can copy known labels into the table.
-The [complete startup lesson](check-python-startup.md) introduces arguments, parameters and defaults before checking this example against Python.
-Its `output=table` parameter stores a reference to the earlier dictionary when Python defines the function.
-Leaving `output` out uses that stored object; supplying another dictionary replaces it for that call.
-
-The checker follows which dictionary each parameter refers to.
-Passing the source dictionary as the destination cannot hide a write during iteration.
-Changed source contents, rebound defaults, shared dictionaries imported from other files and unknown calls leave the answer unfinished.
-Replacing a helper during setup also stays unfinished: the lesson makes Python return zero instead of the submitted input.
-Both the function's code and its repeated loop work keep the existing 128-node limit.
-A node is a piece of parsed code, such as a name or call, rather than a line of text.
-Ordinary helper calls still cannot consume stored function or object defaults.
-This allowance covers the small setup functions described above.
-
-Saved answers depend on the source files and places searched for imports.
-Editing a file or adding a competing import file requires another check.
-The [two-question lesson](check-python-together.md) prepares shared setup once within a request, then answers each helper question separately.
-The [saved-startup lesson](save-python-startup.md) reuses checked preparation in a later process while those inputs and settings match.
-It supplies all settings explicitly. Damaged saved records fail visibly, and unknown setup effects create no reusable entry.
-These features do not establish complete package support.
-
-The [package startup findings](python-package-startup-results.md) identify the remaining obstacles.
-A module is a loaded Python file or package.
-
-| Question | What still stops an answer | Next step |
+| Record | How to find it | What to preserve |
 | --- | --- | --- |
-| Does input pass through Toolz's helper? | Setup builds an argument table using module objects, conditional imports and code that reads functions' accepted arguments | Follow that setup call and establish what it reads and changes |
-| Does input pass through Funcy's `inc`? | Python observes sixteen package files plus the caller, beyond the sixteen-file limit | Identify the imports and setup needed for this helper within the limit |
-| Does input pass through Pydash's `add`? | Python observes about 420 KiB of package source, beyond the 256 KiB limit | Establish which source and setup affect this helper within the limit |
+| Current analysis reports | [Explicit report selection](../tests/agent-eval/current-scalar-reports.json) | Named paths and original file fingerprints; no automatic older selection |
+| Requirement status | [Acceptance catalog](../tests/agent-eval/roadmap.json) | Existing acceptance conditions and engineering counts |
+| First independent project changes | [Project-change milestone](project-change-milestone.md) | Humanize's first evaluation and all failed development attempts |
+| First original-package questions | [Package milestones](package-milestones.md) | First unread evaluations and their original auditors |
+| Current whole-session costs | [CLI and Python comparison](project-session-cost.md) | Complete matching answers, setup boundaries and measured overhead |
+| Closed study attempts | [Candidate review](candidate-review-status.md) | Failed, cancelled and unstarted work |
+| Dated investigations | [Evaluation history](evaluations.md) | Original inputs, outputs, revisions and limits |
 
-A KiB is 1,024 bytes. The [findings](python-package-startup-results.md) explain how Python's observed files differ from the analyzer's loaded files.
-Use the [import explanation](explain-python-imports.md) to locate unread files, unresolved names and unchecked setup statements.
-Choose a general language rule from the actual statement, then compare its behavior with Python.
-Do not teach the checker library names or expected answers, increase limits, or assume unknown setup has no effect.
-Any future split into smaller checks must record how the results depend on one another.
-Combining smaller checks to finish these full-package questions remains unimplemented.
+A file fingerprint is a value computed from its contents.
+It detects an edit; it does not establish that an answer is correct.
+Current report selection names each file explicitly. A missing selection must fail.
 
-The [Python behavior guide](python-contract.md) owns supported language rules and runnable examples.
-It covers stored function defaults, explicit replacements, several names assigned together, and simple settings shared between files.
-The [library results](python-repository-flow.md) keep earlier progress counts and distinguish full packages from copied helpers.
-Fewer unchecked statements alone do not establish a complete answer.
+The [Python example receipt](../tests/agent-eval/results/2026-10-24-readable-docs-python-contract/manifest.json)
+records 495 programs and 990 original or renamed cases.
+It includes 370 incomplete cases, 18 refusals and 134 documented differences between the supported model and Python execution.
+These counts describe the checked examples, not complete Python support.
+Refresh this link and description when a new collection replaces it.
 
-The earlier timing studies concern examples and earlier code, not the new dictionary-argument rule:
+## Refresh after changing code or instructions
 
-- The [optimized comparison](python-optimized-cost-results.md) found that caching the parsed project helped fresh checks in its examples.
-  Saving setup or complete answers did not reduce median sequence time there.
-- The [installed-client comparison](python-process-cost-results.md) found lower totals from keeping an installed client running between questions.
-  Its baseline restarted the same installed client for each question; totals included first startup and final shutdown.
-- The [two-helper comparison](python-together-cost-results.md) compared separate and combined questions in running installed clients.
-  Three matching-answer examples had lower totals together and larger reports. Its one-step example performed different work and cannot establish a saving.
+1. Integrate current `main` before freezing the collection source.
+   A release can change the Python version file, which some reports record as an input.
+2. Finish implementation, examples and source-bound documentation before collecting.
+   Changing a guide or skill can change a report's input fingerprint even when runtime behavior stays the same.
+3. Use the hosted collection groups in the [CI guide](ci.md).
+   Refresh the affected records and preserve their originals. Never rewrite an old recorded hash to bless new inputs.
+4. Include the separate affected-code, project-change, package, session-cost and saved-answer checks when their recorded inputs change.
+   The general analysis group does not own all of them.
+5. Combine successful records, then run the hosted documentation review and roadmap generation on the combined branch.
+6. Run the full PR gate on the final commit. Fix every failure, including unrelated failures, before marking the PR ready.
 
-The guides state setup costs, missing measurements and the original source used to audit each study.
-No separate measurement establishes the new language rule's time or memory cost, complete environment setup cost, or savings on unfamiliar agent tasks.
+The [developer guide](development.md#refresh-retained-evidence) explains collection and retention.
+The original historical report uses its original auditor; current readers accept the current format.
+An old qualification does not turn a later familiar-project replay into another first attempt.
 
-The [numeric investigation](python-symbolic-investigation.md) used ordinary tests and an existing symbolic checker to search for failing inputs.
-Both found the same missing assumption: callers must order the lower and upper quantity limits.
-That example does not justify another execution engine inside `fr`; use the simpler tests for this question.
-The investigation adds no package support and does not restart stopped studies.
+## Agent comparisons and proofs
 
-A previous impact audit passed its assertions but exhausted the fifteen-minute job deadline during cleanup.
-The test now avoids building reports for sampled names without editable uses.
-It also reuses each file's table of line positions.
-Every existing behavior check remains; file and analysis errors fail visibly.
-The [complete recheck](https://github.com/e6qu/fun-refactor/actions/runs/39179402214) and two merged-main runs passed at the same deadlines.
-Those main runs took [667 seconds](https://github.com/e6qu/fun-refactor/actions/runs/39210593046) and
-[764 seconds](https://github.com/e6qu/fun-refactor/actions/runs/39231454941) for the complete impact job.
-These diagnose CI execution, not analyzer speed or language overhead.
+The [eighteen-attempt preparation](agent-comparison-preparation.md) is scripted and makes no live model calls.
+The [comparison plan](product-review.md#first-comparison-with-codegraph) still needs agreed models, settings, prices and spending limits.
+The separate [repeated-task study](product-review.md#repeated-task-study) has a larger completion requirement.
 
-Keep PR descriptions readable too. The [writing guide](style.md#pull-request-descriptions) asks for a concrete example, limits and relevant checks.
-Link detailed inventories and failed attempts from that short description.
+Keep the closed client investigation and stopped packaging study stopped.
+This handoff does not authorize new paid attempts.
+[R3](../PLAN.md#r3-prove-the-properties-of-the-code-we-ship) specifies the actual-code proof tasks; existing model theorems do not complete them.
 
-## Keep the next unfamiliar test useful
+## Before running or publishing work
 
-Jaraco.functools and fn.py have already had their first evaluation. Both stopped before
-analysis, for the admission and selection reasons recorded in the [package milestones](package-milestones.md).
-Do not describe either as an unused reservation or a successful result.
-The next comparison, [JDcal's leap-year check](leap-year-package-question.md), passed after the new freeze.
-Its public README supplied the question before we read its implementation. JDcal is now a familiar project.
-Reserve another unread project before using any later comparison to claim progress on unfamiliar code.
-Toolz, funcy and pydash are already familiar development examples.
-The [selection record](../tests/agent-eval/python-repository-flow/replacement-holdout.json) identifies the reserved project and earlier selection mistake.
+Follow the [shared-workstation rules](development.md#working-on-a-shared-desktop).
+Builds, full tests and large collections run on GitHub.
+If the local guard refuses, move the work to a runner. Keep its limits.
 
-The [active check reports](../tests/agent-eval/current-scalar-reports.json) name each result and its file fingerprint explicitly.
-A file fingerprint is a short value computed from its contents, used to detect edits.
-For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
-A missing setting fails the check. Tests never select an older record automatically.
-Original collection receipts remain beside the recorded results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-24-handlers-native-python-contract/manifest.json)
-covers 495 programs and 990 original or renamed cases, including error handlers, cleanup, dictionary arguments and defaults during startup.
-It preserves 370 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
-These include programs where startup replaces a helper or raises before the application runs.
-Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
-The Python interface checks compare saved and fresh answers, ordinary Python, source edits, competing imports and damaged records.
-They cover bounded loops, dictionary arguments, stored references and unsafe aliases, with unchanged limits.
-These counts describe the checked examples; they do not mean every example has a complete analysis.
-Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
-The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.
-The earlier [collector receipt](../tests/agent-eval/results/2026-10-16-incremental-reports-python-contract/manifest.json)
-preserves the 818-case comparison after saving each new result without repeatedly rewriting earlier cases.
-The [CI guide](ci.md#save-python-test-progress-without-repeating-earlier-work) explains saved progress and the unchanged final checks.
-Use the [measurement guide](benchmarks.md#saving-python-test-results) for that saving-only comparison; it does not measure the later language-support change.
-A receipt records the run and its inputs; it does not establish general correctness by itself.
-Keep failed attempts beside corrected ones in the [development history](evaluations.md#python-development-history).
-Old report formats use their archived original code. Current readers accept one current format and reject missing or obsolete fields.
+Every commit message is one line of at most 80 characters, with no body, trailers or AI attribution.
+Wait for passing CI before merging. When authorized, squash with an explicit subject and empty body.
 
-## Studies that stay stopped
-
-The [client investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) is closed.
-The [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) stays stopped, with its failed and unstarted attempts preserved.
-A later live comparison needs independent tasks, agreed resource and cost limits, and complete work records.
-See the [candidate review](candidate-review-status.md) for unresolved task-review questions.
-
-## Before editing or merging
-
-- Follow the [workstation limits](development.md#working-on-a-shared-desktop). Use the local guard; builds, full test suites and large collections run on GitHub.
-- If the guard refuses, move the work to CI. Keep its limits.
-- Fix the cause of a failure or timeout. Keep the existing deadline.
-- Verify recorded input fingerprints before calling results current.
-- Use the configured GitHub login; leave credential files alone.
-- Keep each commit message to one line of at most 80 characters, without a body or trailers.
-- Wait for passing CI before merging. When authorized, squash with an explicit subject and empty body.
+The [pre-cleanup handoff](https://github.com/e6qu/fun-refactor/blob/752af561fbd698f598f2786d3957c3d7e68a3180/docs/continuity.md)
+keeps the older investigation narrative. Current instructions and priorities live in the pages linked above.
 

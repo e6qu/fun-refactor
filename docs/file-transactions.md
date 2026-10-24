@@ -27,7 +27,9 @@ fr -C /project history compact --keep 100
 It does not inspect references or determine whether the project still builds.
 Use the existing symbol-level `fr delete` when its reference checks match the intended change.
 
-`fr file move SOURCE DESTINATION` moves one regular text file or UTF-8 (the text encoding used to count source bytes) symlink to an absent path.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+`fr file move SOURCE DESTINATION` moves one regular text file or UTF-8 symlink to an absent path.
 It preserves contents or link target, entry kind and the complete recorded regular-file mode. The
 source deletion and destination creation share one transaction, basis, patch and reversal history.
 It does not rewrite imports, references or package declarations.
@@ -146,7 +148,7 @@ See [patch compatibility and checks](git-patches.md) for receiving-workspace val
 The owner-execute setter has a Lean-anchored model proving the requested bit, preservation of other bits, idempotence and supported Git mode changes.
 Further laws establish the requested projected Git mode and preservation of the journal's mode bound.
 Shared execution compares 8,258 setter results between Rust and Lean.
-Snapshot checks reuse the existing anchored history predicate; [the verification guide](lean-specs.md#existing-kernels) records proof assumptions and correspondence (the stated connection between two descriptions) limits.
+Snapshot checks reuse the existing anchored history predicate; [the verification guide](lean-specs.md#existing-kernels) records the proof assumptions and which connections to the implementation remain unchecked.
 The file planner, filesystem observation and complete transaction implementation remain outside those proofs.
 The history compaction predicate is also Lean anchored. It proves and exhaustively checks that a
 record is eligible only when it has detail, is outside the retained stack window, is not pending and

@@ -921,6 +921,8 @@ CPython outcome and a separate expected analysis result. Every program also runs
 identifiers, extra Unicode text and a different file location. Only source syntax and declared
 caller contracts select analyzer behavior; repository names and expected answers do not.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 | Area | Contract | Explicit limit |
 | --- | --- | --- |
 | Operands | Evaluate scalar operands in source order; join their origins. Ignore comments. | Arithmetic values are not interpreted. `x - x` retains the origins of `x`. |
@@ -937,7 +939,7 @@ caller contracts select analyzer behavior; repository names and expected answers
 | Imports | Resolve static local modules, packages, namespaces and re-exports under one root. Check cyclic imports in execution order. Preserve each helper's defining file. Distinct scalar and bounded collection literal bindings stay inert. Literal help text writes to prior unchanged plain functions preserve scalar calls. | No arbitrary search paths, import hooks, evaluated initialization or global value reads. Rebinding, other mutations, special attribute writes, unavailable cycle members and unresolved imports stay incomplete. |
 | Caller rules | Named sources introduce origins; sinks report them; sanitizers remove matching contexts; propagators forward them. | These are user-supplied assumptions, not facts inferred about external functions. |
 | Names | Local bindings and shadowing prevent guessed external calls and unbound value claims. | Call binding uses the documented ASCII parameter subset. Python name normalization is not universally supported. |
-| Locations | Source revisions and exact UTF-8 (the text encoding used to count source bytes) source byte ranges accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
+| Locations | Source revisions and exact UTF-8 source byte ranges accompany witnesses. Lines and Unicode columns are one-based. | A derivation trace is not an executable path or mutation authority. |
 | Budgets and refusals | Unsupported constructs and exhausted searches carry cutoffs and remain incomplete. Invalid entry syntax, invalid budgets and conflicting caller rules refuse analysis. | A CLI error has no completeness or witness answer. Absence of witnesses in an incomplete report establishes no absence of flow. |
 
 The Python reference defines [expression evaluation order](https://docs.python.org/3.14/reference/expressions.html#evaluation-order),
@@ -1011,7 +1013,7 @@ can leave an origin in the model even when Python returns zero.
 An implicit exception is a stronger boundary: `1 // 0` stops Python before the following
 statement, while the current scalar model can retain that statement with `complete: true`.
 Do not use that result as an exception-safety claim. Explicit raise tests check path termination
-and argument ordering; they do not establish exception-type correspondence (the stated connection between two descriptions).
+and argument ordering; they do not establish that the model and Python raise the same error classes for every input.
 
 An unresolved import can stop Python before entry while `fr` retains argument origins through
 the unknown call. Such a witness is incomplete and cannot establish that the call can execute.

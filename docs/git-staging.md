@@ -42,9 +42,11 @@ Present flag objects report `assume_unchanged` and `skip_worktree`; additions de
 | `update` | Present | Different raw content or projected mode |
 | `unchanged` | Present | Same content identity and projected mode |
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 A path absent from both states causes refusal.
 Untracked regular text files can produce additions. Ignored untracked paths cause refusal; tracked paths remain eligible even when ignore patterns match them.
-Present working files must contain UTF-8 (the text encoding used to count source bytes) text without NUL bytes. Removal previews use index metadata. Applying a removal must read the old blob for staging history.
+Present working files must contain UTF-8 text without NUL bytes. Removal previews use index metadata. Applying a removal must read the old blob for staging history.
 Source bodies stay outside the output. `counts` contains `paths`, `add`, `update`, `remove` and `unchanged`; action counts partition the selected paths.
 The argument limit bounds rows, without bounding file sizes, path lengths or internal collection work.
 
@@ -133,5 +135,5 @@ Projected modes reuse the anchored Git mode model, with assumptions documented i
 Inventory interpretation, action classification, hash assumptions and snapshot consistency have regression evidence, without a general implementation proof.
 Staging history adds anchored transition and index-entry policy predicates plus abstract preservation laws.
 The index-entry model proves that stage zero and absence of intent-to-add are required while the two supported ordinary flags do not affect eligibility; all sixteen boolean states are compared with Rust.
-Index locking, journal durability, preparation and installation remain regression-tested, without a complete Lean correspondence (the stated connection between two descriptions) or crash-consistency proof.
+Tests check index locks, durable journals, preparation and installation. No Lean proof covers the full implementation or every interrupted-write outcome.
 Tests cover no-write behavior, dirty repositories, basis drift, ignored files, conflicts, source/index races, linked worktrees and SHA-256 identities.

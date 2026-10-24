@@ -61,8 +61,10 @@ fr history patch 1 --check --against /path/to/receiving/workspace
 fr history patch 1 --check --against /path/to/receiving/workspace --reverse
 ```
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 `--check` prints a JSON report in both output modes, with no patch or stored source text.
-It compares every affected entry's complete UTF-8 (the text encoding used to count source bytes) content or link target, existence, kind and Git mode with the starting snapshots.
+It compares every affected entry's complete UTF-8 content or link target, existence, kind and Git mode with the starting snapshots.
 The exit code is zero when all files match that basis, and one when any file differs.
 Each sorted file row reports content and Git mode matches, expected/actual existence and kinds, and recorded/observed Unix permission modes.
 `matches_recorded_snapshot` also requires all recorded permission bits to match.
@@ -86,7 +88,7 @@ Use `git apply --check` for Git application rules, or history apply for transact
 The full-permission comparison reuses the anchored history snapshot predicate.
 Patch-basis equality and Git mode projection now use separate anchored helpers with Lean models and shared execution cases.
 See [patch verification evidence](lean-specs.md#existing-kernels) for the model laws and compiler-trust assumptions.
-Filesystem observation and report aggregation remain outside the model; general Rust correspondence (the stated connection between two descriptions) remains unproved.
+Filesystem observation and report aggregation remain outside the model; agreement with the complete Rust implementation remains unproved.
 
 ## Ask Git to check application
 

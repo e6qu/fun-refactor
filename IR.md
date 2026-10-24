@@ -29,16 +29,27 @@ one kind can be requested without reading this file or the Rust source. The adja
 canonical identity. The Python package under `sdk/python` supplies matching `Type`, `Stmt`, `Expr`
 and `TemplatePart` constructors.
 
-## Why a middle at all
+## Why use a shared record
 
-Direct translation costs a reader and a writer per pair. Fifty-six pairs need
-fifty-six of each. A middle costs eight readers and eight writers, and every
-improvement to one reader reaches every target at once.
+Eight languages have 56 ordered source-to-target pairs. Separate translators would need
+56 pair-specific implementations. A shared record lets us use eight readers and eight writers.
+For example, fixing how the Python reader records an addition helps every target that can write that record.
 
 The shared record also keeps unsupported constructs visible. A writer reports when it cannot
 express a recorded construct in the target language. Read that report before accepting the output.
 
-## The shape
+## From a function to a record
+
+This illustration shows the structure, not the command's JSON output:
+
+```text
+Python: def add(a, b): return a + b
+Record: function add -> return -> addition(a, b)
+Writer: target-language function
+```
+
+The record describes an addition. It does not establish that integer overflow, string addition or other runtime behavior agrees across languages.
+Choose types and run checks for the behavior your translated helper needs.
 
 ```
 Module
@@ -60,7 +71,7 @@ only Java needs. Java has no top level below the type, so a public class takes i
 
 Nine kinds of top-level thing.
 
-| Item | What it holds | The interesting part |
+| Item | What it holds | Why it matters to the output |
 |---|---|---|
 | `Function` | Name, parameters, return, body | Carries `receiver`, `receiver_name`, `is_async`, `is_property`, `is_constructor` and `is_private` apart from the body |
 | `Record` | Fields and methods | Methods live with the type even where the source declared them apart, as Rust and Go do |

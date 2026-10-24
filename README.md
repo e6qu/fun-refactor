@@ -25,15 +25,18 @@ Download the archive and matching `.sha256` file from
 | `fr-<tag>-x86_64-apple-darwin.tar.gz` | macOS Intel |
 | `fr-<tag>-aarch64-apple-darwin.tar.gz` | macOS Apple silicon |
 | `fun-refactor-<tag>-wasm.tar.gz` | Browser or Node |
-| `fun_refactor_ir-<version>-py3-none-any.whl` | Python agent SDK |
+| `fun_refactor_ir-<version>-py3-none-any.whl` | Python client library (SDK) |
 
-Verify, unpack and install. Linux users can use `sha256sum -c` in place of `shasum`.
+Choose one archive and its checksum file. The example below uses Apple silicon.
+Replace `RELEASE_VERSION` with the release number, such as `0.83.0`, and choose the target from the table.
+Run in the folder containing those two downloaded files. Linux users can use `sha256sum -c` in place of `shasum`.
 
 ```sh
-shasum -a 256 -c fr-*.tar.gz.sha256
-tar -xzf fr-*.tar.gz
+FR_ARCHIVE='fr-vRELEASE_VERSION-aarch64-apple-darwin.tar.gz'
+shasum -a 256 -c "$FR_ARCHIVE.sha256"
+tar -xzf "$FR_ARCHIVE"
 mkdir -p "$HOME/.local/bin"
-install "$(find . -path '*/fr' -type f | head -n 1)" "$HOME/.local/bin/fr"
+install "${FR_ARCHIVE%.tar.gz}/fr" "$HOME/.local/bin/fr"
 fr --version
 ```
 

@@ -55,4 +55,4 @@ for a checked submitted theorem. Implementation expectations refuse without sepa
 Inspect `claims`, proof receipt, package validation and remaining obligations; a model theorem does
 not establish general implementation correspondence.
 
-Legacy `IntentAction(change)` supports one direct target. Read-only packets cannot execute.
+Read-only packets cannot execute.

@@ -42,7 +42,9 @@ The basis binds the repository, index location, tool version, complete index byt
 Even a stat-cache or index-format change invalidates it. Working-file edits alone do not.
 Checks cannot detect states changed and fully restored between observations.
 
-Messages require nonempty UTF-8 (the text encoding used to count source bytes) text without NUL, at most 16 KiB before normalization.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+Messages require nonempty UTF-8 text without NUL, at most 16 KiB before normalization.
 A missing final newline is added. Other whitespace and message contents remain unchanged; there is no editor, template or cleanup pass.
 The preview displays the normalized message and identities.
 Git timestamps are chosen at write time and are outside the basis; a preview therefore has no predetermined commit object ID.
@@ -109,4 +111,4 @@ The [Git Lean model](../kernels/FrKernels/Git.lean) anchors the branch/parent ac
 It proves rejection of branch switches and parent drift, with shared Rust/Lean cases covering equal and different branches, unborn states and existing parents.
 Abstract publication laws preserve the index and unrelated refs under the accepted basis.
 These laws assume correct captured identities and Git's prepared-reference locking behavior.
-Object interpretation, subprocess I/O, lock execution, publication reconciliation, crash durability and complete Rust correspondence (the stated connection between two descriptions) remain regression-tested rather than fully proved.
+Tests check object reading, Git subprocess traffic, locks, publication results and interrupted writes. The proofs do not cover the complete Rust commit operation.

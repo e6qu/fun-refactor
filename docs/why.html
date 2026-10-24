@@ -36,11 +36,11 @@
 <section>
   <div class="shell">
     <p class="eyebrow">Design</p>
-    <h1 class="prose">Every answer carries<br>how it was reached.</h1>
+    <h1 class="prose">Inspect the code behind a change.</h1>
     <p class="lede prose">
-      A refactoring tool that resolves a reference wrongly edits the wrong code, and the
-      result usually compiles. This one attaches the resolution rule to every answer and
-      rewrites only the two strongest tiers.
+      Renaming the wrong function can leave code that compiles but behaves differently.
+      For example, two objects can have methods named <code>send</code>.
+      Inspect which declaration each use refers to, review the proposed diff and run behavior checks.
     </p>
   </div>
 </section>
@@ -49,16 +49,16 @@
   <div class="shell">
     <div class="grid two">
       <div class="card">
-        <h3>The alternatives</h3>
+        <h3>Choose tools for the question</h3>
         <p>
           <strong>Find-and-replace</strong> covers every language and parses none. It
           renames the string in a comment, a substring inside another identifier, and
           the same-named field on an unrelated type.
         </p>
         <p>
-          <strong>A language server</strong> covers one language and stops at its edge:
-          not Helm charts, Terraform modules or stylesheets, and not a file that does
-          not currently compile.
+          <strong>A language server</strong> can supply compiler and project knowledge for its supported languages.
+          Its support for configuration files and unfinished code depends on the server.
+          Keep those tools available when their checks answer your question.
         </p>
       </div>
       <div class="card">
@@ -81,7 +81,7 @@
 
 <section>
   <div class="shell prose wide">
-    <h2>Defects found by running it on real repositories</h2>
+    <h2>Historical defects found on real repositories</h2>
     <p>
       Each of these lived in this tool, produced output that parsed, and turned up
       when somebody ran it over an existing codebase instead of a fixture.
@@ -134,11 +134,11 @@
       point the tool says <span class="tier-weak">field-based</span>
       and leaves the line alone.
     </p>
-    <p>What it has that they do not:</p>
+    <p>Use fr for these supported tasks, then check the reported limits:</p>
     <ul>
-      <li>One index over the whole repository, whatever the file is written in.</li>
-      <li>Configuration as a first-class language: a Helm values key knows which templates read it, and a rename moves them.</li>
-      <li>Answers that survive a file that does not compile, because it never needed the compiler.</li>
+      <li>Inspect recognized declarations across supported source formats; omitted files remain explicit.</li>
+      <li>Find a Helm values key and the supported template uses that a rename would change.</li>
+      <li>Inspect readable syntax even when a project does not currently compile.</li>
       <li>An explicit account of what it did not do, every time.</li>
     </ul>
 

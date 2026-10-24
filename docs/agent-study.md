@@ -65,7 +65,7 @@ single-agent mode; those marked `delegated` also have a delegated mode. The seed
 pairs and arm order while keeping each pair adjacent for a serial runner. Planning never launches
 an agent or incurs provider charges. Keep the frozen plan outside the attempts directory.
 
-The [product review](product-review.md#pilot-before-expanding-or-deleting-subsystems) calls for
+The [repeated-task study](product-review.md#repeated-task-study) calls for
 four tasks, two models, two repetitions and two delegated tasks: 48 attempts. The generic planner
 does not verify task independence or enforce that particular research design.
 Review repository selection, held-out status, grader quality and task coverage before the run.
@@ -82,8 +82,10 @@ Write one `attempts/<cell-id>.json` file per attempted or blocked cell. Store su
 The auditor checks each referenced file's digest, confines it to that directory and limits it to
 16 MiB. This version accepts one bounded trace artifact per attempt.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Every record includes `schema: fr-agent-study-attempt-1`, its `cell` ID, `plan_sha256` and `status`.
-The plan digest uses UTF-8 (the text encoding used to count source bytes) JSON with sorted keys, compact separators and ASCII escaping;
+The plan digest uses UTF-8 JSON with sorted keys, compact separators and ASCII escaping;
 `agent_eval.study.digest` is the shared implementation. Duplicate JSON keys and nonfinite numbers refuse.
 
 A `blocked` record needs a nonempty `reason`. It means execution never started and cannot contain

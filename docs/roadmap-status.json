@@ -12,84 +12,84 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40104552139",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40119836572",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40104552139/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40119836572/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
-      "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
+      "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
-      "scope": "Finite package fixtures, clean agreement, repair and feature replay."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
+      "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-repositories",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-repositories/result.json",
-      "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-repositories/result.json",
+      "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
-      "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
+      "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
-      "scope": "224 model cases and native process interruption boundaries; not power loss."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
+      "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-structural-change",
       "changed_sources": [],
       "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons",
       "changed_sources": [],
       "freshness": "historical",
       "id": "model-relations",
       "integrity": "checked",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons/manifest.json",
-      "scope": "Three Boolean model relations; no source implementation connection between the descriptions."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons/manifest.json",
+      "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations."
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -99,36 +99,36 @@
       "integrity": "checked",
       "kind": "live-agent",
       "path": "tests/agent-eval/unknown-target/cohort.json",
-      "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
+      "scope": "Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
-      "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
+      "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source."
     },
     {
@@ -172,22 +172,24 @@
       "integrity": "checked",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
-      "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
+      "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck",
       "changed_sources": [],
       "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [
         ".github/workflows/refinement-evidence.yml",
+        "grammars/README.md",
+        "queries/README.md",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/context.py",
         "sdk/python/src/fr_ir/flow.py",
@@ -233,6 +235,8 @@
       "audit": "python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541",
       "changed_sources": [
         ".github/workflows/saved-work-cost.yml",
+        "grammars/README.md",
+        "queries/README.md",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/context.py",
         "sdk/python/src/fr_ir/flow.py",
@@ -258,53 +262,53 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40104541744",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40119822598",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40104541744/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40119822598/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-checked-translation",
       "changed_sources": [],
       "freshness": "current",
       "id": "checked-translation",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof."
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-effects",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-effects",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-effects/result.json",
-      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; implicit errors, bound error objects and shared objects remain unchecked."
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-effects/result.json",
+      "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks."
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-python-text-flow",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-text-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-handlers-native-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-readable-docs-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -416,7 +420,7 @@
       ],
       "id": "A.live-repeat",
       "kind": "live-agent",
-      "next": "Select independent tasks and graders, complete worker resource and context measurements around the implemented provider/child loop, then run the pilot on remote workers. Local OpenCode rehearsals remain separate protocol evidence.",
+      "next": "R4: agree exact models, settings, prices and spending caps. Finish the prepared eighteen-attempt comparison, then the separate 48-attempt study. Count setup, retries, failed attempts, every child agent and complete resource use; preserve unknown billing.",
       "requires": [],
       "state": "open",
       "title": "Measure whether agents actually work better with fr"
@@ -494,7 +498,7 @@
       "blockers": [],
       "id": "B.contract",
       "kind": "semantic-contract",
-      "next": "Keep every declared rule, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
+      "next": "R1 adds base-ten integer conversion errors and caught error objects to the bounds form. R2 adds shared-list writes through helpers. Compare each reusable rule with independent Python results and renamed or moved examples. Preserve explicit incomplete answers, limits and fresh recorded inputs.",
       "requires": [
         {
           "assertions": [
@@ -542,7 +546,7 @@
       "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "next": "Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.",
+      "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
       "requires": [
         {
           "assertions": [
@@ -837,7 +841,7 @@
       ],
       "id": "D.existing-proof",
       "kind": "source-proof",
-      "next": "Implement and test the source-to-model connection. A theorem about a separate model alone cannot close this item.",
+      "next": "R3 connects the existing page_count implementation to its signed-64-bit contract and Lean proof. Deliberately wrong comparisons, results and dependencies must expire saved claims and reject fresh proof attempts. A separate model theorem cannot close this item.",
       "requires": [],
       "state": "open",
       "title": "Connect a proof to the existing code it describes"
@@ -849,7 +853,7 @@
       ],
       "id": "D.new-proof",
       "kind": "source-proof",
-      "next": "Choose a useful function and exact property before writing it; reuse the general proof and delivery interfaces.",
+      "next": "R3 specifies and implements fits_window(offset, count, total) over unsigned 64-bit inputs. An empty range at the end is valid; a range past the end is invalid. Connect the actual subtraction-based implementation to its proof, test altered claims and replay delivery independently.",
       "requires": [],
       "state": "open",
       "title": "Write new code together with a checked specification"

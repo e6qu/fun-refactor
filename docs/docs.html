@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Documentation — fun-refactor</title>
-<meta name="description" content="Commands, target syntax, confidence tiers, the cache, and how the edit engine keeps a refactoring honest.">
+<meta name="description" content="Choose commands, identify source locations, review edits, run checks and recover saved changes.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -37,12 +37,13 @@
     <p class="eyebrow">Reference</p>
     <h1 class="prose">Documentation</h1>
     <p class="lede prose">
-      Enough to use it and to know when not to trust it. The
-      <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">tutorial</a>
-      walks a whole refactor on a real codebase. Read this page for the reference
-      underneath it, or
-      <a href="https://github.com/e6qu/fun-refactor/blob/main/CLI.md">CLI.md</a> for
-      every command at once.
+      Start with the
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">complete first-change tutorial</a>:
+      create a small program, inspect a rename, run its test and undo the change.
+      The <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/README.md">guide index</a>
+      covers investigations, Python traces, agent setup and development.
+      Use <a href="https://github.com/e6qu/fun-refactor/blob/main/CLI.md">CLI.md</a>
+      for current command options. The sections below introduce common operations.
     </p>
   </div>
 </section>
@@ -53,12 +54,13 @@
     <div class="term" style="max-width:44rem">
       <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
       <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor</span>
-<span class="cmd">cargo install --path fun-refactor</span></pre></div>
+<span class="cmd">cargo install --locked --path fun-refactor</span></pre></div>
     </div>
     <p class="note prose" style="margin-top:1rem">
       That installs the binary, which is called <code>fr</code>.
-      You need the Rust 2021 edition and a C compiler. Every tree-sitter grammar is C,
-      so a cold build takes a few minutes.
+      Source installation needs stable Rust and a C compiler for the parsers.
+      For a prebuilt binary and checksum verification, use the
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/README.md#install">installation guide</a>.
     </p>
   </div>
 </section>
@@ -76,7 +78,7 @@
         <tr><th>Form</th><th>When</th><th>Example</th></tr>
         <tr>
           <td><code>path:line:col</code></td>
-          <td>Always works. Count from 1, and land on the identifier itself, at the definition or at any use of it.</td>
+          <td>For a readable supported file, count from 1 and select the name at its definition or use. Missing or unresolved names can refuse.</td>
           <td><code>fr refs pkg/action/action.go:725:6</code></td>
         </tr>
         <tr>
@@ -98,10 +100,9 @@
     </div>
 
     <p style="margin-top:1.25rem">
-      The tool reads a relative path against the <strong>workspace root</strong>, which
-      is the current directory unless <code>-C</code> says otherwise. Your shell's
-      working directory never enters into it. A path that does not exist gives an error
-      naming the place the tool looked.
+      The <strong>workspace root</strong> is the project folder being inspected.
+      Use <code>-C PATH</code> to choose it explicitly. Paths in commands are relative to that root.
+      For example, <code>fr -C /work/shop refs app.py:2:5</code> selects a name in <code>/work/shop/app.py</code>.
     </p>
     <p>
       If you are not sure what to write, open the

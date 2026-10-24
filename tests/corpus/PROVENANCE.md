@@ -86,9 +86,21 @@ Each one was a defect the first time these files were read.
 
 ## Refreshing
 
-Re-copy from the pinned commit and update both the commit and the checksums above:
+Use a dedicated runner to refresh a source snapshot. Choose an upstream URL and exact commit from the project's metadata above.
+Replace `<UPSTREAM_URL>` and `<COMMIT>`, including their brackets. Start with an absent `/tmp/fr-corpus-source` directory:
 
 ```sh
-git clone --depth 1 <url> /tmp/src && git -C /tmp/src rev-parse HEAD
-shasum -a 256 tests/corpus/**/*
+git init /tmp/fr-corpus-source
+git -C /tmp/fr-corpus-source remote add origin '<UPSTREAM_URL>'
+git -C /tmp/fr-corpus-source fetch --depth 1 origin '<COMMIT>'
+git -C /tmp/fr-corpus-source checkout --detach FETCH_HEAD
+git -C /tmp/fr-corpus-source rev-parse HEAD
+```
+
+Confirm that the printed commit matches your selection before copying files from the recorded upstream paths.
+Preserve their contents and license notices. Update the source revision and each copied file's checksum together.
+For one file, replace `<COPIED_FILE>` with its path relative to this repository's root, then run from that root:
+
+```sh
+shasum -a 256 '<COPIED_FILE>'
 ```

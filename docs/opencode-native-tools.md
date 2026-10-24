@@ -15,7 +15,7 @@ These evaluation tools let configured OpenCode sessions use ordinary source tool
 tools against frozen inputs. They retain failures, exact submissions and incomplete accounting.
 The product remains the `fr` CLI; these familiar tasks are not an independent efficiency corpus.
 
-Read the [plan](../PLAN.md#next-three-prs) for current admission and work priorities.
+Read the [plan](../PLAN.md#next-work) for current tasks and the conditions for running live comparisons.
 Historical protocols below remain available for their frozen cohorts; an old command example
 does not authorize resuming a stopped collection.
 
@@ -481,8 +481,10 @@ benefit from `fr`. No additional model call produced these reviewed results.
 tool-call, time and memory limits. Earlier schemas and retained reports keep their original rules.
 The flag works with the two ordinary/fr arms or with `--guidance` and all three arms.
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 A first `read_source` call can start at a known byte offset with an empty `sha256` because
-the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8 (the text encoding used to count source bytes)
+the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8
 boundaries, stale hashes, missing files and path escapes refuse. This rule applies to the
 native evaluation interface; the general study reader keeps its existing contract.
 

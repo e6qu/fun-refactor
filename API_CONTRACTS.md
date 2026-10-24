@@ -49,15 +49,19 @@ The converter handles these supported forms and reports unsupported constructs.
 
 ## Working with a contract
 
+These independent examples use existing project files. Choose the command for your task; they are not a complete migration script.
+OpenAPI is a structured description of an HTTP interface. A generated skeleton supplies declarations that you still need to implement and test.
+
 ```sh
 fr openapi --yaml
 fr translate app/api/pets/route.ts fastapi
 fr translate app.py nextjs
 fr translate openapi.yaml fastapi
-fr migrate feature <ID> --to fastapi --out migrated/pets.py
+fr migrate feature '<ID>' --to fastapi --out migrated/pets.py
 ```
 
 These commands preview output. Use `--write` only when the planned result is suitable.
+For the last command, replace `<ID>`, including its brackets, with a feature ID returned by `fr project features`.
 Consult `fr translate --help` for output paths and overwrite options.
 [CLI.md](CLI.md#write-guarantees) describes commit recovery and its limits.
 
@@ -77,7 +81,7 @@ It covers nested resources, query parameters, schema validation and catch-all pa
 `tests/scaffold_petstore.yaml` supplies a contract for scaffold tests.
 The fixture and translation tests exercise supported routes without claiming a complete application migration.
 
-Useful gates include `tests/translate_nextjs_routes.rs`, `tests/nextjs.rs`,
+Relevant tests include `tests/translate_nextjs_routes.rs`, `tests/nextjs.rs`,
 `tests/server_functions.rs`, `tests/scaffold_from_openapi.rs` and `tests/routes.rs`.
 The broader translation suite compiles and executes selected results with real toolchains.
 
