@@ -175,17 +175,13 @@
       "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck",
-      "changed_sources": [
-        ".github/workflows/refinement-evidence.yml",
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -266,72 +262,53 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40104541744",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40119822598",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40104541744/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40119822598/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-checked-translation",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-checked-translation",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "checked-translation",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof."
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-python-effects",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-effects",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-effects",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks."
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-handlers-release-python-text-flow",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-text-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-handlers-native-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [
-        ".github/workflows/refinement-evidence.yml",
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-readable-docs-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -350,43 +327,35 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 4,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [
-        "B.repository-flow",
-        "B.effects"
-      ],
+      "remaining": [],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 4,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [
-        "C.repository-mutations",
-        "C.performance"
-      ],
-      "state": "open",
+      "remaining": [],
+      "state": "complete",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 4,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
-        "D.structural",
-        "D.translation",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -394,7 +363,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 0,
+  "milestones_complete": 1,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -574,9 +543,7 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -620,17 +587,15 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
-      "blockers": [
-        "python-effects: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "R1 extends the Boltons-backed bounds form to catch ValueError from int(text, 10), inspect str(error) and let unexpected TypeError escape. R2 distinguishes writes through a shared validation-message list from writes to a separate list. Keep original-import repair, source locations, undo and patch replay passing.",
+      "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
           "assertions": [
@@ -658,7 +623,7 @@
           "evidence": "python-effects"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Handle exceptions and shared mutable values honestly"
     },
     {
@@ -715,9 +680,7 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [
-        "current-project-changes: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -736,14 +699,12 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Keep answers correct through common project changes"
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [
-        "current-saved-work-cost: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -786,7 +747,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
@@ -815,9 +776,7 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [
-        "current-project-changes: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -836,14 +795,12 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Change a declaration and update its callers"
     },
     {
       "acceptance": "Translate one pure function between Rust and Python with integer arithmetic and branches. Specify input ranges, overflow, errors and evaluation order. Independently compare every input in a bounded range and the declared boundary cases.",
-      "blockers": [
-        "checked-translation: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.translation",
       "kind": "deterministic",
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
@@ -874,7 +831,7 @@
           "evidence": "checked-translation"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Translate a function without changing its promised behavior"
     },
     {
