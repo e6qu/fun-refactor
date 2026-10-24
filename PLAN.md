@@ -107,8 +107,9 @@ A model describes that behavior in a form the proof checker can read. Lean is th
 Use these two tasks:
 
 - Existing code: [the page-count helper](tests/agent-eval/checked-translation/pages.rs), with its [current contract](tests/agent-eval/checked-translation/contract.json).
+  This maintained translation example supplies the exact Rust implementation the proof must describe.
   Eleven items at five per page need three pages. Invalid sizes return `-1`; large valid inputs must avoid integer overflow.
-- New code: an edit-range helper `fits_window(offset, count, total)` with explicit unsigned 64-bit inputs.
+- New Rust code: an edit-range helper `fits_window(offset, count, total)` with explicit unsigned 64-bit inputs.
   These are whole numbers from zero through 18,446,744,073,709,551,615.
   An empty range at the end is valid. A range past the end is invalid.
   Use `offset <= total && count <= total - offset` so the check avoids addition overflow.

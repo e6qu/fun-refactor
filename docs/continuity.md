@@ -49,7 +49,7 @@ A file fingerprint is a value computed from its contents.
 It detects an edit; it does not establish that an answer is correct.
 Current report selection names each file explicitly. A missing selection must fail.
 
-The [Python example receipt](../tests/agent-eval/results/2026-10-24-handlers-native-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-24-readable-docs-python-contract/manifest.json)
 records 495 programs and 990 original or renamed cases.
 It includes 370 incomplete cases, 18 refusals and 134 documented differences between the supported model and Python execution.
 These counts describe the checked examples, not complete Python support.
