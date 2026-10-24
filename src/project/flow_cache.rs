@@ -206,8 +206,11 @@ impl Project<'_> {
         );
         ensure!(
             super::dataflow::exceptions::valid(&report["exceptional_returns"])
-                && report["function_summaries"]["functions"].as_object().is_some_and(|functions|
-                    functions.values().all(|function| super::dataflow::exceptions::valid(&function["exceptional_returns"]))),
+                && report["function_summaries"]["functions"]
+                    .as_object()
+                    .is_some_and(|functions| functions.values().all(|function| {
+                        super::dataflow::exceptions::valid(&function["exceptional_returns"])
+                    })),
             "retained flow has an unsupported exception class or payload."
         );
         ensure!(

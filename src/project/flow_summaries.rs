@@ -155,10 +155,14 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let flow = self.extend(flow, call, "summary-call");
             self.record_sink(&effect.sink, effect.site.clone(), flow);
         }
-        let exceptions = summary.exceptional_returns.iter().map(|(kind, flow)| {
-            let flow = substitute(flow, &summary.parameters, &arguments);
-            (kind.clone(), self.extend(flow, call, "summary-raise"))
-        }).collect();
+        let exceptions = summary
+            .exceptional_returns
+            .iter()
+            .map(|(kind, flow)| {
+                let flow = substitute(flow, &summary.parameters, &arguments);
+                (kind.clone(), self.extend(flow, call, "summary-raise"))
+            })
+            .collect();
         exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise |= summary.may_raise;
         self.normal = summary.normal_return;
@@ -246,8 +250,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let summary = self.solver.table[entry].clone();
         self.normal_return = summary.normal_return;
         self.may_raise = summary.may_raise;
-        self.exceptional_returns = summary.exceptional_returns.iter().map(|(kind, flow)|
-            (kind.clone(), substitute(flow, &summary.parameters, &arguments))).collect();
+        self.exceptional_returns = summary
+            .exceptional_returns
+            .iter()
+            .map(|(kind, flow)| {
+                (
+                    kind.clone(),
+                    substitute(flow, &summary.parameters, &arguments),
+                )
+            })
+            .collect();
         for effect in summary.sinks.values() {
             for trace in substitute(&effect.flow, &summary.parameters, &arguments).values() {
                 let key = format!(

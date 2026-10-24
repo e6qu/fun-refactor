@@ -575,7 +575,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if let Some((minimum, maximum)) = standard_library::arity(&standard) {
                 let exception = matches!(
                     standard.as_str(),
-                    "builtins.ValueError" | "builtins.TypeError" | "builtins.Exception" | "builtins.BaseException"
+                    "builtins.ValueError"
+                        | "builtins.TypeError"
+                        | "builtins.Exception"
+                        | "builtins.BaseException"
                 );
                 if argument_names.iter().any(Option::is_some)
                     || !(minimum..=maximum).contains(&arguments.len())
@@ -740,7 +743,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.local_bindings.push(locals);
         for block in &graph.blocks {
             if block.operation == Operation::Except {
-                self.match_exceptions(block.syntax.expect("handler clause"), &initial, Raised::new());
+                self.match_exceptions(
+                    block.syntax.expect("handler clause"),
+                    &initial,
+                    Raised::new(),
+                );
             }
         }
         while let Some(id) = queue.pop_front() {
@@ -856,7 +863,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if block.operation == Operation::Except {
                 let slot = block.completion.expect("handler exception slot").0;
                 let raised = state.pending_raises.get(&slot).cloned().unwrap_or_default();
-                let (matched, unmatched) = self.match_exceptions(block.syntax.expect("handler clause"), &state, raised);
+                let (matched, unmatched) =
+                    self.match_exceptions(block.syntax.expect("handler clause"), &state, raised);
                 for ((target, _), selected) in block.successors.iter().zip([matched, unmatched]) {
                     if !selected.is_empty() {
                         let mut outgoing = state.clone();
