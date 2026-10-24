@@ -1,5 +1,9 @@
 # Turn a small code question into a proof task
 
+Start with the [complete first-proof lesson](first-lean-proof.md) if Lean, goals or tactics are new to you.
+This reference explains the current commands and admitted source forms.
+The [proof-writing milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) names the next concrete tasks for the selected agents.
+
 Suppose you want to check an access rule: permission requires either staff access or ownership. `fr` can prepare a Lean proof task for supported functions.
 The agent still writes the property and proof. An accepted proof establishes the stated property of the translated model; check its connection to the source before relying on it.
 

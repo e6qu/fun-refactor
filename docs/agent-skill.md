@@ -1,12 +1,17 @@
 # Give an agent a short guide to fr
 
-Install this skill when you want an agent to know how to find code, preview a change, run checks and undo a failed attempt.
+Install this skill for refactoring, targeted code changes and Lean proof writing.
+Its entry page selects the relevant reference so the model can read what its task needs.
 For example, an agent asked to fix checkout should load the relevant guide when it needs it, rather than read every command first.
 
 A skill is an instruction bundle an agent can read. It contains a short entry page and task-specific references.
 Installing the bundle makes instructions available; it does not run commands or grant write permission by itself.
 For a bug fix, the agent loads the editing reference when it reaches the edit, then the check reference before testing.
 Skill text counts toward what the agent reads; comparisons must count that text too.
+
+The [current target profiles](../PLAN.md#target-agents) are Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
+Their live comparisons remain planned. The existing native controls cover their recorded client releases, including older OpenCode.
+OpenCode2's runner and effective-setting checks belong to M1.
 
 ## Commands, results and limits
 

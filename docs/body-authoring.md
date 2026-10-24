@@ -3,6 +3,11 @@
 Suppose `calculate` uses the wrong rounding rule, but its name and arguments should stay the same. Preview a replacement for its body.
 `fr` preserves the surrounding code and lets you review the diff. Run behavior tests to check the rounding fix; a valid edit alone cannot establish it.
 
+This is the code-change route for an agent that writes a new implementation.
+Prefer a narrower [disclosed edit](disclosed-editing.md) when changing one supported statement or expression.
+A body replacement preserves bytes outside that body; it can deliberately replace comments and layout inside it.
+Review that complete range instead of describing every body replacement as a minimal text edit.
+
 A function body is the code executed when the function is called; its interface includes its name and arguments.
 A handle is the full reference returned by a query selecting that function.
 A fragment is a file containing the replacement body. A batch describes several edits to preview together.

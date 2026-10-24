@@ -3,6 +3,10 @@
 A web page may call a Python endpoint that reads a YAML setting. When you change that setting, you need to find each affected use.
 `fr` can follow some explicit links between these files. A matching name alone does not establish which code runs.
 
+Use these relationships to inspect what a refactoring or behavior change may affect.
+Parsing, finding uses, editing and preparing a Lean model have different language limits.
+Check the particular operation's support; a readable source format does not establish that its programs can be proved.
+
 A declaration defines a name; a reference uses it. In `send(amount)`, `send` refers to a callable declaration.
 Resolving a reference means determining which declaration that use names.
 Across languages, `fr` follows supported written relationships, such as a literal URL matching a declared route.

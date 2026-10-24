@@ -90,6 +90,6 @@ arbitrary value flow or proofs connected to the actual source. Rust compiler res
 analysis. A complete diagnostic page can describe a failed compilation; an incomplete analysis
 cannot prove that a value never reaches a use.
 
-The next analysis step is [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior):
-state reusable Python rules, compare them with independent runtime examples, and retain explicit
-unsupported constructs. Repository-scale and requirements to show less total agent work remain separate.
+[B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior) retains the earlier requirement for reusable Python rules and independent runtime examples.
+The [active roadmap](../PLAN.md) now starts from concrete refactoring, code-change and proof tasks.
+Extend compiler comparisons or analysis when one of those tasks needs the missing rule.

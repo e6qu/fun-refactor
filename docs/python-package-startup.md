@@ -135,4 +135,5 @@ This leaves time to upload the failure instead of spending the job deadline on r
 Fix the cause before collecting again; keep unsuccessful attempts alongside corrected ones.
 
 The [measurement guide](benchmarks.md) explains how these costs differ from a complete agent-task comparison.
-The [shared-list and full-package task](../PLAN.md#r2-follow-shared-lists-through-original-imports) names the remaining original-import checks.
+The [earlier checklist](earlier-roadmap-checklist.md) retains the remaining original-import conditions.
+Broader startup analysis is [outside the active queue](../PLAN.md#work-outside-the-active-queue) unless a named code-change or proof task needs it.

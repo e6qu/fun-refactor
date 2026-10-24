@@ -1,17 +1,27 @@
 # fun-refactor
 
-`fr` is a command-line tool that helps an AI coding agent find code, review a change and check the result.
-It can read selected functions and callers, preview edits, run declared checks and undo saved changes.
+`fr` helps coding agents refactor code, make targeted changes and write Lean proofs for supported programs.
+It finds functions and known callers, previews edits, runs declared checks and keeps saved changes for undo.
 
 Suppose you ask an agent to fix a rounding error in checkout. It can use `fr` to find the calculation,
 inspect its callers, prepare a patch and run the test that catches the error. You can review the diff
 and reverse a saved change if it is wrong.
 
-The larger goal is to finish unfamiliar tasks with less reading, fewer retries and lower cost.
-We have useful component tests, but have not demonstrated that broader benefit. Python value tracing
-works for supported examples; imports and other behavior in real libraries still often leave an unknown answer.
-Read [where we are going](PLAN.md) or the [current results](docs/roadmap-status.md) before relying on a stronger claim.
+The current roadmap targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
+The aim is more correct results within explicit time and spending limits.
+The new agent comparisons remain to be run; the [plan](PLAN.md) lists their exact tasks and settings to settle.
+The [retained results](docs/roadmap-status.md) keep earlier checks and unfinished claims visible.
 The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
+
+| Your task | Start here |
+| --- | --- |
+| Refactor while preserving behavior | [First checked rename](TUTORIAL.md) and [coordinated changes](docs/structural-changes.md) |
+| Fix a bug or add behavior | [Targeted implementation edits](docs/body-authoring.md) and [behavior checks](docs/checked-outcomes.md) |
+| Write or repair a Lean proof | [Proof workflow](docs/agent-formalization.md) and [what the result establishes](docs/lean-specs.md#what-each-check-establishes) |
+
+Prefer preserving comments, formatting and untouched source. Review and check any intentionally wider rewrite.
+A refactoring preserves behavior; a repair or feature changes it deliberately.
+Lean checks a stated property of its definitions. A proof of a generated model needs a separate checked connection before it proves the original program.
 
 ## Install
 

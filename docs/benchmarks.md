@@ -6,6 +6,11 @@ A smaller report is one possible saving. Starting the tool, reading instructions
 
 This page explains recorded measurements. It does not start a new study.
 
+The [focused comparison](product-review.md#compare-the-selected-agents) tests refactoring, code changes and Lean proof writing with the selected smaller agents.
+Its baseline is the same application and exact model using ordinary tools.
+Fast mode, reasoning effort and any auxiliary model work belong in the recorded settings and costs.
+The older records below remain observations about their original clients, models and tasks.
+
 The [complete CLI and Python comparison](project-session-cost.md) measures the same three questions through five approaches.
 It compares direct commands, Python clients restarted or kept running, and saved answers with validation.
 Its tables state the CLI baseline and the added work in each approach.

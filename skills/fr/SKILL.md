@@ -1,6 +1,6 @@
 ---
 name: fr
-description: Use fr to find code and callers, rename functions, preview and check edits, or undo a reviewed change.
+description: Use fr to refactor code, preview and check targeted changes, or prepare and check Lean proofs for supported code.
 ---
 # Work with fr
 
@@ -12,5 +12,6 @@ fr project find greet --signature
 
 Read omissions. Copy handles unchanged; they identify code in one revision.
 Choose [Rename](references/change.md) or [Author](references/author.md), then [check and deliver](references/workflow.md).
+For a stated property, use the [Lean proof loop](references/lean.md).
 Preview before `--write`.
 [Explore](references/explore.md) unfamiliar code.

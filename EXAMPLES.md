@@ -4,6 +4,9 @@ Use these examples to choose a command for a concrete task: find a helper’s ca
 rename, or discover why an operation refuses. The outputs below come from the stated historical runs.
 Check `fr audit` and the [current guide](docs/README.md) for today’s support and instructions.
 
+For a complete runnable lesson, choose [refactoring](TUTORIAL.md), [a targeted implementation change](docs/body-authoring.md), or [Lean proof writing](docs/first-lean-proof.md).
+The historical outputs below establish their stated operation, rather than a new result for the roadmap's selected agents.
+
 A pinned commit identifies the source revision used for a recorded example.
 A symbol is a named declaration, such as a function. A caller invokes that function; a reference can be another kind of use.
 Examples with `path:line:column` select a written occurrence, counting from one.

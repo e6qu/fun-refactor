@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute finite roadmap gates without equating implementation with outcomes.
+"""Audit retained earlier qualifications without closing current roadmap tasks.
 
 This audits evidence identity/freshness, not a new execution of every oracle.
 The named evaluator commands remain the behavioral audit authority in CI.
@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG = Path('tests/agent-eval/roadmap.json')
 REPORT = Path('docs/roadmap-status.json')
 PAGE = Path('docs/roadmap-status.md')
+CHECKLIST = Path('docs/earlier-roadmap-checklist.md')
 KINDS = {
     'fr-checked-translation': 'deterministic',
     'fr-python-effects': 'deterministic',
@@ -168,15 +169,15 @@ def compute(root, catalog):
                 if type(actual) is not type(wanted) or actual != wanted:
                     blockers.append(f"{item['id']}: unmet {assertion['pointer']}")
         gates.append({**obligation, 'state': 'open' if blockers else 'demonstrated', 'blockers': blockers})
-    plan = (root / 'PLAN.md').read_text()
+    plan = (root / CHECKLIST).read_text()
     engineering = {}
     for milestone in 'ABCD':
         match = re.search(rf'^### {milestone}\. .*?\n(.*?)(?=^### |^## |\Z)', plan, re.M | re.S)
-        require(match is not None, f'missing PLAN milestone {milestone}')
+        require(match is not None, f'missing retained checklist milestone {milestone}')
         checkboxes = re.findall(r'^- \[([ x])\]', match.group(1), re.M)
         expected = catalog['engineering'][milestone]
         require({'done': checkboxes.count('x'), 'total': len(checkboxes)} == expected,
-                f'PLAN engineering counts drifted for {milestone}; review the catalog')
+                f'Retained engineering counts drifted for {milestone}; review the catalog')
         engineering[milestone] = expected
     milestones = {}
     for milestone in 'ABCD':
@@ -212,43 +213,27 @@ def markdown(report):
     if project_done:
         resumed_work = 'Saved answers match fresh checks through seven changes on three projects'
         delivered_changes = 'Real Rust and Python renames, including behavior checks, undo and patch replay'
-        next_work = (
-            'The [project-change milestone](project-change-milestone.md) now has passing original records. '
-            'Saved answers stay current through the declared changes, and the Rust and Python renames include their required delivery checks. '
-            'Next, measure the cost of continuing a saved task against asking the same questions from scratch on the same changed files. '
-            'Count setup, input checking, analysis, memory, disk and text returned. '
-            'Measure broader agent savings and proofs through their separate requirements.')
         if cost_done:
-            resuming_remaining = 'Use the measured costs to choose an improvement; measure complete agent tasks separately'
-            next_work = (
-                'The project-change checks and [complete session cost comparison](project-session-cost.md) have matching current records. '
-                'The comparison repeats the same questions on three projects before and after one source edit. '
-                'It compares CLI calls, fresh and running Python clients, and saved answers. Startup, checking, edits, shutdown and cleanup enter session totals; setup remains separate. '
-                'The next code task is [R1](../PLAN.md#r1-recover-from-invalid-number-input): '
-                'extend the Boltons-backed application to recover from invalid numeric text and inspect the caught error. '
-                '[R2](../PLAN.md#r2-follow-shared-lists-through-original-imports) follows a shared message list through helpers and original package imports. '
-                '[R3](../PLAN.md#r3-prove-the-properties-of-the-code-we-ship) connects proofs to the actual page-count and edit-range functions. '
-                '[R4](../PLAN.md#r4-measure-agents-completing-whole-tasks) measures whole agent attempts after models, settings and spending limits are agreed. '
-                'These tasks preserve the existing acceptance requirements.')
+            resuming_remaining = 'Complete session costs are recorded; agent benefits need separate live results'
     else:
         resumed_work = 'Saved changes, undo, checks and recovery tests'
         delivered_changes = 'Reviewed edits, behavior checks and small supported proofs'
-        next_work = (
-            'Finish the [project-change checks](project-change-milestone.md) before measuring their costs. '
-            'Compare saved and fresh answers after renames, moves, deletions, competing imports, configuration changes, question settings changes and analyzer changes. '
-            'Complete a function change with its required callers, checks, undo and patch replay in both Rust and Python. '
-            'Choose three independent projects and keep one implementation unread until the checker and test procedure are fixed. '
-            'Both requirements need matching original records. Broader agent savings and proofs remain separate work.')
-    lines = ['# What fr can demonstrate, and what remains', '',
+    next_work = (
+        'The active roadmap focuses on smaller agents refactoring code, making targeted changes and writing Lean proofs. '
+        '[M1](../PLAN.md#m1-run-the-selected-agents-on-three-complete-tasks) prepares Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3, then records the named tasks. '
+        '[M2](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) checks specific Rust, Python and TypeScript changes, preserved source and complete delivery. '
+        '[M3](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) checks the agent proof-writing loop, Boolean language cases and numeric properties. '
+        'This report retains the earlier qualification conditions. Its counts do not close those new milestones.')
+    lines = ['# Retained results and unfinished earlier claims', '',
         '<!-- Generated by tools/roadmap-status.py --write; edit the catalog and renderer. -->', '',
-        '`fr` helps an agent find code, inspect a proposed change, run checks and keep work that '
-        'can be resumed or undone. The goal is to finish unfamiliar tasks correctly with less '
-        'reading, fewer retries and lower total cost.', '',
+        'The active [roadmap](../PLAN.md) focuses on refactoring, targeted code changes and Lean proof writing for smaller agents. '
+        'This page audits the earlier qualification checklist and its original acceptance conditions. '
+        'It preserves unfinished claims without treating them as current roadmap milestones.', '',
         'For example, a checkout repair should find the calculation and callers, explain the bug, '
         'produce a reviewed patch and pass the test that catches the rounding error. Finding the '
         'function is useful, but it does not establish that whole outcome.', '',
         f'**{done} of {total} specific test requirements have matching recorded results; '
-        f'{total - done} remain open. {report["milestones_complete"]} of 4 larger goals are complete.** '
+        f'{total - done} remain open. {report["milestones_complete"]} of 4 earlier goals are complete.** '
         'These counts do not measure product readiness or savings for an agent.', '',
         'A requirement is one specific behavior we promise to check. A recorded result describes '
         'a chosen program, inputs and tool revision. “Demonstrated” means that result meets its '
@@ -264,11 +249,12 @@ def markdown(report):
         'known repairs; they test editing and recovery. They do not measure an agent discovering '
         'the repair. The [measurement guide](benchmarks.md) explains baselines, included costs and '
         'unmeasured overhead. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
-        '## What happens next', '',
+        '## Active work follows the focused roadmap', '',
         next_work, '',
         'See the [plan](../PLAN.md#next-work) for the work sequence and '
         '[generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.', '',
-        '## Milestones', '',
+        '## Earlier milestones', '',
+        'The [earlier checklist](earlier-roadmap-checklist.md) retains these implementation items. '
         'The implementation column counts completed code changes. The test column counts specific '
         'requirements with matching saved results. A larger goal needs all of its required work, '
         'not just more code or more examples.', '',
@@ -277,9 +263,9 @@ def markdown(report):
         engineering = item['engineering']
         lines.append(f"| {name}. {names[name]} | {engineering['done']}/{engineering['total']} | "
                      f"{item['demonstrated']}/{item['total']} | {item['state']} |")
-    lines += ['', '## Finite acceptance obligations', '',
+    lines += ['', '## Original finite acceptance obligations', '',
         'These are the specific requirements, checked one by one. Each item gives a user example, '
-        'what must be established, its recorded results and the next action. IDs such as '
+        'what must be established, its recorded results and the remaining action under that earlier scope. IDs such as '
         '`B.contract` let tests refer to the same requirement; readers can follow the accompanying question.', '',
         'An oracle is an independent reference check, such as Python execution. A source binding '
         'records fingerprints of inputs behind a saved result. Changed inputs require renewed checks. '
@@ -324,7 +310,7 @@ def markdown(report):
         lines += [f"### {gate['id']}: {gate.get('title', gate['id'])}", '',
             f"User example: {examples[gate['id']]}", '',
             f"**State: {gate['state']}.** {gate['acceptance']}", '',
-            f"Recorded results or remaining work: {evidence_text.rstrip('.')}.", '', f"Next: {gate['next']}", '']
+            f"Recorded results or remaining work: {evidence_text.rstrip('.')}.", '', f"Earlier requirement still needs: {gate['next']}", '']
     lines += ['## Evidence ledger', '',
         'The entries below identify the stored test results. “Current” means their recorded source '
         'inputs still match; “stale” means at least one input changed; “historical” means they '
@@ -349,8 +335,9 @@ def markdown(report):
     lines += ['- ' + boundary for boundary in report['boundaries']]
     lines += ['', f"Evidence baseline: `{report['baseline']}`. Acceptance requirements: `{report['profile']}`.", '',
         'Run `python3 tools/roadmap-status.py --check` to detect report drift, `--write` to regenerate '
-        'both reports after reviewing changes, or `--require-complete` to require all milestone tests '
-        'and implementation items. On this workstation, use the local resource guard.', '']
+        'both reports after reviewing changes, or `--require-complete` to require all earlier qualification tests '
+        'and implementation items. Current roadmap completion is tracked separately in PLAN.md. '
+        'On this workstation, use the local resource guard.', '']
     return '\n'.join(lines)
 
 
@@ -389,7 +376,7 @@ def main():
         if args.check:
             require((ROOT / path).is_file() and (ROOT / path).read_text() == text, f'stale generated report: {path}')
     if args.require_complete:
-        require(report['milestones_complete'] == 4, 'roadmap has open obligations')
+        require(report['milestones_complete'] == 4, 'earlier qualification has open obligations')
     print(json.dumps({'milestones_complete': report['milestones_complete'], 'milestones': report['milestones']}))
 
 

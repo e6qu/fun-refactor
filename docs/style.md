@@ -12,7 +12,7 @@ Explain where that ID comes from. A glossary link can add detail, but it cannot 
 | --- | --- | --- |
 | Tutorial | Setup, complete starting files, steps, expected results and a useful failure | Create a Python helper, rename it, inspect the diff and undo the change. |
 | Reference | Exact commands, fields, limits and refusal behavior | State whether a failed check leaves the edited file in place. |
-| Roadmap | Named next changes and observable completion checks | Trace input into an error message after a failed integer conversion. |
+| Roadmap | Named next changes and observable completion checks | Rename a Python function through its imports while preserving an unrelated same-named function. |
 | Bug list | A reproducible wrong result and its current status | A trace claims completion after overlooking an import. |
 | Measurement guide | Baseline, measured operation, setup, units and limits | Compare saved Python setup with fresh setup using the same native binary and questions. |
 | Historical report | What happened in that attempt, including failures | Preserve a timed-out trial and count its consumed work. |

@@ -1,5 +1,9 @@
 # Find, inspect and change code in a real project
 
+This first lesson practices refactoring: change a name while preserving the program's behavior.
+For a deliberate behavior change, use the [implementation-edit guide](docs/body-authoring.md).
+For proof writing, use the [complete first Lean proof](docs/first-lean-proof.md).
+
 ## Start with a small project you can run
 
 You need an installed `fr` command, Python 3 and a terminal.

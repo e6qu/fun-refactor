@@ -16,6 +16,8 @@ normal CI and require an explicit quota acknowledgement. Use them to answer a de
 comparison question after deterministic replay and scoring already pass.
 
 The generic paired runner prepares isolated project copies and one immutable `fr` binary.
+The [focused roadmap](../PLAN.md#target-agents) selects GPT-6 Luna in Fast mode for new Codex comparisons.
+Check the effective service tier and freeze an explicit reasoning setting before a live attempt.
 The Codex runner then declares the agreed model settings in both fresh sessions.
 Replace `MODEL_ID_FROM_THE_AGREED_PLAN`, `AGREED_EFFORT` and `AGREED_SERVICE_TIER` below with actual agreed values; they are not model recommendations.
 A service tier selects the provider's requested processing class. Use the same explicit value for both setups.

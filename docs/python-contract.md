@@ -1022,10 +1022,10 @@ sink site and permits only AST-backed summary calls after it.
 
 Static module resolution follows the [package-flow contract](agent-investigations.md#static-local-imports).
 This corpus does not establish arbitrary imports, multiple names for the same mutable object, async behavior or whole-language
-correctness. The repository-flow and effects roadmap obligations remain separate.
+correctness. The earlier repository-flow and effects qualification obligations remain separate.
 
 The authored corpus pairs every program with a renamed/relocated case for each declared rule.
-The generated roadmap status owns the active source-bound inventory counts.
+The retained-results report owns the current source-bound inventory counts for this earlier qualification.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures
 from exceptions after calling the entry function. External source and sink hooks remain assumptions.

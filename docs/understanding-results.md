@@ -95,7 +95,8 @@ A proof establishes its stated property under its stated assumptions. A proof ab
 translated access rule needs a checked connection to the function you intend to use.
 Read [proof support](lean-specs.md) for the supported forms and remaining assumptions.
 
-For project progress, use the [current results](roadmap-status.md). A scripted patch replay
+For current priorities, use the [focused roadmap](../PLAN.md).
+The [retained results](roadmap-status.md) audit earlier claims separately. A scripted patch replay
 tests delivery; a comparison where an agent discovers the solution tests a different question.
 The [product review](product-review.md) explains why we still cannot claim general savings.
 

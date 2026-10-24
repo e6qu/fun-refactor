@@ -25,7 +25,9 @@ class RoadmapStatusTests(unittest.TestCase):
         self.value = {'schema': 'fr-package-flow-acceptance-1', 'complete': True,
                       'source_bindings': {'input.py': status.file_digest(self.root / 'input.py')}}
         (self.root / 'result.json').write_text(json.dumps(self.value))
-        (self.root / 'PLAN.md').write_text('\n'.join(f'### {m}. Title\n- [x] Implementation\n' for m in 'ABCD'))
+        (self.root / 'docs').mkdir()
+        (self.root / status.CHECKLIST).write_text('\n'.join(f'### {m}. Title\n- [x] Implementation\n' for m in 'ABCD'))
+        (self.root / 'PLAN.md').write_text('# Current focused milestones\n')
         entry = {'id': 'result', 'path': 'result.json', 'kind': 'deterministic', 'audit': 'independent evaluator',
                  'scope': 'finite fixture', 'sha256': status.digest(self.root / 'result.json')}
         self.catalog = {'schema': 'fr-roadmap-catalog-1', 'profile': 'agent-analysis-v2', 'baseline': 'pinned',
@@ -49,25 +51,28 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(report['milestones_complete'], 3)
         self.assertEqual(report['milestones']['A']['remaining'], ['A.additional'])
 
-    def test_next_work_changes_only_after_both_project_outcomes_qualify(self):
+    def test_current_priorities_do_not_depend_on_earlier_project_completion(self):
         for gate, name in zip(self.catalog['obligations'],
                               ('A.exact', 'B.scalar', 'C.repository-mutations', 'D.structural')):
             gate['id'] = name
         page = status.markdown(self.compute())
-        self.assertIn('project-change milestone](project-change-milestone.md) now has passing original records', page)
-        self.assertIn('measure the cost of continuing a saved task', page)
+        self.assertIn('[M1](../PLAN.md#', page)
+        self.assertIn('[M2](../PLAN.md#', page)
+        self.assertIn('[M3](../PLAN.md#', page)
+        self.assertIn('do not close those new milestones', page)
         for name in ('C.repository-mutations', 'D.structural'):
             with self.subTest(missing=name):
                 gate = next(gate for gate in self.catalog['obligations'] if gate['id'] == name)
                 requirements = gate['requires']
                 gate['requires'] = []
                 page = status.markdown(self.compute())
-                self.assertIn('Finish the [project-change checks]', page)
-                self.assertNotIn('now has passing original records', page)
+                self.assertIn('[M1](../PLAN.md#', page)
+                self.assertIn('do not close those new milestones', page)
+                self.assertIn('Saved changes, undo, checks and recovery tests', page)
                 gate['requires'] = requirements
 
     def test_demonstrated_gates_do_not_hide_unfinished_engineering(self):
-        path = self.root / 'PLAN.md'
+        path = self.root / status.CHECKLIST
         path.write_text(path.read_text().replace('[x]', '[ ]', 1))
         self.catalog['engineering']['A']['done'] = 0
         report = self.compute()
@@ -76,19 +81,20 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(report['milestones']['A']['state'], 'open')
         self.assertEqual(report['milestones_complete'], 3)
 
-    def test_cost_results_change_next_work_only_after_qualification(self):
+    def test_earlier_cost_qualification_does_not_replace_current_priorities(self):
         for gate, name in zip(self.catalog['obligations'],
                               ('A.exact', 'B.scalar', 'C.repository-mutations', 'D.structural')):
             gate['id'] = name
         gate = {**self.catalog['obligations'][0], 'id': 'C.performance'}
         self.catalog['obligations'].append(gate)
         page = status.markdown(self.compute())
-        self.assertIn('[complete session cost comparison](project-session-cost.md)', page)
-        self.assertNotIn('Next, measure the cost of continuing', page)
+        self.assertIn('Complete session costs are recorded', page)
+        self.assertIn('[M1](../PLAN.md#', page)
         gate['requires'] = []
         page = status.markdown(self.compute())
-        self.assertIn('Next, measure the cost of continuing', page)
-        self.assertNotIn('[complete session cost comparison](project-session-cost.md)', page)
+        self.assertIn('Measure the cost of resuming work at project scale', page)
+        self.assertNotIn('Complete session costs are recorded', page)
+        self.assertIn('[M1](../PLAN.md#', page)
 
     def test_missing_report_opens_all_dependents(self):
         (self.root / 'result.json').unlink()
@@ -230,10 +236,18 @@ class RoadmapStatusTests(unittest.TestCase):
                 path.write_text(path.read_text() + 'extra_behavior = True\n')
                 self.assertNotEqual(expected, status.binding_digest(path, schema, self.root))
 
-    def test_plan_checkbox_changes_require_catalog_review(self):
-        path = self.root / 'PLAN.md'
+    def test_retained_checklist_changes_require_catalog_review(self):
+        path = self.root / status.CHECKLIST
         path.write_text(path.read_text().replace('[x]', '[ ]', 1))
         with self.assertRaisesRegex(ValueError, 'engineering counts drifted'):
+            self.compute()
+
+    def test_current_plan_cannot_complete_or_replace_earlier_qualification(self):
+        before = self.compute()
+        (self.root / 'PLAN.md').write_text('# New priorities\n- [x] Finished current task\n')
+        self.assertEqual(self.compute(), before)
+        (self.root / status.CHECKLIST).unlink()
+        with self.assertRaises(FileNotFoundError):
             self.compute()
 
 

@@ -164,7 +164,8 @@ Toolz also clears its import-search cutoff. The current Pydash replay uses 47 se
 and reaches the separate 256 KiB source limit. Its unchecked startup statements fall from 510 to 420
 across the same eight files.
 The full-package outcomes in the table stay unchanged. The
-[roadmap](../PLAN.md#r2-follow-shared-lists-through-original-imports) names the full-package questions and independent-project check still required.
+[earlier qualification report](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects) retains the full-package requirement.
+The [current roadmap](../PLAN.md#work-outside-the-active-queue) admits further analysis work when a concrete refactoring, code change or proof needs it.
 
 The callback-table change was also replayed against these same familiar libraries.
 The [registry replay](../tests/agent-eval/results/2026-10-15-registry-startup-fixed-arity-probes/result.json)

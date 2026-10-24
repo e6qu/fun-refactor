@@ -1,6 +1,8 @@
 # Use fr from a Python agent program
 
 This package lets your agent find code, inspect reports and prepare reviewed changes through Python.
+Use it to carry the reports needed by a refactoring, code-change or Lean proof workflow.
+Python is optional. Its loading, serialization and process work belong in the cost comparison against direct fr commands.
 For example, find `render`, keep its full report in the Python process, and show the agent only
 the caller or source lines needed for its next decision.
 

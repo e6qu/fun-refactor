@@ -9,6 +9,10 @@ A step requests an edit to those selections. A refusal explains why an edit cann
 An expectation checks a stated condition afterward. For a cleanup, an expectation about unused names still needs behavior tests.
 Recipe execution includes parsing and every underlying edit; its speed compared with separate commands is unmeasured.
 
+Use a recipe when the requested refactoring needs those coordinated steps.
+For a new implementation, use [targeted authoring](docs/body-authoring.md); for a theorem, use the [Lean proof loop](docs/first-lean-proof.md).
+Keep the edit requirements and checking commands explicit in each case.
+
 ## Commands, results and limits
 
 A recipe is a readable, repeatable multi-step refactoring. It declares what to select, what to do,

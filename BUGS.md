@@ -53,10 +53,10 @@ The [grammar tests](tests/known_grammar_gaps.rs) check syntax repairs and nearby
 
 ## Planned features
 
-[R1](PLAN.md#r1-recover-from-invalid-number-input) covers ordinary conversion errors and reading caught errors.
-[R2](PLAN.md#r2-follow-shared-lists-through-original-imports) covers shared lists and remaining original-package questions.
-[R3](PLAN.md#r3-prove-the-properties-of-the-code-we-ship) covers proofs connected to implementations.
-Keep their requirements and completion checks in PLAN.md.
+The [active roadmap](PLAN.md#next-work) names the selected agent setup, concrete refactorings and repairs, and Lean proof-writing tasks.
+Invalid-number conversion and shared-list analysis are outside the active queue unless one of those tasks needs them.
+Their unfinished earlier claims remain in the [qualification checklist](docs/earlier-roadmap-checklist.md).
+Keep current task requirements and completion checks in PLAN.md.
 
 ## Closed defect history
 

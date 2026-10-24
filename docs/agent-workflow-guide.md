@@ -3,6 +3,10 @@
 Suppose you want to rename `calculate` but do not know which command to start with. Describe the task in the input below, and `fr guide` returns suggested steps.
 Your agent writes that structured input. The guide does not read a natural-language request or make the change on its own.
 
+Start with the [task index](README.md#start-with-one-of-the-three-jobs) when you know the job.
+A direct rename, implementation edit or Lean proof loop can be enough.
+Use this goal representation when its explicit checks and coordinated delivery help the task, rather than requiring every small edit to construct one.
+
 A goal is a task description written as JSON, a structured format using named fields.
 A selector identifies code by a unique name or path. An operation describes the requested action.
 The guide returns commands and any fields the agent must still supply; it does not invent replacement code.

@@ -1,220 +1,166 @@
-# Finish the right change and show that it works
+# Help smaller agents refactor code, make changes and write Lean proofs
 
-Give an agent a bug report in a project it has never seen.
-Help it find the relevant code, deliver a working patch, and continue safely after another edit.
-Measure the whole attempt, including wrong turns, checks and setup.
+Give a smaller coding agent a concrete change or property to prove.
+Fr should help it find the right code, prepare a precise edit, check its work and deliver the result within explicit limits.
 
-## What works today
+## The three jobs
 
-`fr` finds functions and known callers, previews edits, runs declared checks, and saves changes for undo or patch delivery.
-Selected Rust and Python repairs pass independent behavior tests and replay in another checkout.
-Python examples cover original package imports, simple values, helper calls, cleanup and selected explicit error handlers.
-Claude Code, Codex and OpenCode can discover the project skill and complete scripted exercises.
+| Job | Example | What must be checked |
+| --- | --- | --- |
+| Refactor without changing behavior | Rename a Python function and update its imported callers | The promised callers change, unrelated names stay intact, and behavior checks still pass |
+| Change behavior deliberately | Fix a Unicode comparison or add a function that counts escaped text | Tests reject the original mistake and accept the requested result |
+| Write a Lean proof | Show that an access function returns true exactly for staff or owners | Lean accepts the agent's proof of the unchanged property; the source/model connection and assumptions remain visible |
 
-We have not demonstrated general agent savings.
-The [current results](docs/roadmap-status.md) own test counts and completion claims.
-The [cost comparison](docs/project-session-cost.md) compares ways of calling the same compiled fr program, including Python client overhead.
-It does not measure an agent discovering a repair.
+Prefer edits that retain comments, formatting and source outside the intended change.
+Parsing successfully is a separate check. Preserving behavior is required for a refactoring; repairs and features deliberately change behavior.
+A larger rewrite is allowed when the task needs it, with its full diff and checks.
+
+A Lean model describes the admitted source behavior in Lean.
+A proof of that model is useful, but does not by itself prove that the original program behaves the same way.
+Reports must distinguish those claims.
+
+## Target agents
+
+| Application | Exact model selection | Required setting |
+| --- | --- | --- |
+| Codex | `gpt-6-luna` | Fast mode; check and record the effective client service tier |
+| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | Explicit model and reasoning settings |
+| OpenCode2 | `kimi-code-plan-global/k3` | The configured non-Pro Kimi K3; explicit reasoning settings |
+
+The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
+Catalog entries and configured credentials do not establish that a live attempt will be admitted.
+Freeze client releases, model identities, reasoning settings, prices, spending caps and attempt limits before paid calls.
+Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
+
+The current scripted OpenCode controls use an older command format.
+OpenCode2 integration is work to complete, not an already passing result.
+Fast is a Codex service setting, not another Luna model.
+See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).
 
 ## Next work
 
-Each row names a delivery package. Keep its implementation, worked example, checks and tracking together in a substantial PR.
-R1 is next. R2 follows it. R3 can proceed once its source and arithmetic rules are fixed.
-R4 needs agreed models and spending limits before any paid attempt.
+Deliver each milestone with its implementation, complete examples, independent checks and updated results.
+All three milestones below are open. Start with M1.
 
-| Work | User outcome | State | Completion check |
-| --- | --- | --- | --- |
-| [R1. Recover from invalid number input](#r1-recover-from-invalid-number-input) | A bounds form reports bad input and preserves unexpected errors | Next | Conversion, handler and error-message cases agree with Python; checked patch replays |
-| [R2. Follow shared lists through original imports](#r2-follow-shared-lists-through-original-imports) | A helper changing a shared list changes the caller's answer too | Planned | Alias and separate-list cases pass; full-package checks and an independent first attempt qualify |
-| [R3. Prove the properties of the code we ship](#r3-prove-the-properties-of-the-code-we-ship) | A page count and an edit-range check satisfy their stated rules | Planned | Proofs cover the actual implementations; changed or mismatched code cannot keep a passing claim |
-| [R4. Measure agents completing whole tasks](#r4-measure-agents-completing-whole-tasks) | Learn whether adding fr improves correct repairs and total cost | Waiting for live settings | Complete prepared comparison, then the separate repeated-task study; retain every outcome and cost |
+### M1. Run the selected agents on three complete tasks
 
-### R1. Recover from invalid number input
+1. Pin the Codex and OpenCode2 releases and record their actual model lists.
+   Implement OpenCode2's client adapter, tool-result collection and process shutdown.
+   Test skill discovery, requested model/effort/speed, ordinary tools and fr access with scripted responses before live calls.
+2. Freeze these three task requirements and their independent checks before changing support:
 
-Extend the [Boltons-backed bounds application](docs/catch-python-errors.md).
-This is our authored application using an unchanged library, not a newly discovered upstream bug.
-It is a familiar development example.
+   | Task | Required result | Check that catches a wrong answer |
+   | --- | --- | --- |
+   | Rename Boltons' `clamp` to `clamp_value` in its declared project change | Update the function, named consumers and documentation | Limiting 70 to 0 through 50 still returns 50; an unrelated same-named function stays unchanged |
+   | Repair the recorded `unicode-dice` comparison | Count the intended Unicode characters on both sides | The reported Unicode examples and the independent regression set pass |
+   | Prove the Rust Boolean `allowed(staff, owner)` rule | Write a Lean proof that its model equals `staff || owner` | All four input pairs agree; changing the model to `staff && owner` cannot retain the same claim |
 
-The application currently follows an explicit `raise ValueError(...)` from Boltons.
-The next change accepts decimal number text from a form and handles errors raised by the conversion itself.
-For example, `int("twelve", 10)` raises `ValueError` without a written `raise` statement.
+3. Use each of the three profiles with ordinary file tools, then with those tools plus fr.
+   That is eighteen first attempts. Repeat the unchanged schedule once for thirty-six attempts in total.
+   Rotate tool order. These are familiar development tasks, not new unread-project qualifications.
+4. Give the model the request and checking commands, without the solution or edit location.
+   Keep the requested proof property fixed. Count any supplied repair or proof as scripted help.
+5. Record correct results, regressions, human intervention, fr use, all model work, retries, setup, indexing, checks, shutdown and failures.
+   Keep unavailable billing data unknown.
+6. Compare each profile against itself with ordinary tools. Correctness comes first.
+   Report cost and time for equivalent successful outcomes and total spending per success.
+   A tool that was offered but unused establishes no benefit from fr.
 
-Start by committing the application requirements and independent Python checks.
-Use the original pinned Boltons import. Then implement the general rules needed by those requirements.
+**M1 is complete when** the three client profiles pass model-free controls and all thirty-six live attempts have independently checked outcomes and complete or explicitly missing cost fields.
+Failures count as results. Passing this small study establishes neither a general success rate nor general savings.
+Model-free preparation can proceed now; live calls still need agreed settings and spending limits.
 
-Initial language scope:
+### M2. Make multi-file refactorings and targeted changes dependable
 
-- Base-ten `int(text, 10)` for ordinary strings, including signed values, valid whitespace and malformed input.
-- Matching `ValueError` recovery while an unexpected `TypeError` still leaves the application.
-- `except ValueError as error` and `str(error)` for the supported builtin errors.
-  The binding names the caught error object; its lifetime ends after that handler.
-- Error classes and their input connections remain separate through helpers, nested cleanup and reraising.
-- Unknown conversions, custom objects and other unsupported error behavior keep the answer incomplete.
+Freeze these four additional cases before implementing missing rules:
 
-Completion requires all of these:
+| Case | Concrete requirement |
+| --- | --- |
+| Rust parameter removal | Remove one unused parameter across a two-crate workspace; update every declared direct caller and report external or unresolved uses |
+| Regex feature | Add the recorded allocation-free escaped-length feature; cover every required escaping class and Unicode input without constructing the escaped string |
+| Python repair | Fix `invoice_total(amount, fee)` omitting the fee; `invoice_total(5, 2)` must return 7 |
+| TypeScript rename | Rename an exported helper through an imported alias while leaving an unrelated local declaration with the old name untouched |
 
-1. Valid numeric text, malformed text, reversed bounds and a wrong-type argument pass independent behavior checks.
-2. A caught error message can retain its connection to submitted text; a replacement message removes that connection.
-3. Reading the caught name after its handler cannot reuse a value Python has deleted.
-4. Each rule passes independently authored programs, renamed functions and moved files.
-5. The repair uses fr preview, application, declared checks, undo, redo and patch replay in another checkout.
-6. Relevant edits expire saved answers; saved and fresh checks agree. Existing work, response and time limits stay unchanged.
-7. The tutorial supplies files, commands, expected results and the remaining unsupported behavior.
+For every case:
 
-Passing this package adds supported behavior. It does not establish that every Python operation is free of runtime errors.
+- The agent finds the target from the request, reads the relevant code, previews one complete change and runs explicit project checks.
+- Test preserved bytes outside declared edit ranges, comments, Unicode text and indentation.
+  An intentionally wider rewrite must identify its wider range in the preview.
+- Inspect affected imports, declared callers, tests and relevant configuration. Report omissions and unresolved uses.
+- A competing source edit makes the old preview refuse before writing. Refresh the review from current source.
+- A failed check preserves its diagnostics and the actual edit state.
+- Undo restores exact original bytes; redo restores the reviewed change.
+  The exported patch passes independent checks in another checkout.
+- Give each target agent one documented route for each task. Reuse existing edit/check machinery and remove redundant choices instead of adding another wrapper.
+- Run two repetitions per case, profile and tool setup under frozen settings: forty-eight attempts.
+  Preserve the earlier attempts and compare matching outcomes.
 
-### R2. Follow shared lists through original imports
+**M2 is complete when** all four cases pass the scripted delivery checks.
+Each selected agent must also deliver at least one independently accepted result per case within the frozen repetitions and limits.
+Keep the failed outcomes alongside those successes; a scripted success alone cannot close the agent requirement.
+An unsupported construct remains an explicit refusal until its required reusable rule is implemented.
+Add Python analysis or other language rules only when one of these code-change tasks needs them.
 
-Extend the bounds application with a list of validation messages passed to a helper.
-Two names can point to the same list. A helper changing that list must affect later reads through either name.
+### M3. Help the agents write, repair and maintain Lean proofs
 
-Start with this distinction:
+A property is the exact claim to prove. Tactics are the proof steps the agent writes for Lean to check.
 
-```python
-messages = [customer_label]
-shared = messages
-shared[0] = "PUBLIC"
-send(messages[0])  # The output is PUBLIC.
-```
+1. Make the complete access-rule lesson runnable: source, generated model, unchanged property, one disclosed goal, agent-written tactics, Lean diagnostics and a checked saved proof.
+   A scripted control may test this path; only a live attempt shows an agent writing the proof.
+2. Repeat that Boolean lesson for the admitted typed pure forms in Rust, Python, Go, Java, TypeScript, TSX, Zig and Lean.
+   Record a separate result for each language. A TSX helper here contains ordinary typed code, not a proof of JSX rendering.
+   Parsing other languages or formats does not establish proof support.
+3. Add these two numeric tasks with explicit arithmetic:
 
-A separate list, such as `separate = [messages[0]]`, holds its own slots.
-Changing `separate[0]` must preserve the original `messages[0]`.
+   | Function | Property and boundary cases |
+   | --- | --- |
+   | Existing Rust [page count](tests/agent-eval/checked-translation/pages.rs) | Eleven items at five per page need three pages; negative item counts or nonpositive sizes return `-1`; valid large inputs avoid signed-64 overflow |
+   | New Rust `fits_window(offset, count, total)` | Unsigned-64 inputs; an empty range at the end is valid; ranges past the end are invalid; the guard `offset <= total && count <= total - offset` avoids subtraction overflow |
 
-Initial scope is ordinary list creation, assignment of another name, constant-index reads and writes, `append`, and `clear`.
-Keep arbitrary object attributes, overloaded operations and unsupported collection behavior explicit.
+4. Let the model repair rejected tactics using bounded, relevant Lean diagnostics.
+   Keep the theorem, definitions and assumptions fixed during tactic repair.
+   Reject `sorry`, `admit`, new unapproved axioms and replacement claims that weaken the requested property.
+5. Record source, generated definitions, arithmetic rules, proof, toolchain and declared trusted components.
+   Report model proofs separately from checked connections to source behavior.
+   A source hash or matching signature alone cannot close the source-implementation claim.
+6. Change a source comparison, generated model, property and relevant dependency in separate tests.
+   Old proof receipts must expire; a newly attempted proof of a false fixed property must fail.
+   Preserve unrelated hand-written proof regions when regenerating supported definitions.
+7. Run the selected agents on the Rust Boolean and two numeric tasks with and without fr.
+   Two repetitions per profile, task and setup give thirty-six attempts.
+   Count failed tactics, retries and complete costs. Record source-language limitations beside the outcome.
 
-Completion requires:
+**M3 is complete when** the runnable proof-writing cases pass for every named admitted language and both numeric tasks have checked proofs under their declared models.
+Each selected agent must write at least one accepted proof for each of the three live tasks within the frozen repetitions and limits.
+Keep failed tactics and unsuccessful attempts in the results.
+An unchecked source/model connection remains an open claim in every report.
+A general verified translator or proof of arbitrary programs is not a completion condition for this proof-authoring milestone.
 
-1. Same-list and separate-list cases agree with ordinary Python.
-2. Writes made by a helper appear in the caller's later reads. Overwriting a slot removes its old value connection.
-3. Edits to the writing helper expire affected saved answers; unrelated answers remain usable.
-4. The application repair passes behavior checks, undo and independent patch replay through its original imports.
-5. Recheck the existing full-package questions for Toolz's `return_none`, Funcy's `inc` and `dec`, and Pydash's `add`.
-   Record each import/startup obstacle and fix the required reusable rules. Copies of isolated helpers do not meet this check.
-6. Reserve one new project before inspecting its implementation, using a question from its public documentation.
-   Record its revision, inputs, expected results and limits. Freeze the checker before its first implementation read.
-7. Use one unchanged checker for the qualifying project questions. Preserve a failed first attempt if one occurs.
-   A later fix makes that project familiar; another independent first attempt needs another reservation.
+## Work outside the active queue
 
-Broader caller discovery belongs to the same repair: inspect affected code, configuration, documentation and tests before delivery.
+The earlier invalid-number-input and shared-list expansions are no longer the next milestones.
+General Python semantics, new analysis engines, broad translation expansion and standalone cache optimization need a concrete blocker from M1, M2 or M3 before becoming active work.
+Keep working behavior and fix encountered defects; this change does not remove existing capabilities.
 
-### R3. Prove the properties of the code we ship
-
-A passing test checks chosen inputs. A proof checks a stated rule under explicit assumptions.
-The missing connection is showing that the proof describes the implementation users run.
-A model describes that behavior in a form the proof checker can read. Lean is the proof checker used here.
-
-Use these two tasks:
-
-- Existing code: [the page-count helper](tests/agent-eval/checked-translation/pages.rs), with its [current contract](tests/agent-eval/checked-translation/contract.json).
-  This maintained translation example supplies the exact Rust implementation the proof must describe.
-  Eleven items at five per page need three pages. Invalid sizes return `-1`; large valid inputs must avoid integer overflow.
-- New Rust code: an edit-range helper `fits_window(offset, count, total)` with explicit unsigned 64-bit inputs.
-  These are whole numbers from zero through 18,446,744,073,709,551,615.
-  An empty range at the end is valid. A range past the end is invalid.
-  Use `offset <= total && count <= total - offset` so the check avoids addition overflow.
-
-Completion requires a checked source-to-model connection for both functions, their specifications and Lean proofs.
-Record source files, arithmetic rules, translation rules, tool versions and every trusted component.
-
-Test deliberately incorrect changes against saved and newly attempted proofs.
-Change a comparison or return value. Also alter the model or a relevant dependency.
-Outdated claims must expire; a fresh proof attempt must also reject the wrong implementation.
-Keep behavior checks and independent patch replay passing.
-A theorem about a separate description cannot satisfy this package.
-
-Use existing symbolic execution tools when a concrete check needs help finding a failing input.
-Symbolic execution explores conditions with unknown inputs.
-The [earlier experiment](docs/python-symbolic-investigation.md) found no additional failing behavior beyond its generated tests.
-
-### R4. Measure agents completing whole tasks
-
-The [prepared first comparison](docs/agent-comparison-preparation.md) has two tasks:
-repair Unicode string comparison, and calculate escaped text length without allocating a temporary string.
-Use Claude Code, Codex and OpenCode with ordinary tools, those tools plus CodeGraph, and those tools plus fr: eighteen first attempts.
-
-Before live calls, agree and record exact models, reasoning settings, credentials, prices, spending caps and full-attempt resource limits.
-Changing a task, tool, skill or checking program requires reviewing the prepared schedule again.
-Do not restart the stopped studies.
-
-For every attempt, record correct behavior and regressions, tool use, retries, setup, indexing, checks and shutdown.
-Count model usage, total cost, elapsed time, processor work, memory and storage, including every child program and failed attempt.
-Report missing billing data as unknown. Count first-use setup separately from later reuse.
-
-Then meet the distinct [48-attempt repeated-task requirement](docs/product-review.md#repeated-task-study).
-It uses four task types across at least three independent projects, two model families and the stated repetitions and delegation limits.
-The eighteen-attempt comparison cannot close that requirement.
-
-Success means complete, independently checked results and honest costs.
-Slower, more expensive or inconclusive outcomes remain valid results.
-
-## Milestones and implementation checklist
-
-The task packages above say what to do next. These checkboxes retain the established completion requirements.
-The [acceptance catalog](tests/agent-eval/roadmap.json) and [status report](docs/roadmap-status.md) keep the detailed checks and recorded results.
-
-### A. Find relevant code and explain the evidence
-
-Open: independent agents completing unfamiliar tasks with complete cost records. R4 addresses it.
-
-- [x] Report exact declaration, reference and call locations.
-- [x] Link analyzed expressions to source and expose missing or ambiguous locations.
-- [x] Explain findings with their inputs, assumptions and omitted information.
-- [x] Retain compiler inputs, versions and disagreements with fr.
-- [x] Save requested outcomes, checked facts and remaining questions.
-- [x] Run the initial bug and feature comparison without supplying edit locations.
-
-### B. Explain how values move through code
-
-Open: reusable rules for the remaining Python behavior and original-package examples. R1 and R2 address it.
-
-- [ ] Specify reusable language rules connecting source, analysis and edits, with independent examples and explicit limits.
-- [x] Represent supported assignments, branches, loops, returns and explicit exceptions.
-- [x] Describe supported argument passing, returns and actions, including recursive calls.
-- [x] Trace user-declared inputs, outputs and cleaning functions with source locations.
-- [x] Distinguish possible calls and value paths from statements established by a proof.
-
-### C. Resume work and reuse correct answers
-
-Complete for its stated checks. Preserve these results in every task package; agent savings remain a separate question.
-
-- [x] Distinguish current code references, saved-content fingerprints and candidate matches after edits.
-- [x] Track source, import searches, settings and analyzer inputs behind answers.
-- [x] Verify saved answers and analyze again when reuse cannot be established.
-- [x] Resume saved tasks after discarding outdated findings.
-- [x] Invalidate check and proof results after relevant input changes.
-- [x] Measure first use, reuse and rechecking after edits on three independent projects.
-
-### D. Make checked changes and useful proofs
-
-Open: complete affected-code discovery and proofs connected to existing and new implementations. R2 and R3 address them.
-
-- [ ] Discover all relevant callers, contracts, configuration and tests for the declared change.
-- [x] Add general language rules needed by observed structural changes.
-- [x] Translate a function under explicit arithmetic, error and evaluation-order rules.
-- [ ] Connect proofs to an existing implementation and to a new implementation developed with its specification.
-- [ ] Retain proof inputs for edits and translations, rejecting outdated claims.
-- [x] Check small models governing edits, task transitions and interrupted-write recovery.
+The former CodeGraph comparison and forty-eight-attempt broad study retain their original plans and outcomes.
+They do not define completion of this focused roadmap and are not restarted.
+The [earlier checklist](docs/earlier-roadmap-checklist.md) and [retained-results report](docs/roadmap-status.md) preserve unfinished earlier claims without marking them complete.
 
 ## Generalization requirements
 
-- Write the behavior requirements before implementing support. Compare positive, negative and unsupported cases with independent execution.
-- Renaming a function or moving its file must preserve the answer.
-- Keep production behavior independent of repository names, revisions and expected patches.
-- An incomplete answer cannot establish that an input never reaches an output.
-- Preserve first unfamiliar-project attempts and all failures, timeouts and unstarted work.
-- Measure whole task outcomes. Shorter reports or scripted repairs alone cannot establish agent savings.
+- Fix task requirements and independent checks before extending support.
+- Keep production behavior independent of benchmark names, paths, revisions and expected patches.
+- Include positive, negative, ambiguous and unsupported cases. An incomplete answer cannot justify an absence claim.
+- Separate familiar development tasks from new unread-project attempts.
+- Keep all failures, timeouts, cancellations and unstarted work. Never retry until success and report only the winner.
+- Require passing compiler/behavior checks for changes and Lean checks for proof claims.
+- Measure complete attempts, including tool instructions and background work, against the same agent using ordinary tools.
 
 ## Working rules
 
-Use `fr --json audit` and `fr capabilities` for installed support.
-Use fr on its own code where suitable, and record concrete gaps.
-Keep settings explicit, with one current interface and format. Add no compatibility readers, fallback routes or needless wrappers.
-
-Builds, full tests and large collections run on GitHub. Follow the [workstation limits](docs/development.md#working-on-a-shared-desktop).
-Fix failures and timeout causes without increasing limits or dropping coverage.
-Refresh reports after their recorded inputs change; keep the original records and hashes intact.
-
-Use the [handoff](docs/continuity.md) for current maintenance instructions, [bug list](BUGS.md) for reported defects,
-and [documentation index](docs/README.md) for user and developer guides.
+Use fr on its own work where it fits. Fix encountered failures and timeout causes without increasing limits or dropping coverage.
+Keep model choices, settings, limits and check selection explicit. Add no compatibility routes, automatic model substitutions or needless wrappers.
+Builds, full tests and large collections run on GitHub under the [workstation rules](docs/development.md#working-on-a-shared-desktop).
+Preserve original report hashes. Refresh records after their recorded inputs change.
+Use the [handoff](docs/continuity.md) for current maintenance, [bug list](BUGS.md) for defects and [guide index](docs/README.md) for task instructions.
 
