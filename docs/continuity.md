@@ -213,14 +213,13 @@ A file fingerprint is a short value computed from its contents, used to detect e
 For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
 A missing setting fails the check. Tests never select an older record automatically.
 Original collection receipts remain beside the recorded results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-20-leap-year-python-contract/manifest.json)
-covers 476 programs and 952 original or renamed cases, including dictionary arguments and defaults during startup.
-It preserves 364 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
+The [Python example receipt](../tests/agent-eval/results/2026-10-24-cleanup-final-python-contract/manifest.json)
+covers 485 programs and 970 original or renamed cases, including cleanup, dictionary arguments and defaults during startup.
+It preserves 368 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
 These include programs where startup replaces a helper or raises before the application runs.
 Those answers remain unfinished; the tests keep the differences visible instead of turning them into complete answers.
-The Python interface check passed 1,656 cases, including 75 cases for saving preparation between requests.
-Within that suite, 76 cases check bounded loops and 96 check dictionary arguments, stored references and unsafe aliases.
-Those cases compare saved and fresh answers, ordinary Python, source edits, competing imports, damaged records and unchanged limits.
+The Python interface checks compare saved and fresh answers, ordinary Python, source edits, competing imports and damaged records.
+They cover bounded loops, dictionary arguments, stored references and unsafe aliases, with unchanged limits.
 These counts describe the checked examples; they do not mean every example has a complete analysis.
 Each capture keeps its original commit. Retention verifies identical current analyzer files and reruns every report's input checks.
 The [CI guide](ci.md#collect-python-results-while-checking-the-interface) explains concurrent checking and unchanged deadlines.
