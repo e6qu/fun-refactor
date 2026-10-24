@@ -80,7 +80,7 @@ def test_exception_classes_keep_their_own_value_origins_and_rebind_every_saved_t
     cache = FlowCache(store)
     first = analyze(client, rules, cache, names[3], ('builtins',), 4096)
     assert first.report.at('/complete')
-    errors = {error.kind: error.traces for error in first.summaries.for_function('fail').exceptional_returns}
+    errors = {error.kind: error.traces for error in first.summaries.for_function('subject.py::fail').exceptional_returns}
     assert errors['ValueError'] and not errors['TypeError']
     for value, expected in [('Customer', 'ValueError'), ('', 'TypeError')]:
         script = f'import runpy\nf = runpy.run_path({str(path)!r})["fail"]\ntry:\n    f({value!r})\nexcept Exception as e:\n    print(type(e).__name__)'
@@ -94,7 +94,7 @@ def test_exception_classes_keep_their_own_value_origins_and_rebind_every_saved_t
     for field in ('exceptional_returns', 'function_summaries', 'control_flow'):
         assert reused.report.at('/' + field) == fresh.report.at('/' + field)
     forged = copy.deepcopy(first.report.to_data())
-    summary = forged['function_summaries']['functions']['fail']['exceptional_returns']
+    summary = forged['function_summaries']['functions']['subject.py::fail']['exceptional_returns']
     summary['PretendError'] = summary.pop('ValueError')
     with pytest.raises(FrRuntimeError, match='exception class'):
         FunctionSummaries.from_report(FrReport(forged, ()))
