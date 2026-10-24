@@ -6,6 +6,8 @@ on:
       - src/**
       - sdk/python/src/**
       - sdk/python/tests/**
+      - tests/flow_fixed_point.rs
+      - tests/flow_summaries.rs
       - tests/agent-eval/python-handlers/**
       - tests/fixtures/python-handlers/**
       - .github/workflows/python-exceptions.yml
@@ -30,27 +32,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: |
-            .github
-            src
-            grammars
-            crates
-            queries
-            catalogs
-            kernels
-            sdk/python/src
-            sdk/python/tests
-            tools
-            docs
-            tests/common
-            tests/fixtures
-            tests/agent-eval/python-handlers
-            tests/agent-eval/python-finally
-            tests/agent-eval/python-text-flow
-            tests/agent-eval/python-repositories
-            tests/agent-eval/recursive-flow
-            tests/agent-eval/imported-flow
-            tests/agent-eval/flow-cache
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -64,6 +45,10 @@ jobs:
         with:
           key: default
       - run: cargo build --locked --bin fr
+      - name: Check native error reports and scalar handler boundaries
+        run: >-
+          cargo test --locked --test flow_fixed_point --test flow_summaries
+          -- --test-threads 1
       - name: Use fr to inspect its error matching implementation
         run: >-
           target/debug/fr --json --no-cache -C src/project/flow_exceptions.rs

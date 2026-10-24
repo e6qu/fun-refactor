@@ -105,7 +105,7 @@ fn overwrites_and_terminators_do_not_invent_sink_witnesses() {
         );
     }
     let raised = analyze(dir.path(), "raised", "1024");
-    assert!(raised["exceptional_returns"]
+    assert!(raised["exceptional_returns"]["unknown"]
         .as_object()
         .unwrap()
         .contains_key("parameter:error"));
@@ -206,11 +206,19 @@ fn retained_analysis_checks_content_analyzer_and_current_source_before_reuse() {
 }
 
 #[test]
-fn unsupported_exception_handlers_and_helper_throws_keep_explicit_boundaries() {
+fn scalar_handlers_preserve_unchecked_helper_and_object_boundaries() {
     let dir = fixture();
-    fs::write(dir.path().join("subject.py"), "def throwing(error):\n    raise error\ndef caller(error):\n    throwing(error)\n    sink(source())\ndef handled(error):\n    try:\n        raise error\n    except:\n        sink(source())\n").unwrap();
-    for name in ["caller", "handled"] {
-        assert_eq!(analyze(dir.path(), name, "1024")["complete"], false);
+    fs::write(dir.path().join("subject.py"), "def throwing(error):\n    raise error\ndef caller(error):\n    throwing(error)\n    sink(source())\ndef handled(error):\n    try:\n        raise error\n    except:\n        sink(source())\ndef bound(error):\n    try:\n        raise error\n    except Exception as caught:\n        sink(source())\n").unwrap();
+    let handled = analyze(dir.path(), "handled", "1024");
+    assert_eq!(handled["complete"], true, "{handled}");
+    assert_eq!(handled["witnesses"].as_array().unwrap().len(), 1);
+    for (name, cutoff) in [
+        ("caller", "helper-exception-control-unchecked"),
+        ("bound", "exception-handler-type-unchecked"),
+    ] {
+        let result = analyze(dir.path(), name, "1024");
+        assert_eq!(result["complete"], false, "{name}: {result}");
+        assert!(result["cutoffs"].to_string().contains(cutoff), "{result}");
     }
 }
 
