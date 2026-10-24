@@ -152,5 +152,20 @@ def native_bindings(root, declared):
     return {**{path: file_digest(Path(root) / path) for path in declared}, **native_source_bindings(root)}
 
 
+def checker_bindings(root, declared):
+    root = Path(root)
+    client = root / 'sdk/python/src'
+    metadata = root / 'sdk/python/pyproject.toml'
+    if (client.is_symlink() or not client.is_dir()
+            or metadata.is_symlink() or not metadata.is_file()):
+        raise ValueError('Checker evidence needs a complete regular Python client source tree.')
+    entries = tuple(client.rglob('*'))
+    paths = sorted(path for path in entries if path.suffix == '.py' and path.is_file())
+    if not paths or any(path.is_symlink() for path in entries):
+        raise ValueError('Checker evidence needs a complete regular Python client source tree.')
+    names = sorted({*declared, 'sdk/python/pyproject.toml', *(path.relative_to(root).as_posix() for path in paths)})
+    return {**{path: file_digest(root / path) for path in names}, **native_source_bindings(root)}
+
+
 if __name__ == "__main__":
     self_test()

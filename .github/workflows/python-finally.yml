@@ -54,7 +54,9 @@ jobs:
           python-version: '3.14.8'
       - run: rustup toolchain install stable --profile minimal --component rustfmt
       - name: Prepare independent checks
-        run: python3 -m pip install 'pytest==9.1.1'
+        run: |
+          python3 -m pip install 'pytest==9.1.1'
+          python3 -B tools/test-native-source-inputs.py
       - name: Retain formatting differences
         run: |
           set -euo pipefail

@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 
-from evidence_basis import native_bindings
+from evidence_basis import checker_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
@@ -70,7 +70,7 @@ def digest(data):
 
 
 def bindings():
-    return native_bindings(ROOT, BOUND_FILES)
+    return checker_bindings(ROOT, BOUND_FILES)
 
 
 def baseline_function():

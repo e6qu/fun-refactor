@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import unittest
 
-from evidence_basis import native_source_bindings, native_source_paths, native_source_roots
+from evidence_basis import checker_bindings, native_source_bindings, native_source_paths, native_source_roots
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,6 +24,44 @@ def fixture(root):
 
 
 class NativeInputs(unittest.TestCase):
+    def test_client_module_changes_additions_and_removals_expire_checker_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            client = root / 'sdk/python/src/fr_ir'
+            client.mkdir(parents=True)
+            (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\nversion="1.0.0"\n')
+            (client / '__init__.py').write_text('')
+            (client / 'flow.py').write_text('from .flow_completion import validate\n')
+            module = client / 'flow_completion.py'
+            module.write_text('def validate(): return False\n')
+            native = native_source_bindings(root)
+            before = checker_bindings(root, ['build.rs'])
+            module.write_text('def validate(): return True\n')
+            self.assertNotEqual(before, checker_bindings(root, ['build.rs']))
+            self.assertEqual(native, native_source_bindings(root))
+            changed = checker_bindings(root, ['build.rs'])
+            added = client / 'new_rule.py'
+            added.write_text('rule = True\n')
+            self.assertNotEqual(changed, checker_bindings(root, ['build.rs']))
+            added.unlink()
+            self.assertEqual(changed, checker_bindings(root, ['build.rs']))
+            module.unlink()
+            self.assertNotEqual(changed, checker_bindings(root, ['build.rs']))
+
+    def test_missing_or_symlinked_client_source_cannot_inherit_native_only_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            with self.assertRaises(ValueError):
+                checker_bindings(root, ['build.rs'])
+            client = root / 'sdk/python/src/fr_ir'
+            client.mkdir(parents=True)
+            (root / 'sdk/python/pyproject.toml').write_text('[project]\nname="client"\nversion="1.0.0"\n')
+            (client / 'flow.py').symlink_to(root / 'build.rs')
+            with self.assertRaises(ValueError):
+                checker_bindings(root, ['build.rs'])
+
     def test_current_policy_covers_build_parsing_grammar_and_flow_rules(self):
         paths = set(native_source_paths(ROOT))
         self.assertTrue({'build.rs', 'Cargo.toml', 'Cargo.lock', 'native-source-inputs.txt',

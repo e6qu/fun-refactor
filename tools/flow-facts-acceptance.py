@@ -16,7 +16,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
-from evidence_basis import native_bindings
+from evidence_basis import checker_bindings
 from fr_ir.flow_facts import FlowFacts
 from fr_ir.origins import SemanticOrigins
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
@@ -113,7 +113,7 @@ def measure(args):
         refusals["moved_source"] = refused(lambda: first.next(client))
     return {"schema": "fr-flow-facts-acceptance-1", "repository_revision": subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-        "source_bindings": native_bindings(ROOT, BINDINGS),
+        "source_bindings": checker_bindings(ROOT, BINDINGS),
         "binary_sha256": hashlib.sha256(args.fr.read_bytes()).hexdigest(), "platform": platform.platform(),
         "oracle": independent, "ordinary_ast_runtime_seconds": ordinary_seconds,
         "baseline": json.loads((FIXTURE / "baseline.json").read_text()),
@@ -136,7 +136,7 @@ def measure(args):
 
 def audit(value):
     assert value["schema"] == "fr-flow-facts-acceptance-1"
-    assert value["source_bindings"] == native_bindings(ROOT, BINDINGS)
+    assert value["source_bindings"] == checker_bindings(ROOT, BINDINGS)
     assert value["oracle"] == oracle()
     assert value["baseline"] == json.loads((FIXTURE / "baseline.json").read_text())
     pages, explanations, cases = value["facts"]["pages"], value["explanations"], value["cases"]
