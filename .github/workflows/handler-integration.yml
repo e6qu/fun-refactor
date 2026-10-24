@@ -1,5 +1,7 @@
 name: Combine checked handler results
 on:
+  push:
+    branches: [ci/handlers-final-integration]
   workflow_dispatch:
 permissions:
   contents: write
