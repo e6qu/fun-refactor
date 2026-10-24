@@ -15,7 +15,7 @@ For a write failure, also keep the saved transaction ID and say whether source f
 An unfinished trace leaves a question unanswered.
 Reporting that unfinished trace as a complete negative answer is a correctness defect.
 
-## Find the next action
+## Choose what to do after a failure
 
 | Symptom | What to inspect | Next action |
 | --- | --- | --- |

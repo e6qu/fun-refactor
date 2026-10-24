@@ -171,7 +171,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed., by Martin Fowler (2018), §6.5"],
     intent: "The same move, where the language will not have it.",
     invariant: "Nothing changes, because the only change available would not preserve anything, the file would stop parsing as Python.",
-    note: "Python requires every defaulted parameter to come last, so this would produce `def circ(units=\"m\", r):`, which Python rejects outright. The engine reparses every edit and would normally catch a broken result, but tree-sitter parses this without complaint, so the refactoring has to know the rule itself. It did not until this page asked for it.",
+    note: "A required positional parameter cannot follow a defaulted positional parameter. This example would produce `def circ(units=\"m\", r):`, which Python rejects. Tree-sitter accepts its syntax, so the refactoring also checks this language rule.",
     command: "fr signature circ move:0:2",
     files: [
       { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n" },
@@ -198,7 +198,7 @@ export const CATALOG = [
     name: "Remove unused imports",
     sources: ["The tidying you do after the others, though neither catalogue lists it"],
     intent: "Imports nothing uses go, and the rest sort into order.",
-    invariant: "The file imports the same modules. Only the order changes, and Python does not care about the order of independent imports.",
+    invariant: "The example keeps the imports its source uses and sorts them. Imports can run startup code; check those effects in a real project.",
     note: "Read what it prints above the diff. The name decides liveness, so an import kept for a trait, a registration side effect or a doc comment would look unused, and it says so instead of letting you find out. This is the step a recipe puts last, with `imports where changed`.",
     command: "fr imports src/loader.py",
     files: [
@@ -227,7 +227,7 @@ export const CATALOG = [
     name: "Remove Dead Code",
     sources: ["Refactoring, 2nd ed., by Martin Fowler (2018), §8.9", "Tidy First?. Kent Beck (2023), “Dead Code”"],
     intent: "Code nothing calls goes, rather than staying to maintain.",
-    invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. The deletion is therefore safe rather than a guess.",
+    invariant: "This fixture has no references to the deleted function. In a real project, also inspect external callers and unresolved uses before deleting it.",
     note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: delete refuses anything still referenced, so the list is worth acting on.",
     command: "fr delete _legacy_histogram",
     files: [
