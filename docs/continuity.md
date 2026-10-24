@@ -68,7 +68,11 @@ Reassignment, mixed return types, arbitrary objects and saved answers have expli
 Stringcase's README supplied a reserved lowercase question; its first inspection passed after fixing the checker and procedure.
 The same executable also passed the Boltons, dateutil and JDcal questions. Those three projects are familiar now.
 The [current package example](original-package-questions.md#follow-a-customer-label-through-stringcase) links the frozen record and its limits.
-Choose a concrete change task that exposes one remaining import or runtime-effect gap before extending the model again.
+The [cleanup repair](check-python-cleanup.md) supplies the next concrete task: a cleanup return replaces a customer's message with `PUBLIC`.
+It checks the repair through the original local import, independent runtime checks, undo, redo and patch replay.
+Pending return and explicit raise values survive cleanup unless cleanup replaces that exit.
+Explicit helper raises and loop exits also enter cleanup; nested sections keep their pending values separate.
+Next, choose a concrete change that needs exception matching or shared mutable values before extending those rules.
 Stringcase is familiar after this evaluation; another independent first attempt needs a new reservation.
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.

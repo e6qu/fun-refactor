@@ -758,7 +758,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     merge(&mut exceptions, value.clone());
                 }
             }
-            if matches!(block.operation, Operation::ResumeReturn | Operation::ResumeRaise) {
+            if matches!(
+                block.operation,
+                Operation::ResumeReturn | Operation::ResumeRaise
+            ) {
                 let (source, destination) = block.completion.expect("resume completion slots");
                 if block.operation == Operation::ResumeReturn {
                     if let Some(value) = state.pending_returns.get(&source).cloned() {
@@ -785,8 +788,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     Operation::Statement => self.statement(node, &mut state),
                     Operation::Return | Operation::Raise => {
-                        if self.solver.enabled
-                            && block.operation == Operation::Raise
+                        if block.operation == Operation::Raise
                             && node.named_child_count() != 1
                         {
                             self.cutoff("raise-contract-unchecked");
@@ -810,7 +812,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 && node
                                     .named_child(0)
                                     .is_some_and(|value| self.plain_string(value, &state));
-                            state.pending_returns.insert(slot, PendingReturn { flow: value, plain_string: plain });
+                            state.pending_returns.insert(
+                                slot,
+                                PendingReturn {
+                                    flow: value,
+                                    plain_string: plain,
+                                },
+                            );
                         } else if self.normal {
                             if !self.solver.enabled && self.active.len() > 1 {
                                 self.cutoff("helper-exception-control-unchecked");
@@ -824,14 +832,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let mut successors = Vec::new();
             if self.may_raise {
                 let mut raised_state = before;
-                raised_state.pending_raises.insert(block.raised.slot, std::mem::take(&mut self.exceptional_returns));
+                raised_state.pending_raises.insert(
+                    block.raised.slot,
+                    std::mem::take(&mut self.exceptional_returns),
+                );
                 successors.push((block.raised.node, raised_state));
             }
             if !self.solver.enabled || self.normal {
                 for (successor, edge) in &block.successors {
                     let mut outgoing = state.clone();
                     if *successor == 0 && *edge != "return" {
-                        outgoing.pending_returns.insert(0, PendingReturn { flow: Flow::new(), plain_string: false });
+                        outgoing.pending_returns.insert(
+                            0,
+                            PendingReturn {
+                                flow: Flow::new(),
+                                plain_string: false,
+                            },
+                        );
                     }
                     successors.push((*successor, outgoing));
                 }

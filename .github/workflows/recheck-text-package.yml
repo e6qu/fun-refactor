@@ -1,0 +1,82 @@
+name: Recheck the four familiar Python packages
+on:
+  push:
+    branches: [ci/cleanup-text-package]
+permissions:
+  contents: read
+concurrency:
+  group: recheck-text-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  recheck:
+    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      PREFIX: '2026-10-24-cleanup'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal
+      - name: Install the declared package runtime dependency
+        run: python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Check the maintenance claims and original artifact rules
+        run: |
+          python3 -B tools/test-python-text-package.py
+          python3 -B tools/test-recheck-text-package.py
+      - run: cargo build --locked --bin fr
+      - name: Answer all four questions with the same current executable
+        run: >-
+          python3 -B tools/recheck-text-package.py collect --binary target/debug/fr
+          --output "$RUNNER_TEMP/current-text-package"
+      - name: Retain current answers and preserve original unread provenance
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, re, shutil
+          from pathlib import Path
+          prefix = os.environ['PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          directory = Path('tests/agent-eval/results') / (prefix + '-text-package-recheck')
+          assert not directory.exists()
+          shutil.copytree(Path(os.environ['RUNNER_TEMP']) / 'current-text-package', directory)
+          report = directory / 'result.json'
+          catalog_path = Path('tests/agent-eval/roadmap.json')
+          catalog = json.loads(catalog_path.read_text())
+          entry, = [row for row in catalog['evidence'] if row['id'] == 'original-package-questions']
+          entry.update(path=str(report), sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
+              audit='python3 tools/recheck-text-package.py audit --directory ' + str(directory),
+              scope='Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.')
+          catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+          PY
+          python3 -B tools/roadmap-status.py --write
+          python3 -B tools/roadmap-status.py --check
+      - name: Commit the checked maintenance results
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$PREFIX-text-package-recheck" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain current package answers beside original unread provenance'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: current-text-package
+          path: ${{ runner.temp }}/current-text-package
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

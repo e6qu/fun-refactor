@@ -192,7 +192,7 @@ jobs:
           import hashlib, json, subprocess
           from pathlib import Path
           catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
-          for name, script in [('python-text-flow', 'python-text-flow'), ('original-package-questions', 'python-text-package')]:
+          for name, script in [('python-text-flow', 'python-text-flow'), ('original-package-questions', 'recheck-text-package')]:
               entry, = [row for row in catalog['evidence'] if row['id'] == name]
               path = Path(entry['path'])
               assert path.resolve().is_relative_to(Path.cwd())

@@ -64,7 +64,12 @@ impl<'t> Graph<'t> {
             Some(body) => graph.sequence(body, 0, exits)?,
             None => 0,
         };
-        graph.entry = graph.add(Some(function), Operation::Entry, vec![(first, "entry")], exits)?;
+        graph.entry = graph.add(
+            Some(function),
+            Operation::Entry,
+            vec![(first, "entry")],
+            exits,
+        )?;
         Ok(graph)
     }
 
@@ -94,12 +99,7 @@ impl<'t> Graph<'t> {
         Ok(id)
     }
 
-    fn sequence(
-        &mut self,
-        body: Node<'t>,
-        mut next: usize,
-        exits: Exits,
-    ) -> Result<usize> {
+    fn sequence(&mut self, body: Node<'t>, mut next: usize, exits: Exits) -> Result<usize> {
         let statements: Vec<_> = body.named_children(&mut body.walk()).collect();
         for statement in statements.into_iter().rev() {
             next = self.statement(statement, next, exits)?;
@@ -126,12 +126,7 @@ impl<'t> Graph<'t> {
         )
     }
 
-    fn statement(
-        &mut self,
-        node: Node<'t>,
-        next: usize,
-        exits: Exits,
-    ) -> Result<usize> {
+    fn statement(&mut self, node: Node<'t>, next: usize, exits: Exits) -> Result<usize> {
         match node.kind() {
             "if_statement" => {
                 let clauses: Vec<_> = node
@@ -158,7 +153,14 @@ impl<'t> Graph<'t> {
                     exits,
                 )?;
                 let body = match node.child_by_field_name("body") {
-                    Some(body) => self.sequence(body, head, Exits { loops: Some((next, head)), ..exits })?,
+                    Some(body) => self.sequence(
+                        body,
+                        head,
+                        Exits {
+                            loops: Some((next, head)),
+                            ..exits
+                        },
+                    )?,
                     None => head,
                 };
                 let otherwise = match node
@@ -172,8 +174,18 @@ impl<'t> Graph<'t> {
                 Ok(head)
             }
             "try_statement" if finally_body(node).is_some() => self.finally(node, next, exits),
-            "return_statement" => self.add(Some(node), Operation::Return, vec![(exits.returned.node, "return")], exits),
-            "raise_statement" => self.add(Some(node), Operation::Raise, vec![(exits.raised.node, "raise")], exits),
+            "return_statement" => self.add(
+                Some(node),
+                Operation::Return,
+                vec![(exits.returned.node, "return")],
+                exits,
+            ),
+            "raise_statement" => self.add(
+                Some(node),
+                Operation::Raise,
+                vec![(exits.raised.node, "raise")],
+                exits,
+            ),
             "break_statement" if exits.loops.is_some() => self.add(
                 Some(node),
                 Operation::Jump,
@@ -186,12 +198,27 @@ impl<'t> Graph<'t> {
                 vec![(exits.loops.unwrap().1, "continue")],
                 exits,
             ),
-            _ => self.add(Some(node), Operation::Statement, vec![(next, "next")], exits),
+            _ => self.add(
+                Some(node),
+                Operation::Statement,
+                vec![(next, "next")],
+                exits,
+            ),
         }
     }
 
-    fn resume(&mut self, operation: Operation, slot: usize, target: CompletionTarget, exits: Exits) -> Result<usize> {
-        let edge = if operation == Operation::ResumeReturn { "return" } else { "raise" };
+    fn resume(
+        &mut self,
+        operation: Operation,
+        slot: usize,
+        target: CompletionTarget,
+        exits: Exits,
+    ) -> Result<usize> {
+        let edge = if operation == Operation::ResumeReturn {
+            "return"
+        } else {
+            "raise"
+        };
         let id = self.add(None, operation, vec![(target.node, edge)], exits)?;
         self.blocks[id].completion = Some((slot, target.slot));
         Ok(id)
@@ -207,14 +234,24 @@ impl<'t> Graph<'t> {
         let raised = self.sequence(final_body, raised, exits)?;
         let normal = self.sequence(final_body, next, exits)?;
         let loops = match exits.loops {
-            Some((stop, again)) => Some((self.sequence(final_body, stop, exits)?, self.sequence(final_body, again, exits)?)),
+            Some((stop, again)) => Some((
+                self.sequence(final_body, stop, exits)?,
+                self.sequence(final_body, again, exits)?,
+            )),
             None => None,
         };
-        self.sequence(node.child_by_field_name("body").expect("try body"), normal, Exits {
-            returned: CompletionTarget { node: returned, slot },
-            raised: CompletionTarget { node: raised, slot },
-            loops,
-        })
+        self.sequence(
+            node.child_by_field_name("body").expect("try body"),
+            normal,
+            Exits {
+                returned: CompletionTarget {
+                    node: returned,
+                    slot,
+                },
+                raised: CompletionTarget { node: raised, slot },
+                loops,
+            },
+        )
     }
 
     pub fn report(&self, project: &Project<'_>, file: &Path, name: &str) -> Value {
@@ -254,9 +291,18 @@ impl<'t> Graph<'t> {
                 let mut edges: Vec<_> = block
                     .successors
                     .iter()
-                    .map(move |(to, rule)| json!({"from":from,"to":to,"rule":rule})).collect();
-                if matches!(block.operation, Operation::Condition | Operation::Statement | Operation::Return | Operation::Raise) {
-                    edges.push(json!({"from":from,"to":block.raised.node,"rule":"explicit-call-raise"}));
+                    .map(move |(to, rule)| json!({"from":from,"to":to,"rule":rule}))
+                    .collect();
+                if matches!(
+                    block.operation,
+                    Operation::Condition
+                        | Operation::Statement
+                        | Operation::Return
+                        | Operation::Raise
+                ) && block.syntax.is_some_and(contains_call) {
+                    edges.push(
+                        json!({"from":from,"to":block.raised.node,"rule":"explicit-call-raise"}),
+                    );
                 }
                 edges
             })
@@ -267,9 +313,25 @@ impl<'t> Graph<'t> {
 }
 
 fn finally_body(node: Node<'_>) -> Option<Node<'_>> {
-    let clauses: Vec<_> = node.named_children(&mut node.walk()).filter(|child| child.kind() != "block" && child.kind() != "comment").collect();
+    let clauses: Vec<_> = node
+        .named_children(&mut node.walk())
+        .filter(|child| child.kind() != "block" && child.kind() != "comment")
+        .collect();
     if clauses.len() != 1 || clauses[0].kind() != "finally_clause" {
         return None;
     }
-    clauses[0].named_children(&mut clauses[0].walk()).find(|child| child.kind() == "block")
+    clauses[0]
+        .named_children(&mut clauses[0].walk())
+        .find(|child| child.kind() == "block")
+}
+
+fn contains_call(node: Node<'_>) -> bool {
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if node.kind() == "call" {
+            return true;
+        }
+        pending.extend(node.named_children(&mut node.walk()));
+    }
+    false
 }

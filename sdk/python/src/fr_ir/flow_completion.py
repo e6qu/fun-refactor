@@ -1,10 +1,11 @@
 """The explicit scalar exits understood by the checker, including finally cleanup."""
 from dataclasses import dataclass
+from typing import Any
 
 from .runtime import FrReport, FrRuntimeError
 
 
-_CONTRACT = {
+_CONTRACT: dict[str, Any] = {
     'schema': 'fr-scalar-completion',
     'finally': 'Run cleanup for normal flow, return, explicit raise, break and continue; cleanup can replace the pending completion.',
     'values': 'Evaluate a return or raise value before cleanup. Keep separate pending values for nested protected regions.',

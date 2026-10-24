@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIRST_RUN = 40026358439
 FIRST_SOURCE = '37d9cad03424fc02526db49a45a544083af0b511'
 WORKFLOW = '.github/workflows/python-text-package.yml'
+HISTORICAL_AUDITOR = 'de291111549d8764565963ab346d0d7647747df5'
+HISTORICAL_DIRECTORY = 'tests/agent-eval/results/2026-10-24-pr573-python-text-package'
 SELECTION_PATH = 'tests/agent-eval/python-text-flow/selection.json'
 SELECTION = json.loads((ROOT / SELECTION_PATH).read_text())
 spec = importlib.util.spec_from_file_location('text_package_retention', ROOT / 'tools/retain-scalar-evidence.py')
@@ -218,6 +220,37 @@ def audit(directory):
     return result
 
 
+def historical_audit(directory, source_commit):
+    require(source_commit == HISTORICAL_AUDITOR, 'use the recorded qualified-package auditor')
+    subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', source_commit], cwd=ROOT,
+        check=True, capture_output=True, timeout=60)
+    require({path.name for path in directory.iterdir()} == {'result.json', 'receipt.json', 'artifact.zip', 'delivery.json'},
+        'historical package inventory changed')
+    for name in ('result.json', 'receipt.json', 'artifact.zip', 'delivery.json'):
+        recorded = subprocess.check_output(['git', 'show', source_commit + ':' + HISTORICAL_DIRECTORY + '/' + name],
+            cwd=ROOT, timeout=30)
+        require((directory / name).read_bytes() == recorded, 'historical package bytes changed: ' + name)
+    report = json.loads((directory / 'result.json').read_text())
+    paths = {'tools/', 'sdk/python/src/', *report['source_bindings']}
+    require(all(not Path(name).is_absolute() and '..' not in Path(name).parts
+        and not any(char in name for char in '\\!*?[]') for name in paths), 'unsafe historical package source input')
+    with tempfile.TemporaryDirectory(prefix='fr-qualified-package-audit-') as temporary:
+        source = Path(temporary) / 'source'
+        subprocess.run(['git', 'worktree', 'add', '--no-checkout', '--detach', str(source), source_commit],
+            cwd=ROOT, check=True, capture_output=True, timeout=60)
+        try:
+            subprocess.run(['git', 'sparse-checkout', 'set', '--no-cone', '--stdin'], cwd=source,
+                input=''.join('/' + name + '\n' for name in sorted(paths)), text=True, check=True, timeout=60)
+            subprocess.run(['git', 'checkout', '--force', '--detach', source_commit], cwd=source,
+                check=True, capture_output=True, timeout=60)
+            subprocess.run(['python3', '-B', 'tools/python-text-package.py', 'audit', '--directory', str(directory.resolve())],
+                cwd=source, check=True, timeout=180)
+        finally:
+            subprocess.run(['git', 'worktree', 'remove', '--force', str(source)], cwd=ROOT,
+                check=True, capture_output=True, timeout=60)
+    return report
+
+
 def retain(run_id, prefix):
     require(os.environ.get('GITHUB_ACTIONS') == 'true' and run_id == FIRST_RUN,
         'retain the first package result on GitHub')
@@ -273,6 +306,14 @@ if __name__ == '__main__':
     keep.add_argument('--prefix', required=True)
     check = sub.add_parser('audit')
     check.add_argument('--directory', required=True, type=Path)
+    historical = sub.add_parser('audit-historical')
+    historical.add_argument('--directory', required=True, type=Path)
+    historical.add_argument('--source-commit', required=True)
     args = parser.parse_args()
-    result = retain(args.run, args.prefix) if args.command == 'retain' else audit(args.directory)
+    if args.command == 'retain':
+        result = retain(args.run, args.prefix)
+    elif args.command == 'audit-historical':
+        result = historical_audit(args.directory, args.source_commit)
+    else:
+        result = audit(args.directory)
     print(json.dumps({'complete': result['complete'], 'projects': len(result['independent_projects'])}))

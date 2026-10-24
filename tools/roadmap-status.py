@@ -27,6 +27,7 @@ KINDS = {
     'fr-python-text-flow': 'deterministic',
     'fr-python-text-package': 'deterministic',
     'fr-qualified-text-package': 'deterministic',
+    'fr-rechecked-text-package': 'deterministic',
     'fr-flow-facts-acceptance-1': 'deterministic',
     'fr-package-flow-acceptance-1': 'deterministic',
     'fr-flow-cache-acceptance-1': 'measurement',
