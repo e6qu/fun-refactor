@@ -168,26 +168,26 @@
     {
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-checked-translation/result.json",
-      "sha256": "34c6bfc81954ee17a7c7267963657a91e7ccf1e840899a5d35771d4e9fe2a57e",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-checked-translation/result.json",
+      "sha256": "4665df7ef6186f0164492667e649181825809e5c654f5ae118bf26923faa618c",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-checked-translation"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-checked-translation"
     },
     {
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-effects/result.json",
-      "sha256": "559073c9b5f202f5b6e7e26b5d48edd7752296273e2be75eabbce1329f8a50d7",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-effects/result.json",
+      "sha256": "5a35048c690ca396e078b41388c86933ac7d21c6014765ce443f180c86ec8382",
       "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-python-effects"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-python-effects"
     },
     {
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-text-flow/result.json",
-      "sha256": "4eefcad2989e04238acfb52529d4269d13039caeb8f70e5068f6e16104548570",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-text-flow/result.json",
+      "sha256": "e2dcda2407bfa8d20a064432454ddd344dd3f94e63fe9606ae97b7b63f2dffa4",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-python-text-flow"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-python-text-flow"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
