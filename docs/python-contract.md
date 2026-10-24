@@ -1020,7 +1020,7 @@ Static module resolution follows the [package-flow contract](agent-investigation
 This corpus does not establish arbitrary imports, multiple names for the same mutable object, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
-The authored corpus pairs every program with a renamed/relocated case across fourteen rules.
+The authored corpus pairs every program with a renamed/relocated case for each declared rule.
 The generated roadmap status owns the active source-bound inventory counts.
 Import cases rename module paths as well as identifiers. Separate Python processes prevent
 module caches from leaking between programs. Runtime results distinguish definition failures
