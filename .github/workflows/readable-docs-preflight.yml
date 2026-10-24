@@ -33,7 +33,7 @@ jobs:
             -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
             https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
           echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
-      - name: Check revised guides and generated article links against the integrated release
+      - name: Check revised guides and generated example descriptions against the integrated release
         run: |
           python3 -B tools/test-review-docs.py
           python3 -B tools/review-docs.py --write
@@ -46,6 +46,8 @@ jobs:
         with:
           key: default
       - run: cargo build --locked --bin fr
+      - name: Regenerate the public examples from their checked source
+        run: UPDATE_SITE_DATA=1 cargo test --locked --test site_data -- --test-threads 1
       - name: Use fr for the final bug-guide heading and exercise reversal
         run: |
           python3 -B - <<'PY'
@@ -90,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -B tools/review-docs.py --write
-          git add BUGS.md docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
+          git add BUGS.md docs/catalog-data.js docs/translate-data.js docs/recipes-data.js docs/contract-data.js docs/roadmap-status.md docs/roadmap-status.json docs/native-change-outcomes.md docs/native-read-outcomes.md tools/PROSE-DEBT tests/agent-eval/context-protocol-v3.json
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
