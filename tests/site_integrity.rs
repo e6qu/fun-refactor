@@ -191,12 +191,11 @@ fn prose(html: &str) -> String {
 fn documented_commands(html: &str) -> BTreeSet<String> {
     // Commands appear in inline code or terminal blocks. Combining all page prose
     // mistakes sentences such as "Use fr for this task" for command examples.
-    let examples = regex::Regex::new(
-        r"(?s)<code(?:\s[^>]*)?>(.*?)</code\s*>|<pre(?:\s[^>]*)?>(.*?)</pre\s*>",
-    )
-    .expect("valid code-element pattern");
-    let command = regex::Regex::new(r"(?:^|[\s;&|$])fr\s+([a-z][a-z-]*)\b")
-        .expect("valid command pattern");
+    let examples =
+        regex::Regex::new(r"(?s)<code(?:\s[^>]*)?>(.*?)</code\s*>|<pre(?:\s[^>]*)?>(.*?)</pre\s*>")
+            .expect("valid code-element pattern");
+    let command =
+        regex::Regex::new(r"(?:^|[\s;&|$])fr\s+([a-z][a-z-]*)\b").expect("valid command pattern");
     let mut found = BTreeSet::new();
     for example in examples.captures_iter(html) {
         let content = example.get(1).or_else(|| example.get(2)).unwrap().as_str();
