@@ -45,12 +45,8 @@ jobs:
         run: |
           python3 -B tools/agent_eval/test_codex_runner.py
           python3 -B tools/external-eval.py tools/agent_eval/test_harness.py
-      - name: Preserve the evaluator behind recorded comparisons
-        run: |
-          python3 -B tools/project-batch-context.py --audit tests/agent-eval/results/2026-10-20-project-ci-project-batch-context/result.json
-          python3 -B tools/task-bundle-context.py --audit tests/agent-eval/results/2026-10-20-project-ci-task-bundle-context/result.json
-          python3 -B tools/workflow-context.py --audit tests/agent-eval/results/2026-10-20-project-ci-workflow-context/result.json
-          python3 -B tools/representative-acceptance.py audit
+      - name: Check registered comparison graders
+        run: python3 -B tools/representative-acceptance.py audit
       - name: Prepare and independently reopen the schedule
         run: |
           python3 -B tools/agent-comparison-plan.py --prepare > "$RUNNER_TEMP/comparison-plan.json"
