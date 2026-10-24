@@ -217,7 +217,7 @@ A file fingerprint is a short value computed from its contents, used to detect e
 For example, refreshed helper checks can use new records while unrelated compiler checks keep their original records.
 A missing setting fails the check. Tests never select an older record automatically.
 Original collection receipts remain beside the recorded results.
-The [Python example receipt](../tests/agent-eval/results/2026-10-24-handlers-final-python-contract/manifest.json)
+The [Python example receipt](../tests/agent-eval/results/2026-10-24-handlers-release-python-contract/manifest.json)
 covers 495 programs and 990 original or renamed cases, including error handlers, cleanup, dictionary arguments and defaults during startup.
 It preserves 370 incomplete cases, 18 refusals and 134 documented differences between the checker's model and Python's observed behavior.
 These include programs where startup replaces a helper or raises before the application runs.
@@ -251,3 +251,4 @@ See the [candidate review](candidate-review-status.md) for unresolved task-revie
 - Use the configured GitHub login; leave credential files alone.
 - Keep each commit message to one line of at most 80 characters, without a body or trailers.
 - Wait for passing CI before merging. When authorized, squash with an explicit subject and empty body.
+
