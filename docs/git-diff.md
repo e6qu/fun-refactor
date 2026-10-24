@@ -18,9 +18,11 @@ fr git diff src/main.rs --staged
 fr git diff src/main.rs --since HEAD~1
 ```
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Use [repository change pages](git-changes.md) to discover paths for the same comparison before requesting detail.
 The native command requires Git and prints JSON in both output modes.
-It inspects one literal UTF-8 (the text encoding used to count source bytes) file path relative to the repository root, even when `-C` selects a nested directory.
+It inspects one literal UTF-8 file path relative to the repository root, even when `-C` selects a nested directory.
 Paths containing whitespace, glob characters or Git pathspec magic retain their literal meaning.
 Use `--` before a path beginning with a dash. Linked worktrees select their own files and index.
 Inspection does not load transaction history or write source, history or index data.
@@ -104,7 +106,7 @@ Successful inspection exits zero even when changes exist. Setup, unsupported inp
 
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
-They do not prove parser or Git execution correspondence (the stated connection between two descriptions) with Lean.
+They do not prove that every parser result or Git execution agrees with the Lean model.
 Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
 Call pages can include explicitly selected files for each comparison. This command does not compute transitive impact.
 

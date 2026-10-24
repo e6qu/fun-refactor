@@ -249,8 +249,10 @@ fixture-name rules.
 
 ## Admission and evidence
 
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
 Bundles require 1..256 endpoints and at most 1 MiB of encoded JSON. A route admits at most 32
-request inputs. Query strings and string body fields admit at most 4096 UTF-8 (the text encoding used to count source bytes) bytes. Query integers
+request inputs. Query strings and string body fields admit at most 4096 UTF-8 bytes. Query integers
 use canonical decimal spelling; all integers stay in the exactly representable range shared by the
 adapters. JSON integers are mathematical integral numbers in that range. Boolean query values are
 exactly `true` or `false`; JSON values retain their JSON scalar type. Duplicate query keys refuse.

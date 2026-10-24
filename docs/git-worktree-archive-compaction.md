@@ -109,4 +109,4 @@ The summary-before-deletion ordering does not establish an atomic filesystem tra
 The anchored compaction guard requires completion, absent checkout and metadata paths, and an available archive lease.
 Lean proves all four conditions are necessary. Shared Rust/Lean cases cover all sixteen boolean inputs.
 A separate abstract archive model proves audit preservation and compaction idempotence.
-Those model results do not prove correspondence (the stated connection between two descriptions) for JSON validation, Git observations, filesystem operations or crash durability.
+Those model results do not prove the implementation of JSON validation, Git observations, filesystem operations or crash durability.

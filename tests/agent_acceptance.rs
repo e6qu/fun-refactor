@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-24-handlers-final-checked-outcomes",
+        "tests/agent-eval/results/2026-10-24-readable-docs-checked-outcomes",
     ]);
 }
 
@@ -133,7 +133,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-24-handlers-final-project-batch-context/result.json",
+        "tests/agent-eval/results/2026-10-24-readable-docs-project-batch-context/result.json",
     ]);
 }
 
@@ -215,7 +215,7 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-24-handlers-final-workflow-context/result.json",
+        "tests/agent-eval/results/2026-10-24-readable-docs-workflow-context/result.json",
     ]);
 }
 
@@ -231,7 +231,7 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
     python(&[
         "tools/task-bundle-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-24-handlers-final-task-bundle-context/result.json",
+        "tests/agent-eval/results/2026-10-24-readable-docs-task-bundle-context/result.json",
     ]);
 }
 #[test]
@@ -239,6 +239,6 @@ fn consumer_scopes_retain_exact_discovery_and_replay_checked_delivery() {
     python(&[
         "tools/change-scope-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-24-handlers-release-change-scope",
+        "tests/agent-eval/results/2026-10-24-readable-docs-change-scope",
     ]);
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check current documentation links and refresh generated prose on a runner."""
 import argparse
+from html.parser import HTMLParser
 import importlib.util
 import json
 import os
@@ -66,6 +67,49 @@ def links(path):
         match[1] for match in re.finditer(r'^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?', text, re.M)]
 
 
+class WebsitePage(HTMLParser):
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.links, self.anchors = [], set()
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        for name, value in attrs:
+            if value and name in ('href', 'src'):
+                self.links.append(value)
+            if value and (name == 'id' or (tag == 'a' and name == 'name')):
+                self.anchors.add(value)
+
+
+def check_website_links():
+    pages = {path: WebsitePage(path.read_text()) for path in sorted((ROOT / 'docs').glob('*.html'))}
+    # These three renderers create article IDs from their checked data files.
+    generated = {'translate.html': 'translate-data.js', 'catalog.html': 'catalog-data.js',
+                 'recipes.html': 'recipes-data.js'}
+    for path, page in pages.items():
+        if path.name in generated:
+            data = (path.parent / generated[path.name]).read_text()
+            page.anchors.update(json.loads(value) for value in re.findall(
+                r'^\s+id: ("(?:[^"\\]|\\.)*"),$', data, re.M))
+    failures = []
+    for path, page in pages.items():
+        for target in page.links:
+            url = urlsplit(target)
+            if url.scheme or url.netloc:
+                continue
+            child = (path.parent / unquote(url.path)).resolve() if url.path else path
+            # Vite produces this directory during the separate browser build.
+            if child == ROOT / 'docs/playground' and not url.fragment:
+                continue
+            if not child.is_relative_to(ROOT) or not child.exists():
+                failures.append(f'{path.relative_to(ROOT)}: missing {target}')
+            elif child in pages and url.fragment and unquote(url.fragment) not in pages[child].anchors:
+                failures.append(f'{path.relative_to(ROOT)}: missing heading {target}')
+    if failures:
+        raise ValueError('\n'.join(failures))
+    print(f'Checked local links, assets and anchors in {len(pages)} public website pages.')
+
+
 def check_links():
     failures, seen = [], {}
     pages = guides()
@@ -97,10 +141,11 @@ def check_links():
                 reachable.add(child)
                 pending.append(child)
     for page in pages:
-        if page.parent in (ROOT, ROOT / 'docs') and page not in reachable:
+        if page not in reachable:
             failures.append(f'{page.relative_to(ROOT)}: no link path from README.md')
     if failures:
         raise ValueError('\n'.join(failures))
+    check_website_links()
     from reader_examples import check_measurements
     check_measurements()
     print(f'Checked local links and headings in {len(pages)} current guides.')
@@ -138,10 +183,12 @@ def refresh():
                         line = text[:match.start()].count('\n') + 1
                         print(f'{name}:{line}: {key}: {match[0]}', flush=True)
             if 'long-sentence' in rising:
-                for paragraph in re.split(r'\n\s*\n', text):
-                    for sentence in re.split(r'(?<=[.!?])\s+', paragraph):
-                        if len(sentence.split()) > 25:
-                            print(f'{name}: long sentence: {sentence[:220]}', flush=True)
+                counted = '\n'.join(line for line in text.split('\n') if not line.lstrip().startswith('|'))
+                for sentence in check.sentences(counted):
+                    if '|' in sentence or ('`' in sentence and len(sentence.split()) > 40):
+                        continue
+                    if len(sentence.split()) > check.MAX_WORDS:
+                        print(f'{name}: long sentence: {sentence[:220]}', flush=True)
         raise ValueError(f'Improve the prose; do not raise its budgets: {rising}')
     text = check.BUDGET.read_text()
     for key, value in counts.items():

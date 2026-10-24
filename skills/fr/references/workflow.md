@@ -1,5 +1,8 @@
 # Deliver one verified transaction
 
+For coordinated edits, choose [Task](task.md), [Goal](guide.md) or [Intent](intents.md).
+Keep reports in the [Python client](runtime.md) when needed. For page styles or services, inspect [Surfaces](surfaces.md).
+
 Deliver the reviewed change only after its required checks pass. Keep its saved transaction so you can inspect or reverse a failed attempt.
 
 A transaction saves an edit. A workflow applies it, runs declared checks and delivers its patch. A failed check can leave the source edited.

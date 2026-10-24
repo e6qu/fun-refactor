@@ -32,9 +32,9 @@ def register(catalog, group, relative, receipt):
     scope = ('Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs '
              'and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.'
              if group == 'checked-translation' else
-             'Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. '
-             'Exact source locations and visible model/runtime disagreement; implicit errors, bound error objects '
-             'and shared objects remain unchecked.')
+             'Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. '
+             'They show source locations and model/runtime differences. Implicit errors, caught error objects '
+             'and shared objects need separate checks.')
     if group == 'python-text-flow':
         scope = ('Plain string conversions and twelve read-only string methods, repeated after renaming and moving. '
                  'Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.')

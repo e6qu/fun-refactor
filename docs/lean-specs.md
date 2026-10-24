@@ -10,8 +10,8 @@ A proof about the tool's review rules is different from a proof about your check
 
 ## Commands, results and limits
 
-`fr` reads and writes Lean. It checks source anchors and explicit signature maps, renews reviewed
-source hashes, builds the owning Lean packages and scaffolds proof work in other projects. The
+`fr` reads and writes Lean. It checks source references and explicit signature maps, renews reviewed
+source hashes and builds the owning Lean packages. It also prepares proof work in other projects. The
 [agent formalization guide](agent-formalization.md) covers that adoption workflow.
 
 ## What exists
@@ -26,7 +26,7 @@ source hashes, builds the owning Lean packages and scaffolds proof work in other
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
 | `fr spec goals` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
-| `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence (the stated connection between two descriptions) and remaining obligations |
+| `fr spec evidence` | Report model properties, assumptions, trusted components, model-to-code connections and remaining work |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor from a readable code language |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
@@ -43,8 +43,7 @@ Structural file anchors use `PATH::__fr_structure__` and hash the complete decla
 Their maps expose a Boolean validity model, with explicit fact omissions and provenance limits.
 Checked IR/model theorems appear separately in `evidence.kernel_correspondence`.
 They establish no source implementation equivalence.
-The complete agent-oriented route and its correspondence limits are documented in the
-[agent formalization workbench](agent-formalization.md).
+The [agent proof guide](agent-formalization.md) explains the complete procedure and the remaining source-to-model checks.
 
 ## Source anchors
 
@@ -107,7 +106,9 @@ the typed pure subsets in the [formalization contract](agent-formalization.md#su
 
 ## Existing kernels
 
-`FrKernels.Edit` models byte-based edits, UTF-8 (the text encoding used to count source bytes) boundaries, ordering, overlap checks and splice application.
+UTF-8 encodes text as bytes. For example, `é` occupies two bytes, so byte limits can differ from character counts.
+
+`FrKernels.Edit` models byte-based edits, UTF-8 boundaries, ordering, overlap checks and splice application.
 It states properties of accepted and rejected plans and unchanged source prefixes.
 `FrKernels.Position` models line and column conversion and full-line spans.
 

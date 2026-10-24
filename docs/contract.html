@@ -37,11 +37,10 @@
     <p class="eyebrow">Cross-language, contract first</p>
     <h1 class="prose">A pet store, moved from Next.js to FastAPI without moving its API</h1>
     <p class="lede prose">
-      A refactoring preserves what a function does. A translation preserves a
-      signature. Rewriting a service in another language has to preserve the only thing
-      anyone outside the repository can see: the <strong>HTTP contract</strong>. A
-      caller does not import your functions. It sends
-      <code>PATCH /pets/42</code> with a JSON body and expects <code>200</code>.
+      Moving a service must preserve the behavior its callers use.
+      An HTTP contract describes request methods, URLs and declared data.
+      For example, a client sends <code>PATCH /pets/42</code> with a JSON body and expects a response.
+      Matching the extracted contract checks those declarations; behavior tests must still check the handler.
     </p>
     <p class="lede prose">
       Everything below works one example: eight route files, thirteen operations,
@@ -55,7 +54,7 @@
       <span class="recorded">Generated</span> &nbsp;Running <code>fr</code> over
       <code>tests/petstore</code> produced the contract and every translation on this
       page, and <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code> captured them.
-      Nobody typed any of it by hand, so none of it can drift from what the tool does.
+      The generated records test agreement with that example. They do not establish complete service behavior.
     </p>
   </div>
 </section>

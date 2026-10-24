@@ -29,32 +29,23 @@ The comparison below checks supported neighbors as well as the failing form.
 3. Regenerate with the `tree-sitter` CLI, and keep `src/parser.c` beside the grammar.
 4. Save the diff against the untouched `grammar.js`, so the next upgrade can re-apply it.
 5. Record the source, tag, checksum and licence in `PROVENANCE.toml`.
-6. Prove the patch is additive: parse a body of real code with the stock parser and the
-   patched one, and compare the trees. They must agree everywhere the stock parser
-   succeeds.
+6. Compare the original and patched parsers on real code. Require the same trees where the original parser succeeds,
+   apart from explicitly documented corrections. Test the failing form and nearby valid and invalid forms.
+   This finite comparison can find regressions; it does not prove correctness for every program.
 
-## Why `src/parser.c` is committed, at any size
+## Why generated parsers are committed
 
 The `tree-sitter` CLI generates it from `grammar.js`, and its first line says so. Every
 grammar here keeps the generated file anyway, so `cargo build` needs a C compiler and
 nothing else. Generating at build time instead would make that CLI a hard dependency of
 every clone and every CI run.
 
-Lean is the one that makes the question worth asking. Its `parser.c` is 48 MB and 1.3
-million lines, seven times the largest grammar before it. 91% of that is a single dense
-array. Tree-sitter gives a state a full `STATE x SYMBOL` row once its action set is wide
-enough. Lean's expression grammar leaves most of its states there, and Python 194 of
-2,894.
+Generated files can be large even when their compressed download is much smaller.
+Measure source size, Git download size and the built browser bundle separately when reviewing a grammar update.
+An old size measurement is not a current download budget.
 
-The number that decides it is smaller. That array is repeated small integers, so git
-packs the file to 2.68 MB. A first visit to the playground grows 2.09 MB gzipped to
-3.62 MB. The 48 MB costs an editor and a `grep`, not a clone.
-
-The same arithmetic decides which patches Lean gets. `mutual` cost 4 MB of source and
-0.22 MB packed. This build's Lean writer emits one wherever the declaration order it
-computes finds a cycle, and without the rule that translation refuses. Chained `let`s
-inside an `if` branch need no new parser state: the layout scanner already emits the
-separator the grammar takes, and now does so for a deeper binding body too.
+The language notes below record the examples and finite comparisons used for these patches.
+Their counts describe those original checks. They do not describe all programs accepted by a language or the current browser bundle.
 
 ## lean
 

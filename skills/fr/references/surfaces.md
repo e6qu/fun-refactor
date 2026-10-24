@@ -1,4 +1,4 @@
-# Cross-stack surfaces
+# Inspect page styles and diagrams
 
 For a wrongly styled button, find the component, quoted class and matching style. Treat generated names and runtime relationships as unresolved.
 
@@ -20,8 +20,10 @@ When a row has `edit.schema = fr-surface-edit-1`, execute its exact preview argu
 only `<VALUE>`. Review the diff before repeating with `--write`; retain the transaction for undo, redo
 and patch export. Rows without that capability are read-only boundaries.
 
-When several domains may matter, obtain a full map handle and start with
-`project disclose HANDLE --view project`. Read its five-entry catalog, reveal the narrow domain, and
-reuse its object digest with the Python Merkle object-store helpers when persistence is useful.
-Service targets redact credentials, queries and fragments. Root-relative targets contain bounded
-same-path route candidates. Treat unique candidates as static links rather than runtime dispatch.
+For example, change a Markdown heading through its returned `edit.preview.arguments`, then review whether its links need updating too.
+An editable heading does not give the tool permission to rename every matching word in a document.
+
+When several parts of an application may matter, obtain a full map handle and use
+`project disclose HANDLE --view project`. Open the relevant catalog entry before requesting source.
+Links to services omit credentials, query strings and fragments.
+A matching local route is a source candidate; it does not establish which handler a running service executes.

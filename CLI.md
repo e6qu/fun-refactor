@@ -43,15 +43,14 @@ Replace bracketed placeholders, including their brackets. A basis for one operat
 For example, a caller report's reference cannot replace the reference returned by an edit preview.
 Data field names stay exact below so you can find them in JSON output.
 
-Three conventions hold across the whole surface, and knowing them removes most
-of what you would otherwise have to look up.
+Use these conventions when reading the commands below.
 
 **Every command takes `--json`.** The text output is for reading and the JSON is
 for a program. Both carry the same facts. Analysis records commonly use absolute `file` paths.
 Project, history, Git and check reports also use paths relative to their reported root.
 
-**Every mutation is a dry run until you say otherwise.** A command that changes
-files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan` stores a plan without changing source.
+**Source edits start with a preview.** Commands such as `rename` and `author` show proposed changes without applying them.
+Pass `--write` to apply an edit. `--save-plan` records the proposal without changing source.
 `openapi --out` also authorizes writing its named output. See [Write guarantees](#write-guarantees) for failure and recovery behavior.
 `checks --run` executes declared project commands; their side effects do not enter source history. `--record-for <TX>` can attach a passing receipt to one applied transaction.
 
@@ -2018,9 +2017,10 @@ History restores entry kinds, file contents or UTF-8 link targets, existence and
 
 ### `fr file`
 
-Preview a file move, deletion or other supported file operation before writing.
+Preview an exact text replacement, file move, deletion or other supported file operation before writing.
 
 ```sh
+fr file replace docs/setup.md --before 'old_name' --after 'new_name' --matches 1 --save-plan
 fr file delete obsolete.txt empty.txt
 fr file delete obsolete.txt --save-plan
 
@@ -2037,6 +2037,11 @@ Both output modes print JSON metadata without source bodies. Paths sort before r
 The default previews without writing. `--save-plan` saves a transaction; `--write` records and applies it.
 Choose either flag. Apply a saved transaction with `fr history apply ID --write`.
 The same history commands provide undo, redo, recovery and Git patch export.
+
+`replace PATH --before TEXT --after TEXT --matches N` requires the exact nonoverlapping match count.
+For example, update one documentation mention after renaming a function. A count mismatch refuses the edit.
+Both the original and resulting file must fit 64 KiB. The two text arguments together must also fit 64 KiB.
+This is a literal text edit; it does not resolve names or update callers. Inspect the saved patch and run the relevant documentation checks.
 
 `delete` removes whole files, including empty files, without checking references or project behavior.
 `move SOURCE DESTINATION` records source deletion and destination creation in one transaction. The

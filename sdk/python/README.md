@@ -23,13 +23,14 @@ client = FrClient(".", executable="fr")
 print(client.compatibility().version)
 ```
 
-`FrClient` also keeps project reports, progressive disclosure and reviewed task-change sessions as
-Python objects. It invokes the local `fr` binary without a shell and exposes selected report values
-without printing the surrounding JSON:
+`FrClient` keeps reports and reviewed changes as Python objects.
+It invokes the local `fr` binary without a shell. Your program chooses which parts to send to the agent.
+For example, keep the full map in memory and return only one caller while deciding what to read next.
 
 For this example, your project must contain one function named `render`.
 For a small trial, create `app.py` with `def render(value): return value + 1`, then run the Python code from that folder.
-An object store keeps report data outside the conversation, addressed by content fingerprints.
+An object store keeps report data outside the conversation. Each piece has a fingerprint calculated from its contents.
+Requesting that fingerprint retrieves the same piece and checks that its contents still match.
 Use an empty store outside the project so writing the cache does not change the source being inspected.
 
 ```python
@@ -92,6 +93,9 @@ if definition is not None:
     session = client.context(guide.target.handle)
     print(session.source_text(definition.definition))
 ```
+
+The remaining snippets continue with `client`, `handle` and the `render` project above.
+They illustrate separate operations; they are not one program to execute in sequence.
 
 `AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
 context limits and delivery. `AgentGuide` verifies the goal identity and Merkle report; following an

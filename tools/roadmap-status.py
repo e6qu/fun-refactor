@@ -224,9 +224,12 @@ def markdown(report):
                 'The project-change checks and [complete session cost comparison](project-session-cost.md) have matching current records. '
                 'The comparison repeats the same questions on three projects before and after one source edit. '
                 'It compares CLI calls, fresh and running Python clients, and saved answers. Startup, checking, edits, shutdown and cleanup enter session totals; setup remains separate. '
-                'Follow the three-PR roadmap: first make fr usable in all three agents and measure complete costs against ordinary tools and CodeGraph. '
-                'Then complete broader Python analysis and translation, followed by source-connected proofs and repeated agent comparisons. '
-                'Existing acceptance requirements remain in force; the delivery packages do not change completion claims.')
+                'The next code task is [R1](../PLAN.md#r1-recover-from-invalid-number-input): '
+                'extend the Boltons-backed application to recover from invalid numeric text and inspect the caught error. '
+                '[R2](../PLAN.md#r2-follow-shared-lists-through-original-imports) follows a shared message list through helpers and original package imports. '
+                '[R3](../PLAN.md#r3-prove-the-properties-of-the-code-we-ship) connects proofs to the actual page-count and edit-range functions. '
+                '[R4](../PLAN.md#r4-measure-agents-completing-whole-tasks) measures whole agent attempts after models, settings and spending limits are agreed. '
+                'These tasks preserve the existing acceptance requirements.')
     else:
         resumed_work = 'Saved changes, undo, checks and recovery tests'
         delivered_changes = 'Reviewed edits, behavior checks and small supported proofs'
@@ -263,7 +266,7 @@ def markdown(report):
         'unmeasured overhead. Read the [product review](product-review.md) and [result meanings](understanding-results.md).', '',
         '## What happens next', '',
         next_work, '',
-        'See the [plan](../PLAN.md#next-three-prs) for the work sequence and '
+        'See the [plan](../PLAN.md#next-work) for the work sequence and '
         '[generalization requirements](../PLAN.md#generalization-requirements) for the testing policy.', '',
         '## Milestones', '',
         'The implementation column counts completed code changes. The test column counts specific '

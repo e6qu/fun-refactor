@@ -35,12 +35,11 @@
 <section>
   <div class="shell">
     <p class="eyebrow">The catalogue</p>
-    <h1 class="prose">Fowler and Beck, worked in Python</h1>
+    <h1 class="prose">Review small code changes, with examples</h1>
     <p class="lede prose">
-      A refactoring changes the <em>text</em> of a program and leaves what the
-      program <em>does</em> alone. That is the whole definition, and the only thing
-      every entry here has in common. So every entry says, in its own words, what
-      stayed the same.
+      Refactoring changes code while preserving its required behavior.
+      For example, extracting a repeated calculation into a helper should preserve its result and relevant effects.
+      Each example shows an intended change, the generated diff and the behavior to check.
     </p>
     <p class="lede prose">
       Browse twenty-four entries. The tool applies each named move with one command:
@@ -54,26 +53,21 @@
       <span class="recorded">Every file</span> &nbsp;Where a move reaches past the file
       it started in, <strong>every file is here</strong>, including the ones that did
       not have to change. Change a signature without its callers and you have a broken
-      program. So the declaration and the calls appear together, in their own tabs, and
-      you can watch the behaviour move from one to the other and stay the same.
+      program. A declaration defines the function; its parameters name the argument slots.
+      A caller invokes that function. Compare both files before accepting a change to those slots.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
       <span class="recorded">Generated</span> &nbsp;The <code>fr</code> binary produced
       every <em>after</em> and every diff below, and
       <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code> captured them. A
-      hand-typed “after” claims something about the tool instead of demonstrating it,
-      and it goes stale the first time the tool improves. That test fails when the page
-      and the tool disagree.
+      test compares the saved examples with current tool output.
+      Those checks do not establish every behavior of a larger application.
     </p>
 
     <p class="note prose" style="margin-top:0.75rem">
-      <span class="recorded">Whose code</span> &nbsp;The <em>names</em> are Fowler's and
-      Beck's, and each entry says which book and which edition. The <strong>code is
-      not theirs</strong>: somebody wrote every sample here for this page, in Python, to
-      exercise the move the catalogue describes. Their examples are copyrighted, and a
-      translation of one into Python would be a derivative of it. Go and read them: the
-      books hold the <em>judgement</em>, and no tool has any of that.
+      <span class="recorded">Sources</span> &nbsp;The refactoring names cite books by Martin Fowler and Kent Beck.
+      Each entry identifies its source. This project's authors wrote the sample code to exercise the named operation.
     </p>
   </div>
 </section>
@@ -99,23 +93,20 @@
 
 <section>
   <div class="shell prose wide">
-    <h2>What is not here</h2>
+    <h2>Check the limits before using an example</h2>
     <p>
-      Most of the catalogue. Both books dwell on moves that need to know what a type
-      <em>is</em>: Replace Conditional with Polymorphism, Replace Primitive with
-      Object, Encapsulate Record. This tool resolves names and leaves types alone. It
-      would have to guess, and a refactoring that guesses is a find-and-replace with
-      better manners.
+      These are selected examples from a larger catalog of code changes.
+      Changes to object design or behavior need project knowledge and independent tests.
+      A source pattern that permits one edit does not establish support for every similarly named refactoring.
     </p>
     <p>
-      The three entries that decline mark that boundary, and each declines for a
-      different reason. Fowler's own Guard Clauses example nests
+      The four refusals show cases the tool leaves unchanged. A Guard Clauses example nests
       <code>if</code>/<code>else</code> and assigns to a result. Turning the
       <code>else</code> into an early return means deciding what the function returns on
       the path that used to fall through, a judgement about the code.
       <code>delete</code> refuses anything still referenced, so
       <code>fr unused</code>'s list is worth acting on. A reorder that would put a
-      defaulted parameter before a required one gets refused because Python will not run
+      defaulted positional parameter before a required positional one gets refused because Python will not run
       it. The refactoring has to know that rule, since tree-sitter parses the broken
       result without complaint.
     </p>

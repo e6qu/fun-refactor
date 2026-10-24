@@ -1,70 +1,42 @@
-# Where the copied reference material comes from
+# Check the source of copied reference material
 
-When updating a grammar, check the upstream query patterns and their licenses before changing our own patterns.
-This directory records where those reference files come from and how to verify their original contents.
+Use this directory when updating a grammar or the patterns that recognize its declarations and uses.
+The upstream query files provide examples of the parser's syntax names. Our own patterns live in [queries](../queries/README.md).
 
-Vendored means copied into this repository from another project.
-Provenance records the original project, revision, file identity and license.
-For a query update, compare the retained upstream file with its recorded source before changing our derived version.
-Keep copied reference material distinct from the code compiled into `fr`.
-
-## Build and reference details
-
-Third-party material copied into this repository, with the provenance needed to say
-where it came from and what may be done with it.
-
-Nothing here is compiled into the binary. It is reference material and derivation
-evidence: the query files in `queries/` were written by reading these, and recording
-that is the difference between a derivation and an uncredited copy.
+“Vendored” means copied from another project into this repository.
+Each copied file has a recorded source, version, license and checksum: a fingerprint used to detect changed contents.
+These records let a maintainer check which upstream material informed a pattern.
 
 ## What is here
 
-`tree-sitter-queries/<language>/` — the query files each grammar ships upstream
-(`highlights.scm`, `tags.scm`, `locals.scm`, `injections.scm`), plus that grammar's
-licence text.
+| Path | Contents | How it is used |
+| --- | --- | --- |
+| `tree-sitter-queries/<language>/` | Upstream query files and license text | Reference when writing or updating our queries |
+| `MANIFEST.toml` | Language, resolved crate version, repository, license identifier and file fingerprints | Check sources and detect missing or altered files |
+| `vendor.py` | Refresh program | Copy reference files from the grammar crates resolved by Cargo |
 
-These are the canonical statement of a grammar's node names. Every `queries/*/facts.scm`
-in this repository was written by consulting them, so they are both the reference a
-maintainer needs and the source our own rules derive from.
+This directory is excluded from the published package and is not compiled into `fr`.
+Compiled grammar sources live in [grammars](../grammars/README.md).
+If a grammar ships no query files, the manifest records that absence.
 
-`MANIFEST.toml` — generated provenance for every file: language, crate, the exact
-version Cargo resolved, upstream repository, SPDX licence, and a SHA-256 of each file.
+The manifest pins the crate version Cargo resolves, rather than a repository revision that the build does not use.
+Its SPDX field uses a standard short license identifier, such as `MIT`.
+Preserve the copied license texts. The license policy enforced by [tests/vendor.rs](../tests/vendor.rs) applies to additions and updates.
 
-For the node names a grammar actually produces — which is what a query has to match,
-and where the per-language bugs come from — `cargo run --example dump -- <file>`
-prints the parse tree with its field names.
+## Refresh after a grammar update
 
-## The rules
+Run this on a dedicated runner after changing a grammar dependency in `Cargo.toml`:
 
-**Every artifact records its source, its pin, its licence and a checksum.** A file
-with no entry in `MANIFEST.toml` is not vendored, it is stray.
-
-**The pin is the crate version, not a git commit.** A tree-sitter grammar crate is a
-mirror of a repository, and the crate version is what Cargo resolves and the build
-actually compiles. Pinning a commit would record something we do not build.
-
-**Licences must be compatible with AGPL-3.0-or-later**, which is this project's
-licence. MIT and Apache-2.0 are; a copyleft licence with different terms is not, and
-`tests/vendor.rs` fails the build instead of letting one in quietly.
-
-**Nothing vendored is compiled.** `Cargo.toml` excludes this directory from the
-published package, and no `include_str!` points into it. If that ever changes, the
-licence obligations change with it — an MIT file compiled into an AGPL binary needs
-its notice preserved, which is a different conversation from reference material.
-
-**Absence is recorded.** A grammar that ships no queries gets a `MANIFEST.toml` entry
-saying so, because "nothing here" and "nobody looked" are different facts.
-
-## Refreshing
-
-```
+```sh
 python3 vendor/vendor.py
+cargo test --test vendor
 ```
 
-Idempotent: it rewrites every file and regenerates the manifest from the crates Cargo
-has already resolved, so the diff shows exactly what changed upstream. Run it after
-bumping a grammar in `Cargo.toml`, and read the diff — a grammar that renamed a node
-is how `queries/*/facts.scm` silently stops matching.
+The script rewrites the copied files and manifest from the resolved crates.
+Review that diff, then update and test our own query patterns.
+For example, an upstream grammar renaming a call node can make a caller disappear from our results even if compilation succeeds.
 
-`cargo test --test vendor` verifies the manifest against the files on disk: a checksum
-that no longer matches, a file with no entry, or an entry with no file all fail.
+The test checks fingerprints, missing manifest entries and missing files.
+It does not establish that our queries recognize every relevant declaration or caller.
+Use the [language checks](../docs/development.md#add-or-extend-a-language) for those behaviors.
+Follow the [shared workstation limits](../docs/development.md#working-on-a-shared-desktop) for local inspection.

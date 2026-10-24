@@ -235,13 +235,10 @@ fn the_counts_of_readers_writers_and_pairs_are_right() {
             "{} ordered pairs go through one vocabulary.",
             capitalised(&in_words(pairs))
         ),
+        format!("{pairs} ordered source-to-target pairs"),
+        format!("{pairs} pair-specific implementations"),
         format!(
-            "{} pairs need {} of each",
-            capitalised(&in_words(pairs)),
-            in_words(pairs)
-        ),
-        format!(
-            "A middle costs {} readers and {} writers",
+            "A shared record lets us use {} readers and {} writers",
             in_words(readers),
             in_words(writers)
         ),

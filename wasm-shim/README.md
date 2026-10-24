@@ -1,28 +1,17 @@
 # Build the C parsers for the browser
 
-The browser build needs the C interfaces used by the parsers, without a full operating-system library.
-For example, a missing allocator symbol should stop the build rather than leave a browser failure. The declarations here support that build.
+The browser runs the WebAssembly build of `fr`. Its C parsers need declarations for functions such as memory allocation.
+The `wasm32-unknown-unknown` target has no operating-system C library, so these headers declare the small set of interfaces the parsers use.
 
-WASM, or WebAssembly, is the browser's compiled execution format.
-The parsers include C code that expects libc, the C language's standard runtime interfaces.
-A shim supplies the small set of declarations needed to link those parsers for the browser target.
-For a missing C function during linking, inspect whether the shim and its implementation provide that interface.
+A header declares a function's name and types. The implementation supplies its behavior.
+For example, declaring an allocator lets a parser compile; an implementation must still provide the matching function when the program links.
 
-## Build and reference details
+The implementations live in [the Rust browser runtime](../crates/wasm-libc/src/lib.rs).
+They use Rust's allocator and memory operations. This does not add operating-system calls to the browser.
 
-A libc small enough for tree-sitter, for `wasm32-unknown-unknown`.
+[The WASM build script](../tools/build-wasm.sh) sets `CFLAGS_wasm32_unknown_unknown` to use these headers.
+Other targets use their normal C library. Full browser builds run on a dedicated runner; follow the [development limits](../docs/development.md#working-on-a-shared-desktop).
 
-The grammars are C. Their `alloc.h` includes `<stdio.h>` and `<stdlib.h>`, and a few
-scanners want `<wctype.h>`. Targeting `wasm32-unknown-unknown` there is no libc at
-all: wasi-sdk's headers exist but refuse the target outright, and adding a WASI shim
-to the browser would mean shipping a syscall layer to run a parser that makes no
-syscalls.
-
-So this declares exactly what the grammars reference and nothing else. The
-implementations are in `crates/wasm-libc/src/lib.rs`, backed by Rust's allocator and its
-`compiler_builtins` memory intrinsics — no allocator of our own, no syscalls, and
-nothing that can drift from what the C actually calls, because a missing symbol is a
-link error instead of a runtime surprise.
-
-Not used by any other build. `CFLAGS_wasm32_unknown_unknown` points at it, and that
-variable is set in one place: `tools/build-wasm.sh`.
+If linking reports a missing C function, check both its declaration here and its implementation in the Rust runtime.
+A missing implementation can stop linking. Successful linking alone does not establish that the C declaration and Rust behavior agree.
+Run the browser tests after changing either side.

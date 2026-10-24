@@ -6,7 +6,7 @@ export const TRANSLATIONS = [
   {
     id: "python-to-typescript",
     title: "Typed Python → TypeScript",
-    blurb: "The signature is the contract. Every parameter, in order, with its type and the return type, only the spelling changes, to the target's convention.",
+    blurb: "Translate typed arguments, collections and small method bodies. Review unsupported constructs and test the generated function on the same inputs.",
     provenance: null,
     command: "fr translate sensors.py typescript",
     from: "sensors.py",
@@ -18,7 +18,7 @@ export const TRANSLATIONS = [
   {
     id: "typescript-to-python",
     title: "Typed TypeScript → Python",
-    blurb: "The same crossing in the other direction, over the file the first one produced by hand-writing what a TypeScript author would have written.",
+    blurb: "Translate the separately authored TypeScript example into Python. Compare its argument and result types, then test the behavior you need.",
     provenance: null,
     command: "fr translate sensors.ts python",
     from: "sensors.ts",
@@ -30,7 +30,7 @@ export const TRANSLATIONS = [
   {
     id: "go-to-rust",
     title: "Go → Rust",
-    blurb: "The other pair. A Go `struct` is a Rust `struct`, a `range` loop is a `for … in`, and the exported/unexported convention becomes `pub`.",
+    blurb: "A Go struct becomes a Rust struct, and a range loop becomes a for-in loop. Review visibility and the generated method bodies.",
     provenance: null,
     command: "fr translate store.go rust",
     from: "store.go",
@@ -42,7 +42,7 @@ export const TRANSLATIONS = [
   {
     id: "rust-to-go",
     title: "Rust → Go",
-    blurb: "And back, where Go's capital letter is what `pub` means and the signature carries unchanged.",
+    blurb: "Translate the Rust example into Go. Exported Go names start with a capital letter; inspect the resulting declarations and callers.",
     provenance: null,
     command: "fr translate store.rs go",
     from: "store.rs",
@@ -54,7 +54,7 @@ export const TRANSLATIONS = [
   {
     id: "python-to-java",
     title: "Typed Python → Java",
-    blurb: "The language with no top level below the type. A module has to become a class, `sensors.py` has to become `Sensors.java`, the compiler enforces that, it is not a convention, and a record that would have been public becomes a package-private sibling, with a comment saying why.",
+    blurb: "Java needs a class around these module functions. Inspect the generated Sensors.java file and the visibility of its sibling record.",
     provenance: null,
     command: "fr translate sensors.py java",
     from: "sensors.py",
@@ -66,7 +66,7 @@ export const TRANSLATIONS = [
   {
     id: "zig-to-rust",
     title: "Zig → Rust",
-    blurb: "Zig has no keyword for a method: `self` is the first parameter and a struct is a value bound to a `const`. Rust puts the same shape in an `impl` block, and `[]const u8`. Zig's string, which is a slice of bytes that does not change, becomes `String`.",
+    blurb: "Zig places a method's self argument first. Rust writes methods in an impl block. Review conversion of Zig byte slices into Rust strings.",
     provenance: null,
     command: "fr translate sensors.zig rust",
     from: "sensors.zig",
@@ -78,7 +78,7 @@ export const TRANSLATIONS = [
   {
     id: "typescript-to-zig",
     title: "Typed TypeScript → Zig",
-    blurb: "The other way, into the language with the least in common with the rest. There is no `new`, no exception, no interpolated string and no block comment, so a fragment with no counterpart goes on its own line above the statement, because `//` in Zig would swallow the semicolon.",
+    blurb: "Review constructs that this Zig writer cannot express. The report counts unsupported pieces and carries their source into comments for manual completion.",
     provenance: null,
     command: "fr translate sensors.ts zig",
     from: "sensors.ts",
@@ -90,7 +90,7 @@ export const TRANSLATIONS = [
   {
     id: "nextjs-to-fastapi",
     title: "A Next.js API route → FastAPI",
-    blurb: "Not a language translation, a *contract* one. The URL, the method and the path parameter come from where the file sits on disk, which is the one thing no content-only translation could recover.",
+    blurb: "This route's URL includes its folder path. Its exported handler names the HTTP method. Inspect both when generating the FastAPI endpoint.",
     provenance: "shadcn-ui/taxonomy @ 298a8857c7128a0d121e7f699dfd729f23b3966d, MIT. See tests/corpus/PROVENANCE.md.",
     command: "fr translate app/api/posts/[postId]/route.ts fastapi",
     from: "app/api/posts/[postId]/route.ts",
@@ -102,7 +102,7 @@ export const TRANSLATIONS = [
   {
     id: "real-python-to-typescript",
     title: "Real code: a FastAPI backend → TypeScript",
-    blurb: "Not a sample written to succeed. This is `backend/app/crud.py` from the full-stack FastAPI template, unmodified, and the report says where the translation stops being one.",
+    blurb: "Translate an unchanged FastAPI crud.py file from the pinned public template. Library types and calling conventions still need manual review.",
     provenance: "fastapi/full-stack-fastapi-template @ 750d3d0bc6dfece4dec2d6ef8c3ff7e64f72545d, MIT. See tests/corpus/PROVENANCE.md.",
     command: "fr translate crud.py typescript",
     from: "crud.py",
