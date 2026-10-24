@@ -4,6 +4,13 @@ Use this list to see what shipped in each release. A release label identifies a 
 For example, a fix about imported values applies only to the supported cases described in the [Python guide](docs/python-contract.md).
 An entry's technical shorthand is historical release wording. Read the [tutorial](TUTORIAL.md) for a first use and the [current status](docs/roadmap-status.md) for remaining work.
 
+## [0.84.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.83.0...fun-refactor-v0.84.0) (2026-10-24)
+
+
+### Features
+
+* follow explicit Python errors into matching handlers ([#577](https://github.com/e6qu/fun-refactor/issues/577)) ([752af56](https://github.com/e6qu/fun-refactor/commit/752af561fbd698f598f2786d3957c3d7e68a3180))
+
 ## [0.83.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.82.0...fun-refactor-v0.83.0) (2026-10-24)
 
 
