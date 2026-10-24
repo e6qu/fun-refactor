@@ -188,6 +188,47 @@ fn prose(html: &str) -> String {
     out.replace("&gt;", ">").replace("&lt;", "<")
 }
 
+fn documented_commands(html: &str) -> BTreeSet<String> {
+    // Commands appear in inline code or terminal blocks. Combining all page prose
+    // mistakes sentences such as "Use fr for this task" for command examples.
+    let examples = regex::Regex::new(
+        r"(?s)<code(?:\s[^>]*)?>(.*?)</code\s*>|<pre(?:\s[^>]*)?>(.*?)</pre\s*>",
+    )
+    .expect("valid code-element pattern");
+    let command = regex::Regex::new(r"(?:^|[\s;&|$])fr\s+([a-z][a-z-]*)\b")
+        .expect("valid command pattern");
+    let mut found = BTreeSet::new();
+    for example in examples.captures_iter(html) {
+        let content = example.get(1).or_else(|| example.get(2)).unwrap().as_str();
+        for capture in command.captures_iter(&prose(content)) {
+            found.insert(capture[1].to_string());
+        }
+    }
+    found
+}
+
+#[test]
+fn command_examples_exclude_prose_and_reject_invented_commands() {
+    let html = r#"
+        <p>Use fr for these tasks. Run <code>fr</code> for help.</p>
+        <p><code>fr refs</code> finds references.</p>
+        <code class="language-shell">fr invent-inline</code>
+        <pre><code><span class="cmd">cd project &amp;&amp; fr invent-block</span>
+        fr mv old new</code></pre>
+    "#;
+    assert_eq!(
+        documented_commands(html),
+        ["refs", "invent-inline", "invent-block", "mv"]
+            .map(String::from)
+            .into_iter()
+            .collect()
+    );
+    let known = fun_refactor::cli::command_names();
+    for invented in ["invent-inline", "invent-block", "mv"] {
+        assert!(!known.iter().any(|name| name == invented));
+    }
+}
+
 #[test]
 fn every_command_the_site_names_is_a_command() {
     // The site tells a reader what to type.
@@ -195,16 +236,8 @@ fn every_command_the_site_names_is_a_command() {
     let known: BTreeSet<&str> = names.iter().map(String::as_str).collect();
     let mut unknown = BTreeSet::new();
     for (name, html) in pages() {
-        let text = prose(&html);
-        for (at, _) in text.match_indices("fr ") {
-            let rest = &text[at + 3..];
-            let word: String = rest
-                .chars()
-                .take_while(|c| c.is_ascii_lowercase() || *c == '-')
-                .collect();
-            // `fr` also appears mid-sentence in prose; only a word that looks like a
-            // subcommand is a claim about one.
-            if word.len() > 2 && !known.contains(word.as_str()) {
+        for word in documented_commands(&html) {
+            if !known.contains(word.as_str()) {
                 unknown.insert(format!("{name}: `fr {word}`"));
             }
         }
