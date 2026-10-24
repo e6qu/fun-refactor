@@ -7,10 +7,8 @@ from .runtime import FrReport, FrRuntimeError
 
 _CONTRACT: dict[str, Any] = {
     'schema': 'fr-scalar-completion',
-    'finally': 'Run cleanup for normal flow, return, explicit raise, break and continue; cleanup can replace the pending completion.',
-    'values': 'Evaluate a return or raise value before cleanup. Keep separate pending values for nested protected regions.',
-    'calls': "Route explicit raises from local function summaries through the caller's cleanup before leaving the function.",
-    'boundary': 'No exception matching, bare reraises, exception groups, implicit runtime exceptions, context managers or shared-object effects.',
+    'finally': 'Capture values before cleanup; cleanup may replace exits; nest separately.',
+    'local_call_raises': True,
     'block_limit': 512,
     'implicit_exceptions': False,
 }
@@ -19,9 +17,7 @@ _CONTRACT: dict[str, Any] = {
 @dataclass(frozen=True)
 class CompletionControl:
     finally_rule: str
-    values: str
-    calls: str
-    boundary: str
+    local_call_raises: bool
     block_limit: int
     implicit_exceptions: bool
 
@@ -29,12 +25,12 @@ class CompletionControl:
     def from_report(cls, report: FrReport) -> 'CompletionControl':
         data = report.to_data()
         try:
-            for value in (data['completion_control'], data['inputs']['completion_control']):
-                if (not isinstance(value, dict) or value != _CONTRACT
-                        or type(value['block_limit']) is not int
-                        or value['implicit_exceptions'] is not False):
-                    raise FrRuntimeError('unsupported scalar completion contract')
-            return cls(_CONTRACT['finally'], _CONTRACT['values'], _CONTRACT['calls'],
-                       _CONTRACT['boundary'], _CONTRACT['block_limit'], False)
+            value = data['inputs']['completion_control']
+            if ('completion_control' in data or not isinstance(value, dict) or value != _CONTRACT
+                    or type(value['block_limit']) is not int
+                    or value['local_call_raises'] is not True
+                    or value['implicit_exceptions'] is not False):
+                raise FrRuntimeError('unsupported scalar completion contract')
+            return cls(_CONTRACT['finally'], True, _CONTRACT['block_limit'], False)
         except (KeyError, TypeError) as error:
             raise FrRuntimeError('missing or malformed scalar completion contract') from error

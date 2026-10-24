@@ -109,7 +109,7 @@ impl Project<'_> {
         ensure!(hash(&report)? == digest, "retained flow digest mismatch");
         let completion = super::dataflow::completion_contract();
         ensure!(
-            report["completion_control"] == completion
+            report.get("completion_control").is_none()
                 && report["inputs"]["completion_control"] == completion,
             "retained flow changed the scalar completion contract."
         );

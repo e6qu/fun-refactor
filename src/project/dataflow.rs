@@ -1961,7 +1961,6 @@ impl Project<'_> {
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
             "function_summaries":analyzer.solver.report(),
-            "completion_control":completion_contract(),
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
@@ -1986,7 +1985,6 @@ impl Project<'_> {
             "call_binding",
             "assignment_control",
             "expression_control",
-            "completion_control",
         ] {
             if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
                 break;
@@ -2018,7 +2016,7 @@ impl Project<'_> {
                 json!({})
             } else if matches!(
                 field,
-                "call_binding" | "assignment_control" | "expression_control" | "completion_control"
+                "call_binding" | "assignment_control" | "expression_control"
             ) {
                 Value::Null
             } else {

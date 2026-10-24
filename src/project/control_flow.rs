@@ -277,7 +277,15 @@ impl<'t> Graph<'t> {
                         project.occurrence_origins(file, Span::from(node), "control-flow")
                     }
                     None => SourceOrigins::Absent {
-                        reason: "synthetic completion continuation or function exit".into(),
+                        reason: if matches!(
+                            block.operation,
+                            Operation::ResumeReturn | Operation::ResumeRaise
+                        ) {
+                            "synthetic completion continuation"
+                        } else {
+                            "synthetic function exit"
+                        }
+                        .into(),
                     },
                 };
                 json!({"id":id, "operation":operation, "origins":origins})
@@ -299,10 +307,11 @@ impl<'t> Graph<'t> {
                         | Operation::Statement
                         | Operation::Return
                         | Operation::Raise
-                ) && block.syntax.is_some_and(contains_call)
+                ) && block.raised.node != 1
+                    && block.syntax.is_some_and(contains_call)
                 {
                     edges.push(
-                        json!({"from":from,"to":block.raised.node,"rule":"explicit-call-raise"}),
+                        json!({"from":from,"to":block.raised.node,"rule":"call-cleanup"}),
                     );
                 }
                 edges

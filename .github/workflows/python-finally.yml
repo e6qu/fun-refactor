@@ -75,7 +75,29 @@ jobs:
           sdk/python/tests/test_flow_summaries.py
           sdk/python/tests/test_text_flow.py
           sdk/python/tests/test_runtime_effects.py
+          sdk/python/tests/test_shared_named_imports.py::test_wide_named_import_fits_the_existing_response_byte_limit
           --junitxml="$RUNNER_TEMP/cleanup-tests.xml"
+      - name: Keep the pinned saved-answer comparison on its declared workload
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util, tempfile
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('cache_check', 'tools/flow-cache-acceptance.py')
+          cache = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(cache)
+          with tempfile.TemporaryDirectory() as temporary:
+              root = Path(temporary)
+              project = root / 'project'
+              cache.install(project, cache.sources('pipeline-8'))
+              values = []
+              for strategy in ('legacy', 'chunks'):
+                  result = cache.invoke(Path('target/debug/fr'), project, root / strategy, strategy, 'cached')
+                  again = cache.invoke(Path('target/debug/fr'), project, root / strategy, strategy, 'cached', result['manifest'])
+                  assert result['complete'] and again['complete'] and again['reused']
+                  assert result['evidence_digest'] == again['evidence_digest']
+                  values.append(result['evidence_digest'])
+              assert values[0] == values[1]
+          PY
       - name: Check effect and text examples with ordinary Python
         run: |
           python3 -B tools/python-effects.py collect --binary target/debug/fr --output "$RUNNER_TEMP/cleanup-effects"

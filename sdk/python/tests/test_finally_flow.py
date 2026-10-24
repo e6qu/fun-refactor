@@ -81,6 +81,9 @@ def test_cleanup_matches_independent_python_and_preserves_explicit_limits(tmp_pa
     assert not result.runtime_effects.exception_safety_established
     assert not result.runtime_effects.shared_mutable_values_supported
     assert result.graphs
+    assert 'completion_control' not in data
+    if case['id'] == 'helper-raise-enters-cleanup':
+        assert any(edge.rule == 'call-cleanup' for graph in result.graphs for edge in graph.edges)
     if case['id'] == 'handler-matching-stays-incomplete':
         assert any(site.kind == 'exception-handler' for site in result.runtime_effects.sites)
     if case['id'] == 'implicit-exception-is-not-an-explicit-raise':
@@ -114,7 +117,7 @@ def test_forged_cleanup_contract_is_rejected_by_both_clients_even_with_new_diges
     first = analyze(client, rules, FlowCache(MemoryObjectStore()), False, 4096)
     data = copy.deepcopy(first.report.to_data())
     if location in ('report', 'both'):
-        data['completion_control']['implicit_exceptions'] = True
+        data['completion_control'] = {**data['inputs']['completion_control'], 'implicit_exceptions': True}
     if location in ('inputs', 'both'):
         data['inputs']['completion_control']['implicit_exceptions'] = True
     encoded = lambda value: json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()

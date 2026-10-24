@@ -2,10 +2,8 @@ use super::*;
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-scalar-completion",
-        "finally":"Run cleanup for normal flow, return, explicit raise, break and continue; cleanup can replace the pending completion.",
-        "values":"Evaluate a return or raise value before cleanup. Keep separate pending values for nested protected regions.",
-        "calls":"Route explicit raises from local function summaries through the caller's cleanup before leaving the function.",
-        "boundary":"No exception matching, bare reraises, exception groups, implicit runtime exceptions, context managers or shared-object effects.",
+        "finally":"Capture values before cleanup; cleanup may replace exits; nest separately.",
+        "local_call_raises":true,
         "block_limit":512,"implicit_exceptions":false})
 }
 
