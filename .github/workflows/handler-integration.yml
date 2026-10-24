@@ -27,6 +27,7 @@ jobs:
           for branch in ci/handlers-final-docs ci/handlers-release-project ci/handlers-release-sessions ci/handlers-release-scope ci/handlers-release-storage ci/handlers-release-scalar ci/handlers-release-ci ci/handlers-release-language; do
             git fetch --quiet --filter=blob:none --no-tags origin "$branch"
             if ! git merge --no-ff --no-commit FETCH_HEAD; then
+              git diff --name-only --diff-filter=U > "$RUNNER_TEMP/handler-conflicts"
               while IFS= read -r path; do
                 case "$path" in
                   .github/workflows/handler-integration.yml)
@@ -66,7 +67,7 @@ jobs:
                     ;;
                   *) echo "Unresolved result integration: $path" >&2; exit 1 ;;
                 esac
-              done < <(git diff --name-only --diff-filter=U)
+              done < "$RUNNER_TEMP/handler-conflicts"
             fi
             if git rev-parse --verify -q MERGE_HEAD >/dev/null; then
               git commit --quiet -m "Combine checked handler results from $branch"
