@@ -15,7 +15,7 @@ These evaluation tools let configured OpenCode sessions use ordinary source tool
 tools against frozen inputs. They retain failures, exact submissions and incomplete accounting.
 The product remains the `fr` CLI; these familiar tasks are not an independent efficiency corpus.
 
-Read the [plan](../PLAN.md#next-three-prs) for current admission and work priorities.
+Read the [plan](../PLAN.md#next-work) for current tasks and the conditions for running live comparisons.
 Historical protocols below remain available for their frozen cohorts; an old command example
 does not authorize resuming a stopped collection.
 

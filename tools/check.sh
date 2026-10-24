@@ -98,6 +98,7 @@ if [ "$slice" = study ]; then
     python3 tests/agent-eval/test_python_repository_basis.py
     python3 tools/roadmap-status.py --check
     python3 tools/check-prose.py
+    python3 -B tools/test-review-docs.py
     python3 -B tools/review-docs.py
     exit 0
 fi
@@ -150,6 +151,7 @@ if [ "$slice" = all ] || [ "$slice" = default ] || [ "$slice" = static ]; then
     printf '\n\033[1m==> writing\033[0m\n'
     python3 -B tools/test-check-prose.py
     python3 tools/check-prose.py
+    python3 -B tools/test-review-docs.py
     python3 -B tools/review-docs.py
 
     if [ "$slice" != static ]; then

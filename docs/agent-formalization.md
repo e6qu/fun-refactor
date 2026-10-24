@@ -74,6 +74,11 @@ They do not prove general source implementation equivalence.
 
 ## Direct evaluation and Python mirror
 
+This complete Python fragment needs the installed client and a matching `fr` binary.
+It evaluates an illustrated expression without reading project source.
+`let` introduces a local value, `3`. Indexed bindings count outward from the nearest value:
+`bound(0)` reads that local value and `bound(1)` reads the supplied `7`. The addition therefore returns `10`.
+
 ```python
 from fr_ir.formal_kernel import KernelRequest, KernelTerm, KernelValue
 from fr_ir.runtime import FrClient

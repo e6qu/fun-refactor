@@ -37,6 +37,10 @@ response schema sets. It refuses mismatched artifacts before project work begins
 the wheel and source archive, installs the wheel into an isolated environment and checks it against
 the release binary.
 
+For this lookup, run from a project folder with one function named `render`.
+For a complete starting file and installation, use the [Python package guide](../sdk/python/README.md).
+The later fragments reuse `client` and returned targets; choose the operation your task needs.
+
 ```python
 from fr_ir.runtime import FrClient
 

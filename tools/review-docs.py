@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check current documentation links and refresh generated prose on a runner."""
 import argparse
+from html.parser import HTMLParser
 import importlib.util
 import json
 import os
@@ -66,6 +67,41 @@ def links(path):
         match[1] for match in re.finditer(r'^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?', text, re.M)]
 
 
+class WebsitePage(HTMLParser):
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.links, self.anchors = [], set()
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        for name, value in attrs:
+            if value and name in ('href', 'src'):
+                self.links.append(value)
+            if value and (name == 'id' or (tag == 'a' and name == 'name')):
+                self.anchors.add(value)
+
+
+def check_website_links():
+    pages = {path: WebsitePage(path.read_text()) for path in sorted((ROOT / 'docs').glob('*.html'))}
+    failures = []
+    for path, page in pages.items():
+        for target in page.links:
+            url = urlsplit(target)
+            if url.scheme or url.netloc:
+                continue
+            child = (path.parent / unquote(url.path)).resolve() if url.path else path
+            # Vite produces this directory during the separate browser build.
+            if child == ROOT / 'docs/playground' and not url.fragment:
+                continue
+            if not child.is_relative_to(ROOT) or not child.exists():
+                failures.append(f'{path.relative_to(ROOT)}: missing {target}')
+            elif child in pages and url.fragment and unquote(url.fragment) not in pages[child].anchors:
+                failures.append(f'{path.relative_to(ROOT)}: missing heading {target}')
+    if failures:
+        raise ValueError('\n'.join(failures))
+    print(f'Checked local links, assets and anchors in {len(pages)} public website pages.')
+
+
 def check_links():
     failures, seen = [], {}
     pages = guides()
@@ -97,10 +133,11 @@ def check_links():
                 reachable.add(child)
                 pending.append(child)
     for page in pages:
-        if page.parent in (ROOT, ROOT / 'docs') and page not in reachable:
+        if page not in reachable:
             failures.append(f'{page.relative_to(ROOT)}: no link path from README.md')
     if failures:
         raise ValueError('\n'.join(failures))
+    check_website_links()
     from reader_examples import check_measurements
     check_measurements()
     print(f'Checked local links and headings in {len(pages)} current guides.')

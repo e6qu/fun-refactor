@@ -35,13 +35,12 @@
 <section>
   <div class="shell">
     <p class="eyebrow">Weak types to strong ones</p>
-    <h1 class="prose">Eight changes, each one deleting a kind of bug instead of a bug</h1>
+    <h1 class="prose">Use types to catch payment mistakes earlier</h1>
     <p class="lede prose">
-      A payments service with three providers, two verification flows and a lifecycle
-      that must not run backwards. It starts with no types at all and ends where the
-      mistakes it used to make cannot be written down. The last change is a
-      <em>deletion</em>: by then the code that guarded against those mistakes has
-      nothing left to guard.
+      Follow eight changes to an example payments service.
+      Distinct customer and payment IDs help a type checker catch swapped arguments.
+      Separate pending and settled states help it catch missing receipts.
+      Runtime input checks are still needed; unchecked casts can bypass these static checks.
     </p>
     <p class="lede prose">
       Python and TypeScript, side by side at every stage, with the places they cannot
@@ -77,7 +76,7 @@
       those arguments to code that already exists, one refactoring at a time. Fowler's
       catalogue names most of them under <em>Primitive Obsession</em>.
     </p>
-    <h3>Read the panel as a scoreboard</h3>
+    <h3>Inspect what the source declares</h3>
     <p>
       The tool answers a symbol's type from what the source declared, or from what
       follows from it: a literal, a class constructed, a declared return type. It always
@@ -102,7 +101,7 @@
       <thead><tr><th>Idea</th><th>Python 3.14</th><th>TypeScript 7</th></tr></thead>
       <tbody>
         <tr><td>A closed set of names</td><td><code>StrEnum</code>, a real object at run time, with members you can iterate</td><td>a union of string literals; <code>enum</code> exists and is best avoided</td></tr>
-        <tr><td>A name of its own for a string</td><td><code>NewType</code>, erased and free</td><td>a brand with <code>unique symbol</code>, which is a trick and not a feature</td></tr>
+        <tr><td>A name of its own for a string</td><td><code>NewType</code>, a distinct checked label; constructor calls still run</td><td>a brand using <code>unique symbol</code>, checked during type checking</td></tr>
         <tr><td>Immutability</td><td><code>@dataclass(frozen=True)</code>, enforced when it runs</td><td><code>readonly</code>, a note to the checker and nothing more</td></tr>
         <tr><td>A tagged union</td><td>a union of classes; <code>match</code> narrows by class</td><td>a discriminant field is required, and <code>switch</code> narrows on it</td></tr>
         <tr><td>Proving every case is handled</td><td><code>assert_never</code></td><td><code>const _: never = x</code></td></tr>

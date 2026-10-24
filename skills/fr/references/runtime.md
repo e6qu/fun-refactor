@@ -7,6 +7,9 @@ The SDK is the Python library invoking `fr`. Reports stay in the Python process;
 Use this route when Python and the zero-dependency `fr_ir` package are available. It keeps complete
 reports local; print or inspect only the fields needed for the decision.
 
+The following lookup requires an installed `fr_ir` package and a project with one function named `render`.
+Run it from that project folder. An absent or ambiguous definition refuses; choose the intended function before continuing.
+
 ```python
 from fr_ir.runtime import FrClient
 client = FrClient(".")
@@ -14,11 +17,13 @@ found = client.project("find", "render", "--signature")
 handle = found.definition_target().handle
 ```
 
-Start a local progressive workspace with `session = client.context(handle, view="semantic" |
-"evidence" | "project")`. Use `session.materialize_section("code_map" | "call_traces" | "impact" |
-"sources_and_sinks")`, or `session.materialize(POINTER)`. It follows exact returned actions,
-reconstructs pages under one 64-call ceiling and verifies the advertised Merkle digest. It does not
-fetch source unless the selected branch contains the exact-source action.
+Continue with `session = client.context(handle, view="evidence")`.
+This keeps report pages in Python while your program opens the needed sections.
+Use `session.materialize_section("code_map")` to obtain that section; other section names include
+`call_traces`, `impact` and `sources_and_sinks`.
+The session follows returned commands, checks each page's contents and stops at its 64-call limit.
+Its Merkle digest fingerprints the report tree; that checks stored contents, not program correctness.
+It fetches source only through the selected section's returned exact-source action.
 
 Use `session.packet({"name": POINTER}, max_bytes=4096)` to expose only selected values plus their
 revision, view and object identity. `MemoryObjectStore` caches in process. A

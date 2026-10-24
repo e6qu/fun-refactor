@@ -11,7 +11,7 @@ The Python snippets assume an initialized proof package, a `FrClient` named `cli
 
 ## What the comparison checks
 
-Capture an supported source function before changing it. After the change, request equivalence or
+Capture a supported source function before changing it. After the change, request equivalence or
 refinement between its retained model and a newly captured model. Rust and Python functions need
 explicit Boolean parameters and a Boolean result. The route admits at most eight parameters per
 function and the existing pure formalization subset. Calls, effects and integer arithmetic refuse.

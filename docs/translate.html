@@ -37,15 +37,11 @@
     <p class="eyebrow">Translation</p>
     <h1 class="prose">Typed Python, written as TypeScript. And back.</h1>
     <p class="lede prose">
-      The two languages closest to each other get the closest translation:
-      <code>list[str]</code> is <code>string[]</code>, <code>dict[str, int]</code> is
-      <code>Record&lt;string, number&gt;</code>, <code>Optional[T]</code> is
-      <code>T | null</code>, a <code>@dataclass</code> is an <code>interface</code>, an
-      f-string is a template literal, a comprehension is a <code>.filter()</code> chain,
-      and <code>await</code> means the same thing in both. Seven languages pass through
-      one shared meaning: Rust, Go, Java, Python, TypeScript, Zig and Bash. So each of
-      the forty-two ordered pairs joins a reader to a writer, instead of needing a
-      translator of its own.
+      Translate a supported helper, then inspect what the target needs you to finish.
+      For example, a Python list of text, <code>list[str]</code>, can become a TypeScript <code>string[]</code>.
+      The shared code record, called IR, describes supported arguments, statements and expressions.
+      Eight readers and eight writers cover Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean.
+      Their 56 ordered pairs share that record. Runtime behavior still needs independent checks.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
@@ -72,11 +68,10 @@
   <div class="shell prose wide">
     <h2>What the tool promises</h2>
     <p>
-      <strong>The signature is the contract.</strong> Every parameter crosses in order,
-      with its type and the return type, and only the spelling changes, to the target's
-      convention. Where a type has no counterpart, the tool writes it through by name
-      and <em>counts</em> it. Substituting a type quietly makes a signature stop meaning
-      what it said.
+      <strong>Inspect arguments, result types and unsupported behavior.</strong>
+      A signature names the function's arguments and result type.
+      Matching that shape does not establish equal integer arithmetic, errors or library behavior.
+      Review the report, compile the output and test the inputs that matter to your application.
     </p>
     <p>
       <strong>Names take the target's convention, and only the file's own.</strong>
@@ -106,7 +101,7 @@
     <div class="btn-row">
       <a class="btn" href="playground/">Translate your own file</a>
       <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/CROSS_LANGUAGE.md">What crosses, and what does not</a>
-      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/IR.md">The one vocabulary in the middle</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/IR.md">How the shared code record works</a>
     </div>
   </div>
 </section>

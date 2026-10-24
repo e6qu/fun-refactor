@@ -65,7 +65,7 @@ single-agent mode; those marked `delegated` also have a delegated mode. The seed
 pairs and arm order while keeping each pair adjacent for a serial runner. Planning never launches
 an agent or incurs provider charges. Keep the frozen plan outside the attempts directory.
 
-The [product review](product-review.md#pilot-before-expanding-or-deleting-subsystems) calls for
+The [repeated-task study](product-review.md#repeated-task-study) calls for
 four tasks, two models, two repetitions and two delegated tasks: 48 attempts. The generic planner
 does not verify task independence or enforce that particular research design.
 Review repository selection, held-out status, grader quality and task coverage before the run.

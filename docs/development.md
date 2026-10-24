@@ -3,7 +3,7 @@
 Use this guide when you need to change `fr`, add a language reader or prepare a release.
 For example, a parser fix needs both a case that now works and a case that still refuses an unsafe edit. Read the workstation limits before running any local command.
 
-A gate is a required set of checks before a change proceeds. A fixture is a small input used by a test.
+A fixture is a small input used by a test.
 Source provenance records where copied code came from, including its revision and license.
 For a Python import fix, add a small example that distinguishes the old mistake from the intended behavior.
 Run bounded local checks through the guard below, and send builds and complete test suites to GitHub.
@@ -16,7 +16,7 @@ default. For the shared workstation, read the resource rules below before runnin
 
 ## Working on a shared desktop
 
-Full builds, complete gates, candidate execution and large evidence regeneration run on GitHub.
+Full builds, complete test suites, study tasks and large report regeneration run on GitHub.
 Local commands, including `fr` and lightweight checks, run serially through:
 
 ```sh
@@ -24,13 +24,14 @@ python3 /Users/zardoz/.codex/tools/fr-local-guard.py COMMAND...
 ```
 
 The guard lowers priority, throttles sampled CPU toward half of one core and enforces a
-180-second deadline. It stops at 1 GiB sampled aggregate RSS (resident set size, the measured memory held by a process), 2 GiB of generated `target` data,
+180-second deadline. It samples the combined resident memory of the command and its child processes.
+It stops at 1 GiB of that memory, 2 GiB of generated `target` data,
 or less than 64 GiB free disk. If it refuses, move the workload to CI; do not bypass or raise limits.
 One compiler worker alone does not control memory or disk growth. Sampling can miss brief peaks.
 
 Preserve source and the working executable during cache cleanup. Rebuild only when needed, on
 a suitable runner. Use configured OpenCode access and the existing `gh` login; do not inspect,
-copy or upload credential files. Follow frozen evaluation admission and stop rules separately.
+copy or upload credential files. Studies also have agreed task, cost and stop rules; meet those before starting a trial.
 
 ## Build and test on a dedicated runner
 
@@ -43,12 +44,12 @@ cargo run --locked --features cli -- --version
 
 The check script covers the native, Python and WASM suites. These run on pull requests.
 CI also audits the original package and project-change records in separate required jobs.
-The deep lane runs repository-scale audits, every Lean case and external consumer replays.
-GitHub splits the command-agreement tests into six shards and runs the other audit suites and
-external replay cohorts separately. Each job has a 15-minute limit; runner queue time can make the
+The `deep` suite checks whole-repository reports, every Lean case and patches applied in separate receiver checkouts.
+GitHub divides the command-agreement tests into six jobs. It runs the other report checks and
+receiver tests separately. Each job has a 15-minute limit; runner queue time can make the
 whole workflow take longer. The final job requires every discovered audit test exactly once,
 matching source revisions, and successful external replays. `check.sh deep` retains the full
-serial gate for machines with sufficient resources.
+serial suite for machines with sufficient resources.
 
 ```sh
 PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
@@ -76,7 +77,7 @@ sdk/python/.venv/bin/pytest sdk/python/tests
 sdk/python/.venv/bin/ty check sdk/python/src
 ```
 
-Use targeted tests while developing, then run the complete affected lane before merging. The
+Use tests for the affected behavior while developing, then run the complete affected suite before merging. The
 portable agent skill has an executable example checker:
 
 ```sh
@@ -125,8 +126,8 @@ run and attempt under the runner's temporary directory. Reports stay outside the
 Supply a new dated `prefix` to retain new report directories.
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
 The `flow` group runs scalar, package and SDK boundary tests, then refreshes ten flow reports and index measurements.
-The `dependency` group refreshes compiler, correspondence (the stated connection between two descriptions), semantic, index-consumer, proof and host
-evidence after shared dependency changes. The `contexts` group refreshes four workflow comparisons
+The `dependency` group refreshes reports for compilers, model-to-code connections, source descriptions,
+saved indexes, proofs and recovery after shared dependency changes. The `contexts` group refreshes four workflow comparisons
 with the pinned tokenizer. Different groups can run independently on GitHub.
 Index-resolution evidence binds every Rust source file and must be refreshed after any Rust source change.
 Choose one group to refresh only its measurements. Update audit-test report paths before refreshing:

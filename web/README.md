@@ -17,23 +17,33 @@ without a server. It does not send changes back to GitHub or hold an access toke
 
 ## Run locally
 
-Install the web dependencies and start the development server:
+Use a dedicated development machine or GitHub runner for the full build.
+From the repository root, enter the web folder and install its dependencies:
 
 ```sh
+cd web
 npm install
-npm run dev
 ```
 
-`npm run dev` expects the generated module under `web/src/wasm`. Build it first with either
-`WASI_SDK` or `WASM_CLANG`, then generate the JavaScript bindings:
+The server needs the generated module under `web/src/wasm`.
+The following commands continue from the `web` folder. Replace `/path/to/wasi-sdk` with the installed compiler toolkit's folder.
+Build with `WASI_SDK` or explicitly set `WASM_CLANG` to the compiler you are using, then generate the JavaScript interface:
 
 ```sh
 WASI_SDK=/path/to/wasi-sdk ../tools/build-wasm.sh
 wasm-bindgen --target web --out-dir src/wasm ../target/wasm32-unknown-unknown/release/fun_refactor.wasm
 ```
 
-The `wasm-bindgen` CLI must match the version in `Cargo.lock` because the generated ABI is unstable.
+Install a `wasm-bindgen` CLI matching the version in `Cargo.lock`. The generated interface must agree with the compiled module.
 CI reads that version from the lockfile.
+
+Start the server from the same folder:
+
+```sh
+npm run dev
+```
+
+Open the address it prints. Load the Signals sample, select a function and inspect a rename preview before exporting its patch.
 
 Build the static site under `docs/playground` with:
 

@@ -42,13 +42,10 @@
       moved.
     </p>
     <p class="prose">
-      Every command in this tool acts on <em>one</em> target. That suits a person at a
-      terminal and fails the work people really have: <em>"retire this flag, delete
-      what it was guarding, and tidy the imports that leaves behind"</em> is three
-      commands in order, each depending on the last. Write it as a shell loop and the
-      refusals scroll past, the ordering stays implicit, and no reviewer can read what
-      you did. A recipe makes the <strong>plan</strong> the artifact, and the diff comes
-      out of it.
+      A recipe records an ordered set of supported edits.
+      For example, removing a flag can require changing guarded code and tidying imports.
+      Each step sees the previous step's proposed result. Review the combined diff before applying it.
+      An input condition can refuse the recipe when the expected code is absent.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
@@ -80,11 +77,9 @@ recipe <em>name</em> {
       symbol "before" "after"</code> accepts either name and rejects a tree with neither.
     </p>
     <p>
-      <strong>Layout means nothing here</strong>, and no statement takes a terminator. A
-      statement ends when the parser meets a token that can only begin a new one. Step
-      keywords are reserved and no predicate shares a name with one, an invariant a test
-      enforces rather than hopes for. So a <code>where</code> clause runs across as many
-      lines as it needs with no punctuation.
+      Line breaks and indentation do not change a recipe's meaning.
+      A keyword starts the next statement, so a <code>where</code> condition can span several lines.
+      The example above is a format illustration: replace the italic placeholders with supported operations and selectors.
     </p>
     <p>
       <strong>It is not a programming language.</strong> No loops, no arithmetic, no

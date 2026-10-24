@@ -247,7 +247,7 @@
       "acceptance": "Run the 48-attempt pilot defined in the product review: two model families, ordinary tools versus fr, repeated tasks, and a separate delegated-task comparison. Retain failures and account for all agents, cache usage, time and cost. Report quality and efficiency separately, including inconclusive or negative results.",
       "id": "A.live-repeat",
       "kind": "live-agent",
-      "next": "Select independent tasks and graders, complete worker resource and context measurements around the implemented provider/child loop, then run the pilot on remote workers. Local OpenCode rehearsals remain separate protocol evidence.",
+      "next": "R4: agree exact models, settings, prices and spending caps. Finish the prepared eighteen-attempt comparison, then the separate 48-attempt study. Count setup, retries, failed attempts, every child agent and complete resource use; preserve unknown billing.",
       "requires": [],
       "title": "Measure whether agents actually work better with fr"
     },
@@ -319,7 +319,7 @@
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
       "id": "B.contract",
       "kind": "semantic-contract",
-      "next": "Keep every declared rule, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
+      "next": "R1 adds base-ten integer conversion errors and caught error objects to the bounds form. R2 adds shared-list writes through helpers. Compare each reusable rule with independent Python results and renamed or moved examples. Preserve explicit incomplete answers, limits and fresh recorded inputs.",
       "requires": [
         {
           "assertions": [
@@ -365,7 +365,7 @@
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "next": "Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.",
+      "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
       "requires": [
         {
           "assertions": [
@@ -412,7 +412,7 @@
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
+      "next": "R1 extends the Boltons-backed bounds form to catch ValueError from int(text, 10), inspect str(error) and let unexpected TypeError escape. R2 distinguishes writes through a shared validation-message list from writes to a separate list. Keep original-import repair, source locations, undo and patch replay passing.",
       "requires": [
         {
           "assertions": [
@@ -644,7 +644,7 @@
       "acceptance": "For one existing function, retain the property, mathematical model, old and new code, and a checked argument connecting the implementation to the model. A relevant source edit must invalidate the proof claim.",
       "id": "D.existing-proof",
       "kind": "source-proof",
-      "next": "Implement and test the source-to-model connection. A theorem about a separate model alone cannot close this item.",
+      "next": "R3 connects the existing page_count implementation to its signed-64-bit contract and Lean proof. Deliberately wrong comparisons, results and dependencies must expire saved claims and reject fresh proof attempts. A separate model theorem cannot close this item.",
       "requires": [],
       "title": "Connect a proof to the existing code it describes"
     },
@@ -652,7 +652,7 @@
       "acceptance": "For one new function, write its specification and implementation together, check their connection between the descriptions and Lean proof, run behavior tests and replay delivery in a separate checkout. Identify all trusted components.",
       "id": "D.new-proof",
       "kind": "source-proof",
-      "next": "Choose a useful function and exact property before writing it; reuse the general proof and delivery interfaces.",
+      "next": "R3 specifies and implements fits_window(offset, count, total) over unsigned 64-bit inputs. An empty range at the end is valid; a range past the end is invalid. Connect the actual subtraction-based implementation to its proof, test altered claims and replay delivery independently.",
       "requires": [],
       "title": "Write new code together with a checked specification"
     },

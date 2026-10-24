@@ -32,7 +32,7 @@ The compact response retains its query-specific result and adds:
 ```
 
 The client reconstructs the response by copying the three named fields from its saved full report
-and removing `context_omitted`. Keep `context_basis` as an reference to copy unchanged; copy it unchanged.
+and removing `context_omitted`. Keep `context_basis` as the reference to the saved report; copy it unchanged.
 `fr` checks that the current project still matches it before omitting those fields.
 Changes to source, manifests, scan policy or tool version require a fresh full report.
 Authoring checks this reference before saving or applying a transaction.

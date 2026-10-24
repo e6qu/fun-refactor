@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>fun-refactor — refactoring that says what it cannot prove</title>
-<meta name="description" content="A multi-language refactoring tool for 19 languages. Every reference carries a confidence tier, and only what it can prove gets rewritten.">
+<title>fun-refactor: find code, review changes and check the result</title>
+<meta name="description" content="A multi-language refactoring tool for 19 languages. Find functions and callers, review proposed edits, run declared checks and undo saved changes.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -36,11 +36,11 @@
 <section>
   <div class="shell">
     <p class="eyebrow">19 languages · one index · byte-exact edits</p>
-    <h1>Refactoring that tells you<br>what it could not prove.</h1>
+    <h1>Find the code.<br>Review and check the change.</h1>
     <p class="lede prose">
-      Rename a symbol across Go, TypeScript, Rust, Python and a Helm chart at once.
-      Each reference it finds carries the evidence that found it. The tool rewrites
-      the references it can justify and hands you the rest as a list.
+      Use <code>fr</code> to find a function and its known callers, preview an edit,
+      run the project's declared checks and keep a saved change for undo.
+      For a checkout bug, inspect the calculation and callers before applying the repair.
     </p>
 
     <div class="btn-row">
@@ -55,19 +55,18 @@
   <div class="shell">
     <div class="grid two" style="align-items:center">
       <div class="prose">
-        <h2>Every reference carries its resolution tier</h2>
+        <h2>See why a use matches a declaration</h2>
         <p>
-          A textual rename covers every language and proves nothing. A compiler-backed
-          one proves everything and covers one language. This tool resolves what the
-          syntax settles, labels each answer with the rule that produced it, and
-          rewrites the two strongest tiers.
+          A declaration defines a name; a reference uses it. For example,
+          <code>greet()</code> can refer to a function in this file or an imported one.
+          The report labels the source rule used to connect that call to its declaration.
         </p>
         <p>
           It rewrites <span class="tier-exact">exact</span> and
           <span class="tier-weak">import-qualified</span>. It hands you
           <span class="tier-weak">field-based</span> and
           <span class="tier-weak">name-only</span> to check yourself.
-          It guesses nothing.
+          Review unresolved uses and test the requested behavior before keeping the change.
         </p>
       </div>
       <div class="term">
@@ -113,11 +112,15 @@ Name → appName: 3 site(s) across 2 file(s)
 
 <section>
   <div class="shell">
-    <h2 class="prose">Measured on real code</h2>
+    <h2 class="prose">Earlier observations on real code</h2>
     <p class="prose">
-      Every figure below comes from a run over
+      These figures describe earlier runs over
       <a href="https://github.com/helm/helm">helm/helm</a> and
       <a href="https://github.com/grafana/grafana">grafana/grafana</a>.
+      They are not comparisons with another tool or evidence of lower agent cost.
+      The <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/benchmarks.md">measurement guide</a>
+      explains baselines and overhead. The <a href="https://github.com/e6qu/fun-refactor/blob/main/PLAN.md">roadmap</a>
+      names the next changes and completion checks.
     </p>
 
     <div class="grid three" style="margin-top:2rem">
@@ -131,7 +134,7 @@ Name → appName: 3 site(s) across 2 file(s)
       </div>
       <div class="stat">
         <span class="num">47</span>
-        <span class="what">genuinely dead internal Go symbols in helm, down from 238 false positives</span>
+        <span class="what">internal Go symbols reported unused in that run; the earlier incorrect result was 238</span>
       </div>
     </div>
   </div>
@@ -159,7 +162,7 @@ Name → appName: 3 site(s) across 2 file(s)
     <div class="term" style="max-width:44rem">
       <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
       <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor</span>
-<span class="cmd">cargo install --path fun-refactor</span>
+<span class="cmd">cargo install --locked --path fun-refactor</span>
 
 <span class="cmd">cd ~/code/your-project</span>
 <span class="cmd">fr parse --stats</span>
@@ -167,8 +170,9 @@ Name → appName: 3 site(s) across 2 file(s)
 <span class="cmd">fr duplicates</span></pre></div>
     </div>
     <p class="note prose" style="margin-top:1rem">
-      Three questions, in order: what can it read, what is dead, and what is written
-      twice.
+      Replace <code>~/code/your-project</code> with your project's folder.
+      These commands check readable syntax, report candidates for unused code and find repeated code.
+      Inspect missing files, unresolved callers and external use before deleting a reported unused function.
     </p>
     <div class="btn-row">
       <a class="btn" href="demo.html">Walk through a real refactor</a>

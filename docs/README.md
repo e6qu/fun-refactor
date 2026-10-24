@@ -14,7 +14,7 @@ works today and what we want to achieve. If a result is unclear, read [what you 
 | Trace a Python call that replaces a stored default | [Default replacement example](replace-python-defaults.md) |
 | Fix one function | [Change its implementation](body-authoring.md), then [test the requested behavior](checked-outcomes.md) |
 | Rename a function or change its arguments | [Find affected callers](change-scopes.md) and [review the related changes](structural-changes.md) |
-| Understand the next development milestone | [Change projects and keep answers trustworthy](project-change-milestone.md) |
+| Pick the next development task | [Concrete roadmap and completion checks](../PLAN.md#next-work) |
 | Undo a mistake or continue interrupted work | [Recovery](host-recovery.md) and [correcting a failed edit](source-repair.md) |
 | Move a route to another framework | [Route migration](feature-migration.md) |
 | Check a stated property of a small function | [Proof support](lean-specs.md) |
@@ -35,7 +35,7 @@ to choose one authoritative guide for the task; detailed contracts link to relat
 of repeating it.
 
 For ongoing repository work, read the [plan](../PLAN.md) for priorities, the
-[handoff](continuity.md) for the active collection, and the
+[handoff](continuity.md) for the starting point and checks to preserve, and the
 [development guide](development.md#working-on-a-shared-desktop) for workstation limits.
 
 ## Use `fr`
@@ -121,6 +121,14 @@ the other pages explain each action and its limits.
 - [Continuity](continuity.md): current contributor handoff.
 - [Writing style](style.md): prose rules for user-facing text.
 - [Changelog](../CHANGELOG.md): released changes.
+
+Build and source records have their own focused guides:
+
+- [Python package](../sdk/python/README.md): installation and client examples.
+- [Query patterns](../queries/README.md), [compiled grammars](../grammars/README.md) and [upstream references](../vendor/README.md): recognize syntax and preserve its source records.
+- [Browser playground](../web/README.md), [C interfaces](../wasm-shim/README.md) and [parser build support](../crates/tree-sitter-language/README.md): build the browser tool.
+- [Translation examples](../tests/corpus/PROVENANCE.md) and [framework examples](../tests/framework-corpus/PROVENANCE.md): identify original test source and its limits.
+- [Agent evidence sources](../tests/agent-eval/PROVENANCE.md), [Python project inputs](../tests/agent-eval/python-repository-flow/README.md) and [OpenCode project inputs](../tests/agent-eval/opencode/repositories/README.md): inspect which original projects a test used.
 
 Historical design work belongs in Git history and retained evaluation fixtures. The active guides
 describe the current product contract.
