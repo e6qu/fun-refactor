@@ -154,7 +154,7 @@ User example: Move a helper or add a previously missing module and check the con
 
 **State: demonstrated.** Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -184,7 +184,7 @@ User example: Rename Boltons' `clamp` function to `clamp_value` and update its c
 
 **State: demonstrated.** Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.
 
-Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck/result.json).
+Recorded results or remaining work: [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck/result.json).
 
 Next: Keep the original project checks, undo and patch replay passing.
 
@@ -253,8 +253,8 @@ The entries below identify the stored test results. “Current” means their re
 | [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-40024782412/result.json) / measured tool operations | checked | stale (5 changed inputs) | Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim. Audit: `python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40024782412` |
 | [checked-translation](../tests/agent-eval/results/2026-10-24-pr573-checked-translation/result.json) / scripted behavior checks | checked | stale (3 changed inputs) | Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof. Audit: `python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-pr573-checked-translation` |
 | [python-effects](../tests/agent-eval/results/2026-10-24-pr573-python-effects/result.json) / scripted behavior checks | checked | stale (4 changed inputs) | Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported. Audit: `python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-effects` |
-| [python-text-flow](../tests/agent-eval/results/2026-10-24-pr573-python-text-flow/result.json) / scripted behavior checks | checked | stale (5 changed inputs) | Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim. Audit: `python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow` |
-| [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
+| [python-text-flow](../tests/agent-eval/results/2026-10-24-pr573-python-text-flow/result.json) / scripted behavior checks | checked | stale (6 changed inputs) | Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim. Audit: `python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow` |
+| [current-project-changes](../tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck/result.json) / scripted behavior checks | checked | current | Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate. Audit: `python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 
