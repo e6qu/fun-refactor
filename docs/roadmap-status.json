@@ -103,8 +103,11 @@
     },
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-release-compiler-profile/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tests/flow_fixed_point.rs",
+        "tools/compiler-profile.py"
+      ],
+      "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
@@ -113,8 +116,11 @@
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-release-python-contract/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tests/flow_fixed_point.rs",
+        "tools/compiler-profile.py"
+      ],
+      "freshness": "stale",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
@@ -175,13 +181,13 @@
       "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-basis-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck",
       "changed_sources": [],
       "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-basis-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -213,6 +219,7 @@
         "src/project/flow_standard_library.rs",
         "src/project/flow_summaries.rs",
         "src/transpile/write.rs",
+        "tools/compiler-profile.py",
         "tools/evidence_basis.py",
         "tools/package-questions.py",
         "tools/package_question_replay.py",
@@ -298,8 +305,10 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-handlers-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tools/compiler-profile.py"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -309,6 +318,33 @@
   ],
   "milestones": {
     "A": {
+      "demonstrated": 2,
+      "engineering": {
+        "done": 6,
+        "total": 6
+      },
+      "engineering_remaining": 0,
+      "remaining": [
+        "A.live-repeat",
+        "A.compiler-profile"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "B": {
+      "demonstrated": 3,
+      "engineering": {
+        "done": 4,
+        "total": 5
+      },
+      "engineering_remaining": 1,
+      "remaining": [
+        "B.contract"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "C": {
       "demonstrated": 3,
       "engineering": {
         "done": 6,
@@ -316,41 +352,20 @@
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.live-repeat"
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
     },
-    "B": {
-      "demonstrated": 4,
-      "engineering": {
-        "done": 4,
-        "total": 5
-      },
-      "engineering_remaining": 1,
-      "remaining": [],
-      "state": "open",
-      "total": 4
-    },
-    "C": {
-      "demonstrated": 4,
-      "engineering": {
-        "done": 6,
-        "total": 6
-      },
-      "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
-      "total": 4
-    },
     "D": {
-      "demonstrated": 4,
+      "demonstrated": 3,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
+        "D.structural",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -358,7 +373,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -422,7 +437,9 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [],
+      "blockers": [
+        "compiler-profile: stale source binding"
+      ],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -457,7 +474,7 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
@@ -490,7 +507,9 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [],
+      "blockers": [
+        "python-contract: stale source binding"
+      ],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep every declared rule, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
@@ -533,7 +552,7 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Specify reusable Python behavior"
     },
     {
@@ -675,7 +694,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -694,7 +715,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -771,7 +792,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -790,7 +813,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
