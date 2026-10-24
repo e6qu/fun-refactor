@@ -788,9 +788,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     Operation::Statement => self.statement(node, &mut state),
                     Operation::Return | Operation::Raise => {
-                        if block.operation == Operation::Raise
-                            && node.named_child_count() != 1
-                        {
+                        if block.operation == Operation::Raise && node.named_child_count() != 1 {
                             self.cutoff("raise-contract-unchecked");
                         }
                         let mut value = Flow::new();

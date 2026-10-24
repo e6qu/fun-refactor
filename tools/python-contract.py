@@ -68,6 +68,8 @@ def bindings():
                  'sdk/python/tests/test_shared_star_imports.py', 'sdk/python/tests/test_shared_named_imports.py',
                  'sdk/python/tests/test_star_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
+                 'sdk/python/tests/test_finally_flow.py', 'sdk/python/src/fr_ir/flow_completion.py',
+                 'tests/agent-eval/python-finally/cases.json', 'docs/check-python-cleanup.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
     return dict(sorted(result.items()))
@@ -218,7 +220,7 @@ def audit_case(row, case):
     assumptions = [
         'scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
-        'explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.',
+        'explicit raises leave through modeled finally cleanup; implicit exceptions, handlers and resource effects are outside this model.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
     require(flow['assumptions'] == assumptions, 'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')

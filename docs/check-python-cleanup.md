@@ -110,6 +110,6 @@ For example, a division by zero can interrupt a program even when the scalar mod
 The scalar model follows simple values, such as strings and numbers; it does not reproduce every runtime operation.
 The report keeps that arithmetic limit visible and does not claim runtime exception safety.
 
-The [23 independent examples](../tests/agent-eval/python-finally/cases.json) compare both Python outcomes and model answers.
+The [25 independent examples](../tests/agent-eval/python-finally/cases.json) compare both Python outcomes and model answers.
 They repeat after renaming functions and moving the source file, and include unsupported behavior and altered saved-answer controls.
 The existing 512-block graph limit and analysis budgets remain in force. These checks make no speed or memory claim.

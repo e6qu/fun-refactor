@@ -299,7 +299,8 @@ impl<'t> Graph<'t> {
                         | Operation::Statement
                         | Operation::Return
                         | Operation::Raise
-                ) && block.syntax.is_some_and(contains_call) {
+                ) && block.syntax.is_some_and(contains_call)
+                {
                     edges.push(
                         json!({"from":from,"to":block.raised.node,"rule":"explicit-call-raise"}),
                     );
