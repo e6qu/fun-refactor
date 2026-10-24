@@ -1,0 +1,241 @@
+{
+  "acceptance_checks": {
+    "basis": "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+    "names": [
+      "behavior"
+    ],
+    "toolchain-digest": "06a102d1d4937822f9215f0324a09b45e80ca2b26b7ec6139379068af85b13f4"
+  },
+  "author": {
+    "atomic_snapshot": false,
+    "behavior_checked": false,
+    "changed": true,
+    "context_inherited": [
+      "coverage",
+      "revision",
+      "handle_prefix"
+    ],
+    "diff": "--- a/api.rs\n+++ b/api.rs\n@@ -1,54 +1,54 @@\n pub const LABEL: &str = \"κόστος\";\n pub fn quotes() -> [i64; 49] {\n     [\n-        crate::pricing::subtotal(-3, -3, 0),\n-        crate::pricing::subtotal(-3, -2, 0),\n-        crate::pricing::subtotal(-3, -1, 0),\n-        crate::pricing::subtotal(-3, 0, 0),\n-        crate::pricing::subtotal(-3, 1, 0),\n-        crate::pricing::subtotal(-3, 2, 0),\n-        crate::pricing::subtotal(-3, 3, 0),\n-        crate::pricing::subtotal(-2, -3, 0),\n-        crate::pricing::subtotal(-2, -2, 0),\n-        crate::pricing::subtotal(-2, -1, 0),\n-        crate::pricing::subtotal(-2, 0, 0),\n-        crate::pricing::subtotal(-2, 1, 0),\n-        crate::pricing::subtotal(-2, 2, 0),\n-        crate::pricing::subtotal(-2, 3, 0),\n-        crate::pricing::subtotal(-1, -3, 0),\n-        crate::pricing::subtotal(-1, -2, 0),\n-        crate::pricing::subtotal(-1, -1, 0),\n-        crate::pricing::subtotal(-1, 0, 0),\n-        crate::pricing::subtotal(-1, 1, 0),\n-        crate::pricing::subtotal(-1, 2, 0),\n-        crate::pricing::subtotal(-1, 3, 0),\n-        crate::pricing::subtotal(0, -3, 0),\n-        crate::pricing::subtotal(0, -2, 0),\n-        crate::pricing::subtotal(0, -1, 0),\n-        crate::pricing::subtotal(0, 0, 0),\n-        crate::pricing::subtotal(0, 1, 0),\n-        crate::pricing::subtotal(0, 2, 0),\n-        crate::pricing::subtotal(0, 3, 0),\n-        crate::pricing::subtotal(1, -3, 0),\n-        crate::pricing::subtotal(1, -2, 0),\n-        crate::pricing::subtotal(1, -1, 0),\n-        crate::pricing::subtotal(1, 0, 0),\n-        crate::pricing::subtotal(1, 1, 0),\n-        crate::pricing::subtotal(1, 2, 0),\n-        crate::pricing::subtotal(1, 3, 0),\n-        crate::pricing::subtotal(2, -3, 0),\n-        crate::pricing::subtotal(2, -2, 0),\n-        crate::pricing::subtotal(2, -1, 0),\n-        crate::pricing::subtotal(2, 0, 0),\n-        crate::pricing::subtotal(2, 1, 0),\n-        crate::pricing::subtotal(2, 2, 0),\n-        crate::pricing::subtotal(2, 3, 0),\n-        crate::pricing::subtotal(3, -3, 0),\n-        crate::pricing::subtotal(3, -2, 0),\n-        crate::pricing::subtotal(3, -1, 0),\n-        crate::pricing::subtotal(3, 0, 0),\n-        crate::pricing::subtotal(3, 1, 0),\n-        crate::pricing::subtotal(3, 2, 0),\n-        crate::pricing::subtotal(3, 3, 0),\n+        crate::pricing::sum_values(-3, -3),\n+        crate::pricing::sum_values(-3, -2),\n+        crate::pricing::sum_values(-3, -1),\n+        crate::pricing::sum_values(-3, 0),\n+        crate::pricing::sum_values(-3, 1),\n+        crate::pricing::sum_values(-3, 2),\n+        crate::pricing::sum_values(-3, 3),\n+        crate::pricing::sum_values(-2, -3),\n+        crate::pricing::sum_values(-2, -2),\n+        crate::pricing::sum_values(-2, -1),\n+        crate::pricing::sum_values(-2, 0),\n+        crate::pricing::sum_values(-2, 1),\n+        crate::pricing::sum_values(-2, 2),\n+        crate::pricing::sum_values(-2, 3),\n+        crate::pricing::sum_values(-1, -3),\n+        crate::pricing::sum_values(-1, -2),\n+        crate::pricing::sum_values(-1, -1),\n+        crate::pricing::sum_values(-1, 0),\n+        crate::pricing::sum_values(-1, 1),\n+        crate::pricing::sum_values(-1, 2),\n+        crate::pricing::sum_values(-1, 3),\n+        crate::pricing::sum_values(0, -3),\n+        crate::pricing::sum_values(0, -2),\n+        crate::pricing::sum_values(0, -1),\n+        crate::pricing::sum_values(0, 0),\n+        crate::pricing::sum_values(0, 1),\n+        crate::pricing::sum_values(0, 2),\n+        crate::pricing::sum_values(0, 3),\n+        crate::pricing::sum_values(1, -3),\n+        crate::pricing::sum_values(1, -2),\n+        crate::pricing::sum_values(1, -1),\n+        crate::pricing::sum_values(1, 0),\n+        crate::pricing::sum_values(1, 1),\n+        crate::pricing::sum_values(1, 2),\n+        crate::pricing::sum_values(1, 3),\n+        crate::pricing::sum_values(2, -3),\n+        crate::pricing::sum_values(2, -2),\n+        crate::pricing::sum_values(2, -1),\n+        crate::pricing::sum_values(2, 0),\n+        crate::pricing::sum_values(2, 1),\n+        crate::pricing::sum_values(2, 2),\n+        crate::pricing::sum_values(2, 3),\n+        crate::pricing::sum_values(3, -3),\n+        crate::pricing::sum_values(3, -2),\n+        crate::pricing::sum_values(3, -1),\n+        crate::pricing::sum_values(3, 0),\n+        crate::pricing::sum_values(3, 1),\n+        crate::pricing::sum_values(3, 2),\n+        crate::pricing::sum_values(3, 3),\n     ]\n }\n--- a/pricing.rs\n+++ b/pricing.rs\n@@ -1,1 +1,1 @@\n-pub fn subtotal(a: i64, b: i64, _legacy: i64) -> i64 { a + b }\n+pub fn sum_values(a: i64, b: i64) -> i64 { a + b }\n",
+    "files_changed": 2,
+    "postconditions": [
+      {
+        "actual": 2,
+        "expected": 2,
+        "held": true,
+        "postcondition": "files-changed"
+      },
+      {
+        "actual": 2,
+        "expected": 2,
+        "held": true,
+        "postcondition": "changed-operations"
+      },
+      {
+        "actual": [
+          "api.rs",
+          "pricing.rs"
+        ],
+        "expected": [
+          "api.rs",
+          "pricing.rs"
+        ],
+        "held": true,
+        "postcondition": "paths-changed"
+      }
+    ],
+    "postconditions_held": true,
+    "query": "batch",
+    "schema": "fr-author-batch-1",
+    "span_basis": "original-source",
+    "steps": [
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "documentation_edits": 0,
+          "new_name": "sum_values",
+          "old_name": "subtotal",
+          "operation": "rename",
+          "reference_edits": 49
+        },
+        "handle": "frp1:afe4df2ff24d5c756683eb38ae278693:9",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust/Python free-function renames and Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      },
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "call_sites": 49,
+          "request": {
+            "index": 2,
+            "operation": "remove-parameter"
+          }
+        },
+        "handle": "frp1:afe4df2ff24d5c756683eb38ae278693:9",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust/Python free-function renames and Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      }
+    ],
+    "validation": "reparse-strict"
+  },
+  "change_scope": {
+    "affected_paths": [
+      "api.rs",
+      "main.rs",
+      "pricing.rs"
+    ],
+    "checks": [
+      {
+        "declared_paths": [
+          "pricing.rs",
+          "api.rs",
+          "main.rs"
+        ],
+        "matched_paths": [
+          "pricing.rs",
+          "api.rs",
+          "main.rs"
+        ],
+        "name": "behavior",
+        "status": "declared-candidate"
+      }
+    ],
+    "input_digest": "0d9fd0ea70cd56eb5507e1e25048f79ca12344d332018f45d1696b6f1b6086e0",
+    "review_ready": true,
+    "runtime_coverage": false,
+    "targets": [
+      "frp1:afe4df2ff24d5c756683eb38ae278693:9",
+      "frp1:afe4df2ff24d5c756683eb38ae278693:9"
+    ]
+  },
+  "checks": {
+    "basis": "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+    "command": [
+      "fr",
+      "checks",
+      "--run",
+      "behavior",
+      "--basis",
+      "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+      "--quiet-success",
+      "--no-declarations"
+    ],
+    "coverage": [
+      {
+        "covers": [
+          "49 compiled public results"
+        ],
+        "name": "behavior"
+      }
+    ],
+    "names": [
+      "behavior"
+    ],
+    "selected": true
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 3,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 50,
+    "unsupported_files": 0
+  },
+  "delivery": {
+    "check_original": true,
+    "check_output_bytes": 2048,
+    "compact_success": true,
+    "exercise_reversal": true,
+    "patch": "artifacts/change.patch"
+  },
+  "executed": false,
+  "manifest_sha256": "41ff4488917718f1072d264732a2184e269d430f6ea2dd98410b648310196b77",
+  "passed": null,
+  "ready": true,
+  "requests": [],
+  "revision": "afe4df2ff24d5c756683eb38ae27869331a688082c766cc0fb0e02fbba064c40",
+  "schema": "fr-task-change-1",
+  "stages": [
+    {
+      "stage": "check-original",
+      "status": "pending"
+    },
+    {
+      "stage": "apply",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "undo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-restored",
+      "status": "pending"
+    },
+    {
+      "stage": "redo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "deliver-patch",
+      "status": "pending"
+    }
+  ],
+  "targets": [
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:afe4df2ff24d5c756683eb38ae278693:9",
+      "id": "rename",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "pricing.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:afe4df2ff24d5c756683eb38ae278693:9",
+      "id": "remove",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "pricing.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    }
+  ],
+  "task_basis": "frpt1:39d582884453b84bf3a479c3408035cbb581638ee2f9b987def0e70de0fd9a2e",
+  "task_change_basis": "frtc1:d290ef7f74670da1623c4ee87f811e05b0b73ba769a4edf6554b8ab79e116011",
+  "task_resolution_basis": "frpt2:77e84fefd847e1716d130f300afd24e16522a5fcac9b67104356641d18756254"
+}

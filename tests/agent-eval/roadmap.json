@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40087126224",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40101600113",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40087126224/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40101600113/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "d5409100f5779b39626b54ba49e3bba1c9a9993c331ba97d5cfc61ad35d1bb6b"
+      "sha256": "9a2ab9d13de7eadcff6820d6c4729b65d8d3e37745b00205e1c55aa30b956e9d"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "sha256": "58e2345327c3c7f08990427a4e5481b3c8c9a13639265762100a0e60a977e3a2"
+      "sha256": "89cc33573fcaba101bad4cc5f7ed443b9d2ec50eb7fe24c190b45d9a1dc91642"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "e03af7962319b2f49985ddce7a7cee8daf824c1d6a7c76e011f53ef52633aa3b"
+      "sha256": "17ba8b255cc945c9958de5c0fdd5aa1a5100bd83bcf051873b2efb74fb0a4097"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "sha256": "6f58b4c824f2f7feac457563c552d1c0c5e4b572daa86f9626328f3416059e6f"
+      "sha256": "61ccff3d5b2f4cf3be11b09d252e1e257f2a9b94f95ca4a99edaf28ba7aea10a"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "0974d7c8bac29978f5fe5e199fb388979d7462924ced4b90c4c98783d23292f5"
+      "sha256": "ffeb74193c4a414a6430eaba0dee89c85caa741f243506f4da07e6f7d7cb8af0"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "sha256": "2c6684d1fab55bae23fa9cf108e0144282436dfff56b25d1de81d40590cc1b22"
+      "sha256": "a6822756a9c69479a2b1b50717662090a3c031ee420e0382a781f414ef277242"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "0e4e4e7ae2a87adc824a275dbb14db045ebd6c624fdb13e194c3277e37ca7ede"
+      "sha256": "72d254c7e4ad9411390828356577249c85407bf638999f58a25eca2e6ceed42c"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions.",
-      "sha256": "971191a195d30a9fb6b7dc104f6fbd28e25c548e9f840523a09d1085d9a90a85"
+      "sha256": "99ef0c7a090d79ea6fe31cfc993ef768e1e98ce2ac5a5a0e5fa9a22b1ff544b6"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-final-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "sha256": "d783437f445e3b3323e1fbc2c6af4dd4220c029d4265db9ed74bb65229f846bd"
+      "sha256": "314cf8fbc9d2b7963302aa7f26ade7cab711d7b40f7761df4007fa41d05343dd"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-cleanup-final-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-final-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-contract/result.json",
-      "scope": "15 declared Python rules; 485 authored programs and 970 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "0d61f22dfe0c564bcdb38570e43fe28b1c84349e986463fd173ba23f933b7d65"
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-contract/result.json",
+      "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
+      "sha256": "4750f673cf813ecb3bc7fc1d9ecbdfc4919c528f1f6134267d9da8b5127aba6c"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-cleanup-final-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-final-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "2d721f0771dfff5c84253b4dc1acd2b1541073f6b27576ae1179c44b4b0a729b"
+      "sha256": "3b3c3caae9bc76e4728526c43814c18ec5e90d8c85ae7e2c5e82e289cbbb302e"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -166,28 +166,28 @@
       "sha256": "579e5c475e12537074e938ebd6e195c4d223ee6bbed37599aed50d05bbd28f4b"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "34c6bfc81954ee17a7c7267963657a91e7ccf1e840899a5d35771d4e9fe2a57e"
+      "sha256": "4665df7ef6186f0164492667e649181825809e5c654f5ae118bf26923faa618c"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-effects/result.json",
-      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
-      "sha256": "559073c9b5f202f5b6e7e26b5d48edd7752296273e2be75eabbce1329f8a50d7"
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-effects/result.json",
+      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; implicit errors, bound error objects and shared objects remain unchecked.",
+      "sha256": "5a35048c690ca396e078b41388c86933ac7d21c6014765ce443f180c86ec8382"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-final-python-text-flow",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-handlers-final-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-final-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "4eefcad2989e04238acfb52529d4269d13039caeb8f70e5068f6e16104548570"
+      "sha256": "e2dcda2407bfa8d20a064432454ddd344dd3f94e63fe9606ae97b7b63f2dffa4"
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-handlers-basis-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -412,7 +412,7 @@
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "Keep unchecked runtime effects visible at exact source locations. Supporting handlers and shared mutable objects still needs language rules and independent project examples.",
+      "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
           "assertions": [
@@ -678,3 +678,4 @@
   "profile": "agent-analysis-v2",
   "schema": "fr-roadmap-catalog-1"
 }
+
