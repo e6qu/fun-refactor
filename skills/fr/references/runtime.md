@@ -30,12 +30,10 @@ revision, view and object identity. `MemoryObjectStore` caches in process. A
 `DirectoryObjectStore(PATH)` can persist reusable objects; keep `PATH` outside the analyzed project
 so cache writes do not invalidate its handles.
 
-Prefer `client.compile(AgentIntent(handle, PURPOSE))` when the goal is `understand`, `trace`,
-`change`, `migrate` or `prove`. Import `AgentIntent` and optional `IntentNeed` from `fr_ir.intent`.
-Native `fr` expands the purpose and selects the evidence in one project snapshot. It returns one
-bounded `CompiledIntent` and a Merkle object digest for each selection. Use explicit needs and
-pointer suffixes when the default section values would exceed the packet budget. Use
-`client.prepare` only to exercise the progressive action protocol or compare both implementations.
+Use `client.compile(AgentIntent(handle, PURPOSE))` for `understand`, `trace`, `change`, `migrate` or `prove`.
+Import `AgentIntent` and optional `IntentNeed` from `fr_ir.intent`.
+This selects report fields in one native request. Set explicit needs and pointers to keep the result within its byte limit.
+Use `client.prepare` when testing the page-by-page protocol or comparing the two routes.
 
 For intent-bound operations, read [Intents](intents.md). Use `TaggedIntentAction` from
 `fr_ir.intent_actions` to bind tasks, recipes, direct capabilities, migration and proof delivery.

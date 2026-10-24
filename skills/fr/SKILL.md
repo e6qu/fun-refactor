@@ -14,10 +14,4 @@ Read omissions. Copy handles, which identify code in one revision, unchanged.
 For a rename, read [Change](references/change.md); for implementation edits, [Author](references/author.md).
 Then [check and deliver](references/workflow.md). A preview shows proposed edits; `--write` applies them.
 
-Choose other references by task:
-
-- Find code: [Explore](references/explore.md), [Batch](references/batch.md).
-- Follow input: [Investigate](references/investigations.md).
-- Read report sections: [Disclosure](references/disclosure.md), [Python client](references/runtime.md).
-- Coordinate work: [Task](references/task.md), [Goal](references/guide.md), [Intent](references/intents.md).
-- Inspect pages and services: [Styles and diagrams](references/surfaces.md), [Application](references/application.md).
+Explore unfamiliar code: [Explore](references/explore.md).
