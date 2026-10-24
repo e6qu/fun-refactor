@@ -78,12 +78,12 @@
       "sha256": "a6822756a9c69479a2b1b50717662090a3c031ee420e0382a781f414ef277242"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-final-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-release-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "72d254c7e4ad9411390828356577249c85407bf638999f58a25eca2e6ceed42c"
+      "sha256": "32002149ce6f6b90a843a657c6a98fefef46b83e8e5c4447061cd837efe28ec2"
     },
     {
       "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
@@ -678,4 +678,3 @@
   "profile": "agent-analysis-v2",
   "schema": "fr-roadmap-catalog-1"
 }
-
