@@ -28,7 +28,9 @@ jobs:
           python-version: '3.14.8'
       - run: rustup toolchain install stable --profile minimal
       - name: Install the declared package runtime dependency
-        run: python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+        run: >-
+          python3 -m pip install --only-binary=:all: --require-hashes
+          -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
       - uses: Swatinem/rust-cache@v2
         with:
           key: default

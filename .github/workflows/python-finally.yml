@@ -35,6 +35,7 @@ jobs:
             tools
             docs
             tests/fixtures
+            tests/common
             tests/agent-eval/python-finally
             tests/agent-eval/python-text-flow
             tests/agent-eval/recursive-flow
@@ -46,7 +47,8 @@ jobs:
         run: python3 -m pip install 'pytest==9.1.1'
       - name: Retain formatting differences
         run: |
-          cargo fmt --all
+          set -euo pipefail
+          cargo fmt --all 2>&1 | tee "$RUNNER_TEMP/cleanup-format.log"
           git diff -- '*.rs' > "$RUNNER_TEMP/cleanup-format.patch"
       - uses: Swatinem/rust-cache@v2
         with:
@@ -77,6 +79,7 @@ jobs:
           name: python-cleanup-paths
           path: |
             ${{ runner.temp }}/cleanup-format.patch
+            ${{ runner.temp }}/cleanup-format.log
             ${{ runner.temp }}/cleanup-code.json
             ${{ runner.temp }}/cleanup-tests.xml
             ${{ runner.temp }}/cleanup-effects
