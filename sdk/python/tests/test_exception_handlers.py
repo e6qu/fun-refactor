@@ -122,6 +122,20 @@ def test_handler_edit_expires_a_saved_answer_and_preserves_step_limits(tmp_path)
     assert not limited.report.at('/complete') and 'step-budget' in limited.report.at('/cutoffs')
 
 
+def test_handler_class_syntax_keeps_the_existing_bounded_work_limit(tmp_path):
+    classes = ', '.join(['ValueError'] * 128)
+    case = {'helpers': '', 'body': f"try:\n    raise ValueError('invalid')\nexcept ({classes}):\n    return send(read_user())"}
+    path, rules, client, names = workspace(tmp_path, case, False)
+    run = subprocess.run([sys.executable, '-I', '-B', '-c',
+        f'import runpy\nn = runpy.run_path({str(path)!r}, init_globals={{"read_user": lambda: "Customer", "send": print}})\nn["entry"]()'],
+        capture_output=True, text=True, timeout=10)
+    assert run.returncode == 0 and run.stdout.strip() == 'Customer'
+    result = analyze(client, rules, FlowCache(MemoryObjectStore()), names[3], ('builtins',), 4096)
+    assert not result.report.at('/complete')
+    assert 'exception-handler-type-unchecked' in result.report.at('/cutoffs')
+    assert result.completion_control.handler_nodes == 128
+
+
 def test_fr_repairs_the_handler_through_original_boltons_imports_and_replays_its_patch(tmp_path):
     archive = ROOT / 'tests/agent-eval/python-repositories/boltons.tar.gz'
     with tarfile.open(archive) as bundle:

@@ -111,8 +111,10 @@ A bare `except:` catches every explicitly raised error in this model.
 An `else` section runs only after the protected body finishes normally.
 Errors raised inside `else` or a handler bypass that statement's sibling handlers.
 They can still reach an outer handler and run `finally` cleanup on the way.
-A bare `raise` reraises a lexically active, known error in a supported handler or cleanup section.
-Calling another function that relies on an inherited active error remains unchecked.
+A bare `raise` inside a supported handler sends the same error onward.
+It also works in cleanup while a known error is leaving the protected section.
+The handler or cleanup must appear in the current function.
+A different helper that relies on its caller's caught error remains unchecked.
 
 Each error class keeps its own possible value origins, the places its value came from.
 For example, a helper can raise `ValueError(customer_label)` on one branch and `TypeError('PUBLIC')` on another.

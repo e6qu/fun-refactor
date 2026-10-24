@@ -104,7 +104,7 @@ The model also follows cleanup when a supported local helper explicitly raises, 
 Nested protected sections keep their pending values separate.
 Reassigning a local name during cleanup does not change a value already captured by `return`.
 
-The [error-handler lesson](catch-python-errors.md) follows supported explicit errors through `except` clauses and lexically active bare reraises.
+The [error-handler lesson](catch-python-errors.md) follows supported explicit errors through `except` clauses and reraises in the current function.
 Custom classes, bound error objects, exception groups and `with` context managers remain unsupported.
 So do shared mutable objects, such as two names referring to a list that either can change.
 For example, a division by zero can interrupt a program even when the scalar model follows its ordinary value path.
