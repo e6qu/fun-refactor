@@ -224,22 +224,16 @@
       "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
     },
     {
-      "audit": "python3 tools/python-text-package.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-package",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-cleanup-compact-text-package-recheck",
       "changed_sources": [
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "src/project/control_flow.rs",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs",
-        "tools/python-contract.py",
-        "tools/python-text-package.py"
+        "sdk/python/src/fr_ir/_version.py"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-package/result.json",
-      "scope": "Four original-package questions with one unchanged checker. Stringcase passed its first frozen evaluation; audit that procedure at its recorded source. The other three projects were familiar maintenance checks."
+      "path": "tests/agent-eval/results/2026-10-24-cleanup-compact-text-package-recheck/result.json",
+      "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -358,6 +352,7 @@
     {
       "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow",
       "changed_sources": [
+        "docs/check-language-behavior.md",
         "sdk/python/src/fr_ir/flow.py",
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
@@ -373,8 +368,16 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/flow.py",
+        "sdk/python/src/fr_ir/flow_completion.py",
+        "sdk/python/tests/test_finally_flow.py",
+        "src/project/control_flow.rs",
+        "src/project/dataflow.rs",
+        "src/project/flow_cache.rs",
+        "src/project/flow_completion.rs"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -416,7 +419,7 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 1,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
@@ -425,13 +428,14 @@
       "remaining": [
         "C.resume",
         "C.clean",
+        "C.repository-mutations",
         "C.performance"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 3,
         "total": 6
@@ -439,6 +443,7 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
+        "D.structural",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -782,7 +787,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -801,7 +808,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -882,7 +889,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -901,7 +910,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
