@@ -11,7 +11,8 @@ Finding the calculation is only part of that outcome.
 
 `fr` can find functions and callers, preview edits, run declared checks, undo changes and resume saved work.
 Selected Rust and Python project changes pass behavior checks and patch replay in another checkout.
-Some Python input-to-output questions work through real package imports; broader imports, exceptions and shared mutable values remain incomplete.
+Selected number, date and text questions work through original Python package imports.
+Broader imports, exceptions and shared mutable values remain incomplete.
 
 We have not demonstrated general time or cost savings for agents.
 The [complete session comparison](docs/project-session-cost.md) measures direct CLI calls, restarted Python clients and Python clients kept running across questions.
@@ -19,6 +20,7 @@ It also compares saving and validating answers with asking again. Read its inclu
 
 The [status report](docs/roadmap-status.md) owns current test counts and completion claims.
 Milestone C, correct resumption and reuse, meets its stated requirements. A, B and D remain open.
+The four-package check meets the specific project-tracing requirement; milestone B still needs broader reusable language rules.
 The [product review](docs/product-review.md) explains the evidence and agent integration gaps.
 
 ## Next three PRs
@@ -65,10 +67,16 @@ The stopped studies stay stopped; this roadmap does not authorize their restart.
 Example: determine whether customer input reaches `send(value)` through an imported helper, including an exception or a shared list mutation.
 A shared list mutation changes an object that another name can read later.
 
-Current work checks a page-count helper in both Rust/Python directions and fixes precision loss in integer division.
-It also locates unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
+PR #571 checked a page-count helper in both Rust/Python directions and fixed precision loss in integer division.
+It also located unchecked Python exceptions and shared-object operations, including in saved answers and the SDK.
 The [complete example](docs/check-language-behavior.md) explains the inputs, independent checks and remaining limits.
-Broader package imports and full exception or shared-object analysis remain separate work in this delivery package.
+Text conversions and twelve read-only string methods now pass 68 checks against ordinary Python, including helper returns and reassignment.
+Stringcase's README supplied a reserved lowercase question before implementation; its first inspection passed after fixing the checker and procedure.
+The same executable also passed the Boltons, dateutil and JDcal questions, with original imports and saved-answer controls.
+The [package example](docs/original-package-questions.md#follow-a-customer-label-through-stringcase) explains the results and preserved limits.
+Next, choose a concrete project change that exposes the remaining import or runtime-effect gaps.
+Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
+Full exception and shared-object analysis remain open work in this delivery package.
 
 - Handle package imports, exceptions and shared mutable values exposed by the chosen tasks.
   Use the original package imports. A copied helper in an isolated file answers a different question.

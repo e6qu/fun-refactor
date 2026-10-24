@@ -39,6 +39,9 @@ mod expressions;
 #[path = "flow_effects.rs"]
 mod effects;
 
+#[path = "flow_text.rs"]
+mod text_values;
+
 pub(super) fn expression_contract() -> Value {
     expressions::contract()
 }
@@ -237,6 +240,7 @@ type Flow = BTreeMap<String, Trace>;
 struct Environment {
     values: BTreeMap<String, Flow>,
     defined: BTreeSet<String>,
+    plain_strings: BTreeSet<String>,
 }
 
 fn join_environment(into: &mut Environment, from: &Environment) -> bool {
@@ -256,6 +260,15 @@ fn join_environment(into: &mut Environment, from: &Environment) -> bool {
     let defined = into.defined.intersection(&from.defined).cloned().collect();
     if into.defined != defined {
         into.defined = defined;
+        changed = true;
+    }
+    let strings = into
+        .plain_strings
+        .intersection(&from.plain_strings)
+        .cloned()
+        .collect();
+    if into.plain_strings != strings {
+        into.plain_strings = strings;
         changed = true;
     }
     changed
@@ -290,6 +303,7 @@ struct Analyzer<'a, 'p, 't> {
     solver: summaries::Solver,
     normal: bool,
     normal_return: bool,
+    return_text: Option<bool>,
     may_raise: bool,
     sink_flows: BTreeMap<String, summaries::SinkFlow>,
 }
@@ -430,6 +444,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
     }
     fn call(&mut self, node: Node<'t>, env: &Environment) -> Flow {
+        if let Some(value) = self.string_method(node, env) {
+            return value;
+        }
         let Some(function) = node.child_by_field_name("function") else {
             self.cutoff("missing-call-target");
             return Flow::new();
@@ -534,43 +551,23 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if self.rules.propagators.contains(&name) {
             return self.extend(joined, node, "propagation-rule");
         }
-        if let Some(modules) = self.modules {
-            let standard = modules.standard_callee(self.file, &name).or_else(|| {
-                let binding = modules.function_name(self.file, &name);
-                (function.kind() == "identifier"
-                    && modules.standard_enabled("builtins")
-                    && !self.functions.contains_key(&binding)
-                    && !self.inert_bindings.contains(&binding)
-                    && !modules.has_binding(self.file, &name)
-                    && self
-                        .active
-                        .last()
-                        .and_then(|name| self.functions.get(name))
-                        .is_some_and(|function| {
-                            function
-                                .parent()
-                                .is_some_and(|root| !calls::explicit_builtins(root, self.source))
-                        }))
-                .then(|| format!("builtins.{name}"))
-            });
-            if let Some(standard) = standard {
-                if let Some((minimum, maximum)) = standard_library::arity(&standard) {
-                    let exception = matches!(
-                        standard.as_str(),
-                        "builtins.ValueError" | "builtins.TypeError"
-                    );
-                    if argument_names.iter().any(Option::is_some)
-                        || !(minimum..=maximum).contains(&arguments.len())
-                        || exception
-                            && node
-                                .parent()
-                                .is_none_or(|parent| parent.kind() != "raise_statement")
-                    {
-                        self.cutoff(format!("unsupported-standard-call:{standard}"));
-                        return joined;
-                    }
-                    return self.extend(joined, node, "standard-call-result");
+        if let Some(standard) = self.standard_call_name(function, env) {
+            if let Some((minimum, maximum)) = standard_library::arity(&standard) {
+                let exception = matches!(
+                    standard.as_str(),
+                    "builtins.ValueError" | "builtins.TypeError"
+                );
+                if argument_names.iter().any(Option::is_some)
+                    || !(minimum..=maximum).contains(&arguments.len())
+                    || exception
+                        && node
+                            .parent()
+                            .is_none_or(|parent| parent.kind() != "raise_statement")
+                {
+                    self.cutoff(format!("unsupported-standard-call:{standard}"));
+                    return joined;
                 }
+                return self.extend(joined, node, "standard-call-result");
             }
         }
         let Some(function) = self.functions.get(&resolved).copied() else {
@@ -640,6 +637,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let initial = Environment {
             defined: values.keys().cloned().collect(),
             values,
+            plain_strings: BTreeSet::new(),
         };
         let mut locals = initial.defined.clone();
         for block in &graph.blocks {
@@ -755,6 +753,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             continue;
                         }
                         if block.operation == Operation::Return {
+                            let plain = node.named_child_count() == 1
+                                && node
+                                    .named_child(0)
+                                    .is_some_and(|value| self.plain_string(value, &state));
+                            self.return_text =
+                                Some(self.return_text.is_none_or(|prior| prior) && plain);
                             self.normal_return = true;
                             merge(&mut result, value);
                         } else {
@@ -771,7 +775,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if self.solver.enabled && !self.normal {
                 continue;
             }
-            for (successor, _) in &block.successors {
+            for (successor, edge) in &block.successors {
+                if *successor == 0 && *edge != "return" {
+                    self.return_text = Some(false);
+                }
                 let changed = match &mut incoming[*successor] {
                     Some(previous) => join_environment(previous, &state),
                     slot @ None => {
@@ -822,6 +829,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             self.cutoff("unsupported-assignment");
                             continue;
                         };
+                        let plain = self.plain_string(right, state);
                         let value = self.expression(right, state);
                         if left.kind() == "identifier" {
                             let name = self.text(left).to_owned();
@@ -829,6 +837,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 .values
                                 .insert(name.clone(), self.extend(value, left, "definition"));
                             state.defined.insert(name);
+                            let name = self.text(left).to_owned();
+                            if plain {
+                                state.plain_strings.insert(name);
+                            } else {
+                                state.plain_strings.remove(&name);
+                            }
                         } else {
                             self.cutoff("alias-or-destructuring-assignment");
                         }
@@ -1791,6 +1805,7 @@ impl Project<'_> {
             solver: summaries::Solver::new(options.summaries),
             normal: true,
             normal_return: false,
+            return_text: None,
             may_raise: false,
             sink_flows: BTreeMap::new(),
         };
@@ -1970,6 +1985,7 @@ mod lattice_tests {
             .collect();
         Environment {
             values: BTreeMap::from([("value".into(), flow)]),
+            plain_strings: BTreeSet::new(),
             defined: if bound {
                 BTreeSet::from(["value".into()])
             } else {

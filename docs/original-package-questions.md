@@ -123,6 +123,48 @@ The collector runs ordinary Python separately and compares the results with
 these stated examples. The analyzer's answer concerns the input's connection
 to the date, rather than proving the Easter algorithm correct.
 
+## Follow a customer label through Stringcase
+
+Stringcase is a text utility library. Its `lowercase` helper changes uppercase letters to lowercase:
+
+```python
+from stringcase import lowercase
+
+def entry():
+    return record_value(lowercase(emit_value()))
+```
+
+The independently stated results are `foobarbaz` for `FooBarBaz` and `customer_label` for `CUSTOMER_LABEL`.
+Overwriting the input with `'PUBLIC'` produces `public` for either input and removes the original value connection.
+The checker keeps the original module and import unchanged.
+
+Select `builtins,re` explicitly. The `re` module supplies Python's regular-expression tools, which match text patterns.
+Stringcase imports that module, so the checker needs to recognize its references.
+This selection keeps calls to those tools unchecked; this question needs only string conversion and lowercase conversion.
+The [text lesson](check-language-behavior.md#follow-customer-text-through-string-operations) introduces those operations and the receiver checks.
+
+We chose the question and expected results from the README before opening implementation or tests.
+After fixing the checker and procedure, its first evaluation passed.
+That same executable also passed the earlier Boltons, dateutil and JDcal questions, which are familiar projects now.
+The [current record](../tests/agent-eval/results/2026-10-24-pr573-python-text-package/result.json)
+retains all four questions, renamed and moved callers, unfinished answers for unknown calls and exhausted limits, and checks on saved answers.
+
+The reserved question allows at most 16 Python modules and 256 KiB of source.
+A module is Python code loaded by an import; one KiB means 1,024 bytes.
+The report can use at most 256 KiB. Work stops after 4,096 analysis steps or a helper-call chain deeper than eight.
+An earlier run stopped during its build when we found that a reused test worker requested a larger report.
+GitHub confirms that run skipped source inspection. The fixed worker receives the declared report limit explicitly.
+The frozen record preserves that stop alongside the successful first inspection.
+The current record keeps the original artifact and audits it at its recorded Git revision, meaning its saved source state.
+It separately checks that the compiled checker and Python client still have the same source as the first test.
+The first upload omitted 20 hidden project files and 122 internal native cache files.
+The audit restores the project files from the original source archives and verifies their recorded hashes.
+It lists the unavailable cache payloads explicitly. All answers, commands and SDK saved objects must remain present.
+This result makes no timing or native-cache storage claim. New deliveries keep source inside archives so hidden files survive upload.
+
+These results concern the selected questions. Full Toolz, Funcy and Pydash imports still leave incomplete answers.
+The comparison checks correctness; it measures no speed or agent savings.
+
 ## What the milestone checks must demonstrate
 
 The [combined milestones](package-milestones.md) require original imports,

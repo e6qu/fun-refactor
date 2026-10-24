@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-23-distinct-answers-39986199537",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-23-distinct-answers-40024786372",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-23-distinct-answers-39986199537/result.json",
+      "path": "tests/agent-eval/results/2026-10-23-distinct-answers-40024786372/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "ad52da789adb65a83c29821bd444d694dea758526442bf18c1706c2f63cd58dd"
+      "sha256": "f12c500f0eb3922eebe0859b434c639f5f2241c676309111c64b8537c3d7bf34"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "sha256": "4bc3eac8d35477582957c429f64cbe8a8ca9189e807a062584bd123ba8b291a3"
+      "sha256": "f4f686bcc70007535862ea848e0f36d25a178ab0ba8fbab6bb72ccff52cda74d"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "sha256": "76f2d9c21afd147a7d3d675c877df44d6dcd834770b80173ef32762db1683749"
+      "sha256": "1d7805b9c841f601dc194823b975d72ea9f173ebb34461bb1bc7f2bb4293686e"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "sha256": "e447fb15973109c590242a0f828afd2526a18cef73ff4fe77fd706d0588f5ba5"
+      "sha256": "1fd282db6a304b0c3baced0b249164c337c126c36c6046175428e40c0d7c9c0f"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "sha256": "85e4163be5d35120f41f34a0b545f196eb9cf86b9a0e82283d5329055b603dbf"
+      "sha256": "5b72fd476b746d4c3c82b6163e5add489c6287b3d5aa1c93a86eb6ce444ec698"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "sha256": "ae36031d04737b0dc91469d75377db238e0305e78cd42c610ff4060484f2eff7"
+      "sha256": "1834df190662f33189f8cec074f2ac2c357a1af66ececcbaa0b310de67db39db"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-release-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "fb08c1f7c4aa9bf868b87071780210e645f3f5602f8b06e52af94081fe4495ac"
+      "sha256": "84c5dd4403e00fdacde93e2c7cb6fbbd791d7fa1083f43938547562ca71de79d"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-ci-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-ci-model-comparisons/manifest.json",
       "scope": "Three Boolean model relations; no source implementation connection between the descriptions.",
-      "sha256": "1188d11a9ce602e57f35b8743252c29aed91c094f4d3729fa0ac923ac84555cd"
+      "sha256": "eded08c36aba45c28f94d328510bda09676cca700056d233aeb8ef0619c3d687"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "sha256": "4bcc4cb42b9beb672f7c32dced82d558bb9e4df5a6399923d7e3d07ee737646a"
+      "sha256": "35e9e77c6e332f98107c21ed5a4f0fb81b88173268a6b10620126bfca6286166"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-23-pr571-scalar-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-pr573-scalar-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-python-contract/result.json",
       "scope": "14 declared Python rules; 476 authored programs and 952 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "6cc3724b8213500c3b0113eee39e5ddcf7f937d67b3f06bd081b554066f83ed2"
+      "sha256": "f097b1cf7d027ff94e5dcc6bfca6753f89eed77c5f47faf2945e46e403583c44"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-23-pr571-scalar-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-pr573-scalar-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-scalar-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-scalar-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "7189ba18d79c22ec1b9e6479ec59241089d94720c66c82a9a95ece76670fba47"
+      "sha256": "d5d3fbf5cd0fd197e49c89a2d7e4dbb7c4adbf7101ba96460027668d98776a40"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/package_question_replay.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files",
+      "audit": "python3 tools/python-text-package.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-package",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-20-projects-project-changes/prior-questions/files/result.json",
-      "scope": "Current replay of the three earlier package questions. All are familiar now; the original unread result is checked against its original source.",
-      "sha256": "003f3f38d325c58a8be0e79546b916dfebc82bd0263cf3530d0a36299026bf03"
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-package/result.json",
+      "scope": "Four original-package questions with one unchanged checker. Stringcase passed its first frozen evaluation; audit that procedure at its recorded source. The other three projects were familiar maintenance checks.",
+      "sha256": "3f5131eb975ec69ddf5485b1cf42255ee04a0b83e11fbc0e685a7800866393c6"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,36 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-39986174778",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40024782412",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-39986174778/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40024782412/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "5cfa02049809d93a98d9415e4865c9b8e52e5bf9df523bb694168fa2731b644d"
+      "sha256": "807a3c93e371190baba147faaa247422f3df99cbfe5f00db349ae0d46898aa26"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-23-pr571-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-pr573-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "efbad448b10b831d5fe4143416052b193d48aef887bf589c6775e4c0503e98c5"
+      "sha256": "50846ec40a21ed46d74a069fc93ea53d9d5b8f1de68fc8872c085a9f15e934d9"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-23-pr571-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-effects/result.json",
       "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
-      "sha256": "e4b7b87953a488fa74692c5d9538871b8b9acc3ca59e93f3d6a09ea3b319c36e"
+      "sha256": "81f583beb06540a005f42f5676d19dd3087a420253fa5dfb384f6bd0c848194c"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-23-pr571-release-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-23-pr571-release-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-limits-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "b7e0f3ac14a469c357aeb97f168a773a8209916f09cea2ea037cc0eff1be51f5"
+      "sha256": "0a915d412ec6c252c5d5376aeecc982aa82cb5f11f49a018aabefbd17bcefe02"
+    },
+    {
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow",
+      "id": "python-text-flow",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-24-pr573-python-text-flow/result.json",
+      "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
+      "sha256": "ee5b04f63727d18fb13c2ffe9c76982c0b22ac28d9387b9bb4ef102a198fa4a5"
     }
   ],
   "obligations": [
@@ -357,10 +365,14 @@
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "next": "Keep the three original-package questions reproducible. Broader project changes, effects and total agent costs remain separate requirements.",
+      "next": "Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.",
       "requires": [
         {
           "assertions": [
+            {
+              "equals": true,
+              "pointer": "/complete"
+            },
             {
               "equals": true,
               "pointer": "/milestone_1_demonstrated"
@@ -377,9 +389,18 @@
               "equals": [
                 "dateutil/dateutil",
                 "mahmoud/boltons",
+                "okunishinishi/python-stringcase",
                 "phn/jdcal"
               ],
               "pointer": "/independent_projects"
+            },
+            {
+              "equals": true,
+              "pointer": "/original_unread/qualified"
+            },
+            {
+              "equals": "okunishinishi/python-stringcase",
+              "pointer": "/original_unread/project"
             }
           ],
           "evidence": "original-package-questions"

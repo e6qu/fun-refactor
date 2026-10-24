@@ -34,6 +34,9 @@ def register(catalog, group, relative, receipt):
              if group == 'checked-translation' else
              'Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. '
              'Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.')
+    if group == 'python-text-flow':
+        scope = ('Plain string conversions and twelve read-only string methods, repeated after renaming and moving. '
+                 'Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.')
     entry = {'id': group, 'kind': 'deterministic', 'path': str(relative / 'result.json'),
              'sha256': receipt['files']['result.json'], 'scope': scope,
              'audit': 'python3 ' + ' '.join(scalar.audit_arguments(group, relative / 'result.json'))}
@@ -44,6 +47,8 @@ def register(catalog, group, relative, receipt):
         prior[0].update(entry)
     else:
         catalog['evidence'].append(entry)
+    if group == 'python-text-flow':
+        return
     obligation = 'D.translation' if group == 'checked-translation' else 'B.effects'
     selected, = [row for row in catalog['obligations'] if row['id'] == obligation]
     checks = [('/passed', True)]

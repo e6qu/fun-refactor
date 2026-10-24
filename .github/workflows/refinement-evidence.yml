@@ -865,6 +865,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "tests/agent-eval/results/$EVIDENCE_PREFIX-checked-translation" \
             "tests/agent-eval/results/$EVIDENCE_PREFIX-python-effects" \
+            "tests/agent-eval/results/$EVIDENCE_PREFIX-python-text-flow" \
             tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
           git commit -m 'test: retain checked translations and Python effect explanations'
           git push origin "HEAD:refs/heads/$BRANCH"
@@ -899,12 +900,12 @@ jobs:
           python3 -B tools/check-prose.py
           python3 -B tools/test-checked-translation.py
           python3 -B tools/test-python-effects.py
+          python3 -B tools/test-python-text-flow.py
           python3 -B tools/test-retain-language-behavior.py
       - name: Retain formatting differences
         run: |
           cargo fmt --all
           git diff -- '*.rs' > "$RUNNER_TEMP/language-format.patch"
-          git diff --exit-code -- '*.rs'
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
@@ -914,8 +915,9 @@ jobs:
         run: |
           cargo test --locked --test transpile_integer_division -- --test-threads=1
           cargo test --locked --test language_behavior saved_flow_cannot_turn_a_scalar_answer_into_an_exception_safety_claim -- --exact
+          cargo test --locked --test language_behavior plain_text_matches_python_and_unknown_receivers_stay_incomplete -- --exact
           python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_flow_summaries.py::test_exhausted_solver_and_clipped_reports_cannot_establish_absence
+          PYTHONPATH="$GITHUB_WORKSPACE/sdk/python/src" python3 -B -m pytest -q sdk/python/tests/test_runtime_effects.py sdk/python/tests/test_text_flow.py sdk/python/tests/test_flow_summaries.py::test_exhausted_solver_and_clipped_reports_cannot_establish_absence
       - name: Compare both translation directions with independent arithmetic
         run: >-
           python3 -B tools/checked-translation.py collect --binary target/debug/fr
@@ -929,6 +931,11 @@ jobs:
         run: |
           python3 -B tools/checked-translation.py audit --directory "$RUNNER_TEMP/language-behavior/translation"
           python3 -B tools/python-effects.py audit --directory "$RUNNER_TEMP/language-behavior/effects"
+      - name: Compare text flow with independent Python execution
+        if: (success() || failure()) && steps.build.outcome == 'success'
+        run: >-
+          python3 -B tools/python-text-flow.py collect --binary target/debug/fr
+          --output "$RUNNER_TEMP/language-behavior/text"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -938,6 +945,8 @@ jobs:
             ${{ runner.temp }}/language-format.patch
           retention-days: 30
           if-no-files-found: error
+      - name: Require committed Rust formatting
+        run: git diff --exit-code -- '*.rs'
 
   scalar-development:
     if: inputs.group == 'scalar-development' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'

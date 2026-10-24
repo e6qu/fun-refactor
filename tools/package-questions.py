@@ -133,12 +133,12 @@ def prepare(scope, project, variant, case):
 
 def analysis(request):
     scope = Path(request['scope'])
-    client = FrClient(scope, executable=request['fr'], max_output_bytes=1048576)
+    client = FrClient(scope, executable=request['fr'], max_output_bytes=request['report_bytes'])
     handle = client.project('find', request['entry'], '--in', request['path']).definition_target().handle
     project = request['project']
     settings = dict(standard_library=tuple(project['standard_library']), rules=scope / 'rules.json',
                     summaries=True, imports=True, context='html', depth=8, steps=1 if request['case'] == 'steps' else 4096,
-                    max_bytes=1048576)
+                    max_bytes=request['report_bytes'])
     cache = FlowCache(MemoryObjectStore())
     result = cache.analyze(client, handle, **settings)
     report = result.report.to_data()
@@ -154,12 +154,12 @@ def analysis(request):
 def cache_controls(request):
     scope = Path(request['scope'])
     project = request['project']
-    client = FrClient(scope, executable=request['fr'], max_output_bytes=1048576)
+    client = FrClient(scope, executable=request['fr'], max_output_bytes=request['report_bytes'])
     store = DirectoryObjectStore(request['objects'])
     manifest = request['previous_manifest']
     cache = FlowCache(store) if manifest is None else FlowCache.restore(store, manifest)
     settings = dict(standard_library=tuple(project['standard_library']), rules=scope / 'rules.json',
-                    summaries=True, imports=True, context='html', depth=8, steps=4096, max_bytes=1048576)
+                    summaries=True, imports=True, context='html', depth=8, steps=4096, max_bytes=request['report_bytes'])
     output = Path(request['reports'])
     label, reused, reaches = CACHE_STAGES[request['stage']]
     flow.require((manifest is None) == (label == 'cold'), 'cache stage lacks its predecessor')
@@ -178,7 +178,7 @@ def cache_controls(request):
                       'previous_manifest': manifest, 'manifest': cache.persist()}))
 
 
-def collect_cache_controls(scope, project, directory, binary, row, result, output):
+def collect_cache_controls(scope, project, directory, binary, row, result, output, *, report_bytes):
     path, entry, _ = prepare(scope, project, 'original', 'positive')
     module = scope.joinpath(*project['module'].split('.')).with_suffix('.py')
     if not module.is_file():
@@ -211,6 +211,7 @@ def collect_cache_controls(scope, project, directory, binary, row, result, outpu
             (replacement / '__init__.py').write_text(f'def {project["function"]}({parameters}):\n    return 0\n')
         try:
             request = {'mode': 'cache', 'scope': str(scope), 'path': path, 'entry': entry, 'project': project,
+                       'report_bytes': report_bytes,
                        'fr': str(binary.resolve()), 'reports': str(directory), 'objects': str(directory / 'cache-objects'),
                        'stage': index, 'previous_manifest': manifest}
             observation = execute(directory, 'cache-' + label, request, scope)
@@ -435,6 +436,7 @@ def collect(args):
                     cell = {'variant': variant, 'case': case, 'path': path, 'entry': entry, 'adapter': adapter, 'runtime': []}
                     row['cases'].append(cell)
                     request = {'mode': 'analysis', 'scope': str(scope), 'path': path, 'entry': entry, 'project': project,
+                               'report_bytes': 1048576,
                                'case': case, 'fr': str(args.fr.resolve()), 'report': str(directory / (name + '.json'))}
                     cell['analysis'] = execute(directory, name, request, scope)
                     for index, value in enumerate(project['values']):
@@ -448,7 +450,7 @@ def collect(args):
                                      'ordinary Python disagrees with the independent example')
                     save(output / 'result.json', result)
             if role == 'coverage':
-                collect_cache_controls(scope, project, directory, args.fr, row, result, output)
+                collect_cache_controls(scope, project, directory, args.fr, row, result, output, report_bytes=1048576)
             row['complete'] = all(cell['analysis']['result'] is not None
                                    and (cell['analysis']['result']['complete'] if cell['case'] in ('positive', 'overwritten')
                                         else not cell['analysis']['result']['complete']) for cell in row['cases'])

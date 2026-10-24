@@ -23,7 +23,7 @@ FLOW = {
     'expressions': ['expression-control', 'call-binding', 'literal-defaults', 'namespace-packages', 'scalar-assignments'],
     'cache': ['flow-cache'],
 }
-LANGUAGE = {'checked-translation': 'translation', 'python-effects': 'effects'}
+LANGUAGE = {'checked-translation': 'translation', 'python-effects': 'effects', 'python-text-flow': 'text'}
 SCRIPTS = {'flow-fixed-point': 'flow-acceptance', 'compiler-profile': 'compiler-profile',
            'index-resolution': 'index-resolution-acceptance', 'python-repositories': 'python-repository-acceptance',
            'fixed-arity-probes': 'python-fixed-arity-probes'}

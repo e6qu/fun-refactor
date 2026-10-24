@@ -1,0 +1,65 @@
+name: Retain the first Python text package result
+on:
+  push:
+    branches: [feat/python-package-questions]
+    paths:
+      - .github/workflows/python-text-package.yml
+      - tools/python-text-package.py
+      - tools/test-python-text-package.py
+  workflow_dispatch:
+    inputs:
+      collection_run:
+        description: Successful first package collection to retain
+        type: string
+        required: true
+      prefix:
+        description: New dated directory prefix for retention
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: python-text-package-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  retain:
+    if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: python3 -B tools/test-python-text-package.py
+      - name: Authenticate and audit the original frozen package collection
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COLLECTION_RUN: ${{ inputs.collection_run }}
+          PREFIX: ${{ inputs.prefix }}
+        run: python3 -B tools/python-text-package.py retain --run "$COLLECTION_RUN" --prefix "$PREFIX"
+      - name: Commit the checked record and tracking
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PREFIX: ${{ inputs.prefix }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "tests/agent-eval/results/$PREFIX-python-text-package" tests/agent-eval/roadmap.json docs/roadmap-status.json docs/roadmap-status.md
+          git commit -m 'test: retain the first text package result with its original procedure'
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: qualified-text-package
+          path: tests/agent-eval/results/${{ inputs.prefix }}-python-text-package
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
