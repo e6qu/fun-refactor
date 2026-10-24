@@ -18,7 +18,8 @@
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
@@ -32,7 +33,9 @@
       "changed_sources": [
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
+        "tools/flow-facts-acceptance.py"
       ],
       "freshness": "stale",
       "id": "exact-facts",
@@ -48,7 +51,9 @@
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
+        "tools/package-flow-acceptance.py"
       ],
       "freshness": "stale",
       "id": "package-flow",
@@ -64,7 +69,8 @@
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
@@ -79,7 +85,9 @@
         "sdk/python/src/fr_ir/flow.py",
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
+        "tools/flow-cache-acceptance.py"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
@@ -90,8 +98,10 @@
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-pr573-ci-host-recovery/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tools/evidence_basis.py"
+      ],
+      "freshness": "stale",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
@@ -139,7 +149,9 @@
       "changed_sources": [
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
+        "tools/test-native-source-inputs.py"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -156,8 +168,10 @@
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
         "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
         "tools/python-contract.py",
-        "tools/python_contract_cases.py"
+        "tools/python_contract_cases.py",
+        "tools/test-native-source-inputs.py"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -171,7 +185,8 @@
       "changed_sources": [
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py"
       ],
       "freshness": "stale",
       "id": "index-resolution",
@@ -231,6 +246,7 @@
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
         "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
         "tools/python-contract.py",
         "tools/python-text-package.py"
       ],
@@ -270,11 +286,13 @@
         "src/project/flow_standard_library.rs",
         "src/project/flow_summaries.rs",
         "src/transpile/write.rs",
+        "tools/evidence_basis.py",
         "tools/package-questions.py",
         "tools/package_question_replay.py",
         "tools/python-contract.py",
         "tools/python_contract_cases.py",
-        "tools/retain-scalar-evidence.py"
+        "tools/retain-scalar-evidence.py",
+        "tools/test-native-source-inputs.py"
       ],
       "freshness": "stale",
       "id": "project-changes",
@@ -301,6 +319,7 @@
         "src/project/flow_standard_library.rs",
         "src/project/flow_summaries.rs",
         "src/transpile/write.rs",
+        "tools/evidence_basis.py",
         "tools/saved-work-cost.py"
       ],
       "freshness": "stale",
@@ -311,19 +330,13 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40024782412",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/flow.py",
-        "sdk/python/src/fr_ir/flow_summaries.py",
-        "src/project/control_flow.rs",
-        "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40087113194",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40024782412/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40087113194/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
@@ -331,7 +344,8 @@
       "changed_sources": [
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py"
       ],
       "freshness": "stale",
       "id": "checked-translation",
@@ -346,6 +360,7 @@
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
         "src/project/flow_cache.rs",
+        "tools/evidence_basis.py",
         "tools/python-effects.py"
       ],
       "freshness": "stale",
@@ -363,7 +378,8 @@
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
         "src/project/dataflow.rs",
-        "src/project/flow_cache.rs"
+        "src/project/flow_cache.rs",
+        "tools/evidence_basis.py"
       ],
       "freshness": "stale",
       "id": "python-text-flow",
@@ -374,8 +390,11 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "tools/evidence_basis.py",
+        "tools/test-native-source-inputs.py"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -426,13 +445,13 @@
       "remaining": [
         "C.resume",
         "C.clean",
-        "C.performance"
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 0,
       "engineering": {
         "done": 3,
         "total": 6
@@ -440,9 +459,11 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
+        "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof"
+        "D.new-proof",
+        "D.host"
       ],
       "state": "open",
       "total": 6
@@ -783,7 +804,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -802,14 +825,12 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [
-        "current-saved-work-cost: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -852,7 +873,7 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
@@ -883,7 +904,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -902,7 +925,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
@@ -969,7 +992,9 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [],
+      "blockers": [
+        "host-recovery: stale source binding"
+      ],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -984,7 +1009,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],
