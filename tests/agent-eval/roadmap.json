@@ -70,28 +70,28 @@
       "sha256": "a48b62bc82a439ddba9f315150f94f728e5abb823905ba2c1b2789d993327753"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "a6822756a9c69479a2b1b50717662090a3c031ee420e0382a781f414ef277242"
+      "sha256": "3260a4e7b1207857fa3e26c93b59119fdb4123394cf401f34f59a014d76fe2e0"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "32002149ce6f6b90a843a657c6a98fefef46b83e8e5c4447061cd837efe28ec2"
+      "sha256": "c9c271ba1bcaa7730b5c4cb282270bc6b53d6e2a9cdf3e6f47e132c734d67d9e"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-final-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "99ef0c7a090d79ea6fe31cfc993ef768e1e98ce2ac5a5a0e5fa9a22b1ff544b6"
+      "sha256": "8c3bd5985c53c3895c2a3b0c0422656ffff6f36d345d0c40705912bdd5beaf09"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
