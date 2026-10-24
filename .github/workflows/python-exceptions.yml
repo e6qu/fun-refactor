@@ -1,0 +1,95 @@
+name: Python error handlers
+on:
+  push:
+    branches: [feat/python-exception-handlers]
+    paths:
+      - src/**
+      - sdk/python/src/**
+      - sdk/python/tests/**
+      - tests/agent-eval/python-handlers/**
+      - tests/fixtures/python-handlers/**
+      - .github/workflows/python-exceptions.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: python-exceptions-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  handlers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            src
+            grammars
+            crates
+            queries
+            catalogs
+            kernels
+            sdk/python/src
+            sdk/python/tests
+            tools
+            docs
+            tests/common
+            tests/fixtures
+            tests/agent-eval/python-handlers
+            tests/agent-eval/python-finally
+            tests/agent-eval/python-repositories
+            tests/agent-eval/recursive-flow
+            tests/agent-eval/flow-cache
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - name: Retain any formatting corrections
+        run: |
+          cargo fmt --all
+          git diff -- '*.rs' > "$RUNNER_TEMP/handler-format.patch"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Use fr to inspect its error matching implementation
+        run: >-
+          target/debug/fr --json --no-cache -C src/project/flow_exceptions.rs
+          project find match_exceptions --source --bytes 8192
+          > "$RUNNER_TEMP/handler-code.json"
+      - name: Compare handlers with Python and deliver the original-import repair
+        env:
+          PYTHONPATH: ${{ github.workspace }}/sdk/python/src
+        run: >-
+          python3 -B -m pytest -q
+          sdk/python/tests/test_exception_handlers.py
+          sdk/python/tests/test_finally_flow.py
+          sdk/python/tests/test_flow_summaries.py
+          sdk/python/tests/test_expression_control.py
+          sdk/python/tests/test_flow_imports.py
+          sdk/python/tests/test_shared_named_imports.py::test_wide_named_import_fits_the_existing_response_byte_limit
+          --junitxml="$RUNNER_TEMP/handler-tests.xml"
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
+      - name: Require committed Rust formatting
+        run: git diff --exit-code -- '*.rs'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-error-handlers
+          path: |
+            ${{ runner.temp }}/handler-format.patch
+            ${{ runner.temp }}/handler-code.json
+            ${{ runner.temp }}/handler-tests.xml
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

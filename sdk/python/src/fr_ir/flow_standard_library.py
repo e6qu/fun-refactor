@@ -9,7 +9,7 @@ from .runtime import FrRuntimeError
 NAMESPACE_DIGEST = 'd566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7'
 
 MEMBERS = {
-    'builtins': ['abs', 'int', 'float', 'str', 'bool', 'round', 'min', 'max', 'ValueError', 'TypeError'],
+    'builtins': ['abs', 'int', 'float', 'str', 'bool', 'round', 'min', 'max', 'ValueError', 'TypeError', 'Exception', 'BaseException'],
     're': ['compile', 'escape', 'sub', 'subn', 'split', 'findall', 'finditer', 'match', 'fullmatch', 'search',
            'Pattern', 'Match', 'RegexFlag', 'PatternError', 'error', 'purge',
            'ASCII', 'IGNORECASE', 'MULTILINE', 'DOTALL', 'VERBOSE', 'NOFLAG', 'UNICODE', 'LOCALE'],
@@ -32,7 +32,7 @@ def contract(selection: tuple[str, ...]) -> dict[str, Any] | None:
         'runtime': 'CPython 3.14.8',
         'namespace_digest': NAMESPACE_DIGEST,
         'imports': 'Explicit selected standard modules; competing local source, package, stub, directory, bytecode and extension candidates must be absent, including transitive standard-library names.',
-        'calls': 'Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.',
+        'calls': 'Scalar abs/int/float/str/bool/round and multi-argument min/max; ValueError/TypeError/Exception/BaseException construction in raise; math scalar functions and datetime.date. The re namespace supplies references; its calls remain unchecked.',
         'string_methods': {
             'methods': [[name, minimum, maximum] for name, minimum, maximum in (
                 ('lower', 0, 0), ('upper', 0, 0), ('casefold', 0, 0), ('capitalize', 0, 0),

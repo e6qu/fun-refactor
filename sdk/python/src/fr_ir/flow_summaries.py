@@ -53,11 +53,17 @@ class SummaryParameter:
 
 
 @dataclass(frozen=True)
+class RaisedException:
+    kind: str
+    traces: tuple[SummaryTrace, ...]
+
+
+@dataclass(frozen=True)
 class FunctionSummary:
     function: str
     parameters: tuple[str, ...]
     returns: tuple[SummaryTrace, ...]
-    exceptional_returns: tuple[SummaryTrace, ...]
+    exceptional_returns: tuple[RaisedException, ...]
     sinks: tuple[SinkEffect, ...]
     normal_return: bool
     may_raise: bool
@@ -263,8 +269,11 @@ class FunctionSummaries:
                     seen.add(parameter.name)
                     rank = current
                     optional |= not parameter.required
+                raised = item["exceptional_returns"]
+                if not isinstance(raised, dict) or set(raised) - {"unknown", "ValueError", "TypeError", "Exception", "BaseException"}:
+                    raise FrRuntimeError("unsupported summary exception class")
                 functions.append(FunctionSummary(name, tuple(parameters), traces(item["returns"]),
-                                                 traces(item["exceptional_returns"]), tuple(sinks),
+                                                 tuple(RaisedException(kind, traces(flow)) for kind, flow in raised.items()), tuple(sinks),
                                                  item["normal_return"], item["may_raise"],
                                                  tuple(item["callees"]), item["evaluations"], signature))
             return cls(tuple(functions), value["converged"], data["complete"], value["rounds"], control, binding, assignment)

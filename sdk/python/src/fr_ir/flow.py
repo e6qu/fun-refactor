@@ -69,7 +69,7 @@ class ControlGraph:
                     raise FrRuntimeError("control-flow origin belongs to another revision")
                 if type(node["id"]) is not int or node["id"] != len(nodes):
                     raise FrRuntimeError("control-flow node IDs must be contiguous")
-                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump", "resume-return", "resume-raise"}:
+                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump", "resume-return", "resume-raise", "except"}:
                     raise FrRuntimeError("unknown control-flow operation")
                 nodes.append(ControlNode(node["id"], node["operation"], occurrences, reason))
             ids = range(len(nodes))

@@ -17,6 +17,7 @@ pub(super) enum Operation {
     Jump,
     ResumeReturn,
     ResumeRaise,
+    Except,
 }
 
 #[derive(Clone, Copy)]
@@ -30,6 +31,7 @@ struct Exits {
     returned: CompletionTarget,
     raised: CompletionTarget,
     loops: Option<(usize, usize)>,
+    exception: Option<usize>,
 }
 
 pub(super) struct Block<'t> {
@@ -38,6 +40,7 @@ pub(super) struct Block<'t> {
     pub successors: Vec<(usize, &'static str)>,
     pub raised: CompletionTarget,
     pub completion: Option<(usize, usize)>,
+    pub exception: Option<usize>,
 }
 
 pub(super) struct Graph<'t> {
@@ -57,6 +60,7 @@ impl<'t> Graph<'t> {
             returned: CompletionTarget { node: 0, slot: 0 },
             raised: CompletionTarget { node: 1, slot: 0 },
             loops: None,
+            exception: None,
         };
         graph.add(None, Operation::Exit, vec![], exits)?;
         graph.add(None, Operation::ExceptionalExit, vec![], exits)?;
@@ -90,6 +94,7 @@ impl<'t> Graph<'t> {
             operation,
             successors,
             raised: exits.raised,
+            exception: exits.exception,
             completion: match operation {
                 Operation::Return => Some((exits.returned.slot, exits.returned.slot)),
                 Operation::Raise => Some((exits.raised.slot, exits.raised.slot)),
@@ -173,7 +178,7 @@ impl<'t> Graph<'t> {
                 self.blocks[head].successors = vec![(body, "true"), (otherwise, "false")];
                 Ok(head)
             }
-            "try_statement" if finally_body(node).is_some() => self.finally(node, next, exits),
+            "try_statement" if supported_try(node) => self.protected(node, next, exits),
             "return_statement" => self.add(
                 Some(node),
                 Operation::Return,
@@ -224,14 +229,16 @@ impl<'t> Graph<'t> {
         Ok(id)
     }
 
-    fn finally(&mut self, node: Node<'t>, next: usize, exits: Exits) -> Result<usize> {
-        let final_body = finally_body(node).expect("checked finally shape");
+    fn protected(&mut self, node: Node<'t>, next: usize, exits: Exits) -> Result<usize> {
+        let Some(final_body) = finally_body(node) else {
+            return self.handlers(node, next, exits);
+        };
         let slot = self.completion_slots;
         self.completion_slots += 1;
         let returned = self.resume(Operation::ResumeReturn, slot, exits.returned, exits)?;
         let returned = self.sequence(final_body, returned, exits)?;
         let raised = self.resume(Operation::ResumeRaise, slot, exits.raised, exits)?;
-        let raised = self.sequence(final_body, raised, exits)?;
+        let raised = self.sequence(final_body, raised, Exits { exception: Some(slot), ..exits })?;
         let normal = self.sequence(final_body, next, exits)?;
         let loops = match exits.loops {
             Some((stop, again)) => Some((
@@ -240,8 +247,8 @@ impl<'t> Graph<'t> {
             )),
             None => None,
         };
-        self.sequence(
-            node.child_by_field_name("body").expect("try body"),
+        self.handlers(
+            node,
             normal,
             Exits {
                 returned: CompletionTarget {
@@ -250,8 +257,35 @@ impl<'t> Graph<'t> {
                 },
                 raised: CompletionTarget { node: raised, slot },
                 loops,
+                exception: exits.exception,
             },
         )
+    }
+
+    fn handlers(&mut self, node: Node<'t>, next: usize, exits: Exits) -> Result<usize> {
+        let clauses: Vec<_> = node.named_children(&mut node.walk()).collect();
+        let otherwise = match clauses.iter().find(|clause| clause.kind() == "else_clause") {
+            Some(clause) => self.sequence(clause_body(*clause).expect("else body"), next, exits)?,
+            None => next,
+        };
+        let handlers: Vec<_> = clauses.into_iter().filter(|clause| clause.kind() == "except_clause").collect();
+        let protected = if handlers.is_empty() {
+            exits
+        } else {
+            let slot = self.completion_slots;
+            self.completion_slots += 1;
+            let mut dispatch = self.resume(Operation::ResumeRaise, slot, exits.raised, exits)?;
+            for handler in handlers.into_iter().rev() {
+                let body = self.sequence(clause_body(handler).expect("handler body"), next,
+                    Exits { exception: Some(slot), ..exits })?;
+                let id = self.add(Some(handler), Operation::Except,
+                    vec![(body, "except-match"), (dispatch, "except-miss")], exits)?;
+                self.blocks[id].completion = Some((slot, slot));
+                dispatch = id;
+            }
+            Exits { raised: CompletionTarget { node: dispatch, slot }, ..exits }
+        };
+        self.sequence(node.child_by_field_name("body").expect("try body"), otherwise, protected)
     }
 
     pub fn report(&self, project: &Project<'_>, file: &Path, name: &str) -> Value {
@@ -271,6 +305,7 @@ impl<'t> Graph<'t> {
                     Operation::Jump => "jump",
                     Operation::ResumeReturn => "resume-return",
                     Operation::ResumeRaise => "resume-raise",
+                    Operation::Except => "except",
                 };
                 let origins = match block.syntax {
                     Some(node) => {
@@ -310,7 +345,12 @@ impl<'t> Graph<'t> {
                 ) && block.raised.node != 1
                     && block.syntax.is_some_and(contains_call)
                 {
-                    edges.push(json!({"from":from,"to":block.raised.node,"rule":"call-cleanup"}));
+                    let rule = if self.blocks[block.raised.node].operation == Operation::Except {
+                        "call-handler"
+                    } else {
+                        "call-cleanup"
+                    };
+                    edges.push(json!({"from":from,"to":block.raised.node,"rule":rule}));
                 }
                 edges
             })
@@ -321,16 +361,17 @@ impl<'t> Graph<'t> {
 }
 
 fn finally_body(node: Node<'_>) -> Option<Node<'_>> {
-    let clauses: Vec<_> = node
-        .named_children(&mut node.walk())
-        .filter(|child| child.kind() != "block" && child.kind() != "comment")
-        .collect();
-    if clauses.len() != 1 || clauses[0].kind() != "finally_clause" {
-        return None;
-    }
-    clauses[0]
-        .named_children(&mut clauses[0].walk())
-        .find(|child| child.kind() == "block")
+    let clause = node.named_children(&mut node.walk()).find(|child| child.kind() == "finally_clause")?;
+    clause_body(clause)
+}
+
+fn clause_body(node: Node<'_>) -> Option<Node<'_>> {
+    node.named_children(&mut node.walk()).find(|child| child.kind() == "block")
+}
+
+fn supported_try(node: Node<'_>) -> bool {
+    node.named_children(&mut node.walk()).all(|child| matches!(child.kind(),
+        "block" | "comment" | "except_clause" | "else_clause" | "finally_clause"))
 }
 
 fn contains_call(node: Node<'_>) -> bool {

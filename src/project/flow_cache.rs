@@ -205,6 +205,12 @@ impl Project<'_> {
             "retained flow changed the runtime effect contract."
         );
         ensure!(
+            super::dataflow::exceptions::valid(&report["exceptional_returns"])
+                && report["function_summaries"]["functions"].as_object().is_some_and(|functions|
+                    functions.values().all(|function| super::dataflow::exceptions::valid(&function["exceptional_returns"]))),
+            "retained flow has an unsupported exception class or payload."
+        );
+        ensure!(
             report["initialization"] == json!({"sites":[],"omitted":0,"by_file":{}}),
             "complete retained flow has unchecked initialization."
         );
@@ -217,7 +223,8 @@ impl Project<'_> {
         };
         self.rebind_flow_occurrences(&mut report, &files, &revision, &mut ids)?;
         origins(&mut report["function_summaries"], &ids);
-        for field in ["returns", "exceptional_returns", "origins"] {
+        origins(&mut report["exceptional_returns"], &ids);
+        for field in ["returns", "origins"] {
             if let Some(values) = report[field].as_object_mut() {
                 let old = std::mem::take(values);
                 for (key, mut trace) in old {
