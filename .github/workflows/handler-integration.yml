@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for branch in ci/handlers-final-docs ci/handlers-release-project ci/handlers-release-sessions ci/handlers-release-scope ci/handlers-release-storage ci/handlers-release-python; do
+          for branch in ci/handlers-final-docs ci/handlers-release-project ci/handlers-release-sessions ci/handlers-release-scope ci/handlers-release-storage ci/handlers-release-scalar ci/handlers-release-ci ci/handlers-release-language; do
             git fetch --quiet --filter=blob:none --no-tags origin "$branch"
             if ! git merge --no-ff --no-commit FETCH_HEAD; then
               while IFS= read -r path; do
@@ -47,6 +47,9 @@ jobs:
                   return right
               if right == before:
                   return left
+              if isinstance(before, dict) and isinstance(left, dict) and isinstance(right, dict):
+                  assert before.keys() == left.keys() == right.keys()
+                  return {key: choose(before[key], left[key], right[key]) for key in before}
               raise ValueError('Both result branches changed the same catalog value')
           result = {}
           assert base.keys() == ours.keys() == theirs.keys()
