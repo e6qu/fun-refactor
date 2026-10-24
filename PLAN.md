@@ -115,8 +115,8 @@ Use these two tasks:
 Completion requires a checked source-to-model connection for both functions, their specifications and Lean proofs.
 Record source files, arithmetic rules, translation rules, tool versions and every trusted component.
 
-Check both saved and newly attempted proof claims after deliberate mistakes:
-change a comparison, return the wrong result, alter the model, or change a relevant dependency.
+Test deliberately incorrect changes against saved and newly attempted proofs.
+Change a comparison or return value. Also alter the model or a relevant dependency.
 Outdated claims must expire; a fresh proof attempt must also reject the wrong implementation.
 Keep behavior checks and independent patch replay passing.
 A theorem about a separate description cannot satisfy this package.

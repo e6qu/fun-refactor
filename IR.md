@@ -44,8 +44,8 @@ This illustration shows the structure, not the command's JSON output:
 
 ```text
 Python: def add(a, b): return a + b
-Record: function add -> return -> addition of names a and b
-Target writer: generates that function in the requested language
+Record: function add -> return -> addition(a, b)
+Writer: target-language function
 ```
 
 The record describes an addition. It does not establish that integer overflow, string addition or other runtime behavior agrees across languages.
