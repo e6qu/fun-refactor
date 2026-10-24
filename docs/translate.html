@@ -47,13 +47,11 @@
     <p class="note prose" style="margin-top:1.5rem">
       <span class="recorded">Generated</span> &nbsp;Every result below records what
       <code>fr translate</code> produced, captured by
-      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. The first two carry
-      <strong>nothing</strong> over as a comment in either direction, the strongest
-      claim any pair in this tool makes. The rest are real code from real projects, and
-      they name the point where the translation stops being one. Zig sits at the far end
-      of the range: no <code>new</code>, no exception, no interpolated string and no
-      block comment at all. The Next.js route crosses differently again, preserving an
-      <a href="docs.html#contracts">API contract</a> rather than a signature.
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>.
+      Inspect each generated result and its unsupported constructs.
+      The first two examples preserve their supported syntax without carrying unsupported text into comments.
+      That still needs behavior checks. For a route migration, compare the
+      <a href="docs.html#contracts">declared HTTP contract</a> and test the actual responses too.
     </p>
   </div>
 </section>

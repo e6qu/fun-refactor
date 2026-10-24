@@ -63,10 +63,10 @@
   <div class="shell prose wide">
     <h2>What "unrepresentable" means here, and what it does not</h2>
     <p>
-      Neither language enforces any of this at run time. Python's annotations do nothing
-      without a checker, and TypeScript strips its own before a line executes.
-      Unrepresentable means two things together: your checker rejects it, and one parse
-      at the boundary turns untrusted input into a domain value or turns it away.
+      The type checker catches the illustrated invalid combinations in checked code.
+      Python annotations do not validate values automatically. TypeScript removes type-only declarations from generated JavaScript.
+      At the input boundary, the point where outside data enters the application, validate it before constructing the promised value.
+      Casts and unchecked code can bypass those promises.
     </p>
     <p>
       That boundary is the whole idea, and other people made it: Alexis King's

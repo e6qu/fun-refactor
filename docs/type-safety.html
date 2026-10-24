@@ -61,10 +61,10 @@
     <p>Every code cell is editable. In the first cell, print <code>bill("roadster", "Mrs. Pemberton")</code> and press Run. The swapped customer and product arguments produce an invoice addressed to the product. The following sections add types and checks that distinguish those roles.</p>
     <p>That's one of five mistakes waiting in the file:</p>
     <ul>
-      <li><code>invoice_line</code> takes its four arguments in any order.</li>
+      <li>Unchecked argument types let mismatched values reach <code>invoice_line</code>.</li>
       <li>Prices are plain numbers, and some functions count in pence while others count in pounds.</li>
       <li><code>advance</code> compares the status against <code>darft</code>, so no invoice leaves the draft state and no customer gets billed.</li>
-      <li><code>bill</code> takes its two ids in either order, as you just saw.</li>
+      <li>Customer and product IDs share an unmarked type, so a checker cannot distinguish the swapped call to <code>bill</code>.</li>
       <li><code>load_bom_line</code> passes every field on as text, quantities and prices included.</li>
     </ul>
     <p>Press Type check on the starting program. Python's <code>ty</code> accepts its unannotated functions, while TypeScript's <code>tsc --strict</code> reports implicit <code>any</code> parameters. Neither result identifies all five application mistakes. Gradual typing allows unchecked parts alongside checked code; follow each change to see which mistake it catches.</p>
@@ -196,7 +196,7 @@
     <h2>9. Exercises</h2>
 
     <h3>Exercise 1: make the typo impossible</h3>
-    <p>Ernest's typo killed one branch of <code>advance</code>, and the program runs anyway. Turn the typo into a type error, and catch any status nobody handled while you're there.</p>
+    <p>The misspelled status prevents one branch of <code>advance</code> from running. Restrict the status type and require a case for every supported status.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3 for the literal type. Section 5 for an exhaustive match with
@@ -224,7 +224,7 @@
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
 
     <h3>Exercise 4: separate the currencies</h3>
-    <p>Each amount keeps its currency in a string beside it, so the program adds dollars to euros without a murmur. Move the currency into the types, and that sum stops compiling.</p>
+    <p>A plain numeric amount does not distinguish dollars from euros. Give the currencies distinct types and check that adding them produces a type error.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>In Python, write one class per currency and a constrained type variable,
