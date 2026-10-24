@@ -358,6 +358,7 @@
     {
       "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-pr573-python-text-flow",
       "changed_sources": [
+        "docs/check-language-behavior.md",
         "sdk/python/src/fr_ir/flow.py",
         "sdk/python/src/fr_ir/flow_summaries.py",
         "src/project/control_flow.rs",
@@ -372,13 +373,13 @@
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-cleanup-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-cleanup-compact-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
