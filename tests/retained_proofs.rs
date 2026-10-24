@@ -159,7 +159,7 @@ fn retained_proof_acceptance_matches_its_inputs_and_replays_delivery() {
         .args([
             "tools/proof-evidence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-24-pr573-ci-retained-proofs/result.json",
+            "tests/agent-eval/results/2026-10-24-cleanup-final-retained-proofs/result.json",
         ])
         .output()
         .unwrap();
