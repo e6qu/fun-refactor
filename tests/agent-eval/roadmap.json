@@ -38,36 +38,36 @@
       "sha256": "1459e6458cfe547ea3efe85660c3021440d31cdc79f9009a1d51287cff1ca945"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "a258984e20830266e931c45e8373417176240af7ca5f03218a655ef025ac492b"
+      "sha256": "c4d6b7123662de82fc5c72aca86a148018e30feb68605cf7f1ab978f4fca0daa"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "f3213051ed0d690217eab5600c945ebb36d27488055aa5390ac64c31c6000f6d"
+      "sha256": "f5c40c045a6fabe0cfe78676b9a51303e07917fcb09bfe8a7a09158d156fbc56"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "19cc072912753753e63da802f6d7fcc63a7c1f5c792099974555d0f271509ca0"
+      "sha256": "dff953e07b35e13d7cbc57f12b1229e77fee99b8e212e702ccb46ea46ccb7c54"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "a48b62bc82a439ddba9f315150f94f728e5abb823905ba2c1b2789d993327753"
+      "sha256": "929ee9d78c173bd995fa34678112c7538cd2d1d41c8f87f1e23ddae728783b14"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-final-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "d537051273737279d537c117a204070ede32905e9f0a2e27746e436992fef5b1"
+      "sha256": "f1450919b21765503543e35b9e6b438ce991ed6b345e31dfd3431cfecab41b8b"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "68526924d350f7b89518a9964dd7dac5c0b49f745e60b8e1783d077992ac9979"
+      "sha256": "8794844df09fcba3a5be515a9e451ed64777c7613310ae2615a1d9d11b376dab"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "48549d4f809b2b2871687a7cc274de0a81f6b1981081dc6a25b41de3d7560663"
+      "sha256": "54af3854b2fa4256dee08de238cbdacf2e37901f5e926e70e4083fcdb5fa52a2"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",

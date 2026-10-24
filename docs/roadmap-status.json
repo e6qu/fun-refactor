@@ -26,58 +26,43 @@
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-repositories",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-repositories",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings."
     },
     {
@@ -125,44 +110,33 @@
       "scope": "Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
-      "changed_sources": [
-        "docs/python-contract.md",
-        "grammars/README.md",
-        "queries/README.md",
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "queries/README.md"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source."
     },
     {
@@ -371,31 +345,26 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 0,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.exact",
-        "A.repositories",
-        "A.live-repeat",
-        "A.compiler-profile"
+        "A.live-repeat"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 0,
+      "demonstrated": 2,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
-        "B.scalar",
-        "B.contract",
         "B.repository-flow",
         "B.effects"
       ],
@@ -403,15 +372,13 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 0,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.resume",
-        "C.clean",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -419,14 +386,13 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
-        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
@@ -440,9 +406,7 @@
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
-      "blockers": [
-        "exact-facts: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.exact",
       "kind": "deterministic",
       "next": "Keep these location tests passing as discovery changes.",
@@ -461,14 +425,12 @@
           "evidence": "exact-facts"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Point to the exact code behind an answer"
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -487,7 +449,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -504,9 +466,7 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [
-        "compiler-profile: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -541,14 +501,12 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -571,14 +529,12 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace simple values through package helpers"
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [
-        "python-contract: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "R1 adds base-ten integer conversion errors and caught error objects to the bounds form. R2 adds shared-list writes through helpers. Compare each reusable rule with independent Python results and renamed or moved examples. Preserve explicit incomplete answers, limits and fresh recorded inputs.",
@@ -621,7 +577,7 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Specify reusable Python behavior"
     },
     {
@@ -715,9 +671,7 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -736,14 +690,12 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -766,7 +718,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -847,9 +799,7 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -868,7 +818,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Check and replay a delivered change"
     },
     {
