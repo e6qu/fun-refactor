@@ -178,7 +178,7 @@
       "id": "python-effects",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-24-handlers-final-python-effects/result.json",
-      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; handlers and shared objects remain unsupported.",
+      "scope": "Nine Python effect examples repeated after renaming and moving, with two runtime inputs each. Exact source locations and visible model/runtime disagreement; implicit errors, bound error objects and shared objects remain unchecked.",
       "sha256": "5a35048c690ca396e078b41388c86933ac7d21c6014765ce443f180c86ec8382"
     },
     {
@@ -412,7 +412,7 @@
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
       "id": "B.effects",
       "kind": "deterministic",
-      "next": "Keep unchecked runtime effects visible at exact source locations. Supporting handlers and shared mutable objects still needs language rules and independent project examples.",
+      "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
           "assertions": [
@@ -678,3 +678,4 @@
   "profile": "agent-analysis-v2",
   "schema": "fr-roadmap-catalog-1"
 }
+
