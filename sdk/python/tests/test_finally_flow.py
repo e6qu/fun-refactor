@@ -84,8 +84,8 @@ def test_cleanup_matches_independent_python_and_preserves_explicit_limits(tmp_pa
     assert 'completion_control' not in data
     if case['id'] == 'helper-raise-enters-cleanup':
         assert any(edge.rule == 'call-cleanup' for graph in result.graphs for edge in graph.edges)
-    if case['id'] == 'handler-matching-stays-incomplete':
-        assert any(site.kind == 'exception-handler' for site in result.runtime_effects.sites)
+    if case['id'] == 'handler-matching-runs-before-cleanup':
+        assert not any(site.kind == 'exception-handler' for site in result.runtime_effects.sites)
     if case['id'] == 'implicit-exception-is-not-an-explicit-raise':
         assert any(site.kind == 'implicit-exception' for site in result.runtime_effects.sites)
 

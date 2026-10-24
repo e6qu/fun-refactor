@@ -1,0 +1,125 @@
+name: Python cleanup and error handlers
+on:
+  push:
+    branches: [feat/python-exception-handlers]
+    paths:
+      - src/**
+      - sdk/python/src/**
+      - sdk/python/tests/**
+      - tests/flow_fixed_point.rs
+      - tests/flow_summaries.rs
+      - tests/agent-eval/python-handlers/**
+      - tests/fixtures/python-handlers/**
+      - .github/workflows/python-exceptions.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: python-exceptions-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  handlers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - name: Retain any formatting corrections
+        run: |
+          cargo fmt --all
+          git diff -- '*.rs' > "$RUNNER_TEMP/handler-format.patch"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Check native error reports and scalar handler boundaries
+        run: >-
+          cargo test --locked --test flow_fixed_point --test flow_summaries
+          -- --test-threads 1
+      - name: Use fr to inspect its error matching implementation
+        run: >-
+          target/debug/fr --json --no-cache -C src/project/flow_exceptions.rs
+          project find match_exceptions --source --bytes 8192
+          > "$RUNNER_TEMP/handler-code.json"
+      - name: Compare handlers with Python and deliver the original-import repair
+        env:
+          PYTHONPATH: ${{ github.workspace }}/sdk/python/src
+        run: >-
+          python3 -B -m pytest -q
+          sdk/python/tests/test_exception_handlers.py
+          sdk/python/tests/test_finally_flow.py
+          sdk/python/tests/test_flow_summaries.py
+          sdk/python/tests/test_expression_control.py
+          sdk/python/tests/test_flow_imports.py
+          sdk/python/tests/test_shared_named_imports.py::test_wide_named_import_fits_the_existing_response_byte_limit
+          --junitxml="$RUNNER_TEMP/handler-tests.xml"
+      - name: Preserve the declared saved-answer comparison workload
+        env:
+          PYTHONPATH: ${{ github.workspace }}/tools:${{ github.workspace }}/sdk/python/src
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util, tempfile
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('cache_check', 'tools/flow-cache-acceptance.py')
+          cache = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(cache)
+          with tempfile.TemporaryDirectory() as temporary:
+              root = Path(temporary)
+              project = root / 'project'
+              cache.install(project, cache.sources('pipeline-8'))
+              values = []
+              for strategy in ('legacy', 'chunks'):
+                  result = cache.invoke(Path('target/debug/fr'), project, root / strategy, strategy, 'cached')
+                  again = cache.invoke(Path('target/debug/fr'), project, root / strategy, strategy, 'cached', result['manifest'])
+                  assert result['complete'] and again['complete'] and again['reused']
+                  assert result['evidence_digest'] == again['evidence_digest']
+                  values.append(result['evidence_digest'])
+              assert values[0] == values[1]
+          PY
+      - name: Compare runtime limits and text examples with ordinary Python
+        run: |
+          python3 -B tools/python-effects.py collect --binary target/debug/fr --output "$RUNNER_TEMP/handler-effects"
+          python3 -B tools/python-text-flow.py collect --binary target/debug/fr --output "$RUNNER_TEMP/handler-text"
+      - run: cargo clippy --locked --lib --bin fr -- -D warnings
+      - name: Require committed Rust formatting
+        run: git diff --exit-code -- '*.rs'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: python-error-handlers
+          path: |
+            ${{ runner.temp }}/handler-format.patch
+            ${{ runner.temp }}/handler-code.json
+            ${{ runner.temp }}/handler-tests.xml
+            ${{ runner.temp }}/handler-effects
+            ${{ runner.temp }}/handler-text
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+  documentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Check guide links, examples and writing limits before result collection
+        run: |
+          python3 -B tools/review-docs.py
+          python3 -B tools/check-prose.py

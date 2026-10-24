@@ -14,7 +14,7 @@ struct Summary {
     parameters: Vec<String>,
     signature: Vec<calls::ParameterSignature>,
     returns: Flow,
-    exceptional_returns: Flow,
+    exceptional_returns: Raised,
     sinks: BTreeMap<String, SinkFlow>,
     normal_return: bool,
     #[serde(skip)]
@@ -155,13 +155,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             let flow = self.extend(flow, call, "summary-call");
             self.record_sink(&effect.sink, effect.site.clone(), flow);
         }
-        let exceptions = substitute(
-            &summary.exceptional_returns,
-            &summary.parameters,
-            &arguments,
-        );
-        let exceptions = self.extend(exceptions, call, "summary-raise");
-        merge(&mut self.exceptional_returns, exceptions);
+        let exceptions = summary
+            .exceptional_returns
+            .iter()
+            .map(|(kind, flow)| {
+                let flow = substitute(flow, &summary.parameters, &arguments);
+                (kind.clone(), self.extend(flow, call, "summary-raise"))
+            })
+            .collect();
+        exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise |= summary.may_raise;
         self.normal = summary.normal_return;
         let result = substitute(&summary.returns, &summary.parameters, &arguments);
@@ -220,7 +222,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 summary.evaluations += 1;
                 summary.callees.extend(self.solver.callees.iter().cloned());
                 changed |= add(&mut summary.returns, returns);
-                changed |= add(
+                changed |= exceptions::join(
                     &mut summary.exceptional_returns,
                     std::mem::take(&mut self.exceptional_returns),
                 );
@@ -248,11 +250,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         let summary = self.solver.table[entry].clone();
         self.normal_return = summary.normal_return;
         self.may_raise = summary.may_raise;
-        self.exceptional_returns = substitute(
-            &summary.exceptional_returns,
-            &summary.parameters,
-            &arguments,
-        );
+        self.exceptional_returns = summary
+            .exceptional_returns
+            .iter()
+            .map(|(kind, flow)| {
+                (
+                    kind.clone(),
+                    substitute(flow, &summary.parameters, &arguments),
+                )
+            })
+            .collect();
         for effect in summary.sinks.values() {
             for trace in substitute(&effect.flow, &summary.parameters, &arguments).values() {
                 let key = format!(

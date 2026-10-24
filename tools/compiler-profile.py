@@ -35,7 +35,7 @@ FEATURES = {
     'python-shadow': ('unsupported selection', 'Duplicate declarations refuse a guessed semantic body', 'tests/semantic_evidence.rs'),
     'python-normalized': ('unsupported correspondence', 'Lowered modulo expressions retain absent origins', 'tests/semantic_evidence.rs'),
     'python-local': ('incomplete value flow', 'A later local assignment blocks an external source claim', 'tests/flow_fixed_point.rs'),
-    'python-handler': ('incomplete value flow', 'Exception handlers remain an explicit analysis boundary', 'tests/flow_fixed_point.rs'),
+    'python-handler': ('incomplete value flow', 'Catching an error from division by zero remains outside this model', 'tests/flow_fixed_point.rs'),
     'python-positive': ('value flow', 'A configured scalar reaches a sink through a helper', 'tests/investigation.rs'),
     'python-overwrite': ('value flow', 'An overwrite removes the configured scalar before its use', 'tests/investigation.rs'),
 }

@@ -69,7 +69,7 @@ class ControlGraph:
                     raise FrRuntimeError("control-flow origin belongs to another revision")
                 if type(node["id"]) is not int or node["id"] != len(nodes):
                     raise FrRuntimeError("control-flow node IDs must be contiguous")
-                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump", "resume-return", "resume-raise"}:
+                if node["operation"] not in {"entry", "exit", "exceptional-exit", "condition", "statement", "return", "raise", "jump", "resume-return", "resume-raise", "except"}:
                     raise FrRuntimeError("unknown control-flow operation")
                 nodes.append(ControlNode(node["id"], node["operation"], occurrences, reason))
             ids = range(len(nodes))
@@ -77,7 +77,7 @@ class ControlGraph:
             for edge in value["edges"]:
                 if (type(edge["from"]) is not int or type(edge["to"]) is not int
                         or edge["from"] not in ids or edge["to"] not in ids
-                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue", "call-cleanup"}):
+                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue", "call-cleanup", "call-handler", "except-match", "except-miss"}):
                     raise FrRuntimeError("control-flow edge leaves its graph")
                 edges.append(ControlEdge(edge["from"], edge["to"], edge["rule"]))
             if type(value["entry"]) is not int or value["entry"] not in ids:

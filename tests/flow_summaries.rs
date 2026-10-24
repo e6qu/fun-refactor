@@ -116,7 +116,7 @@ fn empty_returns_are_distinct_from_no_normal_return_and_raises_propagate() {
     }
     let raised = analyze(dir.path(), "exceptional", "4096", "8");
     assert_eq!(raised["completion"]["may_raise"], true);
-    assert!(raised["exceptional_returns"]
+    assert!(raised["exceptional_returns"]["unknown"]
         .as_object()
         .unwrap()
         .contains_key("parameter:error"));
@@ -173,6 +173,13 @@ fn explicit_raise_and_normal_branches_retain_both_effects() {
     );
     assert_eq!(report["witnesses"].as_array().unwrap().len(), 1);
     assert_eq!(report["exceptional_returns"].as_object().unwrap().len(), 1);
+    assert_eq!(
+        report["exceptional_returns"]["unknown"]
+            .as_object()
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 #[test]

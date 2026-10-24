@@ -1,0 +1,32 @@
+{
+  "task": "Repair the error caught by an application using Boltons' original clamp import",
+  "selected_before_implementation": true,
+  "project": "mahmoud/boltons",
+  "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+  "familiar_project": true,
+  "new_unread_claim": false,
+  "import": "from boltons.mathutils import clamp",
+  "problem": "The application's recovery catches TypeError, but clamp raises ValueError when the configured upper bound is below the lower bound. The customer's message never reaches the recovery output.",
+  "repair": "Catch ValueError instead. Keep unexpected TypeError failures visible, and keep normal bounded-number behavior unchanged.",
+  "application_behavior": "Validate configured bounds with clamp(0, lower, upper). Valid bounds produce ACCEPTED; rejected reversed bounds should return the original customer label. A bound with an unexpected type must still raise TypeError.",
+  "independent_checks": [
+    "Execute the original Boltons import with valid and reversed bounds",
+    "Require the starting application to fail the independently declared recovery cases",
+    "Check customer messages, normal numeric results and an unexpected TypeError after the repair",
+    "Use fr to preview and apply the repair, check behavior, undo, redo and export its patch",
+    "Apply the patch in a separate checkout and repeat the independent checks"
+  ],
+  "analysis": "Follow supported explicit raises into ordered builtin exception handlers. Keep each exception class and its value origins together across helper summaries, nested handlers and finally cleanup.",
+  "limits": {
+    "blocks": 512,
+    "steps": 4096,
+    "depth": 8,
+    "report_bytes": 262144
+  },
+  "boundaries": [
+    "No implicit runtime exception safety claim",
+    "No custom exception hierarchies, exception groups or exception-variable bindings",
+    "No shared mutable object support",
+    "No benchmark, live model calls or unfamiliar-agent savings claim"
+  ]
+}

@@ -104,7 +104,8 @@ The model also follows cleanup when a supported local helper explicitly raises, 
 Nested protected sections keep their pending values separate.
 Reassigning a local name during cleanup does not change a value already captured by `return`.
 
-Exception matching with `except`, bare `raise` without a new value, exception groups and `with` context managers remain unsupported.
+The [error-handler lesson](catch-python-errors.md) follows supported explicit errors through `except` clauses and reraises in the current function.
+Custom classes, bound error objects, exception groups and `with` context managers remain unsupported.
 So do shared mutable objects, such as two names referring to a list that either can change.
 For example, a division by zero can interrupt a program even when the scalar model follows its ordinary value path.
 The scalar model follows simple values, such as strings and numbers; it does not reproduce every runtime operation.
@@ -112,4 +113,6 @@ The report keeps that arithmetic limit visible and does not claim runtime except
 
 The [25 independent examples](../tests/agent-eval/python-finally/cases.json) compare both Python outcomes and model answers.
 They repeat after renaming functions and moving the source file, and include unsupported behavior and altered saved-answer controls.
-The existing 512-block graph limit and analysis budgets remain in force. These checks make no speed or memory claim.
+The checker represents possible execution paths as a graph: groups of operations connected in execution order.
+Each group counts as one block. Cleanup copies count toward the existing 512-block limit.
+The analysis budgets remain in force. These checks make no speed or memory claim.

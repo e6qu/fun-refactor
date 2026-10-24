@@ -3,6 +3,10 @@ use super::*;
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-scalar-completion",
         "finally":"Capture values before cleanup; cleanup may replace exits; nest separately.",
+        "except":"Ordered unbound builtin handlers; explicit raises only.",
+        "classes":["ValueError","TypeError","Exception","BaseException"],
+        "reraise":"Lexically active known error.",
+        "handler_nodes":128,
         "local_call_raises":true,
         "block_limit":512,"implicit_exceptions":false})
 }
@@ -25,9 +29,7 @@ pub(super) fn join_pending(into: &mut Environment, from: &Environment) -> bool {
     }
     for (slot, value) in &from.pending_raises {
         if let Some(previous) = into.pending_raises.get_mut(slot) {
-            let count = previous.len();
-            merge(previous, value.clone());
-            changed |= previous.len() != count;
+            changed |= exceptions::join(previous, value.clone());
         } else {
             into.pending_raises.insert(*slot, value.clone());
             changed = true;

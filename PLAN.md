@@ -12,7 +12,7 @@ Finding the calculation is only part of that outcome.
 `fr` can find functions and callers, preview edits, run declared checks, undo changes and resume saved work.
 Selected Rust and Python project changes pass behavior checks and patch replay in another checkout.
 Selected number, date and text questions work through original Python package imports.
-Broader imports, exceptions and shared mutable values remain incomplete.
+Broader imports, implicit runtime errors and shared mutable values remain incomplete.
 
 We have not demonstrated general time or cost savings for agents.
 The [complete session comparison](docs/project-session-cost.md) measures direct CLI calls, restarted Python clients and Python clients kept running across questions.
@@ -77,7 +77,11 @@ The [package example](docs/original-package-questions.md#follow-a-customer-label
 The [cleanup repair](docs/check-python-cleanup.md) follows a customer message through an imported helper.
 It preserves the pending return while cleanup runs and notices when cleanup replaces it.
 It also follows explicit helper raises through cleanup, including nested sections and loop exits.
-Next, choose a project change that needs exception matching or shared mutable values.
+The [error-handler repair](docs/catch-python-errors.md) uses Boltons' original `clamp` import.
+It catches the `ValueError` raised by invalid bounds while preserving an unexpected `TypeError`.
+Supported explicit builtin errors now follow ordered handlers, helper calls, nested cleanup and reraises.
+Implicit errors, bound error objects, custom classes and shared mutable values remain unfinished.
+Next, choose a project change that needs shared mutable values or implicit error handling.
 Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
 Full exception and shared-object analysis remain open work in this delivery package.
 
@@ -192,3 +196,4 @@ Fix the cause of failures and timeouts. Keep existing limits and coverage.
 Keep tutorials and historical runs in their guides, not this roadmap.
 Use the [handoff](docs/continuity.md) for investigation details, the [measurement guide](docs/benchmarks.md) for comparison rules,
 and the [evaluation guide](docs/evaluations.md) for results and preserved failures.
+

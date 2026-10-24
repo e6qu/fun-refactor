@@ -14,6 +14,7 @@ SDK_TESTS = (
     'function_defaults', 'parallel_bindings', 'scalar_named_defaults',
     'imported_scalar_defaults', 'value_aliases', 'default_replacements', 'startup_registration', 'flow_together',
     'saved_startup', 'registration_loops', 'registration_arguments',
+    'finally_flow', 'exception_handlers',
 )
 
 

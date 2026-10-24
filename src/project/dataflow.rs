@@ -42,6 +42,10 @@ mod effects;
 #[path = "flow_completion.rs"]
 mod completion;
 
+#[path = "flow_exceptions.rs"]
+pub(super) mod exceptions;
+use exceptions::Raised;
+
 pub(super) fn completion_contract() -> Value {
     completion::contract()
 }
@@ -255,7 +259,7 @@ struct Environment {
     defined: BTreeSet<String>,
     plain_strings: BTreeSet<String>,
     pending_returns: BTreeMap<usize, PendingReturn>,
-    pending_raises: BTreeMap<usize, Flow>,
+    pending_raises: BTreeMap<usize, Raised>,
 }
 
 fn join_environment(into: &mut Environment, from: &Environment) -> bool {
@@ -313,7 +317,7 @@ struct Analyzer<'a, 'p, 't> {
     witnesses: BTreeMap<String, Value>,
     graphs: BTreeMap<String, Value>,
     summaries: Vec<Value>,
-    exceptional_returns: Flow,
+    exceptional_returns: Raised,
     current_block: Option<(String, usize)>,
     origins: BTreeMap<String, Occurrence>,
     solver: summaries::Solver,
@@ -571,13 +575,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if let Some((minimum, maximum)) = standard_library::arity(&standard) {
                 let exception = matches!(
                     standard.as_str(),
-                    "builtins.ValueError" | "builtins.TypeError"
+                    "builtins.ValueError"
+                        | "builtins.TypeError"
+                        | "builtins.Exception"
+                        | "builtins.BaseException"
                 );
                 if argument_names.iter().any(Option::is_some)
                     || !(minimum..=maximum).contains(&arguments.len())
                     || exception
-                        && node
-                            .parent()
+                        && std::iter::successors(node.parent(), |parent| parent.parent())
+                            .find(|parent| parent.kind() != "parenthesized_expression")
                             .is_none_or(|parent| parent.kind() != "raise_statement")
                 {
                     self.cutoff(format!("unsupported-standard-call:{standard}"));
@@ -705,6 +712,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                 }
             }
+            if node.kind() == "except_clause" {
+                if let Some(alias) = node.child_by_field_name("alias") {
+                    if alias.kind() == "identifier" {
+                        locals.insert(self.text(alias).to_owned());
+                    }
+                }
+            }
             if !matches!(
                 node.kind(),
                 "function_definition" | "class_definition" | "lambda"
@@ -713,20 +727,29 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
         }
         let mut incoming = vec![None; graph.blocks.len()];
-        incoming[graph.entry] = Some(initial);
+        incoming[graph.entry] = Some(initial.clone());
         let mut queue = VecDeque::from([graph.entry]);
         let mut queued = BTreeSet::from([graph.entry]);
         let mut visits = 0;
         let mut result = Flow::new();
         let parent_exceptions = std::mem::take(&mut self.exceptional_returns);
         let parent_may_raise = self.may_raise;
-        let mut exceptions = Flow::new();
+        let mut exceptions = Raised::new();
         let mut may_raise = false;
         let mut normal_return = false;
         let mut return_text = None;
         let parent_block = self.current_block.clone();
         self.active.push(name.to_owned());
         self.local_bindings.push(locals);
+        for block in &graph.blocks {
+            if block.operation == Operation::Except {
+                self.match_exceptions(
+                    block.syntax.expect("handler clause"),
+                    &initial,
+                    Raised::new(),
+                );
+            }
+        }
         while let Some(id) = queue.pop_front() {
             queued.remove(&id);
             if self.remaining == 0 {
@@ -755,7 +778,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             if block.operation == Operation::ExceptionalExit {
                 may_raise = true;
                 if let Some(value) = state.pending_raises.get(&0) {
-                    merge(&mut exceptions, value.clone());
+                    exceptions::join(&mut exceptions, value.clone());
                 }
             }
             if matches!(
@@ -788,7 +811,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     Operation::Statement => self.statement(node, &mut state),
                     Operation::Return | Operation::Raise => {
-                        if block.operation == Operation::Raise && node.named_child_count() != 1 {
+                        if block.operation == Operation::Raise && node.named_child_count() > 1 {
                             self.cutoff("raise-contract-unchecked");
                         }
                         let mut value = Flow::new();
@@ -821,7 +844,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                             if !self.solver.enabled && self.active.len() > 1 {
                                 self.cutoff("helper-exception-control-unchecked");
                             }
-                            state.pending_raises.insert(slot, value);
+                            let raised = self.raised_value(node, block.exception, &state, value);
+                            state.pending_raises.insert(slot, raised);
                         }
                     }
                     _ => (),
@@ -836,7 +860,19 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 );
                 successors.push((block.raised.node, raised_state));
             }
-            if !self.solver.enabled || self.normal {
+            if block.operation == Operation::Except {
+                let slot = block.completion.expect("handler exception slot").0;
+                let raised = state.pending_raises.get(&slot).cloned().unwrap_or_default();
+                let (matched, unmatched) =
+                    self.match_exceptions(block.syntax.expect("handler clause"), &state, raised);
+                for ((target, _), selected) in block.successors.iter().zip([matched, unmatched]) {
+                    if !selected.is_empty() {
+                        let mut outgoing = state.clone();
+                        outgoing.pending_raises.insert(slot, selected);
+                        successors.push((*target, outgoing));
+                    }
+                }
+            } else if !self.solver.enabled || self.normal {
                 for (successor, edge) in &block.successors {
                     let mut outgoing = state.clone();
                     if *successor == 0 && *edge != "return" {
@@ -868,7 +904,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.local_bindings.pop();
         self.current_block = parent_block;
         self.exceptional_returns = parent_exceptions;
-        merge(&mut self.exceptional_returns, exceptions);
+        exceptions::join(&mut self.exceptional_returns, exceptions);
         self.may_raise = parent_may_raise || may_raise;
         self.normal_return = normal_return;
         self.return_text = return_text;
@@ -1879,7 +1915,7 @@ impl Project<'_> {
             witnesses: BTreeMap::new(),
             graphs: BTreeMap::new(),
             summaries: Vec::new(),
-            exceptional_returns: Flow::new(),
+            exceptional_returns: Raised::new(),
             current_block: None,
             origins: BTreeMap::new(),
             solver: summaries::Solver::new(options.summaries),
@@ -1953,7 +1989,7 @@ impl Project<'_> {
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
             "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
-                "external rules are caller-supplied contracts.", "explicit raises leave through modeled finally cleanup; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
+                "external rules are caller-supplied contracts.", "Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
             "execution":{"kind":"analyzed","analysis_steps":allowance-analyzer.remaining,
