@@ -310,9 +310,7 @@ impl<'t> Graph<'t> {
                 ) && block.raised.node != 1
                     && block.syntax.is_some_and(contains_call)
                 {
-                    edges.push(
-                        json!({"from":from,"to":block.raised.node,"rule":"call-cleanup"}),
-                    );
+                    edges.push(json!({"from":from,"to":block.raised.node,"rule":"call-cleanup"}));
                 }
                 edges
             })
