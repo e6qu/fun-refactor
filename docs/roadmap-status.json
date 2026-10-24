@@ -22,43 +22,43 @@
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-facts/result.json",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-package-flow/result.json",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-repositories",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-release-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-flow-cache/result.json",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
@@ -102,39 +102,33 @@
       "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-release-compiler-profile/result.json",
-      "changed_sources": [
-        "tests/flow_fixed_point.rs",
-        "tools/compiler-profile.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-compiler-profile/result.json",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-release-python-contract/result.json",
-      "changed_sources": [
-        "tests/flow_fixed_point.rs",
-        "tools/compiler-profile.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-release-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-release-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source."
     },
     {
@@ -181,15 +175,13 @@
       "scope": "Historical frozen utility baseline; thirty identity-adapter cells on the preceding analyzer. Runtime replay uses retained original sources. This report cannot qualify the revised analyzer or close B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-basis-text-package-recheck",
-      "changed_sources": [
-        "tools/compiler-profile.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-handlers-basis-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-24-handlers-native-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -318,30 +310,26 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.live-repeat",
-        "A.compiler-profile"
+        "A.live-repeat"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 2,
+      "demonstrated": 4,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [
-        "B.contract",
-        "B.repository-flow"
-      ],
+      "remaining": [],
       "state": "open",
       "total": 4
     },
@@ -435,9 +423,7 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [
-        "compiler-profile: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -472,7 +458,7 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
@@ -505,9 +491,7 @@
     },
     {
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "blockers": [
-        "python-contract: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.contract",
       "kind": "semantic-contract",
       "next": "Keep every declared rule, independent runtime/model outcomes, CLI refusals, search budgets and renamed or relocated examples passing. Refresh results tied to recorded source inputs after changes; tracing in unfamiliar projects and effects remain separate obligations.",
@@ -550,14 +534,12 @@
           "evidence": "python-contract"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Specify reusable Python behavior"
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "Keep these four original-package questions reproducible. Full Toolz, Funcy and Pydash imports, exception handling and shared objects remain open.",
@@ -601,7 +583,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
