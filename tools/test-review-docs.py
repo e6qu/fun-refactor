@@ -15,7 +15,8 @@ class WebsiteLinks(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         previous = review.ROOT
         self.addCleanup(setattr, review, 'ROOT', previous)
-        review.ROOT = Path(self.directory.name).resolve()
+        review.ROOT = Path(self.directory.name).resolve() / 'repository'
+        review.ROOT.mkdir()
         self.docs = review.ROOT / 'docs'
         self.docs.mkdir()
 
@@ -52,6 +53,7 @@ class WebsiteLinks(unittest.TestCase):
             review.check_website_links()
 
     def test_links_cannot_escape_the_repository(self):
+        (review.ROOT.parent / 'outside.html').write_text('<p>Existing outside file</p>')
         self.page('index.html', '<a href="../../outside.html">Outside</a>')
         with self.assertRaisesRegex(ValueError, 'missing ../../outside.html'):
             review.check_website_links()

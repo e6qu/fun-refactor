@@ -102,6 +102,7 @@ Broader caller discovery belongs to the same repair: inspect affected code, conf
 
 A passing test checks chosen inputs. A proof checks a stated rule under explicit assumptions.
 The missing connection is showing that the proof describes the implementation users run.
+A model describes that behavior in a form the proof checker can read. Lean is the proof checker used here.
 
 Use these two tasks:
 
