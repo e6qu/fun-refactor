@@ -83,6 +83,14 @@ class WebsitePage(HTMLParser):
 
 def check_website_links():
     pages = {path: WebsitePage(path.read_text()) for path in sorted((ROOT / 'docs').glob('*.html'))}
+    # These three renderers create article IDs from their checked data files.
+    generated = {'translate.html': 'translate-data.js', 'catalog.html': 'catalog-data.js',
+                 'recipes.html': 'recipes-data.js'}
+    for path, page in pages.items():
+        if path.name in generated:
+            data = (path.parent / generated[path.name]).read_text()
+            page.anchors.update(json.loads(value) for value in re.findall(
+                r'^\s+id: ("(?:[^"\\]|\\.)*"),$', data, re.M))
     failures = []
     for path, page in pages.items():
         for target in page.links:

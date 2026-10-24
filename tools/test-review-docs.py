@@ -41,6 +41,16 @@ class WebsiteLinks(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing missing.js'):
             review.check_website_links()
 
+    def test_generated_article_anchor_uses_the_renderers_data(self):
+        self.page('index.html', '<a href="translate.html#route">Read</a>')
+        self.page('translate.html', '<div id="cases"></div>')
+        data = self.docs / 'translate-data.js'
+        data.write_text('export const TRANSLATIONS = [{\n  id: "route",\n}];\n')
+        review.check_website_links()
+        data.write_text('export const TRANSLATIONS = [{\n  id: "different",\n}];\n')
+        with self.assertRaisesRegex(ValueError, 'missing heading translate.html#route'):
+            review.check_website_links()
+
     def test_links_cannot_escape_the_repository(self):
         self.page('index.html', '<a href="../../outside.html">Outside</a>')
         with self.assertRaisesRegex(ValueError, 'missing ../../outside.html'):
