@@ -6,6 +6,7 @@ pub(super) fn contract() -> Value {
         "except":"Ordered unbound builtin handlers; explicit raises only.",
         "classes":["ValueError","TypeError","Exception","BaseException"],
         "reraise":"Lexically active known error.",
+        "handler_nodes":128,
         "local_call_raises":true,
         "block_limit":512,"implicit_exceptions":false})
 }

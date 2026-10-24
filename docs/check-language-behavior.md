@@ -70,8 +70,9 @@ Do not turn that possible value connection into a claim that the send will execu
 An explicit supported `raise` leaves through `finally` cleanup, which can replace the pending return or raise.
 The [cleanup repair lesson](check-python-cleanup.md) explains that behavior with a customer-message bug and a checked repair.
 Exception handlers using `try` and `except` can match an error and resume execution elsewhere.
-Matching those handlers remains unsupported, including when the statement also has `finally`.
-The report stays incomplete and points to that unchecked `try` statement.
+Supported explicit builtin errors now follow matching clauses in order, including through `finally` cleanup.
+The [error-handler repair](catch-python-errors.md) changes an application that catches `TypeError` when Boltons raises `ValueError`.
+Implicit errors, custom classes and bound error objects still exceed this model.
 
 Two names can also refer to the same mutable object, meaning an object whose contents can change:
 

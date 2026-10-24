@@ -77,7 +77,7 @@ class ControlGraph:
             for edge in value["edges"]:
                 if (type(edge["from"]) is not int or type(edge["to"]) is not int
                         or edge["from"] not in ids or edge["to"] not in ids
-                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue", "call-cleanup"}):
+                        or edge["rule"] not in {"entry", "next", "true", "false", "return", "raise", "break", "continue", "call-cleanup", "call-handler", "except-match", "except-miss"}):
                     raise FrRuntimeError("control-flow edge leaves its graph")
                 edges.append(ControlEdge(edge["from"], edge["to"], edge["rule"]))
             if type(value["entry"]) is not int or value["entry"] not in ids:

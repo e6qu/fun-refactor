@@ -72,7 +72,11 @@ The [cleanup repair](check-python-cleanup.md) supplies the next concrete task: a
 It checks the repair through the original local import, independent runtime checks, undo, redo and patch replay.
 Pending return and explicit raise values survive cleanup unless cleanup replaces that exit.
 Explicit helper raises and loop exits also enter cleanup; nested sections keep their pending values separate.
-Next, choose a concrete change that needs exception matching or shared mutable values before extending those rules.
+The [error-handler repair](catch-python-errors.md) uses the original Boltons `clamp` import.
+Its application catches `TypeError` when invalid bounds actually raise `ValueError`.
+The repair changes the matching class and preserves unexpected `TypeError` failures.
+Supported explicit builtin errors now follow ordered handlers, `else`, nested cleanup and known reraises.
+Next, choose a concrete change that needs shared mutable values or implicit error handling before extending those rules.
 Stringcase is familiar after this evaluation; another independent first attempt needs a new reservation.
 The [comparison preparation guide](agent-comparison-preparation.md) explains the eighteen-attempt schedule,
 isolated real-tool controls and detached-process accounting check. Native application controls now cover all nine tool setups.

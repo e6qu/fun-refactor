@@ -77,7 +77,11 @@ The [package example](docs/original-package-questions.md#follow-a-customer-label
 The [cleanup repair](docs/check-python-cleanup.md) follows a customer message through an imported helper.
 It preserves the pending return while cleanup runs and notices when cleanup replaces it.
 It also follows explicit helper raises through cleanup, including nested sections and loop exits.
-Next, choose a project change that needs exception matching or shared mutable values.
+The [error-handler repair](docs/catch-python-errors.md) uses Boltons' original `clamp` import.
+It catches the `ValueError` raised by invalid bounds while preserving an unexpected `TypeError`.
+Supported explicit builtin errors now follow ordered handlers, helper calls, nested cleanup and reraises.
+Implicit errors, bound error objects, custom classes and shared mutable values remain unfinished.
+Next, choose a project change that needs shared mutable values or implicit error handling.
 Toolz, Funcy and Pydash still need broader startup work. Keep their full-package failures and existing limits visible.
 Full exception and shared-object analysis remain open work in this delivery package.
 

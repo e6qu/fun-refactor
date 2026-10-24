@@ -70,6 +70,8 @@ def bindings():
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py',
                  'sdk/python/tests/test_finally_flow.py', 'sdk/python/src/fr_ir/flow_completion.py',
                  'tests/agent-eval/python-finally/cases.json', 'docs/check-python-cleanup.md',
+                 'sdk/python/tests/test_exception_handlers.py', 'tests/agent-eval/python-handlers/cases.json',
+                 'tests/agent-eval/python-handlers/selection.json', 'docs/catch-python-errors.md',
                  'sdk/python/src/fr_ir/flow_dependencies.py', 'sdk/python/src/fr_ir/flow_initialization.py'):
         result[path] = file_digest(ROOT / path)
     return dict(sorted(result.items()))
@@ -126,6 +128,7 @@ def configuration(case):
 
 def flow_command(case, handle, root):
     return ['project', 'dataflow', handle, '--summaries', *(['--imports'] if case['imports'] else []),
+            *(['--standard-library', ','.join(case['standard_library'])] if case['standard_library'] else []),
             '--rules', root + '/rules.json', '--context', 'html', '--steps', str(case['steps']),
             '--depth', str(case['depth']), '--bytes', str(case['bytes'])]
 
@@ -220,8 +223,10 @@ def audit_case(row, case):
     assumptions = [
         'scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
-        'explicit raises leave through modeled finally cleanup; implicit exceptions, handlers and resource effects are outside this model.',
+        'Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.',
         'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
+    if case['standard_library']:
+        assumptions.append('Selected standard-library models assume standard CPython imports and operations on scalars and immutable dates; standard-library implementation source is outside this check.')
     require(flow['assumptions'] == assumptions, 'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')
     require(bool(flow['witnesses']) is case['expected_model']['witness'], 'possible-flow answer changed')

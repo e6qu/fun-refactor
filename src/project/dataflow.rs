@@ -1989,7 +1989,7 @@ impl Project<'_> {
             "effect_limits":analyzer.effect_limits.into_values().collect::<Vec<_>>(),
             "runtime_effects":effect_contract(),
             "assumptions": ["scalar values and standard built-ins; no shared mutable aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
-                "external rules are caller-supplied contracts.", "explicit raises leave through modeled finally cleanup; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
+                "external rules are caller-supplied contracts.", "Explicit supported raises follow ordered builtin handlers and finally cleanup. Implicit exceptions, bound error objects, custom classes and resource effects remain unchecked.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
             "rules_digest": rules_digest, "context": options.context,
             "input_digest":input_digest,"inputs":inputs,
             "execution":{"kind":"analyzed","analysis_steps":allowance-analyzer.remaining,

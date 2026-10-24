@@ -48,6 +48,7 @@ jobs:
             tests/agent-eval/python-finally
             tests/agent-eval/python-repositories
             tests/agent-eval/recursive-flow
+            tests/agent-eval/imported-flow
             tests/agent-eval/flow-cache
       - uses: actions/setup-python@v7
         with:

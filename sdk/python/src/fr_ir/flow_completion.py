@@ -11,6 +11,7 @@ _CONTRACT: dict[str, Any] = {
     'except': 'Ordered unbound builtin handlers; explicit raises only.',
     'classes': ['ValueError', 'TypeError', 'Exception', 'BaseException'],
     'reraise': 'Lexically active known error.',
+    'handler_nodes': 128,
     'local_call_raises': True,
     'block_limit': 512,
     'implicit_exceptions': False,
@@ -26,6 +27,7 @@ class CompletionControl:
     except_rule: str
     exception_classes: tuple[str, ...]
     reraise_rule: str
+    handler_nodes: int
 
     @classmethod
     def from_report(cls, report: FrReport) -> 'CompletionControl':
@@ -34,10 +36,11 @@ class CompletionControl:
             value = data['inputs']['completion_control']
             if ('completion_control' in data or not isinstance(value, dict) or value != _CONTRACT
                     or type(value['block_limit']) is not int
+                    or type(value['handler_nodes']) is not int
                     or value['local_call_raises'] is not True
                     or value['implicit_exceptions'] is not False):
                 raise FrRuntimeError('unsupported scalar completion contract')
             return cls(_CONTRACT['finally'], True, _CONTRACT['block_limit'], False,
-                _CONTRACT['except'], tuple(_CONTRACT['classes']), _CONTRACT['reraise'])
+                _CONTRACT['except'], tuple(_CONTRACT['classes']), _CONTRACT['reraise'], 128)
         except (KeyError, TypeError) as error:
             raise FrRuntimeError('missing or malformed scalar completion contract') from error
