@@ -11,9 +11,10 @@ COMPLETE = 'M1 scripted tool exchange completed.'
 
 
 def responses(model, command, first):
-    """Emit the Responses stream consumed by the pinned native Codex client."""
-    item = ({'type': 'function_call', 'id': 'fc_m1', 'call_id': 'call_m1', 'name': 'exec_command',
-             'arguments': json.dumps({'cmd': command, 'max_output_tokens': 2048}), 'status': 'completed'} if first else
+    """Emit native Responses WebSocket events, including the code-mode tool call."""
+    script = 'const result = await tools.exec_command(' + json.dumps({'cmd': command, 'max_output_tokens': 2048}) + '); text(result);'
+    item = ({'type': 'custom_tool_call', 'id': 'ctc_m1', 'call_id': 'call_m1', 'name': 'exec', 'namespace': 'functions',
+             'input': script, 'status': 'completed'} if first else
             {'type': 'message', 'id': 'msg_m1', 'role': 'assistant', 'status': 'completed', 'phase': 'final_answer',
              'content': [{'type': 'output_text', 'text': COMPLETE, 'annotations': []}]})
     base = {'id': 'resp_m1_' + str(int(first)), 'object': 'response', 'created_at': 1,
@@ -29,8 +30,7 @@ def responses(model, command, first):
                ('response.completed', {'response': {**base, 'status': 'completed', 'output': [item],
                 'usage': {'input_tokens': 1, 'output_tokens': 1, 'total_tokens': 2,
                           'input_tokens_details': {'cached_tokens': 0}, 'output_tokens_details': {'reasoning_tokens': 0}}}})]
-    return ''.join('event: ' + kind + '\ndata: ' + json.dumps({'type': kind, 'sequence_number': index, **body}) + '\n\n'
-                   for index, (kind, body) in enumerate(events)).encode()
+    return [{'type': kind, 'sequence_number': index, **body} for index, (kind, body) in enumerate(events)]
 
 
 def chat(model, command, first):
@@ -46,20 +46,24 @@ def chat(model, command, first):
     return b''.join(b'data: ' + json.dumps(chunk).encode() + b'\n\n' for chunk in chunks) + b'data: [DONE]\n\n'
 
 
-def validate(profile, path, value, index, expected):
+def validate(profile, path, value, index, expected, initial):
     require(index in (0, 1), 'scripted exchange admits exactly two requests; no hidden helper or retry')
     codex = profile['client'] == 'codex'
     model = profile['model'] if codex else profile['model']['id']
     require(path == ('/v1/responses' if codex else '/v1/chat/completions'), 'unexpected scripted provider route')
-    require(value['model'] == model and value['stream'] is True, 'client changed model or streaming mode')
+    require(value['model'] == model, 'client changed model')
     if codex:
+        require(value['type'] == 'response.create', 'expected a native Responses WebSocket request')
         require(value['reasoning']['effort'] == profile['reasoning_effort'], 'Codex reasoning differs from its profile')
         require(value['service_tier'] == profile['request_service_tier'], 'Codex Fast did not reach the provider request')
-        names = {tool['name'] for tool in value['tools'] if tool['type'] == 'function'}
-        require('exec_command' in names, 'native Codex did not expose its ordinary command tool')
+        names = {tool['name'] for item in initial['input'] if item.get('type') == 'additional_tools'
+                 for namespace in item['tools'] if namespace['type'] == 'namespace' and namespace['name'] == 'functions'
+                 for tool in namespace['tools']}
+        require('exec' in names, 'native Codex did not expose its code-mode execution tool')
         require(not names.intersection({'spawn_agent', 'send_input', 'close_agent'}), 'Codex exposed delegation in a single-agent control')
-        outputs = [item for item in value['input'] if item.get('type') == 'function_call_output']
+        outputs = [item for item in value['input'] if item.get('type') == 'custom_tool_call_output']
     else:
+        require(value['stream'] is True, 'OpenCode2 stopped streaming')
         require(value['reasoning_effort'] == profile['model']['variant'], 'OpenCode2 reasoning differs from its profile')
         names = {tool['function']['name'] for tool in value['tools'] if tool['type'] == 'function'}
         require('bash' in names, 'native OpenCode2 did not expose its ordinary command tool')
@@ -74,7 +78,46 @@ def validate(profile, path, value, index, expected):
 
 
 @contextmanager
-def provider(profile, command, expected, output):
+def websocket_provider(profile, command, expected, output):
+    from websockets.sync.server import serve
+    requests, errors, connections = [], [], []
+    gate = threading.Lock()
+
+    def handle(connection):
+        connections.append(connection)
+        try:
+            for raw in connection:
+                require(isinstance(raw, str) and len(raw.encode()) <= CAP, 'invalid native WebSocket message')
+                value = json.loads(raw)
+                with gate:
+                    index = len(requests)
+                    require(sum(len(json.dumps(row).encode()) for row in requests) + len(raw.encode()) <= 4 * CAP,
+                            'WebSocket transcript exceeds its byte limit')
+                    requests.append({'path': connection.request.path, 'body': value})
+                    validate(profile, connection.request.path, value, index, expected, requests[0]['body'])
+                    events = responses(profile['model'], command, index == 0)
+                for event in events:
+                    connection.send(json.dumps(event))
+        except Exception as error:
+            errors.append(type(error).__name__ + ': ' + str(error))
+            connection.close(code=1008, reason='scripted exchange refused')
+
+    with serve(handle, '127.0.0.1', 0, compression=None, server_header=None,
+               open_timeout=10, close_timeout=2, ping_interval=None, ping_timeout=None, max_size=CAP, max_queue=4) as server:
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            yield 'http://127.0.0.1:' + str(server.socket.getsockname()[1]), requests, errors
+        finally:
+            for connection in connections:
+                connection.close()
+            server.shutdown()
+            worker.join(timeout=2)
+            (output / 'provider.json').write_text(json.dumps({'transport': 'websocket', 'requests': requests, 'errors': errors}, indent=2) + '\n')
+
+
+@contextmanager
+def chat_provider(profile, command, expected, output):
     requests, errors = [], []
     gate = threading.Lock()
 
@@ -93,9 +136,8 @@ def provider(profile, command, expected, output):
                     require(sum(len(json.dumps(row).encode()) for row in requests) + length <= 4 * CAP,
                             'scripted transcript exceeds its byte limit')
                     requests.append({'path': self.path, 'body': value})
-                    validate(profile, self.path, value, index, expected)
-                    model = profile['model'] if profile['client'] == 'codex' else profile['model']['id']
-                    payload = (responses if profile['client'] == 'codex' else chat)(model, command, index == 0)
+                    validate(profile, self.path, value, index, expected, requests[0]['body'])
+                    payload = chat(profile['model']['id'], command, index == 0)
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream')
                 self.send_header('Content-Length', str(len(payload)))

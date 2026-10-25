@@ -24,10 +24,12 @@ def save(path, value):
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + '\n')
 
 
-def build(client, setup, binary, fr, output):
+def build(client, setup, binary, fr, output, entry):
     context = output / 'context'
     (context / 'client/bin').mkdir(parents=True)
-    shutil.copy2(binary, context / 'client/bin/client')
+    shutil.copy2(binary, context / 'client/bin' / entry['executable'])
+    for name in entry['companions']:
+        shutil.copy2(binary.parent / name, context / 'client/bin' / name)
     (context / 'tool/bin').mkdir(parents=True)
     (context / 'skill').mkdir()
     if setup == 'fr':
@@ -38,6 +40,7 @@ def build(client, setup, binary, fr, output):
         shutil.copyfile(ROOT / 'tools/agent_eval' / name, context / 'agent_eval' / name)
     for name in ('clients.json', 'profiles.json'):
         shutil.copyfile(ROOT / DIRECTORY / name, context / name)
+    shutil.copyfile(ROOT / DIRECTORY / 'native-requirements.txt', context / 'native-requirements.txt')
     shutil.copyfile(ROOT / 'tools/selected-agent-probe.py', context / 'selected-agent-probe.py')
     shutil.copyfile(ROOT / DIRECTORY / 'Native.Dockerfile', context / 'Dockerfile')
     tag = 'fr-m1-' + client + '-' + setup
@@ -126,7 +129,7 @@ def run(binary, output):
             for setup in ('files', 'fr'):
                 directory = output / ('image-' + name + '-' + setup)
                 directory.mkdir()
-                images[name, setup] = build(name, setup, executable, binary, directory)
+                images[name, setup] = build(name, setup, executable, binary, directory, client)
         for name, profile in profiles.items():
             for setup in ('files', 'fr'):
                 identity = name + '-' + setup

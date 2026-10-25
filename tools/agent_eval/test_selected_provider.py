@@ -15,23 +15,26 @@ EXPECTED = ['normalize_total', 'return value + 2']
 
 class SelectedProviderTests(unittest.TestCase):
     def codex(self):
-        return {'model': 'gpt-6-luna', 'reasoning': {'effort': 'high'}, 'service_tier': 'priority', 'stream': True,
-                'tools': [{'type': 'function', 'name': 'exec_command'}], 'input': []}
+        return {'type': 'response.create', 'model': 'gpt-6-luna', 'reasoning': {'effort': 'high'}, 'service_tier': 'priority',
+                'input': [{'type': 'additional_tools', 'tools': [{'type': 'namespace', 'name': 'functions',
+                    'tools': [{'type': 'custom', 'name': 'exec'}]}]}]}
 
     def test_native_profiles_keep_their_identity_effort_and_speed(self):
         for name, profile in PROFILES.items():
             with self.subTest(profile=name):
                 if profile['client'] == 'codex':
                     path, request = '/v1/responses', self.codex()
-                    validate(profile, path, request, 0, EXPECTED)
-                    request['input'] = [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}]
+                    initial = copy.deepcopy(request)
+                    validate(profile, path, request, 0, EXPECTED, initial)
+                    request['input'] = [{'type': 'custom_tool_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}]
                 else:
                     path = '/v1/chat/completions'
                     request = {'model': profile['model']['id'], 'reasoning_effort': 'high', 'stream': True,
                                'tools': [{'type': 'function', 'function': {'name': 'bash'}}], 'messages': []}
-                    validate(profile, path, request, 0, EXPECTED)
+                    initial = copy.deepcopy(request)
+                    validate(profile, path, request, 0, EXPECTED, initial)
                     request['messages'] = [{'role': 'tool', 'tool_call_id': 'call_m1', 'content': '\n'.join(EXPECTED)}]
-                validate(profile, path, request, 1, EXPECTED)
+                validate(profile, path, request, 1, EXPECTED, initial)
 
     def test_codex_model_reasoning_and_fast_are_checked_on_the_wire(self):
         original = self.codex()
@@ -39,30 +42,30 @@ class SelectedProviderTests(unittest.TestCase):
             request = copy.deepcopy(original)
             request[key] = value
             with self.subTest(key=key), self.assertRaises(ValueError):
-                validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 0, EXPECTED)
+                validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 0, EXPECTED, self.codex())
 
     def test_missing_failed_or_duplicate_tool_results_do_not_complete_the_exchange(self):
         request = self.codex()
-        for outputs in ([], [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': 'normalize_total: command failed'}],
-                        [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}] * 2):
+        for outputs in ([], [{'type': 'custom_tool_call_output', 'call_id': 'call_m1', 'output': 'normalize_total: command failed'}],
+                        [{'type': 'custom_tool_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}] * 2):
             request['input'] = outputs
             with self.subTest(outputs=outputs), self.assertRaises(ValueError):
-                validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED)
+                validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED, self.codex())
 
     def test_extra_requests_and_other_routes_refuse_without_substitution(self):
         for path, index in [('/v1/responses', 2), ('/v1/chat/completions', 0)]:
             with self.subTest(path=path, index=index), self.assertRaises(ValueError):
-                validate(PROFILES['codex-luna-fast'], path, self.codex(), index, EXPECTED)
+                validate(PROFILES['codex-luna-fast'], path, self.codex(), index, EXPECTED, self.codex())
 
     def test_delegation_and_tool_result_misrouting_refuse(self):
         request = self.codex()
-        request['tools'].append({'type': 'function', 'name': 'spawn_agent'})
+        request['input'][0]['tools'][0]['tools'].append({'type': 'function', 'name': 'spawn_agent'})
         with self.assertRaisesRegex(ValueError, 'delegation'):
-            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 0, EXPECTED)
+            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 0, EXPECTED, request)
         request = self.codex()
-        request['input'] = [{'type': 'function_call_output', 'call_id': 'someone_else', 'output': '\n'.join(EXPECTED)}]
+        request['input'] = [{'type': 'custom_tool_call_output', 'call_id': 'someone_else', 'output': '\n'.join(EXPECTED)}]
         with self.assertRaisesRegex(ValueError, 'different call'):
-            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED)
+            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED, self.codex())
 
 
 if __name__ == '__main__':

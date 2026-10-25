@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tarfile
 import urllib.request
@@ -54,12 +55,20 @@ def install(entry, destination):
         member, = selected
         if not member.isfile() or not 0 < member.size <= entry['unpacked_bytes']:
             raise ValueError(f'client executable differs: {member.name}, type={member.type!r}, size={member.size}')
-        binary = destination / 'client'
+        name = entry['executable']
+        if Path(name).name != name or name in {'.', '..'}:
+            raise ValueError('client executable must be one filename')
+        binary = destination / name
         with source.extractfile(member) as data, binary.open('xb') as output:
             while block := data.read(1024**2):
                 output.write(block)
     binary.chmod(0o755)
     archive.unlink()
+    for name, companion in entry['companions'].items():
+        if companion['version'] != entry['version'] or companion['executable'] != name:
+            raise ValueError('client companion differs from its release or executable identity')
+        installed = install(companion, destination / ('component-' + name))
+        shutil.copy2(installed, destination / name)
     return binary
 
 
@@ -100,6 +109,10 @@ def inspect(name, entry, root):
         executable_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
     report = {'release': entry, 'binary_sha256': executable_sha256, 'commands': results,
               'credentials_supplied': False, 'inference_requests': 0}
+    report['companions'] = {}
+    for name, companion in entry['companions'].items():
+        with (root / name).open('rb') as source:
+            report['companions'][name] = {'release': companion, 'binary_sha256': hashlib.file_digest(source, 'sha256').hexdigest()}
     if name == 'codex':
         home = Path(env['CODEX_HOME'])
         home.mkdir()

@@ -11,7 +11,7 @@ import time
 from .codex_client import CodexServer
 from .opencode2_client import OpenCode2Server, scripted_configuration
 from .selected_plan import ROOT, DIRECTORY, require
-from .selected_provider import COMPLETE, provider
+from .selected_provider import COMPLETE, chat_provider, websocket_provider
 
 spec = importlib.util.spec_from_file_location('selected_client_probe', ROOT / 'tools/selected-agent-probe.py')
 packages = importlib.util.module_from_spec(spec)
@@ -112,11 +112,13 @@ def run(profile_name, setup):
     summary = {'profile': profile_name, 'setup': setup, 'passed': False, 'live_model_calls': 0,
                'scope': 'Scripted replies to real native clients, not live outcomes or a cost comparison.'}
     try:
-        with provider(profile, command, expected, output) as (endpoint, requests, errors):
+        transport = websocket_provider if profile['client'] == 'codex' else chat_provider
+        with transport(profile, command, expected, output) as (endpoint, requests, errors):
+            executable = '/opt/client/bin/' + clients[profile['client']]['executable']
             if profile['client'] == 'codex':
-                result = codex('/opt/client/bin/client', project, env, profile, endpoint, setup, output)
+                result = codex(executable, project, env, profile, endpoint, setup, output)
             else:
-                result = opencode('/opt/client/bin/client', project, env, profile, endpoint, setup, output,
+                result = opencode(executable, project, env, profile, endpoint, setup, output,
                                   clients['opencode2']['version'])
             require(len(requests) == 2 and not errors, 'scripted request count or provider validation failed')
         summary.update(passed=True, scripted_requests=len(requests), native=result)

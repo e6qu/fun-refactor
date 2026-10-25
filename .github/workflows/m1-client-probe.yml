@@ -4,40 +4,10 @@ on:
     branches: [ci/m1-selected-agent-probe]
 permissions:
   contents: read
+concurrency:
+  group: m1-controls-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  helper-inventory:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.14.8'
-      - name: Inspect the matching Codex helper archive without extracting or running it
-        run: |
-          python3 -B - <<'PY'
-          import hashlib, json, os, tarfile, urllib.request
-          from pathlib import Path
-          path = Path(os.environ['RUNNER_TEMP']) / 'code-mode-host.tar.gz'
-          url = 'https://github.com/openai/codex/releases/download/rust-v0.164.0/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz'
-          with urllib.request.urlopen(url, timeout=30) as source, path.open('xb') as output:
-              size = 0
-              while chunk := source.read(1048576):
-                  size += len(chunk)
-                  assert size <= 256 * 1024**2
-                  output.write(chunk)
-          with path.open('rb') as source:
-              assert hashlib.file_digest(source, 'sha256').hexdigest() == 'feade7026436baa4e82e898050c7ef82a8adbd98163dc504771275b5ef224f2f'
-          with tarfile.open(path) as archive:
-              members = [{'name': member.name, 'size': member.size, 'type': member.type.decode()} for member in archive.getmembers()]
-          path.unlink()
-          (path.parent / 'code-mode-host-inventory.json').write_text(json.dumps(members, indent=2) + '\n')
-          PY
-      - uses: actions/upload-artifact@v7
-        with:
-          name: code-mode-host-inventory
-          path: ${{ runner.temp }}/code-mode-host-inventory.json
-          if-no-files-found: error
-          retention-days: 30
   clients:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
