@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval.selected_plan import ROOT, DIRECTORY
-from agent_eval.selected_provider import validate
+from agent_eval.selected_provider import validate, warmup
 
 PROFILES = json.loads((ROOT / DIRECTORY / 'profiles.json').read_text())
 EXPECTED = ['normalize_total', 'return value + 2']
@@ -66,6 +66,18 @@ class SelectedProviderTests(unittest.TestCase):
         request['input'] = [{'type': 'custom_tool_call_output', 'call_id': 'someone_else', 'output': '\n'.join(EXPECTED)}]
         with self.assertRaisesRegex(ValueError, 'different call'):
             validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED, self.codex())
+
+    def test_warmup_cannot_hide_a_prompt_or_change_the_profile(self):
+        request = self.codex()
+        request.update(generate=False, input=[])
+        events = warmup(PROFILES['codex-luna-fast'], '/v1/responses', request)
+        self.assertEqual(events[-1]['response']['output'], [])
+        request['input'] = [{'type': 'message', 'content': 'This would be model work'}]
+        with self.assertRaisesRegex(ValueError, 'must not generate'):
+            warmup(PROFILES['codex-luna-fast'], '/v1/responses', request)
+        request.update(input=[], model='gpt-6-astra')
+        with self.assertRaisesRegex(ValueError, 'changed model'):
+            warmup(PROFILES['codex-luna-fast'], '/v1/responses', request)
 
 
 if __name__ == '__main__':

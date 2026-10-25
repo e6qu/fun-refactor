@@ -46,6 +46,22 @@ def chat(model, command, first):
     return b''.join(b'data: ' + json.dumps(chunk).encode() + b'\n\n' for chunk in chunks) + b'data: [DONE]\n\n'
 
 
+def codex_settings(profile, path, value):
+    require(path == '/v1/responses' and value['type'] == 'response.create', 'expected a native Responses WebSocket request')
+    require(value['model'] == profile['model'], 'Codex changed model')
+    require(value['reasoning']['effort'] == profile['reasoning_effort'], 'Codex reasoning differs from its profile')
+    require(value['service_tier'] == profile['request_service_tier'], 'Codex Fast did not reach the provider request')
+
+
+def warmup(profile, path, value):
+    codex_settings(profile, path, value)
+    require(value['generate'] is False and value['input'] == [], 'warmup must not generate text or contain a prompt')
+    response = {'id': 'resp_m1_warmup', 'object': 'response', 'created_at': 1, 'model': profile['model'],
+                'output': [], 'status': 'completed', 'usage': {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}}
+    return [{'type': 'response.created', 'sequence_number': 0, 'response': {**response, 'status': 'in_progress'}},
+            {'type': 'response.completed', 'sequence_number': 1, 'response': response}]
+
+
 def validate(profile, path, value, index, expected, initial):
     require(index in (0, 1), 'scripted exchange admits exactly two requests; no hidden helper or retry')
     codex = profile['client'] == 'codex'
@@ -53,9 +69,7 @@ def validate(profile, path, value, index, expected, initial):
     require(path == ('/v1/responses' if codex else '/v1/chat/completions'), 'unexpected scripted provider route')
     require(value['model'] == model, 'client changed model')
     if codex:
-        require(value['type'] == 'response.create', 'expected a native Responses WebSocket request')
-        require(value['reasoning']['effort'] == profile['reasoning_effort'], 'Codex reasoning differs from its profile')
-        require(value['service_tier'] == profile['request_service_tier'], 'Codex Fast did not reach the provider request')
+        codex_settings(profile, path, value)
         names = {tool['name'] for item in initial['input'] if item.get('type') == 'additional_tools'
                  for namespace in item['tools'] if namespace['type'] == 'namespace' and namespace['name'] == 'functions'
                  for tool in namespace['tools']}
@@ -80,7 +94,7 @@ def validate(profile, path, value, index, expected, initial):
 @contextmanager
 def websocket_provider(profile, command, expected, output):
     from websockets.sync.server import serve
-    requests, errors, connections = [], [], []
+    requests, errors, connections, warmups = [], [], [], []
     gate = threading.Lock()
 
     def handle(connection):
@@ -90,12 +104,17 @@ def websocket_provider(profile, command, expected, output):
                 require(isinstance(raw, str) and len(raw.encode()) <= CAP, 'invalid native WebSocket message')
                 value = json.loads(raw)
                 with gate:
-                    index = len(requests)
                     require(sum(len(json.dumps(row).encode()) for row in requests) + len(raw.encode()) <= 4 * CAP,
                             'WebSocket transcript exceeds its byte limit')
-                    requests.append({'path': connection.request.path, 'body': value})
-                    validate(profile, connection.request.path, value, index, expected, requests[0]['body'])
-                    events = responses(profile['model'], command, index == 0)
+                    if value.get('generate') is False:
+                        require(not requests and not warmups, 'unexpected repeated or late native warmup')
+                        warmups.append({'path': connection.request.path, 'body': value})
+                        events = warmup(profile, connection.request.path, value)
+                    else:
+                        index = len(requests)
+                        requests.append({'path': connection.request.path, 'body': value})
+                        validate(profile, connection.request.path, value, index, expected, requests[0]['body'])
+                        events = responses(profile['model'], command, index == 0)
                 for event in events:
                     connection.send(json.dumps(event))
         except Exception as error:
@@ -107,13 +126,14 @@ def websocket_provider(profile, command, expected, output):
         worker = threading.Thread(target=server.serve_forever, daemon=True)
         worker.start()
         try:
-            yield 'http://127.0.0.1:' + str(server.socket.getsockname()[1]), requests, errors
+            yield 'http://127.0.0.1:' + str(server.socket.getsockname()[1]), requests, errors, warmups
         finally:
             for connection in connections:
                 connection.close()
             server.shutdown()
             worker.join(timeout=2)
-            (output / 'provider.json').write_text(json.dumps({'transport': 'websocket', 'requests': requests, 'errors': errors}, indent=2) + '\n')
+            (output / 'provider.json').write_text(json.dumps({'transport': 'websocket', 'requests': requests,
+                'warmups': warmups, 'errors': errors}, indent=2) + '\n')
 
 
 @contextmanager
@@ -152,7 +172,7 @@ def chat_provider(profile, command, expected, output):
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield 'http://127.0.0.1:' + str(server.server_port), requests, errors
+        yield 'http://127.0.0.1:' + str(server.server_port), requests, errors, []
     finally:
         server.shutdown()
         server.server_close()

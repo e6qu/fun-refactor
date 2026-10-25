@@ -113,7 +113,7 @@ def run(profile_name, setup):
                'scope': 'Scripted replies to real native clients, not live outcomes or a cost comparison.'}
     try:
         transport = websocket_provider if profile['client'] == 'codex' else chat_provider
-        with transport(profile, command, expected, output) as (endpoint, requests, errors):
+        with transport(profile, command, expected, output) as (endpoint, requests, errors, warmups):
             executable = '/opt/client/bin/' + clients[profile['client']]['executable']
             if profile['client'] == 'codex':
                 result = codex(executable, project, env, profile, endpoint, setup, output)
@@ -121,7 +121,7 @@ def run(profile_name, setup):
                 result = opencode(executable, project, env, profile, endpoint, setup, output,
                                   clients['opencode2']['version'])
             require(len(requests) == 2 and not errors, 'scripted request count or provider validation failed')
-        summary.update(passed=True, scripted_requests=len(requests), native=result)
+        summary.update(passed=True, scripted_requests=len(requests), warmup_requests=len(warmups), native=result)
         return summary
     except Exception as error:
         summary['error'] = type(error).__name__ + ': ' + str(error)
