@@ -253,23 +253,13 @@
       "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-text-package-recheck",
-      "changed_sources": [
-        "kernels/FrKernels/Project.lean",
-        "sdk/python/src/fr_ir/structural_change.py",
-        "sdk/python/tests/test_structural_change.py",
-        "src/index.rs",
-        "src/project/author.rs",
-        "src/project/structural_change.rs",
-        "src/project/task.rs",
-        "src/refactor/rename.rs",
-        "src/refactor/signature.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-26-m2-current-text-package-recheck",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-current-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
@@ -408,6 +398,7 @@
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-25-m1-current-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [
+        ".github/workflows/project-changes-recheck.yml",
         "kernels/FrKernels/Project.lean",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/structural_change.py",
@@ -417,7 +408,8 @@
         "src/project/structural_change.rs",
         "src/project/task.rs",
         "src/refactor/rename.rs",
-        "src/refactor/signature.rs"
+        "src/refactor/signature.rs",
+        "tools/recheck-project-changes.py"
       ],
       "freshness": "stale",
       "id": "current-project-changes",
@@ -445,7 +437,7 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 4,
         "total": 5
@@ -453,8 +445,7 @@
       "engineering_remaining": 1,
       "remaining": [
         "B.scalar",
-        "B.contract",
-        "B.repository-flow"
+        "B.contract"
       ],
       "state": "open",
       "total": 4
@@ -681,9 +672,7 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [
-        "original-package-questions: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -727,7 +716,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace values in unfamiliar projects"
     },
     {
