@@ -34,7 +34,7 @@ subprocess.run(['/opt/rust/bin/cargo', 'clean', '-p', 'regex', '-p', 'regex-synt
     argv = grading.DOCKER + ['run', '--name', name, '--rm', '--network=none', '--read-only', '--cap-drop=ALL',
         '--security-opt=no-new-privileges', '--user=65534:65534', '--cpus=2', '--memory=512m', '--memory-swap=512m',
         '--pids-limit=64', '--env=CARGO_BUILD_JOBS=1',
-        '--tmpfs=/workspace:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700',
+        '--tmpfs=/workspace/changed:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700',
         '--tmpfs=/tmp:rw,exec,nosuid,nodev,size=64m,mode=1777',
         '--tmpfs=/review/target:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700']
     for source, destination, readonly in [(original, '/inputs/original', True), (rust, '/opt/rust', True),
