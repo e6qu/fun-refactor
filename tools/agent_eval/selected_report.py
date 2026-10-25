@@ -81,9 +81,16 @@ def token_means(rows, profile, setup):
         for row in selected:
             value = row['reported_tokens']
             for key in field:
+                if not isinstance(value, dict) or key not in value:
+                    value = None
+                    break
                 value = value[key]
+            if value is None:
+                total = None
+                break
+            require(type(value) is int and value >= 0, 'reported token counters must be nonnegative integers or unknown')
             total += value
-        means.append(total / len(selected))
+        means.append(total / len(selected) if total is not None else None)
     return means
 
 

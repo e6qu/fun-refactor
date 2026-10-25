@@ -53,6 +53,9 @@ class SelectedReportTests(unittest.TestCase):
         self.assertEqual(token_means(self.rows, 'codex-luna-fast', 'fr'), [10, 3, 4, 2])
         self.rows[3]['reported_usage_complete'] = False
         self.assertEqual(token_means(self.rows, 'codex-luna-fast', 'fr'), [None] * 4)
+        self.rows[3]['reported_usage_complete'] = True
+        del self.rows[3]['reported_tokens']['cached_input_tokens']
+        self.assertEqual(token_means(self.rows, 'codex-luna-fast', 'fr'), [10, None, 4, 2])
 
     def test_published_passes_and_patch_claims_must_match_fresh_independent_checks(self):
         details = {'patch_accepted': True, 'check_stage': 'complete', 'undo_exact': True, 'redo_exact': True}

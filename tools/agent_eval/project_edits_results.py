@@ -159,12 +159,12 @@ def markdown(summary):
     accepted = sum(row['independent_outcome'] == 'passed' for row in rows)
     finished = completion(summary)
     lines = ['# M2: four code changes with the same agents', '',
-        f'All 48 scheduled local CLI attempts were independently checked: {accepted} passed and {48 - accepted} failed.',
+        f'GitHub independently checked all 48 scheduled local CLI attempts: {accepted} passed and {48 - accepted} failed.',
         'The baseline is the same app and model using ordinary reading, search, editing and shell tools.',
         'The other setup adds fr and its project skill. Each setup gets two attempts at each request:', '',
-        '- Remove an unused Boolean parameter across two Rust crates and update five callers.',
-        '- Rename a TypeScript export while keeping an imported local alias and an unrelated function unchanged.',
-        '- Add an escaped-text byte count in both regex crates. `a.b` needs four bytes; `é` needs two. Check allocations too.',
+        '- Remove an unused true-or-false input, called a parameter, across two Rust packages. Update all five calls.',
+        '- In `import { price as displayPrice }`, rename the exported `price` to `quote`. Keep local calls named `displayPrice` and the unrelated `price` function.',
+        '- Count escaped-text bytes in both regex packages. Escaping adds backslashes: `a.b` needs four bytes; `é` uses two UTF-8 bytes. An allocation reserves memory; counting must allocate nothing.',
         '- Include the invoice fee: `invoice_total(5, 2)` must return 7.', '',
         'These are familiar development tasks. Two repetitions cannot establish general savings or a general success rate.',
         'An accepted result must finish within the frozen limits and deliver a patch that passes the independent checks.',
@@ -189,7 +189,8 @@ def markdown(summary):
         'These are complete code-change times, not execution-speed benchmarks of the changed programs.',
         'Preparation, instructions, indexing, model replies, tools, checks and result export share the 150-second deadline.',
         'Controller Python startup and outer guard startup remain unmeasured; shared preparation is separate in [summary.json](summary.json).',
-        'A command count alone establishes no benefit. Contributing actions were reviewed against the delivered patch.', '',
+        'CPU and memory samples cover the native process group. The outer workstation guard also covers controller preparation and recording.',
+        'A command count alone establishes no benefit. Each contribution review compares commands and results with the delivered patch.', '',
         '## Requests completed', '',
         '| Agent | Request | Ordinary passes / 2 | With fr passes / 2 |', '| --- | --- | ---: | ---: |']
     for profile in report.AGENTS:
@@ -211,8 +212,8 @@ def markdown(summary):
     lines += ['', 'All attempts ran serially with the same 150-second deadline. No failed slot was retried.',
         'The outer workstation guard kept its 180-second deadline and resource limits.',
         'The native CLIs expose no shared hard token/request cap. Fresh conversations do not control operating-system or provider caches.',
-        'Client-selected models are recorded; provider backend identity and billed charges are not independently observed.',
-        'Full CLI logs, prompts, session exports, source archives and execution packets stay local. Only patches and summaries are published.', '',
+        'The clients record their selected models. These records cannot independently verify which model a provider ran or the account charge.',
+        'Full CLI logs, prompts, session exports, source archives and execution packets stay local. We publish only patches and summaries.', '',
         '## Every attempt', '',
         '| Agent | Request | Tools | Repeat | Outcome | Local seconds | Fr commands | Patch |',
         '| --- | --- | --- | ---: | --- | ---: | ---: | --- |']
@@ -270,3 +271,4 @@ if __name__ == '__main__':
             path.write_text(content)
         else:
             require(path.read_text() == content, 'regenerate the report from the independently checked summary')
+            require(completion(supplied)['complete'], 'M2 still lacks an accepted fr result with a reviewed contribution for an agent/request pair')
