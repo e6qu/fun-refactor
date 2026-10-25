@@ -59,7 +59,8 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertIn('[M1](../PLAN.md#', page)
         self.assertIn('[M2](../PLAN.md#', page)
         self.assertIn('[M3](../PLAN.md#', page)
-        self.assertIn('do not close those new milestones', page)
+        self.assertIn('its counts do not measure completion of the focused roadmap', page)
+        self.assertIn('M2 is next.', page)
         for name in ('C.repository-mutations', 'D.structural'):
             with self.subTest(missing=name):
                 gate = next(gate for gate in self.catalog['obligations'] if gate['id'] == name)
@@ -67,7 +68,8 @@ class RoadmapStatusTests(unittest.TestCase):
                 gate['requires'] = []
                 page = status.markdown(self.compute())
                 self.assertIn('[M1](../PLAN.md#', page)
-                self.assertIn('do not close those new milestones', page)
+                self.assertIn('its counts do not measure completion of the focused roadmap', page)
+                self.assertIn('M2 is next.', page)
                 self.assertIn('Saved changes, undo, checks and recovery tests', page)
                 gate['requires'] = requirements
 

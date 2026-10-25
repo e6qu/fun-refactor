@@ -220,7 +220,7 @@ def markdown(report):
         delivered_changes = 'Reviewed edits, behavior checks and small supported proofs'
     next_work = (
         'The active roadmap focuses on smaller agents refactoring code, making targeted changes and writing Lean proofs. '
-        '[M1](../tests/agent-eval/selected-agents/local-results/README.md) records all thirty-six local Codex and OpenCode2 attempts on a rename, Unicode repair and Lean proof, including failures and observed overhead. '
+        '[M1](../PLAN.md#m1-run-the-selected-agents-on-three-complete-tasks) has [thirty-six recorded attempts](../tests/agent-eval/selected-agents/local-results/README.md) on a rename, Unicode repair and Lean proof, including failures and observed overhead. '
         '[M2](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) checks specific Rust, Python and TypeScript changes, preserved source and complete delivery. '
         '[M3](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) checks the agent proof-writing loop, Boolean language cases and numeric properties. '
         'M2 is next. This report retains the earlier qualification conditions; its counts do not measure completion of the focused roadmap.')
