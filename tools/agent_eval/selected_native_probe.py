@@ -6,13 +6,12 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import time
 
 from .codex_client import CodexServer
 from .opencode2_client import OpenCode2Server, scripted_configuration
 from .selected_plan import ROOT, DIRECTORY, require
 from .selected_provider import COMPLETE, chat_provider, websocket_provider
-from .selected_cli import configuration, invocation, export_session
+from .selected_cli import configuration, invocation, export_session, verify_export
 
 spec = importlib.util.spec_from_file_location('selected_client_probe', ROOT / 'tools/selected-agent-probe.py')
 packages = importlib.util.module_from_spec(spec)
@@ -80,8 +79,11 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
     (output / 'native.stderr').write_bytes(result.stderr)
     require(len(result.stdout) + len(result.stderr) <= 1024**2, 'OpenCode2 native output exceeds its byte limit')
     require(result.returncode == 0 and COMPLETE.encode() in result.stdout, 'OpenCode2 CLI scripted turn did not complete')
-    saved = export_session(binary, argv[argv.index('--session') + 1], project, env, output)
-    require(saved['info']['model'] == profile['model'], 'OpenCode2 standalone session substituted a model or variant')
+    session_id = argv[argv.index('--session') + 1]
+    saved = export_session(binary, session_id, project, env, output)
+    observed = verify_export(saved, profile, session_id, [json.loads(line) for line in result.stdout.splitlines()])
+    require(observed['outcome'] == 'succeeded' and observed['exported_assistant_responses'] == 2,
+            'scripted CLI did not retain both native assistant responses')
     (output / 'session-export.json').write_text(json.dumps(saved, indent=2) + '\n')
     return {'skills': skills, 'shutdown': server.shutdown}
 

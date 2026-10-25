@@ -17,7 +17,7 @@ def check_boundary():
             status['NoNewPrivs'].strip() == '1', 'private checks need an unprivileged process with no capabilities')
     require({name for _, name in socket.if_nameindex()} == {'lo'}, 'private grader has an external network interface')
     require(not Path('/var/run/docker.sock').exists(), 'private grader can see the runner Docker socket')
-    readonly = ['/candidate', '/inputs/original', '/inputs/project.json',
+    readonly = ['/candidate', '/inputs/original', '/inputs/project.json', '/inputs/delivery.json', '/inputs/change.patch',
                 '/review/tools', '/opt/rust', '/opt/lean', '/opt/tool/bin/fr']
     require(all(os.statvfs(path).f_flag & os.ST_RDONLY for path in readonly), 'private source or tool mount is writable')
     return {'uid': os.geteuid(), 'effective_capabilities': 0, 'new_privileges_allowed': False,
@@ -51,7 +51,9 @@ def run(task):
     except ValueError as error:
         return {'passed': False, 'stage': 'source boundaries', 'reason': str(error),
                 'candidate': candidate_sources, 'patch_base64': None}
-    patch = tasks.comparison_grade.BASE.git(changed, 'diff', '--binary', 'HEAD').stdout
+    delivery = json.loads(Path('/inputs/delivery.json').read_text())
+    patch = Path('/inputs/change.patch').read_bytes()
+    require(len(patch) <= 1024**2, 'delivered patch exceeds 1 MiB')
     binary = Path('/opt/tool/bin/fr')
     verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')
     require(tasks.sources(changed) == candidate_sources, 'candidate checks changed the delivered source')
@@ -59,13 +61,25 @@ def run(task):
               'patch_base64': base64.b64encode(patch).decode(), 'undo_exact': False, 'redo_exact': False}
     if not verdict['passed']:
         return result
-    require(patch, 'accepted work produced no change to deliver')
+    result['stage'] = 'delivery'
+    if not delivery['provided'] or not patch:
+        return {**result, 'reason': 'the agent did not deliver a nonempty patch'}
     receiver = root / 'receiver'
     shutil.copytree(original, receiver)
     tasks.comparison_grade.BASE.initialize(receiver)
-    tasks.comparison_grade.BASE.git(receiver, 'apply', '--check', '-', data=patch)
+    inspected = tasks.comparison_grade.BASE.git(receiver, 'apply', '--numstat', '-z', '-', data=patch, check=False)
+    if inspected.returncode != 0:
+        return {**result, 'reason': 'the delivered patch cannot be read', 'stderr': inspected.stderr.decode(errors='replace')}
+    paths = [entry.split(b'\t', 2)[2].decode() for entry in inspected.stdout.split(b'\0') if entry]
+    if len(paths) != len(set(paths)) or set(paths) != set(verdict['changed_paths']):
+        return {**result, 'reason': 'patch paths differ from the delivered source changes', 'patch_paths': paths}
+    applicable = tasks.comparison_grade.BASE.git(receiver, 'apply', '--check', '-', data=patch, check=False)
+    if applicable.returncode != 0:
+        return {**result, 'reason': 'the delivered patch does not apply to the original',
+                'stderr': applicable.stderr.decode(errors='replace')}
     tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
-    require(tasks.sources(receiver) == candidate_sources, 'delivered patch changed the source or modes')
+    if tasks.sources(receiver) != candidate_sources:
+        return {**result, 'reason': 'the delivered patch differs from the candidate source or modes'}
     result['receiver'] = tasks.check(task, receiver, prepared, binary, root / 'receiver-checks')
     require(tasks.sources(receiver) == candidate_sources, 'receiver checks changed the delivered source')
     tasks.comparison_grade.BASE.git(receiver, 'apply', '--reverse', '-', data=patch)
@@ -74,6 +88,7 @@ def run(task):
     tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
     require(tasks.sources(receiver) == candidate_sources, 'patch redo did not restore the reviewed source')
     result['redo_exact'] = True
+    result['stage'] = 'complete'
     result['passed'] = result['receiver']['passed']
     return result
 

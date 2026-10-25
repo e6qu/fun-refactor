@@ -10,6 +10,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import selected_local as local
+from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
@@ -59,11 +60,28 @@ class SelectedLocalTests(unittest.TestCase):
 
     def test_task_prompts_keep_the_property_fixed_without_supplied_tactics(self):
         for setup in ('files', 'fr'):
-            prompt = local.prompt('access-proof', setup)
+            prompt = local.prompt('access-proof', setup, {name: {'path': '/' + name} for name in ('python', 'cargo', 'lake')})
             self.assertIn(local.tasks.TASKS['access-proof']['request'], prompt)
             self.assertNotIn('rfl', prompt)
             self.assertIn('change.patch', prompt)
             self.assertIn('Do not start a nested guard', prompt)
+
+    def test_v2_export_pins_model_variant_and_agrees_with_stream_usage(self):
+        profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}
+        saved = {'info': {'id': 'ses_example', 'agent': 'build', 'model': profile['model'], 'outcome': 'succeeded'},
+                 'messages': [{'type': 'agent-switched', 'agent': 'build'},
+                     {'id': 'msg_example', 'type': 'assistant', 'agent': 'build', 'model': profile['model'],
+                      'tokens': {'input': 2, 'output': 1}, 'cost': 0}]}
+        events = [{'type': 'step_finish', 'part': {'messageID': 'msg_example', 'tokens': {'input': 2, 'output': 1}, 'cost': 0}}]
+        result = verify_export(saved, profile, 'ses_example', events)
+        self.assertTrue(result['model_observed'])
+        saved['messages'][1]['model'] = {**profile['model'], 'variant': 'low'}
+        with self.assertRaisesRegex(ValueError, 'substituted'):
+            verify_export(saved, profile, 'ses_example', events)
+        saved['messages'][1]['model'] = profile['model']
+        events[0]['part']['tokens']['input'] = 0
+        with self.assertRaisesRegex(ValueError, 'usage differ'):
+            verify_export(saved, profile, 'ses_example', events)
 
 
 if __name__ == '__main__':

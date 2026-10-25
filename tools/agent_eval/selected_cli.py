@@ -47,3 +47,20 @@ def export_session(binary, session, project, env, output):
     (output / 'export.stdout').write_bytes(exported.stdout)
     require(exported.returncode == 0 and len(exported.stdout) <= 1024**2, 'native session export failed or exceeded its limit')
     return json.loads(exported.stdout)['data']
+
+
+def verify_export(saved, profile, session, events):
+    require(saved['info']['id'] == session and saved['info']['model'] == profile['model'] and
+            saved['info']['agent'] == 'build', 'native exported model or agent differs')
+    assistants = [message for message in saved['messages'] if message['type'] == 'assistant']
+    require(all(message['model'] == profile['model'] and message['agent'] == 'build' for message in assistants),
+            'native response substituted a model, reasoning variant or agent')
+    steps = [event['part'] for event in events if event['type'] == 'step_finish']
+    by_id = {message['id']: message for message in assistants}
+    require(len(by_id) == len(assistants), 'duplicate native assistant response')
+    require(all(step['messageID'] in by_id and step['tokens'] == by_id[step['messageID']]['tokens'] and
+                step['cost'] == by_id[step['messageID']]['cost'] for step in steps),
+            'native stream and exported usage differ')
+    return {'model_observed': bool(assistants), 'session_model': saved['info']['model'],
+            'exported_assistant_responses': len(assistants), 'stream_finished_responses': len(steps),
+            'outcome': saved['info']['outcome']}

@@ -29,7 +29,7 @@ Reports must distinguish those claims.
 
 The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
 Catalog entries and configured credentials do not establish that a live attempt will be admitted.
-Freeze client releases, model identities, reasoning settings, prices, spending caps and attempt limits before paid calls.
+Freeze client releases, model identities, reasoning settings, accounting limits and attempt limits before live calls.
 Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
 
 The selected releases now pass [six scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873),
@@ -78,7 +78,11 @@ All three milestones below are open. Start with M1.
 **M1 is complete when** the three client profiles pass model-free controls.
 All thirty-six live attempts need independently checked outcomes and complete or explicitly missing cost fields.
 Failures count as results. Passing this small study establishes neither a general success rate nor general savings.
-Model-free preparation can proceed now; live calls still need agreed settings and spending limits.
+The user chose the installed local Codex and OpenCode2 CLIs with their existing account stores.
+Attempts run serially under the workstation guard, with a stricter 150-second attempt limit.
+Independent grading and full fr gates run on GitHub; credentials stay local.
+The native CLIs do not expose a shared hard token or request cap. Record that limitation explicitly.
+Unavailable account charges stay unknown, including when the catalog lists a zero price.
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 

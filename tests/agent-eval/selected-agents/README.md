@@ -35,6 +35,24 @@ undo and redo must restore the exact original and changed files, including execu
 The GitHub workflow runs these checks. Follow the repository's
 [workstation rules](../../../docs/development.md#working-on-a-shared-desktop) for local work.
 
+## Run through the installed local CLIs
+
+The user selected the existing local Codex and OpenCode2 accounts. Their credentials stay on this computer.
+Each attempt starts a fresh conversation and unchanged task folder. Full fr builds and gates stay on GitHub;
+the agent can run small checks for its task locally under the guard.
+
+An attempt has 150 seconds, 768 MiB sampled memory, 75 sampled CPU seconds, 512 MiB disk growth
+and 1 MiB captured command output. The outer workstation guard remains stricter about the whole workload:
+serial execution, about half a core, at most 1 GiB aggregate memory and a 180-second deadline.
+The local Rust checker is 1.98.1 and Lean is 4.28.0. The independent GitHub checker uses Rust 1.99.1 and Lean 4.28.0.
+
+The CLI interfaces do not expose a shared hard token/request cap. Those caps are explicitly absent;
+the recorded time and resource limits are enforced. Record reported token counts and keep unavailable account charges unknown.
+OpenCode2 also limits the selected build agent to 32 steps. Codex has no matching step setting.
+The ordinary-tools setup has no fr command on its PATH or project fr skill; both setups retain ordinary tools.
+Local execution uses native client permissions and the workstation guard, rather than a container filesystem boundary.
+Independent checking still runs in separate GitHub containers, including rejection of missing or incorrect submitted patches.
+
 ## Read the inputs and results honestly
 
 - [clients.json](clients.json) identifies the exact client downloads and checksums.

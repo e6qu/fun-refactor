@@ -74,7 +74,7 @@ def command(image, name, mounts, task):
     return arguments + [image, 'python3', '-B', '-m', 'agent_eval.selected_grade_probe', '--task', task]
 
 
-def grade(image, task, candidate, original, prepared, binary, rust, output):
+def grade(image, task, candidate, original, prepared, binary, rust, patch, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'grade on GitHub under the workstation rules')
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -88,8 +88,16 @@ def grade(image, task, candidate, original, prepared, binary, rust, output):
         report['candidate'] = stage(candidate, inputs / 'candidate')
         stage(original, inputs / 'original')
         tasks.save(inputs / 'project.json', prepared)
+        tasks.save(inputs / 'delivery.json', {'provided': patch is not None})
+        if patch is not None:
+            require(patch.is_file() and not patch.is_symlink() and patch.stat().st_size <= 1024**2,
+                    'delivered patch must be a regular file of at most 1 MiB')
+            shutil.copyfile(patch, inputs / 'change.patch')
+        else:
+            (inputs / 'change.patch').write_bytes(b'')
         mounts = [(inputs / 'candidate', '/candidate'), (inputs / 'original', '/inputs/original'),
-            (inputs / 'project.json', '/inputs/project.json'), (binary, '/opt/tool/bin/fr'),
+            (inputs / 'project.json', '/inputs/project.json'), (inputs / 'delivery.json', '/inputs/delivery.json'),
+            (inputs / 'change.patch', '/inputs/change.patch'), (binary, '/opt/tool/bin/fr'),
             (rust, '/opt/rust'), (Path('/opt/lean'), '/opt/lean'),
             (ROOT / 'tools', '/review/tools'), (ROOT / 'sdk/python/src', '/review/sdk/python/src'),
             (ROOT / DIRECTORY, '/review/' + str(DIRECTORY)),
@@ -138,7 +146,7 @@ def controls(binary, output):
     image = build(output / 'image')
     summary = {'passed': False, 'live_model_calls': 0, 'image': image, 'controls': {
         task + '-' + variant: {'status': 'unstarted'} for task in tasks.TASKS
-        for variant in ('unchanged', 'incomplete', 'reference')}}
+        for variant in ('unchanged', 'incomplete', 'reference', 'missing-patch', 'wrong-patch')}}
     try:
         for task in tasks.TASKS:
             with tempfile.TemporaryDirectory(prefix='fr-m1-private-control-') as temporary:
@@ -146,7 +154,7 @@ def controls(binary, output):
                 original = directory / 'original'
                 prepared = tasks.prepare(task, original, binary, directory / 'preparation')
                 tasks.save(output / (task + '-project.json'), prepared)
-                for variant in ('unchanged', 'incomplete', 'reference'):
+                for variant in ('unchanged', 'incomplete', 'reference', 'missing-patch', 'wrong-patch'):
                     identity = task + '-' + variant
                     summary['controls'][identity] = {'status': 'running'}
                     candidate = directory / variant
@@ -154,9 +162,17 @@ def controls(binary, output):
                     actions = directory / (variant + '-actions')
                     actions.mkdir()
                     if variant != 'unchanged':
-                        tasks.prescribed_change(task, variant, candidate, binary, actions)
-                    result = grade(image, task, candidate, original, prepared, binary, rust, output / identity)
+                        tasks.prescribed_change(task, 'reference' if variant in {'missing-patch', 'wrong-patch'} else variant,
+                                                candidate, binary, actions)
+                    patch = actions / 'change.patch'
+                    patch.write_bytes(tasks.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout
+                                      if variant != 'wrong-patch' else b'not a Git patch\n')
+                    result = grade(image, task, candidate, original, prepared, binary, rust,
+                                   None if variant == 'missing-patch' else patch, output / identity)
                     require(result['passed'] == (variant == 'reference'), 'unexpected private grading outcome: ' + identity)
+                    if variant in {'missing-patch', 'wrong-patch'}:
+                        require(result['verdict']['changed']['passed'] and result['verdict']['stage'] == 'delivery',
+                                'delivery control failed before checking the patch')
                     summary['controls'][identity] = {'status': 'passed', 'accepted_change': result['passed']}
         summary['passed'] = True
         return summary

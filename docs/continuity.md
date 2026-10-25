@@ -14,7 +14,9 @@ The [pinned clients, profiles and tasks](../tests/agent-eval/selected-agents/REA
 [passing scripted controls](https://github.com/e6qu/fun-refactor/actions/runs/40190446873).
 The six native checks verify skill discovery, real tool results, effective settings and shutdown
 for both tool setups. They use scripted model replies and make no live model calls.
-Live account access, the account setup and spending cap remain unresolved.
+The user selected the installed local Codex and OpenCode2 CLIs with their existing account stores.
+Codex reports ChatGPT login; OpenCode2 lists the Z.AI Coding Plan and Kimi accounts.
+No credentials are transferred to GitHub. Live model admission still needs to be observed in the actual attempts.
 
 The three prepared tasks also pass controls with supplied correct and incorrect answers:
 
@@ -25,10 +27,12 @@ The three prepared tasks also pass controls with supplied correct and incorrect 
 These are familiar development tasks.
 The first matched schedule has eighteen attempts; one unchanged repetition gives thirty-six.
 All thirty-six live attempts remain unstarted. Keep their results separate from supplied control answers.
-Finish isolating live execution and private checking, bind the complete runtime and task inputs,
-and test the chosen account setup before launching the study.
+Freeze the local runtime, task inputs and CLI commands before launching the study.
+Each attempt has a 150-second limit inside the unchanged 180-second workstation guard.
+Keep independent checking in private GitHub containers and test the agent's actual submitted patch.
 Do not supply the repair, edit location or proof tactics to a live attempt.
-Agree and freeze settings, prices, spending caps and limits before launching it.
+Record effective settings, enforced limits and missing accounting fields before launching it.
+The installed CLIs do not expose a shared hard token/request cap; do not claim that cap is enforced.
 
 ## Keep the other milestones concrete
 
