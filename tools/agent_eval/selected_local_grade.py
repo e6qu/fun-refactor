@@ -78,7 +78,8 @@ def run(data, binary, output, completion):
                     require(patch.is_file() and not patch.is_symlink() and local.hash_file(patch) == row['patch_sha256'],
                             'submitted patch differs from the locally retained patch')
                 original, record = prepared[task]
-                verdict = grading.grade(image, task, original, record, binary, rust, patch, output / identity)
+                verdict = grading.grade(image, task, original, record, binary, rust, patch, output / identity,
+                                        milestone='M1', tools={})
                 accepted = row['native_status'] == 'completed' and verdict['passed']
                 summary['attempts'][identity] = {'status': 'checked', 'outcome': 'passed' if accepted else 'failed',
                     'native_status': row['native_status'], 'patch_accepted': verdict['passed'],

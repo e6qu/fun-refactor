@@ -60,7 +60,8 @@ def build(output):
     return image
 
 
-def command(image, name, mounts, task):
+def command(image, name, mounts, task, milestone):
+    require(milestone in {'M1', 'M2'}, 'choose an explicit private-grading milestone')
     arguments = ['create', '--name', name, '--pull=never', '--init', '--network=none', '--read-only',
         '--cap-drop=ALL', '--security-opt=no-new-privileges', '--user=65534:65534',
         '--cpus=0.5', '--memory=512m', '--memory-swap=512m', '--pids-limit=64', '--log-driver=none',
@@ -71,14 +72,15 @@ def command(image, name, mounts, task):
     for source, destination in mounts:
         require(',' not in str(source) and source.exists(), 'grader mount needs an existing path without commas')
         arguments += ['--mount=type=bind,src=' + str(source) + ',dst=' + destination + ',readonly,bind-recursive=disabled']
-    return arguments + [image, 'python3', '-B', '-m', 'agent_eval.selected_grade_probe', '--task', task]
+    return arguments + [image, 'python3', '-B', '-m', 'agent_eval.selected_grade_probe',
+                        '--milestone', milestone, '--task', task]
 
 
-def grade(image, task, original, prepared, binary, rust, patch, output):
+def grade(image, task, original, prepared, binary, rust, patch, output, *, milestone, tools):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'grade on GitHub under the workstation rules')
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    report = {'task': task, 'passed': False, 'image': image, 'live_model_calls': 0,
+    report = {'task': task, 'milestone': milestone, 'passed': False, 'image': image, 'live_model_calls': 0,
         'scope': 'Private container checks and exact patch delivery; no live agent outcome.'}
     budget = {**limits(), 'memory_bytes': 512 * 1024**2, 'cpu_seconds': 60}
     name = 'fr-m1-grade-' + uuid.uuid4().hex
@@ -98,8 +100,8 @@ def grade(image, task, original, prepared, binary, rust, patch, output):
             report['submitted_patch_sha256'] = None
         mounts = [(inputs / 'original', '/inputs/original'),
             (inputs / 'project.json', '/inputs/project.json'), (inputs / 'delivery.json', '/inputs/delivery.json'),
-            (inputs / 'change.patch', '/inputs/change.patch'), (binary, '/opt/tool/bin/fr'),
-            (rust, '/opt/rust'), (Path('/opt/lean'), '/opt/lean'),
+            (inputs / 'change.patch', '/inputs/change.patch'),
+            (rust, '/opt/rust'),
             (ROOT / 'tools', '/review/tools'), (ROOT / 'sdk/python/src', '/review/sdk/python/src'),
             (ROOT / DIRECTORY, '/review/' + str(DIRECTORY)),
             (ROOT / 'tests/agent-eval/strsim-0.11.1.crate', '/review/tests/agent-eval/strsim-0.11.1.crate'),
@@ -107,10 +109,20 @@ def grade(image, task, original, prepared, binary, rust, patch, output):
             (ROOT / 'tests/agent-eval/project-changes', '/review/tests/agent-eval/project-changes'),
             (ROOT / 'tests/agent-eval/python-repositories/boltons.tar.gz',
              '/review/tests/agent-eval/python-repositories/boltons.tar.gz')]
+        if milestone == 'M1':
+            require(not tools and binary is not None, 'M1 grading uses its original fixed tool paths')
+            mounts += [(binary, '/opt/tool/bin/fr'), (Path('/opt/lean'), '/opt/lean')]
+        else:
+            require(milestone == 'M2' and binary is None and set(tools) == {'node', 'typescript_root', 'registry'},
+                    'supply the three explicit M2 checker mounts')
+            mounts += [(tools['node'], '/opt/node/bin/node'), (tools['typescript_root'], '/opt/typescript'),
+                (tools['registry'], '/review/target/cargo-home/registry'),
+                (ROOT / 'tests/agent-eval/project-edits', '/review/tests/agent-eval/project-edits'),
+                (ROOT / 'tests/agent-eval/regex', '/review/tests/agent-eval/regex')]
         with boundary.isolated_budget(output, budget) as slice_id:
             scope = ContainerResources(budget, slice_id, output).start()
             try:
-                created, stdout, stderr = scope.invoke(DOCKER + command(image, name, mounts, task), b'', output, 10, 65536)
+                created, stdout, stderr = scope.invoke(DOCKER + command(image, name, mounts, task, milestone), b'', output, 10, 65536)
                 report['creation'] = {'process': created, 'stderr': stderr.decode(errors='replace')}
                 require(created['exit_code'] == 0 and not created['stop_reason'], 'private grader container creation failed')
                 process, stdout, stderr = scope.invoke(DOCKER + ['start', '--attach', name], b'', output, 120, 1024**2)
@@ -184,7 +196,7 @@ def controls(binary, output):
                     patch.write_bytes(tasks.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout
                                       if variant != 'wrong-patch' else b'not a Git patch\n')
                     result = grade(image, task, original, prepared, binary, rust,
-                                   None if variant == 'missing-patch' else patch, output / identity)
+                                   None if variant == 'missing-patch' else patch, output / identity, milestone='M1', tools={})
                     require(result['passed'] == (variant == 'reference'), 'unexpected private grading outcome: ' + identity)
                     if variant in {'missing-patch', 'wrong-patch'}:
                         require(result['verdict']['stage'] == 'delivery', 'invalid patch was not rejected at delivery')

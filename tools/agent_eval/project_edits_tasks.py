@@ -225,12 +225,17 @@ def check(task, project, prepared, tools, output):
                 checked = common.command(argv, project, output / f'command-{index}.json')
                 result['checks'].append({'argv': list(map(str, argv)), 'returncode': checked['returncode']})
                 if checked['returncode'] != 0:
+                    result['diagnostics'] = {name: checked[name][-8192:] for name in ('stdout', 'stderr')}
                     return result
         require(common.sources(project) == before_checks, 'a check changed source during validation')
         result.update(passed=True, stage='complete')
         return result
     except (ValueError, SyntaxError, UnicodeError, subprocess.TimeoutExpired) as error:
         result['reason'] = type(error).__name__ + ': ' + str(error)
+        if isinstance(error, subprocess.TimeoutExpired):
+            result['diagnostics'] = {name: (getattr(error, name) or b'')[-8192:].decode(errors='replace')
+                                     if isinstance(getattr(error, name), bytes) else (getattr(error, name) or '')[-8192:]
+                                     for name in ('stdout', 'stderr')}
         return result
     finally:
         common.save(output / 'result.json', result)

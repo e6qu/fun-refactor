@@ -1,0 +1,57 @@
+name: M2 private acceptance checks
+on:
+  push:
+    branches: [milestone/dependable-project-changes, milestone/m2-private-checks]
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: m2-private-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  private-controls:
+    name: Reject incomplete changes in private containers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+      CARGO_HOME: ${{ github.workspace }}/target/cargo-home
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/project-edit-checkers
+      - name: Prepare only the unchanged task projects and pinned dependencies
+        run: |
+          for task in rust-parameter typescript-alias regex-escape-len python-invoice; do
+            python3 -B -m agent_eval.project_edits_tasks prepare --task "$task" --output "$RUNNER_TEMP/m2-inputs/$task"
+          done
+          timeout 120 "$M2_CARGO" fetch --locked --manifest-path "$RUNNER_TEMP/m2-inputs/regex-escape-len/original/Cargo.toml"
+      - name: Check supplied changes, delivery and reversal without runner access
+        run: >-
+          python3 -B -m agent_eval.project_edits_private
+          --inputs "$RUNNER_TEMP/m2-inputs" --rust-root "$(rustc --print sysroot)"
+          --node "$(command -v node)" --typescript-root "$RUNNER_TEMP/m2-typescript/package"
+          --registry "$CARGO_HOME/registry" --output "$RUNNER_TEMP/m2-private"
+      - name: Retain the exact successful grader image for later patch checks
+        run: |
+          image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image"])' "$RUNNER_TEMP/m2-private/summary.json")
+          docker save "$image" | gzip -1 > "$RUNNER_TEMP/m2-private/grader.tar.gz"
+          sha256sum "$RUNNER_TEMP/m2-private/grader.tar.gz" > "$RUNNER_TEMP/m2-private/grader.sha256"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-private-controls
+          path: |
+            ${{ runner.temp }}/m2-private/summary.json
+            ${{ runner.temp }}/m2-private/**/*.json
+            ${{ runner.temp }}/m2-private/**/*.stdout
+            ${{ runner.temp }}/m2-private/**/*.stderr
+            ${{ runner.temp }}/m2-private/grader.tar.gz
+            ${{ runner.temp }}/m2-private/grader.sha256
+          if-no-files-found: error
+          retention-days: 30
