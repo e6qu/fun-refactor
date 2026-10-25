@@ -40,12 +40,15 @@ def install(entry, destination):
         raise ValueError('client archive identity differs')
     with tarfile.open(archive) as source:
         members = source.getmembers()
+        (destination / 'archive-members.json').write_text(json.dumps([
+            {'name': item.name, 'size': item.size, 'type': item.type.decode(), 'link': item.linkname}
+            for item in members], indent=2) + '\n')
         selected = [item for item in members if item.name == entry['member']]
         if len(members) > 64 or len(selected) != 1:
             raise ValueError('client archive members differ')
         member, = selected
         if not member.isfile() or not 0 < member.size <= ARCHIVE_BYTES:
-            raise ValueError('client executable is not a bounded regular file')
+            raise ValueError(f'client executable differs: {member.name}, type={member.type!r}, size={member.size}')
         binary = destination / 'client'
         with source.extractfile(member) as data, binary.open('xb') as output:
             while block := data.read(1024**2):
@@ -103,7 +106,9 @@ if __name__ == '__main__':
     args.output.mkdir(parents=True, exist_ok=False)
     clients = json.loads(CLIENTS.read_text())
     report = {}
-    for name, entry in clients.items():
-        report[name] = inspect(name, entry, args.output / name)
-    (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+    try:
+        for name, entry in clients.items():
+            report[name] = inspect(name, entry, args.output / name)
+    finally:
+        (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'clients': list(report), 'live_model_calls': 0}))
