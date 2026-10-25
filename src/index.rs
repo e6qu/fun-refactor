@@ -795,6 +795,20 @@ impl Index {
             .imports
             .iter()
             .any(|import| import.span.contains(reference.span));
+        let imported_reference = matches!(
+            reference.language,
+            Language::Python | Language::TypeScript | Language::Tsx
+        )
+        .then(|| {
+            info.imports.iter().find(|import| {
+                import.span.contains(reference.span)
+                    && import
+                        .names
+                        .iter()
+                        .any(|name| name.original == reference.name)
+            })
+        })
+        .flatten();
         let own_scopes = self.scope_chain(info, reference.scope);
         let plausible = |s: &Symbol| {
             // A candidate in another language is only a candidate where the two languages have
@@ -1047,7 +1061,7 @@ impl Index {
         let in_file: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
-            .filter(|s| s.file == path)
+            .filter(|s| s.file == path && imported_reference.is_none())
             .collect();
 
         // The enclosing instance.
@@ -1172,14 +1186,12 @@ impl Index {
         }
 
         // 3.
-        let import = if reference.language == Language::Python && in_an_import {
-            info.imports.iter().find(|import| {
-                import.span.contains(reference.span)
-                    && import
-                        .names
-                        .iter()
-                        .any(|name| name.original == reference.name)
-            })
+        let import = if in_an_import
+            && matches!(
+                reference.language,
+                Language::Python | Language::TypeScript | Language::Tsx
+            ) {
+            imported_reference
         } else {
             self.import_binding(info, &reference.name)
         };

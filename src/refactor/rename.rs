@@ -145,10 +145,11 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             if !seen_spans.insert((reference.file.clone(), reference.span)) {
                 continue;
             }
-            if symbol.language == Language::Python
-                && reference.language == Language::Python
-                && reference.confidence == Confidence::ImportQualified
-                && reference.name != symbol.name
+            if matches!(
+                reference.language,
+                Language::Python | Language::TypeScript | Language::Tsx
+            ) && reference.confidence == Confidence::ImportQualified
+                && (reference.name != symbol.name || explicit_import_alias(index, reference)?)
             {
                 continue;
             }
@@ -347,6 +348,37 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         warnings,
         reference_edits,
     })
+}
+
+fn explicit_import_alias(index: &Index, reference: &crate::model::Reference) -> Result<bool> {
+    let Some(info) = index.file(&reference.file) else {
+        return Ok(false);
+    };
+    for import in &info.imports {
+        if import.span.contains(reference.span) {
+            continue;
+        }
+        for name in import
+            .names
+            .iter()
+            .filter(|name| name.local == reference.name)
+        {
+            if name.is_aliased() {
+                return Ok(true);
+            }
+            let source = crate::vfs::read_to_string(&reference.file)?;
+            let parsed = crate::parse::Parsers::new().parse(reference.language, &source)?;
+            let alias = parsed
+                .root()
+                .descendant_for_byte_range(name.span.start, name.span.end)
+                .and_then(|node| node.parent())
+                .and_then(|node| node.child_by_field_name("alias"));
+            if alias.is_some_and(|node| Span::from(node) == name.span) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 /// Reject names that are not valid identifiers for the language.

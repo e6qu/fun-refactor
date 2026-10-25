@@ -99,6 +99,21 @@ def test_signature_refuses_nonliteral_arguments(tmp_path, arguments):
     assert path.read_bytes() == before
 
 
+def test_removal_keeps_the_order_and_effects_of_retained_arguments(tmp_path):
+    root, client = fixture(tmp_path)
+    path = root/"pricing.rs"
+    path.write_text("pub fn subtotal(a: i64, _legacy: i64, b: i64) -> i64 { a + b }\n")
+    path = root/"api.rs"
+    path.write_text('fn left() -> i64 { println!("left"); 3 }\n'
+                    'fn right() -> i64 { println!("right"); 2 }\n'
+                    'pub fn quote() -> i64 { crate::pricing::subtotal(left(), 0, right()) }\n')
+    checker = tmp_path/"check.py"
+    checker.write_text(checker.read_text().replace("=='5'", "=='left\\nright\\n5'"))
+    _, change = proposal(client, RefactorRequest.remove_parameter(1))
+    assert client.execute(client.review(change)).passed
+    assert "subtotal(left(), right())" in path.read_text()
+
+
 def test_signature_refuses_used_parameter_and_non_scalar_type(tmp_path):
     root, client = fixture(tmp_path)
     _, change = proposal(client, RefactorRequest.remove_parameter(0))

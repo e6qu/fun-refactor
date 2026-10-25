@@ -1,0 +1,52 @@
+name: Exact M2 language checkers
+description: Install the frozen Python, Rust, Node and checksum-verified TypeScript checkers.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.14.6'
+    - uses: actions/setup-node@v7
+      with:
+        node-version: '26.5.0'
+        package-manager-cache: false
+    - name: Install the exact Python check wheels
+      shell: bash
+      run: |
+        grep -E '/(pytest|pluggy|packaging|iniconfig|pygments)-' \
+          .github/actions/native-tools/python-wheels.txt > "$RUNNER_TEMP/m2-python-wheels.txt"
+        test "$(wc -l < "$RUNNER_TEMP/m2-python-wheels.txt")" -eq 5
+        python3 -m pip install --no-index --no-deps --require-hashes --requirement "$RUNNER_TEMP/m2-python-wheels.txt"
+    - name: Prepare the checksum-verified TypeScript checker
+      shell: bash
+      run: |
+        python3 -B - <<'PY'
+        import base64, hashlib, io, json, os, tarfile, urllib.request
+        from pathlib import Path
+        settings = json.loads(Path('tests/agent-eval/project-edits/checkers.json').read_text())['typescript']
+        with urllib.request.urlopen(settings['url'], timeout=30) as response:
+            data = response.read(16 * 1024**2 + 1)
+        assert len(data) <= 16 * 1024**2
+        expected = 'sha512-' + base64.b64encode(hashlib.sha512(data).digest()).decode()
+        assert expected == settings['integrity']
+        destination = Path(os.environ['RUNNER_TEMP']) / 'm2-typescript'
+        destination.mkdir()
+        with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
+            entries = archive.getmembers()
+            assert len(entries) <= 1024 and sum(entry.size for entry in entries) <= 64 * 1024**2
+            assert all(Path(entry.name).parts[0] == 'package' and not (entry.issym() or entry.islnk()) for entry in entries)
+            archive.extractall(destination, filter='data')
+        with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+            stream.write('M2_TYPESCRIPT=' + str(destination / 'package/bin/tsc') + '\n')
+        PY
+        node "$RUNNER_TEMP/m2-typescript/package/bin/tsc" --version
+    - shell: bash
+      run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+    - name: Pin the actual checker paths
+      shell: bash
+      run: |
+        echo "M2_CARGO=$(rustup which --toolchain 1.99.1 cargo)" >> "$GITHUB_ENV"
+        echo "M2_RUSTC=$(rustup which --toolchain 1.99.1 rustc)" >> "$GITHUB_ENV"
+        node --version
+        rustc --version
+        python3 --version

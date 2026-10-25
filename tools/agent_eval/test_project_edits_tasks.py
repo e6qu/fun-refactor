@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import project_edits_tasks as tasks
+from agent_eval import project_edits_delivery as delivery
 
 
 class ProjectEditBoundaries(unittest.TestCase):
@@ -70,6 +71,28 @@ class ProjectEditBoundaries(unittest.TestCase):
         self.assertEqual(tasks.public_checks('typescript-alias', tools)[0]['argv'][:2], ['/node', '/typescript'])
         with self.assertRaisesRegex(ValueError, 'explicit M2'):
             tasks.public_checks('unknown', tools)
+
+    def test_preview_ranges_check_unicode_bytes_and_multiple_edits(self):
+        project = self.root / 'ranges'
+        project.mkdir()
+        before = '// café\nalpha beta\n'.encode()
+        start = before.index(b'alpha')
+        preview = {'steps': [{'operation': 'refactor', 'edits': [
+            {'path': 'code.rs', 'before_span': {'start': start, 'end': start + 5}, 'after_bytes': 2},
+            {'path': 'code.rs', 'before_span': {'start': len(before), 'end': len(before)}, 'after_bytes': 4}]}]}
+        path = project / 'code.rs'
+        path.write_bytes(before.replace(b'alpha', b'xy') + b'new\n')
+        self.assertEqual(len(delivery.check_unselected_bytes(project, {'code.rs': before}, preview)['code.rs']), 2)
+        path.write_bytes(path.read_bytes().replace('café'.encode(), b'cafe'))
+        with self.assertRaisesRegex(ValueError, 'outside a previewed'):
+            delivery.check_unselected_bytes(project, {'code.rs': before}, preview)
+
+    def test_delivery_rejects_an_unpreviewed_file(self):
+        project = self.root / 'extra'
+        project.mkdir()
+        (project / 'extra.rs').write_text('fn injected() {}\n')
+        with self.assertRaisesRegex(ValueError, 'changed paths'):
+            delivery.check_unselected_bytes(project, {}, {'steps': []})
 
 
 if __name__ == '__main__':

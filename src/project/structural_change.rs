@@ -143,7 +143,11 @@ fn literal(node: Node<'_>) -> bool {
             .is_some_and(|n| n.kind() == "integer_literal")
 }
 
-fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
+fn validate_scalar_calls(
+    project: &Project<'_>,
+    symbol: &Symbol,
+    change: &crate::refactor::signature::Change,
+) -> Result<()> {
     ensure!(project.index.definition_group(symbol.id).len() == 1,
         "signature changes require one declaration; conditional variants need a separate reviewed migration.");
     let source = &project.sources[&symbol.file];
@@ -198,7 +202,18 @@ fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
             .child_by_field_name("arguments")
             .context("missing call arguments.")?;
         let mut cursor = arguments.walk();
-        ensure!(arguments.named_children(&mut cursor).all(literal),
+        let safe = match change {
+            crate::refactor::signature::Change::Remove(index) => arguments
+                .named_children(&mut cursor)
+                .filter(|node| !node.kind().contains("comment"))
+                .nth(*index)
+                .is_some_and(literal),
+            crate::refactor::signature::Change::Move { .. } => {
+                arguments.named_children(&mut cursor).all(literal)
+            }
+            crate::refactor::signature::Change::Add { .. } => false,
+        };
+        ensure!(safe,
             "signature refactor requires literal scalar call arguments; effects and evaluation order remain obligations.");
     }
     Ok(())
@@ -213,9 +228,11 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         .and_then(|id| project.index.symbol(id))
         .context("structural refactor requires a declaration.")?;
     ensure!(
-        matches!(symbol.language, Language::Rust | Language::Python)
-            && symbol.kind == SymbolKind::Function,
-        "structural refactor requires a Rust or Python free function."
+        matches!(
+            symbol.language,
+            Language::Rust | Language::Python | Language::TypeScript | Language::Tsx
+        ) && symbol.kind == SymbolKind::Function,
+        "structural refactor requires a Rust, Python or TypeScript free function."
     );
     let (edits, detail) = match request {
         Request::Rename {
@@ -261,7 +278,7 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
                 }
                 Request::Rename { .. } => unreachable!(),
             };
-            validate_scalar_calls(project, symbol)?;
+            validate_scalar_calls(project, symbol, &change)?;
             let plan = crate::refactor::signature::change(project.index, symbol.id, change)?;
             ensure!(
                 plan.notes.is_empty(),
@@ -284,11 +301,18 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
             "structural refactor source changed during planning."
         );
     }
+    let mut ranges = Vec::new();
+    for (path, replacements) in edits.iter() {
+        for replacement in replacements {
+            ranges.push(json!({"path": path.strip_prefix(&project.root)?,
+                "before_span": replacement.span, "after_bytes": replacement.replacement.len()}));
+        }
+    }
     Ok(Plan {
         edits,
         report: json!({"operation": "refactor", "handle": handle,
-        "detail": detail, "changed": true, "behavior_checked": false,
+        "detail": detail, "edits": ranges, "changed": true, "behavior_checked": false,
         "preservation": "bytes outside planned edits; source behavior requires independent checks.",
-        "scope": "Rust/Python free-function renames and Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
     })
 }
