@@ -1,5 +1,10 @@
 # Find out whether fr saves work
 
+This is the retained broader study protocol, outside the active queue.
+The [focused roadmap](../PLAN.md) names the current refactoring, code-change and proof tasks for the selected agents.
+Its new comparisons have their own fixed task sets and completion checks.
+The earlier forty-eight-attempt requirement remains unfinished; this document authorizes no new live calls.
+
 The question is practical: does an agent finish the same unfamiliar task more reliably or with less time and cost when it has `fr`?
 For a bug fix, compare the final behavior and all work spent, including failed attempts. The scripts below record experiments; scripted successes alone cannot answer the question.
 

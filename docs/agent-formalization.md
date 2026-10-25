@@ -24,6 +24,10 @@ property you need. After Lean accepts the proof, read the remaining source-conne
 
 ## Supported kernel
 
+A typed function has known input and result types.
+The admitted pure functions return values without external reads or writes.
+The synchronous subset completes without pausing for asynchronous work.
+
 Typed, synchronous pure functions can formalize from Rust, Go, Java static methods, Python,
 TypeScript, TSX, Zig and Lean. Bodies admit immutable bindings, complete conditionals, returns,
 Boolean operations, selected integer arithmetic, strings, tuples and homogeneous lists.

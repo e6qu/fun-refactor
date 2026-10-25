@@ -27,10 +27,7 @@ The latter accepts at most eight Boolean inputs and a Boolean output. Write its 
 strict checks pin the semantic library. `evidence.kernel_correspondence` identifies checked model
 relations; `source_implementation_proved` stays false.
 
-For direct bounded IR execution, use `spec kernel --from FILE` or `FrClient.kernel(KernelRequest(...))`.
-Import `KernelTerm` and `KernelValue` from `fr_ir.formal_kernel`; they mirror the tagged wire tree.
-Evaluation uses checked signed-64 arithmetic and explicit partial failures. Generated `Int`/`Nat`
-source models use Lean arithmetic, so numeric correspondence requires its own evidence.
+Generated `Int`/`Nat` models use Lean arithmetic. Check source widths, overflow and coercion before claiming numeric source correspondence.
 
 Manual scaffolding remains available as `fr --json spec scaffold src/lib.rs::allowed`. It creates an
 anchor, signature map and visible `sorry`; replace its model and add reviewed properties. On source

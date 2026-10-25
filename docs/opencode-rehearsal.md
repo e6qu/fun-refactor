@@ -1,5 +1,9 @@
 # Rehearse an agent comparison before a larger study
 
+This page retains the earlier pinned OpenCode rehearsal.
+The [active roadmap](../PLAN.md#target-agents) now selects OpenCode2 and still requires its new adapter and model-free controls.
+The recorded clients and observations below keep their original scope.
+
 A small rehearsal checks whether the task launcher, tool access and grading work.
 For example, both tool setups should receive the same task and their submitted changes should face the same tests. A rehearsal result does not establish savings on unfamiliar projects.
 

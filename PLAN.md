@@ -5,7 +5,7 @@ Fr should help it find the right code, prepare a precise edit, check its work an
 
 ## The three jobs
 
-| Job | Example | What must be checked |
+| Job | Example | Required check |
 | --- | --- | --- |
 | Refactor without changing behavior | Rename a Python function and update its imported callers | The promised callers change, unrelated names stay intact, and behavior checks still pass |
 | Change behavior deliberately | Fix a Unicode comparison or add a function that counts escaped text | Tests reject the original mistake and accept the requested result |
@@ -64,9 +64,10 @@ All three milestones below are open. Start with M1.
    Keep unavailable billing data unknown.
 6. Compare each profile against itself with ordinary tools. Correctness comes first.
    Report cost and time for equivalent successful outcomes and total spending per success.
-   A tool that was offered but unused establishes no benefit from fr.
+   Offering an unused tool establishes no fr benefit.
 
-**M1 is complete when** the three client profiles pass model-free controls and all thirty-six live attempts have independently checked outcomes and complete or explicitly missing cost fields.
+**M1 is complete when** the three client profiles pass model-free controls.
+All thirty-six live attempts need independently checked outcomes and complete or explicitly missing cost fields.
 Failures count as results. Passing this small study establishes neither a general success rate nor general savings.
 Model-free preparation can proceed now; live calls still need agreed settings and spending limits.
 
@@ -76,7 +77,7 @@ Freeze these four additional cases before implementing missing rules:
 
 | Case | Concrete requirement |
 | --- | --- |
-| Rust parameter removal | Remove one unused parameter across a two-crate workspace; update every declared direct caller and report external or unresolved uses |
+| Rust parameter removal | Remove an unused Boolean parameter with literal arguments across a two-crate workspace; update every declared direct caller and report external or unresolved uses |
 | Regex feature | Add the recorded allocation-free escaped-length feature; cover every required escaping class and Unicode input without constructing the escaped string |
 | Python repair | Fix `invoice_total(amount, fee)` omitting the fee; `invoice_total(5, 2)` must return 7 |
 | TypeScript rename | Rename an exported helper through an imported alias while leaving an unrelated local declaration with the old name untouched |
@@ -87,6 +88,7 @@ For every case:
 - Test preserved bytes outside declared edit ranges, comments, Unicode text and indentation.
   An intentionally wider rewrite must identify its wider range in the preview.
 - Inspect affected imports, declared callers, tests and relevant configuration. Report omissions and unresolved uses.
+- A refactoring must preserve argument evaluation. Test a side-effecting argument separately; preserve its effects explicitly or refuse before writing.
 - A competing source edit makes the old preview refuse before writing. Refresh the review from current source.
 - A failed check preserves its diagnostics and the actual edit state.
 - Undo restores exact original bytes; redo restores the reviewed change.
@@ -95,15 +97,22 @@ For every case:
 - Run two repetitions per case, profile and tool setup under frozen settings: forty-eight attempts.
   Preserve the earlier attempts and compare matching outcomes.
 
+A literal argument uses a direct value, such as `false`.
+A call such as `record()` must still run when its effects matter.
+An imported alias is a local name for an exported function.
+For `import { price as displayPrice }`, renaming the export updates `price` in the import while preserving calls through `displayPrice`.
+
 **M2 is complete when** all four cases pass the scripted delivery checks.
 Each selected agent must also deliver at least one independently accepted result per case within the frozen repetitions and limits.
 Keep the failed outcomes alongside those successes; a scripted success alone cannot close the agent requirement.
-An unsupported construct remains an explicit refusal until its required reusable rule is implemented.
+Unsupported constructs must refuse until their required reusable rules work.
 Add Python analysis or other language rules only when one of these code-change tasks needs them.
 
 ### M3. Help the agents write, repair and maintain Lean proofs
 
 A property is the exact claim to prove. Tactics are the proof steps the agent writes for Lean to check.
+The initial language cases declare their argument and result types.
+They return values without external reads or writes. This is the typed pure subset used below.
 
 1. Make the complete access-rule lesson runnable: source, generated model, unchanged property, one disclosed goal, agent-written tactics, Lean diagnostics and a checked saved proof.
    A scripted control may test this path; only a live attempt shows an agent writing the proof.
@@ -111,6 +120,10 @@ A property is the exact claim to prove. Tactics are the proof steps the agent wr
    Record a separate result for each language. A TSX helper here contains ordinary typed code, not a proof of JSX rendering.
    Parsing other languages or formats does not establish proof support.
 3. Add these two numeric tasks with explicit arithmetic:
+
+   Signed-64 integers range from -9,223,372,036,854,775,808 through 9,223,372,036,854,775,807.
+   Unsigned-64 integers range from zero through 18,446,744,073,709,551,615.
+   Lean's mathematical integers do not wrap at those boundaries; retain each source function's arithmetic rules with its model.
 
    | Function | Property and boundary cases |
    | --- | --- |
@@ -130,7 +143,8 @@ A property is the exact claim to prove. Tactics are the proof steps the agent wr
    Two repetitions per profile, task and setup give thirty-six attempts.
    Count failed tactics, retries and complete costs. Record source-language limitations beside the outcome.
 
-**M3 is complete when** the runnable proof-writing cases pass for every named admitted language and both numeric tasks have checked proofs under their declared models.
+**M3 is complete when** the runnable proof-writing cases pass for every named admitted language.
+Both numeric tasks need checked proofs under their declared models.
 Each selected agent must write at least one accepted proof for each of the three live tasks within the frozen repetitions and limits.
 Keep failed tactics and unsuccessful attempts in the results.
 An unchecked source/model connection remains an open claim in every report.
@@ -139,7 +153,8 @@ A general verified translator or proof of arbitrary programs is not a completion
 ## Work outside the active queue
 
 The earlier invalid-number-input and shared-list expansions are no longer the next milestones.
-General Python semantics, new analysis engines, broad translation expansion and standalone cache optimization need a concrete blocker from M1, M2 or M3 before becoming active work.
+General Python semantics, new analysis engines, broad translation expansion and standalone cache optimization are outside the active queue.
+A concrete blocker from M1, M2 or M3 can bring the required work into scope.
 Keep working behavior and fix encountered defects; this change does not remove existing capabilities.
 
 The former CodeGraph comparison and forty-eight-attempt broad study retain their original plans and outcomes.
