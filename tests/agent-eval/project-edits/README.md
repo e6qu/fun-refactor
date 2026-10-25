@@ -42,6 +42,18 @@ Remove both packages under change from that cache. Every patch rebuilds them; ca
 Cache admission checks the original source hash, compiler identity and private image identity.
 Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
 
+The [private controls](https://github.com/e6qu/fun-refactor/actions/runs/40235887167) passed all twenty supplied cases.
+The accepted regex change used about 90 seconds of its original 120-second private-check allowance.
+Earlier checks exhausted the allowance while compiling unchanged dependencies; shared preparation removes that repeated work.
+It does not supply the changed crates or increase a candidate's allowance.
+
+The public checker uses twelve jobs, one per agent and request, with four submissions in each.
+An initial check uses the exact private image and compiler cache frozen before local model calls.
+Later CI rechecks prepare and test a fresh environment; each run records its own image and cache identity.
+That avoids depending indefinitely on a temporary download or relabeling a later environment as the original one.
+All forty-eight outcomes must be checked, including submissions from timed-out CLIs.
+The comparison reports matching successes, time spent on failures, incomplete token usage and actual contributing fr actions.
+
 For M2, preparation and native session accounting share the same 150-second attempt deadline as model work.
 The native process receives only the time remaining after preparation. Missing that deadline leaves a failed attempt, even with a valid patch.
 Outer guard admission and Python startup precede the controller timer; report that unmeasured time explicitly.

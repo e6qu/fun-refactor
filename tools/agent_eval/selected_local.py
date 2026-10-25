@@ -110,7 +110,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
     require(LIMITS == {name: proposed['requirements']['limits'][name] for name in LIMITS},
             'execution limits differ from the frozen task requirements')
     expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone == 'M1' else
-                                                {'node', 'typescript', 'cargo_home', 'fr_build'})
+                                                {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     paths = {name: {'path': str(path.resolve()), 'sha256': hash_file(path.resolve())} for name, path in binaries.items()}
     companions = {'codex-code-mode-host': binaries['codex'].resolve().parent / 'codex-code-mode-host',
@@ -195,6 +195,24 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 'fr executable or hosted native source differs from this study')
         value['fr_build'] = {'source_commit': commit, 'source_tree': tree, 'native_inputs': built_inputs,
                              'executable_sha256': paths['fr']['sha256']}
+        receipts = json.loads(runtime['controls'].read_text())
+        require(set(receipts) == {'controls', 'shared_setup'} and
+                set(receipts['controls']) == {'acceptance', 'delivery', 'native', 'private'},
+                'freeze every successful control and shared preparation before the first call')
+        for name, receipt in receipts['controls'].items():
+            require(receipt['passed'] is True and receipt['live_model_calls'] == 0 and
+                    str(receipt['run']).isdigit() and len(receipt['source_commit']) == 40 and
+                    receipt['bindings'] and all(hash_file(ROOT / path) == digest
+                                               for path, digest in receipt['bindings'].items()),
+                    'control source changed after its successful GitHub run: ' + name)
+            require(all(hashlib.sha256(tasks.comparison_grade.BASE.git(ROOT, 'show',
+                    receipt['source_commit'] + ':' + path).stdout).hexdigest() == digest
+                    for path, digest in receipt['bindings'].items()), 'control source commit differs: ' + name)
+        private = receipts['controls']['private']
+        require(private['checked_controls'] == 20 and private['image'].startswith('sha256:') and
+                all(len(private[name]) == 64 for name in ('cache_archive_sha256', 'registry_archive_sha256')),
+                'freeze all private rejection controls, the immutable image and compiler archives')
+        value.update(controls=receipts['controls'], shared_setup=receipts['shared_setup'])
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value

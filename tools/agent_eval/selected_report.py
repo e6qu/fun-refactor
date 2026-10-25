@@ -11,9 +11,9 @@ AGENTS = {'codex-luna-fast': 'Codex Luna Fast', 'opencode2-glm-flash': 'OpenCode
 TASKS = {'boltons-rename': 'Python rename', 'unicode-dice': 'Unicode repair', 'access-proof': 'Access-rule proof'}
 
 
-def verify_checks(summary, checked):
-    require(checked['passed'] is True and checked['all_36_checked'] is True and checked['checked_attempts'] == 36,
-            'need successful independent checking of all 36 attempts')
+def verify_checks(summary, checked, count):
+    require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count,
+            f'need successful independent checking of all {count} attempts')
     require(checked['core_checker_sha256'] == summary['core_checker_sha256'], 'independent checker identity differs')
     require(set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'independent attempt inventory differs')
     for row in summary['attempts']:
@@ -25,9 +25,11 @@ def verify_checks(summary, checked):
                 'published patch checks differ from fresh checking: ' + row['id'])
 
 
-def comparisons(summary):
+def comparisons(summary, tasks):
     rows = summary['attempts']
-    require(len(rows) == 36 and len({row['id'] for row in rows}) == 36, 'retain all 36 distinct attempts')
+    count = len(tasks) * len(AGENTS) * 4
+    per_setup = len(tasks) * 2
+    require(len(rows) == count and len({row['id'] for row in rows}) == count, f'retain all {count} distinct attempts')
     require(all(row['native_status'] in {'completed', 'failed'} and
                 row['independent_outcome'] in {'passed', 'failed'} for row in rows),
             'finish and independently check every attempt before reporting completion')
@@ -36,16 +38,16 @@ def comparisons(summary):
         for setup in ('files', 'fr'):
             selected = [row for row in rows if row['profile'] == profile and row['setup'] == setup]
             require({(row['task'], row['repetition']) for row in selected} ==
-                    {(task, repeat) for task in TASKS for repeat in (1, 2)} and len(selected) == 6,
+                    {(task, repeat) for task in tasks for repeat in (1, 2)} and len(selected) == per_setup,
                     'each profile/setup needs exactly two attempts per task')
             accepted = [row for row in selected if row['independent_outcome'] == 'passed']
             require(all(row['native_status'] == 'completed' for row in accepted), 'a timed-out CLI cannot become a success')
             total = sum(row['total_seconds'] for row in selected)
-            groups.append({'profile': profile, 'setup': setup, 'accepted': len(accepted), 'attempted': 6,
+            groups.append({'profile': profile, 'setup': setup, 'accepted': len(accepted), 'attempted': per_setup,
                 'successful_mean_seconds': sum(row['total_seconds'] for row in accepted) / len(accepted) if accepted else None,
                 'total_seconds': total, 'seconds_per_success': total / len(accepted) if accepted else None})
         pairs = []
-        for task in TASKS:
+        for task in tasks:
             for repeat in (1, 2):
                 pair = {row['setup']: row for row in rows if row['profile'] == profile and
                         row['task'] == task and row['repetition'] == repeat}
@@ -86,7 +88,7 @@ def token_means(rows, profile, setup):
 
 
 def markdown(summary):
-    groups, matched = comparisons(summary)
+    groups, matched = comparisons(summary, TASKS)
     rows = summary['attempts']
     accepted = sum(row['independent_outcome'] == 'passed' for row in rows)
     lines = ['# M1: the same agents with and without fr', '',
@@ -184,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', choices=('write', 'check'), required=True)
     args = parser.parse_args()
     summary = json.loads((args.data / 'summary.json').read_text())
-    verify_checks(summary, json.loads(args.checks.read_text()))
+    verify_checks(summary, json.loads(args.checks.read_text()), 36)
     content = markdown(summary)
     path = args.data / 'README.md'
     if args.mode == 'write':

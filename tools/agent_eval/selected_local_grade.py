@@ -9,7 +9,7 @@ import tempfile
 
 from . import selected_grading as grading
 from . import selected_local as local
-from .selected_plan import ROOT, encoded, prepare, require
+from .selected_plan import CASE_DIRECTORIES, ROOT, encoded, prepare, require
 
 CORE_FILES = (
     'tools/agent_eval/selected_tasks.py', 'tools/agent_eval/comparison_grade.py',
@@ -24,20 +24,35 @@ CORE_FILES = (
 )
 
 
-def core_digest():
+def core_digest(milestone):
+    require(milestone in {'M1', 'M2'}, 'choose an explicit checker milestone')
     paths = [ROOT / name for name in CORE_FILES] + list((ROOT / 'sdk/python/src').rglob('*.py'))
+    if milestone == 'M2':
+        paths += [ROOT / 'tools/agent_eval' / name for name in (
+            'project_edits_tasks.py', 'selected_grade_probe.py', 'selected_grading.py',
+            'selected_local_grade.py', 'project_edits_results.py', 'container_resources.py',
+            'bounded_host.py', 'selected_plan.py', 'isolated_grade.py', 'selected_native.py')]
+        directory = ROOT / CASE_DIRECTORIES[milestone]
+        paths += [directory / 'tasks.json', directory / 'checkers.json']
+        paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
+        paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile',
+                  ROOT / 'tests/agent-eval/regex/workspace.tar.gz',
+                  ROOT / 'tests/agent-eval/regex/Cargo.lock']
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()
 
 
-def verify(summary):
-    expected = prepare(ROOT, 'M1')
-    require(summary['study'] == 'M1' and summary['profiles'] == expected['profiles'], 'public model settings differ')
+def verify(summary, milestone):
+    expected = prepare(ROOT, milestone)
+    require(summary['study'] == milestone and summary['profiles'] == expected['profiles'], 'public model settings differ')
     require(summary['task_bindings'] == expected['bindings'], 'public task requirements differ')
-    require(summary['core_checker_sha256'] == core_digest(), 'independent task checks changed after collection')
+    require(summary['core_checker_sha256'] == core_digest(milestone), 'independent task checks changed after collection')
     require(summary['native_inputs'] == local.identity()['native_inputs'], 'fr source differs from the measured source')
+    if milestone == 'M2':
+        require(summary['limits'] == local.LIMITS and summary['provider_request_cap_enforced'] is False and
+                summary['token_cap_enforced'] is False, 'retain the actual limits and unavailable token/request caps')
     rows = summary['attempts']
-    require(len(rows) == 36, 'public summary must retain all 36 scheduled slots')
+    require(len(rows) == len(expected['attempts']), 'public summary must retain all scheduled slots')
     for supplied, planned in zip(rows, expected['attempts']):
         require(all(supplied[key] == planned[key] for key in ('id', 'profile', 'task', 'setup', 'repetition')),
                 'public attempt identity or order differs')
@@ -45,6 +60,10 @@ def verify(summary):
         if supplied['native_status'] != 'unstarted':
             require(supplied['actual_cost'] is None, 'no observed account charges were collected by this CLI study')
             require(supplied['patch_file'] in {None, 'patches/' + supplied['id'] + '.patch'}, 'unsafe public patch path')
+            if milestone == 'M2' and supplied['native_status'] == 'completed':
+                require(0 <= supplied['total_seconds'] <= local.LIMITS['wall_seconds'] and
+                        supplied['stop_reason'] is None and not supplied['complete_attempt_deadline_missed'],
+                        'a stopped or late native attempt must remain failed')
     return rows
 
 
@@ -53,7 +72,7 @@ def run(data, binary, output, completion):
     require(completion in {'partial', 'complete'}, 'choose whether all 36 checked attempts are required')
     output.mkdir(parents=True, exist_ok=False)
     supplied = json.loads((data / 'summary.json').read_text())
-    rows = verify(supplied)
+    rows = verify(supplied, 'M1')
     rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], timeout=10).decode().strip())
     image = grading.build(output / 'image')
     summary = {'passed': False, 'core_checker_sha256': supplied['core_checker_sha256'], 'live_model_calls': 0,
