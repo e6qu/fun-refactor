@@ -46,7 +46,6 @@ jobs:
           retention-days: 30
   tasks:
     name: Independent rename, Unicode and proof checks
-    needs: clients
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -77,6 +76,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Reject harness errors before installing tools or building
+        run: python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
       - name: Install the exact grader wheels
         shell: bash
         run: |

@@ -179,7 +179,12 @@ if __name__ == '__main__':
     report = {}
     try:
         for name, entry in clients.items():
-            report[name] = inspect(name, entry, args.output / name)
+            report[name] = {'status': 'running', 'release': entry}
+            try:
+                report[name] = {'status': 'passed', **inspect(name, entry, args.output / name)}
+            except Exception as error:
+                report[name].update(status='failed', error=type(error).__name__ + ': ' + str(error))
+                raise
     finally:
         (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'clients': list(report), 'live_model_calls': 0}))

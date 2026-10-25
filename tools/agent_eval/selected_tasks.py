@@ -108,6 +108,10 @@ def prepare(task, project, binary, output):
         plan_path = output / 'formal-plan.json'
         save(plan_path, planned)
         fr(binary, project, ['spec', 'scaffold', '--from', str(plan_path), '--package', 'specs', '--write'], output / 'scaffold.json')
+        # Freeze Lake's dependency manifest before source snapshots. A compiling package
+        # still has its visible proof gap; the strict grader must reject that gap.
+        built = command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
+        require(built['returncode'] == 0, 'the original proof package does not build')
     comparison_grade.BASE.git(project, 'init', '-q', '-b', 'main')
     (project / '.git/info/exclude').write_text('\n'.join(sorted((IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     comparison_grade.BASE.initialize(project)
