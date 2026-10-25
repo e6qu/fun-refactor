@@ -1,0 +1,54 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 6a3b098..be5c97f 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -729,7 +729,12 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         return 1.0;
+     }
+ 
+-    if a.len() < 2 || b.len() < 2 {
++    // Count Unicode scalar values, not bytes, so that multibyte characters
++    // contribute one value each to the bigram counts.
++    let a_len = a.chars().count();
++    let b_len = b.chars().count();
++
++    if a_len < 2 || b_len < 2 {
+         return 0.0;
+     }
+ 
+@@ -750,7 +755,7 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         });
+     }
+ 
+-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64
++    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64
+ }
+ 
+ #[cfg(test)]
+@@ -1304,4 +1309,26 @@ mod tests {
+             sorensen_dice("this has one extra word", "this has one word")
+         );
+     }
++
++    #[test]
++    fn sorensen_dice_unicode() {
++        // Bigrams are counted over Unicode scalar values, so multibyte
++        // characters must not inflate the denominator.
++        assert_delta!(2.0 / 3.0, sorensen_dice("éa", "éab"));
++        assert_delta!(2.0 / 3.0, sorensen_dice("éab", "éa"));
++        // Whitespace is still removed before counting.
++        assert_delta!(2.0 / 3.0, sorensen_dice("é a", "éa b"));
++        // Equal inputs still score 1.0, even when shorter than two values.
++        assert_delta!(1.0, sorensen_dice("é", "é"));
++        assert_delta!(1.0, sorensen_dice("é é", "éé"));
++        // Unequal inputs shorter than two scalar values score 0.0.
++        assert_delta!(0.0, sorensen_dice("é", "a"));
++        assert_delta!(0.0, sorensen_dice("é", "ab"));
++        assert_delta!(0.0, sorensen_dice("ab", "é"));
++        // Duplicate bigram multiplicity is retained for Unicode input:
++        // the single (é, é) pair in the first string matches only one of
++        // the two pairs in the second string.
++        assert_delta!(2.0 / 3.0, sorensen_dice("éé", "ééé"));
++        assert_delta!(0.0, sorensen_dice("éa", "aé"));
++    }
+ }

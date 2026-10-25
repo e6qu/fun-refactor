@@ -1,0 +1,42 @@
+{
+  "codex": {
+    "version": "0.164.0",
+    "executable": "codex",
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.164.0/codex-x86_64-unknown-linux-musl.tar.gz",
+    "digest": {
+      "algorithm": "sha256",
+      "encoding": "hex",
+      "value": "90dd0b03b28afcb7fa733a4f73b413db2916a47347efd43fb669cc1c774ee8e4"
+    },
+    "member": "codex-x86_64-unknown-linux-musl",
+    "unpacked_bytes": 308139304,
+    "companions": {
+      "codex-code-mode-host": {
+        "version": "0.164.0",
+        "executable": "codex-code-mode-host",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.164.0/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz",
+        "digest": {
+          "algorithm": "sha256",
+          "encoding": "hex",
+          "value": "feade7026436baa4e82e898050c7ef82a8adbd98163dc504771275b5ef224f2f"
+        },
+        "member": "codex-code-mode-host-x86_64-unknown-linux-musl",
+        "unpacked_bytes": 76997904,
+        "companions": {}
+      }
+    }
+  },
+  "opencode2": {
+    "version": "2.0.32",
+    "executable": "opencode",
+    "url": "https://registry.npmjs.org/@opencode/cli-linux-x64/-/cli-linux-x64-2.0.32.tgz",
+    "digest": {
+      "algorithm": "sha512",
+      "encoding": "base64",
+      "value": "Q50ofBQ3gdwjD6ZQhrVR8fVlm8D2xPMshy4dynY6l6b+qLdKgBSJ9WpoaDyrQX1YWmf2s7IN4RbXmoXXdJitDA=="
+    },
+    "member": "package/bin/opencode",
+    "unpacked_bytes": 211842764,
+    "companions": {}
+  }
+}

@@ -201,6 +201,12 @@ log and advertised matrix. The final `check (default)` gate requires all shards,
 static checks, study checks and toolchain verification to pass. It verifies identical inventories and complete, disjoint
 assignments, then checks combined capability coverage. Missing artifacts, duplicate
 assignments, differing matrices and uncovered capabilities fail the gate.
+The required selected-agent jobs also check all thirty-six M1 outcomes, the submitted patches and the generated comparison table.
+They use scripted replies for native client controls and make no live model calls.
+The actual CLI transcripts stay local; model timings and token counts come from the approved summaries.
+GitHub independently applies and checks the patches, including exact undo/redo and delivery to another checkout.
+M1 uses its pinned original fr and checker source, so later development can proceed without rewriting the study's history.
+Changing a published pass or patch-check claim without a matching fresh result fails CI.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`
 condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
 needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).

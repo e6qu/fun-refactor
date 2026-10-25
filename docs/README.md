@@ -14,7 +14,7 @@ If a result is unclear, read [what you can conclude](understanding-results.md).
 
 The [roadmap](../PLAN.md#next-work) names concrete refactoring, code-change and proof tasks.
 It targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
-Those new live comparisons remain to be run.
+The first [36-attempt comparison](../tests/agent-eval/selected-agents/local-results/README.md) records actual patches, failures and observed overhead.
 Prefer preserving surrounding source. Keep refactoring behavior checks and deliberate behavior changes separate.
 
 ## Find supporting details

@@ -1,0 +1,96 @@
+diff --git a/boltons/mathutils.py b/boltons/mathutils.py
+index 1367a54..93c2330 100644
+--- a/boltons/mathutils.py
++++ b/boltons/mathutils.py
+@@ -37,7 +37,7 @@ import bisect
+ import binascii
+ 
+ 
+-def clamp(x, lower=float('-inf'), upper=float('inf')):
++def clamp_value(x, lower=float('-inf'), upper=float('inf')):
+     """Limit a value to a given range.
+ 
+     Args:
+@@ -49,13 +49,13 @@ def clamp(x, lower=float('-inf'), upper=float('inf')):
+     *upper*. Integers, floats, and other comparable types can be
+     mixed.
+ 
+-    >>> clamp(1.0, 0, 5)
++    >>> clamp_value(1.0, 0, 5)
+     1.0
+-    >>> clamp(-1.0, 0, 5)
++    >>> clamp_value(-1.0, 0, 5)
+     0
+-    >>> clamp(101.0, 0, 5)
++    >>> clamp_value(101.0, 0, 5)
+     5
+-    >>> clamp(123, upper=5)
++    >>> clamp_value(123, upper=5)
+     5
+ 
+     Similar to `numpy's clip`_ function.
+diff --git a/docs/mathutils.rst b/docs/mathutils.rst
+index 203e8ac..eb8f543 100644
+--- a/docs/mathutils.rst
++++ b/docs/mathutils.rst
+@@ -10,7 +10,7 @@
+ Alternative Rounding Functions
+ ------------------------------
+ 
+-.. autofunction:: boltons.mathutils.clamp
++.. autofunction:: boltons.mathutils.clamp_value
+ 
+ .. autofunction:: boltons.mathutils.ceil
+ 
+diff --git a/tests/test_mathutils.py b/tests/test_mathutils.py
+index 4187a6b..2b03d5c 100644
+--- a/tests/test_mathutils.py
++++ b/tests/test_mathutils.py
+@@ -1,5 +1,5 @@
+ from pytest import raises
+-from boltons.mathutils import clamp, ceil, floor, Bits
++from boltons.mathutils import clamp_value, ceil, floor, Bits
+ import math
+ 
+ INF, NAN = float('inf'), float('nan')
+@@ -14,23 +14,23 @@ VALID_LOWER = 247
+ VALID_UPPER = 2314
+ VALID_BETWEEN = 248.5
+ 
+-def test_clamp_examples():
+-    """some examples for clamp()"""
+-    assert 0 == clamp(0, 0, 1) == clamp(-1, 0, 1)
+-    assert 0 == clamp(-1, lower=0)
+-    assert 1 == clamp(1, 0, 1) == clamp(5, 0, 1)
+-    assert 1 == clamp(5, upper=1)
+-    assert 0.5 == clamp(7, upper=0.5)
+-    assert 1 == clamp(7.7, upper=1)
+-
+-def test_clamp_transparent():
+-    """clamp(x) should equal x because both limits are omitted"""
+-    assert clamp(0) == 0
+-    assert clamp(1) == 1
+-    assert clamp(10**100) == 10**100
+-    assert clamp(INF) == INF
+-    assert clamp(-INF) == -INF
+-    assert math.isnan(clamp(NAN))
++def test_clamp_value_examples():
++    """some examples for clamp_value()"""
++    assert 0 == clamp_value(0, 0, 1) == clamp_value(-1, 0, 1)
++    assert 0 == clamp_value(-1, lower=0)
++    assert 1 == clamp_value(1, 0, 1) == clamp_value(5, 0, 1)
++    assert 1 == clamp_value(5, upper=1)
++    assert 0.5 == clamp_value(7, upper=0.5)
++    assert 1 == clamp_value(7.7, upper=1)
++
++def test_clamp_value_transparent():
++    """clamp_value(x) should equal x because both limits are omitted"""
++    assert clamp_value(0) == 0
++    assert clamp_value(1) == 1
++    assert clamp_value(10**100) == 10**100
++    assert clamp_value(INF) == INF
++    assert clamp_value(-INF) == -INF
++    assert math.isnan(clamp_value(NAN))
+ 
+ 
+ def test_ceil_basic():

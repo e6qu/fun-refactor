@@ -1,0 +1,26 @@
+{
+  "codex-luna-fast": {
+    "client": "codex",
+    "provider": "openai",
+    "model": "gpt-6-luna",
+    "reasoning_effort": "high",
+    "service_tier": "fast",
+    "request_service_tier": "priority"
+  },
+  "opencode2-glm-flash": {
+    "client": "opencode2",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "id": "glm-5.3-flash",
+      "variant": "high"
+    }
+  },
+  "opencode2-kimi-k3": {
+    "client": "opencode2",
+    "model": {
+      "providerID": "kimi-code-plan-global",
+      "id": "k3",
+      "variant": "high"
+    }
+  }
+}

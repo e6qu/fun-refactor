@@ -1,0 +1,1748 @@
+{
+  "study": "M1",
+  "comparison": "The same native app/model using ordinary tools, then ordinary tools plus fr, twice per task.",
+  "publication": "User approved patches and summary only. Full native logs, prompts, session exports, source archives and execution packets stay local.",
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "task_bindings": {
+    "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+    "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+    "tests/agent-eval/selected-agents/tasks.json": "4a9ffa9f697e091e96f10bb2ef8771ccfb7f9e8bf457bb5eb483676b411cb87c"
+  },
+  "native_inputs": {
+    "src": "849a315be552441e68d5733e46c6633859b438b7",
+    "grammars": "04f4bb6ec34678f56fca5cf7be633b0d04bc2286",
+    "crates": "69725bbd2a5e4766c9815b77a1c17032796cc8e8",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "bc33a01d0272a3aa2819f5289570cc737dbe70af",
+    "Cargo.lock": "faa214ccc6c2aed3917c02d0a2c849a46372d593",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "core_checker_sha256": "540b20033508c386715d0401017cd365c019c23d33697562a5ad066444b93001",
+  "task_source_sha256": {
+    "boltons-rename": "d28eef749e0af321e2604b4527b9b83e62c9e7aea490028fd509a2cbda12b286",
+    "unicode-dice": "d6d2d3958ab8f602c1c4ebea9911dd53318bb8481731056244e9afa7a0b7f0a4",
+    "access-proof": "7ff4e16bfae34e93a4ad3696e2e727c22d8d9388904186a3c0518d3115ac5f48"
+  },
+  "native_app_versions": {
+    "fr": "fr 0.84.2",
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32"
+  },
+  "local_checker_versions": {
+    "python": "Python 3.14.6",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "lean": "Lean (version 4.28.0, arm64-apple-darwin24.6.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b, Release)",
+    "lake": "Lake version 5.0.0-src+7e01a1b (Lean version 4.28.0)"
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "provider_request_cap_enforced": false,
+  "token_cap_enforced": false,
+  "cache_state": "Fresh conversations and task folders. Operating-system and provider caches are uncontrolled; reported cached tokens are retained.",
+  "accounting": "CLI-reported token categories are retained separately by client. Interrupted responses can leave usage incomplete. Billed account charges are unknown.",
+  "timing": "Complete local seconds include verification, fresh folder/Git setup, skill installation, CLI startup, model/tool/check work and result export. Shared environment preparation is separate.",
+  "shared_setup": {
+    "fr_release_download_seconds": 1.67,
+    "fr_archive_check_seconds": 0.13,
+    "fr_unpack_seconds": 0.14,
+    "fr_audit_seconds": 0.48,
+    "fr_capabilities_seconds": 0.01,
+    "python_environment_seconds": 2.32,
+    "pinned_python_wheels_install_seconds": 1.61,
+    "preexisting_cli_and_checker_install_seconds": null,
+    "account_charges": null,
+    "task_seed_preparation_seconds": null,
+    "model_free_control_builds_seconds": null
+  },
+  "collection_receipts": {
+    "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591": "7168ba5ea1aed17ef5a88e792e0eec71461d886c",
+    "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b": "28b46378e689562eb920093c84bb4a3b902929bf"
+  },
+  "attempts": [
+    {
+      "id": "codex-luna-fast-boltons-rename-files-1",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "fa1c208e7ef7796ed0f1ad1a9ce29d39ab44a40f56de356c71d558d934f34433",
+      "total_seconds": 32.814322124933824,
+      "native_seconds": 31.958696249872446,
+      "verification_seconds": 0.6578327498864383,
+      "stop_reason": null,
+      "sampled_rss_bytes": 124485632,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 131968,
+        "input_tokens": 143914,
+        "output_tokens": 2796,
+        "reasoning_output_tokens": 737
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-files-1.patch",
+      "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "6169f945f8ed1db28cb75c923f33a05c52181cf4d367870ba6b8d3ab3425f53a",
+      "total_seconds": 46.426923708990216,
+      "native_seconds": 45.634039791999385,
+      "verification_seconds": 0.6054384589660913,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126976000,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 149120,
+        "input_tokens": 175428,
+        "output_tokens": 3905,
+        "reasoning_output_tokens": 1226
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 3,
+        "operations_observed": [
+          "other fr command",
+          "project find",
+          "rename"
+        ]
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-fr-1.patch",
+      "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "d21a5857a0a15afaef2fae1d699eea8126b83be2ee2010103f2b88fa9774ea04",
+      "total_seconds": 30.634226083057,
+      "native_seconds": 29.99961391580291,
+      "verification_seconds": 0.5722644170746207,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128860160,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 99200,
+        "input_tokens": 135836,
+        "output_tokens": 1919,
+        "reasoning_output_tokens": 766
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-fr-1.patch",
+      "patch_sha256": "609ae199e46b6fe541a3ef2d793b3090ceff230b1baf968b783c80aae4f009f9",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-files-1",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "3d7dea730440e322a9050556627a14ff6cc426a9017cf6e173848a6d8f543a55",
+      "total_seconds": 32.46352762496099,
+      "native_seconds": 31.855061541777104,
+      "verification_seconds": 0.5483298748731613,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126992384,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 146176,
+        "input_tokens": 159084,
+        "output_tokens": 2405,
+        "reasoning_output_tokens": 833
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-files-1.patch",
+      "patch_sha256": "6f3785d90ce74729d8989d4e5cf643822cfd6ef2859cfedca058178b10bc1161",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-access-proof-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "f83b3179eb32ce4cb8c01e4bb8bcbc428efa6819df6ad7e62a9a6804b5f3fbe9",
+      "total_seconds": 22.04267170908861,
+      "native_seconds": 21.45722695812583,
+      "verification_seconds": 0.5415970419999212,
+      "stop_reason": null,
+      "sampled_rss_bytes": 129007616,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 77440,
+        "input_tokens": 94567,
+        "output_tokens": 1016,
+        "reasoning_output_tokens": 286
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-files-1.patch",
+      "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-access-proof-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "73409ba424034f8d5dd26abb73d86683d40cf612c8299bf1f60301c18afdbb46",
+      "total_seconds": 38.48838045890443,
+      "native_seconds": 37.884136125212535,
+      "verification_seconds": 0.5544189168140292,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128876544,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 194816,
+        "input_tokens": 208487,
+        "output_tokens": 2745,
+        "reasoning_output_tokens": 1382
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 7,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ]
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-fr-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "e0b6e55d5d34e111f1adb31456fc93a61015864afa0b2cb95ed13c0cf2da5a1e",
+      "total_seconds": 151.0185469998978,
+      "native_seconds": 150.0591357499361,
+      "verification_seconds": 0.5556017078924924,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86163456,
+      "reported_tokens": {
+        "cache": {
+          "read": 137344,
+          "write": 0
+        },
+        "input": 27282,
+        "output": 697,
+        "reasoning": 3265
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 8,
+        "operations_observed": [
+          "history apply",
+          "history show",
+          "other fr command",
+          "project find",
+          "refs",
+          "rename"
+        ]
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": true,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 22,
+        "completed_tool_wall_seconds": 2.971,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "be599c1f869de0244eef93eb2e2cd2353850e1468cfceb64d4fb4f9284963760",
+      "total_seconds": 150.9568513748236,
+      "native_seconds": 150.0134614580311,
+      "verification_seconds": 0.577592832967639,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86114304,
+      "reported_tokens": {
+        "cache": {
+          "read": 98112,
+          "write": 0
+        },
+        "input": 27549,
+        "output": 1834,
+        "reasoning": 4438
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 26,
+        "completed_tool_wall_seconds": 13.956,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "36fb23bc08bcf2f98f0176c2bb2f421b2c859bf20ab8909a6ca6ef6d0632b52f",
+      "total_seconds": 150.9624677079264,
+      "native_seconds": 150.04742166702636,
+      "verification_seconds": 0.6496629160828888,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 88473600,
+      "reported_tokens": {
+        "cache": {
+          "read": 11840,
+          "write": 0
+        },
+        "input": 21570,
+        "output": 197,
+        "reasoning": 4456
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 0.468,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "64b88e83ef5178df15cec461e148ae694d6770ae77b29c314ac2991a7e1d32ba",
+      "total_seconds": 150.91098420904018,
+      "native_seconds": 150.05257800011896,
+      "verification_seconds": 0.6008476668503135,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 88014848,
+      "reported_tokens": {
+        "cache": {
+          "read": 96704,
+          "write": 0
+        },
+        "input": 31227,
+        "output": 469,
+        "reasoning": 5275
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 3,
+        "operations_observed": [
+          "author",
+          "project find"
+        ]
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 14,
+        "completed_tool_wall_seconds": 2.043,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "d70435fa8e33525deb1d712f0abca78c7e2c5015ee9ac0f4431f94379cfecb71",
+      "total_seconds": 113.75501037505455,
+      "native_seconds": 113.01905083400197,
+      "verification_seconds": 0.5055077080614865,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86081536,
+      "reported_tokens": {
+        "cache": {
+          "read": 72320,
+          "write": 0
+        },
+        "input": 15369,
+        "output": 572,
+        "reasoning": 961
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 3,
+        "operations_observed": [
+          "spec",
+          "spec check",
+          "spec evidence"
+        ]
+      },
+      "patch_file": "patches/opencode2-glm-flash-access-proof-fr-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "1728e697625254276d5fdbb48f7cb3d489b98329bf368cf3e278fb5530b959b3",
+      "total_seconds": 111.3239408750087,
+      "native_seconds": 110.57361912494525,
+      "verification_seconds": 0.5041288330685347,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85770240,
+      "reported_tokens": {
+        "cache": {
+          "read": 84992,
+          "write": 0
+        },
+        "input": 15201,
+        "output": 1551,
+        "reasoning": 2047
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-glm-flash-access-proof-files-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "c18cb50bae50e213aeb85e54e0848a0b99d469beb9792efa5c88af10f1d2cdc2",
+      "total_seconds": 93.21258233301342,
+      "native_seconds": 92.32113516610116,
+      "verification_seconds": 0.5443275831639767,
+      "stop_reason": null,
+      "sampled_rss_bytes": 87834624,
+      "reported_tokens": {
+        "cache": {
+          "read": 212992,
+          "write": 0
+        },
+        "input": 31799,
+        "output": 2197,
+        "reasoning": 357
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-boltons-rename-files-1.patch",
+      "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "c23d67ddcf5318318f916ab94d3601147b7b32c84f17305837e1e5112fc4d060",
+      "total_seconds": 135.4212859168183,
+      "native_seconds": 134.49268412496895,
+      "verification_seconds": 0.4435835420154035,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85983232,
+      "reported_tokens": {
+        "cache": {
+          "read": 99840,
+          "write": 0
+        },
+        "input": 13888,
+        "output": 1801,
+        "reasoning": 908
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 4,
+        "operations_observed": [
+          "other fr command",
+          "project find",
+          "rename"
+        ]
+      },
+      "patch_file": "patches/opencode2-kimi-k3-boltons-rename-fr-1.patch",
+      "patch_sha256": "a338fc6e16a5c0d8eef45084a48c827703564d5812a4efd0ed1bb83b8d075fa3",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "110296e0478b142af5a48fcb5bcf9505b77bc5acf97395015ae0f0adaed7db26",
+      "total_seconds": 150.81021108408459,
+      "native_seconds": 150.00903495796956,
+      "verification_seconds": 0.5455356671009213,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86310912,
+      "reported_tokens": {
+        "cache": {
+          "read": 96000,
+          "write": 0
+        },
+        "input": 12926,
+        "output": 1821,
+        "reasoning": 2052
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "author"
+        ]
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 26.61,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "2cde780dac510ef2d8a1fda65d96d4b2d46d07a88d4c9ce6b4e7f0d619c37c28",
+      "total_seconds": 136.80726425000466,
+      "native_seconds": 136.0581439579837,
+      "verification_seconds": 0.5070569580420852,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85835776,
+      "reported_tokens": {
+        "cache": {
+          "read": 132096,
+          "write": 0
+        },
+        "input": 9684,
+        "output": 1819,
+        "reasoning": 1233
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-unicode-dice-files-1.patch",
+      "patch_sha256": "f106c5a847038d1f776b4df9db6518daec2f7cc19ade8d5792083cad728919bf",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "25f6547a0d4202431408896fa86b84e52974559f0d5db83c148297319774e7de",
+      "total_seconds": 38.047252209158614,
+      "native_seconds": 37.29775066697039,
+      "verification_seconds": 0.5175239590462297,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85606400,
+      "reported_tokens": {
+        "cache": {
+          "read": 36096,
+          "write": 0
+        },
+        "input": 2470,
+        "output": 811,
+        "reasoning": 129
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-access-proof-files-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "1ba6b3315c14d33ccbcd822cfc95b3ee6099f42689dffc988ec6bcdb7a4abb65",
+      "total_seconds": 59.30901466612704,
+      "native_seconds": 58.55498275021091,
+      "verification_seconds": 0.5231594580691308,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86163456,
+      "reported_tokens": {
+        "cache": {
+          "read": 51200,
+          "write": 0
+        },
+        "input": 5342,
+        "output": 744,
+        "reasoning": 673
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 2,
+        "operations_observed": [
+          "spec",
+          "spec check"
+        ]
+      },
+      "patch_file": "patches/opencode2-kimi-k3-access-proof-fr-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "9c99dfdc8a3e2ea004619a4d8996518f7555849e29556d6107f734d24082696c",
+      "total_seconds": 44.96079016686417,
+      "native_seconds": 44.270461624953896,
+      "verification_seconds": 0.5084562918636948,
+      "stop_reason": null,
+      "sampled_rss_bytes": 129466368,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 216704,
+        "input_tokens": 244660,
+        "output_tokens": 3776,
+        "reasoning_output_tokens": 1537
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 6,
+        "operations_observed": [
+          "history",
+          "history apply",
+          "history show",
+          "other fr command",
+          "rename"
+        ]
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-fr-2.patch",
+      "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-files-2",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "fe6a03881b7092404e798c28f2028b6da7d2d6627716ac99230393ec031ca25d",
+      "total_seconds": 34.06151875015348,
+      "native_seconds": 33.413350832881406,
+      "verification_seconds": 0.476083500077948,
+      "stop_reason": null,
+      "sampled_rss_bytes": 131072000,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 72064,
+        "input_tokens": 92075,
+        "output_tokens": 2803,
+        "reasoning_output_tokens": 941
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-files-2.patch",
+      "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-files-2",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "a597aef2793b534ea7812148947616c8f25c4fe9db411e49e0c407c75c256e66",
+      "total_seconds": 35.57076666713692,
+      "native_seconds": 34.95801854203455,
+      "verification_seconds": 0.555583291919902,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128892928,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 118144,
+        "input_tokens": 158399,
+        "output_tokens": 2321,
+        "reasoning_output_tokens": 931
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-files-2.patch",
+      "patch_sha256": "5f102113aed310eb8522a254fbd7b606979880ea381cca6e7170ec918179256f",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "7bd0942bae6cdf0936fc3143f9fb4d3229df8d382113e66d93e81c81a3adfcba",
+      "total_seconds": 41.71815733285621,
+      "native_seconds": 41.12256499985233,
+      "verification_seconds": 0.5308380408678204,
+      "stop_reason": null,
+      "sampled_rss_bytes": 131923968,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 176768,
+        "input_tokens": 199454,
+        "output_tokens": 3149,
+        "reasoning_output_tokens": 1111
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-fr-2.patch",
+      "patch_sha256": "bf6601f79beedd8ff82242613e05c79c7d50cb58834b6efce6741f49fc5e2515",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-access-proof-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "8319acd9f406e41d4c3b5ffe6e8c863a57e94d51325664ab71ddbc8405976c14",
+      "total_seconds": 32.61891470779665,
+      "native_seconds": 32.06106604193337,
+      "verification_seconds": 0.5113230408169329,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128991232,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 93696,
+        "input_tokens": 110464,
+        "output_tokens": 1421,
+        "reasoning_output_tokens": 403
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-fr-2.patch",
+      "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-access-proof-files-2",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "72b5e0ede0c4c40c2e21186feb6fe6777fcdb2587db03e3d6abed5ee6de14744",
+      "total_seconds": 33.4389478340745,
+      "native_seconds": 32.886250416981056,
+      "verification_seconds": 0.5101054590195417,
+      "stop_reason": null,
+      "sampled_rss_bytes": 130220032,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 80896,
+        "input_tokens": 108012,
+        "output_tokens": 1358,
+        "reasoning_output_tokens": 474
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-files-2.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "07b11905f938c4b04c5a16aebfd98f09ae0d44023bdb5f38737ff5f2197716b3",
+      "total_seconds": 123.74477345799096,
+      "native_seconds": 122.88111637509428,
+      "verification_seconds": 0.5200119998771697,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86786048,
+      "reported_tokens": {
+        "cache": {
+          "read": 132800,
+          "write": 0
+        },
+        "input": 16141,
+        "output": 1672,
+        "reasoning": 2620
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-glm-flash-boltons-rename-files-2.patch",
+      "patch_sha256": "e3ba319fce43ffc9aede77a993986dc6f9f159bd8a7c666a54d5338cc664137b",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "9f576fd1d111e80b91d959df5972b4b1942801e9c2c54d6c998c4b70903b6b10",
+      "total_seconds": 150.9110636669211,
+      "native_seconds": 150.0387537078932,
+      "verification_seconds": 0.5132179998327047,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 85852160,
+      "reported_tokens": {
+        "cache": {
+          "read": 185088,
+          "write": 0
+        },
+        "input": 24354,
+        "output": 1124,
+        "reasoning": 4343
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 8,
+        "operations_observed": [
+          "checks",
+          "other fr command",
+          "project find",
+          "rename"
+        ]
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 29,
+        "completed_tool_wall_seconds": 5.517,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "653633ff5a02e0f937f61b59d60ed426ebc903f100355e0e5afd50bdf4363dbd",
+      "total_seconds": 150.83881333400495,
+      "native_seconds": 150.03068604203872,
+      "verification_seconds": 0.5489005839917809,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 85803008,
+      "reported_tokens": {
+        "cache": {
+          "read": 110784,
+          "write": 0
+        },
+        "input": 25243,
+        "output": 744,
+        "reasoning": 3672
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 16,
+        "completed_tool_wall_seconds": 4.514,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "af0efd96c271d2e6abf97a7da6b8f37a7eb61d1edb9ca6b49f701fd9b92ca58f",
+      "total_seconds": 150.87211050000042,
+      "native_seconds": 150.03962162486278,
+      "verification_seconds": 0.5564141250215471,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 87343104,
+      "reported_tokens": {
+        "cache": {
+          "read": 158464,
+          "write": 0
+        },
+        "input": 29042,
+        "output": 2068,
+        "reasoning": 2660
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 19.765,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "9b333d7156b2a75cc21e65b68dcbf9f7d1101970acee2a8a4a134d45c1925893",
+      "total_seconds": 126.95563379093073,
+      "native_seconds": 126.14187354105525,
+      "verification_seconds": 0.5477922081481665,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85917696,
+      "reported_tokens": {
+        "cache": {
+          "read": 80384,
+          "write": 0
+        },
+        "input": 15289,
+        "output": 1272,
+        "reasoning": 2080
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-glm-flash-access-proof-files-2.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "a345c20fd43574b067f89f1b5508103cbc7e94a1f47ea3cd0772e9bf1872475a",
+      "total_seconds": 150.91914429096505,
+      "native_seconds": 150.06430470803753,
+      "verification_seconds": 0.5910786250606179,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86687744,
+      "reported_tokens": {
+        "cache": {
+          "read": 80576,
+          "write": 0
+        },
+        "input": 17146,
+        "output": 661,
+        "reasoning": 1746
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 5,
+        "operations_observed": [
+          "other fr command",
+          "spec",
+          "spec check",
+          "spec evidence"
+        ]
+      },
+      "patch_file": "patches/opencode2-glm-flash-access-proof-fr-2.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 16,
+        "completed_tool_wall_seconds": 4.399,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "ba0143d4e72862a212a853f433733ab7a32e73ca5c9e0bb5d53bef6f7903ae35",
+      "total_seconds": 108.84809899982065,
+      "native_seconds": 107.8293865409214,
+      "verification_seconds": 0.6112952497787774,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86425600,
+      "reported_tokens": {
+        "cache": {
+          "read": 195584,
+          "write": 0
+        },
+        "input": 15409,
+        "output": 1844,
+        "reasoning": 1024
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 7,
+        "operations_observed": [
+          "history apply",
+          "other fr command",
+          "project find",
+          "refs",
+          "rename"
+        ]
+      },
+      "patch_file": "patches/opencode2-kimi-k3-boltons-rename-fr-2.patch",
+      "patch_sha256": "a338fc6e16a5c0d8eef45084a48c827703564d5812a4efd0ed1bb83b8d075fa3",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "4c40e9043748a0f2b2cfbc9346054926bccd09a1c69ed9c7ade17e2c17abd1e4",
+      "total_seconds": 125.7122023331467,
+      "native_seconds": 124.0561281668488,
+      "verification_seconds": 0.5176017079502344,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86081536,
+      "reported_tokens": {
+        "cache": {
+          "read": 93440,
+          "write": 0
+        },
+        "input": 8763,
+        "output": 2504,
+        "reasoning": 517
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-boltons-rename-files-2.patch",
+      "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "9ec49235e98c51d47245729c93aa2c5fa7fed254268e4e06af0851f50850a3dd",
+      "total_seconds": 112.88059704191983,
+      "native_seconds": 111.70576675003394,
+      "verification_seconds": 0.8869597918819636,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86360064,
+      "reported_tokens": {
+        "cache": {
+          "read": 107776,
+          "write": 0
+        },
+        "input": 8987,
+        "output": 1448,
+        "reasoning": 1089
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-unicode-dice-files-2.patch",
+      "patch_sha256": "d72959d7cd6080e03a5638fd26fb1dba2b1dc207d5e1c09a0b139e0f6ce81f13",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "eb855d74fd8cba79ec72022d8cd3f18421105194c240ce6b92c034b49b39efc7",
+      "total_seconds": 134.66187520883977,
+      "native_seconds": 133.81286191684194,
+      "verification_seconds": 0.5853657498955727,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86245376,
+      "reported_tokens": {
+        "cache": {
+          "read": 148992,
+          "write": 0
+        },
+        "input": 10654,
+        "output": 1872,
+        "reasoning": 1044
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ]
+      },
+      "patch_file": "patches/opencode2-kimi-k3-unicode-dice-fr-2.patch",
+      "patch_sha256": "480cfc7d50acb13f6702a40d27dd6f29951589794fc5c8d34714cc017b534f37",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "733c15cb37f991896df45f36670e467cac4e8eaa7600e703635da945c10b2541",
+      "total_seconds": 51.00471741706133,
+      "native_seconds": 50.200059958035126,
+      "verification_seconds": 0.5499870830681175,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85458944,
+      "reported_tokens": {
+        "cache": {
+          "read": 64768,
+          "write": 0
+        },
+        "input": 5238,
+        "output": 1214,
+        "reasoning": 282
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-access-proof-fr-2.patch",
+      "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "3a4b4e52effb48a04f0c9dcb15e27293848e1ecd27b55b565557d5c82e0ae57b",
+      "record_sha256": "ed8f5165006d63bd93ba86b7108e93544feee3740922363e7b30b17365abd026",
+      "total_seconds": 47.30097108287737,
+      "native_seconds": 46.54712508409284,
+      "verification_seconds": 0.5040386249311268,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86392832,
+      "reported_tokens": {
+        "cache": {
+          "read": 29184,
+          "write": 0
+        },
+        "input": 2300,
+        "output": 476,
+        "reasoning": 92
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/opencode2-kimi-k3-access-proof-files-2.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 6a3b098..055a8c2 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -729,7 +729,10 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         return 1.0;
+     }
+ 
+-    if a.len() < 2 || b.len() < 2 {
++    let a_len = a.chars().count();
++    let b_len = b.chars().count();
++
++    if a_len < 2 || b_len < 2 {
+         return 0.0;
+     }
+ 
+@@ -750,7 +753,7 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         });
+     }
+ 
+-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64
++    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64
+ }
+ 
+ #[cfg(test)]
+@@ -1304,4 +1307,19 @@ mod tests {
+             sorensen_dice("this has one extra word", "this has one word")
+         );
+     }
++
++    #[test]
++    fn sorensen_dice_unicode() {
++        // lengths are counted in Unicode scalar values, not bytes
++        assert_delta!(2.0 / 3.0, sorensen_dice("éa", "éab"));
++        // whitespace is removed before counting
++        assert_delta!(2.0 / 3.0, sorensen_dice("é a", "éa b"));
++        // duplicate bigrams retain their multiplicity
++        assert_delta!(2.0 / 3.0, sorensen_dice("aa", "aaa"));
++        // unequal inputs with fewer than two scalar values score zero
++        assert_delta!(0.0, sorensen_dice("é", "ab"));
++        assert_delta!(0.0, sorensen_dice("é", "éx"));
++        // equal inputs still score one
++        assert_delta!(1.0, sorensen_dice("é", "é"));
++    }
+ }
