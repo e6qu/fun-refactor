@@ -17,7 +17,7 @@ The [measurement guide](docs/benchmarks.md) explains what we compare, the extra 
 | --- | --- |
 | Refactor while preserving behavior | [First checked rename](TUTORIAL.md) and [coordinated changes](docs/structural-changes.md) |
 | Fix a bug or add behavior | [Targeted implementation edits](docs/body-authoring.md) and [behavior checks](docs/checked-outcomes.md) |
-| Write or repair a Lean proof | [Proof workflow](docs/agent-formalization.md) and [what the result establishes](docs/lean-specs.md#what-each-check-establishes) |
+| Write or repair a Lean proof | [First complete proof](docs/first-lean-proof.md), [proof workflow](docs/agent-formalization.md) and [what the result establishes](docs/lean-specs.md#what-each-check-establishes) |
 
 Prefer preserving comments, formatting and untouched source. Review and check any intentionally wider rewrite.
 A refactoring preserves behavior; a repair or feature changes it deliberately.

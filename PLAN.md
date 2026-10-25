@@ -52,8 +52,13 @@ All three milestones below are open. Start with M1.
    | Task | Required result | Check that catches a wrong answer |
    | --- | --- | --- |
    | Rename Boltons' `clamp` to `clamp_value` in its declared project change | Update the function, named consumers and documentation | Limiting 70 to 0 through 50 still returns 50; an unrelated same-named function stays unchanged |
-   | Repair the recorded `unicode-dice` comparison | Count the intended Unicode characters on both sides | The reported Unicode examples and the independent regression set pass |
+   | Repair the recorded `unicode-dice` comparison | Count pairs of adjacent Unicode values after removing whitespace; retain duplicate pairs | Comparing `éa` with `éab` returns `2/3`; equal inputs, short unequal inputs and the independent regression set pass |
    | Prove the Rust Boolean `allowed(staff, owner)` rule | Write a Lean proof that its model equals `staff || owner` | All four input pairs agree; changing the model to `staff && owner` cannot retain the same claim |
+
+   Use the pinned [Boltons project requirement](tests/agent-eval/project-changes/tasks.json) and [Unicode requirement](tests/agent-eval/unknown-target/task.json).
+   A Unicode scalar value represents a character value, rather than one byte of its UTF-8 encoding.
+   In this example, `éa` has one adjacent pair and `éab` has two; one pair matches, giving twice one divided by three.
+   Unequal inputs with fewer than two values after whitespace removal return zero.
 
 3. Use each of the three profiles with ordinary file tools, then with those tools plus fr.
    That is eighteen first attempts. Repeat the unchanged schedule once for thirty-six attempts in total.
@@ -78,7 +83,7 @@ Freeze these four additional cases before implementing missing rules:
 | Case | Concrete requirement |
 | --- | --- |
 | Rust parameter removal | Remove an unused Boolean parameter with literal arguments across a two-crate workspace; update every declared direct caller and report external or unresolved uses |
-| Regex feature | Add the recorded allocation-free escaped-length feature; cover every required escaping class and Unicode input without constructing the escaped string |
+| Regex feature | Add public `escape_len(pattern: &str) -> usize` in both regex crates; empty input needs zero bytes, `a.b` needs four and `é` needs two; construct no temporary escaped string |
 | Python repair | Fix `invoice_total(amount, fee)` omitting the fee; `invoice_total(5, 2)` must return 7 |
 | TypeScript rename | Rename an exported helper through an imported alias while leaving an unrelated local declaration with the old name untouched |
 
@@ -101,6 +106,9 @@ A literal argument uses a direct value, such as `false`.
 A call such as `record()` must still run when its effects matter.
 An imported alias is a local name for an exported function.
 For `import { price as displayPrice }`, renaming the export updates `price` in the import while preserving calls through `displayPrice`.
+The [pinned regex requirement](tests/agent-eval/unknown-target/task.json) also requires unchanged escaping and append behavior.
+Test every escaping class, Unicode input, allocation counts and builds without default features in both crates.
+Counting the required bytes allocates nothing. Producing nonempty escaped text allows at most one allocation; empty input allows none.
 
 **M2 is complete when** all four cases pass the scripted delivery checks.
 Each selected agent must also deliver at least one independently accepted result per case within the frozen repetitions and limits.
