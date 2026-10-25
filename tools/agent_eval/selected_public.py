@@ -141,19 +141,20 @@ def export(plan_path, review, destination):
             model_recorded = False
         else:
             counts = [event['part']['tokens'] for event in events if event.get('type') == 'step_finish']
-            observed = record.get('usage', {}).get('exported', {})
-            complete = (observed.get('outcome') == 'succeeded' and observed.get('unfinished_assistant_responses') == 0 and
-                        len(counts) > 0 and len(counts) == observed.get('exported_assistant_responses') ==
-                        observed.get('stream_finished_responses') and all(isinstance(value, dict) for value in counts))
-            model_recorded = observed.get('model_observed', False)
+            observed = record['usage']['exported'] if record['usage'] is not None else None
+            complete = (observed is not None and observed['outcome'] == 'succeeded' and
+                        observed['unfinished_assistant_responses'] == 0 and len(counts) > 0 and
+                        len(counts) == observed['exported_assistant_responses'] == observed['stream_finished_responses'] and
+                        all(isinstance(value, dict) for value in counts))
+            model_recorded = observed['model_observed'] if observed is not None else False
         patch = directory / 'change.patch'
         patch_file = None
-        if record.get('patch_delivered'):
+        if record['patch_delivered']:
             require(patch.is_file() and not patch.is_symlink() and common.digest(patch) == record['patch_sha256'],
                     'publish the exact submitted patch')
             patch_file = 'patches/' + identity + '.patch'
             shutil.copyfile(patch, destination / patch_file)
-        process = record.get('process')
+        process = record['process']
         fr_use = {**observed_fr(events), 'contributing_actions': actions,
                   'contribution_review': 'Recorded review of observed commands, results and submitted patch; command counts alone are not credited.'}
         row = {key: planned[key] for key in ('id', 'profile', 'task', 'setup', 'repetition')}
@@ -161,13 +162,13 @@ def export(plan_path, review, destination):
             'collection_receipt': plan['sha256'], 'record_sha256': common.digest(directory / 'result.json'),
             'total_seconds': record['elapsed_seconds'], 'native_seconds': process['elapsed_seconds'] if process else None,
             'verification_seconds': record['verification_seconds'], 'stop_reason': process['stop_reason'] if process else None,
-            'complete_attempt_deadline_missed': record.get('complete_attempt_deadline_missed', False),
+            'complete_attempt_deadline_missed': record['complete_attempt_deadline_missed'],
             'sampled_rss_bytes': process['sampled_aggregate_rss_bytes'] if process else None,
             'reported_tokens': sum_counts(counts), 'reported_usage_complete': complete,
             'client_model_recorded': model_recorded, 'provider_response_model_observed': False, 'fr_use': fr_use,
             'patch_file': patch_file, 'patch_sha256': common.digest(patch) if patch_file else None,
             'completed_tools': completed_tool_time(events), 'independent_outcome': None,
-            'collection_error_recorded': bool(record.get('error') or record.get('collection_error')),
+            'collection_error_recorded': bool(record['error'] or record['collection_error']),
             'failure_summary': failure_summary})
     summary = {'study': 'M2', 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',

@@ -221,11 +221,11 @@ def freeze(inputs, binaries, runtime, output, milestone):
 def usage(client, events):
     if client == 'codex':
         completed = [row['usage'] for row in events if row.get('type') == 'turn.completed']
-        return {'reported': completed, 'complete_turns': len(completed), 'actual_cost': None,
+        return {'reported': completed, 'complete_turns': len(completed), 'actual_cost': None, 'exported': None,
                 'model_observed': False, 'explanation': 'The CLI turn totals do not report observed model identity or billed charges.'}
     steps = [row['part'] for row in events if row.get('type') == 'step_finish']
     return {'reported': [{'tokens': row['tokens'], 'catalog_cost': row['cost']} for row in steps],
-            'complete_steps': len(steps), 'actual_cost': None,
+            'complete_steps': len(steps), 'actual_cost': None, 'exported': None,
             'explanation': 'A zero catalog cost is not an observed account charge.'}
 
 
@@ -252,6 +252,8 @@ def attempt(plan_path, attempt_id):
               'task': row['task'], 'setup': row['setup'], 'independent_outcome': None,
               'controller_checkout': checkout,
               'actual_cost': None, 'started_at': entered_at, 'verification_seconds': time.monotonic() - entered,
+              'process': None, 'usage': None, 'error': None, 'collection_error': None,
+              'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
     tasks.save(output / 'result.json', report)
     started = entered
@@ -360,7 +362,8 @@ def attempt(plan_path, attempt_id):
             except Exception as error:
                 report.update(status='failed', collection_error=type(error).__name__ + ': ' + str(error))
         report['elapsed_seconds'] = time.monotonic() - started
-        if report['elapsed_seconds'] > LIMITS['wall_seconds']:
+        report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']
+        if report['complete_attempt_deadline_missed']:
             report.update(status='failed', complete_attempt_deadline_missed=True)
         tasks.save(output / 'result.json', report)
 
