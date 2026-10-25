@@ -111,7 +111,8 @@ Test every escaping class, Unicode input, allocation counts and builds without d
 Counting the required bytes allocates nothing. Producing nonempty escaped text allows at most one allocation; empty input allows none.
 
 **M2 is complete when** all four cases pass the scripted delivery checks.
-Each selected agent must also deliver at least one independently accepted result per case within the frozen repetitions and limits.
+Each selected agent must also deliver at least one independently accepted result per case using fr within the frozen repetitions and limits.
+Record which fr actions contributed to that delivered result.
 Keep the failed outcomes alongside those successes; a scripted success alone cannot close the agent requirement.
 Unsupported constructs must refuse until their required reusable rules work.
 Add Python analysis or other language rules only when one of these code-change tasks needs them.
@@ -148,12 +149,14 @@ They return values without external reads or writes. This is the typed pure subs
    Old proof receipts must expire; a newly attempted proof of a false fixed property must fail.
    Preserve unrelated hand-written proof regions when regenerating supported definitions.
 7. Run the selected agents on the Rust Boolean and two numeric tasks with and without fr.
+   Both tool setups start with the same source, definitions and fixed property.
    Two repetitions per profile, task and setup give thirty-six attempts.
    Count failed tactics, retries and complete costs. Record source-language limitations beside the outcome.
 
 **M3 is complete when** the runnable proof-writing cases pass for every named admitted language.
 Both numeric tasks need checked proofs under their declared models.
-Each selected agent must write at least one accepted proof for each of the three live tasks within the frozen repetitions and limits.
+Each selected agent must write at least one accepted proof for each live task using fr within the frozen repetitions and limits.
+Record which fr actions contributed to that accepted proof.
 Keep failed tactics and unsuccessful attempts in the results.
 An unchecked source/model connection remains an open claim in every report.
 A general verified translator or proof of arbitrary programs is not a completion condition for this proof-authoring milestone.

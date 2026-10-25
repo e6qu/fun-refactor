@@ -32,7 +32,7 @@ For each profile, compare ordinary read/search/edit/check tools with those tools
 Use the same request, source revision, checking commands and limits within that pair.
 The model receives no repair, proof tactic or edit location supplied by the evaluator.
 Freeze independent task checks before extending support.
-Use the exact requested theorem in both proof attempts.
+Use the exact requested theorem and definitions in both proof attempts.
 
 M1 starts with a Boltons rename, the recorded Unicode repair and a Rust access-rule proof.
 Three profiles, three tasks and two tool setups give eighteen first attempts.
