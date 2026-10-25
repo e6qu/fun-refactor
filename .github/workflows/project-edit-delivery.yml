@@ -58,6 +58,12 @@ jobs:
       - name: Check all existing authoring cases
         run: cargo test --locked --test author_cli -- --test-threads 1
       - run: cargo build --locked --bin fr
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m2-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 30
       - name: Check structural changes through the Python client
         run: python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py
       - name: Exercise each complete change through real fr
@@ -83,6 +89,37 @@ jobs:
             ${{ runner.temp }}/m2-delivery/**/*.json
             ${{ runner.temp }}/m2-delivery/**/*.patch
           if-no-files-found: warn
+          retention-days: 30
+  native-clients:
+    name: Check all three native clients with both tool setups
+    needs: delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.6'
+      - uses: actions/download-artifact@v8
+        with:
+          name: m2-linux-tool
+          path: ${{ runner.temp }}/m2-linux-tool
+      - run: chmod +x "$RUNNER_TEMP/m2-linux-tool/fr"
+      - name: Use scripted replies to check tool execution and skill discovery
+        run: >-
+          python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/m2-linux-tool/fr"
+          --output "$RUNNER_TEMP/m2-native"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-native-controls
+          path: ${{ runner.temp }}/m2-native/summary.json
+          if-no-files-found: error
           retention-days: 30
   macos-tool:
     name: Build the exact fr binary for local agent attempts

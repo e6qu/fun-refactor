@@ -160,6 +160,14 @@ fn validate_scalar_calls(
     symbol: &Symbol,
     change: &crate::refactor::signature::Change,
 ) -> Result<()> {
+    let call_error = match change {
+        crate::refactor::signature::Change::Remove(_) =>
+            "The removed argument must be a literal scalar, such as false or 0. Removing a call such as record() could discard its effects.",
+        crate::refactor::signature::Change::Move { .. } =>
+            "Moving parameters requires literal scalar arguments. Expressions could change evaluation order.",
+        crate::refactor::signature::Change::Add { .. } =>
+            "This signature operation has no declared argument evaluation rule.",
+    };
     ensure!(project.index.definition_group(symbol.id).len() == 1,
         "signature changes require one declaration; conditional variants need a separate reviewed migration.");
     let source = &project.sources[&symbol.file];
@@ -219,7 +227,7 @@ fn validate_scalar_calls(
                 }
                 crate::refactor::signature::Change::Add { .. } => false,
             };
-            ensure!(safe, "signature refactor requires literal scalar call arguments inside macros; effects and evaluation order remain obligations.");
+            ensure!(safe, "{call_error}");
             continue;
         }
         let call = ancestor(&parsed, reference.span, "call_expression")?;
@@ -246,8 +254,7 @@ fn validate_scalar_calls(
             }
             crate::refactor::signature::Change::Add { .. } => false,
         };
-        ensure!(safe,
-            "signature refactor requires literal scalar call arguments; effects and evaluation order remain obligations.");
+        ensure!(safe, "{call_error}");
     }
     Ok(())
 }

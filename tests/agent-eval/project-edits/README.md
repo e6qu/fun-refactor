@@ -1,7 +1,8 @@
 # Four complete code changes for M2
 
-The next comparison asks each selected agent to make four changes, using ordinary tools and then those tools plus fr.
+The next comparison asks each selected agent to make four changes, with ordinary tools and with those tools plus fr.
 Each setup gets two attempts per case: 48 attempts in total. Each attempt keeps the 150-second limit.
+Each pair reverses its setup order in the second repetition.
 The [task requirements](tasks.json) are recorded before extending tool support or running those attempts.
 
 | Request | What a correct change does |
@@ -25,3 +26,21 @@ Source changes during a review must invalidate its old saved preview before any 
 Implementation, current examples, deterministic checks, all 48 attempts, checked results and tracking belong in one PR.
 The [M1 results](../selected-agents/local-results/README.md) stay intact; these new cases do not retry its failures.
 Only patches and summaries from local model runs may be published. Full native logs and execution packets remain local.
+
+The [first independent controls](https://github.com/e6qu/fun-refactor/actions/runs/40228056222) passed for all four cases.
+They reject unchanged and incomplete answers, then accept a supplied correct patch in a separate checkout.
+Regex checks include Unicode byte counts, allocation counts, upstream tests and builds without default features in both crates.
+These results check the task machinery. The 48 local model attempts have not started.
+
+The fr delivery checks also exercise competing edits, failed-check diagnostics, exact bytes outside previewed ranges and undo/redo.
+Private compiler checks run separately, with no runner credentials or external network access.
+Their containers retain the existing 512 MiB memory, 60 CPU-second and 120-second execution limits.
+A CPU-second measures time running on one CPU core; waiting still consumes the separate elapsed-time allowance.
+Each patch gets its full language checks in a fresh checkout. Another copy verifies identical source and exact reversal without repeating compilation.
+Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
+
+For M2, preparation and native session accounting share the same 150-second attempt deadline as model work.
+The native process receives only the time remaining after preparation. Missing that deadline leaves a failed attempt, even with a valid patch.
+Outer guard admission and Python startup precede the controller timer; report that unmeasured time explicitly.
+Compare elapsed time and reported tokens against the same agent doing the same task with ordinary tools.
+This measures the cost of completing a code change; it does not measure the modified application's execution speed.

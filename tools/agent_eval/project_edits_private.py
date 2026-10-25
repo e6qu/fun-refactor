@@ -28,6 +28,7 @@ def controls(inputs, rust, tools, output):
             for variant in variants:
                 identity = task + '-' + variant
                 summary['controls'][identity] = {'status': 'running'}
+                print(json.dumps({'task': task, 'variant': variant, 'status': 'checking'}), flush=True)
                 with tempfile.TemporaryDirectory(prefix='fr-m2-private-control-') as temporary:
                     root = Path(temporary)
                     project = root / 'project'

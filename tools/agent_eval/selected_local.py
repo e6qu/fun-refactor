@@ -27,7 +27,7 @@ def hash_file(path):
 
 def identity():
     require(not tasks.comparison_grade.BASE.git(ROOT, 'status', '--porcelain', '--untracked-files=no').stdout,
-            'freeze and run only committed M1 code')
+            'freeze and run only committed milestone code')
     result = {key: tasks.comparison_grade.BASE.git(ROOT, 'rev-parse', argument).stdout.decode().strip()
               for key, argument in [('commit', 'HEAD'), ('tree', 'HEAD^{tree}')]}
     paths = [line.rstrip('/') for line in (ROOT / 'native-source-inputs.txt').read_text().splitlines()
@@ -108,7 +108,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
     require(LIMITS == {name: proposed['requirements']['limits'][name] for name in LIMITS},
             'execution limits differ from the frozen task requirements')
     expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone == 'M1' else
-                                                {'node', 'typescript', 'cargo_home'})
+                                                {'node', 'typescript', 'cargo_home', 'fr_build'})
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     paths = {name: {'path': str(path.resolve()), 'sha256': hash_file(path.resolve())} for name, path in binaries.items()}
     companions = {'codex-code-mode-host': binaries['codex'].resolve().parent / 'codex-code-mode-host',
@@ -172,11 +172,26 @@ def freeze(inputs, binaries, runtime, output, milestone):
                                'Enforced limits are wall time, sampled memory/CPU/disk/output and the outer workstation guard.'}}
     if milestone == 'M2':
         value['cargo_home'] = str(runtime['cargo_home'].resolve())
+        require((runtime['cargo_home'] / 'registry/src').is_dir(), 'prepare the actual pinned offline dependencies first')
         source_paths = list((runtime['cargo_home'] / 'registry/src').rglob('*'))
         source_paths += list(runtime['typescript'].resolve().parent.parent.rglob('*'))
         value['runtime_source_bindings'] = {str(path.resolve()): hash_file(path) for path in sorted(source_paths)
                                           if path.is_file()}
         require(value['runtime_source_bindings'], 'freeze actual offline compiler and dependency inputs')
+        build = runtime['fr_build']
+        commit = (build / 'source-commit.txt').read_text().strip()
+        tree = (build / 'source-tree.txt').read_text().strip()
+        require(len(commit) == len(tree) == 40 and all(character in '0123456789abcdef' for character in commit + tree),
+                'fr needs its hosted source commit and tree')
+        source = value['source']
+        built_inputs = {name: tasks.comparison_grade.BASE.git(ROOT, 'rev-parse', commit + ':' + name).stdout.decode().strip()
+                        for name in source['native_inputs']}
+        require(built_inputs == source['native_inputs'] and
+                tasks.comparison_grade.BASE.git(ROOT, 'rev-parse', commit + '^{tree}').stdout.decode().strip() == tree and
+                (build / 'fr.sha256').read_text().split()[0] == paths['fr']['sha256'],
+                'fr executable or hosted native source differs from this study')
+        value['fr_build'] = {'source_commit': commit, 'source_tree': tree, 'native_inputs': built_inputs,
+                             'executable_sha256': paths['fr']['sha256']}
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value
@@ -316,6 +331,11 @@ def attempt(plan_path, attempt_id):
                     for name in sorted(report['final_source']):
                         archive.add(project / name, arcname=name, recursive=False)
                 report['candidate_archive_sha256'] = hash_file(output / 'candidate.tar.gz')
+                target = project / 'target'
+                if target.is_symlink():
+                    target.unlink()
+                elif target.is_dir():
+                    shutil.rmtree(target)
             except Exception as error:
                 report.update(status='failed', collection_error=type(error).__name__ + ': ' + str(error))
         report['elapsed_seconds'] = time.monotonic() - started

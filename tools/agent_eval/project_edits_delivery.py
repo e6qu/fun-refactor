@@ -103,13 +103,13 @@ def configure(project, tools, task):
     return [row['name'] for row in checks if row['name'] != 'forced-failure']
 
 
-def workflow(binary, project, saved, names, output):
+def workflow(binary, project, saved, names, output, *, exercise_reversal):
     listed = common.fr(binary, project, ['checks'], output / 'check-listing.json')
     manifest = output / 'workflow-input'
     common.save(manifest, {'schema': 1, 'transaction': saved['transaction'],
         'transaction-context-basis': saved['transaction_context_basis'],
         'checks': {'basis': listed['basis'], 'names': names},
-        'exercise-reversal': True, 'patch': {'output': 'change.patch'}, 'check-output-bytes': 2048})
+        'exercise-reversal': exercise_reversal, 'patch': {'output': 'change.patch'}, 'check-output-bytes': 2048})
     preview = common.fr(binary, project, ['workflow', '--from', str(manifest)], output / 'workflow-preview.json')
     code, result = invoke(binary, project, ['workflow', '--from', str(manifest), '--write',
         '--basis', preview['workflow_basis']], output / 'workflow-write.json')
@@ -143,7 +143,8 @@ def controls(task, binary, inputs, tools, output):
             summary['stale_refused_without_writes'] = True
             path.write_bytes(source[str(path.relative_to(project))])
             preview, saved = plan(task, binary, project, output / 'fresh-plan')
-            code, delivered = workflow(binary, project, saved, names, output)
+            code, delivered = workflow(binary, project, saved, names, output,
+                exercise_reversal=task in {'rust-parameter', 'typescript-alias'})
             require(code == 0 and delivered['passed'] and delivered['transaction_status'] == 'applied',
                     'fresh reviewed delivery did not pass every stage')
             ranges = check_unselected_bytes(project, source, preview)
@@ -173,7 +174,8 @@ def controls(task, binary, inputs, tools, output):
             failed_output = output / 'failed-check'
             failed_output.mkdir()
             failed_preview, failed_saved = plan(task, binary, failed_project, failed_output / 'plan')
-            code, failed = workflow(binary, failed_project, failed_saved, ['forced-failure'], failed_output)
+            code, failed = workflow(binary, failed_project, failed_saved, ['forced-failure'], failed_output,
+                                    exercise_reversal=False)
             require(code != 0 and failed['passed'] is False and failed['transaction_status'] == 'applied' and
                     'M2 deliberately failed project check' in json.dumps(failed) and
                     not (failed_project / 'change.patch').exists(), 'failed check lost its diagnostics or applied state')

@@ -27,6 +27,22 @@ from agent_eval.test_gateway import api_manifest
 from agent_eval.test_isolated_grade import rubric
 
 
+class ResourceStopDiagnostics(unittest.TestCase):
+    def test_output_survives_a_budget_stop_after_the_command_exits(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            scope = ContainerResources.__new__(ContainerResources)
+            scope.check = Mock(side_effect=[None, ValueError('container resource budget stopped the attempt')])
+            process = {'exit_code': 137, 'stop_reason': None}
+            scope.execute = Mock(return_value=(process, b'partial result', b'last compiler stage'))
+            command = DOCKER + ['start', '--attach', 'control']
+            with self.assertRaisesRegex(ValueError, 'budget stopped'):
+                scope.invoke(command, b'', root, 120, 65536)
+            self.assertEqual((root / 'resource-stop.stdout').read_bytes(), b'partial result')
+            self.assertEqual((root / 'resource-stop.stderr').read_bytes(), b'last compiler stage')
+            self.assertEqual(json.loads((root / 'resource-stop.json').read_text()), {'command': command, 'process': process})
+
+
 class DockerInfo(unittest.TestCase):
     def query(self, data, status=200, connect_error=None):
         connection, channel = Mock(), Mock()

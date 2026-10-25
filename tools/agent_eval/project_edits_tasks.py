@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 
 from . import regex_escape_len, regex_workspace
@@ -222,6 +223,7 @@ def check(task, project, prepared, tools, output):
                 raise ValueError('unknown M2 task')
             result['stage'] = 'compiler and behavior checks'
             for index, argv in enumerate(commands):
+                print('M2 language check: ' + ' '.join(map(str, argv)), file=sys.stderr, flush=True)
                 checked = common.command(argv, project, output / f'command-{index}.json')
                 result['checks'].append({'argv': list(map(str, argv)), 'returncode': checked['returncode']})
                 if checked['returncode'] != 0:
