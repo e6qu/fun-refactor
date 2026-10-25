@@ -1,5 +1,6 @@
 """Prepare identical M1 projects and independently check delivered changes."""
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -7,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 from .selected_plan import DIRECTORY, ROOT, require
@@ -156,6 +158,23 @@ def checkout(original, destination):
     (destination / '.git/info/exclude').write_text('\n'.join(sorted((IGNORED - {'.git'}) | {'change.patch'})) + '\n')
 
 
+def retain_seed(project, prepared, output):
+    """Retain only the unchanged public source, never supplied control answers or caches."""
+    require(sources(project) == prepared['original'], 'seed differs from the prepared original')
+    archive = output / 'original.tar.gz'
+    with tarfile.open(archive, 'w:gz') as stream:
+        for name, entry in sorted(prepared['original'].items()):
+            data = (project / name).read_bytes()
+            member = tarfile.TarInfo(name)
+            member.size, member.mode = len(data), entry['mode']
+            stream.addfile(member, io.BytesIO(data))
+    receipt = {'task': prepared['task'], 'archive_sha256': digest(archive),
+               'original': prepared['original'], 'live_model_calls': 0,
+               'scope': 'Unchanged public task source for local CLI attempts; no supplied repair or proof.'}
+    save(output / 'seed.json', receipt)
+    return receipt
+
+
 def check(task, project, prepared, binary, output):
     output.mkdir(parents=True, exist_ok=False)
     try:
@@ -275,6 +294,7 @@ def controls(task, binary, output):
     output.mkdir(parents=True, exist_ok=False)
     original = output / 'original'
     prepared = prepare(task, original, binary, output / 'preparation')
+    retain_seed(original, prepared, output)
     results = {}
     try:
         for variant in ('unchanged', 'incomplete', 'reference'):

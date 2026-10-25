@@ -1,6 +1,9 @@
 """Protect the fixed task and independent check boundaries from candidate edits."""
 from pathlib import Path
+import hashlib
+import json
 import sys
+import tarfile
 import tempfile
 import unittest
 
@@ -59,6 +62,24 @@ class SelectedTaskTests(unittest.TestCase):
         (self.root / 'hidden-source').symlink_to(path.parent, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, 'must not be symlinks'):
             tasks.sources(self.root)
+
+    def test_retained_seed_contains_only_the_exact_unfinished_source(self):
+        project, output = self.root / 'project', self.root / 'evidence'
+        project.mkdir()
+        output.mkdir()
+        (project / 'claim.lean').write_text('theorem unfinished : True := by sorry\n')
+        (project / '.lake').mkdir()
+        (project / '.lake/private-cache').write_text('not part of the task')
+        prepared = {'task': 'access-proof', 'original': tasks.sources(project)}
+        receipt = tasks.retain_seed(project, prepared, output)
+        with tarfile.open(output / 'original.tar.gz') as archive:
+            self.assertEqual(archive.getnames(), ['claim.lean'])
+            self.assertIn(b'sorry', archive.extractfile('claim.lean').read())
+        self.assertEqual(receipt['archive_sha256'], hashlib.sha256((output / 'original.tar.gz').read_bytes()).hexdigest())
+        self.assertEqual(json.loads((output / 'seed.json').read_text()), receipt)
+        (project / 'claim.lean').write_text('theorem unfinished : True := by trivial\n')
+        with self.assertRaisesRegex(ValueError, 'differs from the prepared original'):
+            tasks.retain_seed(project, prepared, output)
 
 
 if __name__ == '__main__':

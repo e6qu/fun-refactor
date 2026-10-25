@@ -137,6 +137,7 @@ jobs:
           path: |
             ${{ runner.temp }}/m1-tasks/**/*.json
             ${{ runner.temp }}/m1-tasks/**/*.patch
+            ${{ runner.temp }}/m1-tasks/**/original.tar.gz
             ${{ runner.temp }}/m1-fr-*.json
             ${{ runner.temp }}/m1-native/**/*.json
             ${{ runner.temp }}/m1-native/**/*.stdout

@@ -110,9 +110,9 @@ def inspect(name, entry, root):
     report = {'release': entry, 'binary_sha256': executable_sha256, 'commands': results,
               'credentials_supplied': False, 'inference_requests': 0}
     report['companions'] = {}
-    for name, companion in entry['companions'].items():
-        with (root / name).open('rb') as source:
-            report['companions'][name] = {'release': companion, 'binary_sha256': hashlib.file_digest(source, 'sha256').hexdigest()}
+    for companion_name, companion in entry['companions'].items():
+        with (root / companion_name).open('rb') as source:
+            report['companions'][companion_name] = {'release': companion, 'binary_sha256': hashlib.file_digest(source, 'sha256').hexdigest()}
     if name == 'codex':
         home = Path(env['CODEX_HOME'])
         home.mkdir()
