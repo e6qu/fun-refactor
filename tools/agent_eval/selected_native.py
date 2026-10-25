@@ -17,7 +17,8 @@ from .selected_plan import ROOT, DIRECTORY, require
 spec = importlib.util.spec_from_file_location('selected_container_boundary', ROOT / 'tools/agent-comparison-rehearsal.py')
 boundary = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(boundary)
-MODULES = ('selected_native_probe.py', 'selected_provider.py', 'selected_plan.py', 'codex_client.py', 'opencode2_client.py')
+MODULES = ('selected_native_probe.py', 'selected_provider.py', 'selected_plan.py', 'codex_client.py', 'opencode2_client.py',
+           'selected_cli.py')
 
 
 def save(path, value):

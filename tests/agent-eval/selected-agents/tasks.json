@@ -43,19 +43,20 @@
     }
   },
   "limits": {
-    "attempt_wall_seconds": 600,
-    "provider_requests": 32,
-    "input_tokens": 200000,
-    "output_tokens": 32768,
-    "max_response_output_tokens": 8192,
+    "attempt_wall_seconds": 150,
+    "provider_requests": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "max_response_output_tokens": null,
     "visible_bytes": 1048576,
-    "memory_bytes": 1073741824,
-    "cpu_seconds": 600,
-    "processes": 64,
+    "memory_bytes": 805306368,
+    "cpu_seconds": 75,
+    "processes": null,
     "disk_bytes": 536870912,
     "parallel_attempts": 1
   },
   "repetitions": 2,
   "setups": ["files", "fr"],
-  "paid_execution": "Requires a reviewed exact plan, explicit credential arrangement and agreed spending cap. This file does not authorize model calls."
+  "execution": "The user selected the installed local Codex and OpenCode2 CLIs with their existing account stores. Each attempt uses the unchanged workstation guard: serial work, half a core, 1 GiB aggregate RSS and 180 seconds total. The attempt itself has the stricter limits above, leaving time to retain results. Full fr builds, full gates and independent grading run on GitHub. No credentials are transferred.",
+  "accounting_limits": "Null token, provider-request and process caps mean the installed CLIs do not expose a shared enforceable cap for those fields. Record observed usage without claiming those caps. OpenCode2 additionally limits its build agent to 32 steps; Codex has no matching step setting. Actual account charges remain unknown unless billing evidence is available. Catalog zero prices are not observed free billing."
 }

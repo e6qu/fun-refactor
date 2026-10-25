@@ -12,6 +12,7 @@ from .codex_client import CodexServer
 from .opencode2_client import OpenCode2Server, scripted_configuration
 from .selected_plan import ROOT, DIRECTORY, require
 from .selected_provider import COMPLETE, chat_provider, websocket_provider
+from .selected_cli import configuration, invocation, export_session
 
 spec = importlib.util.spec_from_file_location('selected_client_probe', ROOT / 'tools/selected-agent-probe.py')
 packages = importlib.util.module_from_spec(spec)
@@ -45,25 +46,20 @@ def codex(binary, project, env, profile, endpoint, setup, output):
         skills = server.request('skills/list', {'cwds': [str(project)], 'forceReload': True})['data']
         require(len(skills) == 1 and not skills[0]['errors'], 'Codex skill discovery failed')
         require(any(row['name'] == 'fr' for row in skills[0]['skills']) == (setup == 'fr'), 'wrong native Codex fr skill availability')
-        thread = server.request('thread/start', {'cwd': str(project), 'model': profile['model'], 'modelProvider': 'openai',
-            'approvalPolicy': 'never', 'sandbox': 'danger-full-access', 'ephemeral': True})['thread']['id']
-        turn = server.request('turn/start', {'threadId': thread, 'model': profile['model'], 'effort': profile['reasoning_effort'],
-            'input': [{'type': 'text', 'text': 'Inspect app.py and report readiness.'}],
-            'sandboxPolicy': {'type': 'externalSandbox', 'networkAccess': 'enabled'}})['turn']['id']
-        deadline = time.monotonic() + 30
-        while True:
-            value = server.receive(deadline)
-            if value.get('method') == 'turn/completed' and value['params']['turn']['id'] == turn:
-                require(value['params']['turn']['status'] == 'completed', 'scripted Codex turn failed')
-                break
-        require(COMPLETE in json.dumps(server.transcript), 'Codex did not retain the final scripted reply')
     require(server.shutdown == {'exit_code': 0, 'forced': False}, 'Codex required forced shutdown')
+    argv, stdin = invocation(profile, {'codex': {'path': str(binary)}}, project, output,
+                             'Inspect app.py and report readiness.', 'danger-full-access')
+    argv += ['--config', 'openai_base_url=' + json.dumps(endpoint + '/v1')]
+    result = subprocess.run(argv, input=stdin, cwd=project, env=env, capture_output=True, timeout=30)
+    (output / 'native.stdout').write_bytes(result.stdout)
+    (output / 'native.stderr').write_bytes(result.stderr)
+    require(result.returncode == 0 and COMPLETE.encode() in result.stdout, 'Codex CLI scripted turn did not complete')
     return {'skills': skills, 'shutdown': server.shutdown}
 
 
 def opencode(binary, project, env, profile, endpoint, setup, output, version):
     config = scripted_configuration(profile, endpoint)
-    config['skills'] = [str(project / '.agents/skills')] if setup == 'fr' else []
+    config.update(configuration(profile, setup, project))
     env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
     with OpenCode2Server(binary, project, env, output / 'api', version=version,
                          startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
@@ -75,19 +71,18 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
         skills = server.request('GET', '/api/skill', None, 200, 10)
         (output / 'skills.json').write_text(json.dumps(skills, indent=2) + '\n')
         require(any(row['name'] == 'fr' for row in skills['data']) == (setup == 'fr'), 'wrong native OpenCode2 fr skill availability')
-        selection = profile['model']
-        result = subprocess.run([str(binary), 'run', '--server', 'http://127.0.0.1:' + str(server.port),
-            '--session', session['id'], '--model', selection['providerID'] + '/' + selection['id'] + '#' + selection['variant'],
-            '--agent', 'build', '--format', 'json', '--title', 'M1 scripted control', 'Inspect app.py and report readiness.'],
-            cwd=project, env=server.env, capture_output=True, timeout=30)
-        (output / 'native.stdout').write_bytes(result.stdout)
-        (output / 'native.stderr').write_bytes(result.stderr)
-        require(len(result.stdout) + len(result.stderr) <= 1024**2, 'OpenCode2 native output exceeds its byte limit')
-        require(result.returncode == 0 and COMPLETE.encode() in result.stdout, 'OpenCode2 scripted turn did not complete')
-        exported = server.request('GET', '/api/experimental/session/' + session['id'] + '/export', None, 200, 10)
-        (output / 'session-export.json').write_text(json.dumps(exported, indent=2) + '\n')
         server.request('DELETE', '/api/session/' + session['id'], None, 204, 10)
     require(not server.shutdown['forced'], 'OpenCode2 required forced shutdown')
+    argv, stdin = invocation(profile, {'opencode2': {'path': str(binary)}}, project, output,
+                             'Inspect app.py and report readiness.', 'danger-full-access')
+    result = subprocess.run(argv, input=stdin, cwd=project, env=env, capture_output=True, timeout=30)
+    (output / 'native.stdout').write_bytes(result.stdout)
+    (output / 'native.stderr').write_bytes(result.stderr)
+    require(len(result.stdout) + len(result.stderr) <= 1024**2, 'OpenCode2 native output exceeds its byte limit')
+    require(result.returncode == 0 and COMPLETE.encode() in result.stdout, 'OpenCode2 CLI scripted turn did not complete')
+    saved = export_session(binary, argv[argv.index('--session') + 1], project, env, output)
+    require(saved['info']['model'] == profile['model'], 'OpenCode2 standalone session substituted a model or variant')
+    (output / 'session-export.json').write_text(json.dumps(saved, indent=2) + '\n')
     return {'skills': skills, 'shutdown': server.shutdown}
 
 
