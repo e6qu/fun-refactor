@@ -170,7 +170,9 @@ def comment_lines(path: Path) -> int:
 def gather() -> dict:
     totals = {name: 0 for name, _, _ in RULES}
     for path in sorted(ROOT.glob("src/**/*.rs")) + sorted(ROOT.glob("tests/**/*.rs")):
-        if path.is_relative_to(ROOT / "tests/agent-eval/results"):
+        # Fixture programs supply exact input bytes, including comments under test.
+        if path.is_relative_to(ROOT / "tests/agent-eval/results") or (
+                path.is_relative_to(ROOT / "tests") and "fixtures" in path.relative_to(ROOT / "tests").parts):
             continue
         totals["comment-line"] += comment_lines(path)
         for text in (comments_of(path), messages_of(path)):

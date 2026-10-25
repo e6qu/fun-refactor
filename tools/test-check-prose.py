@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('prose', Path(__file__).with_name('check-prose.py'))
 prose = importlib.util.module_from_spec(spec)
@@ -10,6 +11,17 @@ spec.loader.exec_module(prose)
 
 
 class MessageSentences(unittest.TestCase):
+    def test_fixture_comments_are_input_data_and_implementation_comments_still_count(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in ('src/lib.rs', 'tests/check.rs', 'tests/fixtures/input.rs',
+                         'tests/agent-eval/project-edits/fixtures/input.rs', 'tests/agent-eval/results/old/input.rs'):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('// Preserve this input comment.\nfn example() {}\n')
+            with patch.object(prose, 'ROOT', root), patch.object(prose, 'DOCS', []):
+                self.assertEqual(prose.gather()['comment-line'], 2)
+
     def test_separate_short_messages_do_not_form_a_long_sentence(self):
         message = ' '.join(['word'] * 20)
         with tempfile.TemporaryDirectory() as temporary:

@@ -84,6 +84,8 @@ Remove filler, repeated conclusions and decorative contrasts. Let a short senten
 
 Aim for sentences of at most 25 words. The writing check tracks long sentences and other habits in maintained manuals.
 `tools/check-prose.py` runs from `tools/check.sh`; `tools/PROSE-DEBT` records the allowed counts.
+Rust programs under test directories named `fixtures` supply input bytes, including comments whose preservation a test checks.
+The counter excludes those input programs and archived results; comments in implementation and test code still count.
 Improve the writing when a check fails. Do not raise those counts to pass.
 Passing this check does not establish that the page teaches its subject clearly.
 
