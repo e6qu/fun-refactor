@@ -1637,6 +1637,8 @@ impl Index {
                 base.clone(),
                 base.with_extension("ts"),
                 base.with_extension("tsx"),
+                base.with_extension("js"),
+                base.with_extension("jsx"),
                 base.with_extension("py"),
                 base.with_extension("scss"),
                 base.with_extension("sass"),
@@ -1644,6 +1646,8 @@ impl Index {
                 base.with_extension("sh"),
                 base.join("index.ts"),
                 base.join("index.tsx"),
+                base.join("index.js"),
+                base.join("index.jsx"),
                 base.join("__init__.py"),
             ];
             return candidates.into_iter().find(|c| self.files.contains_key(c));

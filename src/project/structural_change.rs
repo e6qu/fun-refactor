@@ -143,6 +143,18 @@ fn literal(node: Node<'_>) -> bool {
             .is_some_and(|n| n.kind() == "integer_literal")
 }
 
+fn literal_argument(text: &str) -> Result<bool> {
+    let source = format!("const FR_ARGUMENT: () = {text};");
+    let parsed = Parsers::new().parse(Language::Rust, &source)?;
+    Ok(!parsed.has_errors()
+        && parsed.root().named_child_count() == 1
+        && parsed
+            .root()
+            .named_child(0)
+            .and_then(|node| node.child_by_field_name("value"))
+            .is_some_and(literal))
+}
+
 fn validate_scalar_calls(
     project: &Project<'_>,
     symbol: &Symbol,
@@ -189,6 +201,27 @@ fn validate_scalar_calls(
         }
         let source = &project.sources[&reference.file];
         let parsed = Parsers::new().parse(Language::Rust, source)?;
+        if let Some((_, arguments)) =
+            crate::refactor::signature::macro_call_arguments(&parsed, reference.span)
+        {
+            let safe = match change {
+                crate::refactor::signature::Change::Remove(index) => arguments
+                    .get(*index)
+                    .map(|span| literal_argument(span.text(source)))
+                    .transpose()?
+                    .unwrap_or(false),
+                crate::refactor::signature::Change::Move { .. } => {
+                    let mut safe = true;
+                    for span in arguments {
+                        safe &= literal_argument(span.text(source))?;
+                    }
+                    safe
+                }
+                crate::refactor::signature::Change::Add { .. } => false,
+            };
+            ensure!(safe, "signature refactor requires literal scalar call arguments inside macros; effects and evaluation order remain obligations.");
+            continue;
+        }
         let call = ancestor(&parsed, reference.span, "call_expression")?;
         let function = call
             .child_by_field_name("function")

@@ -31,7 +31,7 @@ def core_digest():
 
 
 def verify(summary):
-    expected = prepare(ROOT)
+    expected = prepare(ROOT, 'M1')
     require(summary['study'] == 'M1' and summary['profiles'] == expected['profiles'], 'public model settings differ')
     require(summary['task_bindings'] == expected['bindings'], 'public task requirements differ')
     require(summary['core_checker_sha256'] == core_digest(), 'independent task checks changed after collection')

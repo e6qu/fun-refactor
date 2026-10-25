@@ -50,10 +50,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: m2-fr-delivery
+          cache-on-failure: true
       - name: Check aliases, source history and failed-check state
         run: >-
           cargo test --locked --test rename_import_aliases --test rename_inverse
-          --test author_cli --test workflow_cli -- --test-threads 1
+          --test workflow_cli -- --test-threads 1
+      - name: Check all existing authoring cases
+        run: cargo test --locked --test author_cli -- --test-threads 1
       - run: cargo build --locked --bin fr
       - name: Check structural changes through the Python client
         run: python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py

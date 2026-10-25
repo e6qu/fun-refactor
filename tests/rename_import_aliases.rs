@@ -5,7 +5,7 @@ use fun_refactor::scan::ScanOptions;
 
 #[test]
 fn exported_rename_changes_the_imported_name_and_preserves_local_aliases() {
-    for extension in ["ts", "tsx", "js"] {
+    for extension in ["ts", "tsx", "js", "jsx"] {
         let temporary = tempfile::tempdir().unwrap();
         let root = temporary.path();
         let defining = root.join(format!("numbers.{extension}"));

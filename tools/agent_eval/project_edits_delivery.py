@@ -186,8 +186,8 @@ def controls(task, binary, inputs, tools, output):
                 common.checkout(original, effect_project)
                 path = effect_project / 'pricing/src/lib.rs'
                 text = path.read_text()
-                require('false' in text, 'side-effect control needs its original Boolean argument')
-                path.write_text(text.replace('false', 'record()', 1) + '\nfn record() -> bool { println!("effect"); false }\n')
+                require(text.count(', true, ') == 1, 'side-effect control needs its original Boolean argument')
+                path.write_text(text.replace(', true, ', ', record(), ', 1) + '\nfn record() -> bool { println!("effect"); false }\n')
                 before = common.sources(effect_project)
                 try:
                     plan(task, binary, effect_project, output / 'side-effect')

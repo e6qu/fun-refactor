@@ -37,12 +37,12 @@ def invocation(profile, binaries, project, output, prompt_text, sandbox):
     selection = profile['model']
     return [binaries['opencode2']['path'], 'run', '--standalone', '--session', 'ses_' + uuid.uuid4().hex,
         '--model', selection['providerID'] + '/' + selection['id'] + '#' + selection['variant'],
-        '--agent', 'build', '--format', 'json', '--title', 'M1 measured attempt', prompt_text], b''
+        '--agent', 'build', '--format', 'json', '--title', 'Measured code change', prompt_text], b''
 
 
-def export_session(binary, session, project, env, output):
+def export_session(binary, session, project, env, output, *, timeout_seconds):
     exported = subprocess.run([str(binary), 'api', '--standalone', 'GET',
-        '/api/experimental/session/' + session + '/export'], env=env, cwd=project, capture_output=True, timeout=10)
+        '/api/experimental/session/' + session + '/export'], env=env, cwd=project, capture_output=True, timeout=timeout_seconds)
     (output / 'export.stderr').write_bytes(exported.stderr)
     (output / 'export.stdout').write_bytes(exported.stdout)
     require(exported.returncode == 0 and len(exported.stdout) <= 1024**2, 'native session export failed or exceeded its limit')

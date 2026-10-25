@@ -20,6 +20,7 @@ jobs:
             tools
             sdk/python/src
             tests/agent-eval/selected-agents
+            tests/agent-eval/project-edits
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

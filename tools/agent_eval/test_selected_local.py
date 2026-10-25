@@ -60,7 +60,7 @@ class SelectedLocalTests(unittest.TestCase):
 
     def test_task_prompts_keep_the_property_fixed_without_supplied_tactics(self):
         for setup in ('files', 'fr'):
-            prompt = local.prompt('access-proof', setup, {name: {'path': '/' + name} for name in ('python', 'cargo', 'lake')})
+            prompt = local.prompt('access-proof', setup, {name: {'path': '/' + name} for name in ('python', 'cargo', 'lake')}, 'M1')
             self.assertIn(local.tasks.TASKS['access-proof']['request'], prompt)
             self.assertNotIn('rfl', prompt)
             self.assertIn('change.patch', prompt)

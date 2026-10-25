@@ -80,7 +80,7 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
     require(len(result.stdout) + len(result.stderr) <= 1024**2, 'OpenCode2 native output exceeds its byte limit')
     require(result.returncode == 0 and COMPLETE.encode() in result.stdout, 'OpenCode2 CLI scripted turn did not complete')
     session_id = argv[argv.index('--session') + 1]
-    saved = export_session(binary, session_id, project, env, output)
+    saved = export_session(binary, session_id, project, env, output, timeout_seconds=10)
     observed = verify_export(saved, profile, session_id, [json.loads(line) for line in result.stdout.splitlines()])
     require(observed['outcome'] == 'succeeded' and observed['exported_assistant_responses'] == 2,
             'scripted CLI did not retain both native assistant responses')
