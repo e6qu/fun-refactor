@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.14.8'
       - name: Check the complete M1 attempt schedule without model calls
-        run: python3 -B -m unittest discover -s tools/agent_eval -p test_selected_plan.py -v
+        run: python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
       - run: python3 -B tools/selected-agent-probe.py --output "$RUNNER_TEMP/m1-clients"
       - uses: actions/upload-artifact@v7
         if: always()

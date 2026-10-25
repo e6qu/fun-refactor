@@ -13,6 +13,12 @@ import time
 from .selected_plan import require
 
 
+class OpenCode2ResponseError(ValueError):
+    def __init__(self, method, path, status, expected, body):
+        self.status = status
+        super().__init__(f'{method} {path}: expected {expected}, got {status}: {body[:512]!r}')
+
+
 class OpenCode2Server:
     def __init__(self, binary, workspace, env, output, *, version, startup_seconds, call_seconds, reply_bytes):
         self.binary, self.workspace = Path(binary), Path(workspace)
@@ -46,6 +52,10 @@ class OpenCode2Server:
                     break
                 except (ConnectionError, OSError):
                     time.sleep(0.05)
+                except OpenCode2ResponseError as error:
+                    if error.status != 503:
+                        raise
+                    time.sleep(0.05)
             require(self.info['version'] == self.version, 'OpenCode2 server release differs from its pin')
             require(os.getpgid(self.info['pid']) == self.process.pid, 'connected server is outside the private process group')
             (self.output / 'server-info.json').write_text(json.dumps(self.info, indent=2) + '\n')
@@ -66,8 +76,8 @@ class OpenCode2Server:
             reply = connection.getresponse()
             raw = reply.read(self.reply_bytes + 1)
             require(len(raw) <= self.reply_bytes, 'v2 reply exceeds its byte limit')
-            require(reply.status == expected_status,
-                    f'{method} {path}: expected {expected_status}, got {reply.status}: {raw[:512]!r}')
+            if reply.status != expected_status:
+                raise OpenCode2ResponseError(method, path, reply.status, expected_status, raw)
             if expected_status == 204:
                 require(not raw, '204 reply contains a body')
                 return None
