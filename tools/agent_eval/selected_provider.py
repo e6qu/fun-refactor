@@ -37,8 +37,8 @@ def chat(model, command, first):
     message = {'role': 'assistant', 'content': None if first else COMPLETE}
     if first:
         message['tool_calls'] = [{'index': 0, 'id': 'call_m1', 'type': 'function',
-                                 'function': {'name': 'bash', 'arguments': json.dumps({
-                                     'command': command, 'description': 'Inspect the fixture', 'timeout': 10000})}}]
+                                 'function': {'name': 'shell', 'arguments': json.dumps({
+                                     'command': command, 'workdir': '/workspace', 'timeout': 10000, 'background': False})}}]
     common = {'id': 'chatcmpl_m1', 'object': 'chat.completion.chunk', 'created': 1, 'model': model}
     chunks = [{**common, 'choices': [{'index': 0, 'delta': message, 'finish_reason': None}]},
               {**common, 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'tool_calls' if first else 'stop'}],
@@ -80,8 +80,8 @@ def validate(profile, path, value, index, expected, initial):
         require(value['stream'] is True, 'OpenCode2 stopped streaming')
         require(value['reasoning_effort'] == profile['model']['variant'], 'OpenCode2 reasoning differs from its profile')
         names = {tool['function']['name'] for tool in value['tools'] if tool['type'] == 'function'}
-        require('bash' in names, 'native OpenCode2 did not expose its ordinary command tool')
-        require('task' not in names, 'OpenCode2 exposed delegation in a single-agent control')
+        require('shell' in names, 'native OpenCode2 did not expose its ordinary command tool')
+        require('subagent' not in names, 'OpenCode2 exposed delegation in a single-agent control')
         outputs = [item for item in value['messages'] if item['role'] == 'tool']
     if index:
         require(len(outputs) == 1, 'native client did not return exactly one tool result')

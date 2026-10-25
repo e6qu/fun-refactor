@@ -134,8 +134,16 @@ def run(binary, output):
             for setup in ('files', 'fr'):
                 identity = name + '-' + setup
                 summary['exchanges'][identity] = {'status': 'running'}
-                result = exchange(images[profile['client'], setup], name, setup, output / identity)
-                summary['exchanges'][identity] = {'status': 'passed', 'image': result['image']}
+                try:
+                    result = exchange(images[profile['client'], setup], name, setup, output / identity)
+                    summary['exchanges'][identity] = {'status': 'passed', 'image': result['image']}
+                except Exception as error:
+                    summary['exchanges'][identity] = {'status': 'failed', 'error': type(error).__name__ + ': ' + str(error)}
+                    retained = json.loads((output / identity / 'result.json').read_text())
+                    require(retained['resources']['complete'] and retained['resources']['stop_reason'] is None and
+                            retained['cleanup']['process']['exit_code'] == 0 and not retained['cleanup']['process']['stop_reason'],
+                            'resource stop or incomplete cleanup; stop the native control worker')
+        require(all(row['status'] == 'passed' for row in summary['exchanges'].values()), 'one or more native exchanges failed')
         summary['passed'] = True
         return summary
     except Exception as error:

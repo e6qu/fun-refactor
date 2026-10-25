@@ -27,7 +27,7 @@ def scripted_configuration(profile, endpoint):
         'scripted control must keep the selected model and reasoning variant')
     model = {'providerID': selection['providerID'], 'model': selection['id'], 'variant': selection['variant']}
     rules = [{'action': '*', 'resource': '*', 'effect': 'deny'}] + [
-        {'action': action, 'resource': '*', 'effect': 'allow'} for action in ('read', 'glob', 'grep', 'list', 'edit', 'bash', 'skill')]
+        {'action': action, 'resource': '*', 'effect': 'allow'} for action in ('read', 'glob', 'grep', 'edit', 'write', 'shell', 'skill')]
     descriptor = {'modelID': selection['id'], 'name': selection['id'],
         'capabilities': {'tools': True, 'input': ['text'], 'output': ['text'],
                          'reasoning': {'supported': True, 'effort': ['high']}},

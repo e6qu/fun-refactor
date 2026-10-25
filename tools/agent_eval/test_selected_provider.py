@@ -30,7 +30,7 @@ class SelectedProviderTests(unittest.TestCase):
                 else:
                     path = '/v1/chat/completions'
                     request = {'model': profile['model']['id'], 'reasoning_effort': 'high', 'stream': True,
-                               'tools': [{'type': 'function', 'function': {'name': 'bash'}}], 'messages': []}
+                               'tools': [{'type': 'function', 'function': {'name': 'shell'}}], 'messages': []}
                     initial = copy.deepcopy(request)
                     validate(profile, path, request, 0, EXPECTED, initial)
                     request['messages'] = [{'role': 'tool', 'tool_call_id': 'call_m1', 'content': '\n'.join(EXPECTED)}]
