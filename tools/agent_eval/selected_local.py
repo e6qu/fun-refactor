@@ -229,6 +229,39 @@ def usage(client, events):
             'explanation': 'A zero catalog cost is not an observed account charge.'}
 
 
+def retain_result(project, output, report):
+    """Keep bounded failed source too, and always remove per-attempt compiler output."""
+    try:
+        report['final_source'] = tasks.sources(project)
+        require(sum((project / name).stat().st_size for name in report['final_source']) <= 32 * 1024**2,
+                'delivered source exceeds its 32 MiB archive limit')
+        patch = project / 'change.patch'
+        if patch.is_file() and not patch.is_symlink():
+            if patch.stat().st_size > 1024**2:
+                report['collection_errors'].append({'stage': 'patch', 'error': 'Delivered patch exceeds 1 MiB.'})
+            else:
+                shutil.copyfile(patch, output / 'change.patch')
+                report['patch_sha256'] = hash_file(output / 'change.patch')
+                report['patch_delivered'] = True
+        with tarfile.open(output / 'candidate.tar.gz', 'w:gz') as archive:
+            for name in sorted(report['final_source']):
+                archive.add(project / name, arcname=name, recursive=False)
+        report['candidate_archive_sha256'] = hash_file(output / 'candidate.tar.gz')
+    except Exception as error:
+        report['collection_errors'].append({'stage': 'source capture', 'error': type(error).__name__ + ': ' + str(error)})
+    finally:
+        try:
+            target = project / 'target'
+            if target.is_symlink():
+                target.unlink()
+            elif target.is_dir():
+                shutil.rmtree(target)
+        except Exception as error:
+            report['collection_errors'].append({'stage': 'compiler cleanup', 'error': type(error).__name__ + ': ' + str(error)})
+        if report['collection_errors']:
+            report['status'] = 'failed'
+
+
 def attempt(plan_path, attempt_id):
     entered, entered_at = time.monotonic(), time.time()
     require(sys.platform == 'darwin', 'run the requested local CLI attempts on macOS')
@@ -252,7 +285,7 @@ def attempt(plan_path, attempt_id):
               'task': row['task'], 'setup': row['setup'], 'independent_outcome': None,
               'controller_checkout': checkout,
               'actual_cost': None, 'started_at': entered_at, 'verification_seconds': time.monotonic() - entered,
-              'process': None, 'usage': None, 'error': None, 'collection_error': None,
+              'process': None, 'usage': None, 'error': None, 'collection_errors': [],
               'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
     tasks.save(output / 'result.json', report)
@@ -339,28 +372,7 @@ def attempt(plan_path, attempt_id):
         raise
     finally:
         if project is not None and project.is_dir():
-            try:
-                report['final_source'] = tasks.sources(project)
-                require(sum((project / name).stat().st_size for name in report['final_source']) <= 32 * 1024**2,
-                        'delivered source exceeds its 32 MiB archive limit')
-                patch = project / 'change.patch'
-                report['patch_delivered'] = patch.is_file() and not patch.is_symlink()
-                if report['patch_delivered']:
-                    require(patch.stat().st_size <= 1024**2, 'delivered patch exceeds 1 MiB')
-                    shutil.copyfile(patch, output / 'change.patch')
-                    report['patch_sha256'] = hash_file(output / 'change.patch')
-                # Retain failed source too, including when model accounting/export failed.
-                with tarfile.open(output / 'candidate.tar.gz', 'w:gz') as archive:
-                    for name in sorted(report['final_source']):
-                        archive.add(project / name, arcname=name, recursive=False)
-                report['candidate_archive_sha256'] = hash_file(output / 'candidate.tar.gz')
-                target = project / 'target'
-                if target.is_symlink():
-                    target.unlink()
-                elif target.is_dir():
-                    shutil.rmtree(target)
-            except Exception as error:
-                report.update(status='failed', collection_error=type(error).__name__ + ': ' + str(error))
+            retain_result(project, output, report)
         report['elapsed_seconds'] = time.monotonic() - started
         report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']
         if report['complete_attempt_deadline_missed']:

@@ -168,7 +168,7 @@ def export(plan_path, review, destination):
             'client_model_recorded': model_recorded, 'provider_response_model_observed': False, 'fr_use': fr_use,
             'patch_file': patch_file, 'patch_sha256': common.digest(patch) if patch_file else None,
             'completed_tools': completed_tool_time(events), 'independent_outcome': None,
-            'collection_error_recorded': bool(record['error'] or record['collection_error']),
+            'collection_error_recorded': bool(record['error'] or record['collection_errors']),
             'failure_summary': failure_summary})
     summary = {'study': 'M2', 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',
@@ -177,6 +177,9 @@ def export(plan_path, review, destination):
         'task_source_sha256': {task: hashlib.sha256(encoded(seed['receipt']['original'])).hexdigest()
                               for task, seed in plan['seeds'].items()},
         'native_app_versions': plan['versions'], 'local_checker_versions': plan['checker_versions'],
+        'native_binary_sha256': {name: value['sha256'] for name, value in plan['binaries'].items()},
+        'native_companion_sha256': {name: value['sha256'] for name, value in plan['components'].items()},
+        'fr_build': {name: plan['fr_build'][name] for name in ('source_commit', 'source_tree', 'executable_sha256')},
         'limits': plan['limits'], 'provider_request_cap_enforced': False, 'token_cap_enforced': False,
         'accounting': 'CLI-reported categories retain client meanings. Unknown account charges and incomplete usage are not replaced with zero.',
         'cache_state': 'Fresh conversations and projects. Operating-system and provider caches are uncontrolled.',

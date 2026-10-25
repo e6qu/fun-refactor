@@ -44,6 +44,45 @@ class SelectedLocalTests(unittest.TestCase):
         self.assertEqual(reported['reported'][0]['catalog_cost'], 0)
         self.assertIsNone(reported['actual_cost'])
 
+    def test_oversized_patch_keeps_failed_source_and_removes_compiler_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project, output = root / 'project', root / 'record'
+            project.mkdir()
+            output.mkdir()
+            source = 'def invoice_total(amount, fee):\n    return amount + fee  # café\n'.encode()
+            (project / 'invoice.py').write_bytes(source)
+            (project / 'change.patch').write_bytes(b'x' * (1024**2 + 1))
+            (project / 'target').mkdir()
+            (project / 'target/generated').write_bytes(b'compiler output')
+            record = {'status': 'completed', 'patch_delivered': False, 'patch_sha256': None, 'collection_errors': []}
+            local.retain_result(project, output, record)
+            self.assertEqual(record['status'], 'failed')
+            self.assertEqual(record['collection_errors'][0]['stage'], 'patch')
+            self.assertFalse(record['patch_delivered'])
+            self.assertFalse((output / 'change.patch').exists())
+            self.assertFalse((project / 'target').exists())
+            with tarfile.open(output / 'candidate.tar.gz') as archive:
+                self.assertEqual(archive.getnames(), ['invoice.py'])
+                self.assertEqual(archive.extractfile('invoice.py').read(), source)
+
+    def test_capture_failure_still_unlinks_a_target_symlink_without_following_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project, output, unrelated = root / 'project', root / 'record', root / 'unrelated'
+            for path in (project, output, unrelated):
+                path.mkdir()
+            keep = unrelated / 'keep'
+            keep.write_text('preserve unrelated data')
+            (project / 'target').symlink_to(unrelated, target_is_directory=True)
+            (project / 'source.py').symlink_to(keep)
+            record = {'status': 'completed', 'patch_delivered': False, 'patch_sha256': None, 'collection_errors': []}
+            local.retain_result(project, output, record)
+            self.assertEqual(record['status'], 'failed')
+            self.assertEqual(record['collection_errors'][0]['stage'], 'source capture')
+            self.assertFalse((project / 'target').is_symlink())
+            self.assertEqual(keep.read_text(), 'preserve unrelated data')
+
     def test_untrusted_archive_cannot_write_outside_the_fresh_project(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

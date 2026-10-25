@@ -41,7 +41,9 @@ class SelectedPublicTests(unittest.TestCase):
             root = Path(temporary)
             schedule = prepare(ROOT, 'M2')
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
-                    'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {}}
+                    'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
+                    'binaries': {}, 'components': {},
+                    'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
             plan_path.write_text(json.dumps(plan))
@@ -53,7 +55,7 @@ class SelectedPublicTests(unittest.TestCase):
                 record = {key: row[key] for key in ('id', 'profile', 'task', 'setup')}
                 record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=1,
                               verification_seconds=0.1, patch_delivered=False,
-                              process=None, usage=None, collection_error=None, complete_attempt_deadline_missed=False,
+                              process=None, usage=None, collection_errors=[], complete_attempt_deadline_missed=False,
                               error='TimeoutExpired: Command [native-cli, ' + canary + '] timed out')
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
