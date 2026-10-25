@@ -144,7 +144,8 @@ def inspect(name, entry, root):
             profile_root.mkdir()
             profile_env = environment(profile_root)
             # No inference is requested here. The unused loopback endpoint cannot reach a paid provider.
-            profile_env['OPENCODE_CONFIG_CONTENT'] = json.dumps(scripted_configuration(profile, 'http://127.0.0.1:1'))
+            requested = scripted_configuration(profile, 'http://127.0.0.1:1')
+            profile_env['OPENCODE_CONFIG_CONTENT'] = json.dumps(requested)
             with OpenCode2Server(binary, profile_root, profile_env, profile_root / 'api', version=entry['version'],
                                  startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
                 config = server.request('GET', '/api/config', None, 200, 10)
@@ -157,10 +158,17 @@ def inspect(name, entry, root):
                 selected = [row for row in catalog['data'] if row['providerID'] == model['providerID'] and row['id'] == model['id']]
                 if len(selected) != 1 or not any(row['id'] == model['variant'] for row in selected[0]['variants']):
                     raise ValueError('OpenCode2 did not expose the exact selected model and reasoning variant')
-                chosen = [row for row in agents['data'] if row['id'] == 'm1']
-                if len(chosen) != 1 or chosen[0]['model'] != model:
-                    raise ValueError('OpenCode2 selected-agent settings differ from the requested profile')
-                report['profiles'][profile_name] = {'agent': chosen[0], 'model': selected[0],
+                chosen = [row for row in agents['data'] if row['id'] == 'build']
+                if len(chosen) != 1:
+                    raise ValueError('OpenCode2 did not expose the explicitly selected built-in agent')
+                session = server.request('POST', '/api/session', {'agent': 'build', 'model': model,
+                    'title': 'M1 native settings control', 'permissions': requested['permissions'],
+                    'location': {'directory': str(profile_root)}}, 200, 10)['data']
+                (profile_root / 'session.json').write_text(json.dumps(session, indent=2) + '\n')
+                if session['agent'] != 'build' or session['model'] != model or session['permissions'] != requested['permissions']:
+                    raise ValueError('OpenCode2 session model, reasoning or tool permissions differ from the requested profile')
+                server.request('DELETE', '/api/session/' + session['id'], None, 204, 10)
+                report['profiles'][profile_name] = {'agent': chosen[0], 'session': session, 'model': selected[0],
                     'scope': 'Scripted local provider configuration only; no live admission or price claim.'}
             if server.shutdown['forced']:
                 raise ValueError('configured OpenCode2 server required forced shutdown')

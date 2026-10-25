@@ -145,6 +145,12 @@ def unchanged_boundaries(task, project, prepared):
     return sorted(changed)
 
 
+def checkout(original, destination):
+    # Copy the committed fixture, never another workspace's history or compiled data.
+    comparison_grade.BASE.git(original, 'clone', '--quiet', '--no-local', str(original), str(destination))
+    (destination / '.git/info/exclude').write_text('\n'.join(sorted((IGNORED - {'.git'}) | {'change.patch'})) + '\n')
+
+
 def check(task, project, prepared, binary, output):
     output.mkdir(parents=True, exist_ok=False)
     try:
@@ -268,7 +274,7 @@ def controls(task, binary, output):
     try:
         for variant in ('unchanged', 'incomplete', 'reference'):
             project = output / variant
-            shutil.copytree(original, project)
+            checkout(original, project)
             actions = output / (variant + '-actions')
             actions.mkdir()
             if variant != 'unchanged':
@@ -293,7 +299,7 @@ def controls(task, binary, output):
         require(patch, 'reference produced no deliverable change')
         (output / 'change.patch').write_bytes(patch)
         receiver = output / 'receiver'
-        shutil.copytree(original, receiver)
+        checkout(original, receiver)
         comparison_grade.BASE.git(receiver, 'apply', '--check', '-', data=patch)
         comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
         require(sources(receiver) == sources(reference), 'receiver differs from the delivered source')
@@ -309,10 +315,17 @@ def controls(task, binary, output):
             text = path.read_text()
             declaration, theorem = text.split('theorem ', 1)
             require(declaration.count('||') == 1, 'false-model control needs one model disjunction')
-            path.write_text(declaration.replace('||', '&&') + 'theorem ' + theorem)
+            false_declaration = declaration.replace('||', '&&')
+            path.write_text(false_declaration + 'theorem ' + theorem)
+            witness = output / 'false-model-witness.lean'
+            witness.write_text(false_declaration + '\n#eval allowedModel false true\n#eval (false || true)\nend FrSpecs\n')
+            disagreement = command(['lake', 'env', 'lean', str(witness)], receiver / 'specs', output / 'false-model-witness.json')
+            require(disagreement['returncode'] == 0 and disagreement['stdout'].strip() == 'false\ntrue',
+                    'mutated model does not exhibit the intended counterexample')
             false_model = command(['lake', 'build'], receiver / 'specs', output / 'false-model-lean.json')
-            require(false_model['returncode'] != 0 and 'type mismatch' in
-                    (false_model['stdout'] + false_model['stderr']), 'Lean did not reject the false model for the fixed property')
+            diagnostics = false_model['stdout'] + false_model['stderr']
+            require(false_model['returncode'] != 0 and 'rfl' in diagnostics and 'error:' in diagnostics,
+                    'Lean did not reject the false model for the fixed property')
             results['false_model'] = check(task, receiver, prepared, binary, output / 'false-model-checks')
             require(results['false_model']['stage'] == 'source boundaries', 'grader accepted changed model definitions')
         result = {'task': task, 'passed': True, 'live_model_calls': 0, 'controls': results,
