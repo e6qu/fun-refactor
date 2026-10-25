@@ -1,7 +1,7 @@
-name: Inspect the selected M1 clients
+name: Selected native agents and checked M1 results
 on:
-  push:
-    branches: [ci/m1-selected-agent-probe]
+  workflow_call:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   clients:
+    name: Pinned client settings and report checks
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -27,43 +28,16 @@ jobs:
         run: >-
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
           2>&1 | tee "$RUNNER_TEMP/m1-unit-tests.log"
-      - name: Retain the proposed 36 attempts with unstarted outcomes and unknown costs
-        env:
-          PYTHONPATH: tools
-        run: |
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          from agent_eval.selected_plan import prepare, verify
-          root = Path.cwd()
-          path = Path(os.environ['RUNNER_TEMP']) / 'm1-proposed-plan.json'
-          path.write_text(json.dumps(prepare(root), indent=2) + '\n')
-          verify(json.loads(path.read_text()), root)
-          PY
       - run: python3 -B tools/selected-agent-probe.py --output "$RUNNER_TEMP/m1-clients"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: m1-client-probe
-          path: |
-            ${{ runner.temp }}/m1-unit-tests.log
-            ${{ runner.temp }}/m1-proposed-plan.json
-            ${{ runner.temp }}/m1-clients/**/*.stdout
-            ${{ runner.temp }}/m1-clients/**/*.stderr
-            ${{ runner.temp }}/m1-clients/**/archive-members.json
-            ${{ runner.temp }}/m1-clients/**/openapi.json
-            ${{ runner.temp }}/m1-clients/**/transcript.json
-            ${{ runner.temp }}/m1-clients/**/effective-config.json
-            ${{ runner.temp }}/m1-clients/**/models.json
-            ${{ runner.temp }}/m1-clients/**/agents.json
-            ${{ runner.temp }}/m1-clients/**/session.json
-            ${{ runner.temp }}/m1-clients/**/server-info.json
-            ${{ runner.temp }}/m1-clients/**/shutdown.json
-            ${{ runner.temp }}/m1-clients/report.json
+          path: ${{ runner.temp }}/m1-clients/report.json
           if-no-files-found: error
           retention-days: 30
   tasks:
-    name: Independent rename, Unicode and proof checks
+    name: Original M1 rename, Unicode and proof checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -76,6 +50,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
+          sparse-checkout: |
+            tools
+            tests/agent-eval/selected-agents/local-results
+      - name: Preserve the public patches and current report checker
+        run: |
+          cp -R tests/agent-eval/selected-agents/local-results "$RUNNER_TEMP/m1-public"
+          mkdir -p "$RUNNER_TEMP/m1-report-tools/agent_eval"
+          cp tools/agent_eval/selected_plan.py tools/agent_eval/selected_report.py \
+            "$RUNNER_TEMP/m1-report-tools/agent_eval/"
+      - uses: actions/checkout@v7
+        with:
+          # Preserve the study's original source and checker instead of rewriting
+          # historical results whenever the next milestone changes fr.
+          ref: ea21616476e4352e4e240d62b56387c277396532
           persist-credentials: false
           sparse-checkout: |
             .github
@@ -133,23 +122,22 @@ jobs:
       - name: Independently check retained local CLI attempts and their submitted patches
         run: >-
           python3 -B -m agent_eval.selected_local_grade
-          --data tests/agent-eval/selected-agents/local-results --fr target/debug/fr
+          --data "$RUNNER_TEMP/m1-public" --fr target/debug/fr
           --output "$RUNNER_TEMP/m1-live-grading" --completion complete
+      - name: Require the public report to match every checked outcome
+        env:
+          PYTHONPATH: ${{ runner.temp }}/m1-report-tools
+        run: >-
+          python3 -B -m agent_eval.selected_report
+          --data "$RUNNER_TEMP/m1-public" --checks "$RUNNER_TEMP/m1-live-grading/summary.json" --mode check
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: m1-task-controls
           path: |
-            ${{ runner.temp }}/m1-tasks/**/*.json
-            ${{ runner.temp }}/m1-tasks/**/*.patch
-            ${{ runner.temp }}/m1-tasks/**/original.tar.gz
-            ${{ runner.temp }}/m1-fr-*.json
-            ${{ runner.temp }}/m1-native/**/*.json
-            ${{ runner.temp }}/m1-native/**/*.stdout
-            ${{ runner.temp }}/m1-native/**/*.stderr
-            ${{ runner.temp }}/m1-private-grading/**/*.json
-            ${{ runner.temp }}/m1-private-grading/**/*.stdout
-            ${{ runner.temp }}/m1-private-grading/**/*.stderr
+            ${{ runner.temp }}/m1-tasks/*/result.json
+            ${{ runner.temp }}/m1-native/summary.json
+            ${{ runner.temp }}/m1-private-grading/summary.json
             ${{ runner.temp }}/m1-live-grading/summary.json
           if-no-files-found: error
           retention-days: 30

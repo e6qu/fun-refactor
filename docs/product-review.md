@@ -25,9 +25,10 @@ A live attempt must show whether the selected agent can choose the right changes
 
 Use Codex with GPT-6 Luna in Fast mode, OpenCode2 with GLM-5.3-Flash, and OpenCode2 with non-Pro Kimi K3.
 The [target table](../PLAN.md#target-agents) owns exact model IDs.
-The selected client releases pass [scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873)
-for both tool setups, including real command output and effective model settings.
-Scripted replies check the client integration; they do not establish live model access or task success.
+The selected client releases pass scripted native checks for both tool setups, including command output and effective settings.
+The [M1 report](../tests/agent-eval/selected-agents/local-results/README.md) records the separate live comparison:
+all thirty-six local CLI attempts, independently checked patches, timeouts and observed overhead against ordinary tools.
+Scripted replies check the client integration; the actual submitted patches establish task outcomes.
 
 For each profile, compare ordinary read/search/edit/check tools with those tools plus fr.
 Use the same request, source revision, checking commands and limits within that pair.
@@ -35,7 +36,7 @@ The model receives no repair, proof tactic or edit location supplied by the eval
 Freeze independent task checks before extending support.
 Use the exact requested theorem and definitions in both proof attempts.
 
-M1 starts with a Boltons rename, the recorded Unicode repair and a Rust access-rule proof.
+M1 used a Boltons rename, the recorded Unicode repair and a Rust access-rule proof.
 Three profiles, three tasks and two tool setups give eighteen first attempts.
 One unchanged repetition gives thirty-six attempts.
 Rotate setup order and keep all outcomes.
@@ -46,7 +47,7 @@ Freeze exact client releases, model IDs, reasoning, speed, providers and enforce
 Record limits the CLIs cannot enforce and keep unavailable account charges unknown.
 Read effective settings from the application and reject substitutions.
 Keep auxiliary model calls in the same accounting.
-Configured credentials and a catalog listing do not establish successful access.
+Configured credentials and a catalog listing alone do not establish successful access.
 Do not inherit personal defaults or silently switch models.
 
 ## Measure correct results and complete costs

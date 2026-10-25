@@ -11,6 +11,11 @@ Its baseline is the same application and exact model using ordinary tools.
 Fast mode, reasoning effort and any auxiliary model work belong in the recorded settings and costs.
 The older records below remain observations about their original clients, models and tasks.
 
+The [M1 report](../tests/agent-eval/selected-agents/local-results/README.md) records the thirty-six local Codex/OpenCode2 attempts.
+It compares matching successful requests and also divides all attempt time, including failures, by accepted results.
+Positive time change means the fr setup took longer. Offering or calling fr does not establish a saving.
+Actual account charges remain unknown, and interrupted replies can leave token usage incomplete.
+
 The [complete CLI and Python comparison](project-session-cost.md) measures the same three questions through five approaches.
 It compares direct commands, Python clients restarted or kept running, and saved answers with validation.
 Its tables state the CLI baseline and the added work in each approach.

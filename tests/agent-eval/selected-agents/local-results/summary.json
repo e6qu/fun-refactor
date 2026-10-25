@@ -125,8 +125,15 @@
       "patch_file": "patches/codex-luna-fast-boltons-rename-files-1.patch",
       "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-boltons-rename-fr-1",
@@ -154,14 +161,25 @@
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": []
+        "commands_observed": 3,
+        "operations_observed": [
+          "other fr command",
+          "project find",
+          "rename"
+        ]
       },
       "patch_file": "patches/codex-luna-fast-boltons-rename-fr-1.patch",
       "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-unicode-dice-fr-1",
@@ -195,8 +213,15 @@
       "patch_file": "patches/codex-luna-fast-unicode-dice-fr-1.patch",
       "patch_sha256": "609ae199e46b6fe541a3ef2d793b3090ceff230b1baf968b783c80aae4f009f9",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-unicode-dice-files-1",
@@ -230,8 +255,15 @@
       "patch_file": "patches/codex-luna-fast-unicode-dice-files-1.patch",
       "patch_sha256": "6f3785d90ce74729d8989d4e5cf643822cfd6ef2859cfedca058178b10bc1161",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-access-proof-files-1",
@@ -265,8 +297,15 @@
       "patch_file": "patches/codex-luna-fast-access-proof-files-1.patch",
       "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-access-proof-fr-1",
@@ -294,14 +333,25 @@
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": []
+        "commands_observed": 7,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ]
       },
       "patch_file": "patches/codex-luna-fast-access-proof-fr-1.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-glm-flash-boltons-rename-fr-1",
@@ -344,8 +394,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": true,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 22,
+        "completed_tool_wall_seconds": 2.971,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
       "independent_outcome": "failed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-boltons-rename-files-1",
@@ -381,8 +442,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 26,
+        "completed_tool_wall_seconds": 13.956,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
       "independent_outcome": "failed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-unicode-dice-files-1",
@@ -418,8 +490,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 0.468,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
       "independent_outcome": "failed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-unicode-dice-fr-1",
@@ -458,8 +541,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 14,
+        "completed_tool_wall_seconds": 2.043,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
       "independent_outcome": "failed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-access-proof-fr-1",
@@ -499,8 +593,15 @@
       "patch_file": "patches/opencode2-glm-flash-access-proof-fr-1.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-glm-flash-access-proof-files-1",
@@ -536,8 +637,15 @@
       "patch_file": "patches/opencode2-glm-flash-access-proof-files-1.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-boltons-rename-files-1",
@@ -573,8 +681,15 @@
       "patch_file": "patches/opencode2-kimi-k3-boltons-rename-files-1.patch",
       "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-boltons-rename-fr-1",
@@ -614,8 +729,15 @@
       "patch_file": "patches/opencode2-kimi-k3-boltons-rename-fr-1.patch",
       "patch_sha256": "a338fc6e16a5c0d8eef45084a48c827703564d5812a4efd0ed1bb83b8d075fa3",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-unicode-dice-fr-1",
@@ -653,8 +775,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 26.61,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
       "independent_outcome": "failed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-kimi-k3-unicode-dice-files-1",
@@ -690,8 +823,15 @@
       "patch_file": "patches/opencode2-kimi-k3-unicode-dice-files-1.patch",
       "patch_sha256": "f106c5a847038d1f776b4df9db6518daec2f7cc19ade8d5792083cad728919bf",
       "interrupted_session_recording_error": false,
+      "timeout_review": null,
       "independent_outcome": "passed",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40213978586"
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-access-proof-files-1",
@@ -727,7 +867,15 @@
       "patch_file": "patches/opencode2-kimi-k3-access-proof-files-1.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-access-proof-fr-1",
@@ -766,7 +914,15 @@
       "patch_file": "patches/opencode2-kimi-k3-access-proof-fr-1.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-boltons-rename-fr-2",
@@ -794,13 +950,27 @@
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": []
+        "commands_observed": 6,
+        "operations_observed": [
+          "history",
+          "history apply",
+          "history show",
+          "other fr command",
+          "rename"
+        ]
       },
       "patch_file": "patches/codex-luna-fast-boltons-rename-fr-2.patch",
       "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-boltons-rename-files-2",
@@ -834,7 +1004,15 @@
       "patch_file": "patches/codex-luna-fast-boltons-rename-files-2.patch",
       "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-unicode-dice-files-2",
@@ -868,7 +1046,15 @@
       "patch_file": "patches/codex-luna-fast-unicode-dice-files-2.patch",
       "patch_sha256": "5f102113aed310eb8522a254fbd7b606979880ea381cca6e7170ec918179256f",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-unicode-dice-fr-2",
@@ -902,7 +1088,15 @@
       "patch_file": "patches/codex-luna-fast-unicode-dice-fr-2.patch",
       "patch_sha256": "bf6601f79beedd8ff82242613e05c79c7d50cb58834b6efce6741f49fc5e2515",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-access-proof-fr-2",
@@ -930,13 +1124,21 @@
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
+        "commands_observed": 1,
         "operations_observed": []
       },
       "patch_file": "patches/codex-luna-fast-access-proof-fr-2.patch",
       "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "codex-luna-fast-access-proof-files-2",
@@ -970,7 +1172,15 @@
       "patch_file": "patches/codex-luna-fast-access-proof-files-2.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-glm-flash-boltons-rename-files-2",
@@ -1006,7 +1216,15 @@
       "patch_file": "patches/opencode2-glm-flash-boltons-rename-files-2.patch",
       "patch_sha256": "e3ba319fce43ffc9aede77a993986dc6f9f159bd8a7c666a54d5338cc664137b",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-glm-flash-boltons-rename-fr-2",
@@ -1047,7 +1265,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 29,
+        "completed_tool_wall_seconds": 5.517,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-unicode-dice-fr-2",
@@ -1083,7 +1313,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 16,
+        "completed_tool_wall_seconds": 4.514,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-unicode-dice-files-2",
@@ -1119,7 +1361,19 @@
       "patch_file": null,
       "patch_sha256": null,
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 19.765,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
+      }
     },
     {
       "id": "opencode2-glm-flash-access-proof-files-2",
@@ -1155,7 +1409,15 @@
       "patch_file": "patches/opencode2-glm-flash-access-proof-files-2.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-glm-flash-access-proof-fr-2",
@@ -1196,7 +1458,19 @@
       "patch_file": "patches/opencode2-glm-flash-access-proof-fr-2.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": {
+        "completed_tool_calls_with_timing": 16,
+        "completed_tool_wall_seconds": 4.399,
+        "method": "Union of recorded completed tool intervals, so overlapping calls are counted once. Other time includes model responses, CLI overhead and any unrecorded unfinished call."
+      },
+      "independent_outcome": "failed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-boltons-rename-fr-2",
@@ -1238,7 +1512,15 @@
       "patch_file": "patches/opencode2-kimi-k3-boltons-rename-fr-2.patch",
       "patch_sha256": "a338fc6e16a5c0d8eef45084a48c827703564d5812a4efd0ed1bb83b8d075fa3",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-boltons-rename-files-2",
@@ -1274,7 +1556,15 @@
       "patch_file": "patches/opencode2-kimi-k3-boltons-rename-files-2.patch",
       "patch_sha256": "7603820df432bb8ce3b07a7d8aea7aa35d54eff6e447abc01327f52a7eb34f61",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-unicode-dice-files-2",
@@ -1310,7 +1600,15 @@
       "patch_file": "patches/opencode2-kimi-k3-unicode-dice-files-2.patch",
       "patch_sha256": "d72959d7cd6080e03a5638fd26fb1dba2b1dc207d5e1c09a0b139e0f6ce81f13",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-unicode-dice-fr-2",
@@ -1348,7 +1646,15 @@
       "patch_file": "patches/opencode2-kimi-k3-unicode-dice-fr-2.patch",
       "patch_sha256": "480cfc7d50acb13f6702a40d27dd6f29951589794fc5c8d34714cc017b534f37",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-access-proof-fr-2",
@@ -1384,7 +1690,15 @@
       "patch_file": "patches/opencode2-kimi-k3-access-proof-fr-2.patch",
       "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     },
     {
       "id": "opencode2-kimi-k3-access-proof-files-2",
@@ -1420,7 +1734,15 @@
       "patch_file": "patches/opencode2-kimi-k3-access-proof-files-2.patch",
       "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
       "interrupted_session_recording_error": false,
-      "independent_outcome": null
+      "timeout_review": null,
+      "independent_outcome": "passed",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40216479622",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
     }
   ]
 }

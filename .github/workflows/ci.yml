@@ -216,6 +216,12 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/go-toolchain
 
+  selected-agents:
+    name: Selected agents and all 36 M1 outcomes
+    uses: ./.github/workflows/selected-agents.yml
+    permissions:
+      contents: read
+
   agent-study:
     name: Independent agent study accounting
     runs-on: ubuntu-latest
@@ -414,7 +420,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
+    needs: [native, static, agent-study, selected-agents, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -424,6 +430,7 @@ jobs:
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
+          SELECTED_AGENTS: ${{ needs.selected-agents.result }}
           CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
@@ -434,6 +441,7 @@ jobs:
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&
+          test "$SELECTED_AGENTS" = success &&
           test "$CODE_CHANGE_GRADERS" = success &&
           test "$TOOLCHAIN" = success &&
           test "$GO_TOOLCHAIN" = success &&

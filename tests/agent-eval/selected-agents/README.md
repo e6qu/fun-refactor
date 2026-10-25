@@ -17,6 +17,7 @@ Three app/model combinations, three requests, two tool setups and two repetition
 The app, model, reasoning setting, source, requested result and limits stay the same within each comparison.
 Tool order changes between repetitions.
 These are familiar development tasks, not tests on previously unread projects.
+The [completed attempt report](local-results/README.md) retains every outcome and submitted patch, with comparisons against ordinary tools.
 
 ## Check the experiment before making model calls
 
@@ -63,7 +64,7 @@ checks a separate receiver, and verifies exact undo and redo.
 - [profiles.json](profiles.json) names the exact model, reasoning and speed settings.
 - [tasks.json](tasks.json) fixes the requests, independent checks, proposed limits and repeat count.
 - A proposed schedule marks all 36 attempts unstarted. Its usage and cost fields are unknown.
-  It does not authorize model calls or establish live account access.
+  It describes the schedule, rather than the outcomes in the completed report.
 
 Correctness comes first. Compare time and cost for matching successful outcomes, and include failed attempts
 when calculating the work spent per success.

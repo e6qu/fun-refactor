@@ -7,33 +7,29 @@ The three jobs are refactoring, targeted code changes and Lean proof writing.
 [BUGS.md](../BUGS.md) owns actionable defects.
 The [retained-results report](roadmap-status.md) audits earlier claims; its A–D counts are not completion counts for the new roadmap.
 
-## Start with M1
+## M1 results and the next change
 
 Use the [three selected profiles](../PLAN.md#target-agents): Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
-The [pinned clients, profiles and tasks](../tests/agent-eval/selected-agents/README.md) now have
-[passing scripted controls](https://github.com/e6qu/fun-refactor/actions/runs/40190446873).
-The six native checks verify skill discovery, real tool results, effective settings and shutdown
-for both tool setups. They use scripted model replies and make no live model calls.
-The user selected the installed local Codex and OpenCode2 CLIs with their existing account stores.
-Codex reports ChatGPT login; OpenCode2 lists the Z.AI Coding Plan and Kimi accounts.
-No credentials are transferred to GitHub. Live model admission still needs to be observed in the actual attempts.
-
-The three prepared tasks also pass controls with supplied correct and incorrect answers:
+The [M1 report](../tests/agent-eval/selected-agents/local-results/README.md) retains all thirty-six local CLI attempts.
+Read the successful outcomes, timeouts and measured overhead before changing the next task route.
+The [client and task guide](../tests/agent-eval/selected-agents/README.md) explains the pinned versions and scripted controls.
+Those controls use supplied answers; they stay separate from the agents' actual patches.
+The requests were:
 
 - Rename Boltons' `clamp` to `clamp_value` through its declared consumers; preserve the result of limiting 70 to 0 through 50.
 - Repair the recorded Unicode Dice comparison and pass its independent regression set.
 - Have the agent write a Lean proof of the Rust access model's exact `staff || owner` rule.
 
-These are familiar development tasks.
-The first matched schedule has eighteen attempts; one unchanged repetition gives thirty-six.
-The [local attempt record](../tests/agent-eval/selected-agents/local-results/README.md) tracks current progress through the thirty-six attempts.
-Keep those results separate from supplied control answers.
-Freeze the local runtime, task inputs and CLI commands before launching the study.
-Each attempt has a 150-second limit inside the unchanged 180-second workstation guard.
-Keep independent checking in private GitHub containers and test the agent's actual submitted patch.
-Do not supply the repair, edit location or proof tactics to a live attempt.
-Record effective settings, enforced limits and missing accounting fields before launching it.
-The installed CLIs do not expose a shared hard token/request cap; do not claim that cap is enforced.
+The user chose the installed native CLIs with their existing accounts. Credentials and full run records stay local.
+Only submitted patches and summaries are public. GitHub independently checks each patch in an isolated container.
+Every timed-out slot remains failed and was not retried. The interrupted-session recording fix continued only unstarted slots
+under a second immutable packet; the public summary keeps both packet hashes and each original record hash.
+There is no shared enforceable token/request cap, and actual billing is unknown.
+
+Start M2 with the four cases below. Freeze the independent wrong-answer checks first, then complete implementation and guides.
+Shorten unnecessary reading and repeated work identified in M1; keep the task limit at 150 seconds.
+Only then freeze final settings and run all forty-eight M2 attempts. The whole milestone belongs in one PR.
+Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
 
 ## Keep the other milestones concrete
 
@@ -92,7 +88,7 @@ Dogfood fr on suitable changes and retain the reviewed edit and check results.
 
 Every commit message is one line of at most 80 characters, with no body, trailers or AI attribution.
 When authorized to merge, wait for passing CI and squash with an explicit subject and empty body.
-This roadmap update authorizes no paid live study or merge.
+Follow the user's current CLI and publication choices. M1 completion does not authorize a merge.
 
 The [previous handoff](https://github.com/e6qu/fun-refactor/blob/c923d3cde7/docs/continuity.md) preserves its earlier starting point.
 

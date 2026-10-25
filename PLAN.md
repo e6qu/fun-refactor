@@ -32,10 +32,10 @@ Catalog entries and configured credentials do not establish that a live attempt 
 Freeze client releases, model identities, reasoning settings, accounting limits and attempt limits before live calls.
 Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
 
-The selected releases now pass [six scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873),
-one per profile and tool setup. They execute real commands with scripted model replies;
-they do not show that a live model can complete a task.
-The [local attempt record](tests/agent-eval/selected-agents/local-results/README.md) tracks the thirty-six live attempts.
+The selected releases have six scripted native checks, one per profile and tool setup.
+Those checks execute real commands with scripted replies; they test the setup rather than model task success.
+The [M1 results](tests/agent-eval/selected-agents/local-results/README.md) record all thirty-six local CLI attempts,
+their independently checked patches, failures and observed overhead against the same agents using ordinary tools.
 Fast is a Codex service setting, not another Luna model.
 See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).
 
@@ -45,49 +45,28 @@ Deliver each complete milestone in one PR: implementation, complete examples, in
 all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
-All three milestones below are open. Start with M1.
+M1 has its complete comparison. M2 is next; M3 follows it.
 
 ### M1. Run the selected agents on three complete tasks
 
-1. Pin the Codex and OpenCode2 releases and record their actual model lists.
-   Implement OpenCode2's client adapter, tool-result collection and process shutdown.
-   Test skill discovery, requested model/effort/speed, ordinary tools and fr access with scripted responses before live calls.
-2. Freeze these three task requirements and their independent checks before changing support:
+The [results and every submitted patch](tests/agent-eval/selected-agents/local-results/README.md) compare a Boltons rename,
+a Unicode comparison repair and a Lean proof of the fixed staff-or-owner access rule.
+Three profiles, three tasks, two tool setups and two repetitions give thirty-six attempts.
+The [task and client records](tests/agent-eval/selected-agents/README.md) own the exact requirements, versions and limits.
 
-   | Task | Required result | Check that catches a wrong answer |
-   | --- | --- | --- |
-   | Rename Boltons' `clamp` to `clamp_value` in its declared project change | Update the function, named consumers and documentation | Limiting 70 to 0 through 50 still returns 50; an unrelated same-named function stays unchanged |
-   | Repair the recorded `unicode-dice` comparison | Count pairs of adjacent Unicode values after removing whitespace; retain duplicate pairs | Comparing `éa` with `éab` returns `2/3`; equal inputs, short unequal inputs and the independent regression set pass |
-   | Prove the Rust Boolean `allowed(staff, owner)` rule | Write a Lean proof that its model equals `staff || owner` | All four input pairs agree; changing the model to `staff && owner` cannot retain the same claim |
+The installed local Codex and OpenCode2 CLIs ran serially with existing accounts and unchanged 150-second task limits.
+GitHub checks submitted patches against the original source, including behavior or Lean checks, separate delivery and exact undo/redo.
+Failures remain results; no failed slot was retried. A timed-out CLI stays failed even if it left a valid patch.
+Only patches and summaries are public. Full CLI records and credentials stay local.
+Account charges and unavailable usage remain unknown; a catalog's zero price is not observed billing.
+The native CLIs expose no shared hard token/request cap. Their fixed time and resource limits remain visible.
 
-   Use the pinned [Boltons project requirement](tests/agent-eval/project-changes/tasks.json) and [Unicode requirement](tests/agent-eval/unknown-target/task.json).
-   A Unicode scalar value represents a character value, rather than one byte of its UTF-8 encoding.
-   In this example, `éa` has one adjacent pair and `éab` has two; one pair matches, giving twice one divided by three.
-   Unequal inputs with fewer than two values after whitespace removal return zero.
-
-3. Use each of the three profiles with ordinary file tools, then with those tools plus fr.
-   That is eighteen first attempts. Repeat the unchanged schedule once for thirty-six attempts in total.
-   Rotate tool order. These are familiar development tasks, not new unread-project qualifications.
-4. Give the model the request and checking commands, without the solution or edit location.
-   Keep the requested proof property fixed. Count any supplied repair or proof as scripted help.
-5. Record correct results, regressions, human intervention, fr use, all model work, retries, setup, indexing, checks, shutdown and failures.
-   Keep unavailable billing data unknown.
-6. Compare each profile against itself with ordinary tools. Correctness comes first.
-   Report cost and time for equivalent successful outcomes and total spending per success.
-   Offering an unused tool establishes no fr benefit.
-
-**M1 is complete when** the three client profiles pass model-free controls.
-All thirty-six live attempts need independently checked outcomes and complete or explicitly missing cost fields.
-Failures count as results. Passing this small study establishes neither a general success rate nor general savings.
-The user chose the installed local Codex and OpenCode2 CLIs with their existing account stores.
-Attempts run serially under the workstation guard, with a stricter 150-second attempt limit.
-Independent grading and full fr gates run on GitHub; credentials stay local.
-The native CLIs do not expose a shared hard token or request cap. Record that limitation explicitly.
-Unavailable account charges stay unknown, including when the catalog lists a zero price.
+The comparison does not establish general savings. Use the measured overhead and failed tasks to choose improvements in M2.
+An unused fr tool establishes no benefit. A checked model proof leaves the source/model connection as a separate open claim.
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
-Freeze these four additional cases before implementing missing rules:
+Deliver this whole milestone in one PR. First freeze these four cases and the checks that reject wrong or incomplete changes:
 
 | Case | Concrete requirement |
 | --- | --- |
@@ -110,6 +89,12 @@ For every case:
 - Give each target agent one documented route for each task. Reuse existing edit/check machinery and remove redundant choices instead of adding another wrapper.
 - Run two repetitions per case, profile and tool setup under frozen settings: forty-eight attempts.
   Preserve the earlier attempts and compare matching outcomes.
+
+Do the implementation and deterministic checks before starting those attempts.
+Start with Rust parameter removal and the TypeScript alias rename, then the regex feature and Python repair.
+Use the M1 failures to shorten unnecessary reading and repeated tool work in the existing guides and commands.
+Keep the 150-second task limit. Freeze the final instructions, client settings and independent checks before the first M2 call;
+keep every outcome rather than tuning the experiment between attempts.
 
 A literal argument uses a direct value, such as `false`.
 A call such as `record()` must still run when its effects matter.
