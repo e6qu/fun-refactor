@@ -20,7 +20,7 @@ PROOF_PATH = 'specs/FrSpecs/SrcLibRsAllowed.lean'
 OBLIGATION = 'allowedModel_access_rule'
 PROOF_TARGET = PROOF_PATH + '::' + OBLIGATION
 UNRELATED = 'unrelated.py'
-IGNORED = {'.git', '.fr', '.lake', 'target', '__pycache__', '.pytest_cache', '.agents', '.claude', '.opencode', 'artifacts'}
+IGNORED = {'.git', '.fr', '.fr-history', '.lake', 'target', '__pycache__', '.pytest_cache', '.agents', '.claude', '.opencode', 'artifacts'}
 APPROVED_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
 
@@ -136,7 +136,8 @@ def unchanged_boundaries(task, project, prepared):
     else:
         require(UNRELATED not in changed, 'rename changed the unrelated clamp declaration or caller')
         permitted = set(prepared['rename_paths'])
-        require(changed <= permitted, 'rename changed files outside its declared consumers')
+        require(changed <= permitted, 'rename changed files outside its declared consumers: ' +
+                ', '.join(sorted(changed - permitted)))
     return sorted(changed)
 
 

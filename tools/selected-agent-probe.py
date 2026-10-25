@@ -12,6 +12,7 @@ import tarfile
 import urllib.request
 
 from agent_eval.opencode2_client import OpenCode2Server
+from agent_eval.codex_client import CodexServer
 
 ROOT = Path(__file__).resolve().parents[1]
 CLIENTS = ROOT / 'tests/agent-eval/selected-agents/clients.json'
@@ -99,11 +100,37 @@ def inspect(name, entry, root):
         executable_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
     report = {'release': entry, 'binary_sha256': executable_sha256, 'commands': results,
               'credentials_supplied': False, 'inference_requests': 0}
+    if name == 'codex':
+        home = Path(env['CODEX_HOME'])
+        home.mkdir()
+        profile = json.loads((CLIENTS.parent / 'profiles.json').read_text())['codex-luna-fast']
+        (home / 'config.toml').write_text('\n'.join(key + ' = ' + json.dumps(value) for key, value in {
+            'model': profile['model'], 'model_reasoning_effort': profile['reasoning_effort'],
+            'service_tier': profile['service_tier'], 'model_provider': profile['provider'],
+            'approval_policy': 'never', 'sandbox_mode': 'workspace-write', 'web_search': 'disabled'}.items()) + '\n')
+        with CodexServer(binary, root, env, root / 'api', call_seconds=10, transcript_bytes=4 * 1024**2) as server:
+            effective = server.request('config/read', {'includeLayers': False})
+            (root / 'effective-config.json').write_text(json.dumps(effective, indent=2) + '\n')
+            config = effective['config']
+            expected = {'model': profile['model'], 'model_reasoning_effort': profile['reasoning_effort'],
+                        'service_tier': profile['service_tier'], 'model_provider': profile['provider']}
+            if any(config[key] != value for key, value in expected.items()):
+                raise ValueError('native Codex model, reasoning or service tier differs from the selected profile')
+            catalog = server.request('model/list', {'includeHidden': True})
+            (root / 'models.json').write_text(json.dumps(catalog, indent=2) + '\n')
+            if catalog['nextCursor'] is not None:
+                raise ValueError('native Codex model list is incomplete')
+            report['initialized'] = server.initialized
+        report['shutdown'] = server.shutdown
+        if server.shutdown['forced'] or server.shutdown['exit_code'] != 0:
+            raise ValueError('Codex app-server did not shut down cleanly on EOF')
     if name == 'opencode2':
         with OpenCode2Server(binary, root, env, root / 'api', version=entry['version'],
                              startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
             document = server.request('GET', '/openapi.json', None, 200, 10)
             (root / 'openapi.json').write_text(json.dumps(document, indent=2) + '\n')
+            catalog = server.request('GET', '/api/model', None, 200, 10)
+            (root / 'models.json').write_text(json.dumps(catalog, indent=2) + '\n')
             report['server'] = server.info
         report['shutdown'] = server.shutdown
         if server.shutdown['forced']:

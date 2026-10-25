@@ -32,7 +32,7 @@ Catalog entries and configured credentials do not establish that a live attempt 
 Freeze client releases, model identities, reasoning settings, prices, spending caps and attempt limits before paid calls.
 Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
 
-The current scripted OpenCode controls use an older command format.
+The earlier scripted OpenCode controls use an older configuration and server API.
 OpenCode2 integration is work to complete, not an already passing result.
 Fast is a Codex service setting, not another Luna model.
 See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).

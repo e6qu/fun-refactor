@@ -1,6 +1,8 @@
 # Continue the focused agent work
 
 [PLAN.md](../PLAN.md#next-work) owns the active milestones.
+Complete each milestone in one PR, including implementation, checks, required live attempts,
+results and tracking. Keep preparation on that milestone's branch until the whole milestone is ready.
 The three jobs are refactoring, targeted code changes and Lean proof writing.
 [BUGS.md](../BUGS.md) owns actionable defects.
 The [retained-results report](roadmap-status.md) audits earlier claims; its A–D counts are not completion counts for the new roadmap.
@@ -12,7 +14,7 @@ Client releases, effective reasoning/speed settings and live access still need c
 The selected model IDs come from installed catalogs inspected on 2026-10-25.
 No paid attempt follows from that inspection.
 
-The existing controls use the older OpenCode command interface.
+The earlier controls use an older OpenCode configuration and server API.
 Implement and test OpenCode2's adapter before claiming native integration for it.
 Use scripted provider responses to check discovery, tool results, effective settings and shutdown without model spending.
 
