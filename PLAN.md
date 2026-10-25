@@ -39,7 +39,10 @@ See the [agent comparison policy](docs/product-review.md#compare-the-selected-ag
 
 ## Next work
 
-Deliver each milestone with its implementation, complete examples, independent checks and updated results.
+Deliver each complete milestone in one PR: implementation, complete examples, independent checks,
+all required live attempts, results and tracking updates belong together.
+Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
+Keep a milestone open until its completion conditions are met and its CI passes.
 All three milestones below are open. Start with M1.
 
 ### M1. Run the selected agents on three complete tasks

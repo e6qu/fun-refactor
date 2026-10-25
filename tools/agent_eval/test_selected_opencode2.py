@@ -41,6 +41,7 @@ class OpenCode2Tests(unittest.TestCase):
     def test_unauthorized_server_refuses_without_retry(self, launch, stop):
         launch.return_value.pid = 999
         launch.return_value.poll.return_value = None
+        launch.return_value.wait.return_value = 0
         with patch.object(self.server, 'request', side_effect=OpenCode2ResponseError('GET', '/api/info', 401, 200, b'')) as request:
             with self.assertRaises(OpenCode2ResponseError):
                 self.server.__enter__()
