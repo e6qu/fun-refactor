@@ -49,3 +49,5 @@ a reviewed workflow basis. Read `docs/workflow-recovery.md` for admission and de
 This workflow checks only project-declared commands. Independent behavior oracles and receiver
 checks remain separate evidence when the task requires them. Use the manual Checks, History and Git
 routes when no check configuration exists or when each transition needs external validation.
+
+Related reference: [prepare a change from a name](guide.md).
