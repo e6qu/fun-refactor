@@ -24,13 +24,13 @@ class SelectedProviderTests(unittest.TestCase):
                 if profile['client'] == 'codex':
                     path, request = '/v1/responses', self.codex()
                     validate(profile, path, request, 0, EXPECTED)
-                    request['input'] = [{'type': 'function_call_output', 'output': '\n'.join(EXPECTED)}]
+                    request['input'] = [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}]
                 else:
                     path = '/v1/chat/completions'
                     request = {'model': profile['model']['id'], 'reasoning_effort': 'high', 'stream': True,
                                'tools': [{'type': 'function', 'function': {'name': 'bash'}}], 'messages': []}
                     validate(profile, path, request, 0, EXPECTED)
-                    request['messages'] = [{'role': 'tool', 'content': '\n'.join(EXPECTED)}]
+                    request['messages'] = [{'role': 'tool', 'tool_call_id': 'call_m1', 'content': '\n'.join(EXPECTED)}]
                 validate(profile, path, request, 1, EXPECTED)
 
     def test_codex_model_reasoning_and_fast_are_checked_on_the_wire(self):
@@ -43,8 +43,8 @@ class SelectedProviderTests(unittest.TestCase):
 
     def test_missing_failed_or_duplicate_tool_results_do_not_complete_the_exchange(self):
         request = self.codex()
-        for outputs in ([], [{'type': 'function_call_output', 'output': 'normalize_total: command failed'}],
-                        [{'type': 'function_call_output', 'output': '\n'.join(EXPECTED)}] * 2):
+        for outputs in ([], [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': 'normalize_total: command failed'}],
+                        [{'type': 'function_call_output', 'call_id': 'call_m1', 'output': '\n'.join(EXPECTED)}] * 2):
             request['input'] = outputs
             with self.subTest(outputs=outputs), self.assertRaises(ValueError):
                 validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED)
@@ -53,6 +53,16 @@ class SelectedProviderTests(unittest.TestCase):
         for path, index in [('/v1/responses', 2), ('/v1/chat/completions', 0)]:
             with self.subTest(path=path, index=index), self.assertRaises(ValueError):
                 validate(PROFILES['codex-luna-fast'], path, self.codex(), index, EXPECTED)
+
+    def test_delegation_and_tool_result_misrouting_refuse(self):
+        request = self.codex()
+        request['tools'].append({'type': 'function', 'name': 'spawn_agent'})
+        with self.assertRaisesRegex(ValueError, 'delegation'):
+            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 0, EXPECTED)
+        request = self.codex()
+        request['input'] = [{'type': 'function_call_output', 'call_id': 'someone_else', 'output': '\n'.join(EXPECTED)}]
+        with self.assertRaisesRegex(ValueError, 'different call'):
+            validate(PROFILES['codex-luna-fast'], '/v1/responses', request, 1, EXPECTED)
 
 
 if __name__ == '__main__':

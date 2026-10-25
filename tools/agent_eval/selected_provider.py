@@ -57,15 +57,19 @@ def validate(profile, path, value, index, expected):
         require(value['service_tier'] == profile['request_service_tier'], 'Codex Fast did not reach the provider request')
         names = {tool['name'] for tool in value['tools'] if tool['type'] == 'function'}
         require('exec_command' in names, 'native Codex did not expose its ordinary command tool')
-        outputs = [item['output'] for item in value['input'] if item.get('type') == 'function_call_output']
+        require(not names.intersection({'spawn_agent', 'send_input', 'close_agent'}), 'Codex exposed delegation in a single-agent control')
+        outputs = [item for item in value['input'] if item.get('type') == 'function_call_output']
     else:
         require(value['reasoning_effort'] == profile['model']['variant'], 'OpenCode2 reasoning differs from its profile')
         names = {tool['function']['name'] for tool in value['tools'] if tool['type'] == 'function'}
         require('bash' in names, 'native OpenCode2 did not expose its ordinary command tool')
-        outputs = [item['content'] for item in value['messages'] if item['role'] == 'tool']
+        require('task' not in names, 'OpenCode2 exposed delegation in a single-agent control')
+        outputs = [item for item in value['messages'] if item['role'] == 'tool']
     if index:
         require(len(outputs) == 1, 'native client did not return exactly one tool result')
-        text = json.dumps(outputs[0], ensure_ascii=False)
+        identity, payload = ('call_id', 'output') if codex else ('tool_call_id', 'content')
+        require(outputs[0].get(identity) == 'call_m1', 'native tool result belongs to a different call')
+        text = json.dumps(outputs[0][payload], ensure_ascii=False)
         require(all(word in text for word in expected), 'native result omitted the inspected fixture or fr skill')
 
 
