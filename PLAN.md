@@ -184,6 +184,7 @@ The [earlier checklist](docs/earlier-roadmap-checklist.md) and [retained-results
 
 ## Working rules
 
+Before choosing an operation, run `fr --json audit` and `fr capabilities` to check installed support.
 Use fr on its own work where it fits. Fix encountered failures and timeout causes without increasing limits or dropping coverage.
 Keep model choices, settings, limits and check selection explicit. Add no compatibility routes, automatic model substitutions or needless wrappers.
 Builds, full tests and large collections run on GitHub under the [workstation rules](docs/development.md#working-on-a-shared-desktop).

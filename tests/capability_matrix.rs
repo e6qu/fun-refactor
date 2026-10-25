@@ -215,8 +215,8 @@ fn the_published_language_count_matches_the_list() {
         (
             "docs/index.html",
             &[
-                "A multi-language refactoring tool for N languages.",
-                "N languages · one index",
+                "Read N source formats.",
+                "reads N source formats through one index.",
             ][..],
         ),
         (
