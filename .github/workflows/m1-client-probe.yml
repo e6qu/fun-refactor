@@ -35,3 +35,64 @@ jobs:
             ${{ runner.temp }}/m1-clients/report.json
           if-no-files-found: error
           retention-days: 30
+  tasks:
+    name: Independent rename, Unicode and proof checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      PYTHONPATH: tools
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            src
+            crates
+            grammars
+            queries
+            catalogs
+            kernels
+            tools
+            tests/agent-eval/selected-agents
+            tests/agent-eval/project-changes
+            tests/agent-eval/python-repositories
+            tests/agent-eval/unknown-target
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Install the exact grader wheels
+        run: >-
+          python3 -m pip install --no-index --no-deps --require-hashes
+          --requirement <(rg '/(pytest|pluggy|packaging|iniconfig|pygments)-' .github/actions/native-tools/python-wheels.txt)
+      - uses: ./.github/actions/lean-toolchain
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m1-controls
+      - run: cargo build --locked --bin fr
+      - name: Check the installed fr support before choosing operations
+        run: |
+          target/debug/fr --json audit > "$RUNNER_TEMP/m1-fr-audit.json"
+          target/debug/fr --json capabilities > "$RUNNER_TEMP/m1-fr-capabilities.json"
+      - name: Run task checks serially with known correct and incorrect changes
+        run: |
+          for task in boltons-rename unicode-dice access-proof; do
+            python3 -B -m agent_eval.selected_tasks --task "$task" --fr target/debug/fr \
+              --output "$RUNNER_TEMP/m1-tasks/$task"
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m1-task-controls
+          path: |
+            ${{ runner.temp }}/m1-tasks/**/*.json
+            ${{ runner.temp }}/m1-tasks/**/*.patch
+            ${{ runner.temp }}/m1-fr-*.json
+          if-no-files-found: error
+          retention-days: 30

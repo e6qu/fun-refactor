@@ -83,28 +83,4 @@ runs:
       shell: bash
       run: npm ci --no-fund --no-audit
       working-directory: tests/application-runtime/express
-    - name: Cache the Lean toolchain
-      id: lean-cache
-      uses: actions/cache@v6
-      with:
-        path: /opt/lean
-        key: lean-4.28.0-linux-x86_64
-    - name: Install Lean
-      if: steps.lean-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        LEAN=4.28.0
-        LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
-        curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
-          --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
-          "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
-          || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
-        echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
-        sudo mkdir -p /opt/lean
-        sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
-    - name: Put Lean on the path
-      shell: bash
-      run: |
-        echo "/opt/lean/bin" >> "$GITHUB_PATH"
-        /opt/lean/bin/lean --version
+    - uses: ./.github/actions/lean-toolchain
