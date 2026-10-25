@@ -1,0 +1,76 @@
+"""Private M1 checking process; candidate programs run only inside this container."""
+import argparse
+import base64
+import json
+import os
+from pathlib import Path
+import shutil
+
+from . import selected_tasks as tasks
+from .selected_plan import require
+
+
+def run(task):
+    require(Path('/.dockerenv').is_file(), 'the private grader requires its container')
+    require(not any(name.startswith(('GITHUB_', 'ACTIONS_')) for name in os.environ),
+            'runner credentials and environment must stay outside the private grader')
+    original, candidate = Path('/inputs/original'), Path('/candidate')
+    prepared = json.loads(Path('/inputs/project.json').read_text())
+    require(prepared['task'] == task and tasks.sources(original) == prepared['original'],
+            'private original differs from the prepared task')
+    root = Path('/workspace')
+    original_sources = tasks.sources(original)
+    candidate_sources = tasks.sources(candidate)
+    changed = root / 'changed'
+    shutil.copytree(original, changed)
+    tasks.comparison_grade.BASE.initialize(changed)
+    for name in original_sources:
+        (changed / name).unlink()
+    for name in candidate_sources:
+        destination = changed / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(candidate / name, destination)
+    require(tasks.sources(changed) == candidate_sources, 'private copy differs from the candidate')
+    # Boundaries reject additional paths before any candidate code is executed.
+    try:
+        tasks.unchanged_boundaries(task, changed, prepared)
+    except ValueError as error:
+        return {'passed': False, 'stage': 'source boundaries', 'reason': str(error),
+                'candidate': candidate_sources, 'patch_base64': None}
+    patch = tasks.comparison_grade.BASE.git(changed, 'diff', '--binary', 'HEAD').stdout
+    binary = Path('/opt/tool/bin/fr')
+    verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')
+    require(tasks.sources(changed) == candidate_sources, 'candidate checks changed the delivered source')
+    result = {'passed': False, 'candidate': candidate_sources, 'changed': verdict,
+              'patch_base64': base64.b64encode(patch).decode(), 'undo_exact': False, 'redo_exact': False}
+    if not verdict['passed']:
+        return result
+    require(patch, 'accepted work produced no change to deliver')
+    receiver = root / 'receiver'
+    shutil.copytree(original, receiver)
+    tasks.comparison_grade.BASE.initialize(receiver)
+    tasks.comparison_grade.BASE.git(receiver, 'apply', '--check', '-', data=patch)
+    tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
+    require(tasks.sources(receiver) == candidate_sources, 'delivered patch changed the source or modes')
+    result['receiver'] = tasks.check(task, receiver, prepared, binary, root / 'receiver-checks')
+    require(tasks.sources(receiver) == candidate_sources, 'receiver checks changed the delivered source')
+    tasks.comparison_grade.BASE.git(receiver, 'apply', '--reverse', '-', data=patch)
+    require(tasks.sources(receiver) == original_sources, 'patch undo did not restore exact original files')
+    result['undo_exact'] = True
+    tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
+    require(tasks.sources(receiver) == candidate_sources, 'patch redo did not restore the reviewed source')
+    result['redo_exact'] = True
+    result['passed'] = result['receiver']['passed']
+    return result
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--task', choices=list(tasks.TASKS), required=True)
+    args = parser.parse_args()
+    try:
+        result = run(args.task)
+    except Exception as error:
+        result = {'passed': False, 'harness_error': type(error).__name__ + ': ' + str(error)}
+    print(json.dumps(result, allow_nan=False))
+    raise SystemExit(int('harness_error' in result))

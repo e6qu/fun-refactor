@@ -126,6 +126,10 @@ jobs:
         run: >-
           python3 -B -m agent_eval.selected_native --fr target/debug/fr
           --output "$RUNNER_TEMP/m1-native"
+      - name: Reject wrong changes and deliver correct patches inside private containers
+        run: >-
+          python3 -B -m agent_eval.selected_grading --fr target/debug/fr
+          --output "$RUNNER_TEMP/m1-private-grading"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -137,5 +141,8 @@ jobs:
             ${{ runner.temp }}/m1-native/**/*.json
             ${{ runner.temp }}/m1-native/**/*.stdout
             ${{ runner.temp }}/m1-native/**/*.stderr
+            ${{ runner.temp }}/m1-private-grading/**/*.json
+            ${{ runner.temp }}/m1-private-grading/**/*.stdout
+            ${{ runner.temp }}/m1-private-grading/**/*.stderr
           if-no-files-found: error
           retention-days: 30
