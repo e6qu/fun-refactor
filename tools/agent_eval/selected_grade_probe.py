@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import socket
 import subprocess
+import time
 
 from . import selected_tasks as tasks
 from .selected_plan import encoded, require
@@ -77,6 +78,16 @@ def run(task, milestone):
                 'stderr': applicable.stderr.decode(errors='replace')}
     tasks.comparison_grade.BASE.git(changed, 'apply', '-', data=patch)
     candidate_sources = tasks.sources(changed)
+    if milestone == 'M2' and task == 'regex-escape-len':
+        require(os.statvfs('/inputs/prepared-target').f_flag & os.ST_RDONLY, 'prepared compiler cache must be read-only')
+        cache = json.loads(Path('/inputs/target-cache.json').read_text())
+        require(cache['original_sha256'] == hashlib.sha256(encoded(prepared['original'])).hexdigest(),
+                'compiler cache belongs to another original source')
+        shutil.copytree('/inputs/prepared-target', changed / 'target')
+        modified = max(time.time_ns(), cache['newest_output_mtime_ns'] + 1000000000)
+        for path in paths:
+            if (changed / path).is_file():
+                os.utime(changed / path, ns=(modified, modified))
     binary = Path('/opt/tool/bin/fr')
     if milestone == 'M2':
         checkers = {'python': '/opt/python/bin/python3', 'cargo': '/opt/rust/bin/cargo', 'rustc': '/opt/rust/bin/rustc',
@@ -85,6 +96,12 @@ def run(task, milestone):
                                      for name, path in checkers.items() if name != 'typescript'}
         result['checker_versions']['typescript'] = subprocess.check_output(
             [checkers['node'], checkers['typescript'], '--version'], text=True, timeout=10).strip()
+        settings = json.loads((cases.ROOT / cases.DIRECTORY / 'checkers.json').read_text())
+        require(result['checker_versions']['python'] == 'Python ' + settings['independent_python'] and
+                result['checker_versions']['rustc'].startswith('rustc ' + settings['independent_rust'] + ' ') and
+                result['checker_versions']['node'] == 'v' + settings['node'] and
+                result['checker_versions']['typescript'] == 'Version ' + settings['typescript']['version'],
+                'private compiler versions differ from their explicit pins')
         verdict = cases.check(task, changed, prepared, checkers, root / 'changed-checks')
     else:
         verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')

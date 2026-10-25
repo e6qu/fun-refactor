@@ -13,7 +13,7 @@ fr checks
 ```
 
 Read the source, gaps and omissions. Narrow an ambiguous name with `--in FILE`.
-Follow `next_offset` for clipped source. A file's `root` handle can receive a new Rust declaration.
+Follow `next_offset` for clipped source. For insertion, query with `--in DESTINATION_FILE` and use that result's `root` file handle.
 The check listing names project commands and supplies their `basis`; listing does not run them.
 
 Choose the operation that matches the request. A function body holds its executable statements.
@@ -43,7 +43,6 @@ fr --json author batch --from .fr/change --save-plan --plan-basis '<PLAN_CONTEXT
 ```
 The first command previews. Saving records one transaction, a group of proposed edits, without changing source.
 Retain its `transaction` number and `transaction_context_basis`.
-For a standalone rename, the [rename command](references/change.md) also accepts a unique name or file position; it does not accept a handle.
 
 Use the saved transaction with the check listing's basis and explicit check names:
 ```json

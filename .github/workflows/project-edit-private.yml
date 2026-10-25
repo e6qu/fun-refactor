@@ -53,5 +53,7 @@ jobs:
             ${{ runner.temp }}/m2-private/**/*.stderr
             ${{ runner.temp }}/m2-private/grader.tar.gz
             ${{ runner.temp }}/m2-private/grader.sha256
+            ${{ runner.temp }}/m2-private/regex-target-cache/cache.tar.gz
+            ${{ runner.temp }}/m2-private/regex-target-cache/registry.tar.gz
           if-no-files-found: error
           retention-days: 30

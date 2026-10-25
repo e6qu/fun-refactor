@@ -15,6 +15,7 @@ from .selected_plan import ROOT, require
 
 DIRECTORY = Path('tests/agent-eval/project-edits')
 TASKS = json.loads((ROOT / DIRECTORY / 'tasks.json').read_text())['tasks']
+SOURCE_MTIME_NS = json.loads((ROOT / DIRECTORY / 'checkers.json').read_text())['baseline_source_mtime_ns']
 
 
 def digest_bytes(value):
@@ -64,6 +65,8 @@ def prepare(task, project, output):
     (project / '.git/info/exclude').write_text('\n'.join(sorted((common.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     common.comparison_grade.BASE.initialize(project)
     original = common.sources(project)
+    for path in original:
+        os.utime(project / path, ns=(SOURCE_MTIME_NS, SOURCE_MTIME_NS))
     protected = {}
     if task == 'rust-parameter':
         protected = {path: digest_bytes(rust_arguments((project / path).read_text()).encode())
@@ -85,7 +88,8 @@ def prepare(task, project, output):
             tail = test_tail((project / path).read_text())
             if tail is not None:
                 protected[path] = tail
-    record = {'task': task, 'original': original, 'protected': protected, 'requirement': TASKS[task]}
+    record = {'task': task, 'original': original, 'protected': protected, 'requirement': TASKS[task],
+              'source_mtime_ns': SOURCE_MTIME_NS}
     common.save(output / 'project.json', record)
     common.retain_seed(project, record, output)
     return record

@@ -69,6 +69,7 @@ def prompt(task, setup, checkers, milestone):
         'model, commit, push, or change dependencies or checking settings. Do not inspect account stores or host configuration. '
         'The entire attempt and its child commands already run under the workstation resource guard. '
         'Do not start a nested guard, increase limits, or run full fr builds or repository-wide gates. '
+        'Run tool commands serially, keeping at most one compiler or fr command active. '
         'Use only small checks for this task. Keep failed checks and limitations in your report. '
         'Remove temporary source files before delivery; leave unrelated project files unchanged.\n'
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md, then use fr when useful.\n'

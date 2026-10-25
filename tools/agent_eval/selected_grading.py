@@ -38,6 +38,7 @@ def stage(source, destination):
                 'candidate changed during its private snapshot')
         target.write_bytes(data)
         target.chmod(entry['mode'])
+        os.utime(target, ns=(path.stat().st_atime_ns, path.stat().st_mtime_ns))
     require(tasks.sources(destination) == manifest, 'grade snapshot differs from delivered source')
     return {'sha256': hashlib.sha256(encoded(manifest)).hexdigest(), 'files': manifest}
 
@@ -113,12 +114,21 @@ def grade(image, task, original, prepared, binary, rust, patch, output, *, miles
             require(not tools and binary is not None, 'M1 grading uses its original fixed tool paths')
             mounts += [(binary, '/opt/tool/bin/fr'), (Path('/opt/lean'), '/opt/lean')]
         else:
-            require(milestone == 'M2' and binary is None and set(tools) == {'node', 'typescript_root', 'registry'},
-                    'supply the three explicit M2 checker mounts')
+            require(milestone == 'M2' and binary is None and set(tools) == {'node', 'typescript_root', 'registry', 'target_cache'},
+                    'supply the explicit M2 checker and baseline-cache settings')
             mounts += [(tools['node'], '/opt/node/bin/node'), (tools['typescript_root'], '/opt/typescript'),
                 (tools['registry'], '/review/target/cargo-home/registry'),
                 (ROOT / 'tests/agent-eval/project-edits', '/review/tests/agent-eval/project-edits'),
                 (ROOT / 'tests/agent-eval/regex', '/review/tests/agent-eval/regex')]
+            if task == 'regex-escape-len':
+                cache = tools['target_cache']
+                receipt = json.loads((cache / 'cache.json').read_text())
+                require(receipt['image'] == image and receipt['original_sha256'] == report['original']['sha256'] and
+                        receipt['source_mtime_ns'] == prepared['source_mtime_ns'] and
+                        receipt['rustc_sha256'] == tasks.digest(rust / 'bin/rustc'), 'baseline compiler cache inputs differ')
+                mounts += [(cache / 'target', '/inputs/prepared-target'), (cache / 'cache.json', '/inputs/target-cache.json')]
+            else:
+                require(tools['target_cache'] is None, 'only the regex task needs a prepared dependency cache')
         with boundary.isolated_budget(output, budget) as slice_id:
             scope = ContainerResources(budget, slice_id, output).start()
             try:

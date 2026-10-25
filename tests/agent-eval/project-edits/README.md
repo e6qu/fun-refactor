@@ -37,6 +37,9 @@ Private compiler checks run separately, with no runner credentials or external n
 Their containers retain the existing 512 MiB memory, 60 CPU-second and 120-second execution limits.
 A CPU-second measures time running on one CPU core; waiting still consumes the separate elapsed-time allowance.
 Each patch gets its full language checks in a fresh checkout. Another copy verifies identical source and exact reversal without repeating compilation.
+Prepare the unchanged regex dependencies once before private grading and record that shared preparation time separately.
+Remove both packages under change from that cache. Every patch rebuilds them; cached results cannot supply the requested new API.
+Cache admission checks the original source hash, compiler identity and private image identity.
 Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
 
 For M2, preparation and native session accounting share the same 150-second attempt deadline as model work.
