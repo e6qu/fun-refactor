@@ -30,15 +30,14 @@ def codex(binary, project, env, profile, endpoint, setup, output):
     home = Path(env['CODEX_HOME'])
     home.mkdir()
     config = {'model': profile['model'], 'model_provider': 'openai',
+        'openai_base_url': endpoint + '/v1',
         'model_reasoning_effort': profile['reasoning_effort'], 'service_tier': profile['service_tier'],
         'approval_policy': 'never', 'sandbox_mode': 'danger-full-access', 'web_search': 'disabled',
-        'features': {'plugins': False, 'multi_agent': False},
-        'model_providers': {'openai': {'name': 'Local scripted control', 'base_url': endpoint + '/v1',
-            'wire_api': 'responses', 'requires_openai_auth': False, 'env_key': 'FR_SCRIPTED_KEY',
-            'supports_websockets': False, 'request_max_retries': 0, 'stream_max_retries': 0}}}
+        'features': {'plugins': False, 'multi_agent': False}}
     (home / 'config.toml').write_text('\n'.join(key + ' = ' + toml(value) for key, value in config.items()) + '\n')
-    env['FR_SCRIPTED_KEY'] = 'scripted-control-no-live-credential'
     with CodexServer(binary, project, env, output / 'api', call_seconds=10, transcript_bytes=4 * 1024**2) as server:
+        login = server.request('account/login/start', {'type': 'apiKey', 'apiKey': 'sk-scripted-control-not-a-live-key'})
+        require(login['type'] == 'apiKey', 'Codex did not select the scripted API credential')
         effective = server.request('config/read', {'includeLayers': False})
         (output / 'effective-config.json').write_text(json.dumps(effective, indent=2) + '\n')
         require(all(effective['config'][key] == config[key] for key in (
@@ -100,8 +99,8 @@ def run(profile_name, setup):
     profile = profiles[profile_name]
     (project / 'app.py').write_text('def normalize_total(value):\n    return value + 2\n')
     subprocess.run(['git', 'init', '-q', '-b', 'main'], cwd=project, check=True, capture_output=True, timeout=5)
-    state = Path('/tmp/client-state')
-    state.mkdir()
+    state = Path('/home/control')
+    require(state.is_dir(), 'fresh private client home mount is required')
     env = packages.environment(state)
     env.update(GOMAXPROCS='1', BUN_JSC_useJIT='false', PYTHONDONTWRITEBYTECODE='1')
     if setup == 'fr':

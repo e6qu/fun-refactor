@@ -77,9 +77,10 @@ def exchange(image, profile, setup, output):
             docker(['create', '--name', name, '--pull=never', '--init', '--network=none', '--read-only',
                 '--cap-drop=ALL', '--security-opt=no-new-privileges', '--user=65534:65534',
                 '--cpus=0.5', '--memory=512m', '--memory-swap=512m', '--pids-limit=64', '--log-driver=none',
-                '--workdir=/workspace', '--env=HOME=/tmp/client-state/home',
+                '--workdir=/workspace', '--env=HOME=/home/control/home',
                 '--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700',
                 '--tmpfs=/tmp:rw,exec,nosuid,nodev,size=64m,mode=1777',
+                '--tmpfs=/home/control:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700',
                 '--mount=type=bind,src=' + str(native) + ',dst=/diagnostics',
                 image, 'python3', '-c', 'import time; time.sleep(150)'], 10)
             docker(['start', name], 10)
