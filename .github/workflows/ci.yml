@@ -234,6 +234,24 @@ jobs:
     permissions:
       contents: read
 
+  project-edit-controls:
+    name: Four M2 language acceptance checks
+    uses: ./.github/workflows/project-edit-controls.yml
+    permissions:
+      contents: read
+
+  project-edit-delivery:
+    name: M2 fr delivery and native clients
+    uses: ./.github/workflows/project-edit-delivery.yml
+    permissions:
+      contents: read
+
+  project-edit-private:
+    name: M2 private compiler checks
+    uses: ./.github/workflows/project-edit-private.yml
+    permissions:
+      contents: read
+
   agent-study:
     name: Independent agent study accounting
     runs-on: ubuntu-latest
@@ -432,7 +450,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, selected-agents, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
+    needs: [native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -443,6 +461,9 @@ jobs:
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
           SELECTED_AGENTS: ${{ needs.selected-agents.result }}
+          PROJECT_EDIT_CONTROLS: ${{ needs.project-edit-controls.result }}
+          PROJECT_EDIT_DELIVERY: ${{ needs.project-edit-delivery.result }}
+          PROJECT_EDIT_PRIVATE: ${{ needs.project-edit-private.result }}
           CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
@@ -455,6 +476,9 @@ jobs:
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&
           test "$SELECTED_AGENTS" = success &&
+          test "$PROJECT_EDIT_CONTROLS" = success &&
+          test "$PROJECT_EDIT_DELIVERY" = success &&
+          test "$PROJECT_EDIT_PRIVATE" = success &&
           test "$CODE_CHANGE_GRADERS" = success &&
           test "$TOOLCHAIN" = success &&
           test "$GO_TOOLCHAIN" = success &&

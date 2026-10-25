@@ -1,7 +1,7 @@
 name: M2 private acceptance checks
 on:
   push:
-    branches: [milestone/dependable-project-changes, milestone/m2-private-checks]
+    branches: [milestone/m2-private-checks]
   workflow_dispatch:
   workflow_call:
 permissions:

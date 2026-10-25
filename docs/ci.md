@@ -207,6 +207,11 @@ The actual CLI transcripts stay local; model timings and token counts come from 
 GitHub independently applies and checks the patches, including exact undo/redo and delivery to another checkout.
 M1 uses its pinned original fr and checker source, so later development can proceed without rewriting the study's history.
 Changing a published pass or patch-check claim without a matching fresh result fails CI.
+M2 adds required language controls for four complete code changes, real fr delivery checks and private compiler checks.
+The native client controls check all three selected profiles with and without fr, using scripted replies and no paid model calls.
+The Mac build supplies the explicitly selected ARM executable for later local CLI attempts.
+Private checks prepare only unchanged dependencies in advance; every submitted patch rebuilds the packages it changes.
+Their 60 CPU-second, 512 MiB and 120-second candidate limits remain unchanged.
 Current project replays and complete CLI/Python session costs have separate required jobs.
 A failure in one cannot prevent the other from reporting stale inputs.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`

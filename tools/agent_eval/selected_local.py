@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import tomllib
 
 from .bounded_host import run as bounded_run
 from .selected_cli import configuration, invocation, export_session, verify_export
@@ -120,7 +121,8 @@ def freeze(inputs, binaries, runtime, output, milestone):
         result = subprocess.run([entry['path'], '--version'], capture_output=True, text=True, timeout=10)
         require(result.returncode == 0, 'selected CLI version probe failed')
         versions[name] = result.stdout.strip()
-    require(versions == {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr 0.84.2'},
+    source_version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
+    require(versions == {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr ' + source_version},
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],
         **{name: runtime['rust_root'] / 'bin' / name for name in ('rustc', 'cargo', 'rustdoc')}}
@@ -143,7 +145,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require('4.28.0' in checker_versions['lean'], 'choose the inspected Lean 4.28.0 toolchain')
     else:
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
-        require(checker_versions['node'] == 'v' + settings['node'] and
+        require(source_version == settings['fr'] and checker_versions['node'] == 'v' + settings['node'] and
                 checker_versions['typescript'] == 'Version ' + settings['typescript']['version'] and
                 checker_versions['python'] == 'Python ' + settings['local_python'], 'M2 checkers differ from their pins')
     packages = subprocess.run([checkers['python']['path'], '-c',

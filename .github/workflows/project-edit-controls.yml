@@ -1,7 +1,5 @@
 name: M2 code-change acceptance controls
 on:
-  push:
-    branches: [milestone/dependable-project-changes]
   workflow_dispatch:
   workflow_call:
 permissions:

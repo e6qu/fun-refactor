@@ -1,7 +1,5 @@
 name: M2 fr code changes and delivery
 on:
-  push:
-    branches: [milestone/dependable-project-changes]
   workflow_dispatch:
   workflow_call:
 permissions:
@@ -134,19 +132,21 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - run: rustup toolchain install 1.98.1 --profile minimal
+      - run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup target add --toolchain 1.98.1 aarch64-apple-darwin
       - uses: Swatinem/rust-cache@v2
         with:
           key: m2-macos-agent-tool
-      - run: cargo build --locked --release --bin fr
+      - run: cargo build --locked --release --bin fr --target aarch64-apple-darwin
       - name: Record the executable and its exact source
         run: |
           mkdir -p "$RUNNER_TEMP/m2-macos-tool"
-          cp target/release/fr "$RUNNER_TEMP/m2-macos-tool/fr"
+          cp target/aarch64-apple-darwin/release/fr "$RUNNER_TEMP/m2-macos-tool/fr"
           git rev-parse HEAD > "$RUNNER_TEMP/m2-macos-tool/source-commit.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/m2-macos-tool/source-tree.txt"
           shasum -a 256 "$RUNNER_TEMP/m2-macos-tool/fr" > "$RUNNER_TEMP/m2-macos-tool/fr.sha256"
-          target/release/fr --version
+          file "$RUNNER_TEMP/m2-macos-tool/fr"
       - uses: actions/upload-artifact@v7
         with:
           name: m2-macos-tool
