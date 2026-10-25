@@ -116,6 +116,19 @@ class OpenCode2Server:
         finally:
             connection.close()
 
+    def wait_agent(self, identity, timeout_seconds):
+        require(timeout_seconds > 0, 'agent inventory deadline expired')
+        deadline = time.monotonic() + min(timeout_seconds, self.call_seconds)
+        polls = 0
+        while True:
+            remaining = deadline - time.monotonic()
+            require(remaining > 0, 'OpenCode2 agent inventory did not become ready within its deadline')
+            catalog = self.request('GET', '/api/agent', None, 200, remaining)
+            polls += 1
+            if any(row['id'] == identity for row in catalog['data']):
+                return {'catalog': catalog, 'polls': polls}
+            time.sleep(0.05)
+
     def close(self):
         if self.process is None:
             return

@@ -112,6 +112,11 @@ def prepare(task, project, binary, output):
         # still has its visible proof gap; the strict grader must reject that gap.
         built = command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
         require(built['returncode'] == 0, 'the original proof package does not build')
+    # Git records executable bits, not private temporary-file modes from fixture creation.
+    # Freeze fixtures in their normal checkout modes before taking the baseline snapshot.
+    for name in sources(project):
+        path = project / name
+        path.chmod(0o755 if path.stat().st_mode & 0o111 else 0o644)
     comparison_grade.BASE.git(project, 'init', '-q', '-b', 'main')
     (project / '.git/info/exclude').write_text('\n'.join(sorted((IGNORED - {'.git'}) | {'change.patch'})) + '\n')
     comparison_grade.BASE.initialize(project)
@@ -122,7 +127,7 @@ def prepare(task, project, binary, output):
                   re.search(r'\bclamp\b', (project / path).read_text()) is not None]
                   if task == 'boltons-rename' else [],
               'protected_proof': masked_proof((project / PROOF_PATH).read_text()) if task == 'access-proof' else None,
-              'scope': 'Identical source/model/claim for both setups; no proof steps or repair supplied to a live attempt.'}
+              'scope': 'Identical source/model/claim and Git checkout modes (0644/0755) for both setups; no proof steps or repair supplied to a live attempt.'}
     save(output / 'project.json', result)
     return result
 

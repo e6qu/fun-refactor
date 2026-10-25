@@ -150,7 +150,8 @@ def inspect(name, entry, root):
                                  startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
                 config = server.request('GET', '/api/config', None, 200, 10)
                 (profile_root / 'effective-config.json').write_text(json.dumps(config, indent=2) + '\n')
-                agents = server.request('GET', '/api/agent', None, 200, 10)
+                inventory = server.wait_agent('build', 10)
+                agents = inventory['catalog']
                 (profile_root / 'agents.json').write_text(json.dumps(agents, indent=2) + '\n')
                 catalog = server.request('GET', '/api/model', None, 200, 10)
                 (profile_root / 'models.json').write_text(json.dumps(catalog, indent=2) + '\n')
@@ -168,7 +169,8 @@ def inspect(name, entry, root):
                 if session['agent'] != 'build' or session['model'] != model or session['permissions'] != requested['permissions']:
                     raise ValueError('OpenCode2 session model, reasoning or tool permissions differ from the requested profile')
                 server.request('DELETE', '/api/session/' + session['id'], None, 204, 10)
-                report['profiles'][profile_name] = {'agent': chosen[0], 'session': session, 'model': selected[0],
+                report['profiles'][profile_name] = {'agent': chosen[0], 'agent_readiness_polls': inventory['polls'],
+                    'session': session, 'model': selected[0],
                     'scope': 'Scripted local provider configuration only; no live admission or price claim.'}
             if server.shutdown['forced']:
                 raise ValueError('configured OpenCode2 server required forced shutdown')

@@ -28,6 +28,18 @@ class OpenCode2Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'selected model'):
             scripted_configuration(profile, 'http://127.0.0.1:9000')
 
+    @patch('agent_eval.opencode2_client.time.sleep')
+    def test_agent_inventory_waits_within_its_existing_call_budget(self, sleep):
+        responses = [{'data': []}, {'data': [{'id': 'build'}]}]
+        with patch.object(self.server, 'request', side_effect=responses) as request:
+            ready = self.server.wait_agent('build', 1)
+        self.assertEqual(ready, {'catalog': responses[1], 'polls': 2})
+        self.assertTrue(all(0 < call.args[4] <= 1 for call in request.call_args_list))
+        with patch.object(self.server, 'request') as request:
+            with self.assertRaisesRegex(ValueError, 'deadline expired'):
+                self.server.wait_agent('build', 0)
+        request.assert_not_called()
+
     @patch('agent_eval.opencode2_client.os.killpg')
     @patch('agent_eval.opencode2_client.os.getpgid', return_value=999)
     @patch('agent_eval.opencode2_client.subprocess.Popen')
