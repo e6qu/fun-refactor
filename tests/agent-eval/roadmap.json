@@ -1,7 +1,7 @@
 {
   "baseline": "cdc17dca7ce2564cb21a1e7077e38c7cab572712",
   "boundaries": [
-    "The goal is a general CLI that helps agents understand, change and prove things about code with less total effort and context. Passing the recorded examples does not establish that product goal.",
+    "These records retain the earlier qualification checklist and its original acceptance conditions. The active roadmap focuses on smaller agents doing refactoring, targeted code changes and Lean proof writing. Earlier counts do not establish completion of those new milestones.",
     "The analyzer and SDK must not branch on benchmark repository names, paths, revisions or expected patches. Explicit user rules may select sources and uses; they cannot bypass language semantics or unsupported effects.",
     "Demonstrated items retain their finite scope. Broader requirements need unfamiliar projects, independent language examples and complete agent-cost accounting.",
     "The existing agent comparison used an older Luna model on two Rust tasks. The fr runs consumed more calls, context and time. There is no established general token or cost advantage, and no matched Sonnet or delegated-agent result here.",
@@ -110,12 +110,12 @@
       "sha256": "f1450919b21765503543e35b9e6b438ce991ed6b345e31dfd3431cfecab41b8b"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-25-focused-agents-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-25-focused-agents-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "8794844df09fcba3a5be515a9e451ed64777c7613310ae2615a1d9d11b376dab"
+      "sha256": "c488a839ec39a990d218ad9b86063740b11ca6058a44c283b023afa94d25ce3a"
     },
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json",

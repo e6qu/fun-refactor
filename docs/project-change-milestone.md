@@ -156,4 +156,5 @@ This milestone checks correctness through changes. Measure speed and storage sep
 The [saved-work comparison](saved-work-cost-results.md) records those costs on glob, Boltons and JMESPath.
 The [matched SDK follow-up](saved-answer-improvement.md) checks the hashing fix with the same native executable and complete session costs.
 It does not establish lower agent costs, broad package support, numeric translation or source-connected proofs.
-See the [plan](../PLAN.md) and [current tracking](roadmap-status.md) for those larger goals.
+The [focused plan](../PLAN.md) owns the next refactoring, code-change and Lean proof tasks.
+The [retained-results report](roadmap-status.md) keeps the earlier broader requirements and their unfinished claims.

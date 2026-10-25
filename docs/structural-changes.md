@@ -3,6 +3,10 @@
 When you add an argument to `subtotal`, the callers may need changes too. Review the proposed edits and the discovered callers together.
 This guide covers supported rename and argument changes. Run the relevant checks before delivering the patch.
 
+Use this route for a refactoring when behavior should stay the same.
+A new required argument can deliberately change the interface; state the required caller behavior and checks before applying it.
+The [focused milestone](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) names the next concrete multi-file cases.
+
 A signature is a function's name and parameter list. A caller invokes that function with arguments.
 A change scope lists the callers and tests found for the requested change.
 For `subtotal(price)`, adding a required `tax` slot means updating calls that previously supplied only `price`.

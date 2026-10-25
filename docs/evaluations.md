@@ -8,12 +8,12 @@ For example, fewer reply bytes cannot establish a cheaper complete bug fix.
 
 | Your question | Current source | What remains unknown |
 | --- | --- | --- |
-| What is complete, and what comes next? | [Status report](roadmap-status.md) and [roadmap](../PLAN.md) | Broader outcomes beyond their stated completion checks |
+| What has been checked, and what comes next? | [Retained results](roadmap-status.md) and [active roadmap](../PLAN.md) | Earlier qualification counts do not complete the new milestones |
 | Which Python behavior can I use? | [Python examples and limits](python-contract.md) and [original-package questions](original-package-questions.md) | Unsupported behavior and unfinished whole-package imports |
 | How much overhead does calling fr through Python add? | [Same-question CLI and Python comparison](project-session-cost.md) | Whether an agent completes unfamiliar tasks more cheaply |
 | Does saving work help after edits? | [Saved-work results](saved-work-cost-results.md) and [follow-up](saved-answer-improvement.md) | General savings beyond the tested projects and questions |
 | Does fr improve whole agent tasks? | [Earlier live attempts](#unknown-target-investigations) and [prepared next comparison](agent-comparison-preparation.md) | A completed repeated-task study |
-| Does a proof cover the code users run? | [Proof guide](lean-specs.md) and [planned implementation proofs](../PLAN.md#r3-prove-the-properties-of-the-code-we-ship) | The source connection still required by that plan |
+| Does a proof cover the code users run? | [Proof guide](lean-specs.md) and [proof-writing milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) | Model proofs and source-implementation claims have separate completion conditions |
 
 The [measurement guide](benchmarks.md) explains each baseline, included work, units and missing costs.
 It separates generated-program runtime, tool runtime, text sent to agents and complete-task cost.
@@ -39,7 +39,8 @@ Preserve missing billing as unknown. Do not remove unsuccessful attempts to impr
 
 ## Current records and historical observations
 
-[The acceptance catalog](../tests/agent-eval/roadmap.json) owns completion requirements.
+[The acceptance catalog](../tests/agent-eval/roadmap.json) retains the earlier completion requirements.
+The [focused roadmap](../PLAN.md) owns the active M1, M2 and M3 tasks.
 [The scalar-report map](../tests/agent-eval/current-scalar-reports.json) selects active Python and workflow records.
 [The status report](roadmap-status.md) checks their recorded inputs and states what those records establish.
 Installed support comes from `fr audit`, `fr capabilities` and command schemas.

@@ -3,6 +3,10 @@
 Suppose you want to move a small Python helper to Go. `fr` first records the supported parts of the helper, then writes Go from that record.
 That shared record is the intermediate representation, or IR. Review anything the tool cannot translate and test the generated function before using it.
 
+The same supported code record can help select an edit or generate a Lean model for a proof task.
+For a targeted source change, prefer preserving the surrounding source instead of rewriting the whole file from this record.
+Generated syntax can differ in formatting. A generated Lean model still needs its stated source assumptions and connection checked.
+
 A statement performs a step, such as assigning `amount = 3`. An expression computes a value, such as `amount + 1`.
 A type describes the kind of value, such as an integer or a string.
 For `return amount + 1`, the shared record contains a return statement holding an addition expression.

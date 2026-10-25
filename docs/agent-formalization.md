@@ -1,5 +1,9 @@
 # Turn a small code question into a proof task
 
+Start with the [complete first-proof lesson](first-lean-proof.md) if Lean, goals or tactics are new to you.
+This reference explains the current commands and admitted source forms.
+The [proof-writing milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) names the next concrete tasks for the selected agents.
+
 Suppose you want to check an access rule: permission requires either staff access or ownership. `fr` can prepare a Lean proof task for supported functions.
 The agent still writes the property and proof. An accepted proof establishes the stated property of the translated model; check its connection to the source before relying on it.
 
@@ -19,6 +23,10 @@ property you need. After Lean accepts the proof, read the remaining source-conne
 `source_implementation_proved: false` means the result still does not prove the original function.
 
 ## Supported kernel
+
+A typed function has known input and result types.
+The admitted pure functions return values without external reads or writes.
+The synchronous subset completes without pausing for asynchronous work.
 
 Typed, synchronous pure functions can formalize from Rust, Go, Java static methods, Python,
 TypeScript, TSX, Zig and Lean. Bodies admit immutable bindings, complete conditionals, returns,

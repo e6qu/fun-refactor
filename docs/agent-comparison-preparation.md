@@ -1,5 +1,9 @@
 # Prepare a fair comparison before paying for agent attempts
 
+This is the retained earlier eighteen-attempt CodeGraph preparation, outside the active queue.
+The [focused roadmap](../PLAN.md) selects Codex/Luna Fast and two OpenCode2 profiles, with refactoring, code-change and Lean proof tasks.
+Its new schedule and OpenCode2 adapter remain work to complete. Do not relabel the controls below as those new results.
+
 Suppose an agent must repair a string comparison that gives the wrong answer for `éa` and `éab`.
 Will ordinary search and editing be enough? Does adding CodeGraph or fr help the agent finish a correct repair?
 The planned comparison asks that question, then repeats it for a feature that calculates escaped text length without allocating a temporary string.

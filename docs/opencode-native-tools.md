@@ -1,5 +1,10 @@
 # Inspect what an agent tried with each tool setup
 
+This page documents the pinned OpenCode clients and earlier attempts below.
+The [active roadmap](../PLAN.md#target-agents) now selects OpenCode2 with GLM-5.3-Flash and non-Pro Kimi K3.
+Its new client adapter, effective-setting checks and live attempts remain M1 work.
+Retained results for an older OpenCode binary do not establish that OpenCode2 path.
+
 These records compare attempts made with ordinary source tools and with `fr` available.
 For example, a successful repair counts as tool use only if the agent actually called `fr`. The records below keep failed attempts and incomplete cost information visible.
 

@@ -1,7 +1,23 @@
-# Choose a guide for your task
+# Refactor code, make a change or write a Lean proof
 
 Start with the [README](../README.md) to install the tool. The [plan](../PLAN.md) explains what
-works today and what we want to achieve. If a result is unclear, read [what you can conclude](understanding-results.md).
+works today and the exact tasks planned for the selected smaller agents.
+If a result is unclear, read [what you can conclude](understanding-results.md).
+
+## Start with one of the three jobs
+
+| Job | Complete first steps | Detailed guide |
+| --- | --- | --- |
+| Refactor while preserving behavior | [First checked rename](../TUTORIAL.md) | [Coordinated function changes](structural-changes.md) |
+| Repair a bug or add a feature | [Write a targeted function change](body-authoring.md) | [Check the requested behavior](checked-outcomes.md) |
+| Write or repair a Lean proof | [First Lean proof](first-lean-proof.md) | [Goal, tactics and checker workflow](agent-formalization.md) |
+
+The [roadmap](../PLAN.md#next-work) names concrete refactoring, code-change and proof tasks.
+It targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
+Those new live comparisons remain to be run.
+Prefer preserving surrounding source. Keep refactoring behavior checks and deliberate behavior changes separate.
+
+## Find supporting details
 
 | What you want to do | Start here |
 | --- | --- |
@@ -114,7 +130,8 @@ the other pages explain each action and its limits.
 - [Development](development.md): build, test, add languages and release.
 - [CI latency and coverage](ci.md): test shards, complete coverage and runner time limits.
 - [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
-- [Technical status](roadmap-status.md): what the recorded acceptance tests establish and what remains.
+- [Retained results](roadmap-status.md): what earlier acceptance tests establish and which original claims remain open.
+- [Earlier checklist](earlier-roadmap-checklist.md): the original A–D engineering items, outside the active milestone sequence.
 - [Product review](product-review.md): efficiency criteria, scope and removal decisions.
 - [Agent analysis review](agent-analysis-review.md): baseline evidence, analysis gaps and planning architecture.
 - [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.

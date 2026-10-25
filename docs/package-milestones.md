@@ -13,7 +13,8 @@ These package milestones remain complete. The [project-change milestone](project
 now also has passing original records for saved answers after edits and complete Rust/Python rename delivery.
 The [saved-work comparison](saved-work-cost-results.md) measures continued work against fresh questions on the same files.
 The [matched follow-up](saved-answer-improvement.md) checks the fix for repeated hashing while saving and reopening answers.
-The [next work](../PLAN.md#next-work) names the bounds-form repair, shared-list cases, actual-code proofs and agent comparisons.
+These records describe the earlier package-analysis work.
+The [active roadmap](../PLAN.md#next-work) now prioritizes named refactorings, targeted changes and Lean proof writing for the selected agents.
 
 Here, a freeze means recording the code used for the check, then keeping it
 unchanged while examining unfamiliar projects.

@@ -4,6 +4,7 @@ Suppose an access function accepts two Booleans, and you want to show that permi
 Lean can check a proof of that stated rule for the supported model. This guide explains how to link the proof to the code and which assumptions still need checking.
 
 Lean checks proofs written against definitions and assumptions. Lake manages a Lean project's files and dependencies.
+Start with the [complete first-proof lesson](first-lean-proof.md) to create files, check tactics and save a proof.
 A theorem states a property; a kernel is a small set of definitions and rules used in these proofs.
 For “only staff or owners may enter,” inspect the access definition and assumptions before accepting the theorem.
 A proof about the tool's review rules is different from a proof about your checkout calculation.

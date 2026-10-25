@@ -7,12 +7,16 @@ field names below match the tool; the examples explain why you would use them.
 | --- | --- |
 | “Where is the checkout calculation?” | `project find`, `project show` |
 | “Who calls it?” | `project calls`, `callers`, `refs` |
+| “Can I rename it or change its parameters?” | `rename`, `signature`, or [coordinated changes](docs/structural-changes.md) |
 | “Can this input reach the output?” | `project dataflow` for supported Python; read [result meanings](docs/understanding-results.md) |
 | “What would the fix change?” | `author`, `rename`, or a task guide; inspect the preview |
 | “Did the requested behavior improve?” | `checks`; choose a declared behavior test |
+| “How do I write and check a Lean proof?” | `spec plan`, `spec goals`, `spec proof-task`, `spec proof-check`, `spec prove`, `spec evidence`; start with the [complete lesson](docs/first-lean-proof.md) |
 | “How do I undo or deliver it?” | `history`, `workflow`, `git` |
 
-A name lookup, a possible trace and a passing behavior test establish different things.
+A refactoring preserves the required behavior. A repair or feature deliberately changes it.
+Prefer preserving comments, formatting and source outside the intended change; inspect any wider rewrite in the preview.
+A name lookup, a possible trace, a passing behavior test and a checked Lean theorem establish different things.
 See [what you can conclude](docs/understanding-results.md) when interpreting the output.
 
 The binary is `fr`. It reads a workspace, answers questions about it, and

@@ -140,6 +140,8 @@ if [ "$slice" = all ] || [ "$slice" = default ] || [ "$slice" = static ]; then
     run cargo test --test vfs_choke_point --test virtual_model_workspaces \
         --test resolution_measurements -- --test-threads 1
     run bash tools/check-kernels.sh
+    run cargo build --locked --bin fr
+    run python3 -B tools/reader_proof_example.py --fr target/debug/fr
     if [ "$slice" != static ]; then
         ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
             -- --test-threads "$FR_LEAN_JOBS"

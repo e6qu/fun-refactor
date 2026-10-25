@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Documentation — fun-refactor</title>
-<meta name="description" content="Choose commands, identify source locations, review edits, run checks and recover saved changes.">
+<meta name="description" content="Choose a refactoring, targeted code change or Lean proof workflow. Learn the concepts, preview the result and check the requested behavior or property.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -23,6 +23,7 @@
       <a href="types.html">Types</a>
       <a href="type-safety.html">Type safety</a>
       <a href="playground/">Playground</a>
+      <a href="docs.html#lean-proofs">Lean proofs</a>
       <a href="docs.html" aria-current="page">Docs</a>
       <a href="why.html">Why</a>
       <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
@@ -35,16 +36,35 @@
 <section>
   <div class="shell">
     <p class="eyebrow">Reference</p>
-    <h1 class="prose">Documentation</h1>
+    <h1 class="prose">Choose your code-change or proof task</h1>
     <p class="lede prose">
       Start with the
       <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">complete first-change tutorial</a>:
       create a small program, inspect a rename, run its test and undo the change.
       The <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/README.md">guide index</a>
-      covers investigations, Python traces, agent setup and development.
+      starts with refactoring, targeted edits and Lean proof writing, then links the supporting references.
       Use <a href="https://github.com/e6qu/fun-refactor/blob/main/CLI.md">CLI.md</a>
       for current command options. The sections below introduce common operations.
     </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2 id="refactorings">Refactor while preserving behavior</h2>
+    <p>Rename a function, change its parameters or extract a helper. Inspect the declaration, known callers and omissions before reviewing the complete diff.</p>
+    <p>Keep behavior tests passing. Prefer retaining comments, formatting and source outside the intended edit. The <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">first rename lesson</a> supplies both files, commands, expected results and undo.</p>
+    <h2 id="code-changes">Fix a bug or add behavior</h2>
+    <p>A repair changes behavior deliberately. For an invoice calculation that omits a fee, require a test showing that an amount of five and a fee of two produce seven.</p>
+    <p>Use a targeted expression edit where supported, or review a complete function-body replacement. A valid parse does not establish that the repair works. Follow the <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/body-authoring.md">implementation-edit guide</a> and its behavior checks.</p>
+    <h2 id="lean-proofs">Write and check a Lean proof</h2>
+    <p>Lean checks a theorem, which is a precisely stated claim. A tactic is one step the agent writes to prove it. A model describes admitted source behavior in Lean.</p>
+    <p>Start with the <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/first-lean-proof.md">complete first-proof lesson</a>. It supplies a Rust function, a fixed identity property, tactics to check and the commands for saving the proof.</p>
+    <p>The installed CLI and pinned Lean/Lake toolchain run this workflow. The browser playground does not run Lean. Read the check report's <code>passed</code> field, repair rejected tactics and preserve the requested property.</p>
+    <p>A checked model theorem still needs a checked connection before it establishes the original program's behavior. Keep source assumptions and remaining obligations with the result.</p>
+    <h2>Selected agents and current work</h2>
+    <p>The roadmap targets Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3. The new client adapter and live comparisons remain planned. Existing scripted controls establish their recorded setup and supplied operations.</p>
+    <p>The <a href="https://github.com/e6qu/fun-refactor/blob/main/PLAN.md">specific milestones</a> name tasks, pass/fail checks and required comparisons. Earlier analysis results remain available as supporting evidence.</p>
   </div>
 </section>
 

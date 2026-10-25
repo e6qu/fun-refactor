@@ -1,96 +1,90 @@
-# Continue work without repeating the investigation
+# Continue the focused agent work
 
-[PLAN.md](../PLAN.md#next-work) owns the upcoming tasks.
-The [status report](roadmap-status.md) owns demonstrated checks.
-[BUGS.md](../BUGS.md) owns reported defects.
-Use this page for the starting point and the checks to preserve.
+[PLAN.md](../PLAN.md#next-work) owns the active milestones.
+The three jobs are refactoring, targeted code changes and Lean proof writing.
+[BUGS.md](../BUGS.md) owns actionable defects.
+The [retained-results report](roadmap-status.md) audits earlier claims; its A–D counts are not completion counts for the new roadmap.
 
-## Start here
+## Start with M1
 
-PR #577 added ordered handlers for selected explicit Python errors.
-Its [worked example](catch-python-errors.md) repairs an application that catches `TypeError` when Boltons raises `ValueError`.
-The [cleanup lesson](check-python-cleanup.md) shows why a return inside `finally` can replace a customer's message.
+Use the [three selected profiles](../PLAN.md#target-agents): Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
+Client releases, effective reasoning/speed settings and live access still need checking.
+The selected model IDs come from installed catalogs inspected on 2026-10-25.
+No paid attempt follows from that inspection.
 
-The next code package is [R1: recover from invalid number input](../PLAN.md#r1-recover-from-invalid-number-input).
-Extend the same authored application through the original Boltons import.
-Commit its requirements and Python behavior checks before changing the analyzer.
-Do not present this familiar example as a new unread-project evaluation.
+The existing controls use the older OpenCode command interface.
+Implement and test OpenCode2's adapter before claiming native integration for it.
+Use scripted provider responses to check discovery, tool results, effective settings and shutdown without model spending.
 
-Follow [R2](../PLAN.md#r2-follow-shared-lists-through-original-imports) for list aliases and the remaining full-package questions.
-An alias is another name for the same object.
-Changing a shared list must affect later reads through either name; changing a separate list must preserve the original.
+Then freeze M1's three requirements and independent checks:
 
-## Preserve these working behaviors
+- Rename Boltons' `clamp` to `clamp_value` through its declared consumers; preserve the result of limiting 70 to 0 through 50.
+- Repair the recorded Unicode Dice comparison and pass its independent regression set.
+- Have the agent write a Lean proof of the Rust access model's exact `staff || owner` rule.
 
-- Selected Rust and Python changes pass independent checks, undo, redo and patch replay in another checkout.
-- Saved answers agree with fresh analysis after relevant edits; unrelated findings remain usable.
-- The Boltons, dateutil, JDcal and Stringcase questions use original imports.
-- Explicit supported errors follow matching handlers, helper calls, nested cleanup and known reraises.
-- Claude Code, Codex and OpenCode discover the portable skill and pass scripted change exercises.
-- The bounded [page-count translation](check-language-behavior.md) keeps integer division exact in both directions.
+These are familiar development tasks.
+The first matched schedule has eighteen attempts; one unchanged repetition gives thirty-six.
+Do not supply the repair, edit location or proof tactics to a live attempt.
+Agree and freeze settings, prices, spending caps and limits before launching it.
 
-An empty trace from an incomplete analysis cannot establish that input never reaches an output.
-A finished simple-value analysis also leaves unsupported runtime operations unchecked.
-The [Python guide](python-contract.md) states the supported rules and the remaining limits.
+## Keep the other milestones concrete
 
-## Where current records live
+[M2](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) names Rust parameter removal, the regex escaped-length feature, a Python invoice repair and a TypeScript imported-alias rename.
+Each needs preserved-source checks, behavior checks, stale-preview refusal, undo, redo and receiver-checkout delivery.
 
-| Record | How to find it | What to preserve |
+[M3](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) names the Boolean language cases, page counting and an unsigned edit-range check.
+The model writes tactics for the fixed property and uses Lean diagnostics to repair them.
+Keep model proofs separate from checked claims about the source implementation.
+Updating a source fingerprint cannot establish that connection.
+
+The previous invalid-number-input and shared-list expansions are outside the active queue.
+Extend analysis when a concrete refactoring, edit or proof task needs the missing rule.
+Fix encountered bugs regardless of whether the focused work introduced them.
+
+## Preserve existing behavior and original records
+
+- Selected Rust and Python changes pass independent checks, exact undo/redo and patch replay.
+- Saved answers agree with fresh analysis after relevant edits.
+- Original-package examples retain their original imports and unfinished-analysis limits.
+- Existing pinned Claude Code, Codex and older OpenCode controls remain records of their stated scope.
+- Existing Lean models, source anchors and proof receipts retain their separate meanings.
+
+The [earlier checklist](earlier-roadmap-checklist.md) retains the original A–D engineering items.
+The [acceptance catalog](../tests/agent-eval/roadmap.json) and [report](roadmap-status.md) retain their original conditions.
+Open claims stay open. Do not silently turn them into completion of M1, M2 or M3.
+
+| Record | Location | What to preserve |
 | --- | --- | --- |
-| Current analysis reports | [Explicit report selection](../tests/agent-eval/current-scalar-reports.json) | Named paths and original file fingerprints; no automatic older selection |
-| Requirement status | [Acceptance catalog](../tests/agent-eval/roadmap.json) | Existing acceptance conditions and engineering counts |
-| First independent project changes | [Project-change milestone](project-change-milestone.md) | Humanize's first evaluation and all failed development attempts |
-| First original-package questions | [Package milestones](package-milestones.md) | First unread evaluations and their original auditors |
-| Current whole-session costs | [CLI and Python comparison](project-session-cost.md) | Complete matching answers, setup boundaries and measured overhead |
-| Closed study attempts | [Candidate review](candidate-review-status.md) | Failed, cancelled and unstarted work |
-| Dated investigations | [Evaluation history](evaluations.md) | Original inputs, outputs, revisions and limits |
+| Selected current reports | [Explicit report map](../tests/agent-eval/current-scalar-reports.json) | Named files and original fingerprints |
+| Earlier qualification | [Retained results](roadmap-status.md) | Original acceptance, current source checks and unfinished claims |
+| First project changes | [Project-change record](project-change-milestone.md) | Humanize's original attempt and failed development attempts |
+| Original-package questions | [Package records](package-milestones.md) | Original first attempts and their original auditors |
+| Complete session costs | [CLI/Python comparison](project-session-cost.md) | Matching answers, setup boundaries and measured overhead |
+| Stopped studies | [Candidate review](candidate-review-status.md) | Failed, cancelled and unstarted work |
+| Detailed history | [Evaluation index](evaluations.md) | Original sources, revisions, outputs and limits |
 
-A file fingerprint is a value computed from its contents.
-It detects an edit; it does not establish that an answer is correct.
-Current report selection names each file explicitly. A missing selection must fail.
+A fingerprint identifies file contents; it does not establish correctness.
+Do not rewrite an original hash to bless an edited source file.
+The previous CodeGraph comparison, broad repeated-task study and stopped studies are inactive.
 
-The [Python example receipt](../tests/agent-eval/results/2026-10-24-readable-docs-python-contract/manifest.json)
-records 495 programs and 990 original or renamed cases.
-It includes 370 incomplete cases, 18 refusals and 134 documented differences between the supported model and Python execution.
-These counts describe the checked examples, not complete Python support.
-Refresh this link and description when a new collection replaces it.
+## Refresh and validate the whole change
 
-## Refresh after changing code or instructions
+1. Integrate current main before freezing inputs.
+2. Finish code, instructions and recorded guide inputs before collecting results.
+3. Use the [hosted collection groups](ci.md) to refresh every affected record.
+   Keep original attempts and run the independent behavior checks.
+4. Regenerate the retained-results report and documentation on GitHub.
+   Confirm that this preserves earlier acceptance conditions while linking current work to PLAN.md.
+5. Run the full static gate and changed runnable lessons before the final PR gate.
+6. Check the full PR commit. Fix failures and timeout causes without raising limits or dropping coverage.
 
-1. Integrate current `main` before freezing the collection source.
-   A release can change the Python version file, which some reports record as an input.
-2. Finish implementation, examples and source-bound documentation before collecting.
-   Changing a guide or skill can change a report's input fingerprint even when runtime behavior stays the same.
-3. Use the hosted collection groups in the [CI guide](ci.md).
-   Refresh the affected records and preserve their originals. Never rewrite an old recorded hash to bless new inputs.
-4. Include the separate affected-code, project-change, package, session-cost and saved-answer checks when their recorded inputs change.
-   The general analysis group does not own all of them.
-5. Combine successful records, then run the hosted documentation review and roadmap generation on the combined branch.
-6. Run the full PR gate on the final commit. Fix every failure, including unrelated failures, before marking the PR ready.
-
-The [developer guide](development.md#refresh-retained-evidence) explains collection and retention.
-The original historical report uses its original auditor; current readers accept the current format.
-An old qualification does not turn a later familiar-project replay into another first attempt.
-
-## Agent comparisons and proofs
-
-The [eighteen-attempt preparation](agent-comparison-preparation.md) is scripted and makes no live model calls.
-The [comparison plan](product-review.md#first-comparison-with-codegraph) still needs agreed models, settings, prices and spending limits.
-The separate [repeated-task study](product-review.md#repeated-task-study) has a larger completion requirement.
-
-Keep the closed client investigation and stopped packaging study stopped.
-This handoff does not authorize new paid attempts.
-[R3](../PLAN.md#r3-prove-the-properties-of-the-code-we-ship) specifies the actual-code proof tasks; existing model theorems do not complete them.
-
-## Before running or publishing work
-
-Follow the [shared-workstation rules](development.md#working-on-a-shared-desktop).
 Builds, full tests and large collections run on GitHub.
-If the local guard refuses, move the work to a runner. Keep its limits.
+Follow the [workstation rules](development.md#working-on-a-shared-desktop); do not bypass a guard refusal.
+Dogfood fr on suitable changes and retain the reviewed edit and check results.
 
 Every commit message is one line of at most 80 characters, with no body, trailers or AI attribution.
-Wait for passing CI before merging. When authorized, squash with an explicit subject and empty body.
+When authorized to merge, wait for passing CI and squash with an explicit subject and empty body.
+This roadmap update authorizes no paid live study or merge.
 
-The [pre-cleanup handoff](https://github.com/e6qu/fun-refactor/blob/752af561fbd698f598f2786d3957c3d7e68a3180/docs/continuity.md)
-keeps the older investigation narrative. Current instructions and priorities live in the pages linked above.
+The [previous handoff](https://github.com/e6qu/fun-refactor/blob/c923d3cde7/docs/continuity.md) preserves its earlier starting point.
 
