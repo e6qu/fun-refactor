@@ -74,7 +74,11 @@
   "token_cap_enforced": false,
   "cache_state": "Fresh conversations and task folders. Operating-system and provider caches are uncontrolled; reported cached tokens are retained.",
   "accounting": "CLI-reported token categories are retained separately by client. Interrupted responses can leave usage incomplete. Billed account charges are unknown.",
-  "timing": "Complete local seconds include verification, fresh folder/Git setup, skill installation, CLI startup, model/tool/check work and result export. Shared environment preparation is separate.",
+  "timing": "Recorded local seconds start at controller attempt entry and include verification, fresh folder/Git setup, skill installation, CLI startup, model/tool/check work and result export. Controller Python startup and outer guard admission/startup are unmeasured. Shared environment preparation and independent GitHub grading are outside this timer.",
+  "unmeasured_per_attempt": {
+    "controller_python_startup_seconds": null,
+    "outer_guard_startup_seconds": null
+  },
   "shared_setup": {
     "fr_release_download_seconds": 1.67,
     "fr_archive_check_seconds": 0.13,

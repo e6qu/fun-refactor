@@ -207,6 +207,8 @@ The actual CLI transcripts stay local; model timings and token counts come from 
 GitHub independently applies and checks the patches, including exact undo/redo and delivery to another checkout.
 M1 uses its pinned original fr and checker source, so later development can proceed without rewriting the study's history.
 Changing a published pass or patch-check claim without a matching fresh result fails CI.
+Current project replays and complete CLI/Python session costs have separate required jobs.
+A failure in one cannot prevent the other from reporting stale inputs.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`
 condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
 needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).

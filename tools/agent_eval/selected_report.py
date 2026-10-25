@@ -117,7 +117,8 @@ def markdown(summary):
         lines.append(f'| {AGENTS[pair["profile"]]} | {pair["pairs"]} | {number(pair["ordinary_mean_seconds"])} | '
                      f'{number(pair["fr_mean_seconds"])} | {change} |')
     lines += ['', 'Positive time change means the fr setup took longer on those matching successes.',
-        'These complete attempt times include instructions, fresh task setup, indexing, model/tool/check work and export.',
+        'Recorded seconds start at controller attempt entry and include instructions, fresh task setup, indexing, CLI startup, model/tool/check work and export.',
+        'Controller Python startup and outer guard admission/startup are outside that timer and remain unmeasured.',
         'They do not isolate fr execution time or prove why a model took longer. Shared environment preparation is separate in [summary.json](summary.json).', '',
         'A token is a unit of text counted by a model. The next table uses those same matching successful pairs.',
         'It shows means of each CLI\'s reported categories, rather than account charges. Their conventions differ;',

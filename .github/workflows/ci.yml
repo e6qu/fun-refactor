@@ -160,7 +160,19 @@ jobs:
           recheck.audit(path.parent, binary, alternate)
           recheck.reject_false_claims(path.parent, binary, alternate)
           PY
-      - name: Audit current CLI and Python session measurements
+
+  current-session-cost:
+    name: Current CLI and Python session measurements
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit all session measurements independently of project replay
         run: |
           python3 -B - <<'PY'
           import hashlib, json, subprocess, sys
@@ -420,7 +432,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, selected-agents, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
+    needs: [native, static, agent-study, selected-agents, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -437,6 +449,7 @@ jobs:
           ORIGINAL_PACKAGES: ${{ needs.original-package-questions.result }}
           PROJECT_CHANGES: ${{ needs.project-changes.result }}
           CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
+          CURRENT_SESSION_COST: ${{ needs.current-session-cost.result }}
         run: |
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
@@ -447,7 +460,8 @@ jobs:
           test "$GO_TOOLCHAIN" = success &&
           test "$ORIGINAL_PACKAGES" = success &&
           test "$PROJECT_CHANGES" = success &&
-          test "$CURRENT_PROJECT_CHANGES" = success
+          test "$CURRENT_PROJECT_CHANGES" = success &&
+          test "$CURRENT_SESSION_COST" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
