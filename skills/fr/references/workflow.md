@@ -1,8 +1,5 @@
 # Deliver one verified transaction
 
-For coordinated edits, choose [Task](task.md), [Goal](guide.md) or [Intent](intents.md).
-Keep reports in the [Python client](runtime.md) when needed. For page styles or services, inspect [Surfaces](surfaces.md).
-
 Deliver the reviewed change only after its required checks pass. Keep its saved transaction so you can inspect or reverse a failed attempt.
 
 A transaction saves an edit. A workflow applies it, runs declared checks and delivers its patch. A failed check can leave the source edited.
@@ -37,6 +34,9 @@ and `names`. Replace every placeholder and preserve the exact hyphenated field n
 `exercise-reversal` checks apply, undo and redo states in order. Optional
 `patch.output` creates a new relative Git patch only after all stages pass. `check-output-bytes`
 bounds retained failure streams.
+Set `exercise-reversal` to true only when the same checks also accept the original code.
+For a repair or feature, false is appropriate: undo restores the original mistake or missing feature, which new tests should reject.
+Use the [history commands](history.md) to review undo and redo separately.
 
 Review the preview's stage list, full resolved bases, check coverage, patch digest and destination.
 Copy its `workflow_basis` into the write. This omits that unchanged preflight envelope.

@@ -119,6 +119,44 @@ jobs:
           path: ${{ runner.temp }}/m2-native/summary.json
           if-no-files-found: error
           retention-days: 30
+  skill-examples:
+    name: Execute every example in the current fr skill
+    needs: delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '1'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/download-artifact@v8
+        with:
+          name: m2-linux-tool
+          path: ${{ runner.temp }}/m2-skill-tool
+      - run: chmod +x "$RUNNER_TEMP/m2-skill-tool/fr"
+      - name: Check the real commands, examples and existing context limits
+        shell: bash
+        run: >-
+          python3 -B tools/check-agent-skill.py --fr "$RUNNER_TEMP/m2-skill-tool/fr"
+          2>&1 | tee "$RUNNER_TEMP/m2-skill-examples.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-current-skill-examples
+          path: ${{ runner.temp }}/m2-skill-examples.log
+          if-no-files-found: error
+          retention-days: 30
   macos-tool:
     name: Build the exact fr binary for local agent attempts
     needs: delivery

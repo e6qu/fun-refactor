@@ -337,13 +337,10 @@ def author_workflow(exercise, root):
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])
             exercise.values["<TRANSACTION_CONTEXT_BASIS>"] = value["transaction_context_basis"]
-        if "--write" in command:
-            assert value["applied"]
-            if "--no-diff" in command and "--context-basis" not in command:
-                assert value["diffs_omitted"]
-            if "--context-basis" in command:
-                assert value["context_omitted"] == ["changes[].diff"]
-                assert all("diff" not in change for change in value["changes"])
+    applied, _ = exercise.run(root, ["history", "apply", exercise.values["<AUTHOR_TX>"], "--write", "--no-diff",
+                                     "--context-basis", exercise.values["<TRANSACTION_CONTEXT_BASIS>"]])
+    assert applied["applied"] and applied["context_omitted"] == ["changes[].diff"]
+    assert all("diff" not in change for change in applied["changes"])
     changed = source.read_text()
     assert changed.startswith("//! Skill fixture.") and changed != original
     assert fragment.read_text().strip() in changed

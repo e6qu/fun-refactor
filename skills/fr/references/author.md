@@ -1,49 +1,44 @@
-# Author selected code
+# Prepare one complete change
 
-For a bug in one function, preview a replacement body, its implementation. A handle selects the function; a batch groups edits. Check the behavior afterward.
+A function body holds its executable statements.
+A parameter is an input in its declaration; an argument is a value supplied by a caller.
+Use `project find NAME --in FILE --source` to select a declaration.
+For insertion, use that query's `root` file handle for the destination file.
 
-`fr author` edits bodies, semantic deltas, scalar plans, Rust declarations and imports.
-Batches accept 32 disjoint operations. Coordinate callers after signature changes.
+Choose an operation and save its contents in an extensionless fragment under `.fr/`:
 
-Use `fr author guide` for machine-readable operations, limits and transitions.
+| Change | Operation | Fragment |
+| --- | --- | --- |
+| Replace a body | `replace-body` | New body; include Rust/TypeScript braces, omit the Python function's outer indentation |
+| Rename a function | `refactor` | `{"operation":"rename","name":"NEW_NAME","documentation":"preserve"}` |
+| Remove an unused Rust parameter | `refactor` | `{"operation":"remove-parameter","index":0}`; positions start at zero |
+| Add a Rust function | `insert-declaration` | Complete declaration and documentation comment |
 
-Use `project select NAME... --source` for several declarations, including duplicate names.
-Use `project find NAME --in FILE --source` for one; `root` is its file handle.
-Module/trait rows select containers; method rows select their impl/trait.
+Rename supports Rust, Python and TypeScript functions outside classes or type implementation blocks.
+It updates resolved uses and preserves explicit import aliases.
+Parameter removal updates declared direct callers. The discarded argument must be a literal, such as `false`.
+Retained expressions keep their evaluation order. Refuse removal of an argument with effects, such as `record()`.
+External consumers remain unknown; read warnings and review every affected file.
 
-Fragments fit 64 KiB. Operations need `op` and `handle`; fragments add `from`.
-`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`.
-`edit-body-disclosed` adds `disclosed: {edit,to}`.
-`edit-body-disclosed-ir` adds `disclosed_ir: {edit,value?}`; replacement/insertion values are inline;
-deletions omit `value`. Both use their paired full handle. Short IDs need top-level `revision`;
-`organize-imports` takes a file handle. Operations use original source; overlaps refuse.
-Postconditions can constrain changed files, edits, operations and paths.
-Fragment paths are project-relative or absolute.
-
-Review the diff and retain `plan_context_basis`. Repeat it with
-`--save-plan --plan-basis BASIS`; drift or clipping refuses before persistence. The result's
-`transaction_context_basis` compacts forward application. Plan bases start with `frpb1`;
-project bases (`frcb1`) cannot save plans.
-
-Rust insertion preserves bytes and docs; only traits allow bodyless functions. Replace bodies in
-Rust, Go, Java, Python and supported JavaScript/TypeScript/TSX bindings; arrows may change form.
-Python fragments are relative suites, including decorated sync/async handlers.
-For replacements using structured records and smaller checked changes, see [Semantic](semantic.md).
-
+For example, replace `increment`'s body with `{ value + 1 }` and add this helper.
+Save the body and declaration in separate fragment files:
 ```rust
 /// Calls increment twice.
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }
 ```
-
-Save `<MANIFEST>` with the declaration handle and new body file:
+A manifest groups disjoint operations from one source revision. Substitute the fragment paths,
+the declaration handle and the file query's `root` handle:
 ```json
-{"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":"<BODY_FILE>"}]}
+{"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":"<BODY_FILE>"},{"op":"insert-declaration","handle":"<FILE_HANDLE>","from":"<FRAGMENT>"}]}
 ```
-
+Store the manifest under `.fr/`, outside indexed source, so it does not stale the handles.
+Preview the complete diff, then copy its `plan_context_basis` to save the reviewed plan:
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
 fr author batch --from '<MANIFEST>'
 fr author batch --from '<MANIFEST>' --save-plan --plan-basis '<PLAN_CONTEXT_BASIS>'
-fr history apply '<AUTHOR_TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
-Continue source with `next_offset`. Run [checks](checks.md); retain the transaction for [history](history.md) and [patch export](git.md).
+After saving, use [Workflow](workflow.md) to apply, check and deliver.
+The saved plan's `transaction` identifies the edit; retain its `transaction_context_basis` too.
+Drift, clipping and overlaps refuse. Limits: 32 operations and 64 KiB fragments.
+Use [Semantic](semantic.md) for structured body changes; `fr author guide` lists other operations.
