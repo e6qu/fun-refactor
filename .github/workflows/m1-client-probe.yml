@@ -14,18 +14,23 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             tools
+            sdk/python/src
             tests/agent-eval/selected-agents
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
       - name: Check the complete M1 attempt schedule without model calls
-        run: python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
+        shell: bash
+        run: >-
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_selected*.py' -v
+          2>&1 | tee "$RUNNER_TEMP/m1-unit-tests.log"
       - run: python3 -B tools/selected-agent-probe.py --output "$RUNNER_TEMP/m1-clients"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: m1-client-probe
           path: |
+            ${{ runner.temp }}/m1-unit-tests.log
             ${{ runner.temp }}/m1-clients/**/*.stdout
             ${{ runner.temp }}/m1-clients/**/*.stderr
             ${{ runner.temp }}/m1-clients/**/archive-members.json
@@ -37,6 +42,7 @@ jobs:
           retention-days: 30
   tasks:
     name: Independent rename, Unicode and proof checks
+    needs: clients
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -59,6 +65,7 @@ jobs:
             catalogs
             kernels
             tools
+            sdk/python/src
             tests/agent-eval/selected-agents
             tests/agent-eval/project-changes
             tests/agent-eval/python-repositories
