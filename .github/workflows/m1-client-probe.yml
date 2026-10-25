@@ -131,11 +131,10 @@ jobs:
           python3 -B -m agent_eval.selected_grading --fr target/debug/fr
           --output "$RUNNER_TEMP/m1-private-grading"
       - name: Independently check retained local CLI attempts and their submitted patches
-        if: hashFiles('tests/agent-eval/selected-agents/local-results/summary.json') != ''
         run: >-
           python3 -B -m agent_eval.selected_local_grade
           --data tests/agent-eval/selected-agents/local-results --fr target/debug/fr
-          --output "$RUNNER_TEMP/m1-live-grading" --completion partial
+          --output "$RUNNER_TEMP/m1-live-grading" --completion complete
       - uses: actions/upload-artifact@v7
         if: always()
         with:

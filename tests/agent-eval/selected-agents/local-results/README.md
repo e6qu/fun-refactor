@@ -24,35 +24,35 @@ Each proof attempt starts with the same generated model and unfinished claim. Mo
 | Codex Luna Fast | Access-rule proof | ordinary | 1 | passed | 22.043 | [patch](patches/codex-luna-fast-access-proof-files-1.patch) |
 | Codex Luna Fast | Access-rule proof | ordinary + fr | 1 | passed | 38.488 | [patch](patches/codex-luna-fast-access-proof-fr-1.patch) |
 | OpenCode2 GLM Flash | Python rename | ordinary + fr | 1 | failed | 151.019 | none |
-| OpenCode2 GLM Flash | Python rename | ordinary | 1 | time limit | 150.957 | none |
-| OpenCode2 GLM Flash | Unicode repair | ordinary | 1 | time limit | 150.962 | none |
-| OpenCode2 GLM Flash | Unicode repair | ordinary + fr | 1 | time limit | 150.911 | none |
-| OpenCode2 GLM Flash | Access-rule proof | ordinary + fr | 1 | awaiting check | 113.755 | [patch](patches/opencode2-glm-flash-access-proof-fr-1.patch) |
-| OpenCode2 GLM Flash | Access-rule proof | ordinary | 1 | awaiting check | 111.324 | [patch](patches/opencode2-glm-flash-access-proof-files-1.patch) |
-| OpenCode2 Kimi K3 | Python rename | ordinary | 1 | awaiting check | 93.213 | [patch](patches/opencode2-kimi-k3-boltons-rename-files-1.patch) |
-| OpenCode2 Kimi K3 | Python rename | ordinary + fr | 1 | awaiting check | 135.421 | [patch](patches/opencode2-kimi-k3-boltons-rename-fr-1.patch) |
-| OpenCode2 Kimi K3 | Unicode repair | ordinary + fr | 1 | time limit | 150.81 | none |
-| OpenCode2 Kimi K3 | Unicode repair | ordinary | 1 | awaiting check | 136.807 | [patch](patches/opencode2-kimi-k3-unicode-dice-files-1.patch) |
-| OpenCode2 Kimi K3 | Access-rule proof | ordinary | 1 | not started | — | none |
-| OpenCode2 Kimi K3 | Access-rule proof | ordinary + fr | 1 | not started | — | none |
-| Codex Luna Fast | Python rename | ordinary + fr | 2 | not started | — | none |
-| Codex Luna Fast | Python rename | ordinary | 2 | not started | — | none |
-| Codex Luna Fast | Unicode repair | ordinary | 2 | not started | — | none |
-| Codex Luna Fast | Unicode repair | ordinary + fr | 2 | not started | — | none |
-| Codex Luna Fast | Access-rule proof | ordinary + fr | 2 | not started | — | none |
-| Codex Luna Fast | Access-rule proof | ordinary | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Python rename | ordinary | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Python rename | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Unicode repair | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Unicode repair | ordinary | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Access-rule proof | ordinary | 2 | not started | — | none |
-| OpenCode2 GLM Flash | Access-rule proof | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Python rename | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Python rename | ordinary | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Unicode repair | ordinary | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Unicode repair | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Access-rule proof | ordinary + fr | 2 | not started | — | none |
-| OpenCode2 Kimi K3 | Access-rule proof | ordinary | 2 | not started | — | none |
+| OpenCode2 GLM Flash | Python rename | ordinary | 1 | failed | 150.957 | none |
+| OpenCode2 GLM Flash | Unicode repair | ordinary | 1 | failed | 150.962 | none |
+| OpenCode2 GLM Flash | Unicode repair | ordinary + fr | 1 | failed | 150.911 | none |
+| OpenCode2 GLM Flash | Access-rule proof | ordinary + fr | 1 | passed | 113.755 | [patch](patches/opencode2-glm-flash-access-proof-fr-1.patch) |
+| OpenCode2 GLM Flash | Access-rule proof | ordinary | 1 | passed | 111.324 | [patch](patches/opencode2-glm-flash-access-proof-files-1.patch) |
+| OpenCode2 Kimi K3 | Python rename | ordinary | 1 | passed | 93.213 | [patch](patches/opencode2-kimi-k3-boltons-rename-files-1.patch) |
+| OpenCode2 Kimi K3 | Python rename | ordinary + fr | 1 | passed | 135.421 | [patch](patches/opencode2-kimi-k3-boltons-rename-fr-1.patch) |
+| OpenCode2 Kimi K3 | Unicode repair | ordinary + fr | 1 | failed | 150.81 | none |
+| OpenCode2 Kimi K3 | Unicode repair | ordinary | 1 | passed | 136.807 | [patch](patches/opencode2-kimi-k3-unicode-dice-files-1.patch) |
+| OpenCode2 Kimi K3 | Access-rule proof | ordinary | 1 | awaiting check | 38.047 | [patch](patches/opencode2-kimi-k3-access-proof-files-1.patch) |
+| OpenCode2 Kimi K3 | Access-rule proof | ordinary + fr | 1 | awaiting check | 59.309 | [patch](patches/opencode2-kimi-k3-access-proof-fr-1.patch) |
+| Codex Luna Fast | Python rename | ordinary + fr | 2 | awaiting check | 44.961 | [patch](patches/codex-luna-fast-boltons-rename-fr-2.patch) |
+| Codex Luna Fast | Python rename | ordinary | 2 | awaiting check | 34.062 | [patch](patches/codex-luna-fast-boltons-rename-files-2.patch) |
+| Codex Luna Fast | Unicode repair | ordinary | 2 | awaiting check | 35.571 | [patch](patches/codex-luna-fast-unicode-dice-files-2.patch) |
+| Codex Luna Fast | Unicode repair | ordinary + fr | 2 | awaiting check | 41.718 | [patch](patches/codex-luna-fast-unicode-dice-fr-2.patch) |
+| Codex Luna Fast | Access-rule proof | ordinary + fr | 2 | awaiting check | 32.619 | [patch](patches/codex-luna-fast-access-proof-fr-2.patch) |
+| Codex Luna Fast | Access-rule proof | ordinary | 2 | awaiting check | 33.439 | [patch](patches/codex-luna-fast-access-proof-files-2.patch) |
+| OpenCode2 GLM Flash | Python rename | ordinary | 2 | awaiting check | 123.745 | [patch](patches/opencode2-glm-flash-boltons-rename-files-2.patch) |
+| OpenCode2 GLM Flash | Python rename | ordinary + fr | 2 | time limit | 150.911 | none |
+| OpenCode2 GLM Flash | Unicode repair | ordinary + fr | 2 | time limit | 150.839 | none |
+| OpenCode2 GLM Flash | Unicode repair | ordinary | 2 | time limit | 150.872 | none |
+| OpenCode2 GLM Flash | Access-rule proof | ordinary | 2 | awaiting check | 126.956 | [patch](patches/opencode2-glm-flash-access-proof-files-2.patch) |
+| OpenCode2 GLM Flash | Access-rule proof | ordinary + fr | 2 | time limit | 150.919 | [patch](patches/opencode2-glm-flash-access-proof-fr-2.patch) |
+| OpenCode2 Kimi K3 | Python rename | ordinary + fr | 2 | awaiting check | 108.848 | [patch](patches/opencode2-kimi-k3-boltons-rename-fr-2.patch) |
+| OpenCode2 Kimi K3 | Python rename | ordinary | 2 | awaiting check | 125.712 | [patch](patches/opencode2-kimi-k3-boltons-rename-files-2.patch) |
+| OpenCode2 Kimi K3 | Unicode repair | ordinary | 2 | awaiting check | 112.881 | [patch](patches/opencode2-kimi-k3-unicode-dice-files-2.patch) |
+| OpenCode2 Kimi K3 | Unicode repair | ordinary + fr | 2 | awaiting check | 134.662 | [patch](patches/opencode2-kimi-k3-unicode-dice-fr-2.patch) |
+| OpenCode2 Kimi K3 | Access-rule proof | ordinary + fr | 2 | awaiting check | 51.005 | [patch](patches/opencode2-kimi-k3-access-proof-fr-2.patch) |
+| OpenCode2 Kimi K3 | Access-rule proof | ordinary | 2 | awaiting check | 47.301 | [patch](patches/opencode2-kimi-k3-access-proof-files-2.patch) |
 
 Independent outcomes will be added from the GitHub checker. A model proof does not establish the original source/model connection.
 See [PLAN.md](../../../../PLAN.md#m1-run-the-selected-agents-on-three-complete-tasks) for completion conditions.

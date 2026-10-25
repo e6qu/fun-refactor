@@ -1,0 +1,45 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 6a3b098..aec5525 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -729,7 +729,10 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         return 1.0;
+     }
+ 
+-    if a.len() < 2 || b.len() < 2 {
++    let a_len = a.chars().count();
++    let b_len = b.chars().count();
++
++    if a_len < 2 || b_len < 2 {
+         return 0.0;
+     }
+ 
+@@ -750,7 +753,7 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
+         });
+     }
+ 
+-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64
++    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64
+ }
+ 
+ #[cfg(test)]
+@@ -1304,4 +1307,19 @@ mod tests {
+             sorensen_dice("this has one extra word", "this has one word")
+         );
+     }
++
++    #[test]
++    fn sorensen_dice_unicode() {
++        // bigrams are counted over Unicode scalar values, not bytes
++        assert_delta!(2.0 / 3.0, sorensen_dice("éa", "éab"));
++        assert_delta!(2.0 / 3.0, sorensen_dice("é a", "éa b"));
++        assert_delta!(1.0, sorensen_dice("éa", "éa"));
++        assert_delta!(1.0, sorensen_dice("é a", "éa"));
++        assert_delta!(0.0, sorensen_dice("é", "éa"));
++        assert_delta!(0.0, sorensen_dice("éa", "é"));
++        assert_delta!(0.0, sorensen_dice("é", "ä"));
++        // duplicate bigrams keep their multiplicity
++        assert_delta!(1.0, sorensen_dice("éaéa", "éaéa"));
++        assert_delta!(0.5, sorensen_dice("éaéa", "éa"));
++    }
+ }
