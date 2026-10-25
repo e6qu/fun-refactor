@@ -1,6 +1,7 @@
 """Execute the complete Lean lesson without adding Lean to Python-only checks."""
 import argparse
 import json
+import shlex
 from pathlib import Path
 import tempfile
 
@@ -51,7 +52,6 @@ def check(binary, folder):
     assert any(row['name'].endswith('keepModel_identity') and row['status'] == 'checked_by_lean'
                for row in evidence['properties'])
     return commands
-
 
 
 if __name__ == '__main__':
