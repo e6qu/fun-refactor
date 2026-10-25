@@ -34,7 +34,8 @@ Use a fresh application state for each attempt. Reject a model substitution; do 
 
 The selected releases now pass [six scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873),
 one per profile and tool setup. They execute real commands with scripted model replies;
-they do not show that a live model can complete a task. All thirty-six live attempts remain unstarted.
+they do not show that a live model can complete a task.
+The [local attempt record](tests/agent-eval/selected-agents/local-results/README.md) tracks the thirty-six live attempts.
 Fast is a Codex service setting, not another Luna model.
 See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).
 

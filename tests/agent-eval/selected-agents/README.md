@@ -52,6 +52,10 @@ OpenCode2 also limits the selected build agent to 32 steps. Codex has no matchin
 The ordinary-tools setup has no fr command on its PATH or project fr skill; both setups retain ordinary tools.
 Local execution uses native client permissions and the workstation guard, rather than a container filesystem boundary.
 Independent checking still runs in separate GitHub containers, including rejection of missing or incorrect submitted patches.
+Only the submitted patches and a concise summary are published. Full CLI logs, prompts, session exports,
+working-source archives and execution packets remain local, as the user requested.
+GitHub applies each submitted patch to the trusted original inside its private checker, then checks behavior or the fixed proof claim,
+checks a separate receiver, and verifies exact undo and redo.
 
 ## Read the inputs and results honestly
 

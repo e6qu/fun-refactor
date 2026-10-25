@@ -41,7 +41,9 @@ One unchanged repetition gives thirty-six attempts.
 Rotate setup order and keep all outcomes.
 These familiar tasks measure development progress; they are not new unread-project qualifications.
 
-Before live calls, agree and record exact client releases, model IDs, reasoning, speed, prices, providers, spending caps and attempt limits.
+The user selected the installed local CLIs with their existing account stores; credentials stay local.
+Freeze exact client releases, model IDs, reasoning, speed, providers and enforced attempt limits before live calls.
+Record limits the CLIs cannot enforce and keep unavailable account charges unknown.
 Read effective settings from the application and reject substitutions.
 Keep auxiliary model calls in the same accounting.
 Configured credentials and a catalog listing do not establish successful access.

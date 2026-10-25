@@ -236,7 +236,7 @@ def attempt(plan_path, attempt_id):
             observed = verify_export(saved, profile, session, events)
             tasks.save(output / 'session-export.json', saved)
             report['usage']['exported'] = observed
-            if saved['info']['outcome'] != 'succeeded':
+            if observed['outcome'] != 'succeeded':
                 report['status'] = 'failed'
         elif profile['client'] == 'codex' and report['usage']['complete_turns'] != 1:
             report['status'] = 'failed'

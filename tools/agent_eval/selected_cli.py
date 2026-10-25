@@ -63,4 +63,5 @@ def verify_export(saved, profile, session, events):
             'native stream and exported usage differ')
     return {'model_observed': bool(assistants), 'session_model': saved['info']['model'],
             'exported_assistant_responses': len(assistants), 'stream_finished_responses': len(steps),
-            'outcome': saved['info']['outcome']}
+            'unfinished_assistant_responses': sum(message.get('finish') not in {'stop', 'tool-calls'} for message in assistants),
+            'outcome': saved['info'].get('outcome')}

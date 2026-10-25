@@ -1,6 +1,6 @@
 """Private M1 checking process; candidate programs run only inside this container."""
 import argparse
-import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,7 +17,7 @@ def check_boundary():
             status['NoNewPrivs'].strip() == '1', 'private checks need an unprivileged process with no capabilities')
     require({name for _, name in socket.if_nameindex()} == {'lo'}, 'private grader has an external network interface')
     require(not Path('/var/run/docker.sock').exists(), 'private grader can see the runner Docker socket')
-    readonly = ['/candidate', '/inputs/original', '/inputs/project.json', '/inputs/delivery.json', '/inputs/change.patch',
+    readonly = ['/inputs/original', '/inputs/project.json', '/inputs/delivery.json', '/inputs/change.patch',
                 '/review/tools', '/opt/rust', '/opt/lean', '/opt/tool/bin/fr']
     require(all(os.statvfs(path).f_flag & os.ST_RDONLY for path in readonly), 'private source or tool mount is writable')
     return {'uid': os.geteuid(), 'effective_capabilities': 0, 'new_privileges_allowed': False,
@@ -28,58 +28,47 @@ def run(task):
     require(Path('/.dockerenv').is_file(), 'the private grader requires its container')
     require(not any(name.startswith(('GITHUB_', 'ACTIONS_')) for name in os.environ),
             'runner credentials and environment must stay outside the private grader')
-    original, candidate = Path('/inputs/original'), Path('/candidate')
+    original = Path('/inputs/original')
     prepared = json.loads(Path('/inputs/project.json').read_text())
     require(prepared['task'] == task and tasks.sources(original) == prepared['original'],
             'private original differs from the prepared task')
     root = Path('/workspace')
     original_sources = tasks.sources(original)
-    candidate_sources = tasks.sources(candidate)
     changed = root / 'changed'
     shutil.copytree(original, changed)
     tasks.comparison_grade.BASE.initialize(changed)
-    for name in original_sources:
-        (changed / name).unlink()
-    for name in candidate_sources:
-        destination = changed / name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(candidate / name, destination)
-    require(tasks.sources(changed) == candidate_sources, 'private copy differs from the candidate')
-    # Boundaries reject additional paths before any candidate code is executed.
-    try:
-        tasks.unchanged_boundaries(task, changed, prepared)
-    except ValueError as error:
-        return {'passed': False, 'stage': 'source boundaries', 'reason': str(error),
-                'candidate': candidate_sources, 'patch_base64': None}
     delivery = json.loads(Path('/inputs/delivery.json').read_text())
     patch = Path('/inputs/change.patch').read_bytes()
     require(len(patch) <= 1024**2, 'delivered patch exceeds 1 MiB')
-    binary = Path('/opt/tool/bin/fr')
-    verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')
-    require(tasks.sources(changed) == candidate_sources, 'candidate checks changed the delivered source')
-    result = {'passed': False, 'candidate': candidate_sources, 'changed': verdict,
-              'patch_base64': base64.b64encode(patch).decode(), 'undo_exact': False, 'redo_exact': False}
-    if not verdict['passed']:
-        return result
-    result['stage'] = 'delivery'
+    result = {'passed': False, 'stage': 'delivery', 'undo_exact': False, 'redo_exact': False,
+              'submitted_patch_sha256': hashlib.sha256(patch).hexdigest() if delivery['provided'] else None}
     if not delivery['provided'] or not patch:
         return {**result, 'reason': 'the agent did not deliver a nonempty patch'}
-    receiver = root / 'receiver'
-    shutil.copytree(original, receiver)
-    tasks.comparison_grade.BASE.initialize(receiver)
-    inspected = tasks.comparison_grade.BASE.git(receiver, 'apply', '--numstat', '-z', '-', data=patch, check=False)
+    inspected = tasks.comparison_grade.BASE.git(changed, 'apply', '--numstat', '-z', '-', data=patch, check=False)
     if inspected.returncode != 0:
         return {**result, 'reason': 'the delivered patch cannot be read', 'stderr': inspected.stderr.decode(errors='replace')}
     paths = [entry.split(b'\t', 2)[2].decode() for entry in inspected.stdout.split(b'\0') if entry]
-    if len(paths) != len(set(paths)) or set(paths) != set(verdict['changed_paths']):
-        return {**result, 'reason': 'patch paths differ from the delivered source changes', 'patch_paths': paths}
-    applicable = tasks.comparison_grade.BASE.git(receiver, 'apply', '--check', '-', data=patch, check=False)
+    permitted = ({'src/lib.rs'} if task == 'unicode-dice' else
+                 {tasks.PROOF_PATH} if task == 'access-proof' else set(prepared['rename_paths']))
+    if not paths or len(paths) != len(set(paths)) or not set(paths) <= permitted:
+        return {**result, 'reason': 'patch changes paths outside the task', 'patch_paths': paths}
+    applicable = tasks.comparison_grade.BASE.git(changed, 'apply', '--check', '-', data=patch, check=False)
     if applicable.returncode != 0:
         return {**result, 'reason': 'the delivered patch does not apply to the original',
                 'stderr': applicable.stderr.decode(errors='replace')}
+    tasks.comparison_grade.BASE.git(changed, 'apply', '-', data=patch)
+    candidate_sources = tasks.sources(changed)
+    binary = Path('/opt/tool/bin/fr')
+    verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')
+    result.update(stage='source checks', changed=verdict)
+    require(tasks.sources(changed) == candidate_sources, 'candidate checks changed the delivered source')
+    if not verdict['passed']:
+        return result
+    receiver = root / 'receiver'
+    shutil.copytree(original, receiver)
+    tasks.comparison_grade.BASE.initialize(receiver)
     tasks.comparison_grade.BASE.git(receiver, 'apply', '-', data=patch)
-    if tasks.sources(receiver) != candidate_sources:
-        return {**result, 'reason': 'the delivered patch differs from the candidate source or modes'}
+    require(tasks.sources(receiver) == candidate_sources, 'receiver differs from the submitted patch')
     result['receiver'] = tasks.check(task, receiver, prepared, binary, root / 'receiver-checks')
     require(tasks.sources(receiver) == candidate_sources, 'receiver checks changed the delivered source')
     tasks.comparison_grade.BASE.git(receiver, 'apply', '--reverse', '-', data=patch)

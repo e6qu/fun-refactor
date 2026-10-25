@@ -70,7 +70,7 @@ class SelectedLocalTests(unittest.TestCase):
         profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}
         saved = {'info': {'id': 'ses_example', 'agent': 'build', 'model': profile['model'], 'outcome': 'succeeded'},
                  'messages': [{'type': 'agent-switched', 'agent': 'build'},
-                     {'id': 'msg_example', 'type': 'assistant', 'agent': 'build', 'model': profile['model'],
+                     {'id': 'msg_example', 'type': 'assistant', 'agent': 'build', 'model': profile['model'], 'finish': 'stop',
                       'tokens': {'input': 2, 'output': 1}, 'cost': 0}]}
         events = [{'type': 'step_finish', 'part': {'messageID': 'msg_example', 'tokens': {'input': 2, 'output': 1}, 'cost': 0}}]
         result = verify_export(saved, profile, 'ses_example', events)
@@ -82,6 +82,20 @@ class SelectedLocalTests(unittest.TestCase):
         events[0]['part']['tokens']['input'] = 0
         with self.assertRaisesRegex(ValueError, 'usage differ'):
             verify_export(saved, profile, 'ses_example', events)
+
+    def test_interrupted_v2_session_retains_an_absent_final_outcome_and_unknown_usage(self):
+        profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'high'}}
+        saved = {'info': {'id': 'ses_interrupted', 'agent': 'build', 'model': profile['model']},
+                 'messages': [{'id': 'msg_partial', 'type': 'assistant', 'agent': 'build', 'model': profile['model'],
+                               'finish': 'error', 'tokens': None, 'cost': None}]}
+        result = verify_export(saved, profile, 'ses_interrupted', [])
+        self.assertIsNone(result['outcome'])
+        self.assertEqual(result['unfinished_assistant_responses'], 1)
+        self.assertEqual(result['stream_finished_responses'], 0)
+        self.assertTrue(result['model_observed'])
+        self.assertIsNone(saved['messages'][0]['tokens'])
+        del saved['messages'][0]['finish']
+        self.assertEqual(verify_export(saved, profile, 'ses_interrupted', [])['unfinished_assistant_responses'], 1)
 
 
 if __name__ == '__main__':

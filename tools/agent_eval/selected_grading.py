@@ -74,7 +74,7 @@ def command(image, name, mounts, task):
     return arguments + [image, 'python3', '-B', '-m', 'agent_eval.selected_grade_probe', '--task', task]
 
 
-def grade(image, task, candidate, original, prepared, binary, rust, patch, output):
+def grade(image, task, original, prepared, binary, rust, patch, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'grade on GitHub under the workstation rules')
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -85,17 +85,18 @@ def grade(image, task, candidate, original, prepared, binary, rust, patch, outpu
     with tempfile.TemporaryDirectory(prefix='fr-m1-grade-') as temporary:
         inputs = Path(temporary)
         inputs.chmod(0o755)
-        report['candidate'] = stage(candidate, inputs / 'candidate')
-        stage(original, inputs / 'original')
+        report['original'] = stage(original, inputs / 'original')
         tasks.save(inputs / 'project.json', prepared)
         tasks.save(inputs / 'delivery.json', {'provided': patch is not None})
         if patch is not None:
             require(patch.is_file() and not patch.is_symlink() and patch.stat().st_size <= 1024**2,
                     'delivered patch must be a regular file of at most 1 MiB')
             shutil.copyfile(patch, inputs / 'change.patch')
+            report['submitted_patch_sha256'] = tasks.digest(patch)
         else:
             (inputs / 'change.patch').write_bytes(b'')
-        mounts = [(inputs / 'candidate', '/candidate'), (inputs / 'original', '/inputs/original'),
+            report['submitted_patch_sha256'] = None
+        mounts = [(inputs / 'original', '/inputs/original'),
             (inputs / 'project.json', '/inputs/project.json'), (inputs / 'delivery.json', '/inputs/delivery.json'),
             (inputs / 'change.patch', '/inputs/change.patch'), (binary, '/opt/tool/bin/fr'),
             (rust, '/opt/rust'), (Path('/opt/lean'), '/opt/lean'),
@@ -119,7 +120,8 @@ def grade(image, task, candidate, original, prepared, binary, rust, patch, outpu
                 require(process['exit_code'] == 0 and not process['stop_reason'], 'private grader stopped; inspect its stdout and stderr')
                 report['verdict'] = json.loads(stdout)
                 require('harness_error' not in report['verdict'], 'private grader reported an internal error')
-                require(report['verdict']['candidate'] == report['candidate']['files'], 'grader examined different source')
+                require(report['verdict']['submitted_patch_sha256'] == report['submitted_patch_sha256'],
+                        'grader examined a different submitted patch')
                 scope.check()
             except Exception as error:
                 report['error'] = type(error).__name__ + ': ' + str(error)
@@ -164,15 +166,34 @@ def controls(binary, output):
                     if variant != 'unchanged':
                         tasks.prescribed_change(task, 'reference' if variant in {'missing-patch', 'wrong-patch'} else variant,
                                                 candidate, binary, actions)
+                    if variant == 'unchanged':
+                        path = candidate / ({'boltons-rename': 'boltons/mathutils.py', 'unicode-dice': 'src/lib.rs',
+                                             'access-proof': tasks.PROOF_PATH}[task])
+                        text = path.read_text()
+                        if task == 'access-proof':
+                            require(text.count('  sorry\n') == 1, 'proof control needs its original one-line proof gap')
+                        path.write_text(text.replace('  sorry\n', '  sorry -- unchanged proof\n', 1) if task == 'access-proof'
+                                        else text + ('\n# unchanged implementation\n' if task == 'boltons-rename'
+                                                     else '\n// unchanged implementation\n'))
+                    if variant == 'incomplete' and task == 'access-proof':
+                        path = candidate / tasks.PROOF_PATH
+                        text = path.read_text()
+                        require(text.count('  sorry\n') == 1, 'incomplete control needs its original proof gap')
+                        path.write_text(text.replace('  sorry\n', '  cases staff\n', 1))
                     patch = actions / 'change.patch'
                     patch.write_bytes(tasks.comparison_grade.BASE.git(candidate, 'diff', '--binary', 'HEAD').stdout
                                       if variant != 'wrong-patch' else b'not a Git patch\n')
-                    result = grade(image, task, candidate, original, prepared, binary, rust,
+                    result = grade(image, task, original, prepared, binary, rust,
                                    None if variant == 'missing-patch' else patch, output / identity)
                     require(result['passed'] == (variant == 'reference'), 'unexpected private grading outcome: ' + identity)
                     if variant in {'missing-patch', 'wrong-patch'}:
-                        require(result['verdict']['changed']['passed'] and result['verdict']['stage'] == 'delivery',
-                                'delivery control failed before checking the patch')
+                        require(result['verdict']['stage'] == 'delivery', 'invalid patch was not rejected at delivery')
+                    if variant in {'unchanged', 'incomplete'}:
+                        require('changed' in result['verdict'] and not result['verdict']['changed']['passed'],
+                                'negative implementation control did not reach the independent code checks')
+                        if task == 'access-proof':
+                            require(result['verdict']['changed']['stage'] in {'strict proof check', 'Lean package check'},
+                                    'negative proof control did not reach proof validation')
                     summary['controls'][identity] = {'status': 'passed', 'accepted_change': result['passed']}
         summary['passed'] = True
         return summary

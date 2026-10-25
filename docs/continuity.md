@@ -26,7 +26,8 @@ The three prepared tasks also pass controls with supplied correct and incorrect 
 
 These are familiar development tasks.
 The first matched schedule has eighteen attempts; one unchanged repetition gives thirty-six.
-All thirty-six live attempts remain unstarted. Keep their results separate from supplied control answers.
+The [local attempt record](../tests/agent-eval/selected-agents/local-results/README.md) tracks current progress through the thirty-six attempts.
+Keep those results separate from supplied control answers.
 Freeze the local runtime, task inputs and CLI commands before launching the study.
 Each attempt has a 150-second limit inside the unchanged 180-second workstation guard.
 Keep independent checking in private GitHub containers and test the agent's actual submitted patch.

@@ -1,0 +1,624 @@
+{
+  "study": "M1",
+  "comparison": "The same native app/model using ordinary tools, then ordinary tools plus fr, twice per task.",
+  "publication": "User approved patches and summary only. Full native logs, prompts, session exports, source archives and execution packets stay local.",
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "task_bindings": {
+    "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+    "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+    "tests/agent-eval/selected-agents/tasks.json": "4a9ffa9f697e091e96f10bb2ef8771ccfb7f9e8bf457bb5eb483676b411cb87c"
+  },
+  "native_inputs": {
+    "src": "849a315be552441e68d5733e46c6633859b438b7",
+    "grammars": "04f4bb6ec34678f56fca5cf7be633b0d04bc2286",
+    "crates": "69725bbd2a5e4766c9815b77a1c17032796cc8e8",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "bc33a01d0272a3aa2819f5289570cc737dbe70af",
+    "Cargo.lock": "faa214ccc6c2aed3917c02d0a2c849a46372d593",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "core_checker_sha256": "540b20033508c386715d0401017cd365c019c23d33697562a5ad066444b93001",
+  "task_source_sha256": {
+    "boltons-rename": "d28eef749e0af321e2604b4527b9b83e62c9e7aea490028fd509a2cbda12b286",
+    "unicode-dice": "d6d2d3958ab8f602c1c4ebea9911dd53318bb8481731056244e9afa7a0b7f0a4",
+    "access-proof": "7ff4e16bfae34e93a4ad3696e2e727c22d8d9388904186a3c0518d3115ac5f48"
+  },
+  "native_app_versions": {
+    "fr": "fr 0.84.2",
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32"
+  },
+  "local_checker_versions": {
+    "python": "Python 3.14.6",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "lean": "Lean (version 4.28.0, arm64-apple-darwin24.6.0, commit 7e01a1bf5c70fc6167d49c345d3bf80596e9a79b, Release)",
+    "lake": "Lake version 5.0.0-src+7e01a1b (Lean version 4.28.0)"
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "provider_request_cap_enforced": false,
+  "token_cap_enforced": false,
+  "cache_state": "Fresh conversations and task folders. Operating-system and provider caches are uncontrolled; reported cached tokens are retained.",
+  "accounting": "CLI-reported token categories are retained separately by client. Interrupted responses can leave usage incomplete. Billed account charges are unknown.",
+  "timing": "Complete local seconds include verification, fresh folder/Git setup, skill installation, CLI startup, model/tool/check work and result export. Shared environment preparation is separate.",
+  "shared_setup": {
+    "fr_release_download_seconds": 1.67,
+    "fr_archive_check_seconds": 0.13,
+    "fr_unpack_seconds": 0.14,
+    "fr_audit_seconds": 0.48,
+    "fr_capabilities_seconds": 0.01,
+    "python_environment_seconds": 2.32,
+    "pinned_python_wheels_install_seconds": 1.61,
+    "preexisting_cli_and_checker_install_seconds": null,
+    "account_charges": null
+  },
+  "collection_receipts": {
+    "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591": "7168ba5ea1aed17ef5a88e792e0eec71461d886c"
+  },
+  "attempts": [
+    {
+      "id": "codex-luna-fast-boltons-rename-files-1",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "fa1c208e7ef7796ed0f1ad1a9ce29d39ab44a40f56de356c71d558d934f34433",
+      "total_seconds": 32.814322124933824,
+      "native_seconds": 31.958696249872446,
+      "stop_reason": null,
+      "sampled_rss_bytes": 124485632,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 131968,
+        "input_tokens": 143914,
+        "output_tokens": 2796,
+        "reasoning_output_tokens": 737
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-files-1.patch",
+      "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "6169f945f8ed1db28cb75c923f33a05c52181cf4d367870ba6b8d3ab3425f53a",
+      "total_seconds": 46.426923708990216,
+      "native_seconds": 45.634039791999385,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126976000,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 149120,
+        "input_tokens": 175428,
+        "output_tokens": 3905,
+        "reasoning_output_tokens": 1226
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-boltons-rename-fr-1.patch",
+      "patch_sha256": "ee136a00cf347087e9797dd1c2b0e9d157f1e0efd036ebadddc2c5d588fab757",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "d21a5857a0a15afaef2fae1d699eea8126b83be2ee2010103f2b88fa9774ea04",
+      "total_seconds": 30.634226083057,
+      "native_seconds": 29.99961391580291,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128860160,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 99200,
+        "input_tokens": 135836,
+        "output_tokens": 1919,
+        "reasoning_output_tokens": 766
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-fr-1.patch",
+      "patch_sha256": "609ae199e46b6fe541a3ef2d793b3090ceff230b1baf968b783c80aae4f009f9",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-files-1",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "3d7dea730440e322a9050556627a14ff6cc426a9017cf6e173848a6d8f543a55",
+      "total_seconds": 32.46352762496099,
+      "native_seconds": 31.855061541777104,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126992384,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 146176,
+        "input_tokens": 159084,
+        "output_tokens": 2405,
+        "reasoning_output_tokens": 833
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-unicode-dice-files-1.patch",
+      "patch_sha256": "6f3785d90ce74729d8989d4e5cf643822cfd6ef2859cfedca058178b10bc1161",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "codex-luna-fast-access-proof-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "f83b3179eb32ce4cb8c01e4bb8bcbc428efa6819df6ad7e62a9a6804b5f3fbe9",
+      "total_seconds": 22.04267170908861,
+      "native_seconds": 21.45722695812583,
+      "stop_reason": null,
+      "sampled_rss_bytes": 129007616,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 77440,
+        "input_tokens": 94567,
+        "output_tokens": 1016,
+        "reasoning_output_tokens": 286
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-files-1.patch",
+      "patch_sha256": "542b941c9a34763b7ab6e74c2cd4ecf1c546988f999df4c5d81756c9618cf262",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "codex-luna-fast-access-proof-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "73409ba424034f8d5dd26abb73d86683d40cf612c8299bf1f60301c18afdbb46",
+      "total_seconds": 38.48838045890443,
+      "native_seconds": 37.884136125212535,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128876544,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 194816,
+        "input_tokens": 208487,
+        "output_tokens": 2745,
+        "reasoning_output_tokens": 1382
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": []
+      },
+      "patch_file": "patches/codex-luna-fast-access-proof-fr-1.patch",
+      "patch_sha256": "ca77672d33a93bb1330bad6598848f4be2d25a750ea9828c71cc59604c356858",
+      "interrupted_session_recording_error": false,
+      "independent_outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "d2a3c993878d8109f1773c41b834a1cd4cf6b9ba5aaf5ee4de81e991cb3b6591",
+      "record_sha256": "e0b6e55d5d34e111f1adb31456fc93a61015864afa0b2cb95ed13c0cf2da5a1e",
+      "total_seconds": 151.0185469998978,
+      "native_seconds": 150.0591357499361,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86163456,
+      "reported_tokens": {
+        "cache": {
+          "read": 137344,
+          "write": 0
+        },
+        "input": 27282,
+        "output": 697,
+        "reasoning": 3265
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 8,
+        "operations_observed": [
+          "history apply",
+          "history show",
+          "other fr command",
+          "project find",
+          "refs",
+          "rename"
+        ]
+      },
+      "patch_file": null,
+      "patch_sha256": null,
+      "interrupted_session_recording_error": true,
+      "independent_outcome": null
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-boltons-rename-files-2",
+      "profile": "codex-luna-fast",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-files-2",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-unicode-dice-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-access-proof-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "codex-luna-fast-access-proof-files-2",
+      "profile": "codex-luna-fast",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-boltons-rename-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-unicode-dice-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-proof-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-boltons-rename-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "boltons-rename",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-unicode-dice-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "unicode-dice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-proof-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-proof",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "unstarted",
+      "actual_cost": null,
+      "patch_file": null
+    }
+  ]
+}
