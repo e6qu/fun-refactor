@@ -278,35 +278,33 @@
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-checked-translation",
       "changed_sources": [],
       "freshness": "current",
       "id": "checked-translation",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-25-m1-current-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof."
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-python-effects",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-effects",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks."
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-python-text-flow",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-text-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
