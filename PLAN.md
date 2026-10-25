@@ -32,8 +32,9 @@ Catalog entries and configured credentials do not establish that a live attempt 
 Freeze client releases, model identities, reasoning settings, prices, spending caps and attempt limits before paid calls.
 Use a fresh application state for each attempt. Reject a model substitution; do not inherit a personal default or use a stronger helper model.
 
-The earlier scripted OpenCode controls use an older configuration and server API.
-OpenCode2 integration is work to complete, not an already passing result.
+The selected releases now pass [six scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873),
+one per profile and tool setup. They execute real commands with scripted model replies;
+they do not show that a live model can complete a task. All thirty-six live attempts remain unstarted.
 Fast is a Codex service setting, not another Luna model.
 See the [agent comparison policy](docs/product-review.md#compare-the-selected-agents).
 

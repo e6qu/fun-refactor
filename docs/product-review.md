@@ -25,8 +25,9 @@ A live attempt must show whether the selected agent can choose the right changes
 
 Use Codex with GPT-6 Luna in Fast mode, OpenCode2 with GLM-5.3-Flash, and OpenCode2 with non-Pro Kimi K3.
 The [target table](../PLAN.md#target-agents) owns exact model IDs.
-The existing native controls cover older application releases.
-OpenCode2's adapter and effective-setting checks remain work in M1.
+The selected client releases pass [scripted native checks](https://github.com/e6qu/fun-refactor/actions/runs/40190446873)
+for both tool setups, including real command output and effective model settings.
+Scripted replies check the client integration; they do not establish live model access or task success.
 
 For each profile, compare ordinary read/search/edit/check tools with those tools plus fr.
 Use the same request, source revision, checking commands and limits within that pair.

@@ -5,9 +5,23 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 
 from . import selected_tasks as tasks
 from .selected_plan import require
+
+
+def check_boundary():
+    status = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines())
+    require(os.geteuid() == 65534 and int(status['CapEff'].strip(), 16) == 0 and
+            status['NoNewPrivs'].strip() == '1', 'private checks need an unprivileged process with no capabilities')
+    require({name for _, name in socket.if_nameindex()} == {'lo'}, 'private grader has an external network interface')
+    require(not Path('/var/run/docker.sock').exists(), 'private grader can see the runner Docker socket')
+    readonly = ['/candidate', '/inputs/original', '/inputs/project.json',
+                '/review/tools', '/opt/rust', '/opt/lean', '/opt/tool/bin/fr']
+    require(all(os.statvfs(path).f_flag & os.ST_RDONLY for path in readonly), 'private source or tool mount is writable')
+    return {'uid': os.geteuid(), 'effective_capabilities': 0, 'new_privileges_allowed': False,
+            'network_interfaces': ['lo'], 'docker_socket_visible': False, 'readonly_mounts': readonly}
 
 
 def run(task):
@@ -69,7 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--task', choices=list(tasks.TASKS), required=True)
     args = parser.parse_args()
     try:
-        result = run(args.task)
+        result = {'isolation': check_boundary(), **run(args.task)}
     except Exception as error:
         result = {'passed': False, 'harness_error': type(error).__name__ + ': ' + str(error)}
     print(json.dumps(result, allow_nan=False))

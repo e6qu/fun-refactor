@@ -39,6 +39,13 @@ class SelectedGradingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'exceeds 32 MiB'):
             grading.stage(self.source, self.root / 'large-snapshot')
 
+    def test_private_file_modes_that_a_git_patch_cannot_deliver_refuse(self):
+        source = self.source / 'main.py'
+        source.write_text('print("hello")\n')
+        source.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, 'normal Git checkout modes'):
+            grading.stage(self.source, self.root / 'private-mode-snapshot')
+
 
 if __name__ == '__main__':
     unittest.main()

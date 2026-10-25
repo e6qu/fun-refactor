@@ -10,15 +10,13 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 ## Start with M1
 
 Use the [three selected profiles](../PLAN.md#target-agents): Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
-Client releases, effective reasoning/speed settings and live access still need checking.
-The selected model IDs come from installed catalogs inspected on 2026-10-25.
-No paid attempt follows from that inspection.
+The [pinned clients, profiles and tasks](../tests/agent-eval/selected-agents/README.md) now have
+[passing scripted controls](https://github.com/e6qu/fun-refactor/actions/runs/40190446873).
+The six native checks verify skill discovery, real tool results, effective settings and shutdown
+for both tool setups. They use scripted model replies and make no live model calls.
+Live account access, the account setup and spending cap remain unresolved.
 
-The earlier controls use an older OpenCode configuration and server API.
-Implement and test OpenCode2's adapter before claiming native integration for it.
-Use scripted provider responses to check discovery, tool results, effective settings and shutdown without model spending.
-
-Then freeze M1's three requirements and independent checks:
+The three prepared tasks also pass controls with supplied correct and incorrect answers:
 
 - Rename Boltons' `clamp` to `clamp_value` through its declared consumers; preserve the result of limiting 70 to 0 through 50.
 - Repair the recorded Unicode Dice comparison and pass its independent regression set.
@@ -26,6 +24,9 @@ Then freeze M1's three requirements and independent checks:
 
 These are familiar development tasks.
 The first matched schedule has eighteen attempts; one unchanged repetition gives thirty-six.
+All thirty-six live attempts remain unstarted. Keep their results separate from supplied control answers.
+Finish isolating live execution and private checking, bind the complete runtime and task inputs,
+and test the chosen account setup before launching the study.
 Do not supply the repair, edit location or proof tactics to a live attempt.
 Agree and freeze settings, prices, spending caps and limits before launching it.
 

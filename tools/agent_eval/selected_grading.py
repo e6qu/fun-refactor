@@ -27,6 +27,7 @@ def stage(source, destination):
             'grade source exceeds 32 MiB')
     destination.mkdir(parents=True, mode=0o755)
     for name, entry in manifest.items():
+        require(entry['mode'] in {0o644, 0o755}, 'delivered source needs normal Git checkout modes (0644/0755)')
         path = source / name
         target = destination / name
         target.parent.mkdir(parents=True, exist_ok=True)

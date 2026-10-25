@@ -28,6 +28,9 @@ They also check the delivered patch in another checkout, reverse it to recover t
 and reapply it to recover the reviewed change.
 The native app controls use local scripted replies to check skill discovery, model settings,
 tool execution, returned results and shutdown. Their containers have no external network access.
+The private grading controls run the same task checks in separate containers, without runner credentials
+or network access. A correct change must also pass after its patch is applied in another checkout;
+undo and redo must restore the exact original and changed files, including executable permissions.
 
 The GitHub workflow runs these checks. Follow the repository's
 [workstation rules](../../../docs/development.md#working-on-a-shared-desktop) for local work.
