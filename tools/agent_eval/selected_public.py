@@ -115,6 +115,12 @@ def export(plan_path, review, destination):
                 'retain every completed or failed attempt from the original packet')
         require(review[identity]['record_sha256'] == common.digest(directory / 'result.json'),
                 'contribution review refers to another local record')
+        require(set(review[identity]) == {'record_sha256', 'contributing_actions', 'failure_summary'},
+                'review the fr contribution and failure summary explicitly')
+        failure_summary = review[identity]['failure_summary']
+        require(failure_summary is None or (isinstance(failure_summary, str) and
+                0 < len(failure_summary) <= 240 and '\n' not in failure_summary),
+                'publish a concise failure explanation, not a raw CLI exception or command')
         actions = review[identity]['contributing_actions']
         require(isinstance(actions, list) and len(actions) <= 8 and
                 all(isinstance(action, str) and 0 < len(action) <= 240 and '\n' not in action for action in actions),
@@ -161,7 +167,8 @@ def export(plan_path, review, destination):
             'client_model_recorded': model_recorded, 'provider_response_model_observed': False, 'fr_use': fr_use,
             'patch_file': patch_file, 'patch_sha256': common.digest(patch) if patch_file else None,
             'completed_tools': completed_tool_time(events), 'independent_outcome': None,
-            'collection_error': record.get('error') or record.get('collection_error')})
+            'collection_error_recorded': bool(record.get('error') or record.get('collection_error')),
+            'failure_summary': failure_summary})
     summary = {'study': 'M2', 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',
         'profiles': plan['schedule']['profiles'], 'task_bindings': plan['schedule']['bindings'],

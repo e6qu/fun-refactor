@@ -168,6 +168,12 @@ def collect(directory, binary, alternate, checkers):
         'files': {'replay.zip': digest(directory / 'replay.zip')}})
     audit(directory, binary, alternate)
     reject_false_claims(directory, binary, alternate)
+
+
+def publish(directory, binary, alternate):
+    """Recheck the collected result against current source before updating tracking."""
+    audit(directory, binary, alternate)
+    reject_false_claims(directory, binary, alternate)
     catalog_path = ROOT / 'tests/agent-eval/roadmap.json'
     catalog = json.loads(catalog_path.read_text())
     previous = [row for row in catalog['evidence'] if row['id'] == 'current-project-changes']
@@ -194,6 +200,7 @@ if __name__ == '__main__':
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--collect', type=Path)
     action.add_argument('--audit', type=Path)
+    action.add_argument('--publish', type=Path)
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--alternate', type=Path, required=True)
     parser.add_argument('--checkers', type=Path)
@@ -201,5 +208,7 @@ if __name__ == '__main__':
     if args.collect:
         assert args.checkers is not None, 'declare the recorded checker control'
         collect(args.collect.resolve(), args.fr.resolve(), args.alternate.resolve(), args.checkers.resolve())
+    elif args.publish:
+        publish(args.publish.resolve(), args.fr.resolve(), args.alternate.resolve())
     else:
         audit(args.audit.resolve(), args.fr.resolve(), args.alternate.resolve())

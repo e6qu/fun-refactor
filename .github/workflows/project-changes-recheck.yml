@@ -29,6 +29,8 @@ jobs:
       PREFIX: ${{ github.event_name == 'push' && format('2026-10-21-current-{0}', github.run_id) || inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -55,6 +57,16 @@ jobs:
             --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
             --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr" \
             --checkers "$RUNNER_TEMP/project-change-checkers/checkers.json"
+      - name: Publish checked results against the latest branch tracking
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git fetch --no-tags origin "refs/heads/$BRANCH"
+          git merge --ff-only FETCH_HEAD
+          python3 -B tools/recheck-project-changes.py \
+            --publish "tests/agent-eval/results/$PREFIX-project-changes-recheck" \
+            --fr "$RUNNER_TEMP/project-change-checkers/production-fr" \
+            --alternate "$RUNNER_TEMP/project-change-checkers/alternate-fr"
           python3 -B tools/roadmap-status.py --write
           python3 -B tests/agent-eval/test_roadmap_status.py
       - name: Commit only the audited current replay and its tracking
