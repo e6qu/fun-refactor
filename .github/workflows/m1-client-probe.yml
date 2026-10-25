@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Check the complete M1 attempt schedule without model calls
+        run: python3 -B -m unittest discover -s tools/agent_eval -p test_selected_plan.py -v
       - run: python3 -B tools/selected-agent-probe.py --output "$RUNNER_TEMP/m1-clients"
       - uses: actions/upload-artifact@v7
         if: always()
@@ -27,6 +29,9 @@ jobs:
             ${{ runner.temp }}/m1-clients/**/*.stdout
             ${{ runner.temp }}/m1-clients/**/*.stderr
             ${{ runner.temp }}/m1-clients/**/archive-members.json
+            ${{ runner.temp }}/m1-clients/**/openapi.json
+            ${{ runner.temp }}/m1-clients/**/server-info.json
+            ${{ runner.temp }}/m1-clients/**/shutdown.json
             ${{ runner.temp }}/m1-clients/report.json
           if-no-files-found: error
           retention-days: 30

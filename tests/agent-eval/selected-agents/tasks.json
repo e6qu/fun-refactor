@@ -1,0 +1,61 @@
+{
+  "scope": "M1's familiar development tasks. Freeze requirements and independent checks before extending support. Scripted controls do not count as live results.",
+  "roadmap_commit": "df681279912fe8dcc30fa7937d13eeacca8ac958",
+  "tasks": {
+    "boltons-rename": {
+      "request": "Rename the public clamp function to clamp_value, including its project imports, callers, tests and documentation. Preserve its limiting behavior, remove the old public name without a wrapper, and leave unrelated functions named clamp unchanged. Deliver a Git patch and report the checks you ran.",
+      "repository": "mahmoud/boltons",
+      "revision": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+      "archive": "tests/agent-eval/python-repositories/boltons.tar.gz",
+      "archive_sha256": "38b62bedd6dbffb8be615777c8f45eca60b2b8d9a664eeb51e712489b781d7e6",
+      "checks": [
+        "Use the original boltons.mathutils import. Inputs -5, 17 and 70 limited to 0 through 50 return 0, 17 and 50.",
+        "The original mathutils tests pass with the new public name, and every documented callable still resolves.",
+        "A separate, recorded fixture with an unrelated clamp declaration and caller retains its exact bytes and behavior.",
+        "The old public name is absent. A wrapper or alias retaining it fails.",
+        "The delivered patch passes the same checks in another checkout."
+      ]
+    },
+    "unicode-dice": {
+      "request": "Repair whitespace-insensitive text similarity for Unicode. The strings éa and éab must score 2/3. Count pairs of adjacent Unicode scalar values after removing whitespace, retain duplicate-pair multiplicity, preserve equal-input and ASCII behavior, and return zero for unequal inputs shorter than two values after whitespace removal. Deliver a Git patch and report the checks you ran.",
+      "repository": "rapidfuzz/strsim-rs",
+      "revision": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+      "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+      "checks": [
+        "The upstream tests pass.",
+        "Independent sorted Unicode-pair multiset intersection agrees on 67,081 input pairs.",
+        "The unchanged source and a repair that changes only one side's length both fail the independent check.",
+        "The delivered patch passes the same checks in another checkout."
+      ]
+    },
+    "access-proof": {
+      "request": "Write a Lean proof for the supplied Rust access rule: its model returns true exactly when staff access or ownership is true. Keep the supplied definitions, property and assumptions unchanged. Fill the unfinished proof, check it with Lean, deliver a Git patch and report what the proof establishes about the model and original program.",
+      "source": "pub fn allowed(staff: bool, owner: bool) -> bool { staff || owner }\n",
+      "checks": [
+        "All four Boolean input pairs agree with staff || owner.",
+        "Lean accepts the unchanged property with no unfinished proof gaps, sorry, admit or added axioms.",
+        "Source, definitions, property and assumptions retain their bytes outside the one allowed proof region.",
+        "Replacing the model's || rule with && cannot retain an accepted proof of the fixed property.",
+        "Both tool setups start with identical source, generated model and property.",
+        "The delivered patch passes the same checks in another checkout.",
+        "Report the model proof separately from the unchecked connection to the original source implementation."
+      ]
+    }
+  },
+  "limits": {
+    "attempt_wall_seconds": 600,
+    "provider_requests": 32,
+    "input_tokens": 200000,
+    "output_tokens": 32768,
+    "max_response_output_tokens": 8192,
+    "visible_bytes": 1048576,
+    "memory_bytes": 1073741824,
+    "cpu_seconds": 600,
+    "processes": 64,
+    "disk_bytes": 536870912,
+    "parallel_attempts": 1
+  },
+  "repetitions": 2,
+  "setups": ["files", "fr"],
+  "paid_execution": "Requires a reviewed exact plan, explicit credential arrangement and agreed spending cap. This file does not authorize model calls."
+}

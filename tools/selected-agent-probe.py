@@ -11,6 +11,8 @@ import subprocess
 import tarfile
 import urllib.request
 
+from agent_eval.opencode2_client import OpenCode2Server
+
 ROOT = Path(__file__).resolve().parents[1]
 CLIENTS = ROOT / 'tests/agent-eval/selected-agents/clients.json'
 ARCHIVE_BYTES = 256 * 1024**2
@@ -95,8 +97,18 @@ def inspect(name, entry, root):
                         'stdout': f'{index}.stdout', 'stderr': f'{index}.stderr'})
     with binary.open('rb') as source:
         executable_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
-    return {'release': entry, 'binary_sha256': executable_sha256, 'commands': results,
-            'credentials_supplied': False, 'inference_requests': 0}
+    report = {'release': entry, 'binary_sha256': executable_sha256, 'commands': results,
+              'credentials_supplied': False, 'inference_requests': 0}
+    if name == 'opencode2':
+        with OpenCode2Server(binary, root, env, root / 'api', version=entry['version'],
+                             startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
+            document = server.request('GET', '/openapi.json', None, 200, 10)
+            (root / 'openapi.json').write_text(json.dumps(document, indent=2) + '\n')
+            report['server'] = server.info
+        report['shutdown'] = server.shutdown
+        if server.shutdown['forced']:
+            raise ValueError('private server required forced shutdown')
+    return report
 
 
 if __name__ == '__main__':
