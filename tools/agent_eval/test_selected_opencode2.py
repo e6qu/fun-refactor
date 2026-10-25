@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from agent_eval.opencode2_client import OpenCode2ResponseError, OpenCode2Server
+from agent_eval.opencode2_client import OpenCode2ResponseError, OpenCode2Server, scripted_configuration
 
 
 class OpenCode2Tests(unittest.TestCase):
@@ -18,6 +18,15 @@ class OpenCode2Tests(unittest.TestCase):
         self.server = OpenCode2Server('/unused/client', self.root, {}, self.root / 'output',
             version='2.0.32', startup_seconds=1, call_seconds=1, reply_bytes=1024)
         self.server.port = 1234
+
+    def test_scripted_profile_cannot_reach_a_paid_origin_or_choose_another_model(self):
+        profile = {'client': 'opencode2', 'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}
+        for origin in ('https://api.kimi.ai', 'http://127.0.0.1', 'http://user@127.0.0.1:9000', 'http://127.0.0.1:9000/v1'):
+            with self.subTest(origin=origin), self.assertRaises(ValueError):
+                scripted_configuration(profile, origin)
+        profile['model']['id'] = 'k3.1-pro'
+        with self.assertRaisesRegex(ValueError, 'selected model'):
+            scripted_configuration(profile, 'http://127.0.0.1:9000')
 
     @patch('agent_eval.opencode2_client.os.killpg')
     @patch('agent_eval.opencode2_client.os.getpgid', return_value=999)

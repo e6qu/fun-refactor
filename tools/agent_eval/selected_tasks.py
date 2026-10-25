@@ -329,4 +329,5 @@ if __name__ == '__main__':
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(controls(args.task, args.fr.resolve(), args.output.resolve())))
+    result = controls(args.task, args.fr.resolve(), args.output.resolve())
+    print(json.dumps({key: result[key] for key in ('task', 'passed', 'live_model_calls', 'patch_sha256', 'undo_exact', 'redo_exact')}))

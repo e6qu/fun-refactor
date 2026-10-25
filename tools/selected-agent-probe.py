@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import urllib.request
 
-from agent_eval.opencode2_client import OpenCode2Server
+from agent_eval.opencode2_client import OpenCode2Server, scripted_configuration
 from agent_eval.codex_client import CodexServer
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,6 +135,36 @@ def inspect(name, entry, root):
         report['shutdown'] = server.shutdown
         if server.shutdown['forced']:
             raise ValueError('private server required forced shutdown')
+        profiles = json.loads((CLIENTS.parent / 'profiles.json').read_text())
+        report['profiles'] = {}
+        for profile_name, profile in profiles.items():
+            if profile['client'] != 'opencode2':
+                continue
+            profile_root = root / profile_name
+            profile_root.mkdir()
+            profile_env = environment(profile_root)
+            # No inference is requested here. The unused loopback endpoint cannot reach a paid provider.
+            profile_env['OPENCODE_CONFIG_CONTENT'] = json.dumps(scripted_configuration(profile, 'http://127.0.0.1:1'))
+            with OpenCode2Server(binary, profile_root, profile_env, profile_root / 'api', version=entry['version'],
+                                 startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
+                config = server.request('GET', '/api/config', None, 200, 10)
+                (profile_root / 'effective-config.json').write_text(json.dumps(config, indent=2) + '\n')
+                agents = server.request('GET', '/api/agent', None, 200, 10)
+                (profile_root / 'agents.json').write_text(json.dumps(agents, indent=2) + '\n')
+                catalog = server.request('GET', '/api/model', None, 200, 10)
+                (profile_root / 'models.json').write_text(json.dumps(catalog, indent=2) + '\n')
+                model = profile['model']
+                selected = [row for row in catalog['data'] if row['providerID'] == model['providerID'] and row['id'] == model['id']]
+                if len(selected) != 1 or not any(row['id'] == model['variant'] for row in selected[0]['variants']):
+                    raise ValueError('OpenCode2 did not expose the exact selected model and reasoning variant')
+                chosen = [row for row in agents['data'] if row['id'] == 'm1']
+                if len(chosen) != 1 or chosen[0]['model'] != model:
+                    raise ValueError('OpenCode2 selected-agent settings differ from the requested profile')
+                report['profiles'][profile_name] = {'agent': chosen[0], 'model': selected[0],
+                    'scope': 'Scripted local provider configuration only; no live admission or price claim.'}
+            if server.shutdown['forced']:
+                raise ValueError('configured OpenCode2 server required forced shutdown')
+            report['profiles'][profile_name]['shutdown'] = server.shutdown
     return report
 
 

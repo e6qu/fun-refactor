@@ -38,6 +38,7 @@ jobs:
             ${{ runner.temp }}/m1-clients/**/transcript.json
             ${{ runner.temp }}/m1-clients/**/effective-config.json
             ${{ runner.temp }}/m1-clients/**/models.json
+            ${{ runner.temp }}/m1-clients/**/agents.json
             ${{ runner.temp }}/m1-clients/**/server-info.json
             ${{ runner.temp }}/m1-clients/**/shutdown.json
             ${{ runner.temp }}/m1-clients/report.json
@@ -77,9 +78,14 @@ jobs:
         with:
           python-version: '3.14.8'
       - name: Install the exact grader wheels
-        run: >-
-          python3 -m pip install --no-index --no-deps --require-hashes
-          --requirement <(rg '/(pytest|pluggy|packaging|iniconfig|pygments)-' .github/actions/native-tools/python-wheels.txt)
+        shell: bash
+        run: |
+          grep -E '/(pytest|pluggy|packaging|iniconfig|pygments)-' \
+            .github/actions/native-tools/python-wheels.txt > "$RUNNER_TEMP/m1-python-wheels.txt"
+          test "$(wc -l < "$RUNNER_TEMP/m1-python-wheels.txt")" -eq 5
+          python3 -m pip install --no-index --no-deps --require-hashes \
+            --requirement "$RUNNER_TEMP/m1-python-wheels.txt"
+          python3 -m pytest --version
       - uses: ./.github/actions/lean-toolchain
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: Swatinem/rust-cache@v2

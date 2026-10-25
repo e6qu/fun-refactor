@@ -9,8 +9,40 @@ import signal
 import socket
 import subprocess
 import time
+from urllib.parse import urlsplit
 
 from .selected_plan import require
+
+
+def scripted_configuration(profile, endpoint):
+    """Select a real model identity against a local scripted provider, without credentials."""
+    address = urlsplit(endpoint)
+    require(address.scheme == 'http' and address.hostname == '127.0.0.1' and address.port is not None and
+            address.path == '' and not address.query and not address.fragment and address.username is None,
+            'scripted provider must be an explicit loopback origin')
+    require(profile['client'] == 'opencode2', 'an OpenCode2 profile is required')
+    selection = profile['model']
+    require((selection['providerID'], selection['id']) in {
+        ('zai-coding-plan', 'glm-5.3-flash'), ('kimi-code-plan-global', 'k3')} and selection['variant'] == 'high',
+        'scripted control must keep the selected model and reasoning variant')
+    model = {'providerID': selection['providerID'], 'model': selection['id'], 'variant': selection['variant']}
+    rules = [{'action': '*', 'resource': '*', 'effect': 'deny'}] + [
+        {'action': action, 'resource': '*', 'effect': 'allow'} for action in ('read', 'glob', 'grep', 'list', 'edit', 'bash', 'skill')]
+    return {'model': model, 'default_agent': 'm1', 'shell': '/bin/bash',
+        'update': 'disable', 'share': 'disabled', 'snapshots': False, 'plugins': [], 'lsp': False,
+        'mcp': {}, 'compaction': {'auto': False}, 'permissions': rules,
+        'agents': {'m1': {'model': model, 'description': 'Selected M1 agent; no delegated work',
+                         'mode': 'primary', 'steps': 3, 'permissions': rules}},
+        'providers': {selection['providerID']: {'name': 'Local scripted control', 'env': [],
+            'package': '@ai-sdk/openai-compatible',
+            'settings': {'baseURL': endpoint + '/v1', 'apiKey': 'scripted-control-no-live-credential',
+                         'timeout': 10000, 'headerTimeout': 10000, 'chunkTimeout': 10000},
+            'compatibility': {'reasoningField': 'reasoning_content', 'maxTokensField': 'max_tokens'},
+            'models': {selection['id']: {'modelID': selection['id'], 'name': selection['id'],
+                'capabilities': {'tools': True, 'input': ['text'], 'output': ['text'],
+                                 'reasoning': {'supported': True, 'effort': ['high']}},
+                'variants': [{'id': 'high', 'body': {'reasoning_effort': 'high'}}],
+                'limit': {'context': 32768, 'output': 1024}}}}}
 
 
 class OpenCode2ResponseError(ValueError):
