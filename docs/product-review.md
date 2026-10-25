@@ -40,7 +40,7 @@ One unchanged repetition gives thirty-six attempts.
 Rotate setup order and keep all outcomes.
 These familiar tasks measure development progress; they are not new unread-project qualifications.
 
-Before live calls, agree and record exact client releases, model IDs, reasoning, speed, prices, credentials, spending caps and attempt limits.
+Before live calls, agree and record exact client releases, model IDs, reasoning, speed, prices, providers, spending caps and attempt limits.
 Read effective settings from the application and reject substitutions.
 Keep auxiliary model calls in the same accounting.
 Configured credentials and a catalog listing do not establish successful access.

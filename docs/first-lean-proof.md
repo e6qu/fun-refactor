@@ -40,11 +40,11 @@ The property `identity` asks whether the generated model returns its input for e
 ## Prepare and review the proof task
 
 ```sh
-fr -C . --json spec init
-fr -C . --json spec init --write
+fr -C . --json spec init specs
+fr -C . --json spec init specs --write
 fr -C . --json spec plan src/lib.rs::keep --property identity > formal-plan.json
-fr -C . --json spec scaffold --from formal-plan.json
-fr -C . --json spec scaffold --from formal-plan.json --write
+fr -C . --json spec scaffold --from formal-plan.json --package specs
+fr -C . --json spec scaffold --from formal-plan.json --package specs --write
 fr -C . --json spec goals specs
 ```
 
@@ -52,6 +52,7 @@ fr -C . --json spec goals specs
 A preview shows the files or changes before a write; `--write` applies the reviewed operation.
 
 `init` creates the pinned Lake package under `specs`.
+Here `specs` is our chosen package directory; `--package specs` selects it for scaffolding.
 The plan describes the current source, its model and the requested property.
 Review it before scaffolding the model file.
 Scaffolding creates the selected definition and an unfinished theorem.
