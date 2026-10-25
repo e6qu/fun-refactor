@@ -103,6 +103,7 @@ def websocket_provider(profile, command, expected, output):
             for raw in connection:
                 require(isinstance(raw, str) and len(raw.encode()) <= CAP, 'invalid native WebSocket message')
                 value = json.loads(raw)
+                complete = False
                 with gate:
                     require(sum(len(json.dumps(row).encode()) for row in requests) + len(raw.encode()) <= 4 * CAP,
                             'WebSocket transcript exceeds its byte limit')
@@ -115,8 +116,11 @@ def websocket_provider(profile, command, expected, output):
                         requests.append({'path': connection.request.path, 'body': value})
                         validate(profile, connection.request.path, value, index, expected, requests[0]['body'])
                         events = responses(profile['model'], command, index == 0)
+                        complete = index == 1
                 for event in events:
                     connection.send(json.dumps(event))
+                if complete:
+                    return
         except Exception as error:
             errors.append(type(error).__name__ + ': ' + str(error))
             connection.close(code=1008, reason='scripted exchange refused')
