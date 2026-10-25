@@ -46,8 +46,10 @@ def install(entry, destination):
         selected = [item for item in members if item.name == entry['member']]
         if len(members) > 64 or len(selected) != 1:
             raise ValueError('client archive members differ')
+        if sum(item.size for item in members) != entry['unpacked_bytes']:
+            raise ValueError('client unpacked footprint differs from its pinned inventory')
         member, = selected
-        if not member.isfile() or not 0 < member.size <= ARCHIVE_BYTES:
+        if not member.isfile() or not 0 < member.size <= entry['unpacked_bytes']:
             raise ValueError(f'client executable differs: {member.name}, type={member.type!r}, size={member.size}')
         binary = destination / 'client'
         with source.extractfile(member) as data, binary.open('xb') as output:
