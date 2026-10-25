@@ -6,7 +6,7 @@ The active [roadmap](../PLAN.md) focuses on refactoring, targeted code changes a
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**14 of 18 specific test requirements have matching recorded results; 4 remain open. 1 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
+**15 of 18 specific test requirements have matching recorded results; 3 remain open. 1 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -34,7 +34,7 @@ The [earlier checklist](earlier-roadmap-checklist.md) retains these implementati
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
-| B. Explain how values move through code | 4/5 | 3/4 | open |
+| B. Explain how values move through code | 4/5 | 4/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 4/4 | complete |
 | D. Make checked changes and useful proofs | 3/6 | 4/6 | open |
 
@@ -102,9 +102,9 @@ Earlier requirement still needs: Keep the small examples as regression tests whi
 
 User example: A helper returns its left argument; check selected, ignored and overwritten input cases against Python.
 
-**State: open.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
+**State: demonstrated.** Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.
 
-Recorded results or remaining work: python-contract: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [python-contract](../tests/agent-eval/results/2026-10-25-focused-agents-python-contract/result.json).
 
 Earlier requirement still needs: R1 adds base-ten integer conversion errors and caught error objects to the bounds form. R2 adds shared-list writes through helpers. Compare each reusable rule with independent Python results and renamed or moved examples. Preserve explicit incomplete answers, limits and fresh recorded inputs.
 
@@ -244,7 +244,7 @@ The entries below identify the stored test results. “Current” means their re
 | [model-relations](../tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations. Audit: `python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json) / compiler and execution comparisons | checked | current | Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-24-readable-docs-compiler-profile/result.json` |
-| [python-contract](../tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json) / Python rule comparisons | checked | stale (1 changed inputs) | 16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-24-readable-docs-python-contract/result.json` |
+| [python-contract](../tests/agent-eval/results/2026-10-25-focused-agents-python-contract/result.json) / Python rule comparisons | checked | current | 16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-25-focused-agents-python-contract/result.json` |
 | [index-resolution](../tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json) / measured tool operations | checked | current | Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-24-readable-docs-index-resolution/result.json` |
 | [repository-flow](../tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json) / scripted behavior checks | checked | stale (32 changed inputs) | Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow. Audit: `python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json` |
 | [original-package-questions](../tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck/result.json) / scripted behavior checks | checked | current | Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure. Audit: `python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-24-readable-docs-text-package-recheck` |
