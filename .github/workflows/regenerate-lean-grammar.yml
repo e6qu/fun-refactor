@@ -1,9 +1,6 @@
 name: Regenerate the Lean syntax reader
 on:
   workflow_dispatch:
-  push:
-    branches: [milestone/agent-lean-proofs]
-    paths: [grammars/lean/grammar.js]
 permissions:
   contents: write
 concurrency:

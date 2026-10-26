@@ -74,12 +74,19 @@ positive/negative patch controls must pass. The isolated checker runs without ne
 or runner credentials. It rejects missing patches, malformed patches, unfinished proofs,
 incorrect tactics and changed claims; it accepts and rechecks the supplied reference patch.
 The control receipt identifies the exact checker image, source, scripts and task inputs.
+A system image is a fixed copy of the files used to start the isolated environment.
+The record also identifies the separate fr, Lean and checking-code inputs.
 Changing a native source input requires a rebuilt and tested executable. Reusing a specifically
 named hosted build is allowed only after those native inputs match exactly.
 
 Controller proofs live in [controls](controls), outside every live agent project. Prepared
 source archives contain unfinished proofs only. Do not copy supplied reference tactics into
 an agent project or present a reference proof as unaided agent work.
+
+Initial grading uses the system image checked before the model calls. Routine CI rebuilds the
+recorded checking code and system image, reruns its eighteen rejection controls, and rechecks the
+original patches. This lets CI continue after temporary downloads expire. It compares the new
+verdicts with the published outcomes, retaining original failures and timeouts even when a patch is valid.
 
 ## Run and measure the selected local CLIs
 

@@ -10,16 +10,30 @@ on:
         description: Build the macOS executable for local agent attempts
         required: true
         type: boolean
-      check_results:
-        description: Grade the published 36 attempts instead of running preparation controls
+      operation:
+        description: Prepare the study, grade its original submissions, or verify current code and retained results
         required: true
-        type: boolean
+        type: choice
+        options: [prepare, grade, verify]
       report_mode:
         description: Collect initial verdicts or check the completed public report
         required: true
         type: choice
         options: [collect, check]
   workflow_call:
+    inputs:
+      operation:
+        type: string
+        required: true
+      tool_run:
+        type: string
+        required: true
+      build_macos:
+        type: boolean
+        required: true
+      report_mode:
+        type: string
+        required: true
 permissions:
   contents: read
   actions: read
@@ -27,15 +41,43 @@ concurrency:
   group: m3-proof-writing-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  configuration:
+    name: Require explicit proof-checking settings
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          OPERATION: ${{ inputs.operation }}
+          TOOL_RUN: ${{ inputs.tool_run }}
+          REPORT_MODE: ${{ inputs.report_mode }}
+          BUILD_MACOS: ${{ inputs.build_macos }}
+        run: |
+          python3 -B - <<'PY'
+          import os
+          operation, tool, report = [os.environ[name] for name in ('OPERATION', 'TOOL_RUN', 'REPORT_MODE')]
+          assert operation in {'prepare', 'grade', 'verify'} and report in {'collect', 'check'}
+          assert tool == 'build' or tool.isdigit()
+          if operation == 'grade':
+              assert tool.isdigit() and os.environ['BUILD_MACOS'] == 'false'
+          if operation == 'verify':
+              assert tool == 'build' and report == 'check'
+          PY
+  audit:
+    name: Recheck original proof submissions with a rebuilt auditor
+    needs: configuration
+    if: inputs.operation == 'verify'
+    uses: ./.github/workflows/proof-writing-audit.yml
   published:
     name: Select the original published proof comparison
-    if: github.event_name == 'workflow_call' || inputs.check_results
+    needs: configuration
+    if: inputs.operation == 'verify' || inputs.operation == 'grade'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       tool_run: ${{ steps.inputs.outputs.tool_run }}
       controls_run: ${{ steps.inputs.outputs.controls_run }}
       report_mode: ${{ steps.inputs.outputs.report_mode }}
+      policy: ${{ steps.inputs.outputs.policy }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,6 +88,7 @@ jobs:
         env:
           M3_TOOL_RUN: ${{ inputs.tool_run }}
           M3_REPORT_MODE: ${{ inputs.report_mode }}
+          M3_OPERATION: ${{ inputs.operation }}
         run: |
           python3 -B - <<'PY'
           import json, os
@@ -53,25 +96,27 @@ jobs:
           summary = json.loads(Path('tests/agent-eval/proof-writing/local-results/summary.json').read_text())
           assert summary['study'] == 'M3'
           controls = summary['controls']['run']
-          if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch':
-              tool, mode = os.environ['M3_TOOL_RUN'], os.environ['M3_REPORT_MODE']
+          if os.environ['M3_OPERATION'] == 'grade':
+              tool, mode, policy = os.environ['M3_TOOL_RUN'], os.environ['M3_REPORT_MODE'], 'frozen'
           else:
-              tool, mode = os.environ['GITHUB_RUN_ID'], 'check'
+              tool, controls, mode, policy = os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ID'], 'check', 'fresh'
           assert controls.isdigit() and tool.isdigit() and mode in {'collect', 'check'}
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
-              stream.write(f'tool_run={tool}\ncontrols_run={controls}\nreport_mode={mode}\n')
+              stream.write(f'tool_run={tool}\ncontrols_run={controls}\nreport_mode={mode}\npolicy={policy}\n')
           PY
   results:
     name: Independently check the delivered M3 proofs
-    needs: [published, model]
-    if: always() && !cancelled() && needs.published.result == 'success' && (needs.model.result == 'success' || inputs.check_results)
+    needs: [published, audit]
+    if: always() && !cancelled() && needs.published.result == 'success' && (inputs.operation == 'grade' || needs.audit.result == 'success')
     uses: ./.github/workflows/proof-writing-results.yml
     with:
       tool_run: ${{ needs.published.outputs.tool_run }}
       controls_run: ${{ needs.published.outputs.controls_run }}
       report_mode: ${{ needs.published.outputs.report_mode }}
+      policy: ${{ needs.published.outputs.policy }}
   macos-tool:
-    if: github.event_name != 'workflow_dispatch' || (!inputs.check_results && inputs.build_macos)
+    needs: configuration
+    if: inputs.operation != 'grade' && inputs.build_macos
     name: Build the exact fr binary for local proof attempts
     runs-on: macos-15
     timeout-minutes: 15
@@ -105,7 +150,8 @@ jobs:
           retention-days: 30
   receipt:
     name: Require every proof, source and native-client control
-    needs: [protocol, cases, source-runtime, native, private]
+    needs: [protocol, sdk, cases, source-runtime, native, private]
+    if: always() && !cancelled() && inputs.operation != 'grade' && needs.protocol.result == 'success' && needs.sdk.result == 'success' && needs.cases.result == 'success' && needs.source-runtime.result == 'success' && needs.native.result == 'success' && needs.private.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
@@ -140,7 +186,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   protocol:
-    if: github.event_name != 'workflow_dispatch' || !inputs.check_results
+    needs: configuration
+    if: inputs.operation != 'grade'
     name: Check proof schedules and artifact identity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -161,8 +208,8 @@ jobs:
           python3 -B tools/agent_eval/test_selected_grading.py
   native:
     name: Check all six native client and tool exchanges
-    needs: model
-    if: always() && !cancelled() && !inputs.check_results && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
+    needs: [configuration, model]
+    if: always() && !cancelled() && needs.configuration.result == 'success' && inputs.operation != 'grade' && (needs.model.result == 'success' || inputs.tool_run != 'build')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -179,10 +226,10 @@ jobs:
         with:
           name: m3-linux-tool
           path: ${{ runner.temp }}/m3-tool
-          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
+          run-id: ${{ inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
           github-token: ${{ github.token }}
       - name: Verify the explicit build before using it
-        if: github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'
+        if: inputs.tool_run != 'build'
         env:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
@@ -204,7 +251,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   model:
-    if: github.event_name != 'workflow_dispatch' || (!inputs.check_results && inputs.tool_run == 'build')
+    needs: configuration
+    if: inputs.operation != 'grade' && inputs.tool_run == 'build'
     name: Check early returns and numeric proof models
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -232,12 +280,6 @@ jobs:
       - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: cargo test --locked --test formal_kernel --test lean_adoption --test lean_grammar --test known_grammar_gaps -- --test-threads=1
-      - name: Check Python proof records and first-use comparisons
-        env:
-          PYTHONPATH: sdk/python/src
-        run: |
-          python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
-          python3 -B -m pytest -q sdk/python/tests/test_refinement.py
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |
           python3 -B tools/agent_eval/test_proof_writing_tasks.py
@@ -249,6 +291,45 @@ jobs:
           path: target/debug/fr
           if-no-files-found: error
           retention-days: 30
+  sdk:
+    name: Check Python proof records and first-use comparisons
+    needs: [configuration, model]
+    if: always() && !cancelled() && needs.configuration.result == 'success' && inputs.operation != 'grade' && (needs.model.result == 'success' || inputs.tool_run != 'build')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      PYTHONDONTWRITEBYTECODE: '1'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - run: python3 -m pip install --require-hashes --no-deps -r .github/actions/native-tools/python-wheels.txt
+      - uses: actions/download-artifact@v8
+        with:
+          name: m3-linux-tool
+          path: target/debug
+          run-id: ${{ inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify the explicit build before checking the SDK
+        if: inputs.tool_run != 'build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M3_TOOL_RUN: ${{ inputs.tool_run }}
+        run: >-
+          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
+      - run: chmod +x target/debug/fr
+      - run: |
+          python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
+          python3 -B -m pytest -q sdk/python/tests/test_refinement.py
   private:
     name: Reject bad proof patches in isolated receivers
     needs: [model, cases]
@@ -283,10 +364,10 @@ jobs:
         with:
           name: m3-linux-tool
           path: ${{ runner.temp }}/m3-tool
-          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
+          run-id: ${{ inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
           github-token: ${{ github.token }}
       - name: Verify the explicit build before using it
-        if: github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'
+        if: inputs.tool_run != 'build'
         env:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}
@@ -317,7 +398,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   source-runtime:
-    if: github.event_name != 'workflow_dispatch' || !inputs.check_results
+    needs: configuration
+    if: inputs.operation != 'grade'
     name: Execute the source independently (${{ matrix.case }})
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -336,8 +418,27 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - run: rustup toolchain install 1.99.1 --profile minimal
-      - uses: ./.github/actions/native-tools
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - if: matrix.case == 'access-rust' || matrix.case == 'page-count' || matrix.case == 'fits-window'
+        run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/go-toolchain
+        if: matrix.case == 'access-go'
+      - uses: ./.github/actions/java-toolchain
+        if: matrix.case == 'access-java'
+      - uses: ./.github/actions/zig-toolchain
+        if: matrix.case == 'access-zig'
+      - uses: ./.github/actions/lean-toolchain
+        if: matrix.case == 'access-lean'
+      - uses: actions/setup-node@v7
+        if: matrix.case == 'access-typescript' || matrix.case == 'access-tsx'
+        with:
+          node-version: '26.5.0'
+          package-manager-cache: false
+      - if: matrix.case == 'access-typescript' || matrix.case == 'access-tsx'
+        run: npm ci --no-fund --no-audit
+        working-directory: tests/typesafety/typescript
       - name: Compare native source results with independent expected values
         run: >-
           python3 -B -m agent_eval.proof_writing_runtime --case '${{ matrix.case }}'
@@ -351,8 +452,8 @@ jobs:
           retention-days: 30
   cases:
     name: Prepare the fixed proof claim (${{ matrix.case }})
-    needs: model
-    if: always() && !cancelled() && !inputs.check_results && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
+    needs: [configuration, model]
+    if: always() && !cancelled() && needs.configuration.result == 'success' && inputs.operation != 'grade' && (needs.model.result == 'success' || inputs.tool_run != 'build')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
@@ -377,10 +478,10 @@ jobs:
         with:
           name: m3-linux-tool
           path: ${{ runner.temp }}/m3-tool
-          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
+          run-id: ${{ inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
           github-token: ${{ github.token }}
       - name: Refuse a reused executable when native inputs differ
-        if: github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'
+        if: inputs.tool_run != 'build'
         env:
           GH_TOKEN: ${{ github.token }}
           M3_TOOL_RUN: ${{ inputs.tool_run }}

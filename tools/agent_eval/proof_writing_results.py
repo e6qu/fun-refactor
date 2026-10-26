@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 
@@ -21,31 +22,51 @@ TASKS = {'access-rust': 'Access for staff or the owner', 'page-count': 'Safe pag
 VARIANTS = ('unfinished', 'incomplete', 'reference', 'missing-patch', 'wrong-patch', 'changed-claim')
 
 
-def load_checker(data, archive, run):
+def private_controls(value):
+    expected = {task + '-' + variant for task in TASKS for variant in VARIANTS}
+    require(value['passed'] is True and value['live_model_calls'] == 0 and value['checked_controls'] == 18 and
+            set(value['controls']) == expected and all(
+                row == {'status': 'passed', 'accepted': identity.endswith('-reference')}
+                for identity, row in value['controls'].items()), 'all eighteen isolated proof controls must pass')
+    require(value['bindings'] == local.implementation_bindings('M3'), 'isolated checking code or fixed inputs changed')
+    require(re.fullmatch(r'sha256:[0-9a-f]{64}', value['image']) and
+            all(re.fullmatch(r'[0-9a-f]{64}', value[key]) for key in ('image_archive_sha256', 'fr_sha256')),
+            'retain exact isolated-image, archive and fr identities')
+    return value
+
+
+def load_checker(data, artifact, run, policy):
     require(os.environ.get('GITHUB_ACTIONS') == 'true' and run.isdigit(), 'load an explicitly named hosted checker')
+    require(policy in {'frozen', 'fresh'}, 'choose the initial frozen checker or an explicit fresh historical audit')
     summary = json.loads((data / 'summary.json').read_text())
     receipt = cases.validate_controls(summary['controls'])
-    require(run == receipt['run'] and receipt['bindings'] == local.implementation_bindings('M3'),
-            'use the unchanged controls frozen before the first model call')
+    private = private_controls(json.loads((artifact / 'summary.json').read_text()))
+    require(receipt['bindings'] == private['bindings'] and private['source_commit'] == receipt['source_commit'] and
+            private['run'] == run, 'recheck the exact original proof-checking source and fixed task inputs')
+    if policy == 'frozen':
+        require(run == receipt['run'] and all(private[key] == value for key, value in receipt['private'].items()),
+                'initial grading must use the exact checker frozen before model calls')
     repository = os.environ['GITHUB_REPOSITORY']
     metadata = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repository}/actions/runs/{run}'],
                                                  text=True, timeout=30))
-    require(metadata['head_sha'] == receipt['source_commit'] and metadata['head_repository']['full_name'] == repository,
-            'control receipt refers to another hosted source')
+    require(metadata['head_repository']['full_name'] == repository, 'control receipt refers to another repository')
+    if policy == 'frozen':
+        require(metadata['head_sha'] == receipt['source_commit'], 'control receipt refers to another hosted source')
     pages = json.loads(subprocess.check_output(['gh', 'api', '--paginate', '--slurp',
                        f'repos/{repository}/actions/runs/{run}/jobs?per_page=100'], text=True, timeout=30))
-    name = 'Require every proof, source and native-client control'
+    name = ('Require every proof, source and native-client control' if policy == 'frozen' else
+            'Rebuild the original M3 checker and reject bad patches')
     producers = [job for page in pages for job in page['jobs']
                  if job['name'] == name or job['name'].endswith('/ ' + name)]
-    require(len(producers) == 1 and producers[0]['conclusion'] == 'success', 'the complete hosted controls must pass')
-    private = receipt['private']
+    require(len(producers) == 1 and producers[0]['conclusion'] == 'success', 'the selected hosted controls must pass')
+    archive = artifact / 'grader-image.tar.gz'
     require(archive.is_file() and not archive.is_symlink() and archive.stat().st_size <= 512 * 1024**2 and
             common.digest(archive) == private['image_archive_sha256'], 'isolated checker archive differs from its frozen receipt')
     subprocess.run(grading.DOCKER + ['load', '--input', str(archive)], check=True, timeout=60)
     actual = subprocess.check_output(grading.DOCKER + ['image', 'inspect', '--format', '{{.Id}}', private['image']],
                                      text=True, timeout=10).strip()
     require(actual == private['image'], 'loaded isolated checker differs from its immutable image identity')
-    return {'image': actual, 'live_model_calls': 0}
+    return {'image': actual, 'live_model_calls': 0, 'control_policy': policy}
 
 
 def original(inputs, task, destination):
@@ -58,12 +79,25 @@ def original(inputs, task, destination):
     return prepared
 
 
+def prepare_audit(binary, output):
+    require(os.environ.get('GITHUB_ACTIONS') == 'true', 'prepare original-source audit inputs on GitHub')
+    from . import proof_writing_controls as controller
+    output.mkdir(parents=True, exist_ok=False)
+    for task in TASKS:
+        project, inputs = output / 'working' / task, output / ('m3-prepared-' + task)
+        prepared = cases.prepare(task, binary, project, inputs)
+        controller.exercise(task, binary, project, prepared,
+                            output / ('m3-proof-controls-' + task) / 'controls', inputs)
+
+
 def controls(inputs, binary, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'check private grading on GitHub')
     output.mkdir(parents=True, exist_ok=False)
     rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True, timeout=10).strip())
     image = grading.build(output / 'image')
-    result = {'passed': False, 'live_model_calls': 0, 'image': image, 'checked_controls': 0, 'controls': {}}
+    result = {'passed': False, 'live_model_calls': 0, 'image': image, 'checked_controls': 0, 'controls': {},
+              'source_commit': local.identity()['commit'], 'run': os.environ['GITHUB_RUN_ID'],
+              'bindings': local.implementation_bindings('M3'), 'fr_sha256': common.digest(binary)}
     try:
         with tempfile.TemporaryDirectory(prefix='fr-m3-private-controls-') as temporary:
             root = Path(temporary)
@@ -120,18 +154,25 @@ def controls(inputs, binary, output):
         common.save(output / 'summary.json', result)
 
 
-def grade_cell(data, inputs, image, rust, binary, profile, task, output):
+def grade_cell(data, inputs, artifact, image, rust, binary, profile, task, policy, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'grade public proof patches on GitHub')
     require(profile in report.AGENTS and task in TASKS, 'select one explicit M3 profile/task cell')
     output.mkdir(parents=True, exist_ok=False)
     supplied = json.loads((data / 'summary.json').read_text())
     rows = public.verify(supplied, 'M3')
     cases.validate_controls(supplied['controls'])
-    require(image == supplied['controls']['private']['image'], 'use the exact isolated checker frozen before model calls')
+    require(policy in {'frozen', 'fresh'}, 'choose the exact initial checker or a fresh original-source audit')
+    checked = private_controls(json.loads((artifact / 'summary.json').read_text()))
+    require(checked['image'] == image and checked['source_commit'] == supplied['controls']['source_commit'] and
+            common.digest(binary) == checked['fr_sha256'], 'use the same original fr source and checked isolated image')
+    if policy == 'frozen':
+        require(checked['run'] == supplied['controls']['run'] and image == supplied['controls']['private']['image'],
+                'initial grading must use the frozen controls')
     selected = [row for row in rows if row['profile'] == profile and row['task'] == task]
     require(len(selected) == 4, 'check both setups and repetitions')
     result = {'passed': False, 'study': 'M3', 'profile': profile, 'task': task, 'live_model_calls': 0,
-              'summary_sha256': common.digest(data / 'summary.json'), 'image': image, 'control_policy': 'frozen',
+              'summary_sha256': common.digest(data / 'summary.json'), 'image': image, 'control_policy': policy,
+              'control_run': checked['run'], 'control_source_commit': checked['source_commit'],
               'core_checker_sha256': supplied['core_checker_sha256'], 'attempts': {}}
     try:
         with tempfile.TemporaryDirectory(prefix='fr-m3-grade-') as temporary:
@@ -163,9 +204,16 @@ def merge(supplied, cells):
     require(len(cells) == 9 and {(cell['profile'], cell['task']) for cell in cells} ==
             {(profile, task) for profile in report.AGENTS for task in TASKS}, 'require all nine distinct agent/task cells')
     attempts = {}
+    environments = {(cell['image'], cell['control_policy'], cell['control_run'], cell['control_source_commit']) for cell in cells}
+    require(len(environments) == 1, 'all proof cells must use the same checked original-source environment')
+    image, policy, control_run, control_source = next(iter(environments))
+    require(policy in {'frozen', 'fresh'} and control_source == supplied['controls']['source_commit'],
+            'choose an explicit audit of the original proof-checking source')
+    if policy == 'frozen':
+        require(image == supplied['controls']['private']['image'] and control_run == supplied['controls']['run'],
+                'initial checking environment differs from the frozen controls')
     for cell in cells:
         require(cell['passed'] is True and cell['study'] == 'M3' and cell['live_model_calls'] == 0 and
-                cell['image'] == supplied['controls']['private']['image'] and cell['control_policy'] == 'frozen' and
                 cell['core_checker_sha256'] == supplied['core_checker_sha256'] and
                 cell['summary_sha256'] == hashlib.sha256(encoded_summary(supplied)).hexdigest(),
                 'independent checker, native records or summary differs')
@@ -181,7 +229,7 @@ def merge(supplied, cells):
                 'a failed or timed-out native attempt cannot become a successful result')
     return {'passed': True, 'all_36_checked': True, 'checked_attempts': len(attempts), 'live_model_calls': 0,
             'core_checker_sha256': supplied['core_checker_sha256'], 'attempts': attempts,
-            'image': supplied['controls']['private']['image'], 'control_policy': 'frozen'}
+            'image': image, 'control_policy': policy, 'control_run': control_run, 'control_source_commit': control_source}
 
 
 def completion(summary):
@@ -236,17 +284,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='operation', required=True)
     loading = commands.add_parser('load-checker')
-    for name in ('data', 'archive', 'output'):
+    for name in ('data', 'artifact', 'output'):
         loading.add_argument('--' + name, type=Path, required=True)
     loading.add_argument('--run', required=True)
+    loading.add_argument('--policy', choices=('frozen', 'fresh'), required=True)
+    preparing = commands.add_parser('prepare-audit')
+    for name in ('fr', 'output'):
+        preparing.add_argument('--' + name, type=Path, required=True)
     controlling = commands.add_parser('controls')
     for name in ('inputs', 'fr', 'output'):
         controlling.add_argument('--' + name, type=Path, required=True)
     checking = commands.add_parser('grade-cell')
-    for name in ('data', 'inputs', 'fr', 'rust', 'output'):
+    for name in ('data', 'inputs', 'artifact', 'fr', 'rust', 'output'):
         checking.add_argument('--' + name, type=Path, required=True)
     for name in ('image', 'profile', 'task'):
         checking.add_argument('--' + name, required=True)
+    checking.add_argument('--policy', choices=('frozen', 'fresh'), required=True)
     merging = commands.add_parser('merge')
     for name in ('data', 'cells', 'output'):
         merging.add_argument('--' + name, type=Path, required=True)
@@ -256,13 +309,15 @@ if __name__ == '__main__':
     rendering.add_argument('--mode', choices=('write', 'check'), required=True)
     args = parser.parse_args()
     if args.operation == 'load-checker':
-        common.save(args.output, load_checker(args.data.resolve(), args.archive.resolve(), args.run))
+        common.save(args.output, load_checker(args.data.resolve(), args.artifact.resolve(), args.run, args.policy))
+    elif args.operation == 'prepare-audit':
+        prepare_audit(args.fr.resolve(), args.output.resolve())
     elif args.operation == 'controls':
         result = controls(args.inputs.resolve(), args.fr.resolve(), args.output.resolve())
         print(json.dumps({key: result[key] for key in ('passed', 'checked_controls', 'live_model_calls')}))
     elif args.operation == 'grade-cell':
-        result = grade_cell(args.data.resolve(), args.inputs.resolve(), args.image, args.rust.resolve(),
-                            args.fr.resolve(), args.profile, args.task, args.output.resolve())
+        result = grade_cell(args.data.resolve(), args.inputs.resolve(), args.artifact.resolve(), args.image, args.rust.resolve(),
+                            args.fr.resolve(), args.profile, args.task, args.policy, args.output.resolve())
         print(json.dumps({'passed': result['passed'], 'checked': len(result['attempts'])}))
     elif args.operation == 'merge':
         supplied = json.loads((args.data / 'summary.json').read_text())

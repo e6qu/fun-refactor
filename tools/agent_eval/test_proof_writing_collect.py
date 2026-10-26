@@ -69,24 +69,38 @@ class CompleteProofControls(unittest.TestCase):
             self.combine(values)
 
     def test_only_the_original_successful_control_run_can_load_its_checker(self):
-        for changed_source, changed_archive in ((False, False), (True, False), (False, True)):
-            with self.subTest(source=changed_source, archive=changed_archive), tempfile.TemporaryDirectory() as temporary:
+        for policy, changed_source, changed_archive in (
+                (policy, source, archive) for policy in ('frozen', 'fresh')
+                for source, archive in ((False, False), (True, False), (False, True))):
+            with self.subTest(policy=policy, source=changed_source, archive=changed_archive), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
-                archive = root / 'checker.tar.gz'
+                artifact = root / 'checker'
+                artifact.mkdir()
+                archive = artifact / 'grader-image.tar.gz'
                 archive.write_bytes(b'test checker archive')
                 receipt = self.combine(self.reports())
                 receipt['private']['image_archive_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
+                private = {**self.reports()['m3-private-controls'], **receipt['private'],
+                           'bindings': receipt['bindings'], 'fr_sha256': 'e' * 64,
+                           'source_commit': ('b' if changed_source else 'a') * 40,
+                           'run': '456' if policy == 'fresh' else '123'}
+                if policy == 'fresh':
+                    private['image'] = 'sha256:' + 'd' * 64
+                (artifact / 'summary.json').write_text(json.dumps(private))
                 if changed_archive:
                     archive.write_bytes(b'changed checker archive')
                 (root / 'summary.json').write_text(json.dumps({'controls': receipt}))
+                original_summary = (root / 'summary.json').read_bytes()
 
                 def output(argv, **_settings):
                     if argv[0] != 'gh':
-                        return receipt['private']['image'] + '\n'
+                        return private['image'] + '\n'
                     if '/jobs?' in argv[-1]:
-                        return json.dumps([{'jobs': [{'name': 'M3 / Require every proof, source and native-client control',
+                        name = ('Require every proof, source and native-client control' if policy == 'frozen' else
+                                'Rebuild the original M3 checker and reject bad patches')
+                        return json.dumps([{'jobs': [{'name': 'M3 / ' + name,
                                                      'conclusion': 'success'}]}])
-                    return json.dumps({'head_sha': ('b' if changed_source else 'a') * 40,
+                    return json.dumps({'head_sha': ('c' if policy == 'fresh' else 'a') * 40,
                                        'head_repository': {'full_name': 'example/project'}})
 
                 with mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project'}), \
@@ -95,12 +109,13 @@ class CompleteProofControls(unittest.TestCase):
                      mock.patch.object(results.subprocess, 'run') as loading:
                     if changed_source or changed_archive:
                         with self.assertRaises(ValueError):
-                            results.load_checker(root, archive, '123')
+                            results.load_checker(root, artifact, private['run'], policy)
                         loading.assert_not_called()
                     else:
-                        loaded = results.load_checker(root, archive, '123')
-                        self.assertEqual(loaded['image'], receipt['private']['image'])
+                        loaded = results.load_checker(root, artifact, private['run'], policy)
+                        self.assertEqual(loaded['image'], private['image'])
                         self.assertEqual(loading.call_count, 1)
+                    self.assertEqual((root / 'summary.json').read_bytes(), original_summary)
 
 
 if __name__ == '__main__':

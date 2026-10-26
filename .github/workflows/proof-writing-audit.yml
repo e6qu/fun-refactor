@@ -1,0 +1,97 @@
+name: Rebuild the original M3 proof auditor
+on:
+  workflow_call:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original:
+    name: Rebuild the original M3 checker and reject bad patches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      LEAN_NUM_THREADS: '1'
+      FR_LEAN_JOBS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/proof-writing/local-results
+      - name: Select the checking source recorded before the model calls
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          data = json.loads(Path('tests/agent-eval/proof-writing/local-results/summary.json').read_text())
+          source = data['controls']['source_commit']
+          assert data['study'] == 'M3' and re.fullmatch('[0-9a-f]{40}', source)
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              stream.write('M3_AUDITOR_SOURCE=' + source + '\n')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.M3_AUDITOR_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/lean-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m3-proof-writing
+      - run: cargo build --locked --bin fr
+      - name: Recreate the three original tasks and supplied proof controls
+        run: >-
+          python3 -B -m agent_eval.proof_writing_results prepare-audit
+          --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-audit-inputs"
+      - name: Recheck all eighteen isolated positive and negative deliveries
+        run: >-
+          python3 -B -m agent_eval.proof_writing_results controls
+          --inputs "$RUNNER_TEMP/m3-audit-inputs" --fr "$GITHUB_WORKSPACE/target/debug/fr"
+          --output "$RUNNER_TEMP/m3-audit-private"
+      - name: Retain the exact checked executable and source
+        run: |
+          mkdir -p "$RUNNER_TEMP/m3-audit-tool"
+          cp target/debug/fr "$RUNNER_TEMP/m3-audit-tool/fr"
+          git rev-parse HEAD > "$RUNNER_TEMP/m3-audit-tool/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/m3-audit-tool/source-tree.txt"
+          sha256sum "$RUNNER_TEMP/m3-audit-tool/fr" > "$RUNNER_TEMP/m3-audit-tool/fr.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m3-audit-tool
+          path: ${{ runner.temp }}/m3-audit-tool
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m3-audit-inputs
+          path: |
+            ${{ runner.temp }}/m3-audit-inputs/m3-prepared-access-rust
+            ${{ runner.temp }}/m3-audit-inputs/m3-prepared-page-count
+            ${{ runner.temp }}/m3-audit-inputs/m3-prepared-fits-window
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m3-audit-private-controls
+          path: |
+            ${{ runner.temp }}/m3-audit-private/summary.json
+            ${{ runner.temp }}/m3-audit-private/*/result.json
+            ${{ runner.temp }}/m3-audit-private/*/grader.stdout
+            ${{ runner.temp }}/m3-audit-private/*/grader.stderr
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m3-audit-checker-image
+          path: ${{ runner.temp }}/m3-audit-private/grader-image.tar.gz
+          if-no-files-found: error
+          retention-days: 30

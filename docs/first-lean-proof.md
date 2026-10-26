@@ -60,6 +60,8 @@ fr -C . --json spec property-task src/lib.rs::allowed > property-task.json
 
 `-C .` selects this folder. JSON is structured output that another program can read.
 `init` previews the Lean package; `--write` creates it. Here we choose `specs` as its directory.
+A dependency is another library the package uses. Its lockfile records those choices before
+the first proof task; this example starts with no dependencies.
 `property-task` describes the selected model, allowed claim forms and a fingerprint of those inputs.
 A fingerprint identifies particular content; it is not a proof of correctness.
 

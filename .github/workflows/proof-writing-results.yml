@@ -11,6 +11,9 @@ on:
       report_mode:
         type: string
         required: true
+      policy:
+        type: string
+        required: true
 permissions:
   contents: read
   actions: read
@@ -34,9 +37,30 @@ jobs:
       M3_CONTROLS_RUN: ${{ inputs.controls_run }}
       PROFILE: ${{ matrix.profile }}
       TASK: ${{ matrix.task }}
+      CONTROL_POLICY: ${{ inputs.policy }}
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/proof-writing/local-results
+      - name: Preserve the submissions and select their original checking code
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, shutil
+          from pathlib import Path
+          source = Path('tests/agent-eval/proof-writing/local-results')
+          data = json.loads((source / 'summary.json').read_text())
+          commit = data['controls']['source_commit']
+          assert data['study'] == 'M3' and re.fullmatch('[0-9a-f]{40}', commit)
+          assert os.environ['CONTROL_POLICY'] in {'frozen', 'fresh'}
+          destination = Path(os.environ['RUNNER_TEMP']) / 'm3-submitted'
+          shutil.copytree(source, destination)
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              stream.write(f'M3_AUDITOR_SOURCE={commit}\nM3_DATA={destination}\n')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.M3_AUDITOR_SOURCE }}
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
@@ -45,44 +69,69 @@ jobs:
       - uses: ./.github/actions/lean-toolchain
       - uses: actions/download-artifact@v8
         with:
-          name: m3-linux-tool
+          name: ${{ inputs.policy == 'frozen' && 'm3-linux-tool' || 'm3-audit-tool' }}
           path: ${{ runner.temp }}/m3-tool
           run-id: ${{ inputs.tool_run }}
           github-token: ${{ github.token }}
       - name: Check the executable source and its hosted model tests
+        if: inputs.policy == 'frozen'
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-patch-build.json"
+      - name: Check the rebuilt original-source executable
+        if: inputs.policy == 'fresh'
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          from agent_eval import selected_local as local
+          data = json.loads((Path(os.environ['M3_DATA']) / 'summary.json').read_text())
+          tool = Path(os.environ['RUNNER_TEMP']) / 'm3-tool'
+          local.verified_fr_build({'native_inputs': data['native_inputs']}, local.hash_file(tool / 'fr'), tool)
+          PY
       - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
       - uses: actions/download-artifact@v8
         with:
-          name: m3-private-grader-image
+          name: ${{ inputs.policy == 'frozen' && 'm3-private-grader-image' || 'm3-audit-checker-image' }}
           path: ${{ runner.temp }}/m3-grader
           run-id: ${{ inputs.controls_run }}
           github-token: ${{ github.token }}
-      - name: Load only the checker frozen before the live attempts
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.policy == 'frozen' && 'm3-private-controls' || 'm3-audit-private-controls' }}
+          path: ${{ runner.temp }}/m3-grader
+          run-id: ${{ inputs.controls_run }}
+          github-token: ${{ github.token }}
+      - name: Load the explicitly selected and independently checked auditor
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           python3 -B -m agent_eval.proof_writing_results load-checker
-          --data tests/agent-eval/proof-writing/local-results
-          --archive "$RUNNER_TEMP/m3-grader/grader-image.tar.gz"
-          --run "$M3_CONTROLS_RUN" --output "$RUNNER_TEMP/m3-grader/loaded.json"
+          --data "$M3_DATA" --artifact "$RUNNER_TEMP/m3-grader"
+          --run "$M3_CONTROLS_RUN" --policy "$CONTROL_POLICY" --output "$RUNNER_TEMP/m3-grader/loaded.json"
       - uses: actions/download-artifact@v8
+        if: inputs.policy == 'frozen'
         with:
           name: m3-prepared-${{ matrix.task }}
           path: ${{ runner.temp }}/m3-inputs/m3-prepared-${{ matrix.task }}
+          run-id: ${{ inputs.controls_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        if: inputs.policy == 'fresh'
+        with:
+          name: m3-audit-inputs
+          path: ${{ runner.temp }}/m3-inputs
           run-id: ${{ inputs.controls_run }}
           github-token: ${{ github.token }}
       - name: Check both setups and repetitions in isolated patch receivers
         run: |
           m3_image=$(python3 -c 'import json,os;from pathlib import Path;print(json.loads((Path(os.environ["RUNNER_TEMP"])/"m3-grader/loaded.json").read_text())["image"])')
           python3 -B -m agent_eval.proof_writing_results grade-cell \
-            --data tests/agent-eval/proof-writing/local-results --inputs "$RUNNER_TEMP/m3-inputs" \
+            --data "$M3_DATA" --inputs "$RUNNER_TEMP/m3-inputs" --artifact "$RUNNER_TEMP/m3-grader" \
             --fr "$RUNNER_TEMP/m3-tool/fr" --rust "$(rustc --print sysroot)" --image "$m3_image" \
-            --profile "$PROFILE" --task "$TASK" --output "$RUNNER_TEMP/m3-cell"
+            --profile "$PROFILE" --task "$TASK" --policy "$CONTROL_POLICY" --output "$RUNNER_TEMP/m3-cell"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -103,6 +152,25 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout: tests/agent-eval/proof-writing/local-results
+      - name: Preserve the report and select its recorded auditor
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, shutil
+          from pathlib import Path
+          source = Path('tests/agent-eval/proof-writing/local-results')
+          data = json.loads((source / 'summary.json').read_text())
+          commit = data['controls']['source_commit']
+          assert data['study'] == 'M3' and re.fullmatch('[0-9a-f]{40}', commit)
+          destination = Path(os.environ['RUNNER_TEMP']) / 'm3-submitted'
+          shutil.copytree(source, destination)
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              stream.write(f'M3_AUDITOR_SOURCE={commit}\nM3_DATA={destination}\n')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.M3_AUDITOR_SOURCE }}
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -113,7 +181,7 @@ jobs:
       - name: Merge every distinct profile and task cell
         run: >-
           python3 -B -m agent_eval.proof_writing_results merge
-          --data tests/agent-eval/proof-writing/local-results --cells "$RUNNER_TEMP/m3-cells"
+          --data "$M3_DATA" --cells "$RUNNER_TEMP/m3-cells"
           --output "$RUNNER_TEMP/m3-checked.json"
       - name: Check the published explanation and full milestone requirements
         run: |
@@ -121,7 +189,7 @@ jobs:
             collect) ;;
             check)
               python3 -B -m agent_eval.proof_writing_results report \
-                --data tests/agent-eval/proof-writing/local-results --checks "$RUNNER_TEMP/m3-checked.json" --mode check
+                --data "$M3_DATA" --checks "$RUNNER_TEMP/m3-checked.json" --mode check
               ;;
             *) exit 1 ;;
           esac
