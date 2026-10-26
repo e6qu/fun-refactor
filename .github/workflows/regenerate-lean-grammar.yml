@@ -29,7 +29,10 @@ jobs:
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
           /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
       - name: Check proof syntax and preserve following declarations before committing
-        run: python3 -B tools/check-lean-reader.py --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter"
+        run: >-
+          python3 -B tools/check-lean-reader.py
+          --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter"
+          --diagnostics "$RUNNER_TEMP/lean-reader-diagnostics"
       - name: Commit generated source to the same milestone branch
         env:
           BRANCH: ${{ github.ref_name }}
@@ -49,3 +52,10 @@ jobs:
           name: lean-syntax-reader
           path: grammars/lean/src
           retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-reader-diagnostics
+          path: ${{ runner.temp }}/lean-reader-diagnostics
+          if-no-files-found: ignore
+          retention-days: 7

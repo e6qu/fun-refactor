@@ -45,3 +45,8 @@ theorem cases_application (flag : Bool) : chooseNumber flag ≤ 1 := by
   | zero => omega
   | succ n =>
     cases flag <;> simp [chooseNumber] at h <;> omega
+
+theorem tuple_proofs (p q : Prop) (hp : p) (hq : q) : p ∧ q := by
+  exact ⟨by exact hp, by exact hq⟩
+
+theorem after_tuple_proofs : 1 = 1 := by rfl

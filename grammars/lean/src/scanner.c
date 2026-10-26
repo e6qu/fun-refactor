@@ -358,10 +358,10 @@ bool tree_sitter_lean_external_scanner_scan(
     return true;
   }
 
-  /* 6. Closing bracket/paren/brace — force-close one layout level. */
+  /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
-    if (c == ')' || c == ']' || c == '}') {
+    if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9) {
       pop(s);
       lexer->result_symbol = LAYOUT_END;
       return true;

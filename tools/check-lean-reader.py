@@ -1,22 +1,20 @@
 """Check generated syntax before committing it to a development branch."""
 import argparse
 from pathlib import Path
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = {
-    'slice_is_maximal', 'slice_and_remaining_partition', 'slice_zero_budget',
-    'slice_finishes_when_budget_fits', 'slice_advances_to_available_boundary',
-    'sourcePageLengths', 'prefix_length_bounded', 'page_preserves_rows',
-    'page_respects_shared_budget', 'page_budget_partition', 'page_zero_budget',
-}
 
 
-def check(binary):
+def check(binary, diagnostics):
+    diagnostics.mkdir(parents=True, exist_ok=False)
     for fixture, require_clean in [('lean-proof-locations.lean', True), ('lean-source-declarations.lean', False)]:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+        (diagnostics / (fixture + '.xml')).write_text(result.stdout)
+        (diagnostics / (fixture + '.stderr')).write_text(result.stderr)
         if require_clean:
             assert result.returncode == 0, result.stdout[-4096:] + result.stderr[-4096:]
         else:
@@ -24,18 +22,22 @@ def check(binary):
         start = result.stdout.index('<sources>')
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
+        print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
         if fixture == 'lean-source-declarations.lean':
+            expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
             for definition in tree.iter('definition'):
                 name = next(definition.iter('qualified_name'), None)
                 if name is not None:
                     names.add(''.join(''.join(name.itertext()).split()))
             print('Recovered declarations:', sorted(names), flush=True)
-            assert EXPECTED <= names, 'lost later source declarations: ' + repr(sorted(EXPECTED - names))
+            assert names == expected, 'declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)})
         print('Checked', fixture, flush=True)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tree-sitter', type=Path, required=True)
-    check(parser.parse_args().tree_sitter.resolve())
+    parser.add_argument('--diagnostics', type=Path, required=True)
+    args = parser.parse_args()
+    check(args.tree_sitter.resolve(), args.diagnostics.resolve())
