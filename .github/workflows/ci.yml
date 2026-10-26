@@ -430,7 +430,7 @@ jobs:
 
   native:
     name: native (${{ matrix.kind }}-${{ matrix.index }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -467,7 +467,7 @@ jobs:
           retention-days: 7
 
   static:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"

@@ -72,6 +72,7 @@ on:
           - retain-contract-failure
           - fixed-arity-probes
           - go-toolchain
+          - native-tools
           - project-change-inspect
           - project-change-development
           - project-change-consumer-scope
@@ -450,7 +451,7 @@ jobs:
           git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
-    if: inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
+    if: inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && inputs.group != 'native-tools' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -560,6 +561,51 @@ jobs:
           printf 'package main\nimport "fmt"\nfunc main() { fmt.Println("verified Go") }\n' > "$go_probe/main.go"
           go build -o "$go_probe/check" "$go_probe/main.go"
           test "$("$go_probe/check")" = 'verified Go'
+
+  native-tools:
+    if: inputs.group == 'native-tools'
+    name: Check native validator installation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions
+            tools
+            kernels
+            tests/typesafety/typescript
+            tests/migration-runtime/nextjs-framework
+            tests/application-runtime/express
+      - uses: ./.github/actions/native-tools
+      - name: Check accepted and rejected shell and XML syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          validator_controls="$RUNNER_TEMP/native-validator-controls"
+          mkdir -p "$validator_controls"
+          printf '%s\n' 'function greet() { print -r -- hello; }' > "$validator_controls/valid.zsh"
+          printf '%s\n' 'if then' > "$validator_controls/invalid.zsh"
+          zsh -n "$validator_controls/valid.zsh"
+          if zsh -n "$validator_controls/invalid.zsh"; then
+            echo 'zsh accepted invalid syntax' >&2
+            exit 1
+          fi
+          printf '%s\n' '<root/>' > "$validator_controls/valid.xml"
+          printf '%s\n' '<root>' > "$validator_controls/invalid.xml"
+          xmllint --nonet --noout "$validator_controls/valid.xml"
+          if xmllint --nonet --noout "$validator_controls/invalid.xml"; then
+            echo 'xmllint accepted invalid syntax' >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-validator-controls
+          path: ${{ runner.temp }}/native-validator-controls
+          if-no-files-found: warn
+          retention-days: 30
 
   retain-ci-reports:
     if: inputs.group == 'retain-ci-reports' && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'

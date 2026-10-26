@@ -13,6 +13,14 @@ Candidate grader checks download only their task files and tools.
 Downloading the complete result archive had used most of a five-minute job before the checks started.
 The narrower checkout keeps the same deadline and all source and repair controls.
 
+Checks use `zsh` to parse shell scripts and `xmllint` to parse XML files.
+They install fixed package files from a checked cache, with package-manager downloads disabled.
+A checksum identifies the expected bytes of each downloaded file.
+The names and checksums come from Ubuntu's [main](https://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.xz)
+and [updates](https://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/Packages.xz) indexes.
+Test setup does not refresh system package repositories. Missing dependencies still fail.
+The `native-tools` group in `refinement-evidence.yml` runs the installation and checks accepted and rejected shell and XML examples on a GitHub runner.
+
 OpenCode can expose its `build` agent before it finishes discovering project skills.
 The scripted check waits for the `fr` skill within the same ten-second deadline.
 A missing skill or a failed client request still fails the check.

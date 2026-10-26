@@ -1,9 +1,45 @@
 name: Native validation tools
-description: Pinned validators and language runtimes for the complete native gate
+description: Pinned validators and language runtimes for Ubuntu 24.04 amd64 checks
 runs:
   using: composite
   steps:
     - uses: ./.github/actions/zig-toolchain
+    - name: Cache the exact Ubuntu validator packages
+      id: validator-packages
+      uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/native-validator-packages
+        key: native-validator-packages-ubuntu24-amd64-${{ hashFiles('.github/actions/native-tools/ubuntu-packages.txt') }}
+    - name: Download the pinned packages within one shared deadline
+      if: steps.validator-packages.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        timeout 120 bash -euo pipefail <<'BASH'
+        validator_dir="$RUNNER_TEMP/native-validator-packages"
+        mkdir -p "$validator_dir"
+        while read -r validator_sha validator_url; do
+          validator_archive="$validator_dir/${validator_url##*/}"
+          echo "Downloading $validator_url"
+          curl -fsSL --connect-timeout 20 --max-time 120 --max-filesize 5242880 \
+            -o "$validator_archive" "$validator_url"
+          echo "$validator_sha  $validator_archive" | sha256sum -c -
+        done < .github/actions/native-tools/ubuntu-packages.txt
+        BASH
+    - name: Install verified local packages with downloads disabled
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(dpkg --print-architecture)" = amd64
+        validator_archives=()
+        while read -r validator_sha validator_url; do
+          validator_archive="$RUNNER_TEMP/native-validator-packages/${validator_url##*/}"
+          echo "$validator_sha  $validator_archive" | sha256sum -c -
+          validator_archives+=("$validator_archive")
+        done < .github/actions/native-tools/ubuntu-packages.txt
+        sudo env DEBIAN_FRONTEND=noninteractive timeout 240 apt-get install \
+          --yes --no-download --no-install-recommends "${validator_archives[@]}"
+        zsh --version
+        xmllint --version
     - name: Install the validators the gate drives
       shell: bash
       run: |
@@ -17,8 +53,6 @@ runs:
             --connect-timeout 20 --max-time 120 -o "$1" "$2" \
             || { echo "could not fetch $2 within the time allowed"; exit 1; }
         }
-        sudo timeout 240 apt-get update -qq
-        sudo timeout 240 apt-get install -y -qq libxml2-utils zsh
         fetch /tmp/terraform.zip \
           "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
         echo "${TERRAFORM_SHA}  /tmp/terraform.zip" | sha256sum -c -
@@ -32,7 +66,6 @@ runs:
         zig version
         helm version --short
         shellcheck --version | head -2
-        xmllint --version 2>&1 | head -1
     - uses: actions/setup-python@v7
       with:
         python-version: "3.14"
