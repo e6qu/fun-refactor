@@ -17,5 +17,8 @@ tests/agent-eval/results/**/recovery-delivery-context.json linguist-generated=tr
 tests/agent-eval/results/**/binding-sources/** linguist-generated=true -diff
 tests/agent-eval/results/**/objects/** linguist-generated=true -diff
 tests/agent-eval/results/**/*.patch whitespace=-blank-at-eol
+# Keep submitted patches byte-exact, including blank context lines.
+tests/agent-eval/**/patches/*.patch -text whitespace=-blank-at-eol
+tests/agent-eval/project-edits/**/summary.json -text
 # Preserve the measured skill snapshot, including its original final blank line.
 tests/agent-eval/results/2026-09-07-context/skill/references/recipes.md whitespace=-blank-at-eof
