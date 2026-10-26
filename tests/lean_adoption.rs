@@ -15,6 +15,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert!(run(workspace.path(), &["spec", "init", "specs", "--write"])
         .status
         .success());
+    let lockfile = workspace.path().join("specs/lake-manifest.json");
+    let initialized_lockfile = std::fs::read(&lockfile).unwrap();
     let plan =
         fun_refactor::spec::formal_plan(workspace.path(), "src/lib.rs::keep", &["identity".into()])
             .unwrap();
@@ -64,6 +66,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "{}",
         String::from_utf8_lossy(&built.stderr)
     );
+    assert_eq!(std::fs::read(&lockfile).unwrap(), initialized_lockfile);
     let target = "specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity";
     let first_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();

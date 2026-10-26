@@ -35,6 +35,15 @@ namespace FrSpecs
 end FrSpecs
 "#;
 
+const LAKE_MANIFEST: &str = r#"{
+  "version": "1.1.0",
+  "packagesDir": ".lake/packages",
+  "packages": [],
+  "name": "«fr-specs»",
+  "lakeDir": ".lake"
+}
+"#;
+
 #[derive(Debug, Serialize)]
 pub struct InitPlan {
     pub package: PathBuf,
@@ -679,11 +688,13 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let definitions = [
         ("lean-toolchain", concat!("leanprover/lean4:v4.28.0", "\n")),
         ("lakefile.toml", LAKEFILE),
+        ("lake-manifest.json", LAKE_MANIFEST),
         ("FrSpecs.lean", ROOT_MODULE),
     ];
     let mut files = Vec::with_capacity(definitions.len());
     for (name, content) in definitions {
         let path = package.join(name);
+        let preserve_existing = matches!(name, "FrSpecs.lean" | "lake-manifest.json");
         let existing = if crate::vfs::is_in_memory() {
             if crate::vfs::paths()
                 .iter()
@@ -696,7 +707,7 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
             }
             if crate::vfs::exists(&path) {
                 let current = crate::vfs::read_to_string(&path)?;
-                if current != content && name != "FrSpecs.lean" {
+                if current != content && !preserve_existing {
                     bail!(
                         "refusing to replace existing spec package file {}.",
                         path.display()
@@ -711,7 +722,7 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
                 Ok(metadata) if metadata.is_file() => {
                     let current = crate::vfs::read_to_string(&path)
                         .with_context(|| format!("reading {}", path.display()))?;
-                    if current != content && name != "FrSpecs.lean" {
+                    if current != content && !preserve_existing {
                         bail!(
                             "refusing to replace existing spec package file {}.",
                             path.display()
@@ -5109,7 +5120,7 @@ mod tests {
         let workspace = tempfile::tempdir().unwrap();
         let root = workspace.path();
         let plan = init(root, Path::new("verification/lean")).unwrap();
-        assert_eq!(plan.files.len(), 3);
+        assert_eq!(plan.files.len(), 4);
         assert!(plan.files.iter().all(|file| !file.existing));
         assert!(init(root, Path::new("../outside")).is_err());
         assert!(init(root, &root.parent().unwrap().join("outside")).is_err());

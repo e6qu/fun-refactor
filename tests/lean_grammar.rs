@@ -41,5 +41,8 @@ theorem alternatives (invalid : 0 < 1 ∨ 1 < 2) : True := by
     );
     assert!(structure.contains("tactic_rcases"), "{structure}");
     assert!(structure.contains("rcases_tuple_pattern"), "{structure}");
-    assert!(structure.contains("rcases_alternative_pattern"), "{structure}");
+    assert!(
+        structure.contains("rcases_alternative_pattern"),
+        "{structure}"
+    );
 }
