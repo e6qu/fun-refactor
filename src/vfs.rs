@@ -3,6 +3,14 @@
 use std::io;
 use std::path::Path;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryKind {
+    File,
+    Directory,
+    Symlink,
+    Other,
+}
+
 /// A workspace held in memory and not on disk.
 mod memory {
     use std::cell::RefCell;
@@ -144,6 +152,25 @@ mod memory {
         with_active(|files| files.contains_key(path))
     }
 
+    pub fn entry_kind(path: &Path) -> io::Result<super::EntryKind> {
+        with_active(|files| {
+            if files.contains_key(path) {
+                return Ok(super::EntryKind::File);
+            }
+            if files
+                .range(path.to_path_buf()..)
+                .next()
+                .is_some_and(|(child, _)| child.starts_with(path))
+            {
+                return Ok(super::EntryKind::Directory);
+            }
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("{} is not in the loaded workspace", path.display()),
+            ))
+        })
+    }
+
     pub fn read_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
         Ok(with_active(|files| {
             files
@@ -221,6 +248,19 @@ mod backing {
 
     pub fn exists(path: &Path) -> bool {
         path.exists()
+    }
+
+    pub fn entry_kind(path: &Path) -> io::Result<super::EntryKind> {
+        let kind = std::fs::symlink_metadata(path)?.file_type();
+        Ok(if kind.is_symlink() {
+            super::EntryKind::Symlink
+        } else if kind.is_dir() {
+            super::EntryKind::Directory
+        } else if kind.is_file() {
+            super::EntryKind::File
+        } else {
+            super::EntryKind::Other
+        })
     }
 
     pub fn read_dir(dir: &Path) -> io::Result<Vec<std::path::PathBuf>> {
@@ -328,6 +368,13 @@ pub fn exists(path: impl AsRef<Path>) -> bool {
     let path = path.as_ref();
     through_memory!(exists(path));
     backing::exists(path)
+}
+
+/// Identify an entry without following symlinks or reading outside the active workspace.
+pub fn entry_kind(path: impl AsRef<Path>) -> io::Result<EntryKind> {
+    let path = path.as_ref();
+    through_memory!(entry_kind(path));
+    backing::entry_kind(path)
 }
 
 /// The files directly inside a directory, in no particular order.

@@ -61,11 +61,8 @@ jobs:
           package-manager-cache: false
       - uses: ./.github/actions/go-toolchain
         if: matrix.target == 'conformance'
-      - uses: actions/setup-java@v6
+      - uses: ./.github/actions/java-toolchain
         if: matrix.target == 'conformance'
-        with:
-          distribution: temurin
-          java-version: "26"
 
       - name: Install Zig for the conformance matrix
         if: matrix.target == 'conformance'

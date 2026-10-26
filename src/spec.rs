@@ -11,7 +11,7 @@ use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -1957,47 +1957,38 @@ fn proof_package_inputs(
     let mut entries = 0;
     let mut bytes = 0;
     while let Some(directory) = pending.pop() {
-        for entry in std::fs::read_dir(directory)? {
-            let entry = entry?;
+        for path in crate::vfs::read_dir_bounded(directory, 4096 - entries)? {
             entries += 1;
-            if entries > 4096 {
-                bail!("proof package input discovery exceeds 4096 entries.");
-            }
-            let path = entry.path();
             if matches!(
-                entry.file_name().to_str(),
+                path.file_name().and_then(|name| name.to_str()),
                 Some(".lake" | ".git" | ".fr-history")
             ) {
                 continue;
             }
-            let kind = entry.file_type()?;
-            if kind.is_symlink() || (!kind.is_dir() && !kind.is_file()) {
-                bail!("proof package inputs must be regular files and directories.");
-            }
-            if kind.is_dir() {
-                pending.push(path);
-                continue;
+            match crate::vfs::entry_kind(&path)? {
+                crate::vfs::EntryKind::Directory => {
+                    pending.push(path);
+                    continue;
+                }
+                crate::vfs::EntryKind::File => {}
+                crate::vfs::EntryKind::Symlink | crate::vfs::EntryKind::Other => {
+                    bail!("proof package inputs must be regular files and directories.");
+                }
             }
             if path.extension().is_none_or(|extension| extension != "lean")
                 && !matches!(
-                    entry.file_name().to_str(),
+                    path.file_name().and_then(|name| name.to_str()),
                     Some("lean-toolchain" | "lakefile.toml" | "lake-manifest.json")
                 )
             {
                 continue;
             }
-            if entry.metadata()?.len() > 1024 * 1024 || inputs.len() >= 256 {
+            if inputs.len() >= 256 {
                 bail!("proof package inputs exceed 256 files or 1 MiB per file.");
             }
             let mut text = match replacement {
                 Some((selected, source)) if path == selected => source.to_string(),
-                _ => {
-                    let mut text = String::new();
-                    std::fs::File::open(&path)?
-                        .take(1024 * 1024 + 1)
-                        .read_to_string(&mut text)?;
-                    text
-                }
+                _ => crate::vfs::read_to_string_bounded(&path, 1024 * 1024)?,
             };
             if text.len() > 1024 * 1024 {
                 bail!("proof package source exceeds 1 MiB while reading.");
@@ -4743,6 +4734,78 @@ mod tests {
     use std::collections::BTreeMap;
     use std::fs;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn proof_package_sources_follow_the_active_workspace_and_bind_dependencies() {
+        let disk = tempfile::tempdir().unwrap();
+        let root = disk.path();
+        let files = [
+            ("lean-toolchain", super::LEAN_TOOLCHAIN),
+            ("FrSpecs/Dependency.lean", "def enabled := true\n"),
+            ("FrSpecs/Goal.lean", "theorem claim : True := by\n-- fr:proof-begin claim\n  sorry\n-- fr:proof-end claim\n"),
+        ];
+        for (name, text) in files {
+            let path = root.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        }
+        let expected = super::proof_package_inputs(root, None, false).unwrap();
+        let raw = super::proof_package_inputs(root, None, true).unwrap();
+        let memory =
+            crate::vfs::new_handle(files.map(|(name, text)| (root.join(name), text.into())));
+        crate::vfs::with_handle(&memory, || {
+            assert_eq!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+            assert_eq!(super::proof_package_inputs(root, None, true).unwrap(), raw);
+            let goal = root.join("FrSpecs/Goal.lean");
+            let changed = files[2].1.replace("sorry", "trivial");
+            crate::vfs::write(&goal, &changed).unwrap();
+            assert_eq!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+            assert_ne!(super::proof_package_inputs(root, None, true).unwrap(), raw);
+            crate::vfs::write(
+                root.join("FrSpecs/Dependency.lean"),
+                "def enabled := false\n",
+            )
+            .unwrap();
+            assert_ne!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+        });
+        assert_eq!(
+            super::proof_package_inputs(root, None, false).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn proof_package_sources_refuse_links_and_keep_input_bounds() {
+        let disk = tempfile::tempdir().unwrap();
+        let root = disk.path();
+        std::os::unix::fs::symlink(root.join("outside"), root.join("Link.lean")).unwrap();
+        assert!(super::proof_package_inputs(root, None, true).is_err());
+        let oversized =
+            crate::vfs::new_handle([(root.join("Big.lean"), "x".repeat(1024 * 1024 + 1))]);
+        let too_many_files = crate::vfs::new_handle(
+            (0..257).map(|index| (root.join(format!("{index}.lean")), String::new())),
+        );
+        let too_many_entries = crate::vfs::new_handle(
+            (0..4097).map(|index| (root.join(format!("{index}.txt")), String::new())),
+        );
+        let too_many_bytes = crate::vfs::new_handle(
+            (0..9).map(|index| (root.join(format!("{index}.lean")), "x".repeat(1024 * 1024))),
+        );
+        for handle in [oversized, too_many_files, too_many_entries, too_many_bytes] {
+            crate::vfs::with_handle(&handle, || {
+                assert!(super::proof_package_inputs(root, None, true).is_err())
+            });
+        }
+    }
 
     #[test]
     fn reads_anchors_and_counts_only_live_obligations() {
