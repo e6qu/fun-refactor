@@ -147,7 +147,6 @@ def main():
         for group, payload in collection_reports(data, collection, identity).items():
             collected.append((group, payload, identity))
     revisions = {identity['source_commit'] for _, _, identity in collected}
-    require(len(revisions) == 1, 'collect the repair reports from the same source commit')
     for revision in revisions:
         scalar.retain.command(['git', 'fetch', '--no-tags', '--depth=1', 'origin', revision],
                               capture_output=True)

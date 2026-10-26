@@ -14,14 +14,14 @@ spec.loader.exec_module(reports)
 
 
 class ReportRetention(unittest.TestCase):
-    def retain(self, root, *, mixed=False, extra=False, reject=False, only=None, tamper_structural=False,
+    def retain(self, root, *, mixed=False, bookkeeping=False, extra=False, reject=False, only=None, tamper_structural=False,
                omit_repository_artifact=False, wrong_repository_revision=False, format_rust=False):
         prefix = 'test-reports'
         payload = b'{"sample":0.10000000000000001}\n'
         groups = [reports.ARTIFACT_GROUPS[name] for name in reports.GROUPS]
         def collect(run, *_):
             data = {f'refinement-evidence/{prefix}-{name}/result.json': payload for name in groups[run - 1]}
-            identity = {'source_commit': ('b' if mixed and run == 2 else 'a') * 40, 'run_id': str(run)}
+            identity = {'source_commit': ('b' if (mixed or bookkeeping) and run == 2 else 'a') * 40, 'run_id': str(run)}
             if 'compiler-profile' in groups[run - 1]:
                 data = {'result.json': json.dumps({'source_commit': identity['source_commit']}).encode()}
             if 'python-repositories' in groups[run - 1]:
@@ -84,7 +84,7 @@ class ReportRetention(unittest.TestCase):
             runs = {name: run for name, run in runs.items() if name not in {'all', 'dependency'}}
         with mock.patch.object(reports, 'ROOT', root), \
              mock.patch.object(reports.scalar, 'collect', side_effect=collect), \
-             mock.patch.object(reports.scalar, 'verify_sources'), \
+             mock.patch.object(reports.scalar, 'verify_sources', side_effect=ValueError('analyzer changed') if mixed else None), \
              mock.patch.object(reports.scalar.retain, 'command'), \
              mock.patch.object(reports.subprocess, 'run', side_effect=execute), \
              mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/test',
@@ -158,6 +158,13 @@ class ReportRetention(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.retain(root, mixed=True)
             self.assertEqual(list((root / 'tests/agent-eval/results').iterdir()), [])
+
+    def test_unrelated_commit_changes_use_exact_analyzer_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['model-comparisons', 'checked-outcomes'], bookkeeping=True)
+            manifest = json.loads((root / 'tests/agent-eval/results/test-reports-ci-collection/manifest.json').read_text())
+            self.assertEqual({row['collection']['source_commit'] for row in manifest['groups'].values()}, {'a' * 40, 'b' * 40})
 
     def test_refreshing_proofs_preserves_unrequested_reports(self):
         with tempfile.TemporaryDirectory() as directory:
