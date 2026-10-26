@@ -94,6 +94,8 @@ def prompt(task, setup, checkers, milestone):
             request += '\n\n' + requirements['arithmetic']
         request += ('\n\nLean checks a theorem under its definitions and assumptions. Tactics are the proof steps you write. '
             'The installed Lean includes its standard library, not Mathlib. No proof steps are supplied. '
+            'Use lean --print-prefix to locate the installation; its src/lean folder contains the standard library sources. '
+            'Search names from the supplied model when looking up definitions or existing library proofs. '
             'Keep working files under .fr/, or remove them before delivery. Only the marked proof region may change. '
             'A fr proof-check report with passed=false is a failed check even if the command exits successfully. '
             'Repair rejected tactics using the reported diagnostics; keep the theorem and definitions fixed.')

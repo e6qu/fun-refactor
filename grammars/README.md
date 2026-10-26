@@ -59,6 +59,11 @@ This build's Lean writer sorts a module's declarations so that each comes after
 everything it names, and a cycle has no such order. `mutual` is what it emits there, so
 without the rule the reparse gate refuses the translation outright.
 
+Lean also accepts `rcases invalid with left | right`, which splits an either/or
+assumption into two proof cases. The reader incorrectly required `(left | right)`.
+Both forms now have an explicit alternative-pattern node. The page-count example
+keeps the unparenthesized form as a regression; Lean must still check the completed proof.
+
 ## zig
 
 `struct {}` is ordinary Zig. The four container rules take `$._container_members`, which

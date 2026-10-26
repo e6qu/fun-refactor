@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout: grammars/lean
       - uses: actions/setup-node@v6
         with:
           node-version: '26.5.0'
@@ -24,7 +26,7 @@ jobs:
         working-directory: grammars/lean
         run: |
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
-          "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate
+          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate
       - name: Commit generated source to the same milestone branch
         env:
           BRANCH: ${{ github.ref_name }}
