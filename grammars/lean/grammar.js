@@ -484,7 +484,9 @@ module.exports = grammar({
     // Expressions
     // ============================================================
 
-    _expression: $ => choice(
+    _expression: $ => choice($._application_head, $.by),
+
+    _application_head: $ => choice(
       $._atom,
       $.application,
       $.subscript,
@@ -502,7 +504,6 @@ module.exports = grammar({
       $.if_let,
       $.match,
       $.do,
-      $.by,
       $.try,
       $.return,
       $.as_pattern,
@@ -567,7 +568,7 @@ module.exports = grammar({
     // Function application: `f x y z`
     // Uses prec.left to parse `f x y` as `(f x) y`
     application: $ => prec.left(PREC.app, seq(
-      field('name', $._expression),
+      field('name', $._application_head),
       field('arguments', choice(
         $._atom,
         $.fun,

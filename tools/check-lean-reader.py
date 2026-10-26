@@ -21,8 +21,8 @@ def check(binary):
             assert result.returncode == 0, result.stdout[-4096:] + result.stderr[-4096:]
         else:
             assert result.returncode in {0, 1}, result.stderr
-        start = result.stdout.index('<source_file')
-        end = result.stdout.index('</source_file>', start) + len('</source_file>')
+        start = result.stdout.index('<sources>')
+        end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         if fixture == 'lean-source-declarations.lean':
             names = set()
