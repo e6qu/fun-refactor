@@ -231,7 +231,7 @@ jobs:
           cache-on-failure: true
       - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
-        run: cargo test --locked --test formal_kernel --test lean_adoption -- --test-threads=1
+        run: cargo test --locked --test formal_kernel --test lean_adoption --test lean_grammar --test known_grammar_gaps -- --test-threads=1
       - name: Check exact Python proof-task and receipt validation
         env:
           PYTHONPATH: sdk/python/src
