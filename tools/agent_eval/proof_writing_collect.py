@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 
 from . import proof_writing_tasks as tasks
 from . import selected_local as local
@@ -33,6 +34,9 @@ def combine(artifacts, commit, run, bindings):
             'all six native clients must finish their scripted exchanges')
     from .proof_writing_results import TASKS, VARIANTS
     private = json.loads((artifacts / 'm3-private-controls/summary.json').read_text())
+    require(private['source_commit'] == commit and private['run'] == run and private['bindings'] == bindings and
+            re.fullmatch(r'[0-9a-f]{64}', private['fr_sha256']) is not None,
+            'isolated controls must check this exact source, run and proof-writing inputs before model calls')
     expected_private = {task + '-' + variant for task in TASKS for variant in VARIANTS}
     require(set(private['controls']) == expected_private and
             all(row == {'status': 'passed', 'accepted': identity.endswith('-reference')}

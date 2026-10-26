@@ -18,7 +18,7 @@ class ReportRetention(unittest.TestCase):
                omit_repository_artifact=False, wrong_repository_revision=False, format_rust=False):
         prefix = 'test-reports'
         payload = b'{"sample":0.10000000000000001}\n'
-        groups = list(reports.GROUPS.values())
+        groups = [reports.ARTIFACT_GROUPS[name] for name in reports.GROUPS]
         def collect(run, *_):
             data = {f'refinement-evidence/{prefix}-{name}/result.json': payload for name in groups[run - 1]}
             identity = {'source_commit': ('b' if mixed and run == 2 else 'a') * 40, 'run_id': str(run)}
@@ -30,8 +30,7 @@ class ReportRetention(unittest.TestCase):
                 data = {'result.json': json.dumps(value).encode(), 'repair.patch': payload}
                 if omit_repository_artifact:
                     del data['repair.patch']
-            group, = groups[run - 1] if len(groups[run - 1]) == 1 else ['single-json']
-            if group in reports.DIRECTORY_REPORTS:
+            for group in set(groups[run - 1]) & reports.DIRECTORY_REPORTS:
                 parent = f'refinement-evidence/{prefix}-{group}/'
                 data[parent + 'objects/example.json'] = payload
                 source_key = 'revision' if group == 'checked-outcomes' else 'source_commit'
@@ -81,6 +80,8 @@ class ReportRetention(unittest.TestCase):
         runs = {group: index for index, group in enumerate(reports.GROUPS, 1)}
         if only is not None:
             runs = {name: runs[name] for name in only}
+        else:
+            runs = {name: run for name, run in runs.items() if name not in {'all', 'dependency'}}
         with mock.patch.object(reports, 'ROOT', root), \
              mock.patch.object(reports.scalar, 'collect', side_effect=collect), \
              mock.patch.object(reports.scalar, 'verify_sources'), \
@@ -131,6 +132,25 @@ class ReportRetention(unittest.TestCase):
             self.assertEqual(case['runner_sha256'], hashlib.sha256(formatted).hexdigest())
             self.assertLess(self.commands.index(formatting),
                 self.commands.index(['python3', '-B', 'tools/representative-acceptance.py', 'audit']))
+
+    def test_complete_batches_retain_each_assigned_report_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.retain(root, only=['all', 'dependency', 'contexts', 'sdk-contexts'])
+            saved = root / 'tests/agent-eval/results/test-reports-ci-collection/manifest.json'
+            groups = json.loads(saved.read_text())['groups']
+            expected = {group for collection in ('all', 'dependency', 'contexts', 'sdk-contexts')
+                        for group in reports.GROUPS[collection]}
+            self.assertEqual(set(groups), expected)
+            self.assertEqual(len(groups), 17)
+            self.assertFalse((saved.parent.parent / 'test-reports-compiler-evidence').exists())
+
+    def test_batches_reject_extra_files_tampering_and_overlapping_assignments(self):
+        for settings in ({'extra': True}, {'tamper_structural': True}):
+            with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                self.retain(Path(directory), only=['all'], **settings)
+        with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+            self.retain(Path(directory), only=['all', 'model-comparisons'])
 
     def test_mixed_collection_sources_are_rejected_before_saving(self):
         with tempfile.TemporaryDirectory() as directory:

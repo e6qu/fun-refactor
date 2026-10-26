@@ -29,6 +29,7 @@ class CompleteProofControls(unittest.TestCase):
         values['m3-native-controls'] = {'passed': True, 'live_model_calls': 0,
             'exchanges': {name + '-' + setup: {'status': 'passed'} for name in AGENTS for setup in ('files', 'fr')}}
         values['m3-private-controls'] = {'passed': True, 'live_model_calls': 0, 'checked_controls': 18,
+            'source_commit': 'a' * 40, 'run': '123', 'bindings': {'checker': 'c' * 64}, 'fr_sha256': 'e' * 64,
             'image': 'sha256:' + 'a' * 64, 'image_archive_sha256': 'b' * 64,
             'controls': {task + '-' + variant: {'status': 'passed', 'accepted': variant == 'reference'}
                          for task in results.TASKS for variant in results.VARIANTS}}
@@ -67,6 +68,13 @@ class CompleteProofControls(unittest.TestCase):
         values['m3-private-controls']['controls']['page-count-changed-claim']['accepted'] = True
         with self.assertRaises(ValueError):
             self.combine(values)
+
+    def test_private_checker_identity_must_match_before_model_calls(self):
+        for key, value in (('source_commit', 'b' * 40), ('run', '456'), ('bindings', {}), ('fr_sha256', 'unknown')):
+            values = self.reports()
+            values['m3-private-controls'][key] = value
+            with self.subTest(field=key), self.assertRaises(ValueError):
+                self.combine(values)
 
     def test_only_the_original_successful_control_run_can_load_its_checker(self):
         for policy, changed_source, changed_archive in (
