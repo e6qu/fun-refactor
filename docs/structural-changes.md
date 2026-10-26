@@ -5,7 +5,11 @@ This guide covers supported rename and argument changes. Run the relevant checks
 
 Use this route for a refactoring when behavior should stay the same.
 A new required argument can deliberately change the interface; state the required caller behavior and checks before applying it.
-The [focused milestone](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) names the next concrete multi-file cases.
+The [completed comparison](../tests/agent-eval/project-edits/local-results/README.md) includes Rust parameter removal and a TypeScript rename through an imported alias.
+
+In Python, a function can import `calculate` from a different module than the surrounding file does.
+Renaming one module's function must update only the imports and calls that refer to it.
+An import can choose a different local name, called an alias; that local name stays unchanged.
 
 A signature is a function's name and parameter list. A caller invokes that function with arguments.
 A change scope lists the callers and tests found for the requested change.
@@ -72,7 +76,8 @@ mutation; scope-bound task delivery adds the required discovery and check select
 
 ## Which changes this route can handle
 
-Renames support Rust and Python free functions. They require an explicit documentation policy: `preserve` or `update`.
+Renames support Rust, Python and TypeScript functions declared outside classes or type implementation blocks.
+They require an explicit documentation policy: `preserve` or `update`.
 `update` includes matching comments, Markdown and documentation strings; ordinary executable strings remain unresolved.
 For example, a docstring showing `subtotal(2, 3)` can follow the new name, while `getattr(module, "subtotal")` still refuses.
 Text mentions and their file check associations must be included in the reviewed change scope.
@@ -81,13 +86,23 @@ with their own check, then contribute to the complete delivered patch.
 Signature changes remain limited to Rust. Renames retain the existing collision and capture checks and refuse
 any planner warning. Weak, unresolved, dispatch and textual candidates need explicit resolution.
 Signature changes retain unused-parameter and function-value refusals from the native planner.
-Every parameter must have an explicit primitive integer, Boolean or character type. Every indexed
-call argument must be an integer, Boolean or character literal, including negative integer literals.
-Calls with variables, computations, blocks, macros or effects remain outside this signature route.
+Every parameter must have an explicit primitive integer, Boolean or character type.
+When removing a parameter, only its discarded argument must be a literal: an integer, Boolean or character written directly in source.
+Negative integer literals also qualify. The arguments that remain can contain variables or expressions; the edit preserves their order and bytes.
+Moving parameters still requires every argument to be a literal because movement can change evaluation order.
 
-Illustration: removing an unused third argument from `subtotal(2, 3, 0)` fits the literal-argument
-restriction. Removing it from `subtotal(2, 3, record_purchase())` could remove an action the user needs.
+For example, removing an unused third parameter changes `subtotal(amount, fee, 0)` to `subtotal(amount, fee)`.
+For `subtotal(record_price(), fee, 0)`, the `record_price()` call still runs before evaluating `fee`.
+Removing the third argument from `subtotal(2, 3, record_purchase())` could remove an action the user needs.
 That call refuses. Inspect the caller and prepare a separate reviewed change for its behavior.
+Direct calls inside assertion macros, such as `assert_eq!(subtotal(amount, fee, 0), expected)`, use the same rule.
+This reads the written call arguments; it does not analyze arbitrary macro expansion.
+
+An import alias gives a local name to a function from another module.
+For TypeScript, renaming exported `subtotal` to `sumValues` changes
+`import { subtotal as displayTotal }` to `import { sumValues as displayTotal }`.
+Calls through `displayTotal` keep that name. An unrelated function called `subtotal` also keeps its name.
+Relative JavaScript and JSX imports use their source files when resolving these names.
 
 These restrictions prevent this route from removing an effectful argument or changing the order of
 side effects. They do not prove general source equivalence. Compiler checks still establish typing;

@@ -1,0 +1,33 @@
+{
+  "command": [
+    "/opt/hostedtoolcache/Python/3.14.8/x64/bin/python3",
+    "-I",
+    "-B",
+    "-c",
+    "import datetime, importlib.util, json, sys\nfrom pathlib import Path\nrequest = json.loads(Path(sys.argv[1]).read_text())\nscope = Path(request['scope'])\nsys.path.insert(0, str(scope))\nspec = importlib.util.spec_from_file_location('package_question', scope / request['path'])\nmodule = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nmodule.emit_value = lambda: request['value']\nmodule.record_value = lambda value: value\nmodule.opaque = lambda value: value\nvalue = getattr(module, request['entry'])()\nif type(value) is datetime.date:\n    value = value.isoformat()\nif value is not None and type(value) not in (int, float, bool, str):\n    raise ValueError('runtime result is outside the declared scalar/date contract')\nprint(json.dumps({'value': value}))\n",
+    "/home/runner/work/_temp/current-text-package/earlier-questions/dateutil/renamed-relocated-unknown-python-1/request.json"
+  ],
+  "elapsed_seconds": 0.035402344999994284,
+  "exit_code": 0,
+  "launch_error": null,
+  "limits": {
+    "cpu_seconds": 10,
+    "disk_bytes": 16777216,
+    "rss_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "wall_seconds": 20
+  },
+  "monitor_error": null,
+  "process_exit_code": 0,
+  "result": {
+    "value": "2025-04-20"
+  },
+  "sampled_aggregate_rss_bytes": 9158656,
+  "sampled_cpu_seconds": 0,
+  "sampled_disk_growth_bytes": 24,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "f8985099d8b87dd07d1454768f802062e5079219d05a37aae77a3d5fcbd39447",
+  "stop_reason": null,
+  "timed_out": false,
+  "transcript_bytes": 24
+}

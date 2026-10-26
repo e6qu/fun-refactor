@@ -26,9 +26,18 @@ Every timed-out slot remains failed and was not retried. The interrupted-session
 under a second immutable packet; the public summary keeps both packet hashes and each original record hash.
 There is no shared enforceable token/request cap, and actual billing is unknown.
 
-Start M2 with the four cases below. Freeze the independent wrong-answer checks first, then complete implementation and guides.
-Shorten unnecessary reading and repeated work identified in M1; keep the task limit at 150 seconds.
-Only then freeze final settings and run all forty-eight M2 attempts. The whole milestone belongs in one PR.
+M2's [latest comparison](../tests/agent-eval/project-edits/local-results/README.md) has 43 accepted attempts and five retained timeouts.
+All 48 patches passed independent checks. Every agent has an accepted result per task using a contributing fr step.
+The implementation, runnable examples, private controls and all four complete comparisons belong in one M2 PR.
+The full PR CI gate remains the final validation before review.
+
+The [task guide](../tests/agent-eval/project-edits/README.md) links all 192 M2 attempts and explains the fixes.
+The supplied regex command now checks actual text, byte counts, allocations and append behavior with an explicitly unoptimized build.
+Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
+Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
+
+M3 is next. Start with the complete Boolean proof-writing lesson, then the named language cases and two numeric tasks in PLAN.md.
+Keep its implementation, examples, real attempts and results in one milestone PR.
 Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
 
 ## Keep the other milestones concrete

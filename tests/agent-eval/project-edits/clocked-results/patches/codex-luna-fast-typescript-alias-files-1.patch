@@ -1,0 +1,20 @@
+diff --git a/src/checkout.ts b/src/checkout.ts
+index b3c14bf..d283064 100644
+--- a/src/checkout.ts
++++ b/src/checkout.ts
+@@ -1,4 +1,4 @@
+-import { price as displayPrice } from './pricing';
++import { quote as displayPrice } from './pricing';
+ 
+ // The local alias is part of this consumer's interface.
+ export function receipt(amount: number): number {
+diff --git a/src/pricing.ts b/src/pricing.ts
+index 4ac4a41..44a6ee8 100644
+--- a/src/pricing.ts
++++ b/src/pricing.ts
+@@ -1,4 +1,4 @@
+ // Keep the café comment, indentation, and implementation.
+-export function price(amount: number): number {
++export function quote(amount: number): number {
+     return amount + 2;
+ }

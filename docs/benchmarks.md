@@ -16,6 +16,12 @@ It compares matching successful requests and also divides all attempt time, incl
 Positive time change means the fr setup took longer. Offering or calling fr does not establish a saving.
 Actual account charges remain unknown, and interrupted replies can leave token usage incomplete.
 
+The [M2 report](../tests/agent-eval/project-edits/local-results/README.md) adds 48 attempts at four code changes.
+All patches passed independently; five clients timed out and remain failed.
+On matching successes, adding fr took 33% longer with Luna, 50% with GLM and 17% with Kimi.
+Both setups used the same public behavior checks. These small samples establish no general savings.
+Local attempt time includes the supplied checks; later independent GitHub grading is separate, with timings in the linked run.
+
 The [complete CLI and Python comparison](project-session-cost.md) measures the same three questions through five approaches.
 It compares direct commands, Python clients restarted or kept running, and saved answers with validation.
 Its tables state the CLI baseline and the added work in each approach.

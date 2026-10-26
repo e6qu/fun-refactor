@@ -129,6 +129,19 @@ class OpenCode2Server:
                 return {'catalog': catalog, 'polls': polls}
             time.sleep(0.05)
 
+    def wait_skill(self, name, timeout_seconds):
+        require(timeout_seconds > 0, 'skill discovery deadline expired')
+        deadline = time.monotonic() + min(timeout_seconds, self.call_seconds)
+        polls = 0
+        while True:
+            remaining = deadline - time.monotonic()
+            require(remaining > 0, 'OpenCode2 required skill did not become ready within its deadline')
+            catalog = self.request('GET', '/api/skill', None, 200, remaining)
+            polls += 1
+            if any(row['name'] == name for row in catalog['data']):
+                return {'catalog': catalog, 'polls': polls}
+            time.sleep(0.05)
+
     def close(self):
         if self.process is None:
             return

@@ -1,0 +1,199 @@
+name: Check all 48 local M2 submissions
+on:
+  workflow_dispatch:
+    inputs:
+      comparison:
+        description: Complete comparison to recheck
+        type: choice
+        options: [first-results, guided-results, clocked-results, local-results]
+        required: true
+      controls_run:
+        description: Successful private-control run containing the grader and compiler cache
+        type: string
+        required: true
+      control_policy:
+        description: Frozen controls for initial grading; fresh controls for later independent rechecks
+        type: choice
+        options: [frozen, fresh]
+        required: true
+      report_mode:
+        description: Collect verdicts, check the original report, or require milestone completion
+        type: choice
+        options: [collect, archive, check]
+        required: true
+  workflow_call:
+    inputs:
+      comparison:
+        type: string
+        required: true
+      controls_run:
+        type: string
+        required: true
+      control_policy:
+        type: string
+        required: true
+      report_mode:
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: m2-patches-${{ github.ref }}-${{ inputs.comparison }}
+  cancel-in-progress: true
+jobs:
+  patches:
+    name: Check submitted patches (${{ matrix.profile }}, ${{ matrix.task }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [codex-luna-fast, opencode2-glm-flash, opencode2-kimi-k3]
+        task: [rust-parameter, typescript-alias, regex-escape-len, python-invoice]
+    env:
+      M2_COMPARISON: ${{ inputs.comparison }}
+      PYTHONPATH: tools:sdk/python/src
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      CARGO_HOME: ${{ github.workspace }}/target/cargo-home
+      TASK: ${{ matrix.task }}
+      PROFILE: ${{ matrix.profile }}
+      CONTROL_POLICY: ${{ inputs.control_policy }}
+      CONTROLS_RUN: ${{ inputs.controls_run }}
+    steps:
+      - name: Require an explicit comparison directory
+        run: |
+          case "$M2_COMPARISON" in
+            first-results|guided-results|clocked-results|local-results) ;;
+            *) exit 1 ;;
+          esac
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+      - name: Preserve the approved submissions before selecting their auditor
+        run: |
+          cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
+          echo "M2_DATA=$RUNNER_TEMP/m2-submitted" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          # These records describe this exact fr source. Current fr has separate
+          # language, authoring and complete-delivery regression jobs.
+          ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
+          persist-credentials: false
+      - uses: ./.github/actions/project-edit-checkers
+      - name: Validate the requested control run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          run = os.environ['CONTROLS_RUN']
+          assert run.isdigit()
+          value = json.loads(subprocess.check_output(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run]))
+          assert value['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+          jobs = json.loads(subprocess.check_output(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run + '/jobs?per_page=100']))['jobs']
+          producer, = [job for job in jobs if job['name'].endswith('Reject incomplete changes in private containers')]
+          assert producer['status'] == 'completed' and producer['conclusion'] == 'success'
+          assert os.environ['CONTROL_POLICY'] in {'frozen', 'fresh'}
+          PY
+      - uses: actions/download-artifact@v8
+        with:
+          name: m2-private-controls
+          path: ${{ runner.temp }}/m2-private-controls
+          run-id: ${{ inputs.controls_run }}
+          github-token: ${{ github.token }}
+      - name: Load and verify the successful private grader
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'm2-private-controls'
+          image = root / 'grader.tar.gz'
+          assert hashlib.file_digest(image.open('rb'), 'sha256').hexdigest() == (root / 'grader.sha256').read_text().split()[0]
+          subprocess.run(['docker', 'load', '--input', str(image)], check=True)
+          summary = json.loads((root / 'summary.json').read_text())
+          assert summary['passed'] is True
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('M2_GRADER_IMAGE=' + summary['image'] + '\n')
+          PY
+      - name: Prepare the unchanged task from its frozen public source
+        run: >-
+          python3 -B -m agent_eval.project_edits_tasks prepare --task "$TASK"
+          --output "$RUNNER_TEMP/m2-inputs/$TASK"
+      - name: Check both tool setups and both repetitions
+        run: >-
+          python3 -B -m agent_eval.project_edits_results grade-cell
+          --data "$M2_DATA"
+          --inputs "$RUNNER_TEMP/m2-inputs" --artifact "$RUNNER_TEMP/m2-private-controls"
+          --image "$M2_GRADER_IMAGE" --rust "$(rustc --print sysroot)"
+          --node "$(command -v node)" --typescript "$RUNNER_TEMP/m2-typescript/package"
+          --profile "$PROFILE" --task "$TASK" --policy "$CONTROL_POLICY"
+          --output "$RUNNER_TEMP/m2-cell"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-patches-${{ inputs.comparison }}-${{ matrix.profile }}-${{ matrix.task }}
+          path: ${{ runner.temp }}/m2-cell
+          if-no-files-found: error
+          retention-days: 30
+  report:
+    name: Require all 48 independent outcomes
+    needs: patches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      M2_COMPARISON: ${{ inputs.comparison }}
+      PYTHONPATH: tools:sdk/python/src
+      REPORT_MODE: ${{ inputs.report_mode }}
+    steps:
+      - name: Require an explicit comparison directory
+        run: |
+          case "$M2_COMPARISON" in
+            first-results|guided-results|clocked-results|local-results) ;;
+            *) exit 1 ;;
+          esac
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+      - name: Preserve the approved report before selecting its auditor
+        run: |
+          cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
+          echo "M2_DATA=$RUNNER_TEMP/m2-submitted" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: m2-patches-${{ inputs.comparison }}-*
+          path: ${{ runner.temp }}/m2-cells
+      - name: Reject missing cells or substituted submissions
+        run: |
+          mkdir -p "$RUNNER_TEMP/m2-checked"
+          python3 -B -m agent_eval.project_edits_results merge \
+            --data "$M2_DATA" \
+            --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
+      - name: Check the finished report when requested
+        run: |
+          case "$REPORT_MODE" in
+            collect) ;;
+            archive)
+              cp "$M2_DATA/README.md" "$RUNNER_TEMP/m2-recorded-report.md"
+              python3 -B -m agent_eval.project_edits_results report --data "$M2_DATA" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode write
+              cmp "$RUNNER_TEMP/m2-recorded-report.md" "$M2_DATA/README.md"
+              ;;
+            check) python3 -B -m agent_eval.project_edits_results report --data "$M2_DATA" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode check ;;
+            *) exit 1 ;;
+          esac
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m2-all-patch-checks-${{ inputs.comparison }}
+          path: ${{ runner.temp }}/m2-checked/summary.json
+          if-no-files-found: error
+          retention-days: 30

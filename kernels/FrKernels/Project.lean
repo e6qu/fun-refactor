@@ -683,7 +683,7 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ 1a178f5d73144c12f4cd359bdbd9a7d387d7d9d4da16df5c35ad837b77d3d0eb
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 17aefe4a59de06a3f66fbfeed9d35d3cb3a9e81c84c24acaa0bd01476195baca
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with
@@ -692,7 +692,7 @@ def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) 
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
   | 2 => decide ((language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0))
   | 3 => decide (target = 0)
-  | 10 => decide ((language = 0 ∨ language = 6) ∧ target = 1)
+  | 10 => decide ((language = 0 ∨ language = 4 ∨ language = 5 ∨ language = 6) ∧ target = 1)
   | _ => false
 
 theorem replace_declaration_target_iff (language target : Nat) :
@@ -913,7 +913,8 @@ theorem handle_selection_returns_declaration (isLocal includeLocals : Bool)
     simp [handleSelectionStatus, *]
 
 theorem structural_refactor_target_iff (language target : Nat) :
-    taskAuthorTargetCandidate 10 language target = true ↔ (language = 0 ∨ language = 6) ∧ target = 1 := by
+    taskAuthorTargetCandidate 10 language target = true ↔
+      (language = 0 ∨ language = 4 ∨ language = 5 ∨ language = 6) ∧ target = 1 := by
   simp [taskAuthorTargetCandidate]
 
 end FrKernels.Project

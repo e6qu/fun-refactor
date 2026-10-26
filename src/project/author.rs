@@ -98,7 +98,7 @@ pub fn guide() -> Value {
             {"op": "organize-imports", "requires": ["handle"],
                 "targets": "supported source file"},
             {"op": "refactor", "requires": ["handle", "from"],
-                "targets": "Rust/Python free-function renames and Rust literal-scalar signature migration",
+                "targets": "Rust, Python and TypeScript free-function renames; Rust scalar signature changes with literal removed arguments",
                 "input": "rename requires name and documentation: preserve or update; remove-parameter requires index; move-parameter requires from and to",
                 "delivery": "task-change requires a current consumer scope binding"}
         ],

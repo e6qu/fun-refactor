@@ -1,0 +1,67 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..16c98df 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -220,6 +220,33 @@ pub fn escape_into(text: &str, buf: &mut String) {
+     }
+ }
+ 
++/// Returns the length, in UTF-8 bytes, of the string produced by escaping
++/// all regular expression meta characters in `text`.
++///
++/// This is exactly the number of bytes that [`escape`] would return and that
++/// [`escape_into`] would append to a buffer for the same input, but it is
++/// computed without allocating or building the escaped string.
++///
++/// # Example
++///
++/// ```
++/// use regex_syntax::escape_len;
++///
++/// assert_eq!(escape_len(""), 0);
++/// assert_eq!(escape_len("a.b"), 4);
++/// assert_eq!(escape_len("é"), 2);
++/// ```
++pub fn escape_len(text: &str) -> usize {
++    let mut len = 0;
++    for c in text.chars() {
++        if is_meta_character(c) {
++            len += 1;
++        }
++        len += c.len_utf8();
++    }
++    len
++}
++
+ /// Returns true if the given character has significance in a regex.
+ ///
+ /// Generally speaking, these are the only characters which _must_ be escaped
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..7c5b34c 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,24 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the length, in UTF-8 bytes, of the string produced by escaping
++/// all regular expression meta characters in `pattern`.
++///
++/// This is exactly the number of bytes that [`escape`] would return for the
++/// same input, but it is computed without allocating or building the escaped
++/// string.
++///
++/// # Example
++///
++/// ```
++/// assert_eq!(regex::escape_len(""), 0);
++/// assert_eq!(regex::escape_len("a.b"), 4);
++/// assert_eq!(regex::escape_len("é"), 2);
++/// ```
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {

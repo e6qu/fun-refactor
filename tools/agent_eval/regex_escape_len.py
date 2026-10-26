@@ -85,18 +85,18 @@ def missing_api_only(stderr):
     return bool(errors) and all((error.get("code") or {}).get("code") == "E0425" and error.get("message") in expected for error in errors)
 
 
-def verify(root):
+def verify(root, *, cargo, rustc, cargo_home):
     env = os.environ.copy()
-    env.update(CARGO_HOME=str(regex_workspace.ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true")
+    env.update(CARGO_HOME=str(cargo_home), CARGO_NET_OFFLINE="true")
     target = root / "target"
-    build = subprocess.run(["cargo", "build", "-p", "regex", "-p", "regex-syntax", "--lib", "--locked", "--offline", "--target-dir", str(target)],
+    build = subprocess.run([str(cargo), "build", "-p", "regex", "-p", "regex-syntax", "--lib", "--locked", "--offline", "--target-dir", str(target)],
                            cwd=root, env=env, capture_output=True, timeout=180)
     if build.returncode:
         return {"passed": False, "stage": 0, "detail": build.stderr.decode(errors="replace")[-4096:]}
     with tempfile.TemporaryDirectory(prefix="fr-escape-len-oracle-") as tmp:
         source, binary = Path(tmp) / "oracle.rs", Path(tmp) / "oracle"
         source.write_text(ORACLE)
-        compiled = subprocess.run(["rustc", "--edition=2021", "--error-format=json", str(source),
+        compiled = subprocess.run([str(rustc), "--edition=2021", "--error-format=json", str(source),
                                    "--extern", f"regex={target / 'debug/libregex.rlib'}",
                                    "--extern", f"regex_syntax={target / 'debug/libregex_syntax.rlib'}",
                                    "-L", f"dependency={target / 'debug/deps'}", "-o", str(binary)],

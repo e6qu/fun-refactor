@@ -929,7 +929,7 @@ fn inside_import(parsed: &Parsed, span: Span) -> bool {
 }
 
 /// The argument tokens of a call written inside a macro body.
-fn macro_call_arguments(parsed: &Parsed, span: Span) -> Option<(usize, Vec<Span>)> {
+pub(crate) fn macro_call_arguments(parsed: &Parsed, span: Span) -> Option<(usize, Vec<Span>)> {
     let node = parsed
         .root()
         .descendant_for_byte_range(span.start, span.end)?;

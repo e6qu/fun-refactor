@@ -28,9 +28,9 @@ jobs:
       - name: Fetch the pinned released fr
         run: |
           curl -fsSL --connect-timeout 20 --max-time 120 \
-            https://github.com/e6qu/fun-refactor/releases/download/fun-refactor-v0.79.2/fr-v0.79.2-x86_64-unknown-linux-musl.tar.gz \
+            https://github.com/e6qu/fun-refactor/releases/download/fun-refactor-v0.84.3/fr-v0.84.3-x86_64-unknown-linux-musl.tar.gz \
             -o "$RUNNER_TEMP/fr.tar.gz"
-          echo "938c012806eb412e26c76c7b143a559b5adfa64c3fe2989acd89689ce4014c49  $RUNNER_TEMP/fr.tar.gz" | sha256sum --check
+          echo "59aeb617ad887aba51860b30433492dfea50688c152f8075a58a61d76624636c  $RUNNER_TEMP/fr.tar.gz" | sha256sum --check
           mkdir "$RUNNER_TEMP/fr-package"
           tar -xzf "$RUNNER_TEMP/fr.tar.gz" -C "$RUNNER_TEMP/fr-package"
       - name: Execute the actual skill lesson and check its reading budgets

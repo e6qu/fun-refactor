@@ -563,8 +563,8 @@ It identifies the transaction, action, phase, outcome and observed `journal_pend
 Read `fr history` after uncertain finalization and recover only a transaction the journal reports pending.
 See the [host recovery contract](../../docs/host-recovery.md) for field meanings and limits.
 
-`RefactorRequest` in `fr_ir.structural_change` authors Rust rename and bounded scalar signature
-requests. Bind its targets with `ChangeScope.bind` before reviewed task delivery. See the
+`RefactorRequest` in `fr_ir.structural_change` renames Rust, Python and TypeScript functions and changes supported Rust parameter lists.
+Bind its targets with `ChangeScope.bind` before reviewed task delivery. See the
 [structural change contract](../../docs/structural-changes.md) for refusals and preservation limits.
 
 `ModelSnapshot` and `ModelComparison` in `fr_ir.refinement` retain old/new pure Boolean models.

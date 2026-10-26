@@ -227,7 +227,7 @@ pub fn task_author_target_candidate(operation: usize, language: usize, target: u
         1 => language == 0 && matches!(target, 1 | 2),
         2 => language == 0 && matches!(target, 0 | 2 | 4 | 5) || language == 6 && target == 0,
         3 => target == 0,
-        10 => matches!(language, 0 | 6) && target == 1,
+        10 => matches!(language, 0 | 4 | 5 | 6) && target == 1,
         _ => false,
     }
 }

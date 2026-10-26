@@ -11,6 +11,8 @@ The current roadmap targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flas
 The aim is more correct results within explicit time and spending limits.
 The first [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) records rename, Unicode repair and proof outcomes,
 including failures and the extra time observed with `fr`. The [plan](PLAN.md) names the next complete milestone.
+The [four-change comparison](tests/agent-eval/project-edits/README.md) records completed Rust, TypeScript, regex and Python changes,
+including every failed attempt. Every selected agent now has an accepted result per task using `fr`.
 The [retained results](docs/roadmap-status.md) keep earlier checks and unfinished claims visible.
 The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
 
@@ -102,6 +104,7 @@ This checkout includes project skills for [Claude Code](.claude/skills/fr)
 and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
+For a request described by a name, see [prepare a change from a name](skills/fr/references/guide.md).
 
 To use the skill in another project, copy the complete `skills/fr` directory from the source tree or release archive.
 Choose your agent's user directory below:

@@ -12,7 +12,7 @@ For example, fewer reply bytes cannot establish a cheaper complete bug fix.
 | Which Python behavior can I use? | [Python examples and limits](python-contract.md) and [original-package questions](original-package-questions.md) | Unsupported behavior and unfinished whole-package imports |
 | How much overhead does calling fr through Python add? | [Same-question CLI and Python comparison](project-session-cost.md) | Whether an agent completes unfamiliar tasks more cheaply |
 | Does saving work help after edits? | [Saved-work results](saved-work-cost-results.md) and [follow-up](saved-answer-improvement.md) | General savings beyond the tested projects and questions |
-| Does fr improve whole agent tasks? | [Earlier live attempts](#unknown-target-investigations) and [prepared next comparison](agent-comparison-preparation.md) | A completed repeated-task study |
+| Does fr improve whole agent tasks? | [Selected-agent baseline](../tests/agent-eval/selected-agents/local-results/README.md) and [four code changes](../tests/agent-eval/project-edits/local-results/README.md) | General success rates and savings beyond these tasks; fr added time on matching successes |
 | Does a proof cover the code users run? | [Proof guide](lean-specs.md) and [proof-writing milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs) | Model proofs and source-implementation claims have separate completion conditions |
 
 The [measurement guide](benchmarks.md) explains each baseline, included work, units and missing costs.
@@ -62,7 +62,7 @@ Three true-or-false inputs give eight combinations. Model proofs and Rust/Python
 
 A selected Python caller chain checks finding affected calls, repairing subtotal and replaying the patch. Broader affected-code discovery remains open.
 
-The [current caller-chain record](../tests/agent-eval/results/2026-10-25-m1-current-change-scope/manifest.json) identifies the exact source, checks and exported patches.
+The [current caller-chain record](../tests/agent-eval/results/2026-10-26-m2-import-scopes-change-scope/manifest.json) identifies the exact source, checks and exported patches.
 
 [Current guide](change-scopes.md) · [Original observations](https://github.com/e6qu/fun-refactor/blob/752af561fbd698f598f2786d3957c3d7e68a3180/docs/evaluations.md#consumer-scope-and-delivery)
 

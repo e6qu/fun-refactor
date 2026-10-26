@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('repair', ROOT / 'tools/source-repair-context.py')
 repair = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(repair)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-25-m1-current-source-repair/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-26-m2-import-scopes-source-repair/result.json'
 
 
 class SourceRepairEvidence(unittest.TestCase):

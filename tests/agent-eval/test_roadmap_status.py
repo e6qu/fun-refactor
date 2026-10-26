@@ -60,7 +60,8 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertIn('[M2](../PLAN.md#', page)
         self.assertIn('[M3](../PLAN.md#', page)
         self.assertIn('its counts do not measure completion of the focused roadmap', page)
-        self.assertIn('M2 is next.', page)
+        self.assertIn('M3 is next.', page)
+        self.assertIn('43 finished with correct patches and five timed out.', page)
         for name in ('C.repository-mutations', 'D.structural'):
             with self.subTest(missing=name):
                 gate = next(gate for gate in self.catalog['obligations'] if gate['id'] == name)
@@ -69,8 +70,8 @@ class RoadmapStatusTests(unittest.TestCase):
                 page = status.markdown(self.compute())
                 self.assertIn('[M1](../PLAN.md#', page)
                 self.assertIn('its counts do not measure completion of the focused roadmap', page)
-                self.assertIn('M2 is next.', page)
-                self.assertIn('Saved changes, undo, checks and recovery tests', page)
+                self.assertIn('M3 is next.', page)
+                self.assertIn('Every selected agent has an accepted result per task using fr.', page)
                 gate['requires'] = requirements
 
     def test_demonstrated_gates_do_not_hide_unfinished_engineering(self):

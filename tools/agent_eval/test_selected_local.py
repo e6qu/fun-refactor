@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import shlex
 from pathlib import Path
 import sys
 import tarfile
@@ -44,6 +45,45 @@ class SelectedLocalTests(unittest.TestCase):
         self.assertEqual(reported['reported'][0]['catalog_cost'], 0)
         self.assertIsNone(reported['actual_cost'])
 
+    def test_oversized_patch_keeps_failed_source_and_removes_compiler_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project, output = root / 'project', root / 'record'
+            project.mkdir()
+            output.mkdir()
+            source = 'def invoice_total(amount, fee):\n    return amount + fee  # café\n'.encode()
+            (project / 'invoice.py').write_bytes(source)
+            (project / 'change.patch').write_bytes(b'x' * (1024**2 + 1))
+            (project / 'target').mkdir()
+            (project / 'target/generated').write_bytes(b'compiler output')
+            record = {'status': 'completed', 'patch_delivered': False, 'patch_sha256': None, 'collection_errors': []}
+            local.retain_result(project, output, record)
+            self.assertEqual(record['status'], 'failed')
+            self.assertEqual(record['collection_errors'][0]['stage'], 'patch')
+            self.assertFalse(record['patch_delivered'])
+            self.assertFalse((output / 'change.patch').exists())
+            self.assertFalse((project / 'target').exists())
+            with tarfile.open(output / 'candidate.tar.gz') as archive:
+                self.assertEqual(archive.getnames(), ['invoice.py'])
+                self.assertEqual(archive.extractfile('invoice.py').read(), source)
+
+    def test_capture_failure_still_unlinks_a_target_symlink_without_following_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project, output, unrelated = root / 'project', root / 'record', root / 'unrelated'
+            for path in (project, output, unrelated):
+                path.mkdir()
+            keep = unrelated / 'keep'
+            keep.write_text('preserve unrelated data')
+            (project / 'target').symlink_to(unrelated, target_is_directory=True)
+            (project / 'source.py').symlink_to(keep)
+            record = {'status': 'completed', 'patch_delivered': False, 'patch_sha256': None, 'collection_errors': []}
+            local.retain_result(project, output, record)
+            self.assertEqual(record['status'], 'failed')
+            self.assertEqual(record['collection_errors'][0]['stage'], 'source capture')
+            self.assertFalse((project / 'target').is_symlink())
+            self.assertEqual(keep.read_text(), 'preserve unrelated data')
+
     def test_untrusted_archive_cannot_write_outside_the_fresh_project(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -60,11 +100,74 @@ class SelectedLocalTests(unittest.TestCase):
 
     def test_task_prompts_keep_the_property_fixed_without_supplied_tactics(self):
         for setup in ('files', 'fr'):
-            prompt = local.prompt('access-proof', setup, {name: {'path': '/' + name} for name in ('python', 'cargo', 'lake')})
+            prompt = local.prompt('access-proof', setup, {name: {'path': '/' + name} for name in ('python', 'cargo', 'lake')}, 'M1')
             self.assertIn(local.tasks.TASKS['access-proof']['request'], prompt)
             self.assertNotIn('rfl', prompt)
             self.assertIn('change.patch', prompt)
             self.assertIn('Do not start a nested guard', prompt)
+            self.assertNotIn('.fr/checks.json', prompt)
+            self.assertNotIn('.fr/check-escape', prompt)
+
+    def test_each_m2_requirement_stays_visible_and_unchanged(self):
+        from agent_eval import project_edits_tasks as cases
+        checkers = {name: {'path': '/' + name} for name in ('python', 'cargo', 'rustc', 'node', 'typescript')}
+        for task in cases.TASKS:
+            for setup in ('files', 'fr'):
+                with self.subTest(task=task, setup=setup):
+                    prompt = local.prompt(task, setup, checkers, 'M2')
+                    listed = prompt.split('\n\n', 1)[0].splitlines()
+                    self.assertEqual(listed[0], 'Complete every requirement:')
+                    self.assertTrue(all(line.startswith('- ') for line in listed[1:]))
+                    self.assertEqual(' '.join(line[2:] for line in listed[1:]), cases.TASKS[task]['request'])
+                    self.assertIn('150-second deadline', prompt)
+                    self.assertIn('Preserve provided .fr/checks.json', prompt)
+                    self.assertEqual('.fr/check-escape' in prompt, task == 'regex-escape-len')
+
+    def test_execution_clock_keeps_preparation_inside_the_original_deadline(self):
+        prompt = local.execution_prompt('Frozen request.', started_at=1000.125,
+                                        wall_seconds=150, finish_seconds=10)
+        self.assertIn('start 1000.125; finish tools by 1140.125', prompt)
+        self.assertIn('response and session accounting by 1150.125', prompt)
+        self.assertTrue(prompt.endswith('Frozen request.'))
+        for finishing in (0, 150, 180):
+            with self.assertRaisesRegex(ValueError, 'within the attempt deadline'):
+                local.execution_prompt('Frozen request.', started_at=1000.125,
+                                       wall_seconds=150, finish_seconds=finishing)
+
+    def test_public_behavior_check_uses_the_actual_attempt_deadline(self):
+        from agent_eval import project_edits_public as checker
+        checkers = {name: {'path': '/' + name} for name in ('python', 'cargo', 'rustc', 'node', 'typescript')}
+        frozen = local.prompt('regex-escape-len', 'fr', checkers, 'M2')
+        self.assertIn(checker.CHECKER, frozen)
+        self.assertIn(local.TOOL_DEADLINE_MARKER, frozen)
+        prompt = local.execution_prompt(frozen, started_at=1000.125, wall_seconds=150, finish_seconds=10)
+        self.assertNotIn(local.TOOL_DEADLINE_MARKER, prompt)
+        command = prompt.split('Available project checking commands:\n')[1].splitlines()[0]
+        argv = shlex.split(command)
+        self.assertEqual(argv[argv.index('--deadline-unix') + 1], '1140.125')
+        self.assertEqual(local.PUBLIC_CHECK_ENVIRONMENT['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
+
+    def test_checking_inputs_cannot_be_changed_deleted_or_replaced_with_symlinks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / '.fr/checks.json'
+            config.parent.mkdir()
+            config.write_text('{"checks": []}')
+            expected = {'.fr/checks.json': local.hash_file(config)}
+            self.assertEqual(local.checking_input_changes(root, expected), [])
+            config.write_text('{}')
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            config.unlink()
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            other = root / 'same-bytes'
+            other.write_text('{"checks": []}')
+            config.symlink_to(other)
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            config.unlink()
+            config.write_text('{"checks": []}')
+            config.parent.rename(root / 'old-settings')
+            config.parent.symlink_to(root / 'old-settings', target_is_directory=True)
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
 
     def test_v2_export_pins_model_variant_and_agrees_with_stream_usage(self):
         profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}

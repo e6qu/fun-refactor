@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40119836572",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-26-distinct-answers-40298880359",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40119836572/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-distinct-answers-40298880359/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "ba4499672961414a20dc9e552703fdab8f8c3bdb65d2f33624326f4195798989"
+      "sha256": "eb0c1f7aa8d7593ec225fa636007df9e155a10705b8f3dc69738b76da8d35488"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-25-m1-current-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "228d166dbeab6dd9c75b009ceff5e8568875c3446bc423c13f44a94a2912e7b2"
+      "sha256": "51b05effa86dfe57bfd422a6bc4282e5920952ee65902ce54657a11f771968c2"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-25-m1-current-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "c1d3721a286ef08bb4d6bc70bdcf36dd0d4218f7d79de345c1c533c81b0cafac"
+      "sha256": "88f36b0644b4536d2dd81735af36d4d8c88066cdb9c9b57699ab8dd0c0fc04de"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-25-m1-current-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "dcabd9de79eefc9f10531edca26bb4d652ea9a857866c91387d815b2c204f3c7"
+      "sha256": "9318f2e824b5e9297fbeff2fd13cfb68aa6cfd8477ab6e56510e1d71291637a4"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-25-m1-current-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "89f1e048bf3176496f52fcd723507b0ebbad11a8010fa1501bd1860a5d8a4bba"
+      "sha256": "99d8522116b88cc30c9432ec57ece31456dac3d6c14b4cd8fda8a081777781f0"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "3260a4e7b1207857fa3e26c93b59119fdb4123394cf401f34f59a014d76fe2e0"
+      "sha256": "fa4e89090368970a597d88a04fb64f8a005d9dd20c3ba1dbae34e476d2138a0d"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-25-m1-current-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "404b55768ac65e0ad668f055ad78497378d04375d51d32bb45bfe047ace5efdb"
+      "sha256": "5198d82da81e671f59e80c75780604cae41aa04dce657815892e931b0d5f7918"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-24-readable-docs-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "8c3bd5985c53c3895c2a3b0c0422656ffff6f36d345d0c40705912bdd5beaf09"
+      "sha256": "cdac654dd4161d4ea6173d443d0a6717a2b7f689582f1add778ad5f3f51bb860"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-25-m1-current-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "8c02e4f224f7a1e0f6f37dfcb7bfb1ba4e609dbde59472486390f4a62a78b7e3"
+      "sha256": "f7aadf2da656756c76715ddfd477b5b12f4d291bb150adc39397b4e88a3bc319"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-25-m1-current-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "061c502984a1187f1d861e783ae4e72e87162eef06d1a00d367080e7c0d84414"
+      "sha256": "ffbf495d640d2335febc00046218910228bdde8975e60f32fd4afc0bd5628367"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-25-m1-current-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "7a27519f79192d2eceaa556f1cee9e6350786c6044c55437d15c67ed3564a3e0"
+      "sha256": "2c2914696a4279a3bca9dfbabdfc12c92a382b31897ff7196ea11eae5938cfe3"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "065ca83e3d970b5f4083a693b173ea7ead2f0e2b6f29b8b2cc1e762533d4bb74"
+      "sha256": "e6f9671ee61956fd90cb8f0ccfbb5052efaeae990cc208589799e6848b360076"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,44 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40220771520",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40295210035",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40220771520/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40295210035/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "f40bcaf7d71f89b599a5d527f410a6675056aeb64820cdec51d557b68be82577"
+      "sha256": "f3f054dc92fac6ebee5eadbaa66f2bbc6eb0d9f3a414bd9b4492fae1300a0abf"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-checked-translation",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "fec2b55efc53ae88688c18209a17b9c19441d940a3b628fa60a21596674fc8aa"
+      "sha256": "570aed07fca7ae99ed4582d3a94da5fc9b9bd850083815062a3371e78cb20719"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-python-effects",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "sha256": "d68f135983a2f25146ebf2576d999fd36f7f1908afd50f919560e2462a105ac8"
+      "sha256": "9d769e39a06392d08b98c10d04318dfc261719ce5b68fad845543dd3f1a65c00"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-25-m1-current-python-text-flow",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "6e4b98b39408c2d0b56938dd59ed4889ea94fc89def63e27eda019022cb7171d"
+      "sha256": "3b95fe1ea8c16101133809ffb28fee7a37a569424a2e321f88f33618051f5c21"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-25-m1-current-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-25-m1-current-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "d463f00e9d6956c768cabc4c6d1db2dffbbb74f772d4eee4b1cb8403264ed141"
+      "sha256": "1cfcc372d709831335dbaf220eda28197b93ba79cd7c4784546207ec2468409a"
     }
   ],
   "obligations": [

@@ -288,10 +288,10 @@ def author_workflow(exercise, root):
     original = ('//! Skill fixture.\n#![deny(missing_docs)]\n'
                 '/// Increments a value.\npub fn increment(value: u32) -> u32 { value + 1 }\n')
     source.write_text(original)
-    fragment = root.parent / "fragment.rs"
+    fragment = root / ".fr/helper"
+    fragment.parent.mkdir()
     fragment.write_text(blocks(path, "rust")[0])
-    exercise.values["<FRAGMENT>"] = str(fragment)
-    body = root.parent / "body.rs"
+    body = root / ".fr/body"
     body.write_text("{\n    value + 1\n}\n")
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
@@ -314,36 +314,23 @@ def author_workflow(exercise, root):
             assert value["page"]["total"] == 1
             row = dict(zip(value["columns"], value["rows"][0]))
             exercise.values["<FILE_HANDLE>"] = value["root"]
-            manifest = root.parent / "author-batch.json"
-            manifest.write_text(json.dumps({
-                "operations": [
-                    {"op": "replace-body", "handle": row["handle"], "from": str(body)},
-                    {"op": "insert-declaration", "handle": value["root"], "from": str(fragment)},
-                ],
-                "postconditions": {
-                    "files-changed": 1,
-                    "edits": 2,
-                    "changed-operations": 2,
-                    "paths-changed": ["src/lib.rs"],
-                },
-            }))
-            exercise.values["<MANIFEST>"] = str(manifest)
+            manifest = root / ".fr/author"
+            manifest.parent.mkdir(exist_ok=True)
+            example = blocks(path, "json")[0]
+            example = example.replace("<DECLARATION_HANDLE>", row["handle"])
+            example = example.replace("<FILE_HANDLE>", value["root"])
+            manifest.write_text(example)
             assert "value + 1" in row["source"]["text"]
             assert row["source"]["next_offset"] is None
             assert value["source_budget"]["returned_bytes"] <= 512
-        if command[1:3] == ["author", "batch"] and "--save-plan" not in command:
-            exercise.values["<PLAN_CONTEXT_BASIS>"] = value["plan_context_basis"]
         if "--save-plan" in command:
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])
             exercise.values["<TRANSACTION_CONTEXT_BASIS>"] = value["transaction_context_basis"]
-        if "--write" in command:
-            assert value["applied"]
-            if "--no-diff" in command and "--context-basis" not in command:
-                assert value["diffs_omitted"]
-            if "--context-basis" in command:
-                assert value["context_omitted"] == ["changes[].diff"]
-                assert all("diff" not in change for change in value["changes"])
+    applied, _ = exercise.run(root, ["history", "apply", exercise.values["<AUTHOR_TX>"], "--write", "--no-diff",
+                                     "--context-basis", exercise.values["<TRANSACTION_CONTEXT_BASIS>"]])
+    assert applied["applied"] and applied["context_omitted"] == ["changes[].diff"]
+    assert all("diff" not in change for change in applied["changes"])
     changed = source.read_text()
     assert changed.startswith("//! Skill fixture.") and changed != original
     assert fragment.read_text().strip() in changed
@@ -501,7 +488,7 @@ def verified_workflow(exercise, root):
     plan, _ = exercise.run(root, ["rename", "before", "after", "--save-plan"])
     transaction = str(plan["transaction"])
     shown, _ = exercise.run(root, ["history", "show", transaction])
-    control = root / ".fr-workflow"
+    control = root / ".fr/deliver"
     control.write_text(json.dumps({
         "schema": 1,
         "transaction": plan["transaction"],
@@ -511,7 +498,6 @@ def verified_workflow(exercise, root):
         "patch": {"output": "change.patch"},
         "check-output-bytes": 256,
     }))
-    exercise.values["<WORKFLOW_MANIFEST>"] = str(control)
     path = SKILL / "references/workflow.md"
     for command in commands(path):
         value = exercise.example(root, path, command)

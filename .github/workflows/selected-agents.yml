@@ -20,6 +20,7 @@ jobs:
             tools
             sdk/python/src
             tests/agent-eval/selected-agents
+            tests/agent-eval/project-edits
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -60,6 +61,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/m1-report-tools/agent_eval"
           cp tools/agent_eval/selected_plan.py tools/agent_eval/selected_report.py \
             "$RUNNER_TEMP/m1-report-tools/agent_eval/"
+          mkdir -p "$RUNNER_TEMP/m1-native-tools"
+          cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
+            tools/agent_eval/selected_cli.py "$RUNNER_TEMP/m1-native-tools/"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -112,8 +116,12 @@ jobs:
               --output "$RUNNER_TEMP/m1-tasks/$task"
           done
       - name: Exercise real native tool results with scripted replies and no external network
-        run: >-
-          python3 -B -m agent_eval.selected_native --fr target/debug/fr
+        run: |
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py' EXIT
+          for helper in opencode2_client.py selected_native_probe.py selected_cli.py; do
+            cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
+          done
+          python3 -B -m agent_eval.selected_native --fr target/debug/fr \
           --output "$RUNNER_TEMP/m1-native"
       - name: Reject wrong changes and deliver correct patches inside private containers
         run: >-
@@ -137,6 +145,16 @@ jobs:
           path: |
             ${{ runner.temp }}/m1-tasks/*/result.json
             ${{ runner.temp }}/m1-native/summary.json
+            ${{ runner.temp }}/m1-native/*/result.json
+            ${{ runner.temp }}/m1-native/*/native/result.json
+            ${{ runner.temp }}/m1-native/*/native/skills.json
+            ${{ runner.temp }}/m1-native/*/native/native.stdout
+            ${{ runner.temp }}/m1-native/*/native/native.stderr
+            ${{ runner.temp }}/m1-native/*/native/provider.json
+            ${{ runner.temp }}/m1-native/*/native/export.stdout
+            ${{ runner.temp }}/m1-native/*/native/export.stderr
+            ${{ runner.temp }}/m1-native/*/native/api/server.stdout
+            ${{ runner.temp }}/m1-native/*/native/api/server.stderr
             ${{ runner.temp }}/m1-private-grading/summary.json
             ${{ runner.temp }}/m1-live-grading/summary.json
           if-no-files-found: error

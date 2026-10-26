@@ -160,7 +160,19 @@ jobs:
           recheck.audit(path.parent, binary, alternate)
           recheck.reject_false_claims(path.parent, binary, alternate)
           PY
-      - name: Audit current CLI and Python session measurements
+
+  current-session-cost:
+    name: Current CLI and Python session measurements
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - name: Audit all session measurements independently of project replay
         run: |
           python3 -B - <<'PY'
           import hashlib, json, subprocess, sys
@@ -221,6 +233,54 @@ jobs:
     uses: ./.github/workflows/selected-agents.yml
     permissions:
       contents: read
+
+  project-edit-controls:
+    name: Four M2 language acceptance checks
+    uses: ./.github/workflows/project-edit-controls.yml
+    permissions:
+      contents: read
+
+  project-edit-delivery:
+    name: M2 fr delivery and native clients
+    uses: ./.github/workflows/project-edit-delivery.yml
+    permissions:
+      contents: read
+
+  project-edit-private:
+    name: M2 private compiler checks
+    uses: ./.github/workflows/project-edit-private.yml
+    permissions:
+      contents: read
+
+  project-edit-results:
+    name: All 48 current M2 outcomes
+    needs: project-edit-private
+    uses: ./.github/workflows/project-edit-results.yml
+    with:
+      comparison: local-results
+      controls_run: ${{ github.run_id }}
+      control_policy: fresh
+      report_mode: check
+    permissions:
+      contents: read
+      actions: read
+
+  project-edit-archives:
+    name: Preserve earlier M2 outcomes (${{ matrix.comparison }})
+    needs: project-edit-private
+    strategy:
+      fail-fast: false
+      matrix:
+        comparison: [first-results, guided-results, clocked-results]
+    uses: ./.github/workflows/project-edit-results.yml
+    with:
+      comparison: ${{ matrix.comparison }}
+      controls_run: ${{ github.run_id }}
+      control_policy: fresh
+      report_mode: archive
+    permissions:
+      contents: read
+      actions: read
 
   agent-study:
     name: Independent agent study accounting
@@ -308,6 +368,12 @@ jobs:
         task: [dotenv-alternate, packaging-prerelease, platformdirs-xdg]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/grading-registry
+            tools
+            tests/agent-eval/opencode/candidates
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
@@ -364,7 +430,7 @@ jobs:
 
   native:
     name: native (${{ matrix.kind }}-${{ matrix.index }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -401,7 +467,7 @@ jobs:
           retention-days: 7
 
   static:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -420,7 +486,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, selected-agents, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes]
+    needs: [native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, project-edit-results, project-edit-archives, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -431,23 +497,35 @@ jobs:
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
           SELECTED_AGENTS: ${{ needs.selected-agents.result }}
+          PROJECT_EDIT_CONTROLS: ${{ needs.project-edit-controls.result }}
+          PROJECT_EDIT_DELIVERY: ${{ needs.project-edit-delivery.result }}
+          PROJECT_EDIT_PRIVATE: ${{ needs.project-edit-private.result }}
+          PROJECT_EDIT_RESULTS: ${{ needs.project-edit-results.result }}
+          PROJECT_EDIT_ARCHIVES: ${{ needs.project-edit-archives.result }}
           CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
           ORIGINAL_PACKAGES: ${{ needs.original-package-questions.result }}
           PROJECT_CHANGES: ${{ needs.project-changes.result }}
           CURRENT_PROJECT_CHANGES: ${{ needs.current-project-changes.result }}
+          CURRENT_SESSION_COST: ${{ needs.current-session-cost.result }}
         run: |
           test "$NATIVE" = success &&
           test "$STATIC" = success &&
           test "$AGENT_STUDY" = success &&
           test "$SELECTED_AGENTS" = success &&
+          test "$PROJECT_EDIT_CONTROLS" = success &&
+          test "$PROJECT_EDIT_DELIVERY" = success &&
+          test "$PROJECT_EDIT_PRIVATE" = success &&
+          test "$PROJECT_EDIT_RESULTS" = success &&
+          test "$PROJECT_EDIT_ARCHIVES" = success &&
           test "$CODE_CHANGE_GRADERS" = success &&
           test "$TOOLCHAIN" = success &&
           test "$GO_TOOLCHAIN" = success &&
           test "$ORIGINAL_PACKAGES" = success &&
           test "$PROJECT_CHANGES" = success &&
-          test "$CURRENT_PROJECT_CHANGES" = success
+          test "$CURRENT_PROJECT_CHANGES" = success &&
+          test "$CURRENT_SESSION_COST" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

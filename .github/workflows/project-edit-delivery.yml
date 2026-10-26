@@ -1,0 +1,243 @@
+name: M2 fr code changes and delivery
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: m2-delivery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  public-behavior-check:
+    name: Check the supplied regex command on the local study platform
+    runs-on: macos-15
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '1'
+      CARGO_HOME: ${{ github.workspace }}/target/public-cargo-home
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.6'
+      - run: rustup toolchain install 1.98.1 --profile minimal
+      - name: Prepare the unchanged public project and offline dependencies
+        run: |
+          python3 -B -m agent_eval.project_edits_tasks prepare --task regex-escape-len --output "$RUNNER_TEMP/m2-public-inputs"
+          cargo fetch --locked --manifest-path "$RUNNER_TEMP/m2-public-inputs/original/Cargo.toml"
+      - name: Reject missing APIs, wrong byte counts and excessive allocations
+        run: >-
+          python3 -B -m agent_eval.project_edits_public_controls
+          --inputs "$RUNNER_TEMP/m2-public-inputs" --output "$RUNNER_TEMP/m2-public-controls"
+          --cargo "$(rustup which cargo)" --rustc "$(rustup which rustc)"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-public-behavior-controls
+          path: |
+            ${{ runner.temp }}/m2-public-controls/summary.json
+            ${{ runner.temp }}/m2-public-controls/*/stdout
+            ${{ runner.temp }}/m2-public-controls/*/stderr
+            ${{ runner.temp }}/m2-public-controls/*/project/target/public-escape-check/*.stdout
+            ${{ runner.temp }}/m2-public-controls/*/project/target/public-escape-check/*.stderr
+          if-no-files-found: error
+          retention-days: 30
+  lean-policy:
+    name: Check the updated authoring rule with Lean
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/lean-toolchain
+            kernels
+      - uses: ./.github/actions/lean-toolchain
+      - run: lean -j 1 kernels/FrKernels/Project.lean
+  delivery:
+    name: Real fr changes, refusals and checked delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+      RUST_TEST_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/project-edit-checkers
+      - name: Check the task boundaries and Rust formatting
+        run: |
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_project_edits*.py' -v
+          cargo fmt --all --check
+          python3 -B tools/check-prose.py
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m2-fr-delivery
+          cache-on-failure: true
+      - name: Check aliases, source history and failed-check state
+        run: >-
+          cargo test --locked --test rename_import_aliases --test rename_inverse
+          --test workflow_cli -- --test-threads 1
+      - name: Check all existing authoring cases
+        run: cargo test --locked --test author_cli -- --test-threads 1
+      - run: cargo build --locked --bin fr
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m2-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 30
+      - name: Check structural changes through the Python client
+        run: python3 -B -m pytest -q sdk/python/tests/test_structural_change.py sdk/python/tests/test_python_structural_change.py
+      - name: Exercise each complete change through real fr
+        env:
+          CARGO_HOME: ${{ github.workspace }}/target/cargo-home
+          CARGO_BUILD_JOBS: '1'
+        run: |
+          for task in rust-parameter typescript-alias regex-escape-len python-invoice; do
+            python3 -B -m agent_eval.project_edits_tasks prepare --task "$task" --output "$RUNNER_TEMP/m2-inputs/$task"
+            if [ "$task" = regex-escape-len ]; then
+              timeout 120 "$M2_CARGO" fetch --locked --manifest-path "$RUNNER_TEMP/m2-inputs/$task/original/Cargo.toml"
+            fi
+            python3 -B -m agent_eval.project_edits_delivery --task "$task" --fr target/debug/fr \
+              --inputs "$RUNNER_TEMP/m2-inputs/$task" --output "$RUNNER_TEMP/m2-delivery/$task" \
+              --python "$(command -v python3)" --cargo "$M2_CARGO" --rustc "$M2_RUSTC" \
+              --node "$(command -v node)" --typescript "$M2_TYPESCRIPT"
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-fr-delivery-controls
+          path: |
+            ${{ runner.temp }}/m2-delivery/**/*.json
+            ${{ runner.temp }}/m2-delivery/**/*.patch
+          if-no-files-found: warn
+          retention-days: 30
+  native-clients:
+    name: Check all three native clients with both tool setups
+    needs: delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.6'
+      - uses: actions/download-artifact@v8
+        with:
+          name: m2-linux-tool
+          path: ${{ runner.temp }}/m2-linux-tool
+      - run: chmod +x "$RUNNER_TEMP/m2-linux-tool/fr"
+      - name: Use scripted replies to check tool execution and skill discovery
+        run: >-
+          python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/m2-linux-tool/fr"
+          --output "$RUNNER_TEMP/m2-native"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-native-controls
+          path: |
+            ${{ runner.temp }}/m2-native/summary.json
+            ${{ runner.temp }}/m2-native/*/result.json
+            ${{ runner.temp }}/m2-native/*/native/result.json
+            ${{ runner.temp }}/m2-native/*/native/skills.json
+            ${{ runner.temp }}/m2-native/*/native/native.stdout
+            ${{ runner.temp }}/m2-native/*/native/native.stderr
+            ${{ runner.temp }}/m2-native/*/native/provider.json
+            ${{ runner.temp }}/m2-native/*/native/export.stdout
+            ${{ runner.temp }}/m2-native/*/native/export.stderr
+            ${{ runner.temp }}/m2-native/*/native/api/server.stdout
+            ${{ runner.temp }}/m2-native/*/native/api/server.stderr
+          if-no-files-found: error
+          retention-days: 30
+  skill-examples:
+    name: Execute every example in the current fr skill
+    needs: delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools:sdk/python/src
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '1'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/download-artifact@v8
+        with:
+          name: m2-linux-tool
+          path: ${{ runner.temp }}/m2-skill-tool
+      - run: chmod +x "$RUNNER_TEMP/m2-skill-tool/fr"
+      - name: Check the real commands, examples and existing context limits
+        shell: bash
+        run: >-
+          python3 -B tools/check-agent-skill.py --fr "$RUNNER_TEMP/m2-skill-tool/fr"
+          2>&1 | tee "$RUNNER_TEMP/m2-skill-examples.log"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-current-skill-examples
+          path: ${{ runner.temp }}/m2-skill-examples.log
+          if-no-files-found: error
+          retention-days: 30
+  macos-tool:
+    name: Build the exact fr binary for local agent attempts
+    needs: delivery
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup target add --toolchain 1.98.1 aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m2-macos-agent-tool
+      - run: cargo build --locked --release --bin fr --target aarch64-apple-darwin
+      - name: Record the executable and its exact source
+        run: |
+          mkdir -p "$RUNNER_TEMP/m2-macos-tool"
+          cp target/aarch64-apple-darwin/release/fr "$RUNNER_TEMP/m2-macos-tool/fr"
+          git rev-parse HEAD > "$RUNNER_TEMP/m2-macos-tool/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/m2-macos-tool/source-tree.txt"
+          shasum -a 256 "$RUNNER_TEMP/m2-macos-tool/fr" > "$RUNNER_TEMP/m2-macos-tool/fr.sha256"
+          file "$RUNNER_TEMP/m2-macos-tool/fr"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m2-macos-tool
+          path: ${{ runner.temp }}/m2-macos-tool
+          if-no-files-found: error
+          retention-days: 30

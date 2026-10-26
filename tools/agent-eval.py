@@ -70,7 +70,7 @@ def profile(task):
 
 def verify(root, task):
     if task == regex_escape_len.TASK:
-        return regex_escape_len.verify(root)
+        return regex_escape_len.verify(root, cargo="cargo", rustc="rustc", cargo_home=ROOT / "target/cargo-home")
     return regex_workspace.verify(root) if task == regex_workspace.TASK else verify_strsim(root, task)
 
 

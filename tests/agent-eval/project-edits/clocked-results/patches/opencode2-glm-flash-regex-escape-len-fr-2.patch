@@ -1,0 +1,49 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..e36e032 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -201,7 +201,7 @@ pub mod utf8;
+ /// The string returned may be safely used as a literal in a regular
+ /// expression.
+ pub fn escape(text: &str) -> String {
+-    let mut quoted = String::new();
++    let mut quoted = String::with_capacity(escape_len(text));
+     escape_into(text, &mut quoted);
+     quoted
+ }
+@@ -220,6 +220,16 @@ pub fn escape_into(text: &str, buf: &mut String) {
+     }
+ }
+ 
++/// Returns the number of bytes in the escaped form of `text`.
++///
++/// This is equivalent to the length of the string returned by
++/// [`escape`], but computes it without allocating.
++pub fn escape_len(text: &str) -> usize {
++    text.chars()
++        .map(|c| c.len_utf8() + usize::from(is_meta_character(c)))
++        .sum()
++}
++
+ /// Returns true if the given character has significance in a regex.
+ ///
+ /// Generally speaking, these are the only characters which _must_ be escaped
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..82f7fbc 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,14 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the number of bytes in the escaped form of `pattern`.
++///
++/// This is equivalent to the length of the string returned by
++/// [`escape`], but computes it without allocating.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {

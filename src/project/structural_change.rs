@@ -143,7 +143,31 @@ fn literal(node: Node<'_>) -> bool {
             .is_some_and(|n| n.kind() == "integer_literal")
 }
 
-fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
+fn literal_argument(text: &str) -> Result<bool> {
+    let source = format!("const FR_ARGUMENT: () = {text};");
+    let parsed = Parsers::new().parse(Language::Rust, &source)?;
+    Ok(!parsed.has_errors()
+        && parsed.root().named_child_count() == 1
+        && parsed
+            .root()
+            .named_child(0)
+            .and_then(|node| node.child_by_field_name("value"))
+            .is_some_and(literal))
+}
+
+fn validate_scalar_calls(
+    project: &Project<'_>,
+    symbol: &Symbol,
+    change: &crate::refactor::signature::Change,
+) -> Result<()> {
+    let call_error = match change {
+        crate::refactor::signature::Change::Remove(_) =>
+            "The removed argument must be a literal scalar, such as false or 0. Removing a call such as record() could discard its effects.",
+        crate::refactor::signature::Change::Move { .. } =>
+            "Moving parameters requires literal scalar arguments. Expressions could change evaluation order.",
+        crate::refactor::signature::Change::Add { .. } =>
+            "This signature operation has no declared argument evaluation rule.",
+    };
     ensure!(project.index.definition_group(symbol.id).len() == 1,
         "signature changes require one declaration; conditional variants need a separate reviewed migration.");
     let source = &project.sources[&symbol.file];
@@ -185,6 +209,27 @@ fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
         }
         let source = &project.sources[&reference.file];
         let parsed = Parsers::new().parse(Language::Rust, source)?;
+        if let Some((_, arguments)) =
+            crate::refactor::signature::macro_call_arguments(&parsed, reference.span)
+        {
+            let safe = match change {
+                crate::refactor::signature::Change::Remove(index) => arguments
+                    .get(*index)
+                    .map(|span| literal_argument(span.text(source)))
+                    .transpose()?
+                    .unwrap_or(false),
+                crate::refactor::signature::Change::Move { .. } => {
+                    let mut safe = true;
+                    for span in arguments {
+                        safe &= literal_argument(span.text(source))?;
+                    }
+                    safe
+                }
+                crate::refactor::signature::Change::Add { .. } => false,
+            };
+            ensure!(safe, "{call_error}");
+            continue;
+        }
         let call = ancestor(&parsed, reference.span, "call_expression")?;
         let function = call
             .child_by_field_name("function")
@@ -198,8 +243,18 @@ fn validate_scalar_calls(project: &Project<'_>, symbol: &Symbol) -> Result<()> {
             .child_by_field_name("arguments")
             .context("missing call arguments.")?;
         let mut cursor = arguments.walk();
-        ensure!(arguments.named_children(&mut cursor).all(literal),
-            "signature refactor requires literal scalar call arguments; effects and evaluation order remain obligations.");
+        let safe = match change {
+            crate::refactor::signature::Change::Remove(index) => arguments
+                .named_children(&mut cursor)
+                .filter(|node| !node.kind().contains("comment"))
+                .nth(*index)
+                .is_some_and(literal),
+            crate::refactor::signature::Change::Move { .. } => {
+                arguments.named_children(&mut cursor).all(literal)
+            }
+            crate::refactor::signature::Change::Add { .. } => false,
+        };
+        ensure!(safe, "{call_error}");
     }
     Ok(())
 }
@@ -213,9 +268,11 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
         .and_then(|id| project.index.symbol(id))
         .context("structural refactor requires a declaration.")?;
     ensure!(
-        matches!(symbol.language, Language::Rust | Language::Python)
-            && symbol.kind == SymbolKind::Function,
-        "structural refactor requires a Rust or Python free function."
+        matches!(
+            symbol.language,
+            Language::Rust | Language::Python | Language::TypeScript | Language::Tsx
+        ) && symbol.kind == SymbolKind::Function,
+        "structural refactor requires a Rust, Python or TypeScript free function."
     );
     let (edits, detail) = match request {
         Request::Rename {
@@ -261,7 +318,7 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
                 }
                 Request::Rename { .. } => unreachable!(),
             };
-            validate_scalar_calls(project, symbol)?;
+            validate_scalar_calls(project, symbol, &change)?;
             let plan = crate::refactor::signature::change(project.index, symbol.id, change)?;
             ensure!(
                 plan.notes.is_empty(),
@@ -284,11 +341,18 @@ pub(super) fn plan(project: &Project<'_>, handle: &str, input: &str) -> Result<P
             "structural refactor source changed during planning."
         );
     }
+    let mut ranges = Vec::new();
+    for (path, replacements) in edits.iter() {
+        for replacement in replacements {
+            ranges.push(json!({"path": path.strip_prefix(&project.root)?,
+                "before_span": replacement.span, "after_bytes": replacement.replacement.len()}));
+        }
+    }
     Ok(Plan {
         edits,
         report: json!({"operation": "refactor", "handle": handle,
-        "detail": detail, "changed": true, "behavior_checked": false,
+        "detail": detail, "edits": ranges, "changed": true, "behavior_checked": false,
         "preservation": "bytes outside planned edits; source behavior requires independent checks.",
-        "scope": "Rust/Python free-function renames and Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."}),
     })
 }

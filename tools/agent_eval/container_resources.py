@@ -1,5 +1,6 @@
 """Shared cgroup-v2 budgets for study tool and grader containers, not the host."""
 import os
+import json
 from pathlib import Path
 import re
 import sys
@@ -171,7 +172,13 @@ class ContainerResources:
             require(inspected["exit_code"] == 0 and not inspected["stop_reason"] and decode(parent) == self.name,
                     "Docker did not retain the required container parent")
         if not cleanup:
-            self.check()
+            try:
+                self.check()
+            except ValueError:
+                (directory / 'resource-stop.stdout').write_bytes(result[1])
+                (directory / 'resource-stop.stderr').write_bytes(result[2])
+                (directory / 'resource-stop.json').write_text(json.dumps({'command': command, 'process': result[0]}) + '\n')
+                raise
         return result
 
     def finish(self):

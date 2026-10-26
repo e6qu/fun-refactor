@@ -9,6 +9,23 @@ The final gate checks that all required portions ran and passed; a passing small
 Queue time is time waiting for a runner. Execution time starts when a runner begins work.
 For a slow PR, inspect those times separately before deciding which operation needs repair.
 
+Candidate grader checks download only their task files and tools.
+Downloading the complete result archive had used most of a five-minute job before the checks started.
+The narrower checkout keeps the same deadline and all source and repair controls.
+
+Checks use `zsh` to parse shell scripts and `xmllint` to parse XML files.
+They install fixed package files from a checked cache, with package-manager downloads disabled.
+A checksum identifies the expected bytes of each downloaded file.
+The names and checksums come from Ubuntu's [main](https://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.xz)
+and [updates](https://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/Packages.xz) indexes.
+Test setup does not refresh system package repositories. Missing dependencies still fail.
+The [native validator workflow](../.github/workflows/native-validator-tools.yml) checks installation and accepted and rejected shell and XML examples on a GitHub runner.
+
+OpenCode can expose its `build` agent before it finishes discovering project skills.
+The scripted check waits for the `fr` skill within the same ten-second deadline.
+A missing skill or a failed client request still fails the check.
+The saved patches still use their original checker; only the scripted client startup check uses the updated code.
+
 ## Keep completed project checks reproducible
 
 CI replays the [recorded project changes](project-change-milestone.md) and checks that altered completion claims fail.
@@ -207,6 +224,20 @@ The actual CLI transcripts stay local; model timings and token counts come from 
 GitHub independently applies and checks the patches, including exact undo/redo and delivery to another checkout.
 M1 uses its pinned original fr and checker source, so later development can proceed without rewriting the study's history.
 Changing a published pass or patch-check claim without a matching fresh result fails CI.
+M2 adds required language controls for four complete code changes, real fr delivery checks and private compiler checks.
+The native client controls check all three selected profiles with and without fr, using scripted replies and no paid model calls.
+The Mac build supplies the explicitly selected ARM executable for later local CLI attempts.
+Private checks prepare only unchanged dependencies in advance; every submitted patch rebuilds the packages it changes.
+Their 60 CPU-second, 512 MiB and 120-second candidate limits remain unchanged.
+M2 submissions are retained with their measured source and checked by that exact auditor.
+Each job preserves the approved current report and patches before selecting the recorded auditor source.
+Separate language and delivery jobs run the current fr implementation, including later correctness fixes.
+The supplied regex behavior check has separate macOS controls using the local study's Rust version.
+It must reject missing APIs, a wrong UTF-8 byte count and excessive allocations, then accept the correct change.
+This public check uses explicit development optimization zero and one compiler job; it measures behavior rather than execution speed.
+The complete private checks still run independently. Neither check may extend an agent's original deadline.
+Current project replays and complete CLI/Python session costs have separate required jobs.
+A failure in one cannot prevent the other from reporting stale inputs.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`
 condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
 needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).

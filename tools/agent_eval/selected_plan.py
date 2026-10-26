@@ -1,4 +1,4 @@
-"""Freeze M1's exact 36 attempts without launching clients or spending money."""
+"""Freeze an explicitly selected milestone without launching clients or spending money."""
 import hashlib
 import json
 from pathlib import Path
@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = Path('tests/agent-eval/selected-agents')
 INPUTS = ('clients.json', 'profiles.json', 'tasks.json')
+CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits')}
 
 
 def encoded(value):
@@ -17,15 +18,19 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def prepare(root):
-    documents = {name: json.loads((root / DIRECTORY / name).read_text()) for name in INPUTS}
+def prepare(root, milestone):
+    require(milestone in CASE_DIRECTORIES, 'choose M1 or M2 explicitly')
+    case_directory = CASE_DIRECTORIES[milestone]
+    paths = {name: (case_directory if name == 'tasks.json' else DIRECTORY) / name for name in INPUTS}
+    documents = {name: json.loads((root / path).read_text()) for name, path in paths.items()}
     profiles, tasks = documents['profiles.json'], documents['tasks.json']
     require(set(profiles) == {'codex-luna-fast', 'opencode2-glm-flash', 'opencode2-kimi-k3'},
-            'M1 requires the three selected profiles')
-    require(set(tasks['tasks']) == {'boltons-rename', 'unicode-dice', 'access-proof'},
-            'M1 requires its three fixed tasks')
+            'the comparison requires the three selected profiles')
+    expected_tasks = {'M1': {'boltons-rename', 'unicode-dice', 'access-proof'},
+                      'M2': {'rust-parameter', 'typescript-alias', 'regex-escape-len', 'python-invoice'}}[milestone]
+    require(set(tasks['tasks']) == expected_tasks, milestone + ' requires its fixed tasks')
     require(tasks['repetitions'] == 2 and tasks['setups'] == ['files', 'fr'],
-            'M1 requires two repetitions and both tool setups')
+            'the comparison requires two repetitions and both tool setups')
     require(tasks['limits']['parallel_attempts'] == 1, 'attempts must run serially')
     for name, profile in profiles.items():
         require(profile['client'] in documents['clients.json'], f'missing client pin: {name}')
@@ -48,17 +53,22 @@ def prepare(root):
                         'profile': profile, 'task': task, 'setup': setup, 'repetition': repetition + 1,
                         'position': position + 1, 'status': 'unstarted', 'outcome': None,
                         'usage': None, 'cost': None, 'fr_contribution': None})
-    bindings = {str(DIRECTORY / name): hashlib.sha256((root / DIRECTORY / name).read_bytes()).hexdigest()
-                for name in INPUTS}
-    result = {'milestone': 'M1', 'live_calls_enabled': False, 'profiles': profiles,
+    bound_paths = list(paths.values())
+    if milestone == 'M2':
+        bound_paths += [case_directory / 'checkers.json']
+        bound_paths += [path.relative_to(root) for path in sorted((root / case_directory / 'fixtures').rglob('*'))
+                        if path.is_file()]
+    bindings = {str(path): hashlib.sha256((root / path).read_bytes()).hexdigest() for path in bound_paths}
+    result = {'milestone': milestone, 'live_calls_enabled': False, 'profiles': profiles,
               'clients': documents['clients.json'], 'requirements': tasks,
               'bindings': bindings, 'attempts': attempts,
               'billing': {'actual': None, 'estimated': None, 'authorization': None}}
-    require(len(attempts) == 36 and len({row['id'] for row in attempts}) == 36,
-            'M1 must contain exactly 36 distinct attempts')
+    expected_count = len(expected_tasks) * 3 * 2 * 2
+    require(len(attempts) == expected_count and len({row['id'] for row in attempts}) == expected_count,
+            milestone + ' needs all ' + str(expected_count) + ' distinct attempts')
     return {**result, 'sha256': hashlib.sha256(encoded(result)).hexdigest()}
 
 
-def verify(value, root):
-    require(value == prepare(root), 'M1 preparation differs from current inputs; review a new plan')
+def verify(value, root, milestone):
+    require(value == prepare(root, milestone), milestone + ' preparation differs from current inputs; review a new plan')
     return value

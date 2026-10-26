@@ -1,0 +1,71 @@
+{
+  "milestone": "M2",
+  "profiles": "tests/agent-eval/selected-agents/profiles.json",
+  "clients": "tests/agent-eval/selected-agents/clients.json",
+  "repetitions": 2,
+  "setups": ["files", "fr"],
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "cpu_limit_seconds": 75,
+    "disk_bytes": 536870912,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "tasks": {
+    "rust-parameter": {
+      "request": "Remove the unused Boolean _verbose parameter from the public total function and update every declared caller in this two-crate Rust workspace. Current callers supply literal true or false values. Preserve the calculation, other arguments, comments, indentation and source outside the changed parameter and argument lists. Report external or unresolved uses rather than claiming to know all possible consumers. Preview the complete change, run the supplied project checks, and submit change.patch.",
+      "fixture": "rust-parameter",
+      "required_examples": ["total(5, 2) returns 7", "same_crate(5) returns 7", "checkout::charge(5) returns 8"],
+      "independent_checks": [
+        "Compile the new two-argument public API and both crates; execute independent integer cases against addition.",
+        "Compile and execute all declared consumer functions; reject a caller left with the old argument count.",
+        "Compare exact original bytes outside parameter/argument lists; preserve comments and unrelated declarations.",
+        "A separate side-effecting-argument control must preserve its evaluation or refuse before writing."
+      ]
+    },
+    "typescript-alias": {
+      "request": "Rename the exported TypeScript helper price to quote and update its imported consumers. An existing consumer imports it as displayPrice: keep that local alias and its calls. Leave the unrelated local price declaration and its calls unchanged. Preserve comments, formatting and other source. Preview the complete change, run the supplied project checks, and submit change.patch.",
+      "fixture": "typescript-alias",
+      "required_examples": ["quote(5) returns 7", "receipt(5) returns 7", "the unrelated price(5) still returns 105"],
+      "independent_checks": [
+        "The original exported name disappears and the requested export type-checks.",
+        "The named import changes to quote while the displayPrice alias and its calls retain their bytes.",
+        "Type-check the project and execute independent public-result cases with Node.",
+        "Compare exact original bytes outside the export name and imported export name; preserve the unrelated module."
+      ]
+    },
+    "regex-escape-len": {
+      "request": "Add documented public escape_len(pattern: &str) -> usize APIs to both regex and regex-syntax. Return the escaped UTF-8 byte length without allocating a temporary string. Empty input needs zero bytes, a.b needs four, and é needs two. Make escaping a nonempty pattern use at most one allocation and empty input none. Preserve all existing escaping results, append behavior and existing APIs, including builds without default features. Discover the implementation and integration points from the workspace. Preview the complete change, run the supplied project checks, and submit change.patch.",
+      "fixture_overlay": "regex-escape-len",
+      "archive": "tests/agent-eval/regex/workspace.tar.gz",
+      "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+      "lock": "tests/agent-eval/regex/Cargo.lock",
+      "lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+      "independent_checks": [
+        "Use the existing independent regex_escape_len oracle: both public APIs, Unicode byte counts, every escaping class, long inputs, allocation counts and unchanged append behavior.",
+        "The unchanged project fails only because the requested APIs are absent.",
+        "Run upstream library tests for both crates and no-default-features builds for each crate.",
+        "Preserve manifests, dependency locks, tests and unrelated source. Any wider implementation change needs its complete reviewed diff."
+      ]
+    },
+    "python-invoice": {
+      "request": "Fix invoice_total(amount, fee): the current calculation omits the fee. For example, invoice_total(5, 2) must return 7. Keep the public function name and arguments, preserve comments, indentation and unrelated source, and handle positive, zero and negative integer inputs. Preview the complete change, run the supplied project checks, and submit change.patch.",
+      "fixture": "python-invoice",
+      "required_examples": ["invoice_total(5, 2) returns 7", "invoice_total(0, 0) returns 0", "invoice_total(-5, 2) returns -3"],
+      "independent_checks": [
+        "Execute the public function on independent pairs of integers and compare with Python addition.",
+        "The unchanged implementation fails cases with a nonzero fee; incomplete or sample-only fixes must fail.",
+        "Preserve the public signature and exact bytes outside the selected function body, including Unicode comments and other functions.",
+        "Keep the public tests and project configuration unchanged."
+      ]
+    }
+  },
+  "delivery_checks": [
+    "For every case, check previewed edit ranges and exact bytes outside those ranges.",
+    "A competing edit must make the old saved preview refuse before writing; a fresh preview can proceed.",
+    "A failed project check retains its diagnostics and the actual applied edit state.",
+    "The submitted patch must pass independent checks in another checkout; undo and redo must restore exact source bytes and executable modes."
+  ],
+  "completion": "All four scripted task/delivery controls pass. All 48 frozen attempts have checked outcomes. Each of the three selected profiles delivers at least one accepted result per case using fr within its two unchanged repetitions; record the contributing actions and retain every failure."
+}

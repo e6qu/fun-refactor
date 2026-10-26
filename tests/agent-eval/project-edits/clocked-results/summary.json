@@ -1,0 +1,3169 @@
+{
+  "study": "M2",
+  "comparison": "The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.",
+  "publication": "User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.",
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "task_bindings": {
+    "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+    "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+    "tests/agent-eval/project-edits/tasks.json": "f0dba960a003ac6c46f87806af8cf542c591e17d69d533f935d0a86bca488d85",
+    "tests/agent-eval/project-edits/checkers.json": "fca3e1acc2c477f72071b2892ae7c70a5dfb3e4d344908d629c271bda2815f14",
+    "tests/agent-eval/project-edits/fixtures/python-invoice/invoice.py": "5e73be17c133ac4aaa244a8a07670ae4d70697f7816cda3c4849dd3ceed0121d",
+    "tests/agent-eval/project-edits/fixtures/python-invoice/test_invoice.py": "942f3ef5fdcf7944436e5584e51da85a7c5f79787d951a5e2dd9aa712c875449",
+    "tests/agent-eval/project-edits/fixtures/regex-escape-len/examples/required_escape_len.rs": "14e9f2dbb08095854cc878aed95377810c820eec6bbaa9ed84c9a02a811d406f",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.lock": "bbcf8d9bbc613f7505a4618cf57ac0459fbcb082c55276e3fdeb147b701fdd0a",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.toml": "2187e948553589be8b6a4d60ccf373957871979ce6050b19647acb7d911819e6",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/Cargo.toml": "ebbbc64d95a0f443571858e1b0adaed5968c1ce678ed5734b2ec1c88949af490",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/src/lib.rs": "cd614cd24eaa5db6b0fb4e7fbbba9c4b705c1325a73c3841bf5b014074335a10",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/tests/prices.rs": "a60f2beffc6b34166064bd9ed2cff22882309e2a64dc16e1eb026c6773c74d20",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/Cargo.toml": "d77fa3757f37d11f5bb44326d535c9b29365836f47d5846c288afe9d7946e9d8",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/src/lib.rs": "1527d7e6e554d53188120a43f3fc2f30e6b723f2602f9ad58a9e658606db83ce",
+    "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/tests/prices.rs": "610a1bb138d40bfd1e69622cd50067cb9905355ec398a44a131d9dd78bb55cc6",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/check.cjs": "9ecbc8eee0d123b9ea58efa0dbe56806e4bba7d36f08a07f13cbc71f430b73fb",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/src/checkout.ts": "5550a74c64d472cb2cc49306cd2778e5b7c77be5f9581a73a84ae0e0c9af49b9",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/src/pricing.ts": "10b656c5875b12a481ca0da7c57b160fe3fc4309cacfb307b30c04de138c32c9",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/src/unrelated.ts": "2ec7c2f52f2dbd19b4356a60913984651c589c62e40741834be1a9651f48ba83",
+    "tests/agent-eval/project-edits/fixtures/typescript-alias/tsconfig.json": "05616520b798fb523e2025105c13dda2e219fda3fbb32e85fc06e2cf12cf1c46"
+  },
+  "native_inputs": {
+    "src": "df14e91350ad6e5c79f3de58903a07e6da178175",
+    "grammars": "d9c481955e0a58fc213ef5f97ee13b904f373265",
+    "crates": "34ad6ba34ee60323dde7bbd709f9727601c99bcf",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "805135be88ba8a2b2bb316fd62cadae7850c959b",
+    "Cargo.lock": "bcee022bbfbc14bfc5950b5ddc142aa70574920e",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "core_checker_sha256": "705469ebdee52be7ef5d37044ed7c6fa1d9fcb3c617cf5fcea589799ded5ebbf",
+  "task_source_sha256": {
+    "rust-parameter": "7c8211a47974ddede23d917dfd55d063e33e15e463e18a8aa781241cbe7f568e",
+    "typescript-alias": "a159c2dd6a3fa502211bcad1202c10e826f2191becb10923d2bb32046d1596b5",
+    "regex-escape-len": "b25b70f07a602787393275b08724384bfd76afd08d1278e9f3aed9ad8bf24891",
+    "python-invoice": "7ccdee9a4b5aa3a74841fa7a34ceba33c422dd40b829e5ea50a2093971d44f9a"
+  },
+  "native_app_versions": {
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32",
+    "fr": "fr 0.84.3"
+  },
+  "local_checker_versions": {
+    "python": "Python 3.14.6",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "node": "v26.5.0",
+    "typescript": "Version 5.9.3",
+    "objcopy": "llvm-objcopy, compatible with GNU objcopy\nLLVM (http://llvm.org/):\n  LLVM version 22.1.8-rust-1.98.1-stable\n  Optimized build."
+  },
+  "native_binary_sha256": {
+    "codex": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+    "opencode2": "cd03022601e4848a957999a2a7b1c1ccf18b94f9a084a44719f62abaacebe83c",
+    "fr": "3763718865dbde9834d15e941dd0207b8cc3e654b72729274e4716b4791baf69"
+  },
+  "native_companion_sha256": {
+    "codex-code-mode-host": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+    "opencode": "e43ec2df6f36842fd17d1a71a866acb9a84884b489988376c19bf9a7250dabbf"
+  },
+  "fr_build": {
+    "source_commit": "e5e465cd2593018015707ea00890183f9f692b9d",
+    "source_tree": "7b934b5033cc8bcde0ac0d5926c29f1624c026f8",
+    "executable_sha256": "3763718865dbde9834d15e941dd0207b8cc3e654b72729274e4716b4791baf69"
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "provider_request_cap_enforced": false,
+  "token_cap_enforced": false,
+  "accounting": "CLI-reported categories retain client meanings. Unknown account charges and incomplete usage are not replaced with zero.",
+  "cache_state": "Fresh conversations and projects. Operating-system and provider caches are uncontrolled.",
+  "resource_scope": "Elapsed time covers the complete controller attempt. CPU and RSS samples describe the native CLI process group. The outer workstation guard also covers controller preparation and capture.",
+  "unmeasured_per_attempt": {
+    "controller_python_startup_seconds": null,
+    "outer_guard_startup_seconds": null
+  },
+  "controls": {
+    "acceptance": {
+      "passed": true,
+      "live_model_calls": 0,
+      "run": "40235737798",
+      "source_commit": "e5e465cd2593018015707ea00890183f9f692b9d",
+      "bindings": {
+        ".github/actions/project-edit-checkers/action.yml": "ecf917dc9c9dd37109f5598fa02528a8e20d4049fb4bede06017c6f77f25451b",
+        "sdk/python/src/fr_ir/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sdk/python/src/fr_ir/_version.py": "0a8a0a7ac32ac9febb6001c26951b0484f9aa9d2c493d1bb115f16ccb33a2197",
+        "sdk/python/src/fr_ir/application.py": "4643306ef6933c66dfc65f4bbb7b311f7c80163fba8d207ae4a6f7b0e52b63e1",
+        "sdk/python/src/fr_ir/change_scope.py": "b371ed95c715e184b5e9c567efa2b7255dd3e798cd8e9ee2a149346be2057fa2",
+        "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
+        "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+        "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
+        "sdk/python/src/fr_ir/flow.py": "942721a3c7beb5cb97bf39c33e94f4637f9a7d44dcb9a4fd04b86fbaca82c9c5",
+        "sdk/python/src/fr_ir/flow_completion.py": "8e9a52d132e1037629179d19d879fe50c671f625a3dbaf9581de34f12a6817a5",
+        "sdk/python/src/fr_ir/flow_dependencies.py": "16bf1efc218fbd5546136e6224dc8591b4ddcd5f375fe0a7607a12e4ffd41663",
+        "sdk/python/src/fr_ir/flow_effects.py": "8e12a801ba5419d4658d5cde64f49a406701c8fb668173fa7f5627ba3f871c48",
+        "sdk/python/src/fr_ir/flow_facts.py": "894bb6c8820947fe6414868101902d145c710e923c6c1ea102d93f6b80399356",
+        "sdk/python/src/fr_ir/flow_import_explanation.py": "c12709ebbe219a33fbf7c04ea913235c3aa79489916a0bd763af1036cb31e649",
+        "sdk/python/src/fr_ir/flow_initialization.py": "05e82eb35a7131dcbe1acea587a3911f5dbda210d76c263cca8d803ef62d8d98",
+        "sdk/python/src/fr_ir/flow_standard_library.py": "4ae79670c2331ff0dd942c5aecaa48e05ebe38b7a758439b22978b0febba2b62",
+        "sdk/python/src/fr_ir/flow_startup.py": "1af41271e368f8094fd2db2704ddbd24116aab92502fde205a20342359f6a4ca",
+        "sdk/python/src/fr_ir/flow_storage.py": "26f30da34b1c4ec080d5a11b5ce56ac5afd068a2264c76752b61e43ba10e2317",
+        "sdk/python/src/fr_ir/flow_summaries.py": "ff0ae1dbadb4394581fe8aa1d5b6cecab588ac519e2d49ef2f36dbe9aac935f6",
+        "sdk/python/src/fr_ir/flow_together.py": "4dac68932b2d2b83dea802f5f1e9dc88f2c7389bfd2a7edb26a4c55679771df4",
+        "sdk/python/src/fr_ir/formal_kernel.py": "2e1fd2c35c304e68b215cb8ca9fb9801b7a560566d3b7bab332758717d6ff15b",
+        "sdk/python/src/fr_ir/guide.py": "6d7e5944b06b183fbceae2f2c356f26f06191f28203ae1576ed58371ebc002aa",
+        "sdk/python/src/fr_ir/http_store.py": "8762b2f4047cacc69ed3eb7f2df67b15b4c23251581a42b09c2b2e223f5f8334",
+        "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
+        "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c",
+        "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+        "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+        "sdk/python/src/fr_ir/investigation_delivery.py": "f1de9b084313cd842bf46e4695e7c82aa7cef257f0d533ab3a32bfa48bea6c7c",
+        "sdk/python/src/fr_ir/investigation_proofs.py": "9a18fbb5a66f8be86ffec294371ea479467363069643bcf272e344a2cbfff2c4",
+        "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
+        "sdk/python/src/fr_ir/ir.py": "5c84e8186a0d46fb9f654e81f1336f9e4ec6893604ef8e4a58c952dfe8a5da0e",
+        "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
+        "sdk/python/src/fr_ir/refinement.py": "9df833d3929935d9382ddf69f777416a14fcb7506f77e0c8365451a41c5bf183",
+        "sdk/python/src/fr_ir/runtime.py": "44d6a13fdbf499cd743608d894543199a4e0dd8c2762d3b11677428ee87a3ee4",
+        "sdk/python/src/fr_ir/structural_change.py": "524340ec95b6fdd81ccb307ea41d769cc18d27f36596ed7baed175f73e1abe1e",
+        "tests/agent-eval/project-edits/checkers.json": "fca3e1acc2c477f72071b2892ae7c70a5dfb3e4d344908d629c271bda2815f14",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/invoice.py": "5e73be17c133ac4aaa244a8a07670ae4d70697f7816cda3c4849dd3ceed0121d",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/test_invoice.py": "942f3ef5fdcf7944436e5584e51da85a7c5f79787d951a5e2dd9aa712c875449",
+        "tests/agent-eval/project-edits/fixtures/regex-escape-len/examples/required_escape_len.rs": "14e9f2dbb08095854cc878aed95377810c820eec6bbaa9ed84c9a02a811d406f",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.lock": "bbcf8d9bbc613f7505a4618cf57ac0459fbcb082c55276e3fdeb147b701fdd0a",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.toml": "2187e948553589be8b6a4d60ccf373957871979ce6050b19647acb7d911819e6",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/Cargo.toml": "ebbbc64d95a0f443571858e1b0adaed5968c1ce678ed5734b2ec1c88949af490",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/src/lib.rs": "cd614cd24eaa5db6b0fb4e7fbbba9c4b705c1325a73c3841bf5b014074335a10",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/tests/prices.rs": "a60f2beffc6b34166064bd9ed2cff22882309e2a64dc16e1eb026c6773c74d20",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/Cargo.toml": "d77fa3757f37d11f5bb44326d535c9b29365836f47d5846c288afe9d7946e9d8",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/src/lib.rs": "1527d7e6e554d53188120a43f3fc2f30e6b723f2602f9ad58a9e658606db83ce",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/tests/prices.rs": "610a1bb138d40bfd1e69622cd50067cb9905355ec398a44a131d9dd78bb55cc6",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/check.cjs": "9ecbc8eee0d123b9ea58efa0dbe56806e4bba7d36f08a07f13cbc71f430b73fb",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/checkout.ts": "5550a74c64d472cb2cc49306cd2778e5b7c77be5f9581a73a84ae0e0c9af49b9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/pricing.ts": "10b656c5875b12a481ca0da7c57b160fe3fc4309cacfb307b30c04de138c32c9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/unrelated.ts": "2ec7c2f52f2dbd19b4356a60913984651c589c62e40741834be1a9651f48ba83",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/tsconfig.json": "05616520b798fb523e2025105c13dda2e219fda3fbb32e85fc06e2cf12cf1c46",
+        "tests/agent-eval/project-edits/tasks.json": "f0dba960a003ac6c46f87806af8cf542c591e17d69d533f935d0a86bca488d85",
+        "tests/agent-eval/regex/Cargo.lock": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+        "tests/agent-eval/regex/workspace.tar.gz": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+        "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+        "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+        "tests/agent-eval/selected-agents/tasks.json": "4a9ffa9f697e091e96f10bb2ef8771ccfb7f9e8bf457bb5eb483676b411cb87c",
+        "tools/agent-eval.py": "30d113ada9188c3806e749c395f317f641474d6fab5d0efbbb173d586d4cbc9d",
+        "tools/agent_eval/comparison_grade.py": "75ea8b0e76d8f8cfb4067a904ceb2d5bf3e8d46b0504f42a7d0432d883545344",
+        "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+        "tools/agent_eval/project_edits_tasks.py": "14e8d8d02c714672465b340b977405380b6468a2465b4b1dd897ac6922ce3b56",
+        "tools/agent_eval/regex_escape_len.py": "6f009d2a04ba80607a6f9f3c23140acfa8e819248be030d008e6682b3462a46a",
+        "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+        "tools/agent_eval/selected_tasks.py": "04392ebe5df644cc58f579a177b653129026d9eb4ae38b9e940190127175d917",
+        "tools/evidence_basis.py": "dee41604bec803893589af6cee868f43504890603f5f4e2b0896dfca2a1443ff",
+        "tools/project_change_sources.py": "ef275c12c44969a176149138c76ae198442256630f811fce2d43d2fa6685fe9f"
+      },
+      "jobs": [
+        {
+          "id": 121296814419,
+          "name": "Independent M2 check (rust-parameter)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121296814362,
+          "name": "Independent M2 check (typescript-alias)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121296814416,
+          "name": "Independent M2 check (regex-escape-len)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121296814415,
+          "name": "Independent M2 check (python-invoice)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "delivery": {
+      "passed": true,
+      "live_model_calls": 0,
+      "run": "40265267107",
+      "source_commit": "076ca562be7955c6229d5972d358e47ed3d69fad",
+      "bindings": {
+        ".github/actions/project-edit-checkers/action.yml": "ecf917dc9c9dd37109f5598fa02528a8e20d4049fb4bede06017c6f77f25451b",
+        ".github/workflows/project-edit-delivery.yml": "34deb74cbccb0c244fbedd7920be0afa5da8cfc2572e0c2ea3fac4bfc06c41b7",
+        "kernels/FrKernels/Project.lean": "8d10ad0e60b985cb5b4745cacf15526a3bdb27880a048587a1753ec4690dda42",
+        "sdk/python/src/fr_ir/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sdk/python/src/fr_ir/_version.py": "0a8a0a7ac32ac9febb6001c26951b0484f9aa9d2c493d1bb115f16ccb33a2197",
+        "sdk/python/src/fr_ir/application.py": "4643306ef6933c66dfc65f4bbb7b311f7c80163fba8d207ae4a6f7b0e52b63e1",
+        "sdk/python/src/fr_ir/change_scope.py": "b371ed95c715e184b5e9c567efa2b7255dd3e798cd8e9ee2a149346be2057fa2",
+        "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
+        "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+        "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
+        "sdk/python/src/fr_ir/flow.py": "942721a3c7beb5cb97bf39c33e94f4637f9a7d44dcb9a4fd04b86fbaca82c9c5",
+        "sdk/python/src/fr_ir/flow_completion.py": "8e9a52d132e1037629179d19d879fe50c671f625a3dbaf9581de34f12a6817a5",
+        "sdk/python/src/fr_ir/flow_dependencies.py": "16bf1efc218fbd5546136e6224dc8591b4ddcd5f375fe0a7607a12e4ffd41663",
+        "sdk/python/src/fr_ir/flow_effects.py": "8e12a801ba5419d4658d5cde64f49a406701c8fb668173fa7f5627ba3f871c48",
+        "sdk/python/src/fr_ir/flow_facts.py": "894bb6c8820947fe6414868101902d145c710e923c6c1ea102d93f6b80399356",
+        "sdk/python/src/fr_ir/flow_import_explanation.py": "c12709ebbe219a33fbf7c04ea913235c3aa79489916a0bd763af1036cb31e649",
+        "sdk/python/src/fr_ir/flow_initialization.py": "05e82eb35a7131dcbe1acea587a3911f5dbda210d76c263cca8d803ef62d8d98",
+        "sdk/python/src/fr_ir/flow_standard_library.py": "4ae79670c2331ff0dd942c5aecaa48e05ebe38b7a758439b22978b0febba2b62",
+        "sdk/python/src/fr_ir/flow_startup.py": "1af41271e368f8094fd2db2704ddbd24116aab92502fde205a20342359f6a4ca",
+        "sdk/python/src/fr_ir/flow_storage.py": "26f30da34b1c4ec080d5a11b5ce56ac5afd068a2264c76752b61e43ba10e2317",
+        "sdk/python/src/fr_ir/flow_summaries.py": "ff0ae1dbadb4394581fe8aa1d5b6cecab588ac519e2d49ef2f36dbe9aac935f6",
+        "sdk/python/src/fr_ir/flow_together.py": "4dac68932b2d2b83dea802f5f1e9dc88f2c7389bfd2a7edb26a4c55679771df4",
+        "sdk/python/src/fr_ir/formal_kernel.py": "2e1fd2c35c304e68b215cb8ca9fb9801b7a560566d3b7bab332758717d6ff15b",
+        "sdk/python/src/fr_ir/guide.py": "6d7e5944b06b183fbceae2f2c356f26f06191f28203ae1576ed58371ebc002aa",
+        "sdk/python/src/fr_ir/http_store.py": "8762b2f4047cacc69ed3eb7f2df67b15b4c23251581a42b09c2b2e223f5f8334",
+        "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
+        "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c",
+        "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+        "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+        "sdk/python/src/fr_ir/investigation_delivery.py": "f1de9b084313cd842bf46e4695e7c82aa7cef257f0d533ab3a32bfa48bea6c7c",
+        "sdk/python/src/fr_ir/investigation_proofs.py": "9a18fbb5a66f8be86ffec294371ea479467363069643bcf272e344a2cbfff2c4",
+        "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
+        "sdk/python/src/fr_ir/ir.py": "5c84e8186a0d46fb9f654e81f1336f9e4ec6893604ef8e4a58c952dfe8a5da0e",
+        "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
+        "sdk/python/src/fr_ir/refinement.py": "9df833d3929935d9382ddf69f777416a14fcb7506f77e0c8365451a41c5bf183",
+        "sdk/python/src/fr_ir/runtime.py": "44d6a13fdbf499cd743608d894543199a4e0dd8c2762d3b11677428ee87a3ee4",
+        "sdk/python/src/fr_ir/structural_change.py": "524340ec95b6fdd81ccb307ea41d769cc18d27f36596ed7baed175f73e1abe1e",
+        "skills/fr/SKILL.md": "65aec93824eca83551376b5eda8ff4b6afe65c07c840d6a22156f5c2731d074b",
+        "skills/fr/references/application.md": "94ee5ddc0e0b588a5179afc36e68f5fd6703d931c43b593e2ad364ca49eb4f5a",
+        "skills/fr/references/author.md": "70cacc20b7bf77e4b5d2da231d5bb92bb44db6590ca90dfcad9aa0aaa5f27d5f",
+        "skills/fr/references/batch.md": "1e936dd3ec34a848930f61915dd05cb8c5d9002750226222f87dec89f56b9cbd",
+        "skills/fr/references/change.md": "49552967ce8c93b633335eab927242a48baa041a65a7de581ec6f8ba5dc417da",
+        "skills/fr/references/checks.md": "9cb446d79027558cda89b5e73366a3f94026042c7033b803e9bce8df926af614",
+        "skills/fr/references/compiler.md": "957cc6190e1b29257fff6f248a32edbd9efa48c0720ce880753caba7c048f6d8",
+        "skills/fr/references/disclosure.md": "28dc956c9684ba5cfcdfa9ace6c4a73fe3b3bfbebc2270d3a204c82729d1caa4",
+        "skills/fr/references/explore.md": "3b4cac7cd4f7ea92dc26b5d347018057d7896a1a7abc3be905ce2e87984a18ab",
+        "skills/fr/references/first-change.md": "16efaa8e62f9587e60ee4c1c7eab12da9f7dbf1ea74ce291a2db9fefe443c253",
+        "skills/fr/references/git-admin.md": "dd27974d70c440573d8faa1cd7b70b9bd2e2fe3f1cb40cce7918631488f2d156",
+        "skills/fr/references/git.md": "3dcd80e15cb60e457166230056e59ca6280eb31e72f073d004760e5a130e0ff2",
+        "skills/fr/references/guide.md": "b1b025ca42167281c4fdecc5fd5c7d8bf3e137c3b784ccea0b6133046cb8f006",
+        "skills/fr/references/history.md": "4d71dba0971c561612d1008d991f22b44be6b2af724dd8fdd4e7eff82da6583e",
+        "skills/fr/references/intents.md": "dade51e16d9efb28d366ff0ca06994520d4ac8dd4bcc850ced33560694c73fef",
+        "skills/fr/references/investigations.md": "da9e7eb01df05325867bbbb3bf07abb5a51113aaeaf89f9a2ad9968798d74984",
+        "skills/fr/references/lean.md": "97fa172869dee64c801de6d2b5b1938c55e35f57163fe8cf64cd6eea53df949c",
+        "skills/fr/references/recipes.md": "f20a38279377f50e828a189412816f8ca74d8a995b4184f132c6d023bf6d80e8",
+        "skills/fr/references/recovery.md": "c37b6cd4a186c4d0edd279fb7715a29eda1eaf0cd1748c0ab70f4d8cb41d0abf",
+        "skills/fr/references/runtime.md": "4741be4f2321b9cd764e7fdedd6140f452bbb65f0b7965e63e4e0223c972dffa",
+        "skills/fr/references/semantic-change.md": "9dae3af5a3a746e77e1b411cb6ec71e7d28e27597542fdd024d8faefd832e4ab",
+        "skills/fr/references/semantic-intent.md": "b5707f37b407c228f6c12659391966a96bbf93a6afe1d62c897d99d5b03aee26",
+        "skills/fr/references/semantic.md": "825814a4608a232b7be33dfd86c343a7eb16e02508ceb224dc7676c51a7eb649",
+        "skills/fr/references/surfaces.md": "8fd70c7d65ba36707229ac3c4eac712fe0eb324dfd99a3a2687d6afa5652a970",
+        "skills/fr/references/task.md": "71eb1b9790fe46c2eaf141b7b9fb9e6d9908f674cb452e805e8ce26b5cc24d5c",
+        "skills/fr/references/workflow.md": "dc13a3bad4cd29b260ce0bc06bae62ca0bf5d86d7f1cf00665374790f0fcd39a",
+        "tests/agent-eval/project-edits/checkers.json": "fca3e1acc2c477f72071b2892ae7c70a5dfb3e4d344908d629c271bda2815f14",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/invoice.py": "5e73be17c133ac4aaa244a8a07670ae4d70697f7816cda3c4849dd3ceed0121d",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/test_invoice.py": "942f3ef5fdcf7944436e5584e51da85a7c5f79787d951a5e2dd9aa712c875449",
+        "tests/agent-eval/project-edits/fixtures/regex-escape-len/examples/required_escape_len.rs": "14e9f2dbb08095854cc878aed95377810c820eec6bbaa9ed84c9a02a811d406f",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.lock": "bbcf8d9bbc613f7505a4618cf57ac0459fbcb082c55276e3fdeb147b701fdd0a",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.toml": "2187e948553589be8b6a4d60ccf373957871979ce6050b19647acb7d911819e6",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/Cargo.toml": "ebbbc64d95a0f443571858e1b0adaed5968c1ce678ed5734b2ec1c88949af490",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/src/lib.rs": "cd614cd24eaa5db6b0fb4e7fbbba9c4b705c1325a73c3841bf5b014074335a10",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/tests/prices.rs": "a60f2beffc6b34166064bd9ed2cff22882309e2a64dc16e1eb026c6773c74d20",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/Cargo.toml": "d77fa3757f37d11f5bb44326d535c9b29365836f47d5846c288afe9d7946e9d8",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/src/lib.rs": "1527d7e6e554d53188120a43f3fc2f30e6b723f2602f9ad58a9e658606db83ce",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/tests/prices.rs": "610a1bb138d40bfd1e69622cd50067cb9905355ec398a44a131d9dd78bb55cc6",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/check.cjs": "9ecbc8eee0d123b9ea58efa0dbe56806e4bba7d36f08a07f13cbc71f430b73fb",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/checkout.ts": "5550a74c64d472cb2cc49306cd2778e5b7c77be5f9581a73a84ae0e0c9af49b9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/pricing.ts": "10b656c5875b12a481ca0da7c57b160fe3fc4309cacfb307b30c04de138c32c9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/unrelated.ts": "2ec7c2f52f2dbd19b4356a60913984651c589c62e40741834be1a9651f48ba83",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/tsconfig.json": "05616520b798fb523e2025105c13dda2e219fda3fbb32e85fc06e2cf12cf1c46",
+        "tests/agent-eval/project-edits/tasks.json": "f0dba960a003ac6c46f87806af8cf542c591e17d69d533f935d0a86bca488d85",
+        "tests/agent-eval/regex/Cargo.lock": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+        "tests/agent-eval/regex/workspace.tar.gz": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+        "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+        "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+        "tests/agent-eval/selected-agents/tasks.json": "4a9ffa9f697e091e96f10bb2ef8771ccfb7f9e8bf457bb5eb483676b411cb87c",
+        "tools/agent-eval.py": "30d113ada9188c3806e749c395f317f641474d6fab5d0efbbb173d586d4cbc9d",
+        "tools/agent_eval/comparison_grade.py": "75ea8b0e76d8f8cfb4067a904ceb2d5bf3e8d46b0504f42a7d0432d883545344",
+        "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+        "tools/agent_eval/project_edits_delivery.py": "93ffbaec5dbdca48f7e485c65d319345ab02f39f213b89162868a2305b378e1a",
+        "tools/agent_eval/project_edits_tasks.py": "14e8d8d02c714672465b340b977405380b6468a2465b4b1dd897ac6922ce3b56",
+        "tools/agent_eval/regex_escape_len.py": "6f009d2a04ba80607a6f9f3c23140acfa8e819248be030d008e6682b3462a46a",
+        "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+        "tools/agent_eval/selected_tasks.py": "04392ebe5df644cc58f579a177b653129026d9eb4ae38b9e940190127175d917",
+        "tools/check-agent-skill.py": "25e67d0562a24355113fdb01fed37236fbfd9599d3a9028fbaa09f1b2cfac2bf",
+        "tools/evidence_basis.py": "dee41604bec803893589af6cee868f43504890603f5f4e2b0896dfca2a1443ff",
+        "tools/project_change_sources.py": "ef275c12c44969a176149138c76ae198442256630f811fce2d43d2fa6685fe9f",
+        "tools/reader_examples.py": "bf37d014b9cc24d547eaff810f1e795ea4bc7ce3c79cd75720f9b8f36d66070b"
+      },
+      "jobs": [
+        {
+          "id": 121386181932,
+          "name": "Real fr changes, refusals and checked delivery",
+          "conclusion": "success"
+        },
+        {
+          "id": 121389075051,
+          "name": "Execute every example in the current fr skill",
+          "conclusion": "success"
+        },
+        {
+          "id": 121386181848,
+          "name": "Check the updated authoring rule with Lean",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "native": {
+      "passed": true,
+      "live_model_calls": 0,
+      "run": "40265267107",
+      "source_commit": "076ca562be7955c6229d5972d358e47ed3d69fad",
+      "bindings": {
+        "skills/fr/SKILL.md": "65aec93824eca83551376b5eda8ff4b6afe65c07c840d6a22156f5c2731d074b",
+        "skills/fr/references/application.md": "94ee5ddc0e0b588a5179afc36e68f5fd6703d931c43b593e2ad364ca49eb4f5a",
+        "skills/fr/references/author.md": "70cacc20b7bf77e4b5d2da231d5bb92bb44db6590ca90dfcad9aa0aaa5f27d5f",
+        "skills/fr/references/batch.md": "1e936dd3ec34a848930f61915dd05cb8c5d9002750226222f87dec89f56b9cbd",
+        "skills/fr/references/change.md": "49552967ce8c93b633335eab927242a48baa041a65a7de581ec6f8ba5dc417da",
+        "skills/fr/references/checks.md": "9cb446d79027558cda89b5e73366a3f94026042c7033b803e9bce8df926af614",
+        "skills/fr/references/compiler.md": "957cc6190e1b29257fff6f248a32edbd9efa48c0720ce880753caba7c048f6d8",
+        "skills/fr/references/disclosure.md": "28dc956c9684ba5cfcdfa9ace6c4a73fe3b3bfbebc2270d3a204c82729d1caa4",
+        "skills/fr/references/explore.md": "3b4cac7cd4f7ea92dc26b5d347018057d7896a1a7abc3be905ce2e87984a18ab",
+        "skills/fr/references/first-change.md": "16efaa8e62f9587e60ee4c1c7eab12da9f7dbf1ea74ce291a2db9fefe443c253",
+        "skills/fr/references/git-admin.md": "dd27974d70c440573d8faa1cd7b70b9bd2e2fe3f1cb40cce7918631488f2d156",
+        "skills/fr/references/git.md": "3dcd80e15cb60e457166230056e59ca6280eb31e72f073d004760e5a130e0ff2",
+        "skills/fr/references/guide.md": "b1b025ca42167281c4fdecc5fd5c7d8bf3e137c3b784ccea0b6133046cb8f006",
+        "skills/fr/references/history.md": "4d71dba0971c561612d1008d991f22b44be6b2af724dd8fdd4e7eff82da6583e",
+        "skills/fr/references/intents.md": "dade51e16d9efb28d366ff0ca06994520d4ac8dd4bcc850ced33560694c73fef",
+        "skills/fr/references/investigations.md": "da9e7eb01df05325867bbbb3bf07abb5a51113aaeaf89f9a2ad9968798d74984",
+        "skills/fr/references/lean.md": "97fa172869dee64c801de6d2b5b1938c55e35f57163fe8cf64cd6eea53df949c",
+        "skills/fr/references/recipes.md": "f20a38279377f50e828a189412816f8ca74d8a995b4184f132c6d023bf6d80e8",
+        "skills/fr/references/recovery.md": "c37b6cd4a186c4d0edd279fb7715a29eda1eaf0cd1748c0ab70f4d8cb41d0abf",
+        "skills/fr/references/runtime.md": "4741be4f2321b9cd764e7fdedd6140f452bbb65f0b7965e63e4e0223c972dffa",
+        "skills/fr/references/semantic-change.md": "9dae3af5a3a746e77e1b411cb6ec71e7d28e27597542fdd024d8faefd832e4ab",
+        "skills/fr/references/semantic-intent.md": "b5707f37b407c228f6c12659391966a96bbf93a6afe1d62c897d99d5b03aee26",
+        "skills/fr/references/semantic.md": "825814a4608a232b7be33dfd86c343a7eb16e02508ceb224dc7676c51a7eb649",
+        "skills/fr/references/surfaces.md": "8fd70c7d65ba36707229ac3c4eac712fe0eb324dfd99a3a2687d6afa5652a970",
+        "skills/fr/references/task.md": "71eb1b9790fe46c2eaf141b7b9fb9e6d9908f674cb452e805e8ce26b5cc24d5c",
+        "skills/fr/references/workflow.md": "dc13a3bad4cd29b260ce0bc06bae62ca0bf5d86d7f1cf00665374790f0fcd39a",
+        "tests/agent-eval/project-edits/checkers.json": "fca3e1acc2c477f72071b2892ae7c70a5dfb3e4d344908d629c271bda2815f14",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/invoice.py": "5e73be17c133ac4aaa244a8a07670ae4d70697f7816cda3c4849dd3ceed0121d",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/test_invoice.py": "942f3ef5fdcf7944436e5584e51da85a7c5f79787d951a5e2dd9aa712c875449",
+        "tests/agent-eval/project-edits/fixtures/regex-escape-len/examples/required_escape_len.rs": "14e9f2dbb08095854cc878aed95377810c820eec6bbaa9ed84c9a02a811d406f",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.lock": "bbcf8d9bbc613f7505a4618cf57ac0459fbcb082c55276e3fdeb147b701fdd0a",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.toml": "2187e948553589be8b6a4d60ccf373957871979ce6050b19647acb7d911819e6",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/Cargo.toml": "ebbbc64d95a0f443571858e1b0adaed5968c1ce678ed5734b2ec1c88949af490",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/src/lib.rs": "cd614cd24eaa5db6b0fb4e7fbbba9c4b705c1325a73c3841bf5b014074335a10",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/tests/prices.rs": "a60f2beffc6b34166064bd9ed2cff22882309e2a64dc16e1eb026c6773c74d20",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/Cargo.toml": "d77fa3757f37d11f5bb44326d535c9b29365836f47d5846c288afe9d7946e9d8",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/src/lib.rs": "1527d7e6e554d53188120a43f3fc2f30e6b723f2602f9ad58a9e658606db83ce",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/tests/prices.rs": "610a1bb138d40bfd1e69622cd50067cb9905355ec398a44a131d9dd78bb55cc6",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/check.cjs": "9ecbc8eee0d123b9ea58efa0dbe56806e4bba7d36f08a07f13cbc71f430b73fb",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/checkout.ts": "5550a74c64d472cb2cc49306cd2778e5b7c77be5f9581a73a84ae0e0c9af49b9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/pricing.ts": "10b656c5875b12a481ca0da7c57b160fe3fc4309cacfb307b30c04de138c32c9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/unrelated.ts": "2ec7c2f52f2dbd19b4356a60913984651c589c62e40741834be1a9651f48ba83",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/tsconfig.json": "05616520b798fb523e2025105c13dda2e219fda3fbb32e85fc06e2cf12cf1c46",
+        "tests/agent-eval/project-edits/tasks.json": "f0dba960a003ac6c46f87806af8cf542c591e17d69d533f935d0a86bca488d85",
+        "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+        "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+        "tools/agent_eval/bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+        "tools/agent_eval/codex_client.py": "853b96b07163162dda24fd0de1e96f3298172c2dc07bba59e93cb7cc74854d47",
+        "tools/agent_eval/container_resources.py": "125cfba4e51e7ced9c8efb1bb185efc85ef5007d614f534f79be484695e20307",
+        "tools/agent_eval/isolated_grade.py": "e15ccc1c6dd0c9605e9b6c26db8cdec506ef3ab93bfaaa580237dd5e428410e0",
+        "tools/agent_eval/opencode2_client.py": "1c63748b74e521626e05ccea150ac5408d4ff33e2b06ceb5422dad3df5da50aa",
+        "tools/agent_eval/selected_cli.py": "be7b1285e1c90e1a0f34af8d7e05c4ccd77a127116dc6907391a31708a0426c7",
+        "tools/agent_eval/selected_native.py": "b2195634a82ed8555ef83c82d85d1d23410a2ffafa1abc46d503e044c4c26839",
+        "tools/agent_eval/selected_native_probe.py": "236b2f597de011b445a3264eec5f1c586437af238f0ac4efafc399c04680e72e",
+        "tools/agent_eval/selected_plan.py": "3499fa5b91e5b2fc9596bbfe32caf9f2b8859b7b0535efff5209faf6221b042b",
+        "tools/agent_eval/selected_provider.py": "19b794180af7831d33e7840cc48e46aa067d76a42df897a398eeeca987418397"
+      },
+      "jobs": [
+        {
+          "id": 121389075078,
+          "name": "Check all three native clients with both tool setups",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "private": {
+      "passed": true,
+      "live_model_calls": 0,
+      "run": "40247933867",
+      "source_commit": "afcf3b16717738c233e8a89a4a729a2d65f4fd0d",
+      "bindings": {
+        ".github/actions/native-tools/python-wheels.txt": "29c5ecd29ae0e8de35859ad3c9d527ebae9ff3c7aae2b4878f5d57a46336b651",
+        ".github/actions/project-edit-checkers/action.yml": "ecf917dc9c9dd37109f5598fa02528a8e20d4049fb4bede06017c6f77f25451b",
+        "sdk/python/src/fr_ir/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sdk/python/src/fr_ir/_version.py": "0a8a0a7ac32ac9febb6001c26951b0484f9aa9d2c493d1bb115f16ccb33a2197",
+        "sdk/python/src/fr_ir/application.py": "4643306ef6933c66dfc65f4bbb7b311f7c80163fba8d207ae4a6f7b0e52b63e1",
+        "sdk/python/src/fr_ir/change_scope.py": "b371ed95c715e184b5e9c567efa2b7255dd3e798cd8e9ee2a149346be2057fa2",
+        "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
+        "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+        "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
+        "sdk/python/src/fr_ir/flow.py": "942721a3c7beb5cb97bf39c33e94f4637f9a7d44dcb9a4fd04b86fbaca82c9c5",
+        "sdk/python/src/fr_ir/flow_completion.py": "8e9a52d132e1037629179d19d879fe50c671f625a3dbaf9581de34f12a6817a5",
+        "sdk/python/src/fr_ir/flow_dependencies.py": "16bf1efc218fbd5546136e6224dc8591b4ddcd5f375fe0a7607a12e4ffd41663",
+        "sdk/python/src/fr_ir/flow_effects.py": "8e12a801ba5419d4658d5cde64f49a406701c8fb668173fa7f5627ba3f871c48",
+        "sdk/python/src/fr_ir/flow_facts.py": "894bb6c8820947fe6414868101902d145c710e923c6c1ea102d93f6b80399356",
+        "sdk/python/src/fr_ir/flow_import_explanation.py": "c12709ebbe219a33fbf7c04ea913235c3aa79489916a0bd763af1036cb31e649",
+        "sdk/python/src/fr_ir/flow_initialization.py": "05e82eb35a7131dcbe1acea587a3911f5dbda210d76c263cca8d803ef62d8d98",
+        "sdk/python/src/fr_ir/flow_standard_library.py": "4ae79670c2331ff0dd942c5aecaa48e05ebe38b7a758439b22978b0febba2b62",
+        "sdk/python/src/fr_ir/flow_startup.py": "1af41271e368f8094fd2db2704ddbd24116aab92502fde205a20342359f6a4ca",
+        "sdk/python/src/fr_ir/flow_storage.py": "26f30da34b1c4ec080d5a11b5ce56ac5afd068a2264c76752b61e43ba10e2317",
+        "sdk/python/src/fr_ir/flow_summaries.py": "ff0ae1dbadb4394581fe8aa1d5b6cecab588ac519e2d49ef2f36dbe9aac935f6",
+        "sdk/python/src/fr_ir/flow_together.py": "4dac68932b2d2b83dea802f5f1e9dc88f2c7389bfd2a7edb26a4c55679771df4",
+        "sdk/python/src/fr_ir/formal_kernel.py": "2e1fd2c35c304e68b215cb8ca9fb9801b7a560566d3b7bab332758717d6ff15b",
+        "sdk/python/src/fr_ir/guide.py": "6d7e5944b06b183fbceae2f2c356f26f06191f28203ae1576ed58371ebc002aa",
+        "sdk/python/src/fr_ir/http_store.py": "8762b2f4047cacc69ed3eb7f2df67b15b4c23251581a42b09c2b2e223f5f8334",
+        "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
+        "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c",
+        "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+        "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+        "sdk/python/src/fr_ir/investigation_delivery.py": "f1de9b084313cd842bf46e4695e7c82aa7cef257f0d533ab3a32bfa48bea6c7c",
+        "sdk/python/src/fr_ir/investigation_proofs.py": "9a18fbb5a66f8be86ffec294371ea479467363069643bcf272e344a2cbfff2c4",
+        "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
+        "sdk/python/src/fr_ir/ir.py": "5c84e8186a0d46fb9f654e81f1336f9e4ec6893604ef8e4a58c952dfe8a5da0e",
+        "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
+        "sdk/python/src/fr_ir/refinement.py": "9df833d3929935d9382ddf69f777416a14fcb7506f77e0c8365451a41c5bf183",
+        "sdk/python/src/fr_ir/runtime.py": "44d6a13fdbf499cd743608d894543199a4e0dd8c2762d3b11677428ee87a3ee4",
+        "sdk/python/src/fr_ir/structural_change.py": "524340ec95b6fdd81ccb307ea41d769cc18d27f36596ed7baed175f73e1abe1e",
+        "tests/agent-eval/project-edits/checkers.json": "fca3e1acc2c477f72071b2892ae7c70a5dfb3e4d344908d629c271bda2815f14",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/invoice.py": "5e73be17c133ac4aaa244a8a07670ae4d70697f7816cda3c4849dd3ceed0121d",
+        "tests/agent-eval/project-edits/fixtures/python-invoice/test_invoice.py": "942f3ef5fdcf7944436e5584e51da85a7c5f79787d951a5e2dd9aa712c875449",
+        "tests/agent-eval/project-edits/fixtures/regex-escape-len/examples/required_escape_len.rs": "14e9f2dbb08095854cc878aed95377810c820eec6bbaa9ed84c9a02a811d406f",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.lock": "bbcf8d9bbc613f7505a4618cf57ac0459fbcb082c55276e3fdeb147b701fdd0a",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/Cargo.toml": "2187e948553589be8b6a4d60ccf373957871979ce6050b19647acb7d911819e6",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/Cargo.toml": "ebbbc64d95a0f443571858e1b0adaed5968c1ce678ed5734b2ec1c88949af490",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/src/lib.rs": "cd614cd24eaa5db6b0fb4e7fbbba9c4b705c1325a73c3841bf5b014074335a10",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/checkout/tests/prices.rs": "a60f2beffc6b34166064bd9ed2cff22882309e2a64dc16e1eb026c6773c74d20",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/Cargo.toml": "d77fa3757f37d11f5bb44326d535c9b29365836f47d5846c288afe9d7946e9d8",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/src/lib.rs": "1527d7e6e554d53188120a43f3fc2f30e6b723f2602f9ad58a9e658606db83ce",
+        "tests/agent-eval/project-edits/fixtures/rust-parameter/pricing/tests/prices.rs": "610a1bb138d40bfd1e69622cd50067cb9905355ec398a44a131d9dd78bb55cc6",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/check.cjs": "9ecbc8eee0d123b9ea58efa0dbe56806e4bba7d36f08a07f13cbc71f430b73fb",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/checkout.ts": "5550a74c64d472cb2cc49306cd2778e5b7c77be5f9581a73a84ae0e0c9af49b9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/pricing.ts": "10b656c5875b12a481ca0da7c57b160fe3fc4309cacfb307b30c04de138c32c9",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/src/unrelated.ts": "2ec7c2f52f2dbd19b4356a60913984651c589c62e40741834be1a9651f48ba83",
+        "tests/agent-eval/project-edits/fixtures/typescript-alias/tsconfig.json": "05616520b798fb523e2025105c13dda2e219fda3fbb32e85fc06e2cf12cf1c46",
+        "tests/agent-eval/project-edits/tasks.json": "f0dba960a003ac6c46f87806af8cf542c591e17d69d533f935d0a86bca488d85",
+        "tests/agent-eval/regex/Cargo.lock": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+        "tests/agent-eval/regex/workspace.tar.gz": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+        "tests/agent-eval/selected-agents/Grader.Dockerfile": "e7e08abece6bc6c0dc0859e20e7784b5db7f65bc06bbf2830e5077b6044d1686",
+        "tests/agent-eval/selected-agents/clients.json": "6bc9a964a4296a473a9ba79e8f1b162f315c74f58a8f6b8a7c8c04f4087aa8a5",
+        "tests/agent-eval/selected-agents/profiles.json": "4ebbca8bf63298a7bff254d7dc70dcea4e556ed6e77364347263e894c418fd6e",
+        "tests/agent-eval/selected-agents/tasks.json": "4a9ffa9f697e091e96f10bb2ef8771ccfb7f9e8bf457bb5eb483676b411cb87c",
+        "tools/agent-eval.py": "30d113ada9188c3806e749c395f317f641474d6fab5d0efbbb173d586d4cbc9d",
+        "tools/agent_eval/bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+        "tools/agent_eval/comparison_grade.py": "75ea8b0e76d8f8cfb4067a904ceb2d5bf3e8d46b0504f42a7d0432d883545344",
+        "tools/agent_eval/container_resources.py": "125cfba4e51e7ced9c8efb1bb185efc85ef5007d614f534f79be484695e20307",
+        "tools/agent_eval/isolated_grade.py": "e15ccc1c6dd0c9605e9b6c26db8cdec506ef3ab93bfaaa580237dd5e428410e0",
+        "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+        "tools/agent_eval/project_edits_private.py": "248be9236554edda73895959ac92c7161215ae1eed6570d82fbfd1d441ae4a62",
+        "tools/agent_eval/project_edits_tasks.py": "14e8d8d02c714672465b340b977405380b6468a2465b4b1dd897ac6922ce3b56",
+        "tools/agent_eval/regex_escape_len.py": "6f009d2a04ba80607a6f9f3c23140acfa8e819248be030d008e6682b3462a46a",
+        "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+        "tools/agent_eval/selected_grade_probe.py": "d5f986a2f05727e1fe989f05a9e15a96abc1d4402c17bacadc5552a3659934a4",
+        "tools/agent_eval/selected_grading.py": "73c9d8126ee31adfd5dc4be66f6d92ee8fbc56731c576447e9895e8c2640b5be",
+        "tools/agent_eval/selected_native.py": "b2195634a82ed8555ef83c82d85d1d23410a2ffafa1abc46d503e044c4c26839",
+        "tools/agent_eval/selected_tasks.py": "04392ebe5df644cc58f579a177b653129026d9eb4ae38b9e940190127175d917",
+        "tools/evidence_basis.py": "dee41604bec803893589af6cee868f43504890603f5f4e2b0896dfca2a1443ff",
+        "tools/project_change_sources.py": "ef275c12c44969a176149138c76ae198442256630f811fce2d43d2fa6685fe9f"
+      },
+      "jobs": [
+        {
+          "id": 121333381178,
+          "name": "Reject incomplete changes in private containers",
+          "conclusion": "success"
+        }
+      ],
+      "checked_controls": 20,
+      "image": "sha256:398ab7eda5cff52b84d8f25bbc28d10d381fc2c37e1900ff4755bcc304236072",
+      "cache_archive_sha256": "bf24ec47773c563934ffaf0072091d6147ecfb2887fa441e5b0715d37bcf2363",
+      "registry_archive_sha256": "cad85fda292dc49efd59e930c210250e0bba49b85abe6dbb86b0163448f47b55",
+      "shared_compiler_preparation_seconds": 88.72677795000001
+    }
+  },
+  "shared_setup": {
+    "local_runtime_and_seed_verification_seconds": 3.56,
+    "original_regex_public_preflight_seconds": 20.55,
+    "unchanged_private_compiler_preparation_seconds": 88.72677795000001,
+    "preexisting_cli_and_checker_install_seconds": null,
+    "fr_build_and_download_seconds": null,
+    "task_seed_hosted_preparation_seconds": null,
+    "account_charges": null,
+    "scope": "Shared preparation is outside per-attempt timers. Unknown setup costs remain unknown. No live warm-up calls."
+  },
+  "collection_receipts": {
+    "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4": "c29a236d51ca86726cae5d28adc056be2bbb4121"
+  },
+  "attempts": [
+    {
+      "id": "codex-luna-fast-rust-parameter-files-1",
+      "profile": "codex-luna-fast",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "e0ab2c5b0e5eca43f32c650b39216ce48346612e231f7ee274cd71a6315aee5c",
+      "total_seconds": 27.898248082958162,
+      "native_seconds": 26.62364233378321,
+      "verification_seconds": 0.466820249799639,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 129925120,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 101888,
+        "input_tokens": 118692,
+        "output_tokens": 1840,
+        "reasoning_output_tokens": 800
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-rust-parameter-files-1.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-rust-parameter-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "982d6061337609fc69dbacd7c06aa7ba1410a3107961e2eca9649deff3056cfa",
+      "total_seconds": 47.60308899986558,
+      "native_seconds": 46.162649292033166,
+      "verification_seconds": 0.591031749965623,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 129630208,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 308608,
+        "input_tokens": 373258,
+        "output_tokens": 3606,
+        "reasoning_output_tokens": 1847
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 8,
+        "operations_observed": [
+          "author",
+          "author batch",
+          "history apply",
+          "project"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected total and inspected its declared callers and change scope with fr before previewing the unused-parameter removal.",
+          "Saved the author plan and applied it through fr history, then ran the supplied workspace test and delivered the patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-rust-parameter-fr-1.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-typescript-alias-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "ed6f681baf239ea07c7cf97a55ee5a433605fbcc90042d3778cb2390b5f96b4d",
+      "total_seconds": 35.99179304204881,
+      "native_seconds": 34.608219667105004,
+      "verification_seconds": 0.57174645899795,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 123830272,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 195840,
+        "input_tokens": 218944,
+        "output_tokens": 2020,
+        "reasoning_output_tokens": 677
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected the exported price declaration and reviewed the saved alias-preserving author rename plan.",
+          "Applied the plan with fr workflow, passed the declared TypeScript and behavior checks and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-typescript-alias-fr-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-typescript-alias-files-1",
+      "profile": "codex-luna-fast",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "4c3bf7856357e4f0ffa22b6d8fa2625e71021b8b59956b314f78dac10d7ffca0",
+      "total_seconds": 22.734609709121287,
+      "native_seconds": 21.49669283302501,
+      "verification_seconds": 0.4689612500369549,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 124420096,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 94720,
+        "input_tokens": 109475,
+        "output_tokens": 1342,
+        "reasoning_output_tokens": 466
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-typescript-alias-files-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-regex-escape-len-files-1",
+      "profile": "codex-luna-fast",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "8aeb8fda8e142a756c84534b91aac7002d1c82fc9ba8691e60d7ebaf23c92934",
+      "total_seconds": 65.71510375011712,
+      "native_seconds": 63.568785208975896,
+      "verification_seconds": 0.4645723751746118,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 127729664,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 196224,
+        "input_tokens": 230909,
+        "output_tokens": 4463,
+        "reasoning_output_tokens": 3025
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-regex-escape-len-files-1.patch",
+      "patch_sha256": "150522f1a11cb70c412c483560ce661baf2612ecbb27a053ae74e2dd6091f2c5",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-regex-escape-len-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "8251fc1efa8a52d8da70a69430a392528861ec1978a3b4330f311e95bc52a00d",
+      "total_seconds": 102.10415783291683,
+      "native_seconds": 99.8694547500927,
+      "verification_seconds": 0.58581000007689,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 133611520,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 519424,
+        "input_tokens": 583644,
+        "output_tokens": 3492,
+        "reasoning_output_tokens": 1455
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 3,
+        "operations_observed": [
+          "checks",
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to read the selected escape implementations and check declarations before ordinary edits added both byte-count APIs and complete-length reservation."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-regex-escape-len-fr-1.patch",
+      "patch_sha256": "77e9d507febb62a43de7ca79eef72215433a4565dd4eb333fc82f52f88ed727d",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-python-invoice-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "0e4923d66278cfa2d8d467a8e083bc9418122bc70dfe0d27f4c0837cc3579c35",
+      "total_seconds": 18.653915375005454,
+      "native_seconds": 17.354250124888495,
+      "verification_seconds": 0.559468958992511,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 124960768,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 76800,
+        "input_tokens": 87828,
+        "output_tokens": 1184,
+        "reasoning_output_tokens": 532
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read invoice_total before an ordinary body edit and the supplied Python test; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-python-invoice-fr-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-python-invoice-files-1",
+      "profile": "codex-luna-fast",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "2b97c4ab6fc85091b4a16bc122e87216b8f45d17718d0f60dd3d3318e7082386",
+      "total_seconds": 22.62543420889415,
+      "native_seconds": 21.390951542183757,
+      "verification_seconds": 0.46237658406607807,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 123060224,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 46592,
+        "input_tokens": 71718,
+        "output_tokens": 1059,
+        "reasoning_output_tokens": 463
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-python-invoice-files-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-rust-parameter-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "fd14aab20b29236fca87d5eb43d1a05ae159d62715fe27399753e172d0405262",
+      "total_seconds": 98.82034591701813,
+      "native_seconds": 97.37663679104298,
+      "verification_seconds": 0.4679762499872595,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86818816,
+      "reported_tokens": {
+        "cache": {
+          "read": 62144,
+          "write": 0
+        },
+        "input": 13044,
+        "output": 854,
+        "reasoning": 1666
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 5,
+        "operations_observed": [
+          "author batch",
+          "checks",
+          "project find",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected total and reviewed the saved author plan removing the unused parameter and all five literal arguments.",
+          "Applied the plan with fr workflow, passed the declared workspace check and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-rust-parameter-fr-1.patch",
+      "patch_sha256": "d324c29ff7f4473c3224ca318c0d4d16260f0662d7bcc0432d517609abccbf82",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 9,
+        "completed_tool_wall_seconds": 8.034,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-rust-parameter-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "75fb44b55476bd491b43a799c32786507f8752f4517cd9f59807d967d067a99a",
+      "total_seconds": 96.33574612508528,
+      "native_seconds": 94.95352741703391,
+      "verification_seconds": 0.4718957080040127,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86081536,
+      "reported_tokens": {
+        "cache": {
+          "read": 75712,
+          "write": 0
+        },
+        "input": 8398,
+        "output": 638,
+        "reasoning": 43
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-rust-parameter-files-1.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 14,
+        "completed_tool_wall_seconds": 2.577,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-typescript-alias-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "fd8f5e2dce60ae6c1178a99b47fec743e3932db7778a99911130baefa7b599e0",
+      "total_seconds": 48.375303416047245,
+      "native_seconds": 46.88125041592866,
+      "verification_seconds": 0.5863629579544067,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85721088,
+      "reported_tokens": {
+        "cache": {
+          "read": 32512,
+          "write": 0
+        },
+        "input": 12087,
+        "output": 254,
+        "reasoning": 55
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-typescript-alias-files-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 0.65,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-typescript-alias-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "a2f653f942089ffe1fbdc863dbd49d4a9004907727e06b6a154c98164b27753f",
+      "total_seconds": 59.858860375126824,
+      "native_seconds": 58.28858537506312,
+      "verification_seconds": 0.5817247910890728,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85819392,
+      "reported_tokens": {
+        "cache": {
+          "read": 38720,
+          "write": 0
+        },
+        "input": 9683,
+        "output": 473,
+        "reasoning": 844
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read the two price declarations before ordinary edits renamed only the export and imported name; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-typescript-alias-fr-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 1.693,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-regex-escape-len-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "4b1fe235f778657836789e3e3ceb8d5c18aa11b02e5ca1fa113238e078e31b27",
+      "total_seconds": 150.54074783390388,
+      "native_seconds": 148.2268227499444,
+      "verification_seconds": 0.6277140839956701,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 86196224,
+      "reported_tokens": {
+        "cache": {
+          "read": 72576,
+          "write": 0
+        },
+        "input": 11782,
+        "output": 792,
+        "reasoning": 1593
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "checks"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-regex-escape-len-fr-1.patch",
+      "patch_sha256": "06f56d4f724d7d4df6873bb552d6232fe6897043240d61b2c162a6a6cc2e8907",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 13,
+        "completed_tool_wall_seconds": 45.829,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": true,
+      "failure_summary": "Added an extra cargo run after the supplied compile check, delivered at about 144 seconds, then timed out. Only listed fr checks; fr did not discover source, edit it or run a check.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-regex-escape-len-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "0306d692afa26afa4281eee2cf3a6e11e8ffc38f489baecc5cae5accf84138cb",
+      "total_seconds": 137.02701933286153,
+      "native_seconds": 134.72213862510398,
+      "verification_seconds": 0.5944914999417961,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85999616,
+      "reported_tokens": {
+        "cache": {
+          "read": 48064,
+          "write": 0
+        },
+        "input": 14869,
+        "output": 624,
+        "reasoning": 1185
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-regex-escape-len-files-1.patch",
+      "patch_sha256": "7e180a50fb8bfdb592db2ee41c44c3be8c65ee7cf88faf899873ad725d406283",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 43.205,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": false,
+      "failure_summary": "Delivered both byte-count APIs but left escape and escape_into unchanged; the requested one-allocation escaping change is missing.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "source checks",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-python-invoice-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "9523b2d2df8cfdb1b7cd2555a23560268955c9605cec3418bb2b53910a1a7bd3",
+      "total_seconds": 32.23525075009093,
+      "native_seconds": 30.66810645791702,
+      "verification_seconds": 0.6079273750074208,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86261760,
+      "reported_tokens": {
+        "cache": {
+          "read": 25280,
+          "write": 0
+        },
+        "input": 6143,
+        "output": 196,
+        "reasoning": 98
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-python-invoice-files-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 0.615,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-python-invoice-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "0aa1156e0e397f8b0d2767861acc402a268b264c81d4edf7baf26886414294ef",
+      "total_seconds": 62.80160495894961,
+      "native_seconds": 61.299389500170946,
+      "verification_seconds": 0.5624471248593181,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85688320,
+      "reported_tokens": {
+        "cache": {
+          "read": 76288,
+          "write": 0
+        },
+        "input": 15281,
+        "output": 630,
+        "reasoning": 343
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 5,
+        "operations_observed": [
+          "checks",
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read invoice_total before an ordinary body edit.",
+          "Recovered from incorrect check arguments, then ran the declared Python check through fr with its reviewed configuration basis."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-python-invoice-fr-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 1.62,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-rust-parameter-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "c32db2dc1ac2bde311d46c1986b5461d8c6e1829ac1b4636add51a896a3a12ef",
+      "total_seconds": 58.48450729204342,
+      "native_seconds": 57.12078574998304,
+      "verification_seconds": 0.483459125040099,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86147072,
+      "reported_tokens": {
+        "cache": {
+          "read": 34048,
+          "write": 0
+        },
+        "input": 8093,
+        "output": 1237,
+        "reasoning": 12
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-rust-parameter-files-1.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 24.155,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-rust-parameter-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "573c629b861fa427a5e66f341cafd9fe26d9e0fa64416498459650de16d4b04c",
+      "total_seconds": 61.22391837486066,
+      "native_seconds": 59.887650249991566,
+      "verification_seconds": 0.46367345890030265,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85901312,
+      "reported_tokens": {
+        "cache": {
+          "read": 54528,
+          "write": 0
+        },
+        "input": 7414,
+        "output": 1071,
+        "reasoning": 109
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read total before ordinary edits removed its unused parameter and all five literal arguments; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-rust-parameter-fr-1.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 11.721,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-typescript-alias-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "bb11ab201322977bcd823f8ca9d3759105cb6fd6f6b6ddf8f5886bc49555f026",
+      "total_seconds": 61.216464624973014,
+      "native_seconds": 59.8933857078664,
+      "verification_seconds": 0.46184854209423065,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86147072,
+      "reported_tokens": {
+        "cache": {
+          "read": 54016,
+          "write": 0
+        },
+        "input": 4112,
+        "output": 746,
+        "reasoning": 67
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read both price declarations before ordinary edits renamed only the export and its imported name; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-typescript-alias-fr-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 9.309,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-typescript-alias-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "9acd3d566df3f47c49f2cd4451fe91ed1086fc27cb4aa8f482492fedd47e3dcf",
+      "total_seconds": 30.07521887519397,
+      "native_seconds": 28.7675851250533,
+      "verification_seconds": 0.4641044579911977,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86310912,
+      "reported_tokens": {
+        "cache": {
+          "read": 43264,
+          "write": 0
+        },
+        "input": 3093,
+        "output": 623,
+        "reasoning": 35
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-typescript-alias-files-1.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 10,
+        "completed_tool_wall_seconds": 7.536,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-regex-escape-len-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "4f9c5fa38d38378907e21296d883294f9d0b38ec3b7e557a7be6142a9f3bc14d",
+      "total_seconds": 150.52064745803364,
+      "native_seconds": 148.39548745797947,
+      "verification_seconds": 0.5629837920423597,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 86573056,
+      "reported_tokens": {
+        "cache": {
+          "read": 107008,
+          "write": 0
+        },
+        "input": 10298,
+        "output": 1458,
+        "reasoning": 1068
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-regex-escape-len-files-1.patch",
+      "patch_sha256": "22fd0856bb4e54056924f07a4a4a9571c3fb7e3052b8724a775e6e420ddf128f",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 73.435,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": true,
+      "failure_summary": "Added an extra unit test and ran runtime, library and no-default-features checks after the supplied compile check. Delivered at about 141 seconds, then timed out before the client finished.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "source checks",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-regex-escape-len-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "2719e383f7b6dfd5573e8528f7da95c64866215718e4f2f2c58df3b0416243fa",
+      "total_seconds": 150.52589879115112,
+      "native_seconds": 148.30477670789696,
+      "verification_seconds": 0.5977100001182407,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 89407488,
+      "reported_tokens": {
+        "cache": {
+          "read": 553984,
+          "write": 0
+        },
+        "input": 78157,
+        "output": 1488,
+        "reasoning": 703
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 2,
+        "operations_observed": [
+          "other fr command",
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to locate the escape declarations and signatures before ordinary edits added the two byte-count APIs."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-regex-escape-len-fr-1.patch",
+      "patch_sha256": "81c743fe3283cc60506ecfc28a62947696a421173e17354a69cafb5ddfd4e77b",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 18,
+        "completed_tool_wall_seconds": 52.418,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": true,
+      "failure_summary": "Left escape allocation unchanged. Added a runtime check after the supplied compile check, delivered at about 143 seconds, then timed out before the client finished.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "source checks",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-python-invoice-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "1d8d8e596bdd392d572a7cc319e2b0775cc3f036610976399edf497e63030406",
+      "total_seconds": 132.8526694169268,
+      "native_seconds": 131.26307870820165,
+      "verification_seconds": 0.6048260419629514,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86163456,
+      "reported_tokens": {
+        "cache": {
+          "read": 121344,
+          "write": 0
+        },
+        "input": 10314,
+        "output": 1219,
+        "reasoning": 1074
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 5,
+        "operations_observed": [
+          "author batch",
+          "other fr command",
+          "project find",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected invoice_total and reviewed the saved author body replacement.",
+          "Applied the plan with fr workflow, passed the declared Python test and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-python-invoice-fr-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 17,
+        "completed_tool_wall_seconds": 6.875,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-python-invoice-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "41d7497e7aef7d562305e6c3bc3062cd04f4c741a0718c8e692f555586d58850",
+      "total_seconds": 29.552763791987672,
+      "native_seconds": 28.04017849988304,
+      "verification_seconds": 0.5761391250416636,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85622784,
+      "reported_tokens": {
+        "cache": {
+          "read": 29440,
+          "write": 0
+        },
+        "input": 1861,
+        "output": 534,
+        "reasoning": 6
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-python-invoice-files-1.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 5.746,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-rust-parameter-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "b906f4dc77318b90527a60dbbe3b0d8384e4d72882ed1cf2aee27f768cb0caa5",
+      "total_seconds": 45.46591612510383,
+      "native_seconds": 44.215036833891645,
+      "verification_seconds": 0.4847959999460727,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 125108224,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 226304,
+        "input_tokens": 251821,
+        "output_tokens": 3118,
+        "reasoning_output_tokens": 1174
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 8,
+        "operations_observed": [
+          "author",
+          "author batch",
+          "checks",
+          "project find",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected total and recovered from two incorrect author manifest forms before reviewing the saved parameter-removal plan.",
+          "Applied the plan with fr workflow, passed the declared workspace check and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-rust-parameter-fr-2.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-rust-parameter-files-2",
+      "profile": "codex-luna-fast",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "d89fbb8b7f145c190cfd3e419f1086fcb5f570c0951d3821f2c171637072827b",
+      "total_seconds": 30.74363962514326,
+      "native_seconds": 29.410942083923146,
+      "verification_seconds": 0.5606293750461191,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 129466368,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 75520,
+        "input_tokens": 107321,
+        "output_tokens": 2067,
+        "reasoning_output_tokens": 1070
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-rust-parameter-files-2.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-typescript-alias-files-2",
+      "profile": "codex-luna-fast",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "8568cdfadb760f575511f613575eab25409b1d737e77f89ded8ff7788b8bbe3c",
+      "total_seconds": 21.40580058284104,
+      "native_seconds": 20.155369707848877,
+      "verification_seconds": 0.46224533300846815,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 125534208,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 70144,
+        "input_tokens": 83989,
+        "output_tokens": 1213,
+        "reasoning_output_tokens": 482
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-typescript-alias-files-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-typescript-alias-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "047f24052be0fcddbebe16a4980a17e225401187c377f2fef5b456238860c7ea",
+      "total_seconds": 44.57917037489824,
+      "native_seconds": 43.31473262491636,
+      "verification_seconds": 0.46501962491311133,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 127778816,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 238976,
+        "input_tokens": 264067,
+        "output_tokens": 3027,
+        "reasoning_output_tokens": 864
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 11,
+        "operations_observed": [
+          "author",
+          "author batch",
+          "checks",
+          "history list",
+          "other fr command",
+          "project find",
+          "refs",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Located the exported price declaration and its references with fr, recovered from incorrect command and manifest forms, then reviewed the saved rename plan.",
+          "Applied the plan with fr workflow, passed both declared TypeScript and behavior checks and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-typescript-alias-fr-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-regex-escape-len-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "eb12b088401c07ae68a3767e775389a3f809b6bf42650e5eb40d13fe6c35338f",
+      "total_seconds": 102.52633849997073,
+      "native_seconds": 100.62470916612074,
+      "verification_seconds": 0.459845915902406,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 130859008,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 468736,
+        "input_tokens": 494167,
+        "output_tokens": 4266,
+        "reasoning_output_tokens": 2562
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr project find to locate the escape declarations before ordinary edits added both byte-count APIs and complete-length reservation."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-regex-escape-len-fr-2.patch",
+      "patch_sha256": "150522f1a11cb70c412c483560ce661baf2612ecbb27a053ae74e2dd6091f2c5",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-regex-escape-len-files-2",
+      "profile": "codex-luna-fast",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "efe10b8f6430c02c8a6bd344a692f03c5ff8e3218899a818c9efb9e2efb3c593",
+      "total_seconds": 56.4059675000608,
+      "native_seconds": 54.37482804199681,
+      "verification_seconds": 0.5824046249035746,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 125304832,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 219008,
+        "input_tokens": 235443,
+        "output_tokens": 3728,
+        "reasoning_output_tokens": 2108
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-regex-escape-len-files-2.patch",
+      "patch_sha256": "567a187912a2f9ed3d3e9bbf4664b88b42c35dced601d6b90a2dbbc4202683f1",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-python-invoice-files-2",
+      "profile": "codex-luna-fast",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "ceac0c6fd437387743c1189150eca4eb066ddc9465130ab4757733019050aa76",
+      "total_seconds": 15.709230583859608,
+      "native_seconds": 14.540407499996945,
+      "verification_seconds": 0.608538500033319,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 127762432,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 45824,
+        "input_tokens": 58901,
+        "output_tokens": 868,
+        "reasoning_output_tokens": 420
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-python-invoice-files-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "codex-luna-fast-python-invoice-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "d9df161918bb1cdf03bc351133b68301a49cc3b274d3003417f4020cddc9bd77",
+      "total_seconds": 29.91936175012961,
+      "native_seconds": 28.985623416956514,
+      "verification_seconds": 0.47255325014702976,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 126517248,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 139264,
+        "input_tokens": 162669,
+        "output_tokens": 1928,
+        "reasoning_output_tokens": 816
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 7,
+        "operations_observed": [
+          "author",
+          "history",
+          "history apply",
+          "history show",
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected invoice_total and reviewed its saved author body replacement.",
+          "Applied the saved plan through fr history, then ran the supplied Python test and delivered the patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-python-invoice-fr-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-rust-parameter-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "5cb229165bf3f08cbdf8013536cfc77afa30b8a3dee39473ce058b0fb15c4624",
+      "total_seconds": 56.9787895840127,
+      "native_seconds": 55.83856975007802,
+      "verification_seconds": 0.4716067500412464,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86376448,
+      "reported_tokens": {
+        "cache": {
+          "read": 55168,
+          "write": 0
+        },
+        "input": 13453,
+        "output": 578,
+        "reasoning": 169
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-rust-parameter-files-2.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 16,
+        "completed_tool_wall_seconds": 5.986,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-rust-parameter-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "f920ab47a12bed32f441c656baa174107c4b2f5a181f6f6aad138302a9bc0fc7",
+      "total_seconds": 77.01250808383338,
+      "native_seconds": 75.9727854160592,
+      "verification_seconds": 0.46403270890004933,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85999616,
+      "reported_tokens": {
+        "cache": {
+          "read": 70208,
+          "write": 0
+        },
+        "input": 17571,
+        "output": 636,
+        "reasoning": 649
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 7,
+        "operations_observed": [
+          "author batch",
+          "checks",
+          "project find",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected total and recovered from an invalid inline refactor field before reviewing the saved parameter-removal plan.",
+          "Applied the plan with fr workflow, passed the declared workspace check and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-rust-parameter-fr-2.patch",
+      "patch_sha256": "d324c29ff7f4473c3224ca318c0d4d16260f0662d7bcc0432d517609abccbf82",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 3.94,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": "Removed the entire .fr directory after successful checking and delivery, including the provided check configuration. That cleanup did not preserve the checking settings.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-typescript-alias-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "4d1f7e009122e35a467f9f9b4f07ad6acbcfd5a28f46039bd8304a66635c32ef",
+      "total_seconds": 73.43860900006257,
+      "native_seconds": 72.39900254202075,
+      "verification_seconds": 0.4765020841732621,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85655552,
+      "reported_tokens": {
+        "cache": {
+          "read": 87872,
+          "write": 0
+        },
+        "input": 11522,
+        "output": 964,
+        "reasoning": 658
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 5,
+        "operations_observed": [
+          "author apply",
+          "author batch",
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected the exported price declaration and reviewed its saved author rename plan.",
+          "Recovered from an invalid apply command, then applied the author plan, ran the supplied TypeScript and behavior checks and delivered the patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-typescript-alias-fr-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 4.097,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": "Removed the entire .fr directory after successful checking and delivery, including the provided check configuration. That cleanup did not preserve the checking settings.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-typescript-alias-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "cc0c906b8bf7905ffec68ceeec4396159b6852010db4b048843bd04b6e69941c",
+      "total_seconds": 51.67051066691056,
+      "native_seconds": 50.48612295789644,
+      "verification_seconds": 0.5809133748989552,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85901312,
+      "reported_tokens": {
+        "cache": {
+          "read": 41024,
+          "write": 0
+        },
+        "input": 8263,
+        "output": 534,
+        "reasoning": 653
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-typescript-alias-files-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 7,
+        "completed_tool_wall_seconds": 1.448,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-regex-escape-len-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "7fdc5f86d3cb2d44a9fcc63b8df1f51056e17b4d6b4a0569e44c78786e46f3fe",
+      "total_seconds": 137.23142520803958,
+      "native_seconds": 134.73832854186185,
+      "verification_seconds": 0.622775583062321,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86556672,
+      "reported_tokens": {
+        "cache": {
+          "read": 74048,
+          "write": 0
+        },
+        "input": 15734,
+        "output": 1493,
+        "reasoning": 725
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-regex-escape-len-files-2.patch",
+      "patch_sha256": "c79514d0e37e642c6107e49c5e1aef62352bd89bab063b69f00b96f5b5090850",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 51.513,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-regex-escape-len-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "failed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "60d03537ae5910a180f908731e643af828be3605c04e5264bcd58ecfe1e32778",
+      "total_seconds": 150.55781995900907,
+      "native_seconds": 148.38149645808153,
+      "verification_seconds": 0.6062347500119358,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85917696,
+      "reported_tokens": {
+        "cache": {
+          "read": 82752,
+          "write": 0
+        },
+        "input": 12621,
+        "output": 798,
+        "reasoning": 2786
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 2,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to read escape_into before ordinary edits added both byte-count APIs and complete-length reservation."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-regex-escape-len-fr-2.patch",
+      "patch_sha256": "627bb50460d7ce5738cbb249685639829dc4fbcb0daa3beb94c0f4ac6952da01",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 42.255,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": true,
+      "failure_summary": "Added an extra cargo run after the supplied compile check. Runtime checking finished at about 141 seconds and patch delivery at about 148 seconds; the client timed out before finishing.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-python-invoice-fr-2",
+      "profile": "opencode2-glm-flash",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "b3fe6220d7333b76f7de2bf9f8ac5375ff085a2cd777555dc5f4725bd7a35af1",
+      "total_seconds": 53.906653166981414,
+      "native_seconds": 52.29115679208189,
+      "verification_seconds": 0.6183668749872595,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85966848,
+      "reported_tokens": {
+        "cache": {
+          "read": 31552,
+          "write": 0
+        },
+        "input": 13857,
+        "output": 334,
+        "reasoning": 580
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read invoice_total before an ordinary body edit and the supplied Python test; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-python-invoice-fr-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 1.265,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-glm-flash-python-invoice-files-2",
+      "profile": "opencode2-glm-flash",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "5ef3fa9bc2ff766501e25c55e60739057e95ab8578c6674f21104c111de04902",
+      "total_seconds": 37.81992879207246,
+      "native_seconds": 36.223454209044576,
+      "verification_seconds": 0.6081249171402305,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85458944,
+      "reported_tokens": {
+        "cache": {
+          "read": 17280,
+          "write": 0
+        },
+        "input": 7857,
+        "output": 132,
+        "reasoning": 24
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-glm-flash-python-invoice-files-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 4,
+        "completed_tool_wall_seconds": 0.259,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-rust-parameter-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "rust-parameter",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "3e57b6a96d645aada61cc32cfe7c3cfc2d11eb36311140255543103180b61301",
+      "total_seconds": 49.59040241618641,
+      "native_seconds": 48.03588179196231,
+      "verification_seconds": 0.5674144581425935,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86671360,
+      "reported_tokens": {
+        "cache": {
+          "read": 54016,
+          "write": 0
+        },
+        "input": 4746,
+        "output": 1010,
+        "reasoning": 65
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read total before ordinary edits removed its unused parameter and all five literal arguments; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-rust-parameter-fr-2.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 12,
+        "completed_tool_wall_seconds": 8.817,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-rust-parameter-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "rust-parameter",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "981766731614370abe3498ddd524d5bbea30f7c686f87e081c85c47b85315c74",
+      "total_seconds": 51.211812333902344,
+      "native_seconds": 50.20539666595869,
+      "verification_seconds": 0.4119156668893993,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85934080,
+      "reported_tokens": {
+        "cache": {
+          "read": 44800,
+          "write": 0
+        },
+        "input": 3743,
+        "output": 950,
+        "reasoning": 7
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-rust-parameter-files-2.patch",
+      "patch_sha256": "3201050d91c95b4c7aa85669975361eee90568c8d1f475bdd753978e66c0b748",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 14.055,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-typescript-alias-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "typescript-alias",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "8d334bf43887ebcba643850692922f486df2c77d0ef2b65158d16bbbabaebd99",
+      "total_seconds": 34.45661879191175,
+      "native_seconds": 33.0270187088754,
+      "verification_seconds": 0.6114339588675648,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86343680,
+      "reported_tokens": {
+        "cache": {
+          "read": 45568,
+          "write": 0
+        },
+        "input": 3397,
+        "output": 838,
+        "reasoning": 8
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-typescript-alias-files-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 11.282,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-typescript-alias-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "typescript-alias",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "0638881c0e53517d99c8fedae44c7019c4e5b9be0741391791657570173e2233",
+      "total_seconds": 73.38719504210167,
+      "native_seconds": 72.08386595803313,
+      "verification_seconds": 0.5691312921699136,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86065152,
+      "reported_tokens": {
+        "cache": {
+          "read": 95488,
+          "write": 0
+        },
+        "input": 8843,
+        "output": 1147,
+        "reasoning": 367
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 3,
+        "operations_observed": [
+          "checks",
+          "project find",
+          "workflow"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Selected the exported price declaration and reviewed its saved author rename plan.",
+          "Applied the plan with fr workflow, passed the declared TypeScript and behavior checks and delivered the reviewed patch."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-typescript-alias-fr-2.patch",
+      "patch_sha256": "67de8393bf87747b6ce3ed1fa87084eb122255916bb781a97451b55f05ee2fbb",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 8.946,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-regex-escape-len-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "regex-escape-len",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "33ac66272d7797f42e7571a3062d22fdc37de4b14cb4f56fda9d02e19f6eee86",
+      "total_seconds": 136.07522145891562,
+      "native_seconds": 133.78519391687587,
+      "verification_seconds": 0.5020356250461191,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86016000,
+      "reported_tokens": {
+        "cache": {
+          "read": 96768,
+          "write": 0
+        },
+        "input": 6657,
+        "output": 1318,
+        "reasoning": 342
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to read escape_into before ordinary edits added the two byte-count APIs."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-regex-escape-len-fr-2.patch",
+      "patch_sha256": "df467aeae08093d55199698deee6cb3033d87cabc59681ccd49f4f725e6f35c7",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 67.633,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": false,
+      "failure_summary": "Delivered both byte-count APIs but left escape and escape_into unchanged; the requested one-allocation escaping change is missing.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "source checks",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-regex-escape-len-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "regex-escape-len",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "a2ca25b803a436881f1bb6da95a105c67faafd91f9369127b2079dd156814de6",
+      "total_seconds": 112.6951074579265,
+      "native_seconds": 110.19057445810176,
+      "verification_seconds": 0.620535375084728,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86048768,
+      "reported_tokens": {
+        "cache": {
+          "read": 92928,
+          "write": 0
+        },
+        "input": 7719,
+        "output": 1496,
+        "reasoning": 665
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-regex-escape-len-files-2.patch",
+      "patch_sha256": "4297a23497c29b2ea2b2796ac254ee24a8fb274a691e287a65139cfebe7eb42e",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 24.831,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "failed",
+      "collection_error_recorded": false,
+      "failure_summary": "Delivered both byte-count APIs but left escape and escape_into unchanged; the requested one-allocation escaping change is missing.",
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "source checks",
+        "undo_exact": false,
+        "redo_exact": false
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-python-invoice-files-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "python-invoice",
+      "setup": "files",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "3ebf8f73eeee4739addedabff4b2cddaf637b4abfde4f832d2d5220ffcc99c81",
+      "total_seconds": 27.238574999850243,
+      "native_seconds": 25.66899558296427,
+      "verification_seconds": 0.6193599998950958,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85295104,
+      "reported_tokens": {
+        "cache": {
+          "read": 23296,
+          "write": 0
+        },
+        "input": 1612,
+        "output": 308,
+        "reasoning": 11
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 0,
+        "operations_observed": [],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-python-invoice-files-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 4,
+        "completed_tool_wall_seconds": 4.9,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    },
+    {
+      "id": "opencode2-kimi-k3-python-invoice-fr-2",
+      "profile": "opencode2-kimi-k3",
+      "task": "python-invoice",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "f62b0c0dc15fbbc03007853a24705a3d47ca6c38135ed45af780badd0e01c4f4",
+      "record_sha256": "bf285be4034226349c4d0b2e0f505bcbbce7566f89f9164119fe3b13093ab3fc",
+      "total_seconds": 63.73464670917019,
+      "native_seconds": 62.223759915912524,
+      "verification_seconds": 0.5787378340028226,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86360064,
+      "reported_tokens": {
+        "cache": {
+          "read": 38400,
+          "write": 0
+        },
+        "input": 3128,
+        "output": 500,
+        "reasoning": 46
+      },
+      "reported_usage_complete": false,
+      "client_model_recorded": true,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 1,
+        "operations_observed": [
+          "project find"
+        ],
+        "method": "Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Used fr to select and read invoice_total before an ordinary body edit and the supplied Python test; fr did not apply the edit."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-python-invoice-fr-2.patch",
+      "patch_sha256": "f7e746154bcb5bfe7a30d8ef409275de6ab5978a7e5c182fc11b514597875a26",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 4.885,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": "passed",
+      "collection_error_recorded": false,
+      "failure_summary": null,
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/40272409142",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
+      }
+    }
+  ]
+}
