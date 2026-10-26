@@ -1257,7 +1257,12 @@ pub(crate) fn scaffold_formal_plan(
         proof_regions(&original)?
     };
     let proof_bytes_preserved = proofs.values().map(String::len).sum();
-    let updated = render_formal_module(&expected, &proofs)?;
+    let handwritten = if original.is_empty() {
+        "-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n"
+    } else {
+        handwritten_region(&original, "additional-models-and-proofs")?
+    };
+    let updated = render_formal_module(&expected, &proofs, handwritten)?;
     let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
     if parsed.has_errors() {
         bail!("generated formal kernel did not parse as Lean; no files changed.");
@@ -2340,7 +2345,7 @@ fn shell_quote(value: &str) -> String {
 fn replace_generated_region(original: &str, replacement: &str) -> Result<(String, usize)> {
     const BEGIN: &str = "-- fr:generated-begin scaffold";
     const END: &str = "-- fr:generated-end scaffold";
-    let handwritten = handwritten_region(original)?.to_string();
+    let handwritten = handwritten_region(original, "model-and-proofs")?.to_string();
     let start = original
         .find(BEGIN)
         .context("existing model has no generated scaffold region")?;
@@ -2361,26 +2366,26 @@ fn replace_generated_region(original: &str, replacement: &str) -> Result<(String
     updated.push_str(&original[..start]);
     updated.push_str(replacement);
     updated.push_str(&original[end..]);
-    if handwritten_region(&updated)? != handwritten {
+    if handwritten_region(&updated, "model-and-proofs")? != handwritten {
         bail!("scaffold regeneration did not preserve its handwritten region.");
     }
     Ok((updated, handwritten.len()))
 }
 
-fn handwritten_region(text: &str) -> Result<&str> {
-    const BEGIN: &str = "-- fr:handwritten-begin model-and-proofs";
-    const END: &str = "-- fr:handwritten-end model-and-proofs";
+fn handwritten_region<'a>(text: &'a str, name: &str) -> Result<&'a str> {
+    let begin = format!("-- fr:handwritten-begin {name}");
+    let end_marker = format!("-- fr:handwritten-end {name}");
     let start = text
-        .find(BEGIN)
+        .find(&begin)
         .context("existing model has no handwritten region")?;
-    if text[start + BEGIN.len()..].contains(BEGIN) {
+    if text.matches(&begin).count() != 1 {
         bail!("existing model has more than one handwritten region.");
     }
     let end_start = text[start..]
-        .find(END)
+        .find(&end_marker)
         .map(|offset| start + offset)
         .context("existing model has no handwritten end marker")?;
-    if text[end_start + END.len()..].contains(END) {
+    if text.matches(&end_marker).count() != 1 {
         bail!("existing model has more than one handwritten end marker.");
     }
     let end = text[end_start..]
@@ -3507,7 +3512,11 @@ fn proof_regions(text: &str) -> Result<BTreeMap<String, String>> {
     Ok(regions)
 }
 
-fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) -> Result<String> {
+fn render_formal_module(
+    plan: &FormalPlan,
+    proofs: &BTreeMap<String, String>,
+    handwritten: &str,
+) -> Result<String> {
     let mapping = plan
         .kernel
         .inputs
@@ -3562,7 +3571,9 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
             property.name
         ));
     }
-    text.push_str("-- fr:generated-end formal-kernel\n\n-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n\nend FrSpecs\n");
+    text.push_str("-- fr:generated-end formal-kernel\n\n");
+    text.push_str(handwritten);
+    text.push_str("\nend FrSpecs\n");
     Ok(text)
 }
 

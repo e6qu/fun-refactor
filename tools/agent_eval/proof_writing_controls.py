@@ -64,15 +64,48 @@ def drift_checks(case, binary, original, prepared, tactics, output):
         wrapped = head + ':=\n  if M3Dependency.enabled then\n' + indent(dedent(body), '    ') + '\n  else\n    ' + otherwise
         require(model_text.count(definition) == 1, 'dependency control needs the one generated model definition')
         model_path.write_text('import FrSpecs.M3Dependency\n' + model_text.replace(definition, wrapped, 1))
+        dependency_tactics = output / 'dependency-tactics.lean'
+        model_name = head.split('def ', 1)[1].split(' ', 1)[0]
+        dependency_tactics.write_text('simp only [' + model_name + ', M3Dependency.enabled]\n' + tactics.read_text())
         before_dependency = common.fr(binary, project, ['spec', 'proof-task', target], output / 'dependency-task.json')
-        dependency_proof = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(tactics)], output / 'dependency-accepted.json')
+        dependency_proof = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(dependency_tactics)], output / 'dependency-accepted.json')
         require(dependency_proof['passed'] is True, 'reference must pass with its declared dependency')
         dependency.write_text(dependency_text.replace(':= true', ':= false'))
         after_dependency = common.fr(binary, project, ['spec', 'proof-task', target], output / 'dependency-changed.json')
         require(before_dependency['goal']['id'] != after_dependency['goal']['id'], 'dependency edits must expire the old proof task')
-        rejected_dependency = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(tactics)], output / 'dependency-rejected.json')
+        rejected_dependency = common.fr(binary, project, ['spec', 'proof-check', target, '--from', str(dependency_tactics)], output / 'dependency-rejected.json')
         require(rejected_dependency['passed'] is False and rejected_dependency['receipt'] is None,
                 'a stale compiled dependency cannot preserve an invalid proof')
+    return True
+
+
+def protected_inputs(binary, project, prepared, output):
+    """A candidate may supply tactics, never replace the question or its assumptions."""
+    output.mkdir()
+    model = project / prepared['spec']
+    original = model.read_text()
+    for name, path, content in (
+            ('source', project / prepared['source'], (project / prepared['source']).read_text() + '\n'),
+            ('model', model, original + '\n-- changed definition context\n'),
+            ('package', project / 'specs/lakefile.toml', (project / 'specs/lakefile.toml').read_text() + '\n'),
+            ('axiom', model, original + '\naxiom unapproved : False\n')):
+        before = path.read_text()
+        try:
+            path.write_text(content)
+            rejected = tasks.check(project, prepared, binary, output / name)
+            require(rejected['passed'] is False and rejected['stage'] == 'protected source',
+                    'candidate changed protected inputs: ' + name)
+        finally:
+            path.write_text(before)
+    begin = original.index('\n', original.index('-- fr:proof-begin ' + prepared['obligation'])) + 1
+    end = original.rfind('\n', 0, original.index('-- fr:proof-end ' + prepared['obligation'])) + 1
+    for tactic in ('sorry', 'admit'):
+        try:
+            model.write_text(original[:begin] + '  ' + tactic + '\n' + original[end:])
+            rejected = tasks.check(project, prepared, binary, output / tactic)
+            require(rejected['passed'] is False, 'unfinished proof accepted: ' + tactic)
+        finally:
+            model.write_text(original)
     return True
 
 
@@ -133,10 +166,11 @@ def exercise(case, binary, project, prepared, output, inputs):
     require(common.sources(project) == baseline, 'proof undo must restore the original bytes and modes')
     common.fr(binary, project, ['history', 'redo', transaction, '--write'], output / 'redo.json')
     require(common.sources(project) == completed, 'proof redo must restore the accepted bytes and modes')
+    protected = protected_inputs(binary, project, prepared, output / 'protected')
     stale = drift_checks(case, binary, project, prepared, tactics, output / 'drift')
     preserved = preserve_handwritten(binary, project, prepared, inputs, output / 'handwritten')
-    return {'model_proof_checked': True, 'negative_tactics_rejected': True, 'receiver_checked': True,
-            'stale_records_checked': stale, 'protected_inputs_checked': True, 'handwritten_preserved': preserved,
+    return {'case': case, 'live_model_calls': 0, 'model_proof_checked': True, 'negative_tactics_rejected': True, 'receiver_checked': True,
+            'stale_records_checked': stale, 'protected_inputs_checked': protected, 'handwritten_preserved': preserved,
             'source_implementation_proved': False, 'scope': 'Supplied controller tactics; no model calls and no agent success claim.'}
 
 

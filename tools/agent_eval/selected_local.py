@@ -52,6 +52,7 @@ def implementation_bindings(milestone):
         paths += [directory / 'tasks.json', directory / 'checkers.json']
         if milestone == 'M3':
             paths += [directory / 'cases.json']
+            paths += list((directory / 'controls').glob('*.lean'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
 
@@ -297,6 +298,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
         from .proof_writing_tasks import validate_controls
         value['fr_build'] = verified_fr_build(value['source'], paths['fr']['sha256'], runtime['fr_build'])
         receipt = validate_controls(json.loads(runtime['controls'].read_text()))
+        require(receipt['bindings'] == implementation_bindings('M3'), 'M3 control receipt must bind every checker and task input')
         require(all(hash_file(ROOT / path) == digest for path, digest in receipt['bindings'].items()),
                 'proof controls changed after their successful hosted checks')
         require(all(hashlib.sha256(tasks.comparison_grade.BASE.git(ROOT, 'show',
