@@ -212,6 +212,9 @@ The native client controls check all three selected profiles with and without fr
 The Mac build supplies the explicitly selected ARM executable for later local CLI attempts.
 Private checks prepare only unchanged dependencies in advance; every submitted patch rebuilds the packages it changes.
 Their 60 CPU-second, 512 MiB and 120-second candidate limits remain unchanged.
+M2 submissions are retained with their measured source and checked by that exact auditor.
+Each job preserves the approved current report and patches before selecting the recorded auditor source.
+Separate language and delivery jobs run the current fr implementation, including later correctness fixes.
 The supplied regex behavior check has separate macOS controls using the local study's Rust version.
 It must reject missing APIs, a wrong UTF-8 byte count and excessive allocations, then accept the correct change.
 This public check uses explicit development optimization zero and one compiler job; it measures behavior rather than execution speed.

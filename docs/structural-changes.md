@@ -7,6 +7,10 @@ Use this route for a refactoring when behavior should stay the same.
 A new required argument can deliberately change the interface; state the required caller behavior and checks before applying it.
 The [completed comparison](../tests/agent-eval/project-edits/local-results/README.md) includes Rust parameter removal and a TypeScript rename through an imported alias.
 
+An import inside a Python function belongs to that function's binding context.
+For example, importing `calculate` from a second module inside `inner()` must leave an outer call bound to the first module.
+Renames follow the import visible at each call and preserve explicit local aliases.
+
 A signature is a function's name and parameter list. A caller invokes that function with arguments.
 A change scope lists the callers and tests found for the requested change.
 For `subtotal(price)`, adding a required `tax` slot means updating calls that previously supplied only `price`.

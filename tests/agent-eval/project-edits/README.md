@@ -109,3 +109,8 @@ After collection, the guidance now names only the checking files actually suppli
 It explains that refactoring JSON belongs in a fragment file and distinguishes the workflow's preview value from an author's preview value.
 It also explains when to write an exact Git diff after workflow delivery, avoiding comparisons between equivalent patch formats.
 Runnable examples check that wording; it is not another measured comparison.
+
+Final review also found a Python rename bug: a function-local import could prevent an outer import and its calls from being renamed.
+Current regression tests check the repair with ordinary Python execution before and after each rename, including local aliases and class methods.
+The comparison still names the exact binary and source it measured. Its original auditor checks those frozen records;
+current language and delivery tests check the later implementation changes. Original hashes and outcomes stay intact.
