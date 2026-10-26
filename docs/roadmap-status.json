@@ -22,7 +22,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
@@ -42,7 +43,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "exact-facts",
@@ -62,7 +64,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "package-flow",
@@ -81,7 +84,8 @@
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
@@ -101,7 +105,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
@@ -131,7 +136,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "structural",
@@ -169,7 +175,8 @@
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -189,7 +196,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -207,7 +215,8 @@
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "index-resolution",
@@ -273,7 +282,8 @@
         "sdk/python/src/fr_ir/ir.py",
         "sdk/python/tests/test_ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
@@ -328,6 +338,7 @@
         "src/refactor/signature.rs",
         "src/spec.rs",
         "src/transpile/write.rs",
+        "src/vfs.rs",
         "tools/compiler-profile.py",
         "tools/evidence_basis.py",
         "tools/package-questions.py",
@@ -377,6 +388,7 @@
         "src/refactor/signature.rs",
         "src/spec.rs",
         "src/transpile/write.rs",
+        "src/vfs.rs",
         "tools/evidence_basis.py",
         "tools/saved-work-cost.py"
       ],
@@ -398,7 +410,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "current-saved-work-cost",
@@ -416,7 +429,8 @@
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "checked-translation",
@@ -434,7 +448,8 @@
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "python-effects",
@@ -454,7 +469,8 @@
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
         "src/formal_kernel.rs",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/vfs.rs"
       ],
       "freshness": "stale",
       "id": "python-text-flow",
@@ -464,13 +480,13 @@
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m3-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m3-workspace-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m3-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m3-workspace-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
