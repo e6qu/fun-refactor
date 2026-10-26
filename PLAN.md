@@ -66,21 +66,25 @@ An unused fr tool establishes no benefit. A checked model proof leaves the sourc
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
-The implementation and supplied controls pass CI. The [first comparison](tests/agent-eval/project-edits/first-results/README.md) has 33 independently accepted attempts and 15 timeouts.
-That comparison left five agent/request pairs open: all four GLM cases and Kimi's regex change.
-For matching successes, adding fr took 33% longer with Luna and 74% longer with Kimi. These small samples establish no general savings.
+The implementation and supplied controls pass CI, but M2 remains open.
+Three complete comparisons preserve all 144 attempts, including failures:
 
-The second complete 48-attempt comparison finished: 43 clients completed, five timed out and 44 patches were delivered.
-Its [checked results](tests/agent-eval/project-edits/guided-results/README.md) contain 40 accepted attempts and eight failures: five timeouts and three incorrect patches.
-Both setups state the same 150-second deadline.
-Its fr setup requires a contributing fr step and uses shorter guides with concrete workflow filenames.
-It also checks the repaired local Rust helper before any call. Keep the original results and all failures.
-These combined changes form a new comparison; they cannot isolate the effect of any one guide change.
-M2 remains open. GLM still timed out on regex, and Kimi either omitted its allocation change or delivered too late.
-Further guide corrections explain project-relative fragment paths and the declaration fields returned by discovery.
-The next fixed comparison will list each request requirement separately and give agents the actual clock deadline.
-Reserve time for the client to finish within the original 150 seconds; keep the same models, checks and limits.
-Keep every earlier failure; do not count an on-time patch as a completed attempt when its client misses the deadline.
+| Comparison | Accepted / 48 | What changed before starting it |
+| --- | ---: | --- |
+| [Original](tests/agent-eval/project-edits/first-results/README.md) | 33 | Fr was available; using it was optional |
+| [Shorter guides](tests/agent-eval/project-edits/guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify the documented route and repair a local Rust helper |
+| [Actual clock](tests/agent-eval/project-edits/clocked-results/README.md) | 41 | List every requirement separately, give the actual finish time and reserve ten seconds for the response |
+
+GLM and Kimi still need an accepted regex result with fr. Some correct patches arrived too late;
+other patches produced the right text but allocated memory more than once.
+The supplied command only checked compilation, so it could not expose that allocation mistake.
+Additional runtime checks used an unnecessarily optimized development build and consumed time needed for delivery.
+
+Next, validate one supplied command that checks actual text, UTF-8 byte counts, allocations and append behavior.
+Use an explicitly unoptimized build for those behavior checks and reject deletion of the supplied checking files.
+Then freeze one complete comparison with both setups using that command. Keep the same models and 150-second limits.
+Keep every earlier outcome and the unchanged independent checks. Do not retry selected failed slots.
+Report overhead against the same agent using ordinary tools; none of the completed comparisons establishes general savings.
 
 Deliver this whole milestone in one PR. First freeze these four cases and the checks that reject wrong or incomplete changes:
 

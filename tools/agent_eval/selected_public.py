@@ -14,9 +14,16 @@ from .selected_plan import encoded, require
 
 
 def command_tokens(command):
-    tokens = shlex.split(command)
+    def split(text):
+        lexer = shlex.shlex(text, posix=True, punctuation_chars=';&|\n')
+        lexer.whitespace = ' \t\r'
+        lexer.whitespace_split = True
+        lexer.commenters = ''
+        return list(lexer)
+
+    tokens = split(command)
     while len(tokens) == 3 and tokens[0].rsplit('/', 1)[-1] in {'sh', 'bash', 'zsh'} and tokens[1] in {'-c', '-lc'}:
-        tokens = shlex.split(tokens[2])
+        tokens = split(tokens[2])
     return tokens
 
 
@@ -36,7 +43,7 @@ def observed_fr(events):
             continue
         for index, token in enumerate(tokens):
             if token.rsplit('/', 1)[-1] != 'fr' or (index and tokens[index - 1] not in
-                    {'&&', ';', '|', '||', 'command', 'time'}):
+                    {'&&', ';', '|', '||', '\n', 'command', 'time'}):
                 continue
             count += 1
             arguments = tokens[index + 1:]
@@ -55,7 +62,7 @@ def observed_fr(events):
                     operations.add(verb if verb in {'rename', 'refs', 'def', 'symbols', 'checks', 'check',
                         'callers', 'callees', 'workflow'} else 'other fr command')
     return {'commands_observed': count, 'operations_observed': sorted(operations),
-            'method': 'Observed shell fr invocations, including a shell -c wrapper. Commands constructed inside another program may be unobserved. A count is not a benefit.'}
+            'method': 'Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.'}
 
 
 def sum_counts(values):

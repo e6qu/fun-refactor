@@ -27,84 +27,71 @@ Implementation, current examples, deterministic checks, all 48 attempts, checked
 The [M1 results](../selected-agents/local-results/README.md) stay intact; these new cases do not retry its failures.
 Only patches and summaries from local model runs may be published. Full native logs and execution packets remain local.
 
-The [first independent controls](https://github.com/e6qu/fun-refactor/actions/runs/40228056222) passed for all four cases.
-They reject unchanged and incomplete answers, then accept a supplied correct patch in a separate checkout.
-Regex checks include Unicode byte counts, allocation counts, upstream tests and builds without default features in both crates.
-These results check the task machinery.
-The first 48 local attempts are recorded: 33 CLIs completed within the limits and 15 timed out.
-Their 34 submitted patches include one from a timed-out attempt, which stays failed even if its patch passes.
-All twelve [independent grading jobs](https://github.com/e6qu/fun-refactor/actions/runs/40255330402) passed: 33 attempts succeeded and 15 failed.
-All 34 delivered patches passed their checks; the timed-out delivery still counts as a failed attempt.
-The final report job could not create its output directory. The fix combines the existing verdicts without repeating compilation.
-Read the [original results and measured overhead](first-results/README.md).
-No failed slot was retried. Full native records stay local; the public files contain patches and summaries only.
+## What the independent checks cover
 
-The fr delivery checks also exercise competing edits, failed-check diagnostics, exact bytes outside previewed ranges and undo/redo.
-Private compiler checks run separately, with no runner credentials or external network access.
-Their containers retain the existing 512 MiB memory, 60 CPU-second and 120-second execution limits.
-A CPU-second measures time running on one CPU core; waiting still consumes the separate elapsed-time allowance.
-Each patch gets its full language checks in a fresh checkout. Another copy verifies identical source and exact reversal without repeating compilation.
-Prepare the unchanged regex dependencies once before private grading and record that shared preparation time separately.
-Remove both packages under change from that cache. Every patch rebuilds them; cached results cannot supply the requested new API.
-Read immutable dependency libraries from the read-only cache instead of copying them into the memory-backed workspace.
-Keep writable copies of compiler state and regex-automata, which depends on the changed regex-syntax package.
-Cache admission checks the original source hash, compiler identity and private image identity.
-Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
+The [language controls](https://github.com/e6qu/fun-refactor/actions/runs/40228056222) reject unchanged and incomplete answers, then accept a supplied correct patch.
+The fr delivery checks exercise competing edits, failed-check diagnostics, source outside reviewed ranges and exact undo/redo.
+The [private controls](https://github.com/e6qu/fun-refactor/actions/runs/40247933867) passed all twenty supplied cases without model calls.
+Their compiler checks run without fr, runner credentials or external network access.
+Regex checks cover 1,060 behavior cases, allocations, upstream tests and builds without default features in both packages.
 
-The [frozen private controls](https://github.com/e6qu/fun-refactor/actions/runs/40247933867) passed all twenty supplied cases.
-The accepted regex change used about 93 seconds of its original 120-second private-check allowance and peaked at about 452 MiB.
-Earlier checks exhausted the allowance while compiling unchanged dependencies; shared preparation removes that repeated work.
-It does not supply the changed crates or increase a candidate's allowance.
-A later memory failure came from copying unchanged compiled libraries into the RAM-backed workspace.
-Reading those libraries from the read-only cache removes the duplicate copy. The memory limit remains 512 MiB.
+Each private candidate keeps its 512 MiB memory, 60 CPU-second and 120-second elapsed-time limits.
+A CPU-second measures execution on one core; waiting consumes the separate elapsed-time allowance.
+Prepare unchanged dependencies once and report that shared time separately. Remove both changed packages from the cache so every patch rebuilds them.
+Read immutable dependency libraries from the read-only cache rather than copying them into the memory-backed workspace.
+That fixes repeated compilation and duplicate memory use without raising limits or supplying the new API.
+The accepted regex control used about 93 seconds and peaked at about 452 MiB.
 
-The public checker uses twelve jobs, one per agent and request, with four submissions in each.
-An initial check uses the exact private image and compiler cache frozen before local model calls.
-Later CI rechecks prepare and test a fresh environment; each run records its own image and cache identity.
-That avoids depending indefinitely on a temporary download or relabeling a later environment as the original one.
-All forty-eight outcomes must be checked, including submissions from timed-out CLIs.
-The comparison reports matching successes, time spent on failures, incomplete token usage and actual contributing fr actions.
+Twelve independent jobs check the published patches: one per agent and request, with four submissions each.
+Initial grading uses the exact private image and compiler cache frozen before model calls.
+Later CI rechecks prepare and test a fresh environment and record its identity separately.
+All 48 outcomes must be checked, including patches delivered by timed-out clients.
+A patch passing compilation cannot turn a timed-out client into an accepted attempt.
 
-For M2, preparation and native session accounting share the same 150-second attempt deadline as model work.
-The native process receives only the time remaining after preparation. Missing that deadline leaves a failed attempt, even with a valid patch.
-Outer guard admission and Python startup precede the controller timer; report that unmeasured time explicitly.
-Compare elapsed time and reported tokens against the same agent doing the same task with ordinary tools.
-This measures the cost of completing a code change; it does not measure the modified application's execution speed.
+## The three completed comparisons
 
-## Check the corrected instructions separately
+| Comparison | Accepted / 48 | Changes fixed before its first call |
+| --- | ---: | --- |
+| [Original](first-results/README.md) | 33 | Fr was available; its use was optional |
+| [Shorter guides](guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify guide examples and repair the local Rust helper's library path |
+| [Actual clock](clocked-results/README.md) | 41 | Present every requirement separately, state the actual finish time and reserve ten seconds for response and accounting |
 
-The original comparison did not meet M2: every GLM attempt with fr timed out, as did both Kimi regex attempts.
-Some agents read extra guides, repeated passed checks or reached the deadline before exporting a patch.
-An example filename ending in `.json` could invalidate a saved preview, even inside the ignored `.fr` directory.
+Every comparison keeps all 48 scheduled outcomes. No individual failed slot was retried.
+Each starts fresh projects and conversations with the same three models, settings, task requirements, order, repetitions and hard limits.
+The studies combine several instruction and setup changes; comparing them cannot isolate the effect of one change.
+Their within-study baseline is the same agent using ordinary tools on the same request.
+They measure complete code-change time, not the changed application's execution speed.
 
-The second comparison fixed all 48 slots before its first call. It keeps the same models, reasoning settings,
-tasks, order, checks, two repetitions and 150-second limit. Each attempt starts with a fresh project and conversation.
-The instructions now state that deadline, reserve time for patch delivery, and avoid repeating completed checks.
-The fr setup requires at least one step that contributes to the delivered change; the original setup only made fr available.
-The guides save and preview an author plan in one call, use concrete extensionless filenames and include patch output.
-A local Rust helper could not find its existing LLVM library; its repaired library path now passes a preflight check.
-The original records retain that warning. The second plan records the helper and library hashes.
+The first comparison had 15 timeouts and 34 patches, including one from a timed-out client.
+All submitted patches were correct; the late client still failed.
+The report aggregation initially lacked an output directory. Its repair combined existing verdicts without recompiling.
 
-These are combined instruction and setup changes. Comparing the two studies cannot attribute an improvement to one change.
-Within each study, the baseline remains the same agent using ordinary tools on the same request.
-Keep every outcome in both studies. Do not rerun failed original slots, extend limits or substitute a stronger model.
-M2 still needs an accepted, contributing fr result for each of the twelve agent/request pairs.
+The second comparison had five timeouts and three incorrect allocation changes.
+Kimi's last fr regex patch was correct and arrived around 148 seconds, but its client missed the original deadline.
+The third comparison had four timeouts and three incorrect allocation changes.
+Both GLM fr regex patches passed the independent checks but their clients finished too late.
+GLM and Kimi still need accepted, contributing fr results for regex before M2 can close.
 
-The second comparison has finished: 43 clients completed, five timed out and 44 patches were delivered.
-Its [checked results, patches and summary](guided-results/README.md) retain all 48 outcomes.
-All twelve [independent grading jobs](https://github.com/e6qu/fun-refactor/actions/runs/40265093558) finished: 40 attempts passed and eight failed.
-Five clients timed out, and three delivered patches failed the allocation check: escaping allocated twice instead of at most once.
-GLM completed Rust, TypeScript and Python with fr in both repetitions but timed out on regex.
-Kimi's first regex deliveries omit the allocation change. Its final fr regex workflow delivered a patch at about 148 seconds,
-then the client missed the unchanged 150-second deadline. A delivered patch cannot turn that timeout into a completed attempt.
+Some earlier shell-command counts miss calls after newlines. Their reviewed contribution notes, rather than counts, establish actual fr use.
+The exporter now recognizes those calls. Original counts and record hashes stay intact.
 
-After collection, the author guide now names concrete fragment files and explains that their paths start at the project root.
-Its example checker uses the actual documented JSON rather than substituting a different manifest with absolute file paths.
-The guide also explains how discovery's row values match its column names. These corrections do not rewrite either comparison.
+## Fix the supplied behavior check before another comparison
 
-The next full comparison will present each existing request sentence as a separate requirement.
-It will also give the attempt's actual start and deadline as Unix seconds, a time value available from `date +%s`.
-The deadline still starts before preparation. Agents must finish tool work ten seconds before it,
-leaving that time for the client response and accounting within the same 150 seconds.
-This changes the instructions, alongside the corrected guide. Keep both completed comparisons and every new outcome.
-The models, reasoning settings, tasks, independent checks, two repetitions, order and hard limits stay fixed.
+The earlier public regex command only checked compilation. It could accept the new APIs while missing the requested memory behavior.
+For example, producing the right escaped text still fails the request when the string grows through multiple allocations.
+Some agents added runtime examples to check values, but upstream development optimization level three made those builds unnecessarily slow.
+
+The corrected public command runs actual byte, text, allocation and append checks against both libraries, then checks builds without default features.
+It uses explicit development optimization zero and one compiler job. These are behavior checks, not speed measurements.
+Separate macOS controls must reject missing APIs, wrong byte counts and excessive allocations, then accept the reference change.
+The private grader and its broader independent checks remain unchanged.
+
+Both tool setups receive the same command and checking files. Deleting or changing those files makes an attempt fail;
+cleanup may remove only temporary files the agent created. This addresses two observed deletions of the entire supplied `.fr` directory.
+A new comparison must freeze that checking environment and every slot before its first call, retaining the three earlier studies.
+
+Preparation, model work, tools, patch delivery, response and native session accounting share the same 150-second deadline.
+The supplied behavior command uses that attempt's original finish time, not a new allowance when launched.
+Outer guard admission and controller Python startup precede the attempt timer; their time remains explicitly unmeasured.
+Report matching successes, failed-attempt time, missing token usage, unknown account charges and reviewed fr contributions.
+M2 needs at least one accepted result with an actual fr contribution for every agent/request pair within the frozen repetitions.

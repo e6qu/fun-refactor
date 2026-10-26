@@ -51,7 +51,7 @@ def controls(inputs, output, cargo, rustc):
             if variant == 'reference':
                 require(completed.returncode == 0, 'reference public behavior check failed: ' + error[-4096:])
             else:
-                reason = {'unchanged': 'cannot find function `escape_len`',
+                reason = {'unchanged': 'cannot find value `escape_len`',
                           'wrong-byte-count': 'escaped UTF-8 byte count',
                           'extra-allocations': 'escape allocated'}[variant]
                 require(completed.returncode != 0 and reason in error,

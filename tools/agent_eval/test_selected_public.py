@@ -24,6 +24,15 @@ class SelectedPublicTests(unittest.TestCase):
         self.assertEqual(used['commands_observed'], 2)
         self.assertEqual(used['operations_observed'], ['author batch', 'project find'])
 
+    def test_newline_commands_are_observed_without_executing_quoted_examples(self):
+        events = [{'type': 'item.completed', 'item': {'type': 'command_execution', 'command': command}}
+                  for command in ('date +%s\nfr --json checks',
+                                  '/bin/zsh -lc \'date +%s\nfr --json project find total\'',
+                                  'echo "date +%s\nfr project find total"')]
+        used = observed_fr(events)
+        self.assertEqual(used['commands_observed'], 2)
+        self.assertEqual(used['operations_observed'], ['checks', 'project find'])
+
     def test_missing_token_categories_are_unknown_instead_of_zero(self):
         self.assertIsNone(sum_counts([]))
         self.assertEqual(sum_counts([{'input': 3, 'cache': {'read': 1}}, {'input': 4, 'cache': {'read': 2}}]),

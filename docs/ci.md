@@ -212,6 +212,10 @@ The native client controls check all three selected profiles with and without fr
 The Mac build supplies the explicitly selected ARM executable for later local CLI attempts.
 Private checks prepare only unchanged dependencies in advance; every submitted patch rebuilds the packages it changes.
 Their 60 CPU-second, 512 MiB and 120-second candidate limits remain unchanged.
+The supplied regex behavior check has separate macOS controls using the local study's Rust version.
+It must reject missing APIs, a wrong UTF-8 byte count and excessive allocations, then accept the correct change.
+This public check uses explicit development optimization zero and one compiler job; it measures behavior rather than execution speed.
+The complete private checks still run independently. Neither check may extend an agent's original deadline.
 Current project replays and complete CLI/Python session costs have separate required jobs.
 A failure in one cannot prevent the other from reporting stale inputs.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`
