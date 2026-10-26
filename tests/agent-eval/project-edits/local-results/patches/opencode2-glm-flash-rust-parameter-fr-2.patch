@@ -1,0 +1,44 @@
+diff --git "a/checkout/src/lib.rs" "b/checkout/src/lib.rs"
+--- "a/checkout/src/lib.rs"
++++ "b/checkout/src/lib.rs"
+@@ -2,9 +2,9 @@
+ 
+ // Preserve the imported caller, Unicode π, and surrounding source.
+ pub fn charge(amount: i64) -> i64 {
+-    total(amount, false, 3)
++    total(amount, 3)
+ }
+ 
+ pub fn combined(amount: i64) -> i64 {
+-    pricing::same_crate(amount) + total(amount, true, 4)
++    pricing::same_crate(amount) + total(amount, 4)
+ }
+diff --git "a/pricing/src/lib.rs" "b/pricing/src/lib.rs"
+--- "a/pricing/src/lib.rs"
++++ "b/pricing/src/lib.rs"
+@@ -1,10 +1,10 @@
+ // Prices are integer cents. Keep this café comment and its spacing.
+-pub fn total(amount: i64, _verbose: bool, fee: i64) -> i64 {
++pub fn total(amount: i64, fee: i64) -> i64 {
+     amount + fee
+ }
+ 
+ pub fn same_crate(amount: i64) -> i64 {
+-    total(amount, true, 2)
++    total(amount, 2)
+ }
+ 
+ // This unrelated function and its formatting must stay intact.
+diff --git "a/pricing/tests/prices.rs" "b/pricing/tests/prices.rs"
+--- "a/pricing/tests/prices.rs"
++++ "b/pricing/tests/prices.rs"
+@@ -1,7 +1,7 @@
+ #[test]
+ fn public_prices_stay_the_same() {
+-    assert_eq!(pricing::total(5, true, 2), 7);
+-    assert_eq!(pricing::total(-5, false, 2), -3);
++    assert_eq!(pricing::total(5, 2), 7);
++    assert_eq!(pricing::total(-5, 2), -3);
+     assert_eq!(pricing::same_crate(5), 7);
+     assert_eq!(pricing::unrelated(5), 106);
+ }

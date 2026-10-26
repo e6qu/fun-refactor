@@ -1,0 +1,11 @@
+diff --git "a/invoice.py" "b/invoice.py"
+--- "a/invoice.py"
++++ "b/invoice.py"
+@@ -1,6 +1,6 @@
+ # Amounts and fees are integer cents; keep this café comment.
+ def invoice_total(amount: int, fee: int) -> int:
+-    return amount
++    return amount + fee
+ 
+ 
+ # Preserve this unrelated function, its spacing, and its behavior.
