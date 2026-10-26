@@ -91,6 +91,14 @@ def subscriptArgument (f : Nat → Nat) (values : Array Nat) : Nat := f values[0
 
 def resultProjection (f : Nat → Nat × Nat) (n : Nat) : Nat := (f n).1
 
+def tailLambda : Nat := (fun f : Nat → Nat => f 2) fun n => n + 1
+
+def tailDo : Nat := Id.run do pure 1
+
+theorem parenthesizedProof : 0 = 0 := id (by rfl)
+
+theorem afterTailProof : 1 = 1 := by rfl
+
 def returnedFunction (flag : Bool) : Nat → Nat :=
   if flag then fun n => n + 1 else fun n => n
 

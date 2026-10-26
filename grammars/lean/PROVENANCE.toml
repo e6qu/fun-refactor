@@ -96,9 +96,16 @@ why = "the omitted forms are ordinary Lean proof steps; losing them also disrupt
 [[patch]]
 subject = "term bindings and function heads"
 rule = "_binding_body, _application_head"
-change = "term bindings require their following body; low-precedence expressions need parentheses when used as function heads; fields and subscripts attach to an argument unless the application is parenthesized"
+change = "term bindings require their following body; low-precedence expressions and calls with final block arguments need parentheses when used as function heads; fields and subscripts attach to an argument unless the application is parenthesized"
 accepts = ["let count := n; count + 1", "(fun n : Nat => n + 1) 2"]
 why = "standalone bindings already have tactic and do-statement rules, and an unparenthesized proof block must not become a function applied to the next proof step"
+
+[[patch]]
+subject = "final lambda and do arguments"
+rule = "application, _block_application"
+change = "unparenthesized lambda and do arguments terminate an application; if, match and by arguments require parentheses"
+accepts = ["Id.run do pure 1", "id (by rfl)"]
+why = "Lean rejects `id by rfl` and corresponding bare if and match arguments; admitting them as repeatable function heads multiplied parser contexts and let proof steps escape their block"
 
 [[patch]]
 subject = "unparenthesized typed lambda binders"

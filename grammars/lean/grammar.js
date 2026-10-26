@@ -486,6 +486,7 @@ module.exports = grammar({
 
     _expression: $ => choice(
       $._application_head,
+      alias($._block_application, $.application),
       $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
       $.if, $.if_let, $.match, $.do, $.by, $.try, $.return, $.as_pattern,
     ),
@@ -563,13 +564,16 @@ module.exports = grammar({
     // Uses prec.left to parse `f x y` as `(f x) y`
     application: $ => prec.left(PREC.app, seq(
       field('name', $._application_head),
+      field('arguments', $._postfix_head),
+    )),
+
+    // A final block argument extends to its own boundary. The resulting call
+    // needs parentheses before another argument, field or subscript can follow.
+    _block_application: $ => prec.right(PREC.app, seq(
+      field('name', $._application_head),
       field('arguments', choice(
-        $._postfix_head,
         $.fun,
-        $.if,
-        $.match,
         $.do,
-        $.by,
       )),
     )),
 

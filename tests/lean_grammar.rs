@@ -40,10 +40,35 @@ fn fields_and_subscripts_belong_to_the_function_argument() {
                 assert_eq!(term.kind(), "parenthesized");
                 assert_eq!(&source[term.byte_range()], "(f n)");
             }
+            "tailLambda" | "tailDo" => {
+                checked += 1;
+                assert_eq!(body.kind(), "application");
+                let argument = body.child_by_field_name("arguments").unwrap();
+                assert!(matches!(argument.kind(), "fun" | "do"));
+            }
+            "parenthesizedProof" => {
+                checked += 1;
+                assert_eq!(body.kind(), "application");
+                let argument = body.child_by_field_name("arguments").unwrap();
+                assert_eq!(argument.kind(), "parenthesized");
+                assert_eq!(argument.named_child(0).unwrap().kind(), "by");
+            }
             _ => {}
         }
     }
-    assert_eq!(checked, 3);
+    assert_eq!(checked, 6);
+}
+
+#[test]
+fn low_precedence_call_arguments_require_parentheses() {
+    for source in [
+        "def bad : Nat := Nat.succ if true then 1 else 0",
+        "def bad : Nat := Nat.succ match true with | true => 1 | false => 0",
+        "theorem bad : 0 = 0 := id by rfl",
+    ] {
+        let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+        assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");
+    }
 }
 
 #[test]
