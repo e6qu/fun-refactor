@@ -66,6 +66,11 @@ An unused fr tool establishes no benefit. A checked model proof leaves the sourc
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
+The implementation and supplied controls pass CI. The first comparison contains 48 native attempts; independent patch checks remain pending.
+The milestone remains open: several agents timed out before delivery, and fr availability alone did not establish its use.
+The next comparison will state the 150-second deadline, require a contributing fr step in its fr setup,
+and use concrete workflow filenames. Keep the original comparison and all failures alongside it.
+
 Deliver this whole milestone in one PR. First freeze these four cases and the checks that reject wrong or incomplete changes:
 
 | Case | Concrete requirement |

@@ -30,7 +30,11 @@ Only patches and summaries from local model runs may be published. Full native l
 The [first independent controls](https://github.com/e6qu/fun-refactor/actions/runs/40228056222) passed for all four cases.
 They reject unchanged and incomplete answers, then accept a supplied correct patch in a separate checkout.
 Regex checks include Unicode byte counts, allocation counts, upstream tests and builds without default features in both crates.
-These results check the task machinery. The 48 local model attempts have not started.
+These results check the task machinery.
+The first 48 local attempts are recorded: 33 CLIs completed within the limits and 15 timed out.
+Their 34 submitted patches include one from a timed-out attempt, which stays failed even if its patch passes.
+The [independent check](https://github.com/e6qu/fun-refactor/actions/runs/40255330402) is pending.
+No failed slot was retried. Full native records stay local; the public files contain patches and summaries only.
 
 The fr delivery checks also exercise competing edits, failed-check diagnostics, exact bytes outside previewed ranges and undo/redo.
 Private compiler checks run separately, with no runner credentials or external network access.
@@ -44,10 +48,12 @@ Keep writable copies of compiler state and regex-automata, which depends on the 
 Cache admission checks the original source hash, compiler identity and private image identity.
 Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
 
-The [private controls](https://github.com/e6qu/fun-refactor/actions/runs/40235887167) passed all twenty supplied cases.
-The accepted regex change used about 90 seconds of its original 120-second private-check allowance.
+The [frozen private controls](https://github.com/e6qu/fun-refactor/actions/runs/40247933867) passed all twenty supplied cases.
+The accepted regex change used about 93 seconds of its original 120-second private-check allowance and peaked at about 452 MiB.
 Earlier checks exhausted the allowance while compiling unchanged dependencies; shared preparation removes that repeated work.
 It does not supply the changed crates or increase a candidate's allowance.
+A later memory failure came from copying unchanged compiled libraries into the RAM-backed workspace.
+Reading those libraries from the read-only cache removes the duplicate copy. The memory limit remains 512 MiB.
 
 The public checker uses twelve jobs, one per agent and request, with four submissions in each.
 An initial check uses the exact private image and compiler cache frozen before local model calls.
