@@ -25,8 +25,8 @@ standard Lean axioms and reject new assumptions introduced by a candidate.
 
 The page-count source is the existing [translation example](../checked-translation/pages.rs).
 Its signed-64 inputs range from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807.
-The Lean model uses unbounded mathematical integers. `Int.tdiv` and `Int.tmod` divide
-by truncating toward zero, matching Rust division on admitted inputs. For example, -7 / 3
+The Lean model uses unbounded mathematical integers. `Int.tdiv` divides by truncating
+toward zero; `Int.tmod` returns the corresponding remainder. These match Rust on admitted inputs. For example, -7 / 3
 truncates to -2; Lean's ordinary integer `/` instead rounds down to -3.
 This particular source rejects negative item counts and nonpositive page sizes before division.
 Its theorem includes the result bounds and the rounding example; it is not a full division specification.
@@ -35,7 +35,8 @@ The range source uses unsigned-64 inputs from zero through 18,446,744,073,709,55
 It checks `offset <= total` before evaluating `count <= total - offset`, so subtraction
 cannot wrap. Its model uses Lean `Nat`, the unbounded nonnegative integers. The theorem
 holds for every `Nat` input, which includes the unsigned-64 input domain. Separate Rust
-checks use wider `u128` addition to compute the expected answer at the boundaries.
+checks use Rust's 128-bit unsigned type, `u128`, to compute the expected answer at the boundaries.
+That type can hold the sum of any two unsigned-64 values without overflow.
 
 ## Check the complete examples before calling models
 

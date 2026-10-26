@@ -45,11 +45,11 @@ Deliver each complete milestone in one PR: implementation, complete examples, in
 all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
-M1 and M2 now have their complete comparisons. M3 is the next implementation milestone.
+M1 and M2 now have their complete comparisons.
 M3 implementation is in progress on `milestone/agent-lean-proofs`; keep all of it in the same PR.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-Before its first model call, finish all ten example controls, six native-client checks and eighteen
-isolated patch controls, freeze their successful receipt and use the GitHub-built macOS executable.
+Finish ten example controls, six native-client checks and eighteen isolated patch controls before the first model call.
+Record their successful checks and use the GitHub-built macOS executable.
 Then run and independently grade all 36 scheduled attempts. A prepared harness alone does not complete M3.
 
 ### M1. Run the selected agents on three complete tasks

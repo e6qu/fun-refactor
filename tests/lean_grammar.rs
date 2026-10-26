@@ -22,6 +22,11 @@ theorem branches (values : List Nat) (pair : Nat × Nat) : True := by
   | cons head tail ih => simp_all
   rcases pair with ⟨left, right⟩
   simp
+
+theorem alternatives (invalid : 0 < 1 ∨ 1 < 2) : True := by
+  rcases invalid with left | right
+  · trivial
+  · trivial
 "#;
 
     let tree = Parsers::new()
@@ -36,4 +41,5 @@ theorem branches (values : List Nat) (pair : Nat × Nat) : True := by
     );
     assert!(structure.contains("tactic_rcases"), "{structure}");
     assert!(structure.contains("rcases_tuple_pattern"), "{structure}");
+    assert!(structure.contains("rcases_alternative_pattern"), "{structure}");
 }

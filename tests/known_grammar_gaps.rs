@@ -32,6 +32,10 @@ fn lean_tactic_constructor_branches_are_structural() {
         "theorem t (value : Sum Nat Nat) : True := by\n  \
          rcases value with (left | right)\n  \
          simp_all\n",
+        "theorem t (invalid : 0 < 1 ∨ 1 < 2) : True := by\n  \
+         rcases invalid with left | right\n  \
+         · trivial\n  \
+         · trivial\n",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(!tree.has_errors(), "{source}\n{}", tree.root().to_sexp());

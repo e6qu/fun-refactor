@@ -1,0 +1,46 @@
+name: Regenerate the Lean syntax reader
+on:
+  workflow_dispatch:
+  push:
+    branches: [milestone/agent-lean-proofs]
+    paths: [grammars/lean/grammar.js]
+permissions:
+  contents: write
+concurrency:
+  group: regenerate-lean-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26.5.0'
+      - name: Install the exact syntax-generator release
+        run: npm install --prefix "$RUNNER_TEMP/lean-generator" --no-audit --no-fund tree-sitter-cli@0.26.13
+      - name: Generate the Lean parser and node descriptions
+        working-directory: grammars/lean
+        run: |
+          "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
+          "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate
+      - name: Commit generated source to the same milestone branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          test "$BRANCH" != main
+          git add grammars/lean/src/parser.c grammars/lean/src/grammar.json grammars/lean/src/node-types.json
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Generate the Lean reader for bare alternative patterns'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-syntax-reader
+          path: grammars/lean/src
+          retention-days: 30

@@ -839,10 +839,16 @@ module.exports = grammar({
       '⟨', commaSep1($._rcases_atom), '⟩',
     ),
 
-    rcases_alternative_pattern: $ => seq(
-      '(', choice($._rcases_atom, $.rcases_tuple_pattern),
-      repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
-    ),
+    rcases_alternative_pattern: $ => prec.right(choice(
+      seq(
+        choice($._rcases_atom, $.rcases_tuple_pattern),
+        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))),
+      ),
+      seq(
+        '(', choice($._rcases_atom, $.rcases_tuple_pattern),
+        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
+      ),
+    )),
 
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.
