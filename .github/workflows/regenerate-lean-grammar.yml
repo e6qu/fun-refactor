@@ -13,7 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: grammars/lean
+          sparse-checkout: |
+            grammars/lean
+            tests/fixtures/lean-proof-locations.lean
+            tests/fixtures/lean-source-declarations.lean
+            tools/check-lean-reader.py
       - uses: actions/setup-node@v6
         with:
           node-version: '26.5.0'
@@ -24,6 +28,8 @@ jobs:
         run: |
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
           /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
+      - name: Check proof syntax and preserve following declarations before committing
+        run: python3 -B tools/check-lean-reader.py --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter"
       - name: Commit generated source to the same milestone branch
         env:
           BRANCH: ${{ github.ref_name }}
@@ -34,7 +40,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'Generate the Lean reader for tactic locations and equality transport'
+            git commit -m 'Generate the Lean reader with bounded tactic hypothesis lists'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
       - uses: actions/upload-artifact@v7

@@ -23,6 +23,8 @@ const PREC = {
   atom: 100,        // literals, identifiers
 };
 
+const IDENTIFIER = /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!]*/;
+
 // Helper functions
 function commaSep1(rule) {
   return seq(rule, repeat(seq(',', rule)));
@@ -784,8 +786,13 @@ module.exports = grammar({
       repeat(field('arg', choice(
         $._expression, $.tactic_config,
       ))),
-      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
+      optional($._tactic_location),
     )),
+
+    _tactic_location: $ => seq('at', repeat1(seq(
+      optional(token.immediate(/[ \t]+/)),
+      choice(alias(token.immediate(IDENTIFIER), $.identifier), token.immediate('*'), token.immediate('⊢')),
+    ))),
 
     // `by_cases h : proposition` and `by_cases proposition`.
     tactic_by_cases: $ => prec.right(2, seq(
@@ -882,7 +889,7 @@ module.exports = grammar({
         $.tactic_config,
         repeat1(field('arg', $._expression)),
       ),
-      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
+      optional($._tactic_location),
     )),
 
     // `have h : T := proof` in tactic mode
@@ -1341,7 +1348,7 @@ module.exports = grammar({
 
     // Identifier with optional dot-separated parts: `Foo.Bar.baz`
     // Simple identifier without dots - projection handles qualified access
-    identifier: _ => /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!]*/,
+    identifier: _ => IDENTIFIER,
 
     // Escaped identifier: `«name with spaces»`
     escaped_identifier: _ => /«[^»]*»/,
