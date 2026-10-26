@@ -49,7 +49,7 @@ def observed_fr(events):
             arguments = tokens[index + 1:]
             while arguments and arguments[0].startswith('-'):
                 option = arguments.pop(0)
-                if option in {'-C', '--directory', '--file'} and arguments:
+                if option in {'-C', '--root', '--max-file-size', '--context-basis', '--plan-basis'} and arguments:
                     arguments.pop(0)
             if arguments:
                 verb = arguments[0]

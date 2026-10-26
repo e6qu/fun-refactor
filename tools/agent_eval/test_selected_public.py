@@ -33,6 +33,13 @@ class SelectedPublicTests(unittest.TestCase):
         self.assertEqual(used['commands_observed'], 2)
         self.assertEqual(used['operations_observed'], ['checks', 'project find'])
 
+    def test_current_global_option_values_are_not_mistaken_for_operations(self):
+        events = [{'type': 'item.completed', 'item': {'type': 'command_execution', 'command':
+            'fr --json --root src --max-file-size 4096 --context-basis previous project find total'}}]
+        used = observed_fr(events)
+        self.assertEqual(used['commands_observed'], 1)
+        self.assertEqual(used['operations_observed'], ['project find'])
+
     def test_missing_token_categories_are_unknown_instead_of_zero(self):
         self.assertIsNone(sum_counts([]))
         self.assertEqual(sum_counts([{'input': 3, 'cache': {'read': 1}}, {'input': 4, 'cache': {'read': 2}}]),
