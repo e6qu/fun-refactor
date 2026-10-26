@@ -2,6 +2,11 @@ name: Check all 48 local M2 submissions
 on:
   workflow_dispatch:
     inputs:
+      comparison:
+        description: Original instructions or the fixed-instruction comparison
+        type: choice
+        options: [first-results, local-results]
+        required: true
       controls_run:
         description: Successful private-control run containing the grader and compiler cache
         type: string
@@ -12,12 +17,15 @@ on:
         options: [frozen, fresh]
         required: true
       report_mode:
-        description: Collect initial verdicts or check the finished public report
+        description: Collect verdicts, check the original report, or require milestone completion
         type: choice
-        options: [collect, check]
+        options: [collect, archive, check]
         required: true
   workflow_call:
     inputs:
+      comparison:
+        type: string
+        required: true
       controls_run:
         type: string
         required: true
@@ -31,7 +39,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: m2-patches-${{ github.ref }}
+  group: m2-patches-${{ github.ref }}-${{ inputs.comparison }}
   cancel-in-progress: true
 jobs:
   patches:
@@ -44,6 +52,7 @@ jobs:
         profile: [codex-luna-fast, opencode2-glm-flash, opencode2-kimi-k3]
         task: [rust-parameter, typescript-alias, regex-escape-len, python-invoice]
     env:
+      M2_COMPARISON: ${{ inputs.comparison }}
       PYTHONPATH: tools:sdk/python/src
       RUSTUP_TOOLCHAIN: '1.99.1'
       PYTHONDONTWRITEBYTECODE: '1'
@@ -53,6 +62,12 @@ jobs:
       CONTROL_POLICY: ${{ inputs.control_policy }}
       CONTROLS_RUN: ${{ inputs.controls_run }}
     steps:
+      - name: Require an explicit comparison directory
+        run: |
+          case "$M2_COMPARISON" in
+            first-results|local-results) ;;
+            *) exit 1 ;;
+          esac
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -99,7 +114,7 @@ jobs:
       - name: Check both tool setups and both repetitions
         run: >-
           python3 -B -m agent_eval.project_edits_results grade-cell
-          --data tests/agent-eval/project-edits/local-results
+          --data "tests/agent-eval/project-edits/$M2_COMPARISON"
           --inputs "$RUNNER_TEMP/m2-inputs" --artifact "$RUNNER_TEMP/m2-private-controls"
           --image "$M2_GRADER_IMAGE" --rust "$(rustc --print sysroot)"
           --node "$(command -v node)" --typescript "$RUNNER_TEMP/m2-typescript/package"
@@ -108,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: m2-patches-${{ matrix.profile }}-${{ matrix.task }}
+          name: m2-patches-${{ inputs.comparison }}-${{ matrix.profile }}-${{ matrix.task }}
           path: ${{ runner.temp }}/m2-cell
           if-no-files-found: error
           retention-days: 30
@@ -118,9 +133,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
+      M2_COMPARISON: ${{ inputs.comparison }}
       PYTHONPATH: tools:sdk/python/src
       REPORT_MODE: ${{ inputs.report_mode }}
     steps:
+      - name: Require an explicit comparison directory
+        run: |
+          case "$M2_COMPARISON" in
+            first-results|local-results) ;;
+            *) exit 1 ;;
+          esac
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -129,24 +151,28 @@ jobs:
           python-version: '3.14.8'
       - uses: actions/download-artifact@v8
         with:
-          pattern: m2-patches-*
+          pattern: m2-patches-${{ inputs.comparison }}-*
           path: ${{ runner.temp }}/m2-cells
       - name: Reject missing cells or substituted submissions
         run: |
           mkdir -p "$RUNNER_TEMP/m2-checked"
           python3 -B -m agent_eval.project_edits_results merge \
-            --data tests/agent-eval/project-edits/local-results \
+            --data "tests/agent-eval/project-edits/$M2_COMPARISON" \
             --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
       - name: Check the finished report when requested
         run: |
           case "$REPORT_MODE" in
             collect) ;;
-            check) python3 -B -m agent_eval.project_edits_results report --data tests/agent-eval/project-edits/local-results --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode check ;;
+            archive)
+              python3 -B -m agent_eval.project_edits_results report --data "tests/agent-eval/project-edits/$M2_COMPARISON" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode write
+              git diff --exit-code -- "tests/agent-eval/project-edits/$M2_COMPARISON/README.md"
+              ;;
+            check) python3 -B -m agent_eval.project_edits_results report --data "tests/agent-eval/project-edits/$M2_COMPARISON" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode check ;;
             *) exit 1 ;;
           esac
       - uses: actions/upload-artifact@v7
         with:
-          name: m2-all-patch-checks
+          name: m2-all-patch-checks-${{ inputs.comparison }}
           path: ${{ runner.temp }}/m2-checked/summary.json
           if-no-files-found: error
           retention-days: 30
