@@ -138,6 +138,12 @@ jobs:
           path: |
             ${{ runner.temp }}/m1-tasks/*/result.json
             ${{ runner.temp }}/m1-native/summary.json
+            ${{ runner.temp }}/m1-native/*/result.json
+            ${{ runner.temp }}/m1-native/*/native/result.json
+            ${{ runner.temp }}/m1-native/*/native/native.stdout
+            ${{ runner.temp }}/m1-native/*/native/native.stderr
+            ${{ runner.temp }}/m1-native/*/native/api/server.stdout
+            ${{ runner.temp }}/m1-native/*/native/api/server.stderr
             ${{ runner.temp }}/m1-private-grading/summary.json
             ${{ runner.temp }}/m1-live-grading/summary.json
           if-no-files-found: error
