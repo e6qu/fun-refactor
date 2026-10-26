@@ -99,3 +99,10 @@ rule = "_binding_body, _application_head"
 change = "term bindings require their following body; low-precedence expressions need parentheses when used as function heads"
 accepts = ["let count := n; count + 1", "(fun n : Nat => n + 1) 2"]
 why = "standalone bindings already have tactic and do-statement rules, and an unparenthesized proof block must not become a function applied to the next proof step"
+
+[[patch]]
+subject = "unparenthesized typed lambda binders"
+rule = "fun"
+change = "allow a type annotation after the lambda's binders"
+accepts = ["fun n : Nat => n + 1", "fun n m : Nat => n + m", "fun f : Nat → Nat => f 1"]
+why = "Lean accepts the annotation without binder parentheses; the reader previously reported the colon as a syntax error"

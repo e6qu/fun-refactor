@@ -81,6 +81,10 @@ def nestedLet (n : Nat) : Nat :=
 
 def appliedLambda : Nat := (fun n : Nat => n + 1) 2
 
+def appliedTypedLambda : Nat := (fun n m : Nat => n + m) 2 3
+
+def typedArrowLambda : Nat := (fun f : Nat → Nat => f 1) (fun n => n)
+
 def returnedFunction (flag : Bool) : Nat → Nat :=
   if flag then fun n => n + 1 else fun n => n
 

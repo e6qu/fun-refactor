@@ -10,15 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def check(binary, diagnostics):
     diagnostics.mkdir(parents=True, exist_ok=False)
+    failures = []
     for fixture, require_clean in [('lean-proof-locations.lean', True), ('lean-source-declarations.lean', False)]:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
         (diagnostics / (fixture + '.stderr')).write_text(result.stderr)
-        if require_clean:
-            assert result.returncode == 0, result.stdout[-4096:] + result.stderr[-4096:]
-        else:
-            assert result.returncode in {0, 1}, result.stderr
+        assert result.returncode in {0, 1}, result.stderr
+        if require_clean and result.returncode != 0:
+            failures.append(fixture + ': syntax errors')
         start = result.stdout.index('<sources>')
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
@@ -31,8 +31,10 @@ def check(binary, diagnostics):
                 if name is not None:
                     names.add(''.join(''.join(name.itertext()).split()))
             print('Recovered declarations:', sorted(names), flush=True)
-            assert names == expected, 'declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)})
+            if names != expected:
+                failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    assert not failures, '\n'.join(failures)
 
 
 if __name__ == '__main__':

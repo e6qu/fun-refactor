@@ -676,6 +676,7 @@ module.exports = grammar({
       choice(
         seq(
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
+          optional($._type_spec),
           '=>',
           $._layout_start,
           field('body', $._expression),
