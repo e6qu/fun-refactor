@@ -3,6 +3,154 @@ use std::process::Command;
 const FR: &str = env!("CARGO_BIN_EXE_fr");
 
 #[test]
+fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::create_dir(workspace.path().join("src")).unwrap();
+    std::fs::write(workspace.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn keep(value: bool) -> bool { value }\n",
+    )
+    .unwrap();
+    assert!(run(workspace.path(), &["spec", "init", "specs", "--write"])
+        .status
+        .success());
+    let plan =
+        fun_refactor::spec::formal_plan(workspace.path(), "src/lib.rs::keep", &["identity".into()])
+            .unwrap();
+    std::fs::write(
+        workspace.path().join("plan.json"),
+        serde_json::to_vec(&plan).unwrap(),
+    )
+    .unwrap();
+    let scaffold = run(
+        workspace.path(),
+        &[
+            "spec",
+            "scaffold",
+            "--from",
+            "plan.json",
+            "--package",
+            "specs",
+            "--write",
+        ],
+    );
+    assert!(
+        scaffold.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scaffold.stderr)
+    );
+    let model = workspace.path().join("specs/FrSpecs/SrcLibRsKeep.lean");
+    let original = std::fs::read_to_string(&model).unwrap();
+    std::fs::write(
+        &model,
+        format!(
+            "import FrSpecs.Policy\n\n{}",
+            original.replacen("  value\n", "  Policy.choose value\n", 1)
+        ),
+    )
+    .unwrap();
+    let dependency = workspace.path().join("specs/FrSpecs/Policy.lean");
+    let policy =
+        "namespace FrSpecs.Policy\ndef choose (value : Bool) : Bool := value\nend FrSpecs.Policy\n";
+    std::fs::write(&dependency, policy).unwrap();
+    let built = Command::new("lake")
+        .arg("build")
+        .current_dir(workspace.path().join("specs"))
+        .output()
+        .unwrap();
+    assert!(
+        built.status.success(),
+        "{}",
+        String::from_utf8_lossy(&built.stderr)
+    );
+    let target = "specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity";
+    let first_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
+    std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
+    let first = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let first: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(first["passed"], true);
+    std::fs::write(&dependency, policy.replace(":= value", ":= !value")).unwrap();
+    let second_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
+    assert_ne!(first_task.goal.id, second_task.goal.id);
+    let false_claim = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        false_claim.status.success(),
+        "{}",
+        String::from_utf8_lossy(&false_claim.stderr)
+    );
+    let false_claim: serde_json::Value = serde_json::from_slice(&false_claim.stdout).unwrap();
+    assert_eq!(false_claim["passed"], false);
+    assert!(false_claim["receipt"].is_null());
+    assert!(!false_claim["diagnostics"].as_array().unwrap().is_empty());
+    std::fs::write(&dependency, format!("-- reviewed dependency\n{policy}")).unwrap();
+    let renewed = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        renewed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&renewed.stderr)
+    );
+    let renewed: serde_json::Value = serde_json::from_slice(&renewed.stdout).unwrap();
+    assert_eq!(renewed["passed"], true);
+    assert_ne!(first["receipt"], renewed["receipt"]);
+    std::fs::remove_file(&dependency).unwrap();
+    let missing = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        missing.status.success(),
+        "{}",
+        String::from_utf8_lossy(&missing.stderr)
+    );
+    let missing: serde_json::Value = serde_json::from_slice(&missing.stdout).unwrap();
+    assert_eq!(missing["passed"], false);
+    assert!(missing["receipt"].is_null());
+}
+
+#[test]
 fn guarded_page_count_keeps_early_returns_and_truncating_arithmetic() {
     use fun_refactor::formal_kernel::{evaluate, Value};
     let workspace = tempfile::tempdir().unwrap();

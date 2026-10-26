@@ -11,7 +11,7 @@ use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -511,6 +511,7 @@ pub struct ProofAttempt {
     pub goal_id: String,
     pub proof_digest: String,
     pub checker: &'static str,
+    pub checker_context_digest: String,
     pub passed: bool,
     pub diagnostics: Vec<ProofDiagnostic>,
     pub diagnostics_omitted: usize,
@@ -1347,6 +1348,7 @@ pub fn formal_goals(
     let root = root.canonicalize()?;
     let report = check(&root, inputs, respect_ignore)?;
     let mut details = Vec::new();
+    let mut package_contexts = BTreeMap::new();
     for debt in report.debts {
         let Some(name) = debt.name.clone() else {
             continue;
@@ -1395,7 +1397,17 @@ pub fn formal_goals(
         if source.starts_with("import FrSpecs.PureKernel\n") {
             context.push_str(crate::formal_kernel::LEAN_SOURCE);
         }
-        let model_context_digest = crate::project::object_merkle(&serde_json::json!(context))?;
+        let package = lean_package(&root, &debt.spec)?;
+        if !package_contexts.contains_key(&package) {
+            package_contexts.insert(
+                package.clone(),
+                proof_package_inputs(&package, None, false)?,
+            );
+        }
+        let model_context_digest = crate::project::object_merkle(&serde_json::json!({
+            "module": context,
+            "package_inputs": package_contexts[&package],
+        }))?;
         let addressed = serde_json::json!({
             "name": name,
             "spec": spec,
@@ -1738,18 +1750,38 @@ fn check_prepared_proof(
 ) -> Result<ProofAttempt> {
     let package = checked_proof_package(root, &prepared.spec)?;
     let checker_source = reviewed_kernel_context(&package, &prepared.updated)?;
+    let dependency_target = format!("{}:deps", prepared.spec.strip_prefix(&package)?.display());
+    let mut output = Command::new("lake")
+        .args(["build", &dependency_target])
+        .current_dir(&package)
+        .output()
+        .context("building the proof module's dependencies")?;
+    let package_inputs =
+        proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?;
+    if proof_task(root, target, 16_384, true)?.goal.id != prepared.goal_id {
+        bail!(
+            "proof package changed while preparing its dependencies; request a fresh proof task."
+        );
+    }
     let mut scratch = tempfile::Builder::new()
         .prefix("fr-proof-check-")
         .suffix(".lean")
         .tempfile()?;
     scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
-    let output = Command::new("lake")
-        .args(["env", "lean"])
-        .arg(scratch.path())
-        .current_dir(&package)
-        .output()
-        .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    if output.status.success() {
+        output = Command::new("lake")
+            .args(["env", "lean"])
+            .arg(scratch.path())
+            .current_dir(&package)
+            .output()
+            .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    }
+    if proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?
+        != package_inputs
+    {
+        bail!("proof package inputs changed during checking; no receipt was issued.");
+    }
     let passed =
         proof_submission_admitted(true, true, true, true, true, true, output.status.success());
     let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
@@ -1760,6 +1792,10 @@ fn check_prepared_proof(
         lean_diagnostics(&raw, scratch.path(), root)
     };
     let all_diagnostics = diagnostics.len();
+    let checker_context_digest = crate::project::object_merkle(&serde_json::json!({
+        "package_inputs": package_inputs,
+        "checked_module": checker_source,
+    }))?;
     let receipt = passed
         .then(|| {
             crate::project::object_merkle(&serde_json::json!({
@@ -1767,6 +1803,7 @@ fn check_prepared_proof(
                 "goal_id": prepared.goal_id,
                 "proof_digest": prepared.proof_digest,
                 "checker": LEAN_TOOLCHAIN,
+                "checker_context_digest": checker_context_digest,
             }))
         })
         .transpose()?;
@@ -1800,6 +1837,7 @@ fn check_prepared_proof(
             "goal_id": &prepared.goal_id,
             "proof_digest": &prepared.proof_digest,
             "checker": LEAN_TOOLCHAIN,
+            "checker_context_digest": checker_context_digest,
             "passed": passed,
             "diagnostics": &diagnostics,
             "diagnostics_omitted": all_diagnostics.saturating_sub(diagnostics.len()),
@@ -1814,6 +1852,7 @@ fn check_prepared_proof(
                 goal_id: prepared.goal_id.clone(),
                 proof_digest: prepared.proof_digest.clone(),
                 checker: LEAN_TOOLCHAIN,
+                checker_context_digest,
                 passed,
                 diagnostics_omitted: all_diagnostics.saturating_sub(diagnostics.len()),
                 diagnostics,
@@ -1889,6 +1928,94 @@ fn checked_proof_package(root: &Path, spec: &Path) -> Result<PathBuf> {
         bail!("proof checking requires the fr pinned Lean toolchain {LEAN_TOOLCHAIN}.");
     }
     Ok(package)
+}
+
+fn proof_package_inputs(
+    package: &Path,
+    replacement: Option<(&Path, &str)>,
+    include_tactics: bool,
+) -> Result<BTreeMap<String, String>> {
+    let mut pending = vec![package.to_path_buf()];
+    let mut inputs = BTreeMap::new();
+    let mut entries = 0;
+    let mut bytes = 0;
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(directory)? {
+            let entry = entry?;
+            entries += 1;
+            if entries > 4096 {
+                bail!("proof package input discovery exceeds 4096 entries.");
+            }
+            let path = entry.path();
+            if matches!(
+                entry.file_name().to_str(),
+                Some(".lake" | ".git" | ".fr-history")
+            ) {
+                continue;
+            }
+            let kind = entry.file_type()?;
+            if kind.is_symlink() || (!kind.is_dir() && !kind.is_file()) {
+                bail!("proof package inputs must be regular files and directories.");
+            }
+            if kind.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            if path.extension().is_none_or(|extension| extension != "lean")
+                && !matches!(
+                    entry.file_name().to_str(),
+                    Some("lean-toolchain" | "lakefile.toml" | "lake-manifest.json")
+                )
+            {
+                continue;
+            }
+            if entry.metadata()?.len() > 1024 * 1024 || inputs.len() >= 256 {
+                bail!("proof package inputs exceed 256 files or 1 MiB per file.");
+            }
+            let mut text = match replacement {
+                Some((selected, source)) if path == selected => source.to_string(),
+                _ => {
+                    let mut text = String::new();
+                    std::fs::File::open(&path)?
+                        .take(1024 * 1024 + 1)
+                        .read_to_string(&mut text)?;
+                    text
+                }
+            };
+            if text.len() > 1024 * 1024 {
+                bail!("proof package source exceeds 1 MiB while reading.");
+            }
+            bytes += text.len();
+            if bytes > 8 * 1024 * 1024 {
+                bail!("proof package inputs exceed 8 MiB.");
+            }
+            if !include_tactics
+                && path
+                    .extension()
+                    .is_some_and(|extension| extension == "lean")
+            {
+                let mut context = String::new();
+                let mut proof = false;
+                for line in text.split_inclusive('\n') {
+                    if line.trim().starts_with("-- fr:proof-begin ") {
+                        proof = true;
+                        context.push_str(line);
+                    } else if line.trim().starts_with("-- fr:proof-end ") {
+                        proof = false;
+                        context.push_str(line);
+                    } else if !proof {
+                        context.push_str(line);
+                    }
+                }
+                text = context;
+            }
+            inputs.insert(
+                path.strip_prefix(package)?.to_string_lossy().into_owned(),
+                hex::encode(Sha256::digest(text.as_bytes())),
+            );
+        }
+    }
+    Ok(inputs)
 }
 
 fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagnostic> {
@@ -2716,7 +2843,7 @@ fn lean_kernel_block(
             lean_kernel_block(otherwise, rust_i64_division)?.replace('\n', "\n  ")
         )),
         [Stmt::If { condition, then, otherwise }, rest @ ..]
-            if otherwise.is_empty() && !rest.is_empty() && crate::formal_kernel::explicitly_returns(then) => Ok(format!(
+            if otherwise.is_empty() && !rest.is_empty() && crate::formal_kernel::explicitly_returns(then, 0) => Ok(format!(
                 "if {} then\n    {}\n  else\n    {}",
                 lean_kernel_expr(condition, rust_i64_division)?,
                 lean_kernel_block(then, rust_i64_division)?.replace('\n', "\n  "),

@@ -595,16 +595,19 @@ fn infer(
     })
 }
 
-pub(crate) fn explicitly_returns(statements: &[Stmt]) -> bool {
+pub(crate) fn explicitly_returns(statements: &[Stmt], depth: usize) -> bool {
+    if depth > 64 {
+        return false;
+    }
     match statements
         .iter()
         .rfind(|statement| !matches!(statement, Stmt::Comment(_)))
     {
         Some(Stmt::Return(_)) => true,
-        Some(Stmt::Block(body)) => explicitly_returns(body),
+        Some(Stmt::Block(body)) => explicitly_returns(body, depth + 1),
         Some(Stmt::If {
             then, otherwise, ..
-        }) => explicitly_returns(then) && explicitly_returns(otherwise),
+        }) => explicitly_returns(then, depth + 1) && explicitly_returns(otherwise, depth + 1),
         _ => false,
     }
 }
@@ -630,7 +633,7 @@ fn compile_block(statements: &[Stmt], names: &[String], depth: usize) -> anyhow:
             otherwise: Box::new(compile_block(otherwise, names, depth + 1)?),
         },
         [Stmt::If { condition, then, otherwise }, rest @ ..]
-            if otherwise.is_empty() && !rest.is_empty() && explicitly_returns(then) => Term::If {
+            if otherwise.is_empty() && !rest.is_empty() && explicitly_returns(then, depth + 1) => Term::If {
                 condition: Box::new(compile_expr(condition, names, depth + 1)?),
                 then: Box::new(compile_block(then, names, depth + 1)?),
                 otherwise: Box::new(compile_block(&rest.iter().map(|statement| (*statement).clone()).collect::<Vec<_>>(), names, depth + 1)?),

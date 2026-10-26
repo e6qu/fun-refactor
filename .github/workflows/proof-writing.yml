@@ -38,9 +38,52 @@ jobs:
       - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: cargo test --locked --test formal_kernel --test lean_adoption -- --test-threads=1
+      - name: Check exact Python proof-task and receipt validation
+        env:
+          PYTHONPATH: sdk/python/src
+        run: python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
       - uses: actions/upload-artifact@v7
         with:
           name: m3-linux-tool
           path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 30
+  cases:
+    name: Prepare the fixed proof claim (${{ matrix.case }})
+    needs: model
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [access-rust, access-python, access-go, access-java, access-typescript, access-tsx, access-zig, access-lean, page-count, fits-window]
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/download-artifact@v8
+        with:
+          name: m3-linux-tool
+          path: ${{ runner.temp }}/m3-tool
+      - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
+      - name: Generate the model, freeze the claim and disclose its unfinished goal
+        run: >-
+          python3 -B -m agent_eval.proof_writing_tasks --case '${{ matrix.case }}'
+          --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-case"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m3-prepared-${{ matrix.case }}
+          path: ${{ runner.temp }}/m3-case/inputs
           if-no-files-found: error
           retention-days: 30
