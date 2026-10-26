@@ -39,7 +39,6 @@ jobs:
           retention-days: 30
   tasks:
     name: Original M1 rename, Unicode and proof checks
-    if: github.ref != 'refs/heads/milestone/m2-native-diagnostics'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -62,6 +61,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/m1-report-tools/agent_eval"
           cp tools/agent_eval/selected_plan.py tools/agent_eval/selected_report.py \
             "$RUNNER_TEMP/m1-report-tools/agent_eval/"
+          mkdir -p "$RUNNER_TEMP/m1-native-tools"
+          cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
+            tools/agent_eval/selected_cli.py "$RUNNER_TEMP/m1-native-tools/"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -114,43 +116,13 @@ jobs:
               --output "$RUNNER_TEMP/m1-tasks/$task"
           done
       - name: Exercise real native tool results with scripted replies and no external network
-        if: github.ref != 'refs/heads/milestone/m2-native-diagnostics'
-        run: >-
-          python3 -B -m agent_eval.selected_native --fr target/debug/fr
-          --output "$RUNNER_TEMP/m1-native"
-      - name: Reproduce the intermittent Kimi exchange with fresh isolated state
-        if: github.ref == 'refs/heads/milestone/m2-native-diagnostics'
         run: |
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          from agent_eval import selected_native as native
-          from agent_eval.selected_plan import DIRECTORY, ROOT
-          output = Path(os.environ['RUNNER_TEMP']) / 'm1-native'
-          output.mkdir()
-          clients = json.loads((ROOT / DIRECTORY / 'clients.json').read_text())
-          client = clients['opencode2']
-          executable = native.packages.install(client, output / 'package')
-          image_dir = output / 'image'
-          image_dir.mkdir()
-          image = native.build('opencode2', 'fr', executable,
-              Path('target/debug/fr').resolve(), image_dir, client)
-          summary = {'passed': False, 'live_model_calls': 0, 'scheduled': 20, 'attempts': []}
-          try:
-              for number in range(20):
-                  directory = output / f'reproduction-{number:02}'
-                  try:
-                      result = native.exchange(image, 'opencode2-kimi-k3', 'fr', directory)
-                      summary['attempts'].append({'number': number, 'passed': result['passed']})
-                      print(json.dumps(summary['attempts'][-1]), flush=True)
-                  except Exception as error:
-                      summary['attempts'].append({'number': number, 'passed': False,
-                          'error': type(error).__name__ + ': ' + str(error)})
-                      raise
-              summary['passed'] = True
-          finally:
-              native.save(output / 'summary.json', summary)
-          PY
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py' EXIT
+          for helper in opencode2_client.py selected_native_probe.py selected_cli.py; do
+            cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
+          done
+          python3 -B -m agent_eval.selected_native --fr target/debug/fr \
+          --output "$RUNNER_TEMP/m1-native"
       - name: Reject wrong changes and deliver correct patches inside private containers
         run: >-
           python3 -B -m agent_eval.selected_grading --fr target/debug/fr
@@ -175,6 +147,7 @@ jobs:
             ${{ runner.temp }}/m1-native/summary.json
             ${{ runner.temp }}/m1-native/*/result.json
             ${{ runner.temp }}/m1-native/*/native/result.json
+            ${{ runner.temp }}/m1-native/*/native/skills.json
             ${{ runner.temp }}/m1-native/*/native/native.stdout
             ${{ runner.temp }}/m1-native/*/native/native.stderr
             ${{ runner.temp }}/m1-native/*/native/provider.json
@@ -184,108 +157,5 @@ jobs:
             ${{ runner.temp }}/m1-native/*/native/api/server.stderr
             ${{ runner.temp }}/m1-private-grading/summary.json
             ${{ runner.temp }}/m1-live-grading/summary.json
-          if-no-files-found: error
-          retention-days: 30
-  native-investigation:
-    if: github.ref == 'refs/heads/milestone/m2-native-diagnostics'
-    name: Investigate scripted Kimi exchange (${{ matrix.batch }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        batch: [0, 1, 2, 3, 4]
-    env:
-      RUSTUP_TOOLCHAIN: '1.99.1'
-      CARGO_BUILD_JOBS: '2'
-      CARGO_INCREMENTAL: '0'
-      CARGO_PROFILE_DEV_DEBUG: '0'
-      CARGO_PROFILE_TEST_DEBUG: '0'
-      PYTHONPATH: tools
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          sparse-checkout: tools
-      - name: Preserve the corrected native client checks
-        run: |
-          mkdir -p "$RUNNER_TEMP/m1-native-tools"
-          cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
-            tools/agent_eval/selected_cli.py "$RUNNER_TEMP/m1-native-tools/"
-      - uses: actions/checkout@v7
-        with:
-          ref: ea21616476e4352e4e240d62b56387c277396532
-          persist-credentials: false
-          sparse-checkout: |
-            .github
-            src
-            crates
-            grammars
-            queries
-            catalogs
-            kernels
-            tools
-            sdk/python/src
-            skills/fr
-            tests/agent-eval/selected-agents
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.14.8'
-      - run: rustup toolchain install 1.99.1 --profile minimal
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: m1-controls
-      - run: cargo build --locked --bin fr
-      - name: Exercise twenty fresh containers and stop on the first failure
-        run: |
-          for helper in opencode2_client.py selected_native_probe.py selected_cli.py; do
-            cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
-          done
-          python3 -B - <<'PY'
-          import json, os
-          from pathlib import Path
-          from agent_eval import selected_native as native
-          from agent_eval.selected_plan import DIRECTORY, ROOT
-          output = Path(os.environ['RUNNER_TEMP']) / 'm1-native'
-          output.mkdir()
-          clients = json.loads((ROOT / DIRECTORY / 'clients.json').read_text())
-          client = clients['opencode2']
-          executable = native.packages.install(client, output / 'package')
-          image_dir = output / 'image'
-          image_dir.mkdir()
-          image = native.build('opencode2', 'fr', executable,
-              Path('target/debug/fr').resolve(), image_dir, client)
-          summary = {'passed': False, 'live_model_calls': 0, 'scheduled': 20, 'attempts': []}
-          try:
-              for number in range(20):
-                  directory = output / f'reproduction-{number:02}'
-                  try:
-                      result = native.exchange(image, 'opencode2-kimi-k3', 'fr', directory)
-                      summary['attempts'].append({'number': number, 'passed': result['passed']})
-                      print(json.dumps(summary['attempts'][-1]), flush=True)
-                  except Exception as error:
-                      summary['attempts'].append({'number': number, 'passed': False,
-                          'error': type(error).__name__ + ': ' + str(error)})
-                      raise
-              summary['passed'] = True
-          finally:
-              native.save(output / 'summary.json', summary)
-          PY
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: m1-native-race-${{ matrix.batch }}
-          path: |
-            ${{ runner.temp }}/m1-native/summary.json
-            ${{ runner.temp }}/m1-native/*/result.json
-            ${{ runner.temp }}/m1-native/*/native/result.json
-            ${{ runner.temp }}/m1-native/*/native/skills.json
-            ${{ runner.temp }}/m1-native/*/native/native.stdout
-            ${{ runner.temp }}/m1-native/*/native/native.stderr
-            ${{ runner.temp }}/m1-native/*/native/provider.json
-            ${{ runner.temp }}/m1-native/*/native/export.stdout
-            ${{ runner.temp }}/m1-native/*/native/export.stderr
-            ${{ runner.temp }}/m1-native/*/native/api/server.stdout
-            ${{ runner.temp }}/m1-native/*/native/api/server.stderr
           if-no-files-found: error
           retention-days: 30
