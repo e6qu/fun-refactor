@@ -88,8 +88,8 @@ why = "valid proof steps must reach Lean for checking; repeating complete terms 
 
 [[patch]]
 subject = "constructor cases with labels and generalized variables"
-rule = "tactic_cases, tactic_subject_application"
-change = "accept an equation label, bounded applied subjects and `generalizing` binders"
+rule = "tactic_cases, application"
+change = "accept an equation label, ordinary applied subjects and `generalizing` binders; share function-call syntax with expressions"
 accepts = ["cases h : chooseNumber flag with | zero => omega | succ n => omega", "induction xs generalizing n with | nil => rfl | cons head tail ih => rfl"]
 why = "the omitted forms are ordinary Lean proof steps; losing them also disrupted recovery of later declarations"
 

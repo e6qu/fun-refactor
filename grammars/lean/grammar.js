@@ -797,7 +797,7 @@ module.exports = grammar({
     tactic_cases: $ => prec.right(3, seq(
       field('tactic', choice('cases', 'induction')),
       optional(seq(field('equation', $.identifier), ':')),
-      field('subject', $._tactic_subject),
+      field('subject', $._application_head),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
@@ -819,7 +819,7 @@ module.exports = grammar({
     // constructor tuples remain named nodes so an agent can reveal one branch.
     tactic_rcases: $ => prec.right(3, seq(
       'rcases',
-      field('subject', $._tactic_subject),
+      field('subject', $._application_head),
       'with',
       field('pattern', $._rcases_pattern),
     )),
@@ -831,15 +831,6 @@ module.exports = grammar({
     ),
 
     _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
-
-    _tactic_subject: $ => choice(
-      $.qualified_name, $.number, $.hole, $.parenthesized, $.tactic_subject_application,
-    ),
-
-    tactic_subject_application: $ => prec.left(PREC.app, seq(
-      field('name', $.qualified_name),
-      repeat1(field('argument', choice($.qualified_name, $.number, $.hole, $.parenthesized))),
-    )),
 
     rcases_tuple_pattern: $ => seq(
       '⟨', commaSep1($._rcases_atom), '⟩',
