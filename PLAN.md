@@ -67,13 +67,17 @@ An unused fr tool establishes no benefit. A checked model proof leaves the sourc
 ### M2. Make multi-file refactorings and targeted changes dependable
 
 The implementation and supplied controls pass CI. The [first comparison](tests/agent-eval/project-edits/first-results/README.md) has 33 independently accepted attempts and 15 timeouts.
-M2 remains open: GLM delivered no accepted fr attempt, and Kimi could not finish the regex change.
+That comparison left five agent/request pairs open: all four GLM cases and Kimi's regex change.
 For matching successes, adding fr took 33% longer with Luna and 74% longer with Kimi. These small samples establish no general savings.
 
-A second, complete 48-attempt comparison will test the corrected instructions. Both setups now state the same 150-second deadline.
+The second complete 48-attempt comparison finished: 43 clients completed, five timed out and 44 patches were delivered.
+Its [independent patch checks](https://github.com/e6qu/fun-refactor/actions/runs/40265093558) are running. Both setups state the same 150-second deadline.
 Its fr setup requires a contributing fr step and uses shorter guides with concrete workflow filenames.
 It also checks the repaired local Rust helper before any call. Keep the original results and all failures.
 These combined changes form a new comparison; they cannot isolate the effect of any one guide change.
+M2 remains open. GLM still timed out on regex, and Kimi either omitted its allocation change or delivered too late.
+Further guide corrections explain project-relative fragment paths and the declaration fields returned by discovery.
+Keep every earlier failure; do not count an on-time patch as a completed attempt when its client misses the deadline.
 
 Deliver this whole milestone in one PR. First freeze these four cases and the checks that reject wrong or incomplete changes:
 

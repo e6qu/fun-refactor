@@ -288,10 +288,10 @@ def author_workflow(exercise, root):
     original = ('//! Skill fixture.\n#![deny(missing_docs)]\n'
                 '/// Increments a value.\npub fn increment(value: u32) -> u32 { value + 1 }\n')
     source.write_text(original)
-    fragment = root.parent / "fragment.rs"
+    fragment = root / ".fr/helper"
+    fragment.parent.mkdir()
     fragment.write_text(blocks(path, "rust")[0])
-    exercise.values["<FRAGMENT>"] = str(fragment)
-    body = root.parent / "body.rs"
+    body = root / ".fr/body"
     body.write_text("{\n    value + 1\n}\n")
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
@@ -316,18 +316,10 @@ def author_workflow(exercise, root):
             exercise.values["<FILE_HANDLE>"] = value["root"]
             manifest = root / ".fr/author"
             manifest.parent.mkdir(exist_ok=True)
-            manifest.write_text(json.dumps({
-                "operations": [
-                    {"op": "replace-body", "handle": row["handle"], "from": str(body)},
-                    {"op": "insert-declaration", "handle": value["root"], "from": str(fragment)},
-                ],
-                "postconditions": {
-                    "files-changed": 1,
-                    "edits": 2,
-                    "changed-operations": 2,
-                    "paths-changed": ["src/lib.rs"],
-                },
-            }))
+            example = blocks(path, "json")[0]
+            example = example.replace("<DECLARATION_HANDLE>", row["handle"])
+            example = example.replace("<FILE_HANDLE>", value["root"])
+            manifest.write_text(example)
             assert "value + 1" in row["source"]["text"]
             assert row["source"]["next_offset"] is None
             assert value["source_budget"]["returned_bytes"] <= 512

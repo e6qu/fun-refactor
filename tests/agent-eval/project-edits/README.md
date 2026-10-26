@@ -77,7 +77,7 @@ The original comparison did not meet M2: every GLM attempt with fr timed out, as
 Some agents read extra guides, repeated passed checks or reached the deadline before exporting a patch.
 An example filename ending in `.json` could invalidate a saved preview, even inside the ignored `.fr` directory.
 
-The second comparison fixes all 48 slots before its first call. It keeps the same models, reasoning settings,
+The second comparison fixed all 48 slots before its first call. It keeps the same models, reasoning settings,
 tasks, order, checks, two repetitions and 150-second limit. Each attempt starts with a fresh project and conversation.
 The instructions now state that deadline, reserve time for patch delivery, and avoid repeating completed checks.
 The fr setup requires at least one step that contributes to the delivered change; the original setup only made fr available.
@@ -89,3 +89,14 @@ These are combined instruction and setup changes. Comparing the two studies cann
 Within each study, the baseline remains the same agent using ordinary tools on the same request.
 Keep every outcome in both studies. Do not rerun failed original slots, extend limits or substitute a stronger model.
 M2 still needs an accepted, contributing fr result for each of the twelve agent/request pairs.
+
+The second comparison has finished: 43 clients completed, five timed out and 44 patches were delivered.
+Its [patches and summary](local-results/summary.json) retain all 48 outcomes.
+The [independent grading run](https://github.com/e6qu/fun-refactor/actions/runs/40265093558) is checking them.
+GLM completed Rust, TypeScript and Python with fr in both repetitions but timed out on regex.
+Kimi's first regex deliveries omit the allocation change. Its final fr regex workflow delivered a patch at about 148 seconds,
+then the client missed the unchanged 150-second deadline. A delivered patch cannot turn that timeout into a completed attempt.
+
+After collection, the author guide now names concrete fragment files and explains that their paths start at the project root.
+Its example checker uses the actual documented JSON rather than substituting a different manifest with absolute file paths.
+The guide also explains how discovery's row values match its column names. These corrections do not rewrite either comparison.

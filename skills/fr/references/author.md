@@ -3,9 +3,10 @@
 A function body holds its executable statements.
 A parameter is an input in its declaration; an argument is a value supplied by a caller.
 Use `project find NAME --in FILE --source` to select a declaration.
-For insertion, use that query's `root` file handle for the destination file.
+Read each `rows` entry using the matching `columns` names.
+For insertion, the query's `root` selects the file.
 
-Choose an operation and save its contents in an extensionless fragment under `.fr/`:
+Run at the project root. Fragment paths, such as `.fr/body`, start there.
 
 | Change | Operation | Fragment |
 | --- | --- | --- |
@@ -21,17 +22,17 @@ Retained expressions keep their evaluation order. Refuse removal of an argument 
 External consumers remain unknown; read warnings and review every affected file.
 
 For example, replace `increment`'s body with `{ value + 1 }` and add this helper.
-Save the body and declaration in separate fragment files:
+Save the body as `.fr/body` and the helper below as `.fr/helper`:
 ```rust
 /// Calls increment twice.
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }
 ```
-A manifest is a JSON file listing operations from one source revision.
-Save this as `.fr/author`, replacing the fragment paths and declaration and file handles:
+A manifest is a JSON file listing operations for one source revision.
+Save `.fr/author` with the returned declaration and file handles:
 ```json
-{"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":"<BODY_FILE>"},{"op":"insert-declaration","handle":"<FILE_HANDLE>","from":"<FRAGMENT>"}]}
+{"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":".fr/body"},{"op":"insert-declaration","handle":"<FILE_HANDLE>","from":".fr/helper"}]}
 ```
-Use `--save-plan` on the first author call. It prints the full preview and stores a plan without editing source.
+`--save-plan` prints the preview and saves a plan without editing source.
 Review that preview before applying it:
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
@@ -39,5 +40,5 @@ fr author batch --from .fr/author --save-plan
 ```
 After saving, use [Workflow](workflow.md) to apply, check and deliver.
 The saved plan's `transaction` identifies the edit; retain its `transaction_context_basis` too.
-Drift, clipping and overlaps refuse. Limits: 32 operations and 64 KiB fragments.
+Changed source, incomplete selections and overlapping edits refuse. Limits: 32 operations and 64 KiB fragments.
 Use [Semantic](semantic.md) for structured body changes; `fr author guide` lists other operations.
