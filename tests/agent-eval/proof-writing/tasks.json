@@ -1,0 +1,36 @@
+{
+  "scope": "M3 familiar development tasks. Check the fixed model claims; source implementation equivalence remains unproved. Scripted controls supply tactics and are not agent results.",
+  "tasks": {
+    "access-rust": {
+      "request": "Write a Lean proof for the supplied Rust access function. Its model returns true exactly when staff or owner is true. Keep the source, generated definitions, theorem, assumptions and package settings unchanged. Replace only the unfinished proof region, check it with Lean and deliver change.patch. Report the checked model claim separately from the unproved connection to the Rust implementation.",
+      "required_checks": ["All four Boolean input pairs match the source rule.", "The unchanged claim has a Lean-accepted proof with no gaps or unapproved axioms.", "An inverted source rule, a changed claim and an altered dependency cannot reuse the old proof record."]
+    },
+    "page-count": {
+      "request": "Write a Lean proof for the supplied page-count model. Prove the unchanged theorem: negative item counts or nonpositive page sizes give -1; valid signed-64 inputs give a page count between zero and the item count; eleven items at five per page give three pages. Keep the source, generated definitions, theorem, assumptions and package settings unchanged. Replace only the unfinished proof region, check it with Lean and deliver change.patch. Report what is proved about the model and what remains unproved about the Rust program.",
+      "arithmetic": "Rust i64 ranges from -9223372036854775808 to 9223372036854775807. The Lean Int model uses unbounded mathematical integers and division that truncates toward zero. The guarded source excludes division by zero. The checked bounds imply that the result fits in i64 for admitted inputs; they are not a general proof of source translation.",
+      "required_checks": ["The source and model agree on invalid, rounding and signed-64 boundary examples.", "Lean checks the fixed page-bounds theorem without gaps or unapproved axioms.", "The submitted patch passes again in a clean receiver checkout."]
+    },
+    "fits-window": {
+      "request": "Write a Lean proof for the supplied fits_window model. Prove the unchanged theorem: it accepts exactly when offset plus count is at most total. An empty range at the end is valid; a range past the end is invalid. Keep the source, generated definitions, theorem, assumptions and package settings unchanged. Replace only the unfinished proof region, check it with Lean and deliver change.patch. Report what is proved about the model and what remains unproved about the Rust program.",
+      "arithmetic": "Rust u64 ranges from zero to 18446744073709551615. The Lean Nat model uses unbounded nonnegative integers; its addition does not wrap. The source checks offset <= total before subtracting. The model theorem holds for all Nat inputs and therefore includes the admitted u64 input domain. This does not establish source implementation equivalence.",
+      "required_checks": ["Independent Rust checks use wider u128 addition to test the full u64 boundaries without wrapping.", "Lean checks both directions of the fixed range condition.", "The submitted patch passes again in a clean receiver checkout."]
+    }
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1,
+    "provider_requests": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "actual_account_charge": null
+  },
+  "repetitions": 2,
+  "setups": ["files", "fr"],
+  "execution": "Run the installed Codex and OpenCode2 CLIs locally under the unchanged workstation guard. Both setups receive identical source, model, theorem and checking commands. Freeze all clients, inputs, instructions, checking tools and successful controls before the first call. Keep all failures and timeouts; never rerun a failed slot.",
+  "publication": "Publish patches and summaries only. Raw CLI records, prompts and credentials stay local.",
+  "completion": "All eight language examples and both numeric properties have checked controls. All 36 real attempts have independently checked outcomes. Each selected profile has at least one accepted result per live task using a contributing fr step. Keep the source/model connection open unless separately proved. The complete milestone and passing CI belong in one PR."
+}

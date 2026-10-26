@@ -1779,6 +1779,7 @@ fn check_prepared_proof(
     }
     if proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?
         != package_inputs
+        || crate::vfs::read_to_string(&prepared.spec)? != prepared.original
     {
         bail!("proof package inputs changed during checking; no receipt was issued.");
     }

@@ -11,6 +11,27 @@ DIRECTORY = Path('tests/agent-eval/proof-writing')
 CASES = json.loads((ROOT / DIRECTORY / 'cases.json').read_text())
 I64_MAX = 9223372036854775807
 U64_MAX = 18446744073709551615
+CONTROL_FLAGS = {'model_proof_checked', 'runtime_checked', 'negative_tactics_rejected',
+                 'protected_inputs_checked', 'receiver_checked', 'handwritten_preserved',
+                 'stale_records_checked'}
+
+
+def validate_controls(value):
+    require(set(value) == {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings', 'cases', 'native'},
+            'M3 needs its complete hosted control receipt')
+    require(value['passed'] is True and value['live_model_calls'] == 0 and
+            isinstance(value['source_commit'], str) and len(value['source_commit']) == 40 and
+            all(character in '0123456789abcdef' for character in value['source_commit']) and
+            isinstance(value['run'], str) and value['run'].isdigit() and value['bindings'],
+            'M3 controls must pass without live model calls and retain their source identities')
+    require(set(value['cases']) == set(CASES), 'M3 requires every named language and numeric case')
+    for case, report in value['cases'].items():
+        require(set(report) == CONTROL_FLAGS | {'source_implementation_proved'} and
+                all(report[name] is True for name in CONTROL_FLAGS) and report['source_implementation_proved'] is False,
+                'unfinished or overstated proof controls: ' + case)
+    require(value['native'] == {'passed': True, 'live_model_calls': 0, 'exchanges': 6},
+            'M3 requires all three native clients with both tool setups')
+    return value
 
 
 def variable(name):
@@ -93,7 +114,8 @@ def prepare(case, binary, project, output):
     property_ = property_for(case, task)
     common.save(output / 'property.json', property_)
     plan = common.fr(binary, project, ['spec', 'plan', target, '--property-from', str(output / 'property.json')], output / 'plan.json')
-    common.fr(binary, project, ['spec', 'scaffold', '--from', str(output / 'plan.json'), '--package', 'specs', '--write'], output / 'scaffold.json')
+    common.save(output / 'formal-plan.json', plan)
+    common.fr(binary, project, ['spec', 'scaffold', '--from', str(output / 'formal-plan.json'), '--package', 'specs', '--write'], output / 'scaffold.json')
     spec = 'specs/FrSpecs/' + plan['kernel']['module'] + '.lean'
     obligation = plan['properties'][0]['name']
     built = common.command(['lake', 'build'], project / 'specs', output / 'initial-package.json')
