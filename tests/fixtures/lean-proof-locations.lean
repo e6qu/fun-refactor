@@ -67,3 +67,12 @@ def nestedLet (n : Nat) : Nat :=
     let count := n
     count + 1
   else n
+
+def appliedLambda : Nat := (fun n : Nat => n + 1) 2
+
+def returnedFunction (flag : Bool) : Nat → Nat :=
+  if flag then fun n => n + 1 else fun n => n
+
+def appliedReturnedFunction : Nat := (returnedFunction true) 2
+
+def infixApplication (offset : Nat) (f : Nat → Nat) (n : Nat) : Nat := offset + f n

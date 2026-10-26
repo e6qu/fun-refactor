@@ -484,29 +484,20 @@ module.exports = grammar({
     // Expressions
     // ============================================================
 
-    _expression: $ => choice($._application_head, $.by),
+    _expression: $ => choice(
+      $._application_head,
+      $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
+      $.if, $.if_let, $.match, $.do, $.by, $.try, $.return, $.as_pattern,
+    ),
 
     _application_head: $ => choice(
       $._atom,
       $.application,
       $.subscript,
-      $.binary_expression,
       $.unary_expression,
       $.explicit,
       // postfix ! and ? are handled by subscript modifier and notation
       $.projection,
-      $.arrow,
-      $.fun,
-      $.quantifier,
-      $.let,
-      $.have,
-      $.if,
-      $.if_let,
-      $.match,
-      $.do,
-      $.try,
-      $.return,
-      $.as_pattern,
     ),
 
     // `try BODY catch x => HANDLER` — term-mode try/catch.
