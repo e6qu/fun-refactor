@@ -1,6 +1,8 @@
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
 use fun_refactor::model::SymbolId;
+#[path = "common/lean_reference_corrections.rs"]
+mod lean_reference_corrections;
 
 fn original_count(index: &Index, ids: &[SymbolId]) -> usize {
     let mut remaining = ids.to_vec();
@@ -94,6 +96,11 @@ fn measure_resolution() {
         Index::build_from_sources(&sources).unwrap()
     };
     let build_seconds = start.elapsed().as_secs_f64();
+    let removed_wildcard_references = if workload == "repository" {
+        lean_reference_corrections::ignored_rcases_wildcards(&index, &root)
+    } else {
+        Vec::new()
+    };
     for symbol in &mut index.symbols {
         if let Ok(path) = symbol.file.strip_prefix(&root) {
             symbol.file = path.to_path_buf();
@@ -107,7 +114,8 @@ fn measure_resolution() {
     let answers = serde_json::to_vec(&(&index.symbols, &index.references)).unwrap();
     let report = json!({"workload": workload, "symbols": index.symbols.len(),
         "references": index.references.len(), "answer_bytes": answers.len(),
-        "answer_sha256": hex::encode(Sha256::digest(&answers)), "build_seconds": build_seconds});
+        "answer_sha256": hex::encode(Sha256::digest(&answers)), "build_seconds": build_seconds,
+        "removed_wildcard_references": removed_wildcard_references});
     std::fs::write(
         std::env::var("FR_RESOLUTION_OUTPUT").unwrap(),
         serde_json::to_vec_pretty(&report).unwrap(),

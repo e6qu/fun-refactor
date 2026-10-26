@@ -60,7 +60,11 @@ jobs:
           python3 -B tools/project-session-cost.py --collect
           --fr target/release/fr --output "$RUNNER_TEMP/project-session-cost"
       - name: Retain the audited collection and update current tracking
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
+          git fetch --no-tags origin "refs/heads/$BRANCH"
+          git merge --ff-only FETCH_HEAD
           python3 -B tools/publish-project-session-cost.py --collection "$RUNNER_TEMP/project-session-cost"
           python3 -B tools/roadmap-status.py --write
           python3 -B tests/agent-eval/test_roadmap_status.py

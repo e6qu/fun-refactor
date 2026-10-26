@@ -14,10 +14,12 @@ import tempfile
 import time
 
 from evidence_basis import native_bindings
+from lean_reference_corrections import check_snapshot, wildcard_sites
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-consumers/task.json"
 BINDINGS = ["tests/index_consumers.rs", "tests/reference_storage.rs",
+            "tests/common/lean_reference_corrections.rs", "tools/lean_reference_corrections.py",
             "tests/agent-eval/index-consumers/task.json", "tests/agent-eval/index-consumers/ignored-wildcards.lean", "tools/index-consumers-acceptance.py",
             "tools/evidence_basis.py", "src/index.rs", "src/index/references.rs",
             "src/model.rs", "src/extract.rs", "src/parse.rs", "src/scan.rs", "Cargo.lock"]
@@ -25,17 +27,6 @@ BINDINGS = ["tests/index_consumers.rs", "tests/reference_storage.rs",
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
-
-def wildcard_sites(revision):
-    task = json.loads(TASK.read_text())
-    assert revision == task['baseline']
-    correction = task['reference_correction']
-    source = (TASK.parent / correction['fixture']).read_bytes()
-    assert hashlib.sha256(source).hexdigest() == correction['sha256']
-    pattern = re.compile(rb'(?m)\brcases\b[^\n]*?\bwith[ \t]+(_)[ \t]*\|')
-    return [{'file': correction['file'], 'span': {'start': match.start(1), 'end': match.end(1)}}
-            for match in pattern.finditer(source)]
 
 
 def verify(path):
@@ -46,7 +37,7 @@ def verify(path):
     assert report["bindings"] == native_bindings(ROOT, BINDINGS)
     assert report["baseline_sha256"] == digest(TASK.parent / "baseline.json")
     assert len(report["samples"]) == len(baseline["samples"]) == 3
-    sites = wildcard_sites(report['repository_revision'])
+    sites = wildcard_sites(TASK)
     for before, after in zip(baseline["samples"], report["samples"]):
         portable_fields = ["workload", "symbols", "queries"]
         if after["workload"] != "repository":
@@ -90,8 +81,7 @@ def main():
         with archive.open("wb") as stream:
             subprocess.run(["git", "archive", task["baseline"]], cwd=ROOT, stdout=stream, check=True)
         subprocess.run(["tar", "-xf", str(archive), "-C", str(snapshot)], check=True)
-        correction = task['reference_correction']
-        assert (snapshot / correction['file']).read_bytes() == (TASK.parent / correction['fixture']).read_bytes()
+        check_snapshot(TASK, snapshot)
         for workload in ["128", "512", "repository"]:
             output = work / "sample.json"
             env = dict(os.environ, FR_CONSUMER_ROOT=str(snapshot), FR_CONSUMER_WORKLOAD=workload,
