@@ -897,6 +897,10 @@
           {
             "type": "⊢",
             "named": false
+          },
+          {
+            "type": "▸",
+            "named": false
           }
         ]
       },
@@ -4387,6 +4391,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -6028,6 +6042,10 @@
   },
   {
     "type": "⊢",
+    "named": false
+  },
+  {
+    "type": "▸",
     "named": false
   },
   {
