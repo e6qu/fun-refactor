@@ -19,7 +19,7 @@ A checksum identifies the expected bytes of each downloaded file.
 The names and checksums come from Ubuntu's [main](https://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.xz)
 and [updates](https://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/Packages.xz) indexes.
 Test setup does not refresh system package repositories. Missing dependencies still fail.
-The `native-tools` group in `refinement-evidence.yml` runs the installation and checks accepted and rejected shell and XML examples on a GitHub runner.
+The [native validator workflow](../.github/workflows/native-validator-tools.yml) checks installation and accepted and rejected shell and XML examples on a GitHub runner.
 
 OpenCode can expose its `build` agent before it finishes discovering project skills.
 The scripted check waits for the `fr` skill within the same ten-second deadline.
