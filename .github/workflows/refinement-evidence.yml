@@ -12,6 +12,7 @@ on:
         default: all
         options:
           - all
+          - m2-submissions
           - model-comparisons
           - checked-outcomes
           - retained-proofs
@@ -116,6 +117,18 @@ concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
+  m2-submissions:
+    if: inputs.group == 'm2-submissions'
+    name: Check all 48 original M2 submissions
+    uses: ./.github/workflows/project-edit-results.yml
+    with:
+      controls_run: ${{ inputs.collection_run }}
+      control_policy: frozen
+      report_mode: collect
+    permissions:
+      contents: read
+      actions: read
+
   project-changes:
     if: startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
