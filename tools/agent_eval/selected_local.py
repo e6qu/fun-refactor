@@ -305,6 +305,15 @@ def freeze(inputs, binaries, runtime, output, milestone):
                     receipt['source_commit'] + ':' + path).stdout).hexdigest() == digest
                     for path, digest in receipt['bindings'].items()), 'proof control source commit differs')
         value['controls'] = receipt
+        value['formal_inputs'] = {}
+        for task in seeds:
+            prepared = json.loads((inputs / task / 'project.json').read_text())
+            require(prepared['original'] == seeds[task]['receipt']['original'], 'fixed proof input differs from its seed')
+            value['formal_inputs'][task] = {name: prepared[name] for name in
+                ('source', 'spec', 'obligation', 'goal_digest', 'assumptions', 'arithmetic')}
+            value['formal_inputs'][task].update(
+                model_sha256=hashlib.sha256(prepared['model'].encode()).hexdigest(),
+                property_sha256=hashlib.sha256(encoded(prepared['property'])).hexdigest())
     value['sha256'] = hashlib.sha256(encoded(value)).hexdigest()
     tasks.save(output / 'plan.json', value)
     return value

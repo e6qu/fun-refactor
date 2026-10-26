@@ -222,7 +222,19 @@ fr --json spec verify specs
 ```
 
 `proof-check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
-inserted tactics and pinned Lean checker. A failed attempt returns structured diagnostics within the selected
+inserted tactics, pinned Lean checker and exact local package inputs through `checker_context_digest`.
+For example, changing an imported access-policy definition expires the old task and receipt even when
+the theorem's own file has not changed. The checker builds that module's current dependencies before
+checking the proposed tactics; an old compiled import cannot stand in for changed source.
+
+The package snapshot includes local `.lean` files, `lakefile.toml`, `lean-toolchain` and
+`lake-manifest.json`. It excludes generated `.lake` data and history. Collection refuses symlinks,
+more than 4,096 directory entries, more than 256 collected files, a file over 1 MiB or a total over 8 MiB.
+These limits bound this check; a larger package needs a deliberately designed check, not a silent omission.
+External dependency contents and the installed compiler remain declared trusted inputs; a package
+fingerprint alone does not prove their correctness.
+
+A failed attempt returns structured diagnostics within the selected
 byte ceiling and no apply action. `spec prove` repeats that Lean check before it prepares history.
 It rejects a leading `by`, proof placeholders, debt markers and ambiguous proof regions. The
 transaction supports `history undo`, `history redo`, plan review and Git patch export. `spec verify`

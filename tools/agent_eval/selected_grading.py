@@ -70,6 +70,8 @@ def command(image, name, mounts, task, milestone):
         '--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700',
         '--tmpfs=/tmp:rw,exec,nosuid,nodev,size=128m,mode=1777',
         '--tmpfs=/review/target:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700']
+    if milestone == 'M3':
+        arguments += ['--env=LEAN_NUM_THREADS=1', '--env=FR_LEAN_JOBS=1']
     for source, destination in mounts:
         require(',' not in str(source) and source.exists(), 'grader mount needs an existing path without commas')
         arguments += ['--mount=type=bind,src=' + str(source) + ',dst=' + destination + ',readonly,bind-recursive=disabled']

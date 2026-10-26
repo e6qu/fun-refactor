@@ -200,6 +200,9 @@ def export(plan_path, review, destination):
         'collection_receipts': {plan['sha256']: plan['source']['commit']}, 'attempts': rows}
     if milestone == 'M2':
         summary['shared_setup'] = plan['shared_setup']
+    elif milestone == 'M3':
+        summary['formal_inputs'] = plan['formal_inputs']
+        summary['proof_trust'] = json.loads((local.ROOT / 'tests/agent-eval/proof-writing/checkers.json').read_text())
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
 

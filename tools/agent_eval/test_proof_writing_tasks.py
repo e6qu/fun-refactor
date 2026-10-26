@@ -54,13 +54,17 @@ class ProofWritingTasks(unittest.TestCase):
             'bindings': {'source': 'b' * 64},
             'cases': {name: {**{flag: True for flag in tasks.CONTROL_FLAGS}, 'source_implementation_proved': False}
                       for name in tasks.CASES},
-            'native': {'passed': True, 'live_model_calls': 0, 'exchanges': 6}}
+            'native': {'passed': True, 'live_model_calls': 0, 'exchanges': 6},
+            'private': {'passed': True, 'live_model_calls': 0, 'checked_controls': 18,
+                        'image': 'sha256:' + 'a' * 64, 'image_archive_sha256': 'b' * 64}}
         self.assertEqual(tasks.validate_controls(value), value)
         changes = [lambda row: row.update(live_model_calls=1),
                    lambda row: row['cases'].pop('access-tsx'),
                    lambda row: row['cases']['page-count'].update(model_proof_checked=False),
                    lambda row: row['cases']['fits-window'].update(source_implementation_proved=True),
-                   lambda row: row['native'].update(exchanges=5)]
+                   lambda row: row['native'].update(exchanges=5),
+                   lambda row: row['private'].update(checked_controls=17),
+                   lambda row: row['private'].update(image='mutable-image-tag')]
         for change in changes:
             invalid = copy.deepcopy(value)
             change(invalid)

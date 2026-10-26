@@ -17,7 +17,7 @@ CONTROL_FLAGS = {'model_proof_checked', 'runtime_checked', 'negative_tactics_rej
 
 
 def validate_controls(value):
-    require(set(value) == {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings', 'cases', 'native'},
+    require(set(value) == {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings', 'cases', 'native', 'private'},
             'M3 needs its complete hosted control receipt')
     require(value['passed'] is True and value['live_model_calls'] == 0 and
             isinstance(value['source_commit'], str) and len(value['source_commit']) == 40 and
@@ -31,6 +31,12 @@ def validate_controls(value):
                 'unfinished or overstated proof controls: ' + case)
     require(value['native'] == {'passed': True, 'live_model_calls': 0, 'exchanges': 6},
             'M3 requires all three native clients with both tool setups')
+    private = value['private']
+    require(set(private) == {'passed', 'live_model_calls', 'checked_controls', 'image', 'image_archive_sha256'} and
+            private['passed'] is True and private['live_model_calls'] == 0 and private['checked_controls'] == 18 and
+            re.fullmatch(r'sha256:[0-9a-f]{64}', private['image']) is not None and
+            re.fullmatch(r'[0-9a-f]{64}', private['image_archive_sha256']) is not None,
+            'M3 requires all eighteen private patch controls and the exact isolated checker image')
     return value
 
 
@@ -148,6 +154,7 @@ def boundaries(project, prepared):
     current, original = common.sources(project), prepared['original']
     changed = {name for name in current.keys() | original.keys() if current.get(name) != original.get(name)}
     require(changed <= {prepared['spec']}, 'change only the one declared proof region')
+    require(current[prepared['spec']]['mode'] == original[prepared['spec']]['mode'], 'keep the proof file mode unchanged')
     require(masked_proof((project / prepared['spec']).read_text(), prepared['obligation']) == prepared['protected_proof'],
             'keep source, model, property, assumptions and unrelated proof regions unchanged')
     return sorted(changed)

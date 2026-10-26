@@ -31,8 +31,15 @@ def combine(artifacts, commit, run, bindings):
     require(native['passed'] is True and native['live_model_calls'] == 0 and
             set(native['exchanges']) == expected and all(row['status'] == 'passed' for row in native['exchanges'].values()),
             'all six native clients must finish their scripted exchanges')
+    from .proof_writing_results import TASKS, VARIANTS
+    private = json.loads((artifacts / 'm3-private-controls/summary.json').read_text())
+    expected_private = {task + '-' + variant for task in TASKS for variant in VARIANTS}
+    require(set(private['controls']) == expected_private and
+            all(row == {'status': 'passed', 'accepted': identity.endswith('-reference')}
+                for identity, row in private['controls'].items()), 'all eighteen independent patch controls must pass')
     return tasks.validate_controls({'passed': True, 'live_model_calls': 0, 'source_commit': commit, 'run': run,
-        'bindings': bindings, 'cases': cases, 'native': {'passed': True, 'live_model_calls': 0, 'exchanges': len(expected)}})
+        'bindings': bindings, 'cases': cases, 'native': {'passed': True, 'live_model_calls': 0, 'exchanges': len(expected)},
+        'private': {key: private[key] for key in ('passed', 'live_model_calls', 'checked_controls', 'image', 'image_archive_sha256')}})
 
 
 if __name__ == '__main__':

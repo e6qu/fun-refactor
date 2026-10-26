@@ -10,6 +10,15 @@ on:
         description: Build the macOS executable for local agent attempts
         required: true
         type: boolean
+      check_results:
+        description: Grade the published 36 attempts instead of running preparation controls
+        required: true
+        type: boolean
+      report_mode:
+        description: Collect initial verdicts or check the completed public report
+        required: true
+        type: choice
+        options: [collect, check]
   workflow_call:
 permissions:
   contents: read
@@ -18,8 +27,51 @@ concurrency:
   group: m3-proof-writing-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  published:
+    name: Select the original published proof comparison
+    if: github.event_name == 'workflow_call' || inputs.check_results
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tool_run: ${{ steps.inputs.outputs.tool_run }}
+      controls_run: ${{ steps.inputs.outputs.controls_run }}
+      report_mode: ${{ steps.inputs.outputs.report_mode }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tests/agent-eval/proof-writing/local-results
+      - name: Read the exact frozen controls and requested build
+        id: inputs
+        env:
+          M3_TOOL_RUN: ${{ inputs.tool_run }}
+          M3_REPORT_MODE: ${{ inputs.report_mode }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          summary = json.loads(Path('tests/agent-eval/proof-writing/local-results/summary.json').read_text())
+          assert summary['study'] == 'M3'
+          controls = summary['controls']['run']
+          if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch':
+              tool, mode = os.environ['M3_TOOL_RUN'], os.environ['M3_REPORT_MODE']
+          else:
+              tool, mode = os.environ['GITHUB_RUN_ID'], 'check'
+          assert controls.isdigit() and tool.isdigit() and mode in {'collect', 'check'}
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
+              stream.write(f'tool_run={tool}\ncontrols_run={controls}\nreport_mode={mode}\n')
+          PY
+  results:
+    name: Independently check the delivered M3 proofs
+    needs: [published, model]
+    if: always() && !cancelled() && needs.published.result == 'success' && (needs.model.result == 'success' || inputs.check_results)
+    uses: ./.github/workflows/proof-writing-results.yml
+    with:
+      tool_run: ${{ needs.published.outputs.tool_run }}
+      controls_run: ${{ needs.published.outputs.controls_run }}
+      report_mode: ${{ needs.published.outputs.report_mode }}
   macos-tool:
-    if: github.event_name != 'workflow_dispatch' || inputs.build_macos
+    if: github.event_name != 'workflow_dispatch' || (!inputs.check_results && inputs.build_macos)
     name: Build the exact fr binary for local proof attempts
     runs-on: macos-15
     timeout-minutes: 15
@@ -53,7 +105,7 @@ jobs:
           retention-days: 30
   receipt:
     name: Require every proof, source and native-client control
-    needs: [protocol, cases, source-runtime, native]
+    needs: [protocol, cases, source-runtime, native, private]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
@@ -74,6 +126,10 @@ jobs:
         with:
           pattern: m3-source-runtime-*
           path: ${{ runner.temp }}/m3-controls
+      - uses: actions/download-artifact@v8
+        with:
+          name: m3-private-controls
+          path: ${{ runner.temp }}/m3-controls/m3-private-controls
       - run: >-
           python3 -B -m agent_eval.proof_writing_collect
           --artifacts "$RUNNER_TEMP/m3-controls" --output "$RUNNER_TEMP/m3-controls/controls.json"
@@ -84,6 +140,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   protocol:
+    if: github.event_name != 'workflow_dispatch' || !inputs.check_results
     name: Check proof schedules and artifact identity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -100,10 +157,12 @@ jobs:
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_proof_writing*.py'
           python3 -B tools/agent_eval/test_selected_local.py
           python3 -B tools/agent_eval/test_selected_plan.py
+          python3 -B tools/agent_eval/test_selected_public.py
+          python3 -B tools/agent_eval/test_selected_grading.py
   native:
     name: Check all six native client and tool exchanges
     needs: model
-    if: always() && !cancelled() && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
+    if: always() && !cancelled() && !inputs.check_results && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -145,7 +204,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   model:
-    if: github.event_name != 'workflow_dispatch' || inputs.tool_run == 'build'
+    if: github.event_name != 'workflow_dispatch' || (!inputs.check_results && inputs.tool_run == 'build')
     name: Check early returns and numeric proof models
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -188,7 +247,75 @@ jobs:
           path: target/debug/fr
           if-no-files-found: error
           retention-days: 30
+  private:
+    name: Reject bad proof patches in isolated receivers
+    needs: [model, cases]
+    if: always() && !cancelled() && needs.cases.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      FR_LEAN_JOBS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/lean-toolchain
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: m3-prepared-*
+          path: ${{ runner.temp }}/m3-private-inputs
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: m3-proof-controls-*
+          path: ${{ runner.temp }}/m3-private-inputs
+      - uses: actions/download-artifact@v8
+        with:
+          name: m3-linux-tool
+          path: ${{ runner.temp }}/m3-tool
+          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build' && inputs.tool_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify the explicit build before using it
+        if: github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M3_TOOL_RUN: ${{ inputs.tool_run }}
+        run: >-
+          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-private-build.json"
+      - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
+      - name: Exercise eighteen positive and negative patch deliveries without model calls
+        run: >-
+          python3 -B -m agent_eval.proof_writing_results controls
+          --inputs "$RUNNER_TEMP/m3-private-inputs" --fr "$RUNNER_TEMP/m3-tool/fr"
+          --output "$RUNNER_TEMP/m3-private"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m3-private-controls
+          path: |
+            ${{ runner.temp }}/m3-private/summary.json
+            ${{ runner.temp }}/m3-private/*/result.json
+            ${{ runner.temp }}/m3-private/*/grader.stdout
+            ${{ runner.temp }}/m3-private/*/grader.stderr
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m3-private-grader-image
+          path: ${{ runner.temp }}/m3-private/grader-image.tar.gz
+          if-no-files-found: error
+          retention-days: 30
   source-runtime:
+    if: github.event_name != 'workflow_dispatch' || !inputs.check_results
     name: Execute the source independently (${{ matrix.case }})
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -223,7 +350,7 @@ jobs:
   cases:
     name: Prepare the fixed proof claim (${{ matrix.case }})
     needs: model
-    if: always() && !cancelled() && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
+    if: always() && !cancelled() && !inputs.check_results && (needs.model.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tool_run != 'build'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
@@ -263,6 +390,9 @@ jobs:
         run: >-
           python3 -B -m agent_eval.proof_writing_controls --case '${{ matrix.case }}'
           --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-case"
+      - name: Execute the complete published access-rule lesson
+        if: matrix.case == 'access-rust'
+        run: python3 -B tools/reader_proof_example.py --fr "$RUNNER_TEMP/m3-tool/fr"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

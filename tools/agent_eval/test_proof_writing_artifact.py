@@ -15,8 +15,8 @@ class ArtifactIdentity(unittest.TestCase):
         def command(argv):
             if argv[0] == 'gh':
                 if '/jobs?' in argv[-1]:
-                    return json.dumps({'jobs': [{'name': 'Check early returns and numeric proof models', 'conclusion': conclusion}]})
-                return json.dumps({'head_sha': 'a' * 40})
+                    return json.dumps([{'jobs': [{'name': 'Check early returns and numeric proof models', 'conclusion': conclusion}]}])
+                return json.dumps({'head_sha': 'a' * 40, 'head_repository': {'full_name': 'example/project'}})
             if 'fetch' in argv:
                 return ''
             if changed and argv[-1].startswith('a' * 40 + ':'):

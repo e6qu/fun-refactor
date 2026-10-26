@@ -29,14 +29,19 @@ There is no shared enforceable token/request cap, and actual billing is unknown.
 M2's [latest comparison](../tests/agent-eval/project-edits/local-results/README.md) has 43 accepted attempts and five retained timeouts.
 All 48 patches passed independent checks. Every agent has an accepted result per task using a contributing fr step.
 The implementation, runnable examples, private controls and all four complete comparisons belong in one M2 PR.
-The full PR CI gate remains the final validation before review.
+The M2 PR passed its full CI gate and was merged.
 
 The [task guide](../tests/agent-eval/project-edits/README.md) links all 192 M2 attempts and explains the fixes.
 The supplied regex command now checks actual text, byte counts, allocations and append behavior with an explicitly unoptimized build.
 Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
 Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
 
-M3 is next. Start with the complete Boolean proof-writing lesson, then the named language cases and two numeric tasks in PLAN.md.
+M3 is in progress on `milestone/agent-lean-proofs`. The [task guide](../tests/agent-eval/proof-writing/README.md)
+lists the access-rule lesson, eight language examples, two numeric tasks and exact validation steps.
+Early-return guards, truncating integer division, dependency-sensitive proof receipts and preservation
+of handwritten theorems are implemented on that branch. The latter fixes a defect found by the new controls.
+Complete all ten source/proof controls, six native exchanges and eighteen isolated patch controls
+before freezing and running the 36 real attempts. No M3 agent outcome is claimed by the scripted controls.
 Keep its implementation, examples, real attempts and results in one milestone PR.
 Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
 

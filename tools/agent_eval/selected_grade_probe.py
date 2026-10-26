@@ -124,6 +124,12 @@ def run(task, milestone):
                 'private compiler versions differ from their explicit pins')
         verdict = cases.check(task, changed, prepared, checkers, root / 'changed-checks')
     elif milestone == 'M3':
+        settings = json.loads((cases.ROOT / cases.DIRECTORY / 'checkers.json').read_text())
+        result['checker_versions'] = {name: subprocess.check_output([name, '--version'], text=True, timeout=10).strip()
+                                      for name in ('lean', 'lake', 'rustc', 'python3')}
+        require(result['checker_versions']['lean'].startswith('Lean (version ' + settings['lean'] + ',') and
+                result['checker_versions']['rustc'].startswith('rustc ' + settings['hosted_rust'] + ' '),
+                'private proof checker differs from the pinned Lean and Rust versions')
         verdict = cases.check(changed, prepared, binary, root / 'changed-checks')
     else:
         verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')

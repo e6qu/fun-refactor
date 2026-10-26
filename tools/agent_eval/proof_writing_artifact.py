@@ -18,8 +18,11 @@ def verify(run, binary):
     require(binary.is_file() and not binary.is_symlink(), 'the downloaded fr executable is missing or linked')
     repository = os.environ['GITHUB_REPOSITORY']
     metadata = json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run}']))
-    jobs = json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run}/jobs?per_page=100']))['jobs']
-    builders = [row for row in jobs if row['name'] == 'Check early returns and numeric proof models']
+    require(metadata['head_repository']['full_name'] == repository, 'reuse a build from this repository')
+    pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', f'repos/{repository}/actions/runs/{run}/jobs?per_page=100']))
+    jobs = [job for page in pages for job in page['jobs']]
+    builder = 'Check early returns and numeric proof models'
+    builders = [row for row in jobs if row['name'] == builder or row['name'].endswith('/ ' + builder)]
     require(len(builders) == 1 and builders[0]['conclusion'] == 'success', 'the chosen fr build and model tests must pass')
     commit = metadata['head_sha']
     require(len(commit) == 40 and all(char in '0123456789abcdef' for char in commit), 'build source commit is malformed')
