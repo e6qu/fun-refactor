@@ -769,11 +769,14 @@ module.exports = grammar({
     ),
 
     // Most tactics: `intro n`, `simp [lemma]`, `apply foo`, `exact bar`, `omega`
+    // One term already includes applications such as `f x y`. Repeating full
+    // terms also admits every partition of that application into arguments,
+    // multiplying parser states without describing another Lean construct.
     tactic_apply: $ => prec.right(PREC.app, seq(
       field('tactic', $.identifier),
-      repeat(field('arg', choice(
-        $._expression, $.tactic_config, 'at', '⊢',
-      ))),
+      optional('only'),
+      optional(field('arg', choice($._expression, $.tactic_config))),
+      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
     )),
 
     // `by_cases h : proposition` and `by_cases proposition`.
