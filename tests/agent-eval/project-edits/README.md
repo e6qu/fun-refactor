@@ -33,7 +33,10 @@ Regex checks include Unicode byte counts, allocation counts, upstream tests and 
 These results check the task machinery.
 The first 48 local attempts are recorded: 33 CLIs completed within the limits and 15 timed out.
 Their 34 submitted patches include one from a timed-out attempt, which stays failed even if its patch passes.
-The [independent check](https://github.com/e6qu/fun-refactor/actions/runs/40255330402) is pending.
+All twelve [independent grading jobs](https://github.com/e6qu/fun-refactor/actions/runs/40255330402) passed: 33 attempts succeeded and 15 failed.
+All 34 delivered patches passed their checks; the timed-out delivery still counts as a failed attempt.
+The final report job could not create its output directory. The fix combines the existing verdicts without repeating compilation.
+Read the [original results and measured overhead](first-results/README.md).
 No failed slot was retried. Full native records stay local; the public files contain patches and summaries only.
 
 The fr delivery checks also exercise competing edits, failed-check diagnostics, exact bytes outside previewed ranges and undo/redo.
@@ -67,3 +70,22 @@ The native process receives only the time remaining after preparation. Missing t
 Outer guard admission and Python startup precede the controller timer; report that unmeasured time explicitly.
 Compare elapsed time and reported tokens against the same agent doing the same task with ordinary tools.
 This measures the cost of completing a code change; it does not measure the modified application's execution speed.
+
+## Check the corrected instructions separately
+
+The original comparison did not meet M2: every GLM attempt with fr timed out, as did both Kimi regex attempts.
+Some agents read extra guides, repeated passed checks or reached the deadline before exporting a patch.
+An example filename ending in `.json` could invalidate a saved preview, even inside the ignored `.fr` directory.
+
+The second comparison fixes all 48 slots before its first call. It keeps the same models, reasoning settings,
+tasks, order, checks, two repetitions and 150-second limit. Each attempt starts with a fresh project and conversation.
+The instructions now state that deadline, reserve time for patch delivery, and avoid repeating completed checks.
+The fr setup requires at least one step that contributes to the delivered change; the original setup only made fr available.
+The guides save and preview an author plan in one call, use concrete extensionless filenames and include patch output.
+A local Rust helper could not find its existing LLVM library; its repaired library path now passes a preflight check.
+The original records retain that warning. The second plan records the helper and library hashes.
+
+These are combined instruction and setup changes. Comparing the two studies cannot attribute an improvement to one change.
+Within each study, the baseline remains the same agent using ordinary tools on the same request.
+Keep every outcome in both studies. Do not rerun failed original slots, extend limits or substitute a stronger model.
+M2 still needs an accepted, contributing fr result for each of the twelve agent/request pairs.
