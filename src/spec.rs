@@ -1986,9 +1986,10 @@ fn proof_package_inputs(
             if inputs.len() >= 256 {
                 bail!("proof package inputs exceed 256 files or 1 MiB per file.");
             }
+            let current = crate::vfs::read_to_string_bounded(&path, 1024 * 1024)?;
             let mut text = match replacement {
                 Some((selected, source)) if path == selected => source.to_string(),
-                _ => crate::vfs::read_to_string_bounded(&path, 1024 * 1024)?,
+                _ => current,
             };
             if text.len() > 1024 * 1024 {
                 bail!("proof package source exceeds 1 MiB while reading.");
@@ -4800,6 +4801,14 @@ mod tests {
         let too_many_bytes = crate::vfs::new_handle(
             (0..9).map(|index| (root.join(format!("{index}.lean")), "x".repeat(1024 * 1024))),
         );
+        crate::vfs::with_handle(&oversized, || {
+            assert!(super::proof_package_inputs(
+                root,
+                Some((&root.join("Big.lean"), "small")),
+                true
+            )
+            .is_err());
+        });
         for handle in [oversized, too_many_files, too_many_entries, too_many_bytes] {
             crate::vfs::with_handle(&handle, || {
                 assert!(super::proof_package_inputs(root, None, true).is_err())
