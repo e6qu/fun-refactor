@@ -91,8 +91,9 @@ Keep every outcome in both studies. Do not rerun failed original slots, extend l
 M2 still needs an accepted, contributing fr result for each of the twelve agent/request pairs.
 
 The second comparison has finished: 43 clients completed, five timed out and 44 patches were delivered.
-Its [patches and summary](local-results/summary.json) retain all 48 outcomes.
-The [independent grading run](https://github.com/e6qu/fun-refactor/actions/runs/40265093558) is checking them.
+Its [checked results, patches and summary](guided-results/README.md) retain all 48 outcomes.
+All twelve [independent grading jobs](https://github.com/e6qu/fun-refactor/actions/runs/40265093558) finished: 40 attempts passed and eight failed.
+Five clients timed out, and three delivered patches failed the allocation check: escaping allocated twice instead of at most once.
 GLM completed Rust, TypeScript and Python with fr in both repetitions but timed out on regex.
 Kimi's first regex deliveries omit the allocation change. Its final fr regex workflow delivered a patch at about 148 seconds,
 then the client missed the unchanged 150-second deadline. A delivered patch cannot turn that timeout into a completed attempt.
@@ -100,3 +101,10 @@ then the client missed the unchanged 150-second deadline. A delivered patch cann
 After collection, the author guide now names concrete fragment files and explains that their paths start at the project root.
 Its example checker uses the actual documented JSON rather than substituting a different manifest with absolute file paths.
 The guide also explains how discovery's row values match its column names. These corrections do not rewrite either comparison.
+
+The next full comparison will present each existing request sentence as a separate requirement.
+It will also give the attempt's actual start and deadline as Unix seconds, a time value available from `date +%s`.
+The deadline still starts before preparation. Agents must finish tool work ten seconds before it,
+leaving that time for the client response and accounting within the same 150 seconds.
+This changes the instructions, alongside the corrected guide. Keep both completed comparisons and every new outcome.
+The models, reasoning settings, tasks, independent checks, two repetitions, order and hard limits stay fixed.

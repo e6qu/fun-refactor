@@ -5,7 +5,7 @@ on:
       comparison:
         description: Original instructions or the fixed-instruction comparison
         type: choice
-        options: [first-results, local-results]
+        options: [first-results, guided-results, local-results]
         required: true
       controls_run:
         description: Successful private-control run containing the grader and compiler cache
@@ -65,7 +65,7 @@ jobs:
       - name: Require an explicit comparison directory
         run: |
           case "$M2_COMPARISON" in
-            first-results|local-results) ;;
+            first-results|guided-results|local-results) ;;
             *) exit 1 ;;
           esac
       - uses: actions/checkout@v7
@@ -140,7 +140,7 @@ jobs:
       - name: Require an explicit comparison directory
         run: |
           case "$M2_COMPARISON" in
-            first-results|local-results) ;;
+            first-results|guided-results|local-results) ;;
             *) exit 1 ;;
           esac
       - uses: actions/checkout@v7

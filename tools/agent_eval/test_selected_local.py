@@ -105,6 +105,30 @@ class SelectedLocalTests(unittest.TestCase):
             self.assertIn('change.patch', prompt)
             self.assertIn('Do not start a nested guard', prompt)
 
+    def test_each_m2_requirement_stays_visible_and_unchanged(self):
+        from agent_eval import project_edits_tasks as cases
+        checkers = {name: {'path': '/' + name} for name in ('python', 'cargo', 'rustc', 'node', 'typescript')}
+        for task in cases.TASKS:
+            for setup in ('files', 'fr'):
+                with self.subTest(task=task, setup=setup):
+                    prompt = local.prompt(task, setup, checkers, 'M2')
+                    listed = prompt.split('\n\n', 1)[0].splitlines()
+                    self.assertEqual(listed[0], 'Complete every requirement:')
+                    self.assertTrue(all(line.startswith('- ') for line in listed[1:]))
+                    self.assertEqual(' '.join(line[2:] for line in listed[1:]), cases.TASKS[task]['request'])
+                    self.assertIn('150-second deadline', prompt)
+
+    def test_execution_clock_keeps_preparation_inside_the_original_deadline(self):
+        prompt = local.execution_prompt('Frozen request.', started_at=1000.125,
+                                        wall_seconds=150, finish_seconds=10)
+        self.assertIn('start 1000.125; finish tools by 1140.125', prompt)
+        self.assertIn('response and session accounting by 1150.125', prompt)
+        self.assertTrue(prompt.endswith('Frozen request.'))
+        for finishing in (0, 150, 180):
+            with self.assertRaisesRegex(ValueError, 'within the attempt deadline'):
+                local.execution_prompt('Frozen request.', started_at=1000.125,
+                                       wall_seconds=150, finish_seconds=finishing)
+
     def test_v2_export_pins_model_variant_and_agrees_with_stream_usage(self):
         profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}
         saved = {'info': {'id': 'ses_example', 'agent': 'build', 'model': profile['model'], 'outcome': 'succeeded'},

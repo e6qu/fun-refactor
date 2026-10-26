@@ -64,10 +64,14 @@ def prompt(task, setup, checkers, milestone):
         checks = [shlex.join(row['argv']) for row in cases.public_checks(task,
                   {name: value['path'] for name, value in checkers.items()})]
         request = cases.TASKS[task]['request']
+        request = ('Complete every requirement:\n' + '\n'.join(
+            '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
     return (request + '\n\n'
         f'The whole attempt has a {LIMITS["wall_seconds"]}-second deadline, including preparation, '
         'model work, tools, checks, patch delivery and final session accounting. '
         'Leave time to deliver change.patch and finish the session. '
+        'Review the complete patch against every requested requirement. A compile check alone does not establish '
+        'runtime behavior or allocation limits. Keep requested documentation concise; omit optional extra examples. '
         'Run the supplied checks once; do not repeat checks already passed by fr workflow or add optional checks before delivery. '
         'Complete this task independently in the current project. Ordinary reading, search, editing and shell tools '
         'are available. Do not browse the Internet, inspect the experiment or other attempts, delegate, call another '
@@ -84,6 +88,16 @@ def prompt(task, setup, checkers, milestone):
         + 'Available project checking commands:\n' + '\n'.join(checks) + '\n'
         'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. '
         'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
+
+
+def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
+    require(0 < finish_seconds < wall_seconds, 'reserve explicit client finishing time within the attempt deadline')
+    deadline = started_at + wall_seconds
+    return (f'Attempt clock (Unix seconds): start {started_at:.3f}; '
+        f'finish tools by {deadline - finish_seconds:.3f}; '
+        f'finish the response and session accounting by {deadline:.3f}.\n'
+        'Use date +%s alongside necessary shell commands to check remaining time. '
+        'Keep the final response concise.\n\n' + frozen_prompt)
 
 
 def unpack(archive, receipt, project):
@@ -339,7 +353,8 @@ def attempt(plan_path, attempt_id):
             config = configuration(profile, row['setup'], project)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
-        prompt_text = value['prompts'][attempt_id]
+        prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
+                                       wall_seconds=LIMITS['wall_seconds'], finish_seconds=10)
         (output / 'prompt.txt').write_text(prompt_text)
         argv, stdin = invocation(profile, value['binaries'], project, output, prompt_text, 'workspace-write')
         tasks.save(output / 'command.json', argv)
