@@ -252,6 +252,36 @@ jobs:
     permissions:
       contents: read
 
+  project-edit-results:
+    name: All 48 current M2 outcomes
+    needs: project-edit-private
+    uses: ./.github/workflows/project-edit-results.yml
+    with:
+      comparison: local-results
+      controls_run: ${{ github.run_id }}
+      control_policy: fresh
+      report_mode: check
+    permissions:
+      contents: read
+      actions: read
+
+  project-edit-archives:
+    name: Preserve earlier M2 outcomes (${{ matrix.comparison }})
+    needs: project-edit-private
+    strategy:
+      fail-fast: false
+      matrix:
+        comparison: [first-results, guided-results, clocked-results]
+    uses: ./.github/workflows/project-edit-results.yml
+    with:
+      comparison: ${{ matrix.comparison }}
+      controls_run: ${{ github.run_id }}
+      control_policy: fresh
+      report_mode: archive
+    permissions:
+      contents: read
+      actions: read
+
   agent-study:
     name: Independent agent study accounting
     runs-on: ubuntu-latest
@@ -450,7 +480,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
+    needs: [native, static, agent-study, selected-agents, project-edit-controls, project-edit-delivery, project-edit-private, project-edit-results, project-edit-archives, code-change-graders, toolchain, go-toolchain, original-package-questions, project-changes, current-project-changes, current-session-cost]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -464,6 +494,8 @@ jobs:
           PROJECT_EDIT_CONTROLS: ${{ needs.project-edit-controls.result }}
           PROJECT_EDIT_DELIVERY: ${{ needs.project-edit-delivery.result }}
           PROJECT_EDIT_PRIVATE: ${{ needs.project-edit-private.result }}
+          PROJECT_EDIT_RESULTS: ${{ needs.project-edit-results.result }}
+          PROJECT_EDIT_ARCHIVES: ${{ needs.project-edit-archives.result }}
           CODE_CHANGE_GRADERS: ${{ needs.code-change-graders.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           GO_TOOLCHAIN: ${{ needs.go-toolchain.result }}
@@ -479,6 +511,8 @@ jobs:
           test "$PROJECT_EDIT_CONTROLS" = success &&
           test "$PROJECT_EDIT_DELIVERY" = success &&
           test "$PROJECT_EDIT_PRIVATE" = success &&
+          test "$PROJECT_EDIT_RESULTS" = success &&
+          test "$PROJECT_EDIT_ARCHIVES" = success &&
           test "$CODE_CHANGE_GRADERS" = success &&
           test "$TOOLCHAIN" = success &&
           test "$GO_TOOLCHAIN" = success &&

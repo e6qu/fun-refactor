@@ -11,6 +11,8 @@ The current roadmap targets Codex with Luna Fast and OpenCode2 with GLM-5.3-Flas
 The aim is more correct results within explicit time and spending limits.
 The first [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) records rename, Unicode repair and proof outcomes,
 including failures and the extra time observed with `fr`. The [plan](PLAN.md) names the next complete milestone.
+The [four-change comparison](tests/agent-eval/project-edits/README.md) records the ongoing work on Rust callers,
+TypeScript imports, escaped-text allocation and a Python repair, including the remaining failed cases.
 The [retained results](docs/roadmap-status.md) keep earlier checks and unfinished claims visible.
 The [measurement guide](docs/benchmarks.md) explains what we compare, the extra work introduced by `fr`, and what remains unmeasured.
 
