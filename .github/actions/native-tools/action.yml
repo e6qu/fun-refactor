@@ -36,8 +36,8 @@ runs:
           echo "$validator_sha  $validator_archive" | sha256sum -c -
           validator_archives+=("$validator_archive")
         done < .github/actions/native-tools/ubuntu-packages.txt
-        sudo env DEBIAN_FRONTEND=noninteractive timeout 240 apt-get install \
-          --yes --no-download --no-install-recommends "${validator_archives[@]}"
+        sudo env DEBIAN_FRONTEND=noninteractive timeout 240 dpkg --install \
+          "${validator_archives[@]}"
         zsh --version
         xmllint --version
     - name: Install the validators the gate drives
