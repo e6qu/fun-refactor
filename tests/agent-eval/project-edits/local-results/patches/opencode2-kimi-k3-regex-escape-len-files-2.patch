@@ -1,0 +1,46 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..f161538 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -206,6 +206,19 @@ pub fn escape(text: &str) -> String {
+     quoted
+ }
+ 
++/// Returns the UTF-8 byte length of the escaped form of `text`.
++///
++/// This is the number of bytes that [`escape`] (or [`escape_into`]) would
++/// produce for `text`, computed without allocating a temporary string.
++///
++/// The escaped form of `text` may be safely used as a literal in a regular
++/// expression.
++pub fn escape_len(text: &str) -> usize {
++    text.chars()
++        .map(|c| c.len_utf8() + usize::from(is_meta_character(c)))
++        .sum()
++}
++
+ /// Escapes all meta characters in `text` and writes the result into `buf`.
+ ///
+ /// This will append escape characters into the given buffer. The characters
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..a3a3399 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,17 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the UTF-8 byte length of the escaped form of `pattern`.
++///
++/// This is the number of bytes that [`escape`] would produce for `pattern`,
++/// computed without allocating a temporary string.
++///
++/// The escaped form of `pattern` may be safely used as a literal in a
++/// regular expression.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {
