@@ -19,6 +19,10 @@ from .selected_plan import CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, prepare, 
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
+CLIENT_FINISH_SECONDS = 10
+TOOL_DEADLINE_MARKER = '<ATTEMPT_TOOL_DEADLINE_UNIX>'
+PUBLIC_CHECK_ENVIRONMENT = {'CARGO_BUILD_JOBS': '1', 'CARGO_INCREMENTAL': '0',
+    'CARGO_PROFILE_DEV_DEBUG': '0', 'CARGO_PROFILE_DEV_OPT_LEVEL': '0', 'CARGO_PROFILE_TEST_DEBUG': '0'}
 
 
 def hash_file(path):
@@ -50,6 +54,27 @@ def implementation_bindings(milestone):
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
 
 
+def m2_checks(task, tools, deadline_unix):
+    if task == 'regex-escape-len':
+        from . import project_edits_public as checker
+        return [{'name': 'escape-behavior', 'argv': checker.arguments(tools, deadline_unix)}]
+    from . import project_edits_tasks as cases
+    return cases.public_checks(task, tools)
+
+
+def checking_input_changes(project, expected):
+    changed = []
+    for name, digest in expected.items():
+        path = project / name
+        try:
+            preserved = not path.parent.is_symlink() and not path.is_symlink() and path.is_file() and hash_file(path) == digest
+        except OSError:
+            preserved = False
+        if not preserved:
+            changed.append(name)
+    return sorted(changed)
+
+
 def prompt(task, setup, checkers, milestone):
     if milestone == 'M1':
         python, cargo, lake = [shlex.quote(checkers[name]['path']) for name in ('python', 'cargo', 'lake')]
@@ -61,8 +86,8 @@ def prompt(task, setup, checkers, milestone):
     else:
         require(milestone == 'M2', 'choose an explicit milestone for the attempt prompt')
         from . import project_edits_tasks as cases
-        checks = [shlex.join(row['argv']) for row in cases.public_checks(task,
-                  {name: value['path'] for name, value in checkers.items()})]
+        checks = [shlex.join(row['argv']) for row in m2_checks(task,
+                  {name: value['path'] for name, value in checkers.items()}, TOOL_DEADLINE_MARKER)]
         request = cases.TASKS[task]['request']
         request = ('Complete every requirement:\n' + '\n'.join(
             '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
@@ -80,7 +105,9 @@ def prompt(task, setup, checkers, milestone):
         'Do not start a nested guard, increase limits, or run full fr builds or repository-wide gates. '
         'Run tool commands serially, keeping at most one compiler or fr command active. '
         'Use only small checks for this task. Keep failed checks and limitations in your report. '
-        'Remove temporary source files before delivery; leave unrelated project files unchanged.\n'
+        'Remove only temporary files you created. Preserve provided .fr/checks.json and .fr/check-escape, '
+        'including during cleanup; changing or deleting them makes the attempt fail. '
+        'Leave unrelated project files unchanged.\n'
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
            'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '
            'Ordinary tools remain available for the rest.\n'
@@ -97,7 +124,8 @@ def execution_prompt(frozen_prompt, started_at, wall_seconds, finish_seconds):
         f'finish tools by {deadline - finish_seconds:.3f}; '
         f'finish the response and session accounting by {deadline:.3f}.\n'
         'Use date +%s alongside necessary shell commands to check remaining time. '
-        'Keep the final response concise.\n\n' + frozen_prompt)
+        'Keep the final response concise.\n\n' +
+        frozen_prompt.replace(TOOL_DEADLINE_MARKER, f'{deadline - finish_seconds:.3f}'))
 
 
 def unpack(archive, receipt, project):
@@ -188,7 +216,9 @@ def freeze(inputs, binaries, runtime, output, milestone):
     value = {'source': identity(), 'schedule': proposed, 'binaries': paths, 'components': components, 'versions': versions,
              'seeds': seeds, 'prompts': packets, 'implementation': implementation_bindings(milestone),
              'checkers': checkers, 'checker_versions': checker_versions, 'python_packages': python_packages,
-             'limits': LIMITS, 'outer_guard': '/Users/zardoz/.codex/tools/fr-local-guard.py',
+             'limits': LIMITS, 'client_finish_seconds': CLIENT_FINISH_SECONDS,
+             'public_check_environment': dict(PUBLIC_CHECK_ENVIRONMENT),
+             'outer_guard': '/Users/zardoz/.codex/tools/fr-local-guard.py',
              'execution': 'User-requested local Codex and OpenCode2 CLIs with their existing account stores. No credential transfer.',
              'accounting': {'actual_cost': None, 'estimated_cost': None,
                 'provider_request_cap_enforced': False, 'token_cap_enforced': False,
@@ -296,6 +326,9 @@ def attempt(plan_path, attempt_id):
             'committed native source or study requirements changed')
     require(value['implementation'] == implementation_bindings(milestone), 'study code, skills or checking inputs changed')
     require(value['limits'] == LIMITS, 'local limits changed')
+    require(value['client_finish_seconds'] == CLIENT_FINISH_SECONDS and
+            value['public_check_environment'] == PUBLIC_CHECK_ENVIRONMENT,
+            'public checking settings changed after freezing')
     for binary in [*value['binaries'].values(), *value['components'].values(), *value['checkers'].values()]:
         require(hash_file(Path(binary['path'])) == binary['sha256'], 'a selected native binary changed')
     rows = [row for row in value['schedule']['attempts'] if row['id'] == attempt_id]
@@ -308,11 +341,13 @@ def attempt(plan_path, attempt_id):
               'controller_checkout': checkout,
               'actual_cost': None, 'started_at': entered_at, 'verification_seconds': time.monotonic() - entered,
               'process': None, 'usage': None, 'error': None, 'collection_errors': [],
+              'checking_input_changes': [],
               'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
     tasks.save(output / 'result.json', report)
     started = entered
     project = None
+    checking_inputs = {}
     try:
         project = Path('/private/tmp') / ('fr-' + milestone.lower() + '-' + value['sha256'][:12]) / attempt_id / 'project'
         seed = value['seeds'][row['task']]
@@ -330,23 +365,29 @@ def attempt(plan_path, attempt_id):
         tool_path = [binary_directory, Path(checkers['python']['path']).parent, Path(checkers['rustc']['path']).parent]
         tool_path.append(Path(checkers['lean' if milestone == 'M1' else 'node']['path']).parent)
         env.update(PATH=os.pathsep.join(map(str, tool_path)) + os.pathsep + env['PATH'], PYTHONDONTWRITEBYTECODE='1',
-            CARGO_BUILD_JOBS='1', CARGO_INCREMENTAL='0', CARGO_PROFILE_DEV_DEBUG='0', CARGO_PROFILE_TEST_DEBUG='0',
             CARGO_NET_OFFLINE='true', RUSTUP_TOOLCHAIN='1.98.1', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1', RAYON_NUM_THREADS='1',
             RUSTC=checkers['rustc']['path'], RUSTDOC=checkers['rustdoc']['path'], PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
             GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1',
             RUST_TEST_THREADS='1', OPENCODE_DISABLE_AUTOUPDATE='1', OPENCODE_DISABLE_LSP_DOWNLOAD='1',
             OPENCODE_DISABLE_DEFAULT_PLUGINS='1', OPENCODE_DISABLE_MODELS_FETCH='1', DISABLE_TELEMETRY='1',
             GOMAXPROCS='1', BUN_JSC_useJIT='false')
+        env.update(value['public_check_environment'])
         if milestone == 'M2':
             require(all(hash_file(Path(path)) == expected for path, expected in value['runtime_source_bindings'].items()),
                     'offline dependency or TypeScript checker source changed')
             env['CARGO_HOME'] = value['cargo_home']
-            from . import project_edits_tasks as cases
             directory = project / '.fr'
             directory.mkdir(exist_ok=True)
+            if row['task'] == 'regex-escape-len':
+                from . import project_edits_public as checker
+                checker.install(project)
+                checking_inputs[checker.CHECKER] = hash_file(project / checker.CHECKER)
+            tool_deadline = entered_at + LIMITS['wall_seconds'] - value['client_finish_seconds']
             declared = [{**check, 'cwd': '.', 'timeout_seconds': 120, 'covers': ['public M2 project checks']}
-                        for check in cases.public_checks(row['task'], {name: tool['path'] for name, tool in checkers.items()})]
+                        for check in m2_checks(row['task'], {name: tool['path'] for name, tool in checkers.items()}, tool_deadline)]
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
+            checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
+            report['provided_checking_inputs'] = checking_inputs
         require((shutil.which('fr', path=env['PATH']) is not None) == (row['setup'] == 'fr'), 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
@@ -354,7 +395,7 @@ def attempt(plan_path, attempt_id):
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
         prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
-                                       wall_seconds=LIMITS['wall_seconds'], finish_seconds=10)
+                                       wall_seconds=LIMITS['wall_seconds'], finish_seconds=value['client_finish_seconds'])
         (output / 'prompt.txt').write_text(prompt_text)
         argv, stdin = invocation(profile, value['binaries'], project, output, prompt_text, 'workspace-write')
         tasks.save(output / 'command.json', argv)
@@ -395,6 +436,9 @@ def attempt(plan_path, attempt_id):
         raise
     finally:
         if project is not None and project.is_dir():
+            report['checking_input_changes'] = checking_input_changes(project, checking_inputs)
+            if report['checking_input_changes']:
+                report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = time.monotonic() - started
         report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']

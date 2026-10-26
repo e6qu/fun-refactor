@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import shlex
 from pathlib import Path
 import sys
 import tarfile
@@ -128,6 +129,41 @@ class SelectedLocalTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'within the attempt deadline'):
                 local.execution_prompt('Frozen request.', started_at=1000.125,
                                        wall_seconds=150, finish_seconds=finishing)
+
+    def test_public_behavior_check_uses_the_actual_attempt_deadline(self):
+        from agent_eval import project_edits_public as checker
+        checkers = {name: {'path': '/' + name} for name in ('python', 'cargo', 'rustc', 'node', 'typescript')}
+        frozen = local.prompt('regex-escape-len', 'fr', checkers, 'M2')
+        self.assertIn(checker.CHECKER, frozen)
+        self.assertIn(local.TOOL_DEADLINE_MARKER, frozen)
+        prompt = local.execution_prompt(frozen, started_at=1000.125, wall_seconds=150, finish_seconds=10)
+        self.assertNotIn(local.TOOL_DEADLINE_MARKER, prompt)
+        command = prompt.split('Available project checking commands:\n')[1].splitlines()[0]
+        argv = shlex.split(command)
+        self.assertEqual(argv[argv.index('--deadline-unix') + 1], '1140.125')
+        self.assertEqual(local.PUBLIC_CHECK_ENVIRONMENT['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
+
+    def test_checking_inputs_cannot_be_changed_deleted_or_replaced_with_symlinks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / '.fr/checks.json'
+            config.parent.mkdir()
+            config.write_text('{"checks": []}')
+            expected = {'.fr/checks.json': local.hash_file(config)}
+            self.assertEqual(local.checking_input_changes(root, expected), [])
+            config.write_text('{}')
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            config.unlink()
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            other = root / 'same-bytes'
+            other.write_text('{"checks": []}')
+            config.symlink_to(other)
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
+            config.unlink()
+            config.write_text('{"checks": []}')
+            config.parent.rename(root / 'old-settings')
+            config.parent.symlink_to(root / 'old-settings', target_is_directory=True)
+            self.assertEqual(local.checking_input_changes(root, expected), ['.fr/checks.json'])
 
     def test_v2_export_pins_model_variant_and_agrees_with_stream_usage(self):
         profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}

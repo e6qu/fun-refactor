@@ -42,7 +42,8 @@ class SelectedPublicTests(unittest.TestCase):
             schedule = prepare(ROOT, 'M2')
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
                     'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
-                    'binaries': {}, 'components': {},
+                    'binaries': {}, 'components': {}, 'client_finish_seconds': 10,
+                    'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
             plan_path = root / 'plan.json'
@@ -56,6 +57,7 @@ class SelectedPublicTests(unittest.TestCase):
                 record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=1,
                               verification_seconds=0.1, patch_delivered=False,
                               process=None, usage=None, collection_errors=[], complete_attempt_deadline_missed=False,
+                              checking_input_changes=['.fr/checks.json'],
                               error='TimeoutExpired: Command [native-cli, ' + canary + '] timed out')
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
@@ -67,6 +69,9 @@ class SelectedPublicTests(unittest.TestCase):
                     patch.object(public.grading, 'core_digest', return_value='checker'):
                 result = public.export(plan_path, review, destination)
             self.assertEqual(len(result['attempts']), 48)
+            self.assertEqual(result['public_check_environment']['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
+            self.assertEqual(result['client_finish_seconds'], 10)
+            self.assertTrue(all(row['checking_input_changes'] == ['.fr/checks.json'] for row in result['attempts']))
             self.assertTrue(all(row['native_status'] == 'failed' and row['collection_error_recorded']
                                 for row in result['attempts']))
             self.assertNotIn(canary, (destination / 'summary.json').read_text())

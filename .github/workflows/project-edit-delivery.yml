@@ -8,6 +8,45 @@ concurrency:
   group: m2-delivery-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  public-behavior-check:
+    name: Check the supplied regex command on the local study platform
+    runs-on: macos-15
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '1'
+      CARGO_HOME: ${{ github.workspace }}/target/public-cargo-home
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.6'
+      - run: rustup toolchain install 1.98.1 --profile minimal
+      - name: Prepare the unchanged public project and offline dependencies
+        run: |
+          python3 -B -m agent_eval.project_edits_tasks prepare --task regex-escape-len --output "$RUNNER_TEMP/m2-public-inputs"
+          cargo fetch --locked --manifest-path "$RUNNER_TEMP/m2-public-inputs/original/Cargo.toml"
+      - name: Reject missing APIs, wrong byte counts and excessive allocations
+        run: >-
+          python3 -B -m agent_eval.project_edits_public_controls
+          --inputs "$RUNNER_TEMP/m2-public-inputs" --output "$RUNNER_TEMP/m2-public-controls"
+          --cargo "$(rustup which cargo)" --rustc "$(rustup which rustc)"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m2-public-behavior-controls
+          path: |
+            ${{ runner.temp }}/m2-public-controls/summary.json
+            ${{ runner.temp }}/m2-public-controls/*/stdout
+            ${{ runner.temp }}/m2-public-controls/*/stderr
+            ${{ runner.temp }}/m2-public-controls/*/project/target/public-escape-check/*.stdout
+            ${{ runner.temp }}/m2-public-controls/*/project/target/public-escape-check/*.stderr
+          if-no-files-found: error
+          retention-days: 30
   lean-policy:
     name: Check the updated authoring rule with Lean
     runs-on: ubuntu-24.04
