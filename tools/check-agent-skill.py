@@ -314,7 +314,8 @@ def author_workflow(exercise, root):
             assert value["page"]["total"] == 1
             row = dict(zip(value["columns"], value["rows"][0]))
             exercise.values["<FILE_HANDLE>"] = value["root"]
-            manifest = root.parent / "author-batch.json"
+            manifest = root / ".fr/author"
+            manifest.parent.mkdir(exist_ok=True)
             manifest.write_text(json.dumps({
                 "operations": [
                     {"op": "replace-body", "handle": row["handle"], "from": str(body)},
@@ -327,12 +328,9 @@ def author_workflow(exercise, root):
                     "paths-changed": ["src/lib.rs"],
                 },
             }))
-            exercise.values["<MANIFEST>"] = str(manifest)
             assert "value + 1" in row["source"]["text"]
             assert row["source"]["next_offset"] is None
             assert value["source_budget"]["returned_bytes"] <= 512
-        if command[1:3] == ["author", "batch"] and "--save-plan" not in command:
-            exercise.values["<PLAN_CONTEXT_BASIS>"] = value["plan_context_basis"]
         if "--save-plan" in command:
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])

@@ -26,17 +26,16 @@ Save the body and declaration in separate fragment files:
 /// Calls increment twice.
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }
 ```
-A manifest groups disjoint operations from one source revision. Substitute the fragment paths,
-the declaration handle and the file query's `root` handle:
+A manifest is a JSON file listing operations from one source revision.
+Save this as `.fr/author`, replacing the fragment paths and declaration and file handles:
 ```json
 {"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":"<BODY_FILE>"},{"op":"insert-declaration","handle":"<FILE_HANDLE>","from":"<FRAGMENT>"}]}
 ```
-Store the manifest under `.fr/`, outside indexed source, so it does not stale the handles.
-Preview the complete diff, then copy its `plan_context_basis` to save the reviewed plan:
+Use `--save-plan` on the first author call. It prints the full preview and stores a plan without editing source.
+Review that preview before applying it:
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
-fr author batch --from '<MANIFEST>'
-fr author batch --from '<MANIFEST>' --save-plan --plan-basis '<PLAN_CONTEXT_BASIS>'
+fr author batch --from .fr/author --save-plan
 ```
 After saving, use [Workflow](workflow.md) to apply, check and deliver.
 The saved plan's `transaction` identifies the edit; retain its `transaction_context_basis` too.
