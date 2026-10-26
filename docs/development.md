@@ -159,6 +159,13 @@ then pass the printed test executable to `tools/index-consumers-acceptance.py --
 Use the same unoptimized profile for baseline comparisons. The evaluator runs one child at a time,
 limits each workload to 240 seconds and records process RSS through `/usr/bin/time`.
 
+The original repository count includes six false variable uses in Lean patterns such as
+`rcases value with _ | other`. The underscore discards a value; it does not read a variable.
+The current reader removes those six uses. The report retains their exact source locations
+and checks that they are absent from the index. All other count differences still fail.
+The generated Python workloads retain their original counts and answers.
+Every measured query must also agree with the separate linear lookup on the current index.
+
 ## Source provenance
 
 Dependency upgrades use the newest stable release that has been public for at least 24 hours.

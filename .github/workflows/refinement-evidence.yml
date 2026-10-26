@@ -594,14 +594,14 @@ jobs:
       - name: Prepare the recorded Rust formatter for updated test references
         run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
       - name: Cache Lean for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         id: replay-lean
         uses: actions/cache@v6
         with:
           path: /opt/lean
           key: lean-4.28.0-linux-x86_64
       - name: Install Lean for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons') && steps.replay-lean.outputs.cache-hit != 'true'
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"')) && steps.replay-lean.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           curl -fsSL --retry 3 --connect-timeout 20 --max-time 120 \
@@ -610,14 +610,14 @@ jobs:
           sudo mkdir -p /opt/lean
           sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
       - name: Put the model checker on the path
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         run: echo '/opt/lean/bin' >> "$GITHUB_PATH"
       - uses: Swatinem/rust-cache@v2
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         with:
           key: default
       - name: Build fr for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         run: cargo build --locked --bin fr
       - name: Retain and audit fresh CI reports
         env:

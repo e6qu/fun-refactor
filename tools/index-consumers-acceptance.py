@@ -13,12 +13,12 @@ import subprocess
 import tempfile
 import time
 
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-consumers/task.json"
 BINDINGS = ["tests/index_consumers.rs", "tests/reference_storage.rs",
-            "tests/agent-eval/index-consumers/task.json", "tools/index-consumers-acceptance.py",
+            "tests/agent-eval/index-consumers/task.json", "tests/agent-eval/index-consumers/ignored-wildcards.lean", "tools/index-consumers-acceptance.py",
             "tools/evidence_basis.py", "src/index.rs", "src/index/references.rs",
             "src/model.rs", "src/extract.rs", "src/parse.rs", "src/scan.rs", "Cargo.lock"]
 
@@ -27,18 +27,34 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def wildcard_sites(revision):
+    task = json.loads(TASK.read_text())
+    assert revision == task['baseline']
+    correction = task['reference_correction']
+    source = (TASK.parent / correction['fixture']).read_bytes()
+    assert hashlib.sha256(source).hexdigest() == correction['sha256']
+    pattern = re.compile(rb'(?m)\brcases\b[^\n]*?\bwith[ \t]+(_)[ \t]*\|')
+    return [{'file': correction['file'], 'span': {'start': match.start(1), 'end': match.end(1)}}
+            for match in pattern.finditer(source)]
+
+
 def verify(path):
     report = json.loads(path.read_text())
     baseline = json.loads((TASK.parent / "baseline.json").read_text())
     assert report["schema"] == "fr-index-consumers-result-1"
     assert report["repository_revision"] == json.loads(TASK.read_text())["baseline"]
-    assert report["bindings"] == {p: file_digest(ROOT / p) for p in BINDINGS}
+    assert report["bindings"] == native_bindings(ROOT, BINDINGS)
     assert report["baseline_sha256"] == digest(TASK.parent / "baseline.json")
     assert len(report["samples"]) == len(baseline["samples"]) == 3
+    sites = wildcard_sites(report['repository_revision'])
     for before, after in zip(baseline["samples"], report["samples"]):
-        portable_fields = ["workload", "symbols", "references", "queries"]
+        portable_fields = ["workload", "symbols", "queries"]
         if after["workload"] != "repository":
-            portable_fields.append("answer_bytes")
+            portable_fields.extend(["references", "answer_bytes"])
+            assert after['removed_wildcard_references'] == []
+        else:
+            assert after['removed_wildcard_references'] == sites
+            assert before['references'] == after['references'] + len(sites)
         for field in portable_fields:
             assert before[field] == after[field], (field, before[field], after[field])
         assert type(after["answer_bytes"]) is int and after["answer_bytes"] > 0
@@ -60,8 +76,10 @@ def main():
         return
     if not args.binary or not args.output:
         parser.error("measurement requires --binary and --output")
+    subprocess.run([str(args.binary.resolve()), 'ignored_rcases_alternatives_do_not_read_a_variable_named_underscore', '--exact'],
+                   cwd=ROOT, check=True, timeout=30)
     task = json.loads(TASK.read_text())
-    bindings = {path: file_digest(ROOT / path) for path in BINDINGS}
+    bindings = native_bindings(ROOT, BINDINGS)
     binary_digest = digest(args.binary)
     samples = []
     with tempfile.TemporaryDirectory(prefix="fr-consumers-") as temporary:
@@ -72,6 +90,8 @@ def main():
         with archive.open("wb") as stream:
             subprocess.run(["git", "archive", task["baseline"]], cwd=ROOT, stdout=stream, check=True)
         subprocess.run(["tar", "-xf", str(archive), "-C", str(snapshot)], check=True)
+        correction = task['reference_correction']
+        assert (snapshot / correction['file']).read_bytes() == (TASK.parent / correction['fixture']).read_bytes()
         for workload in ["128", "512", "repository"]:
             output = work / "sample.json"
             env = dict(os.environ, FR_CONSUMER_ROOT=str(snapshot), FR_CONSUMER_WORKLOAD=workload,
@@ -110,8 +130,8 @@ def main():
               "profile": "unoptimized test, debug information and incremental compilation disabled",
               "bindings": bindings, "samples": samples,
               "baseline_sha256": digest(TASK.parent / "baseline.json"),
-              "claim": "Membership and occurrence order agree with a linear oracle on this finite workload. Process RSS includes indexing and oracle storage."}
-    assert bindings == {path: file_digest(ROOT / path) for path in BINDINGS}, "sources changed during measurement"
+              "claim": "Membership and occurrence order agree with a linear oracle on this finite workload. The fixed repository has six ignored rcases wildcard binders that the old Lean reader incorrectly counted as variable reads; their exact source sites are retained and are absent from the current reference index. Repository fact counts therefore differ from the original baseline. Synthetic answers remain equal. Process RSS includes indexing and oracle storage."}
+    assert bindings == native_bindings(ROOT, BINDINGS), "sources changed during measurement"
     assert binary_digest == digest(args.binary), "binary changed during measurement"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

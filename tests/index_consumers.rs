@@ -90,7 +90,57 @@ fn consumer_queries_follow_public_reference_mutations() {
     same(&index);
 }
 
-/// Run in a separate process; the evaluator records process RSS and wall time.
+#[test]
+fn ignored_rcases_alternatives_do_not_read_a_variable_named_underscore() {
+    let source =
+        "theorem holds (value : Bool) : True := by\n  rcases value with _ | value <;> trivial\n";
+    let index =
+        Index::build_from_sources(&[(PathBuf::from("proof.lean"), Language::Lean, source.into())])
+            .unwrap();
+    assert!(index
+        .references
+        .iter()
+        .all(|reference| reference.name != "_"));
+    assert_eq!(
+        index
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == "holds")
+            .count(),
+        1
+    );
+}
+
+fn ignored_rcases_wildcards(index: &Index, root: &std::path::Path) -> Vec<serde_json::Value> {
+    let pattern = regex::Regex::new(r"(?m)\brcases\b[^\n]*?\bwith[ \t]+(_)[ \t]*\|").unwrap();
+    let mut sites = Vec::new();
+    for (path, file) in index
+        .files()
+        .filter(|(_, file)| file.language == Language::Lean)
+    {
+        let absolute = if path.is_absolute() {
+            path.clone()
+        } else {
+            root.join(path)
+        };
+        let source = std::fs::read_to_string(&absolute).unwrap();
+        for capture in pattern.captures_iter(&source) {
+            let wildcard = capture.get(1).unwrap();
+            assert!(file
+                .references
+                .iter()
+                .all(|index_in_file| !index.references[*index_in_file]
+                    .span
+                    .contains_offset(wildcard.start())));
+            sites.push(
+                serde_json::json!({"file": absolute.strip_prefix(root).unwrap(),
+                "span": {"start": wildcard.start(), "end": wildcard.end()}}),
+            );
+        }
+    }
+    sites
+}
+
 #[test]
 #[ignore = "retained measurement, run with tools/index-consumers-acceptance.py"]
 fn measure_consumer_queries() {
@@ -154,10 +204,19 @@ fn measure_consumer_queries() {
         assert_eq!(actual, oracle);
         samples.push(seconds);
     }
+    let removed_wildcard_references = if workload == "repository" {
+        ignored_rcases_wildcards(
+            &index,
+            &PathBuf::from(std::env::var("FR_CONSUMER_ROOT").unwrap()),
+        )
+    } else {
+        Vec::new()
+    };
     let output = json!({"workload": workload, "symbols": index.symbols.len(),
         "references": index.references.len(), "queries": ids.len(),
         "build_seconds": build_seconds, "query_seconds": samples,
-        "answer_bytes": serde_json::to_vec(&oracle).unwrap().len(), "oracle_agrees": true});
+        "answer_bytes": serde_json::to_vec(&oracle).unwrap().len(), "oracle_agrees": true,
+        "removed_wildcard_references": removed_wildcard_references});
     std::fs::write(
         std::env::var("FR_CONSUMER_OUTPUT").unwrap(),
         serde_json::to_vec_pretty(&output).unwrap(),
