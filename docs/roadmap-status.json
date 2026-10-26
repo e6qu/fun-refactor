@@ -12,22 +12,13 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-24-distinct-answers-40119836572",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/structural_change.py",
-        "src/index.rs",
-        "src/project/author.rs",
-        "src/project/structural_change.rs",
-        "src/project/task.rs",
-        "src/refactor/rename.rs",
-        "src/refactor/signature.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-26-distinct-answers-40298880359",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-24-distinct-answers-40119836572/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-distinct-answers-40298880359/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
