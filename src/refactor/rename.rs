@@ -359,7 +359,14 @@ fn explicit_import_alias(index: &Index, reference: &crate::model::Reference) -> 
         .iter()
         .any(|import| import.span.contains(reference.span))
     {
-        return Ok(false);
+        let source = crate::vfs::read_to_string(&reference.file)?;
+        let parsed = crate::parse::Parsers::new().parse(reference.language, &source)?;
+        return Ok(parsed
+            .root()
+            .descendant_for_byte_range(reference.span.start, reference.span.end)
+            .and_then(|node| node.parent())
+            .and_then(|node| node.child_by_field_name("alias"))
+            .is_some_and(|node| Span::from(node) == reference.span));
     }
     if let Some(import) = index.import_binding(info, &reference.name, reference.scope) {
         for name in import
