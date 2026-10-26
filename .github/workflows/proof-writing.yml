@@ -232,10 +232,12 @@ jobs:
       - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: cargo test --locked --test formal_kernel --test lean_adoption --test lean_grammar --test known_grammar_gaps -- --test-threads=1
-      - name: Check exact Python proof-task and receipt validation
+      - name: Check Python proof records and first-use comparisons
         env:
           PYTHONPATH: sdk/python/src
-        run: python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
+        run: |
+          python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
+          python3 -B -m pytest -q sdk/python/tests/test_refinement.py
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |
           python3 -B tools/agent_eval/test_proof_writing_tasks.py

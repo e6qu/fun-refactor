@@ -21,19 +21,19 @@ jobs:
         with:
           node-version: '26.5.0'
       - name: Install the exact syntax-generator release
-        run: npm install --prefix "$RUNNER_TEMP/lean-generator" --no-audit --no-fund tree-sitter-cli@0.26.13
+        run: npm install --prefix "$RUNNER_TEMP/lean-generator" --no-audit --no-fund tree-sitter-cli@0.27.0
       - name: Generate the Lean parser and node descriptions
         working-directory: grammars/lean
         run: |
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
-          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate
+          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
       - name: Commit generated source to the same milestone branch
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           test "$BRANCH" != main
-          git add grammars/lean/src/parser.c grammars/lean/src/grammar.json grammars/lean/src/node-types.json
+          git add grammars/lean/src/parser.c grammars/lean/src/grammar.json grammars/lean/src/node-types.json grammars/lean/src/tree_sitter
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
