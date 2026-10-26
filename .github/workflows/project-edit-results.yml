@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       comparison:
-        description: Original instructions or the fixed-instruction comparison
+        description: Complete comparison to recheck
         type: choice
         options: [first-results, guided-results, clocked-results, local-results]
         required: true
@@ -71,6 +71,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+      - name: Preserve the approved submissions before selecting their auditor
+        run: |
+          cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
+          echo "M2_DATA=$RUNNER_TEMP/m2-submitted" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          # These records describe this exact fr source. Current fr has separate
+          # language, authoring and complete-delivery regression jobs.
+          ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
+          persist-credentials: false
       - uses: ./.github/actions/project-edit-checkers
       - name: Validate the requested control run
         env:
@@ -114,7 +125,7 @@ jobs:
       - name: Check both tool setups and both repetitions
         run: >-
           python3 -B -m agent_eval.project_edits_results grade-cell
-          --data "tests/agent-eval/project-edits/$M2_COMPARISON"
+          --data "$M2_DATA"
           --inputs "$RUNNER_TEMP/m2-inputs" --artifact "$RUNNER_TEMP/m2-private-controls"
           --image "$M2_GRADER_IMAGE" --rust "$(rustc --print sysroot)"
           --node "$(command -v node)" --typescript "$RUNNER_TEMP/m2-typescript/package"
@@ -146,6 +157,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout: tests/agent-eval/project-edits/${{ inputs.comparison }}
+      - name: Preserve the approved report before selecting its auditor
+        run: |
+          cp -R "tests/agent-eval/project-edits/$M2_COMPARISON" "$RUNNER_TEMP/m2-submitted"
+          echo "M2_DATA=$RUNNER_TEMP/m2-submitted" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          ref: ae88b15149f16e09b3fffadfb698ec34620f6e70
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -157,17 +177,18 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/m2-checked"
           python3 -B -m agent_eval.project_edits_results merge \
-            --data "tests/agent-eval/project-edits/$M2_COMPARISON" \
+            --data "$M2_DATA" \
             --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
       - name: Check the finished report when requested
         run: |
           case "$REPORT_MODE" in
             collect) ;;
             archive)
-              python3 -B -m agent_eval.project_edits_results report --data "tests/agent-eval/project-edits/$M2_COMPARISON" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode write
-              git diff --exit-code -- "tests/agent-eval/project-edits/$M2_COMPARISON/README.md"
+              cp "$M2_DATA/README.md" "$RUNNER_TEMP/m2-recorded-report.md"
+              python3 -B -m agent_eval.project_edits_results report --data "$M2_DATA" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode write
+              cmp "$RUNNER_TEMP/m2-recorded-report.md" "$M2_DATA/README.md"
               ;;
-            check) python3 -B -m agent_eval.project_edits_results report --data "tests/agent-eval/project-edits/$M2_COMPARISON" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode check ;;
+            check) python3 -B -m agent_eval.project_edits_results report --data "$M2_DATA" --checks "$RUNNER_TEMP/m2-checked/summary.json" --mode check ;;
             *) exit 1 ;;
           esac
       - uses: actions/upload-artifact@v7

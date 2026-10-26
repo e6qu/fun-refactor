@@ -354,10 +354,14 @@ fn explicit_import_alias(index: &Index, reference: &crate::model::Reference) -> 
     let Some(info) = index.file(&reference.file) else {
         return Ok(false);
     };
-    for import in &info.imports {
-        if import.span.contains(reference.span) {
-            continue;
-        }
+    if info
+        .imports
+        .iter()
+        .any(|import| import.span.contains(reference.span))
+    {
+        return Ok(false);
+    }
+    if let Some(import) = index.import_binding(info, &reference.name, reference.scope) {
         for name in import
             .names
             .iter()

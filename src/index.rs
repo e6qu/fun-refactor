@@ -723,14 +723,14 @@ impl Index {
         // import binding, and a type's own name.
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
-            || self.import_binding(info, receiver).is_some()
+            || self.import_binding(info, receiver, reference.scope).is_some()
             || (by_name.contains_key(receiver) && self.names_a_type(receiver, reference.language))
             // `module.<label>` is a module path in the sense above: that module binds the label
             // block's `source`, which names a directory.
             || (reference.language == Language::Hcl
                 && receiver.starts_with("module.")
                 && self
-                    .import_binding(info, receiver.trim_start_matches("module."))
+                    .import_binding(info, receiver.trim_start_matches("module."), reference.scope)
                     .is_some());
 
         // Weaker of the two: the tiers run strongest first.
@@ -769,7 +769,12 @@ impl Index {
             // A string-keyed reference need not name its target verbatim: `#two-words` is the
             // anchor of a heading written `Two Words`.
             None if reference.kind == ReferenceKind::StringRef => &[],
-            None if self.import_binding(info, reference.name.as_str()).is_some() => &[],
+            None if self
+                .import_binding(info, reference.name.as_str(), reference.scope)
+                .is_some() =>
+            {
+                &[]
+            }
             None => return (None, Confidence::NameOnly),
         };
 
@@ -779,7 +784,7 @@ impl Index {
             && reference
                 .receiver
                 .as_deref()
-                .is_some_and(|r| self.import_binding(info, r).is_none());
+                .is_some_and(|r| self.import_binding(info, r, reference.scope).is_none());
         // A member reached through no receiver at all is not a member here.
         let bare_call = reference.kind == ReferenceKind::Call
             && reference.receiver.is_none()
@@ -993,7 +998,7 @@ impl Index {
         let bound_files = reference
             .receiver
             .as_deref()
-            .map(|receiver| self.modules_bound_to(info, path, receiver))
+            .map(|receiver| self.modules_bound_to(info, path, receiver, reference.scope))
             .unwrap_or_default();
         if !bound_files.is_empty() {
             let over_there: Vec<&Symbol> = candidates
@@ -1193,7 +1198,7 @@ impl Index {
             ) {
             imported_reference
         } else {
-            self.import_binding(info, &reference.name)
+            self.import_binding(info, &reference.name, reference.scope)
         };
         if let Some(import) = import {
             let mut imported_file = self.resolve_import_path(path, &import.path);
@@ -1391,7 +1396,7 @@ impl Index {
             if let Some(package) = reference
                 .receiver
                 .as_deref()
-                .and_then(|receiver| self.import_binding(info, receiver))
+                .and_then(|receiver| self.import_binding(info, receiver, reference.scope))
                 .and_then(|import| self.package_directory(&import.path))
             {
                 let exported_there: Vec<&Symbol> = candidates
@@ -1484,7 +1489,50 @@ impl Index {
     }
 
     /// The import in `info` that binds `name`, if any.
-    fn import_binding<'a>(&self, info: &'a FileInfo, name: &str) -> Option<&'a Import> {
+    pub(crate) fn import_binding<'a>(
+        &self,
+        info: &'a FileInfo,
+        name: &str,
+        scope: ScopeId,
+    ) -> Option<&'a Import> {
+        let binds = |import: &&Import| {
+            import.alias.as_deref() == Some(name)
+                || import.names.iter().any(|n| n.local == name)
+                || import.is_glob
+                || import.path.rsplit(['/', ':', '.']).find(|s| !s.is_empty()) == Some(name)
+                || import.path == name
+        };
+        if info.language == Language::Python {
+            for (depth, visible) in info.scope_chain(scope).into_iter().enumerate() {
+                if let Some(import) = info
+                    .imports
+                    .iter()
+                    .filter(binds)
+                    .find(|import| info.scope_at(import.span.start) == Some(visible))
+                {
+                    let block = info
+                        .scopes
+                        .iter()
+                        .find(|candidate| candidate.id == visible)?;
+                    // Class bodies bind their own names but do not enclose method lookups.
+                    let class_body =
+                        depth > 0
+                            && block.parent.is_some()
+                            && info.symbols.iter().filter_map(|id| self.symbol(*id)).any(
+                                |symbol| {
+                                    symbol.kind == SymbolKind::Class
+                                        && block.parent == Some(symbol.scope)
+                                        && symbol.full_span.contains(block.span)
+                                },
+                            );
+                    if class_body {
+                        continue;
+                    }
+                    return Some(import);
+                }
+            }
+            return None;
+        }
         if info.bindings_built {
             // The earliest of the named binding and any glob, matching the
             // scan's first-hit order.
@@ -1496,25 +1544,18 @@ impl Index {
             }?;
             return info.imports.get(at);
         }
-        info.imports.iter().find(|import| {
-            import.alias.as_deref() == Some(name)
-                || import.names.iter().any(|n| n.local == name)
-                // A glob import can bind anything, so it is a possible source.
-                || import.is_glob
-                // `use a::b::c;` binds `c`; `import ./utils` binds via the file stem.
-                || import
-                    .path
-                    .rsplit(['/', ':', '.'])
-                    .find(|s| !s.is_empty())
-                    .is_some_and(|last| last == name)
-                // `import app.flags` binds `app`, and the body reaches it as `app.flags.NAME`.
-                || import.path == name
-        })
+        info.imports.iter().find(binds)
     }
 
     /// The files a receiver could be, where an import in this file binds it to a module.
-    fn modules_bound_to(&self, info: &FileInfo, from: &Path, receiver: &str) -> Vec<PathBuf> {
-        let Some(import) = self.import_binding(info, receiver) else {
+    fn modules_bound_to(
+        &self,
+        info: &FileInfo,
+        from: &Path,
+        receiver: &str,
+        scope: ScopeId,
+    ) -> Vec<PathBuf> {
+        let Some(import) = self.import_binding(info, receiver, scope) else {
             return Vec::new();
         };
         let mut files: Vec<PathBuf> = Vec::new();
