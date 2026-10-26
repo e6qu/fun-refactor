@@ -35,6 +35,17 @@ theorem split_hypothesis (flag : Bool) (h : chooseNumber flag = 1) : flag = true
 
 theorem after_locations : 0 = 0 := by rfl
 
+theorem introduce_arguments (p q : Prop) : p → q → p := by
+  intro hp hq
+  exact hp
+
+theorem simplify_wildcards (n : Nat) (h : n = 0) : n = 0 := by
+  simp only [*]
+
+theorem rewrite_locations (n : Nat) (h : n + 0 = 0) : n + 0 = 0 := by
+  rw [Nat.add_zero] at h ⊢
+  exact h
+
 theorem induction_generalizing (xs : List Nat) (n : Nat) : n = n := by
   induction xs generalizing n with
   | nil => rfl
@@ -76,3 +87,22 @@ def returnedFunction (flag : Bool) : Nat → Nat :=
 def appliedReturnedFunction : Nat := (returnedFunction true) 2
 
 def infixApplication (offset : Nat) (f : Nat → Nat) (n : Nat) : Nat := offset + f n
+
+def wrappedTermBinding (n : Nat) : Nat :=
+  let count := Nat.add
+    n
+    1
+  count
+
+def doBindings (n : Nat) : Id Nat := do
+  let mut total := n
+  let next := Nat.add
+    total
+    1
+  total := next
+  let copied ← pure total
+  pure copied
+
+def doPattern (n : Nat) : Id Nat := do
+  let (left, right) := (n, n + 1)
+  pure (left + right)

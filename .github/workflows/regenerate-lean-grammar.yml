@@ -23,6 +23,10 @@ jobs:
           node-version: '26.5.0'
       - name: Install the exact syntax-generator release
         run: npm install --prefix "$RUNNER_TEMP/lean-generator" --no-audit --no-fund tree-sitter-cli@0.27.0
+      - name: Check binding layout boundaries and saved scanner state
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
+          "$RUNNER_TEMP/lean-layout"
       - name: Generate the Lean parser and node descriptions
         working-directory: grammars/lean
         run: |

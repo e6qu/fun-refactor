@@ -47,7 +47,7 @@ module.exports = grammar({
     $._layout_end,              // End of layout block (indent decreased)
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
-    $._binding_semicolon,
+    $._binding_start,           // Track a binding value's indentation separately
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -711,6 +711,7 @@ module.exports = grammar({
 
     // Have expression: `have h : T := proof; body`
     have: $ => prec.right(seq(
+      $._binding_start,
       'have',
       optional(field('name', $.identifier)),
       optional($._type_spec),
@@ -722,7 +723,8 @@ module.exports = grammar({
     _binding_body: $ => prec.right(seq(
       ':=',
       field('value', $._expression),
-      choice(';', $._binding_semicolon),
+      $._layout_end,
+      optional(';'),
       field('body', $._expression),
     )),
 
@@ -886,20 +888,24 @@ module.exports = grammar({
 
     // `have h : T := proof` in tactic mode
     tactic_have: $ => prec.right(1, seq(
+      $._binding_start,
       choice('have', 'obtain', 'suffices'),
       optional(field('name', $._pattern)),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // `let x := e` in tactic mode
     tactic_let: $ => prec(1, seq(
+      $._binding_start,
       'let',
       field('pattern', $._pattern),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // `show T`
@@ -927,12 +933,12 @@ module.exports = grammar({
     let: $ => prec.right(choice(
       // Identifier form: always wins for bare identifiers.
       // Subsumes function form (with binders) and simple form (without).
-      seq('let', field('name', $.identifier),
+      seq($._binding_start, 'let', field('name', $.identifier),
           optional(field('parameters', $.parameters)),
           optional($._type_spec), $._binding_body),
       // Pattern form: tuple destructuring and holes only.
       // Constructor patterns in `let` require qualified names, parsed differently.
-      seq('let', field('pattern', choice($.tuple_pattern, $.hole)),
+      seq($._binding_start, 'let', field('pattern', choice($.tuple_pattern, $.hole)),
           optional($._type_spec), $._binding_body),
     )),
 
@@ -1072,21 +1078,25 @@ module.exports = grammar({
     // the block as its body, so a `let` followed by a `for` parsed as a term whose body
     // was an application called `for`. Inside a `do`, Lean reads the do-let.
     do_let: $ => prec.dynamic(2, prec.right(2, seq(
+      $._binding_start,
       'let',
       field('pattern', choice($._pattern, $.list_pattern)),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
       optional(seq('|', field('fallback', $._expression))),
+      $._layout_end,
     ))),
 
     // Monadic bind: `let x ← e` or `let (a, b) ← e` or `let x : T ← e`
     let_bind: $ => seq(
+      $._binding_start,
       'let',
       field('name', $._pattern),
       optional($._type_spec),
       choice('<-', '←'),
       field('value', $._expression),
+      $._layout_end,
     ),
 
     // Mutable let: `let mut x := e` or `let mut x : Type := e`.
@@ -1094,12 +1104,14 @@ module.exports = grammar({
     // Dynamic precedence for the same reason `do_let` has it, and one more: a term
     // `let` reads `let mut x` as a binding of `mut` taking a parameter `x`.
     let_mut: $ => prec.dynamic(2, seq(
+      $._binding_start,
       'let',
       'mut',
       field('name', $.identifier),
       optional($._type_spec),
       choice('<-', '←', ':='),
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // Reassignment: `x := e`

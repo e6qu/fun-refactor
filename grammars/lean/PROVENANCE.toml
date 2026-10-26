@@ -63,9 +63,14 @@ change = "`should_suppress_semicolon` covers `else`, `catch` and `finally` as we
 why = "each continues the construct above it rather than opening an element beside it, so the semicolon turned the `else` of a `do`-level `if` into an application of a name called `else`"
 
 [[scanner]]
-subject = "a chained `let` body beyond its enclosing layout"
-change = "a deeper next line emits `LAYOUT_SEMICOLON` wherever that token is valid"
-why = "a term `let` may be the body of an `if` branch, whose outer layout has a shallower column; its value and next binding need the same separator equal columns receive"
+subject = "distinguish a binding body from a wrapped proof argument"
+change = "`BINDING_START` records the binding keyword's column; a layout end separates its value from the following body or statement, and ordinary layout semicolons require equal indentation"
+why = "a term `let` inside an `if` needs its body separator, but a more-indented argument after `have bound := f` must continue the call; treating both as new proof steps hid following declarations"
+
+[[scanner]]
+subject = "inline proofs inside constructor tuples"
+change = "commas and the closing angle bracket can close an inline proof's layout"
+why = "in `⟨by exact hp, by exact hq⟩`, the first comma ends one proof and the closing bracket ends the other"
 
 [[patch]]
 subject = "split an either-or assumption without extra parentheses"
@@ -73,3 +78,24 @@ rule = "rcases_alternative_pattern"
 change = "accept balanced parenthesized alternatives and bare alternatives, with precedence above a single atom"
 accepts = ["rcases invalid with left | right", "rcases invalid with (left | right)"]
 why = "Lean accepts both forms; requiring parentheses rejected the page-count proof before Lean could check it"
+
+[[patch]]
+subject = "proof locations and equality transport"
+rule = "tactic_apply, tactic_rewrite, binary_expression"
+change = "accept tactic locations such as `at h ⊢` and the right-associative equality-transport operator `▸`; a generic tactic takes one term, which can itself be an application"
+accepts = ["simp only [Nat.add_zero] at h", "exact Nat.add_comm a b ▸ h", "intro x y"]
+why = "valid proof steps must reach Lean for checking; repeating complete terms also admitted competing partitions of the same application and added unnecessary parser states"
+
+[[patch]]
+subject = "constructor cases with labels and generalized variables"
+rule = "tactic_cases, tactic_subject_application"
+change = "accept an equation label, bounded applied subjects and `generalizing` binders"
+accepts = ["cases h : chooseNumber flag with | zero => omega | succ n => omega", "induction xs generalizing n with | nil => rfl | cons head tail ih => rfl"]
+why = "the omitted forms are ordinary Lean proof steps; losing them also disrupted recovery of later declarations"
+
+[[patch]]
+subject = "term bindings and function heads"
+rule = "_binding_body, _application_head"
+change = "term bindings require their following body; low-precedence expressions need parentheses when used as function heads"
+accepts = ["let count := n; count + 1", "(fun n : Nat => n + 1) 2"]
+why = "standalone bindings already have tactic and do-statement rules, and an unparenthesized proof block must not become a function applied to the next proof step"

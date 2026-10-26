@@ -37,7 +37,7 @@ enum TokenType {
   LAYOUT_END,
   MATCH_BODY_START,
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
-  BINDING_SEMICOLON,
+  BINDING_START,
 };
 
 #define MAX_DEPTH 64
@@ -45,6 +45,7 @@ enum TokenType {
 
 typedef struct {
   uint32_t indents[MAX_DEPTH];
+  uint8_t bindings[MAX_DEPTH];
   uint8_t  depth;
   uint32_t queued_indent; // indent of next non-blank line, or NO_QUEUED
 } Scanner;
@@ -69,12 +70,13 @@ unsigned tree_sitter_lean_external_scanner_serialize(void *payload, char *buffer
   memcpy(buffer + pos, &s->queued_indent, sizeof(s->queued_indent)); pos += sizeof(s->queued_indent);
   unsigned indent_bytes = s->depth * sizeof(uint32_t);
   memcpy(buffer + pos, s->indents, indent_bytes);           pos += indent_bytes;
+  memcpy(buffer + pos, s->bindings, s->depth);              pos += s->depth;
   return pos;
 }
 
 void tree_sitter_lean_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
   Scanner *s = (Scanner *)payload;
-  if (length == 0) {
+  if (length < sizeof(s->depth) + sizeof(s->queued_indent)) {
     s->depth = 0;
     s->queued_indent = NO_QUEUED;
     return;
@@ -82,8 +84,14 @@ void tree_sitter_lean_external_scanner_deserialize(void *payload, const char *bu
   unsigned pos = 0;
   memcpy(&s->depth, buffer + pos, sizeof(s->depth));        pos += sizeof(s->depth);
   memcpy(&s->queued_indent, buffer + pos, sizeof(s->queued_indent)); pos += sizeof(s->queued_indent);
-  if (s->depth > MAX_DEPTH) { s->depth = 0; s->queued_indent = NO_QUEUED; return; }
+  if (s->depth > MAX_DEPTH || length != pos + s->depth * (sizeof(uint32_t) + sizeof(uint8_t))) {
+    s->depth = 0;
+    s->queued_indent = NO_QUEUED;
+    return;
+  }
   memcpy(s->indents, buffer + pos, s->depth * sizeof(uint32_t));
+  pos += s->depth * sizeof(uint32_t);
+  memcpy(s->bindings, buffer + pos, s->depth);
 }
 
 /* ── helpers ───────────────────────────────────────────────────── */
@@ -92,9 +100,10 @@ static inline uint32_t top_indent(Scanner *s) {
   return s->depth > 0 ? s->indents[s->depth - 1] : 0;
 }
 
-static inline void push(Scanner *s, uint32_t indent) {
+static inline void push(Scanner *s, uint32_t indent, bool binding) {
   if (s->depth < MAX_DEPTH) {
-    s->indents[s->depth++] = indent;
+    s->indents[s->depth] = indent;
+    s->bindings[s->depth++] = binding;
   }
 }
 
@@ -175,6 +184,26 @@ static bool should_suppress_semicolon(TSLexer *lexer) {
   return starts_with_pipe(lexer) || starts_with_continuation(lexer);
 }
 
+/* Peek at a binding keyword without consuming it. Every term, tactic and do
+   binding uses this same start token, so choosing it cannot hide another form. */
+static bool starts_with_binding(TSLexer *lexer) {
+  char word[10];
+  size_t n = 0;
+  while (n + 1 < sizeof(word) && lexer->lookahead >= 'a' && lexer->lookahead <= 'z') {
+    word[n++] = (char)lexer->lookahead;
+    lexer->advance(lexer, true);
+  }
+  word[n] = '\0';
+  int32_t c = lexer->lookahead;
+  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+      (c >= '0' && c <= '9') || c == '_' || c == '\'' ||
+      (c >= 0x80 && c != 0x27e8)) {
+    return false;
+  }
+  return strcmp(word, "let") == 0 || strcmp(word, "have") == 0 ||
+         strcmp(word, "obtain") == 0 || strcmp(word, "suffices") == 0;
+}
+
 
 /**
  * Push indent for a layout-start-like token (shared by LAYOUT_START
@@ -184,9 +213,9 @@ static void push_layout_indent(Scanner *s, TSLexer *lexer) {
   skip_spaces(lexer);
   if (is_nl(lexer->lookahead)) {
     uint32_t indent = measure_indent(lexer);
-    push(s, indent);
+    push(s, indent, false);
   } else {
-    push(s, lexer->get_column(lexer));
+    push(s, lexer->get_column(lexer), false);
   }
   s->queued_indent = NO_QUEUED;
 }
@@ -263,8 +292,20 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t qi = s->queued_indent;
     uint32_t ci = top_indent(s);
 
-    if (qi < ci && valid_symbols[LAYOUT_END]) {
+    bool binding = s->bindings[s->depth - 1];
+    if ((qi < ci || (binding && qi == ci)) && valid_symbols[LAYOUT_END]) {
       lexer->mark_end(lexer);
+      if (binding) {
+        skip_spaces(lexer);
+        while (is_nl(lexer->lookahead)) {
+          lexer->advance(lexer, true);
+          skip_spaces(lexer);
+        }
+        if (should_suppress_semicolon(lexer)) {
+          s->queued_indent = NO_QUEUED;
+          return false;
+        }
+      }
       // Top-level match arms below the body's indent (`def f := match X with
       // | ...`): when `:=` is the only layout open and the next token is `|`,
       // the arms belong to the match. Closing the layout would terminate the
@@ -287,8 +328,7 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_END;
       return true;
     }
-    if ((qi == ci && valid_symbols[LAYOUT_SEMICOLON]) ||
-        (qi >= ci && valid_symbols[BINDING_SEMICOLON])) {
+    if (qi == ci && !binding && valid_symbols[LAYOUT_SEMICOLON]) {
       // Peek ahead past newlines+whitespace to see the actual next token.
       // Don't emit semicolon before `|` — match arms are delimited
       // by `|` tokens, not by layout semicolons.
@@ -303,8 +343,7 @@ bool tree_sitter_lean_external_scanner_scan(
         return false;
       }
       s->queued_indent = NO_QUEUED;
-      lexer->result_symbol = qi == ci && valid_symbols[LAYOUT_SEMICOLON]
-        ? LAYOUT_SEMICOLON : BINDING_SEMICOLON;
+      lexer->result_symbol = LAYOUT_SEMICOLON;
       return true;
     }
     s->queued_indent = NO_QUEUED;
@@ -318,8 +357,12 @@ bool tree_sitter_lean_external_scanner_scan(
     lexer->mark_end(lexer);
     uint32_t next = measure_indent(lexer);
     uint32_t ci   = top_indent(s);
+    bool binding = s->bindings[s->depth - 1];
 
-    if (next < ci && valid_symbols[LAYOUT_END]) {
+    if ((next < ci || (binding && next == ci)) && valid_symbols[LAYOUT_END]) {
+      if (binding && should_suppress_semicolon(lexer)) {
+        return false;
+      }
       // Mirror of the depth==1 / `|` guard in step 2.
       if (s->depth == 1 && starts_with_pipe(lexer)) {
         return false;
@@ -329,19 +372,16 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_END;
       return true;
     }
-    if ((next == ci && valid_symbols[LAYOUT_SEMICOLON]) ||
-        (next >= ci && valid_symbols[BINDING_SEMICOLON])) {
+    if (next == ci && !binding && valid_symbols[LAYOUT_SEMICOLON]) {
       // Suppress semicolon before `|`
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
         return false;
       }
       s->queued_indent = NO_QUEUED;
-      lexer->result_symbol = next == ci && valid_symbols[LAYOUT_SEMICOLON]
-        ? LAYOUT_SEMICOLON : BINDING_SEMICOLON;
+      lexer->result_symbol = LAYOUT_SEMICOLON;
       return true;
     }
-    return false;
   }
 
   /* 5. EOF while in layout — emit LAYOUT_END to close all open blocks. */
@@ -354,9 +394,21 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
-    if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9) {
+    if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9 ||
+        (c == ';' && s->bindings[s->depth - 1])) {
       pop(s);
       lexer->result_symbol = LAYOUT_END;
+      return true;
+    }
+  }
+
+  if (valid_symbols[BINDING_START]) {
+    uint32_t indent = lexer->get_column(lexer);
+    lexer->mark_end(lexer);
+    if (starts_with_binding(lexer)) {
+      push(s, indent, true);
+      s->queued_indent = NO_QUEUED;
+      lexer->result_symbol = BINDING_START;
       return true;
     }
   }
