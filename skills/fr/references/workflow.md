@@ -1,16 +1,13 @@
 # Deliver one verified transaction
 
-Deliver the reviewed change only after its required checks pass. Keep its saved transaction so you can inspect or reverse a failed attempt.
-
 A transaction saves an edit. A workflow applies it, runs declared checks and delivers its patch. A failed check can leave the source edited.
 
 Use this route after reviewing and saving one complete change plan. First list `fr checks`.
 A basis identifies the reviewed state; copy it unchanged. Keep the checks' basis, the transaction ID
 and the plan's `transaction_context_basis`.
 
-Save the following JSON as `.fr/deliver`, with no file extension.
-A saved plan records recognized project files. Adding a `.json` file counts as a source change,
-even when Git ignores it, and invalidates the plan. The name `.fr/deliver` avoids that problem.
+Save this JSON as extensionless `.fr/deliver`. Adding a `.json` file changes the reviewed source,
+even when Git ignores it, and invalidates the plan.
 The input `schema` is the integer `1`; `fr-workflow-1` identifies output reports.
 
 ```json
@@ -33,10 +30,12 @@ fr workflow --from .fr/deliver
 fr workflow --from .fr/deliver --write --basis '<WORKFLOW_BASIS>'
 ```
 
-The manifest names `transaction`, `transaction-context-basis`, and `checks` with `basis`
-and `names`. Replace every placeholder and preserve the exact hyphenated field names.
-Keep `patch.output` so a successful workflow writes the requested patch after all stages pass.
-After it passes, review that patch and finish. The workflow already ran the named checks.
+Copy the first command's `workflow_basis` (`frwb1:...`) into `--basis`.
+The author's `plan_context_basis` (`frpb1:...`) identifies a different preview.
+Keep the JSON field names and replace every placeholder.
+A successful workflow writes a Git text patch to `patch.output`; its formatting can differ from Git's own output.
+If the request specifies `git diff --binary HEAD`, write that output once after the workflow.
+Review the delivered patch and finish. The named checks already ran.
 `check-output-bytes` bounds retained failure streams.
 `exercise-reversal` adds undo and redo checks when needed.
 Set `exercise-reversal` to true only when the same checks also accept the original code.

@@ -91,6 +91,12 @@ def prompt(task, setup, checkers, milestone):
         request = cases.TASKS[task]['request']
         request = ('Complete every requirement:\n' + '\n'.join(
             '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
+    checking_files = ''
+    if milestone == 'M2':
+        checking_files = 'Preserve provided .fr/checks.json'
+        if task == 'regex-escape-len':
+            checking_files += ' and .fr/check-escape'
+        checking_files += ', including during cleanup; changing or deleting them makes the attempt fail. '
     return (request + '\n\n'
         f'The whole attempt has a {LIMITS["wall_seconds"]}-second deadline, including preparation, '
         'model work, tools, checks, patch delivery and final session accounting. '
@@ -105,8 +111,7 @@ def prompt(task, setup, checkers, milestone):
         'Do not start a nested guard, increase limits, or run full fr builds or repository-wide gates. '
         'Run tool commands serially, keeping at most one compiler or fr command active. '
         'Use only small checks for this task. Keep failed checks and limitations in your report. '
-        'Remove only temporary files you created. Preserve provided .fr/checks.json and .fr/check-escape, '
-        'including during cleanup; changing or deleting them makes the attempt fail. '
+        'Remove only temporary files you created. ' + checking_files +
         'Leave unrelated project files unchanged.\n'
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
            'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '

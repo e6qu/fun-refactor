@@ -105,6 +105,8 @@ class SelectedLocalTests(unittest.TestCase):
             self.assertNotIn('rfl', prompt)
             self.assertIn('change.patch', prompt)
             self.assertIn('Do not start a nested guard', prompt)
+            self.assertNotIn('.fr/checks.json', prompt)
+            self.assertNotIn('.fr/check-escape', prompt)
 
     def test_each_m2_requirement_stays_visible_and_unchanged(self):
         from agent_eval import project_edits_tasks as cases
@@ -118,6 +120,8 @@ class SelectedLocalTests(unittest.TestCase):
                     self.assertTrue(all(line.startswith('- ') for line in listed[1:]))
                     self.assertEqual(' '.join(line[2:] for line in listed[1:]), cases.TASKS[task]['request'])
                     self.assertIn('150-second deadline', prompt)
+                    self.assertIn('Preserve provided .fr/checks.json', prompt)
+                    self.assertEqual('.fr/check-escape' in prompt, task == 'regex-escape-len')
 
     def test_execution_clock_keeps_preparation_inside_the_original_deadline(self):
         prompt = local.execution_prompt('Frozen request.', started_at=1000.125,

@@ -4,7 +4,7 @@ description: Use fr to refactor code, check targeted edits, or write and check L
 ---
 # Work with fr
 
-At the project root (`-C PATH`):
+Run `fr` directly at the project root (`-C PATH`):
 ```sh
 fr project find greet --signature --source --bytes 512 --limit 12
 ```

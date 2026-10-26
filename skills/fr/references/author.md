@@ -6,7 +6,9 @@ Use `project find NAME --in FILE --source` to select a declaration.
 Read each `rows` entry using the matching `columns` names.
 For insertion, the query's `root` selects the file.
 
-Run at the project root. Fragment paths, such as `.fr/body`, start there.
+A fragment file holds new code or refactoring JSON.
+Save the table's JSON as `.fr/refactor` and set `"from":".fr/refactor"` in the manifest.
+Paths start at the project root.
 
 | Change | Operation | Fragment |
 | --- | --- | --- |
