@@ -5,7 +5,7 @@ This guide covers supported rename and argument changes. Run the relevant checks
 
 Use this route for a refactoring when behavior should stay the same.
 A new required argument can deliberately change the interface; state the required caller behavior and checks before applying it.
-The [focused milestone](../PLAN.md#m2-make-multi-file-refactorings-and-targeted-changes-dependable) names the next concrete multi-file cases.
+The [completed comparison](../tests/agent-eval/project-edits/local-results/README.md) includes Rust parameter removal and a TypeScript rename through an imported alias.
 
 A signature is a function's name and parameter list. A caller invokes that function with arguments.
 A change scope lists the callers and tests found for the requested change.

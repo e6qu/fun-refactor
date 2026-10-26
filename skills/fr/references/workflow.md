@@ -48,7 +48,7 @@ A failed stage stops later work and leaves their status `pending`. Inspect `tran
 preserve check diagnostics. A pending transaction still requires the separate recovery route.
 
 For an unchanged applied transaction, `resume-applied: true` starts with fresh checks and requires
-a reviewed workflow basis. Read `docs/workflow-recovery.md` for admission and delivery limits.
+a reviewed workflow basis. For pending writes, use [Recovery](recovery.md).
 
 This workflow checks only project-declared commands. Independent behavior oracles and receiver
 checks remain separate evidence when the task requires them. Use the manual Checks, History and Git

@@ -45,91 +45,46 @@ Deliver each complete milestone in one PR: implementation, complete examples, in
 all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
-M1 has its complete comparison. M2 is next; M3 follows it.
+M1 and M2 now have their complete comparisons. M3 is the next implementation milestone.
 
 ### M1. Run the selected agents on three complete tasks
 
-The [results and every submitted patch](tests/agent-eval/selected-agents/local-results/README.md) compare a Boltons rename,
-a Unicode comparison repair and a Lean proof of the fixed staff-or-owner access rule.
-Three profiles, three tasks, two tool setups and two repetitions give thirty-six attempts.
-The [task and client records](tests/agent-eval/selected-agents/README.md) own the exact requirements, versions and limits.
-
-The installed local Codex and OpenCode2 CLIs ran serially with existing accounts and unchanged 150-second task limits.
-GitHub checks submitted patches against the original source, including behavior or Lean checks, separate delivery and exact undo/redo.
-Failures remain results; no failed slot was retried. A timed-out CLI stays failed even if it left a valid patch.
-Only patches and summaries are public. Full CLI records and credentials stay local.
-Account charges and unavailable usage remain unknown; a catalog's zero price is not observed billing.
-The native CLIs expose no shared hard token/request cap. Their fixed time and resource limits remain visible.
-
-The comparison does not establish general savings. Use the measured overhead and failed tasks to choose improvements in M2.
-An unused fr tool establishes no benefit. A checked model proof leaves the source/model connection as a separate open claim.
+The [36-attempt comparison](tests/agent-eval/selected-agents/local-results/README.md) covers a Boltons rename,
+a Unicode repair and a Lean proof of the fixed staff-or-owner access model.
+It retains every outcome and submitted patch. A timed-out client stays failed even when its patch passes.
+Only patches and summaries are public; full CLI records and credentials remain local.
+Actual charges and unavailable usage remain unknown. A checked model proof leaves its connection to source behavior open.
 
 ### M2. Make multi-file refactorings and targeted changes dependable
 
-The implementation and supplied controls pass CI, but M2 remains open.
-Three complete comparisons preserve all 144 attempts, including failures:
+The [latest comparison](tests/agent-eval/project-edits/local-results/README.md) independently checked all 48 submissions.
+All 48 patches passed. Forty-three attempts finished within the original 150-second limit; five timed out and remain failed.
+Every selected agent delivered at least one accepted result per task using a reviewed, contributing fr step.
+The complete milestone belongs in one PR, with its implementation, checks, examples, results and tracking.
+The full PR CI gate must also pass.
 
-| Comparison | Accepted / 48 | What changed before starting it |
+| Completed case | Concrete behavior |
+| --- | --- |
+| Rust parameter removal | Remove an unused Boolean input across two packages and all five declared calls; preserve other argument evaluation and refuse removal of an argument with effects |
+| TypeScript rename | Change the exported `price` to `quote` through an import alias; keep calls named `displayPrice` and preserve the unrelated `price` function |
+| Regex feature | Add documented length APIs in both packages; count UTF-8 bytes without allocating, produce escaped text with at most one allocation, and preserve append behavior |
+| Python repair | Make `invoice_total(5, 2)` return 7 while preserving the public signature and unrelated source |
+
+Supplied controls also check preserved source, competing edits, failed-check diagnostics, separate patch delivery and exact undo/redo.
+External callers that the workspace cannot identify remain unknown.
+The [task guide](tests/agent-eval/project-edits/README.md) owns the exact frozen requirements and limits.
+
+| Complete comparison | Accepted / 48 | What changed before its first call |
 | --- | ---: | --- |
 | [Original](tests/agent-eval/project-edits/first-results/README.md) | 33 | Fr was available; using it was optional |
-| [Shorter guides](tests/agent-eval/project-edits/guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify the documented route and repair a local Rust helper |
-| [Actual clock](tests/agent-eval/project-edits/clocked-results/README.md) | 41 | List every requirement separately, give the actual finish time and reserve ten seconds for the response |
+| [Shorter guides](tests/agent-eval/project-edits/guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify examples and repair the local Rust helper |
+| [Actual clock](tests/agent-eval/project-edits/clocked-results/README.md) | 41 | List requirements separately, give the actual finish time and reserve time for the response |
+| [Behavior checks](tests/agent-eval/project-edits/local-results/README.md) | 43 | Check actual byte counts and allocations, avoid optimized development builds, and protect supplied checking files |
 
-GLM and Kimi still need an accepted regex result with fr. Some correct patches arrived too late;
-other patches produced the right text but allocated memory more than once.
-The supplied command only checked compilation, so it could not expose that allocation mistake.
-Additional runtime checks used an unnecessarily optimized development build and consumed time needed for delivery.
-
-Next, validate one supplied command that checks actual text, UTF-8 byte counts, allocations and append behavior.
-Use an explicitly unoptimized build for those behavior checks and reject deletion of the supplied checking files.
-Then freeze one complete comparison with both setups using that command. Keep the same models and 150-second limits.
-Keep every earlier outcome and the unchanged independent checks. Do not retry selected failed slots.
-Report overhead against the same agent using ordinary tools; none of the completed comparisons establishes general savings.
-
-Deliver this whole milestone in one PR. First freeze these four cases and the checks that reject wrong or incomplete changes:
-
-| Case | Concrete requirement |
-| --- | --- |
-| Rust parameter removal | Remove an unused Boolean parameter with literal arguments across a two-crate workspace; update every declared direct caller and report external or unresolved uses |
-| Regex feature | Add public `escape_len(pattern: &str) -> usize` in both regex crates; empty input needs zero bytes, `a.b` needs four and `é` needs two; construct no temporary escaped string |
-| Python repair | Fix `invoice_total(amount, fee)` omitting the fee; `invoice_total(5, 2)` must return 7 |
-| TypeScript rename | Rename an exported helper through an imported alias while leaving an unrelated local declaration with the old name untouched |
-
-For every case:
-
-- The agent finds the target from the request, reads the relevant code, previews one complete change and runs explicit project checks.
-- Test preserved bytes outside declared edit ranges, comments, Unicode text and indentation.
-  An intentionally wider rewrite must identify its wider range in the preview.
-- Inspect affected imports, declared callers, tests and relevant configuration. Report omissions and unresolved uses.
-- A refactoring must preserve argument evaluation. Test a side-effecting argument separately; preserve its effects explicitly or refuse before writing.
-- A competing source edit makes the old preview refuse before writing. Refresh the review from current source.
-- A failed check preserves its diagnostics and the actual edit state.
-- Undo restores exact original bytes; redo restores the reviewed change.
-  The exported patch passes independent checks in another checkout.
-- Give each target agent one documented route for each task. Reuse existing edit/check machinery and remove redundant choices instead of adding another wrapper.
-- Run two repetitions per case, profile and tool setup under frozen settings: forty-eight attempts.
-  Preserve the earlier attempts and compare matching outcomes.
-
-Do the implementation and deterministic checks before starting those attempts.
-Start with Rust parameter removal and the TypeScript alias rename, then the regex feature and Python repair.
-Use the M1 failures to shorten unnecessary reading and repeated tool work in the existing guides and commands.
-Keep the 150-second task limit. Freeze the final instructions, client settings and independent checks before the first M2 call;
-keep every outcome rather than tuning the experiment between attempts.
-
-A literal argument uses a direct value, such as `false`.
-A call such as `record()` must still run when its effects matter.
-An imported alias is a local name for an exported function.
-For `import { price as displayPrice }`, renaming the export updates `price` in the import while preserving calls through `displayPrice`.
-The [pinned regex requirement](tests/agent-eval/unknown-target/task.json) also requires unchanged escaping and append behavior.
-Test every escaping class, Unicode input, allocation counts and builds without default features in both crates.
-Counting the required bytes allocates nothing. Producing nonempty escaped text allows at most one allocation; empty input allows none.
-
-**M2 is complete when** all four cases pass the scripted delivery checks.
-Each selected agent must also deliver at least one independently accepted result per case using fr within the frozen repetitions and limits.
-Record which fr actions contributed to that delivered result.
-Keep the failed outcomes alongside those successes; a scripted success alone cannot close the agent requirement.
-Unsupported constructs must refuse until their required reusable rules work.
-Add Python analysis or other language rules only when one of these code-change tasks needs them.
+Keep all 192 attempts, including failures. These combined changes do not isolate one cause of the differences.
+For matching successful pairs in the latest comparison, adding fr took 33% longer with Luna, 50% with GLM and 17% with Kimi.
+The baseline is the same agent using ordinary tools. Times include preparation, replies, tools, checks and delivery.
+These are code-change times, not execution-speed measurements of the changed programs. No general savings are established.
 
 ### M3. Help the agents write, repair and maintain Lean proofs
 

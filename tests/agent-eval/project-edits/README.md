@@ -1,6 +1,6 @@
 # Four complete code changes for M2
 
-The next comparison asks each selected agent to make four changes, with ordinary tools and with those tools plus fr.
+The completed comparisons ask each selected agent to make four changes, with ordinary tools and with those tools plus fr.
 Each setup gets two attempts per case: 48 attempts in total. Each attempt keeps the 150-second limit.
 Each pair reverses its setup order in the second repetition.
 The [task requirements](tasks.json) are recorded before extending tool support or running those attempts.
@@ -48,13 +48,14 @@ Later CI rechecks prepare and test a fresh environment and record its identity s
 All 48 outcomes must be checked, including patches delivered by timed-out clients.
 A patch passing compilation cannot turn a timed-out client into an accepted attempt.
 
-## The three completed comparisons
+## The four completed comparisons
 
 | Comparison | Accepted / 48 | Changes fixed before its first call |
 | --- | ---: | --- |
 | [Original](first-results/README.md) | 33 | Fr was available; its use was optional |
 | [Shorter guides](guided-results/README.md) | 40 | State the deadline, require a useful fr step, simplify guide examples and repair the local Rust helper's library path |
 | [Actual clock](clocked-results/README.md) | 41 | Present every requirement separately, state the actual finish time and reserve ten seconds for response and accounting |
+| [Behavior checks](local-results/README.md) | 43 | Supply actual behavior checks, use an unoptimized development build and protect provided checking files |
 
 Every comparison keeps all 48 scheduled outcomes. No individual failed slot was retried.
 Each starts fresh projects and conversations with the same three models, settings, task requirements, order, repetitions and hard limits.
@@ -70,12 +71,14 @@ The second comparison had five timeouts and three incorrect allocation changes.
 Kimi's last fr regex patch was correct and arrived around 148 seconds, but its client missed the original deadline.
 The third comparison had four timeouts and three incorrect allocation changes.
 Both GLM fr regex patches passed the independent checks but their clients finished too late.
-GLM and Kimi still need accepted, contributing fr results for regex before M2 can close.
+The fourth comparison closes those missing cases: every agent has an independently accepted fr result for every request.
+All 48 submitted patches passed; five clients timed out and their attempts remain failed.
 
-Some earlier shell-command counts miss calls after newlines. Their reviewed contribution notes, rather than counts, establish actual fr use.
-The exporter now recognizes those calls. Original counts and record hashes stay intact.
+Some earlier shell-command counts miss calls after newlines; the exporter now recognizes newline-separated commands.
+Computed executable names can still go uncounted. Reviewed contribution notes establish actual fr use.
+Original counts and record hashes stay intact.
 
-## Fix the supplied behavior check before another comparison
+## Why the public behavior check changed
 
 The earlier public regex command only checked compilation. It could accept the new APIs while missing the requested memory behavior.
 For example, producing the right escaped text still fails the request when the string grows through multiple allocations.
@@ -83,15 +86,26 @@ Some agents added runtime examples to check values, but upstream development opt
 
 The corrected public command runs actual byte, text, allocation and append checks against both libraries, then checks builds without default features.
 It uses explicit development optimization zero and one compiler job. These are behavior checks, not speed measurements.
-Separate macOS controls must reject missing APIs, wrong byte counts and excessive allocations, then accept the reference change.
+The [macOS controls](https://github.com/e6qu/fun-refactor/actions/runs/40273917213) reject missing APIs, wrong byte counts and excessive allocations, then accept the reference change.
 The private grader and its broader independent checks remain unchanged.
 
 Both tool setups receive the same command and checking files. Deleting or changing those files makes an attempt fail;
 cleanup may remove only temporary files the agent created. This addresses two observed deletions of the entire supplied `.fr` directory.
-A new comparison must freeze that checking environment and every slot before its first call, retaining the three earlier studies.
+The fourth comparison froze that environment and every slot before its first call, retaining the three earlier studies.
 
 Preparation, model work, tools, patch delivery, response and native session accounting share the same 150-second deadline.
 The supplied behavior command uses that attempt's original finish time, not a new allowance when launched.
 Outer guard admission and controller Python startup precede the attempt timer; their time remains explicitly unmeasured.
 Report matching successes, failed-attempt time, missing token usage, unknown account charges and reviewed fr contributions.
+Later independent GitHub grading is outside the local attempt timer; its linked run retains those checking times separately.
 M2 needs at least one accepted result with an actual fr contribution for every agent/request pair within the frozen repetitions.
+
+The [independent grading run](https://github.com/e6qu/fun-refactor/actions/runs/40284596088) checked all 48 fourth-comparison patches.
+The new public command exposed omitted allocation changes, allowing agents to correct them before independent grading.
+Some corrections and reviews still finished too late. Other timeouts followed incorrect author inputs or workflow preview values.
+These failures remain part of the comparison, even though their submitted code passed.
+
+After collection, the guidance now names only the checking files actually supplied for a task.
+It explains that refactoring JSON belongs in a fragment file and distinguishes the workflow's preview value from an author's preview value.
+It also explains when to write an exact Git diff after workflow delivery, avoiding comparisons between equivalent patch formats.
+Runnable examples check that wording; it is not another measured comparison.
