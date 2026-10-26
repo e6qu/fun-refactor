@@ -31,7 +31,7 @@ jobs:
         working-directory: grammars/lean
         run: |
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
-          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node --report-states-for-rule -
+          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
       - name: Check proof syntax and preserve following declarations before committing
         run: >-
           python3 -B tools/check-lean-reader.py
