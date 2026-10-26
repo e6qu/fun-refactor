@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import proof_writing_collect as collector
@@ -66,6 +67,40 @@ class CompleteProofControls(unittest.TestCase):
         values['m3-private-controls']['controls']['page-count-changed-claim']['accepted'] = True
         with self.assertRaises(ValueError):
             self.combine(values)
+
+    def test_only_the_original_successful_control_run_can_load_its_checker(self):
+        for changed_source, changed_archive in ((False, False), (True, False), (False, True)):
+            with self.subTest(source=changed_source, archive=changed_archive), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                archive = root / 'checker.tar.gz'
+                archive.write_bytes(b'test checker archive')
+                receipt = self.combine(self.reports())
+                receipt['private']['image_archive_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
+                if changed_archive:
+                    archive.write_bytes(b'changed checker archive')
+                (root / 'summary.json').write_text(json.dumps({'controls': receipt}))
+
+                def output(argv, **_settings):
+                    if argv[0] != 'gh':
+                        return receipt['private']['image'] + '\n'
+                    if '/jobs?' in argv[-1]:
+                        return json.dumps([{'jobs': [{'name': 'M3 / Require every proof, source and native-client control',
+                                                     'conclusion': 'success'}]}])
+                    return json.dumps({'head_sha': ('b' if changed_source else 'a') * 40,
+                                       'head_repository': {'full_name': 'example/project'}})
+
+                with mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'example/project'}), \
+                     mock.patch.object(results.local, 'implementation_bindings', return_value=receipt['bindings']), \
+                     mock.patch.object(results.subprocess, 'check_output', side_effect=output), \
+                     mock.patch.object(results.subprocess, 'run') as loading:
+                    if changed_source or changed_archive:
+                        with self.assertRaises(ValueError):
+                            results.load_checker(root, archive, '123')
+                        loading.assert_not_called()
+                    else:
+                        loaded = results.load_checker(root, archive, '123')
+                        self.assertEqual(loaded['image'], receipt['private']['image'])
+                        self.assertEqual(loading.call_count, 1)
 
 
 if __name__ == '__main__':
