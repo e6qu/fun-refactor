@@ -13,6 +13,40 @@ fn simplifier_locations_and_equality_transport_parse() {
 }
 
 #[test]
+fn fields_and_subscripts_belong_to_the_function_argument() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        let body = definition.child_by_field_name("body").unwrap();
+        match &source[name.byte_range()] {
+            "projectionArgument" | "subscriptArgument" => {
+                checked += 1;
+                assert_eq!(body.kind(), "application");
+                let head = body.child_by_field_name("name").unwrap();
+                assert_eq!(&source[head.byte_range()], "f");
+                let argument = body.child_by_field_name("arguments").unwrap();
+                assert!(matches!(argument.kind(), "projection" | "subscript"));
+            }
+            "resultProjection" => {
+                checked += 1;
+                assert_eq!(body.kind(), "projection");
+                let term = body.child_by_field_name("term").unwrap();
+                assert_eq!(term.kind(), "parenthesized");
+                assert_eq!(&source[term.byte_range()], "(f n)");
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(checked, 3);
+}
+
+#[test]
 fn tactic_locations_preserve_later_source_declarations() {
     let source = include_str!("fixtures/lean-source-declarations.lean");
     let (_directory, index) = common::workspace(&[("Source.lean", source)]);

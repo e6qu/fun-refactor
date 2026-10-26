@@ -96,7 +96,7 @@ why = "the omitted forms are ordinary Lean proof steps; losing them also disrupt
 [[patch]]
 subject = "term bindings and function heads"
 rule = "_binding_body, _application_head"
-change = "term bindings require their following body; low-precedence expressions need parentheses when used as function heads"
+change = "term bindings require their following body; low-precedence expressions need parentheses when used as function heads; fields and subscripts attach to an argument unless the application is parenthesized"
 accepts = ["let count := n; count + 1", "(fun n : Nat => n + 1) 2"]
 why = "standalone bindings already have tactic and do-statement rules, and an unparenthesized proof block must not become a function applied to the next proof step"
 

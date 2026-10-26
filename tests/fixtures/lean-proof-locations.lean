@@ -85,6 +85,12 @@ def appliedTypedLambda : Nat := (fun n m : Nat => n + m) 2 3
 
 def typedArrowLambda : Nat := (fun f : Nat → Nat => f 1) (fun n => n)
 
+def projectionArgument (f : Nat → Nat) (pair : Nat × Nat) : Nat := f pair.1
+
+def subscriptArgument (f : Nat → Nat) (values : Array Nat) : Nat := f values[0]!
+
+def resultProjection (f : Nat → Nat × Nat) (n : Nat) : Nat := (f n).1
+
 def returnedFunction (flag : Bool) : Nat → Nat :=
   if flag then fun n => n + 1 else fun n => n
 

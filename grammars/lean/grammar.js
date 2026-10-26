@@ -486,15 +486,18 @@ module.exports = grammar({
 
     _expression: $ => choice(
       $._application_head,
-      $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
+      $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
       $.if, $.if_let, $.match, $.do, $.by, $.try, $.return, $.as_pattern,
     ),
 
     _application_head: $ => choice(
-      $._atom,
+      $._postfix_head,
       $.application,
+    ),
+
+    _postfix_head: $ => choice(
+      $._atom,
       $.subscript,
-      $.unary_expression,
       $.explicit,
       // postfix ! and ? are handled by subscript modifier and notation
       $.projection,
@@ -561,7 +564,7 @@ module.exports = grammar({
     application: $ => prec.left(PREC.app, seq(
       field('name', $._application_head),
       field('arguments', choice(
-        $._atom,
+        $._postfix_head,
         $.fun,
         $.if,
         $.match,
@@ -573,7 +576,7 @@ module.exports = grammar({
     // Array/list subscript: `arr[i]` or `arr[i]!` or `arr[i]?`
     // Also handles subarray slice: `arr[start:stop]`
     subscript: $ => prec.left(PREC.proj, seq(
-      field('object', $._expression),
+      field('object', $._postfix_head),
       token.immediate('['),
       optional(field('index', $._expression)),
       optional(seq(':', optional(field('stop', $._expression)))),
@@ -601,7 +604,7 @@ module.exports = grammar({
 
     // Projection: `x.foo` or `x.1` or `x.«name»` or `.field` (leading dot)
     projection: $ => prec.left(PREC.proj, seq(
-      optional(field('term', $._expression)),
+      optional(field('term', $._postfix_head)),
       choice(
         token.immediate('.'),  // For `x.field` where x is an expression
         '.',                   // For `.field` (leading dot)

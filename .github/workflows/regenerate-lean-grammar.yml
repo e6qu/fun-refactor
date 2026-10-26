@@ -47,7 +47,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'Generate the Lean reader with bounded tactic hypothesis lists'
+            git commit -m 'Generate the checked Lean syntax reader'
             git push origin "HEAD:refs/heads/$BRANCH"
           fi
       - uses: actions/upload-artifact@v7
