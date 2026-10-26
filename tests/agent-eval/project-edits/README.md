@@ -39,6 +39,8 @@ A CPU-second measures time running on one CPU core; waiting still consumes the s
 Each patch gets its full language checks in a fresh checkout. Another copy verifies identical source and exact reversal without repeating compilation.
 Prepare the unchanged regex dependencies once before private grading and record that shared preparation time separately.
 Remove both packages under change from that cache. Every patch rebuilds them; cached results cannot supply the requested new API.
+Read immutable dependency libraries from the read-only cache instead of copying them into the memory-backed workspace.
+Keep writable copies of compiler state and regex-automata, which depends on the changed regex-syntax package.
 Cache admission checks the original source hash, compiler identity and private image identity.
 Before starting model attempts, record the successful controls, tool versions, private image identity and final instructions.
 

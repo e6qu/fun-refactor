@@ -13,6 +13,20 @@ from . import selected_tasks as tasks
 from .selected_plan import encoded, require
 
 
+def restore_dependency_cache(source, destination):
+    def copy(path, target):
+        relative = Path(path).relative_to(source)
+        # regex-automata depends on the changed regex-syntax package and must rebuild.
+        if (relative.parts[:2] == ('debug', 'deps') and
+                relative.suffix in {'.rlib', '.rmeta', '.so'} and
+                not relative.name.startswith('libregex_automata-')):
+            Path(target).symlink_to(path)
+            return target
+        return shutil.copy2(path, target)
+
+    shutil.copytree(source, destination, copy_function=copy)
+
+
 def check_boundary(milestone):
     status = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines())
     require(os.geteuid() == 65534 and int(status['CapEff'].strip(), 16) == 0 and
@@ -83,7 +97,7 @@ def run(task, milestone):
         cache = json.loads(Path('/inputs/target-cache.json').read_text())
         require(cache['original_sha256'] == hashlib.sha256(encoded(prepared['original'])).hexdigest(),
                 'compiler cache belongs to another original source')
-        shutil.copytree('/inputs/prepared-target', changed / 'target')
+        restore_dependency_cache(Path('/inputs/prepared-target'), changed / 'target')
         modified = max(time.time_ns(), cache['newest_output_mtime_ns'] + 1000000000)
         for path in paths:
             if (changed / path).is_file():

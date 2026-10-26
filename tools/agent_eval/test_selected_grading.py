@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import selected_grading as grading
+from agent_eval.selected_grade_probe import restore_dependency_cache
 
 
 class SelectedGradingTests(unittest.TestCase):
@@ -45,6 +46,29 @@ class SelectedGradingTests(unittest.TestCase):
         source.chmod(0o600)
         with self.assertRaisesRegex(ValueError, 'normal Git checkout modes'):
             grading.stage(self.source, self.root / 'private-mode-snapshot')
+
+    def test_prepared_dependencies_share_bytes_but_rebuilt_outputs_stay_writable(self):
+        files = {'debug/deps/libserde-abc.rlib': b'unchanged compiled dependency',
+                 'debug/deps/libserde-abc.rmeta': b'unchanged metadata',
+                 'debug/deps/libserde_derive-abc.so': b'unchanged compiler plugin',
+                 'debug/deps/libregex_automata-abc.rlib': b'depends on changed code',
+                 'debug/deps/libregex_automata-abc.rmeta': b'depends on changed metadata',
+                 'debug/.fingerprint/serde-abc/lib-serde': b'cargo state'}
+        for name, content in files.items():
+            path = self.source / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        target = self.root / 'target'
+        restore_dependency_cache(self.source, target)
+        for name, content in files.items():
+            self.assertEqual((target / name).read_bytes(), content)
+            shared = name.startswith('debug/deps/libserde')
+            self.assertEqual((target / name).is_symlink(), shared)
+            if shared:
+                self.assertEqual((target / name).resolve(), (self.source / name).resolve())
+            else:
+                (target / name).write_bytes(b'rebuilt state')
+                self.assertEqual((self.source / name).read_bytes(), content)
 
 
 if __name__ == '__main__':
