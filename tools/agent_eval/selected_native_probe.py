@@ -67,7 +67,12 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
             'permissions': config['permissions'], 'title': 'M1 scripted control',
             'location': {'directory': str(project)}}, 200, 10)['data']
         require(session['model'] == profile['model'], 'OpenCode2 session substituted the model or variant')
-        skills = server.request('GET', '/api/skill', None, 200, 10)
+        if setup == 'fr':
+            ready = server.wait_skill('fr', 10)
+            skills, skill_polls = ready['catalog'], ready['polls']
+        else:
+            skills = server.request('GET', '/api/skill', None, 200, 10)
+            skill_polls = 1
         (output / 'skills.json').write_text(json.dumps(skills, indent=2) + '\n')
         require(any(row['name'] == 'fr' for row in skills['data']) == (setup == 'fr'), 'wrong native OpenCode2 fr skill availability')
         server.request('DELETE', '/api/session/' + session['id'], None, 204, 10)
@@ -85,7 +90,7 @@ def opencode(binary, project, env, profile, endpoint, setup, output, version):
     require(observed['outcome'] == 'succeeded' and observed['exported_assistant_responses'] == 2,
             'scripted CLI did not retain both native assistant responses')
     (output / 'session-export.json').write_text(json.dumps(saved, indent=2) + '\n')
-    return {'skills': skills, 'shutdown': server.shutdown}
+    return {'skills': skills, 'skill_polls': skill_polls, 'shutdown': server.shutdown}
 
 
 def run(profile_name, setup):

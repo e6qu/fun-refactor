@@ -40,6 +40,38 @@ class OpenCode2Tests(unittest.TestCase):
                 self.server.wait_agent('build', 0)
         request.assert_not_called()
 
+    @patch('agent_eval.opencode2_client.time.sleep')
+    def test_skill_discovery_waits_for_the_required_project_skill(self, sleep):
+        responses = [{'data': [{'name': 'OpenCode'}]},
+                     {'data': [{'name': 'OpenCode'}, {'name': 'fr'}]}]
+        with patch('agent_eval.opencode2_client.time.monotonic', side_effect=[0, 0.1, 0.4]), \
+                patch.object(self.server, 'request', side_effect=responses) as request:
+            self.assertEqual(self.server.wait_skill('fr', 1), {'catalog': responses[1], 'polls': 2})
+        self.assertEqual([call.args[:4] for call in request.call_args_list],
+                         [('GET', '/api/skill', None, 200)] * 2)
+        self.assertAlmostEqual(request.call_args_list[0].args[4], 0.9)
+        self.assertAlmostEqual(request.call_args_list[1].args[4], 0.6)
+
+    @patch('agent_eval.opencode2_client.time.sleep')
+    def test_missing_skill_does_not_restart_its_deadline(self, sleep):
+        with patch('agent_eval.opencode2_client.time.monotonic', side_effect=[0, 0.1, 0.8, 1.1]), \
+                patch.object(self.server, 'request', return_value={'data': []}) as request:
+            with self.assertRaisesRegex(ValueError, 'required skill did not become ready'):
+                self.server.wait_skill('fr', 1)
+        self.assertEqual(request.call_count, 2)
+        self.assertAlmostEqual(request.call_args_list[-1].args[4], 0.2)
+        with patch.object(self.server, 'request') as request:
+            with self.assertRaisesRegex(ValueError, 'deadline expired'):
+                self.server.wait_skill('fr', 0)
+        request.assert_not_called()
+
+    def test_skill_discovery_does_not_retry_http_errors(self):
+        error = OpenCode2ResponseError('GET', '/api/skill', 401, 200, b'')
+        with patch.object(self.server, 'request', side_effect=error) as request:
+            with self.assertRaises(OpenCode2ResponseError):
+                self.server.wait_skill('fr', 1)
+        self.assertEqual(request.call_count, 1)
+
     @patch('agent_eval.opencode2_client.os.killpg')
     @patch('agent_eval.opencode2_client.os.getpgid', return_value=999)
     @patch('agent_eval.opencode2_client.subprocess.Popen')

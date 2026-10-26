@@ -9,6 +9,15 @@ The final gate checks that all required portions ran and passed; a passing small
 Queue time is time waiting for a runner. Execution time starts when a runner begins work.
 For a slow PR, inspect those times separately before deciding which operation needs repair.
 
+Candidate grader checks download only their task files and tools.
+Downloading the complete result archive had used most of a five-minute job before the checks started.
+The narrower checkout keeps the same deadline and all source and repair controls.
+
+OpenCode can expose its `build` agent before it finishes discovering project skills.
+The scripted check waits for the `fr` skill within the same ten-second deadline.
+A missing skill or a failed client request still fails the check.
+The saved patches still use their original checker; only the scripted client startup check uses the updated code.
+
 ## Keep completed project checks reproducible
 
 CI replays the [recorded project changes](project-change-milestone.md) and checks that altered completion claims fail.

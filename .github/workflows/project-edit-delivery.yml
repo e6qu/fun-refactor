@@ -159,6 +159,7 @@ jobs:
             ${{ runner.temp }}/m2-native/summary.json
             ${{ runner.temp }}/m2-native/*/result.json
             ${{ runner.temp }}/m2-native/*/native/result.json
+            ${{ runner.temp }}/m2-native/*/native/skills.json
             ${{ runner.temp }}/m2-native/*/native/native.stdout
             ${{ runner.temp }}/m2-native/*/native/native.stderr
             ${{ runner.temp }}/m2-native/*/native/provider.json
