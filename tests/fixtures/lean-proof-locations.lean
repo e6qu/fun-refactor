@@ -34,3 +34,14 @@ theorem split_hypothesis (flag : Bool) (h : chooseNumber flag = 1) : flag = true
   · contradiction
 
 theorem after_locations : 0 = 0 := by rfl
+
+theorem induction_generalizing (xs : List Nat) (n : Nat) : n = n := by
+  induction xs generalizing n with
+  | nil => rfl
+  | cons head tail ih => rfl
+
+theorem cases_application (flag : Bool) : chooseNumber flag ≤ 1 := by
+  cases h : chooseNumber flag with
+  | zero => omega
+  | succ n =>
+    cases flag <;> simp [chooseNumber] at h <;> omega

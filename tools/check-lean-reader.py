@@ -30,6 +30,7 @@ def check(binary):
                 name = next(definition.iter('qualified_name'), None)
                 if name is not None:
                     names.add(''.join(''.join(name.itertext()).split()))
+            print('Recovered declarations:', sorted(names), flush=True)
             assert EXPECTED <= names, 'lost later source declarations: ' + repr(sorted(EXPECTED - names))
         print('Checked', fixture, flush=True)
 

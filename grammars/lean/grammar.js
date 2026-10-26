@@ -798,7 +798,9 @@ module.exports = grammar({
     // falling through the generic identifier-and-arguments tactic rule.
     tactic_cases: $ => prec.right(3, seq(
       field('tactic', choice('cases', 'induction')),
+      optional(seq(field('equation', $.identifier), ':')),
       field('subject', $._tactic_subject),
+      optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
         repeat1($.tactic_constructor_branch),
@@ -832,9 +834,14 @@ module.exports = grammar({
 
     _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
 
-    // Keeping the scrutinized value name-shaped prevents the full expression
-    // grammar from being duplicated across every structural tactic branch.
-    _tactic_subject: $ => choice($.qualified_name, $.number, $.hole),
+    _tactic_subject: $ => choice(
+      $.qualified_name, $.number, $.hole, $.parenthesized, $.tactic_subject_application,
+    ),
+
+    tactic_subject_application: $ => prec.left(PREC.app, seq(
+      field('name', $.qualified_name),
+      repeat1(field('argument', choice($.qualified_name, $.number, $.hole, $.parenthesized))),
+    )),
 
     rcases_tuple_pattern: $ => seq(
       '⟨', commaSep1($._rcases_atom), '⟩',
