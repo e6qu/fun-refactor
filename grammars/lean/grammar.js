@@ -717,15 +717,13 @@ module.exports = grammar({
       $._binding_body,
     )),
 
-    // Shared `:= value [; body]` tail for `let` and `have` — extracted
-    // so the parser reuses states across both forms.
+    // A term binding always has a body. Bindings without a body are tactics
+    // or do statements, whose rules are separate below.
     _binding_body: $ => prec.right(seq(
       ':=',
       field('value', $._expression),
-      optional(seq(
-        choice(';', $._binding_semicolon),
-        field('body', $._expression),
-      )),
+      choice(';', $._binding_semicolon),
+      field('body', $._expression),
     )),
 
     // ============================================================
