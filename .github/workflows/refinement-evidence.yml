@@ -13,6 +13,7 @@ on:
         options:
           - all
           - m2-submissions
+          - m2-merge-submissions
           - model-comparisons
           - checked-outcomes
           - retained-proofs
@@ -117,6 +118,66 @@ concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
+  m2-merge-submissions:
+    if: inputs.group == 'm2-merge-submissions'
+    name: Combine the 48 already checked M2 outcomes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SOURCE_RUN: ${{ inputs.collection_run }}
+      PYTHONPATH: tools:sdk/python/src
+    steps:
+      - name: Verify all twelve producer jobs and select their exact source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          run = os.environ['SOURCE_RUN']
+          assert run.isdigit()
+          repository = os.environ['GITHUB_REPOSITORY']
+          base = 'repos/' + repository + '/actions/runs/' + run
+          record = json.loads(subprocess.check_output(['gh', 'api', base]))
+          assert record['head_repository']['full_name'] == repository
+          source = record['head_sha']
+          assert re.fullmatch('[0-9a-f]{40}', source)
+          jobs = json.loads(subprocess.check_output(['gh', 'api', base + '/jobs?per_page=100']))['jobs']
+          producers = [job for job in jobs if job['name'].split(' / ')[-1].startswith('Check submitted patches (')]
+          assert len(producers) == 12 and all(job['status'] == 'completed' and job['conclusion'] == 'success' for job in producers)
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              stream.write('M2_MERGE_SOURCE=' + source + '\n')
+          print(json.dumps({'producer_run': run, 'source_commit': source, 'successful_cells': len(producers)}))
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.M2_MERGE_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: m2-patches-*
+          path: ${{ runner.temp }}/m2-cells
+          run-id: ${{ inputs.collection_run }}
+          github-token: ${{ github.token }}
+      - name: Verify every original submission and combine its verdict
+        run: |
+          mkdir -p "$RUNNER_TEMP/m2-checked"
+          python3 -B -m agent_eval.project_edits_results merge \
+            --data tests/agent-eval/project-edits/local-results \
+            --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m2-all-patch-checks
+          path: ${{ runner.temp }}/m2-checked/summary.json
+          if-no-files-found: error
+          retention-days: 30
+
   m2-submissions:
     if: inputs.group == 'm2-submissions'
     name: Check all 48 original M2 submissions
@@ -463,7 +524,7 @@ jobs:
           git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
-    if: inputs.group != 'm2-submissions' && inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
+    if: inputs.group != 'm2-submissions' && inputs.group != 'm2-merge-submissions' && inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:

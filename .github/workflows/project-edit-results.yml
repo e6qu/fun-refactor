@@ -132,10 +132,11 @@ jobs:
           pattern: m2-patches-*
           path: ${{ runner.temp }}/m2-cells
       - name: Reject missing cells or substituted submissions
-        run: >-
-          python3 -B -m agent_eval.project_edits_results merge
-          --data tests/agent-eval/project-edits/local-results
-          --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
+        run: |
+          mkdir -p "$RUNNER_TEMP/m2-checked"
+          python3 -B -m agent_eval.project_edits_results merge \
+            --data tests/agent-eval/project-edits/local-results \
+            --cells "$RUNNER_TEMP/m2-cells" --output "$RUNNER_TEMP/m2-checked/summary.json"
       - name: Check the finished report when requested
         run: |
           case "$REPORT_MODE" in
