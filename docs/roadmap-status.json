@@ -13,8 +13,14 @@
   "evidence": [
     {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-26-distinct-answers-40387061364",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "tools/agent_eval/bounded_host.py"
+      ],
+      "freshness": "stale",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -28,6 +34,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
@@ -44,8 +51,13 @@
     },
     {
       "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-package-flow/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c"
+      ],
+      "freshness": "stale",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
@@ -54,8 +66,13 @@
     },
     {
       "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-python-repositories",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
@@ -69,6 +86,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
@@ -95,8 +113,13 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -125,8 +148,13 @@
     },
     {
       "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-26-m3-ci-compiler-profile/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c"
+      ],
+      "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
@@ -140,6 +168,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
@@ -161,6 +190,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
         "src/spec.rs",
@@ -230,12 +260,14 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/ir.py",
         "sdk/python/tests/test_ir.py",
         "src/formal_kernel.rs",
         "src/spec.rs",
-        "src/vfs.rs"
+        "src/vfs.rs",
+        "tools/agent_eval/bounded_host.py"
       ],
       "freshness": "stale",
       "id": "original-package-questions",
@@ -252,6 +284,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "kernels/FrKernels/Project.lean",
         "queries/README.md",
@@ -291,6 +324,7 @@
         "src/spec.rs",
         "src/transpile/write.rs",
         "src/vfs.rs",
+        "tools/agent_eval/bounded_host.py",
         "tools/compiler-profile.py",
         "tools/evidence_basis.py",
         "tools/package-questions.py",
@@ -315,6 +349,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "queries/README.md",
         "sdk/python/src/fr_ir/_version.py",
@@ -341,6 +376,7 @@
         "src/spec.rs",
         "src/transpile/write.rs",
         "src/vfs.rs",
+        "tools/agent_eval/bounded_host.py",
         "tools/evidence_basis.py",
         "tools/saved-work-cost.py"
       ],
@@ -353,8 +389,14 @@
     },
     {
       "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40388759545",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "tools/agent_eval/bounded_host.py"
+      ],
+      "freshness": "stale",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -368,6 +410,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
         "src/spec.rs",
@@ -387,6 +430,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "src/formal_kernel.rs",
         "src/spec.rs",
@@ -406,6 +450,7 @@
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
@@ -421,19 +466,19 @@
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m3-replay-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m3-tactics-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m3-replay-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-26-m3-tactics-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
@@ -441,19 +486,22 @@
       "engineering_remaining": 0,
       "remaining": [
         "A.exact",
-        "A.live-repeat"
+        "A.repositories",
+        "A.live-repeat",
+        "A.compiler-profile"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 0,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
       "remaining": [
+        "B.scalar",
         "B.contract",
         "B.repository-flow",
         "B.effects"
@@ -462,24 +510,29 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.resume",
+        "C.clean",
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 3,
+      "demonstrated": 2,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
+        "D.checked",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -488,7 +541,7 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -518,7 +571,9 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -537,7 +592,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -554,7 +609,9 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [],
+      "blockers": [
+        "compiler-profile: stale source binding"
+      ],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -589,12 +646,14 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -617,7 +676,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -761,7 +820,9 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -780,12 +841,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -808,7 +871,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -837,7 +900,9 @@
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "current-saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -880,12 +945,14 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -904,7 +971,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {
