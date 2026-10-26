@@ -1143,10 +1143,13 @@ pub(crate) fn formal_plan_from_agent_specs(
     };
     let mut assumptions = vec![
         format!("{} parsing, semantic IR extraction and SHA-256 remain trusted.", detect(&target.source).context("formal target has no source language")?),
-        "The supported kernel excludes effects, mutation, calls, unsafe code and partial operations."
+        "The supported kernel excludes effects, mutation, calls, unsafe code and partial source access."
             .into(),
         "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic.".into(),
     ];
+    if kernel.lean_definition.contains("Int.tdiv") || kernel.lean_definition.contains("Int.tmod") {
+        assumptions.push("Rust i64 division and remainder use Lean Int.tdiv and Int.tmod, which truncate toward zero. Lean arithmetic is total; source division by zero and signed-64 overflow require separate exclusion or failure evidence. This is not a proof of source arithmetic safety.".into());
+    }
     if structural {
         assumptions.push("The model checks retained byte spans and parent provenance only; omitted facts, parser completeness, style, rendering, configuration and embedded language execution are not proved.".into());
     }
@@ -2581,11 +2584,19 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         && function.params.iter().all(|parameter| {
             parameter.default.is_none() && parameter.kind == crate::transpile::ir::ParamKind::Normal
         });
+    let signature = if typed {
+        source_signature(&source_path, symbol)?
+    } else {
+        Vec::new()
+    };
+    let rust_i64_division = language == crate::lang::Language::Rust
+        && !signature.is_empty()
+        && signature.iter().all(|part| part.ty == "i64");
     let term = crate::formal_kernel::compile(function);
     let expression = term
         .as_ref()
         .map_err(|error| anyhow::anyhow!("{error}"))
-        .and_then(|_| lean_kernel_block(&function.body));
+        .and_then(|_| lean_kernel_block(&function.body, rust_i64_division));
     if !formal_candidate_admitted(true, receiver_free, typed, pure, expression.is_ok()) {
         if !receiver_free {
             bail!("methods need an explicit receiver model before kernel generation.");
@@ -2600,7 +2611,6 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     }
     let expression = expression?;
     let term = term?;
-    let signature = source_signature(&source_path, symbol)?;
     let ir_types = function
         .params
         .iter()
@@ -2682,26 +2692,36 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     })
 }
 
-fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String> {
+fn lean_kernel_block(
+    statements: &[crate::transpile::ir::Stmt],
+    rust_i64_division: bool,
+) -> Result<String> {
     use crate::transpile::ir::Stmt;
     let statements = statements
         .iter()
         .filter(|statement| !matches!(statement, Stmt::Comment(_)))
         .collect::<Vec<_>>();
     match statements.as_slice() {
-        [Stmt::Return(Some(expression))] | [Stmt::Expr(expression)] => lean_kernel_expr(expression),
+        [Stmt::Return(Some(expression))] | [Stmt::Expr(expression)] => lean_kernel_expr(expression, rust_i64_division),
         [Stmt::Return(None)] => Ok("()".into()),
-        [Stmt::Block(body)] => lean_kernel_block(body),
+        [Stmt::Block(body)] => lean_kernel_block(body, rust_i64_division),
         [Stmt::If {
             condition,
             then,
             otherwise,
         }] if !otherwise.is_empty() => Ok(format!(
             "if {} then\n    {}\n  else\n    {}",
-            lean_kernel_expr(condition)?,
-            lean_kernel_block(then)?,
-            lean_kernel_block(otherwise)?
+            lean_kernel_expr(condition, rust_i64_division)?,
+            lean_kernel_block(then, rust_i64_division)?.replace('\n', "\n  "),
+            lean_kernel_block(otherwise, rust_i64_division)?.replace('\n', "\n  ")
         )),
+        [Stmt::If { condition, then, otherwise }, rest @ ..]
+            if otherwise.is_empty() && !rest.is_empty() && crate::formal_kernel::explicitly_returns(then) => Ok(format!(
+                "if {} then\n    {}\n  else\n    {}",
+                lean_kernel_expr(condition, rust_i64_division)?,
+                lean_kernel_block(then, rust_i64_division)?.replace('\n', "\n  "),
+                lean_kernel_block_refs(rest, rust_i64_division)?.replace('\n', "\n  ")
+            )),
         [Stmt::Let {
             name,
             value: Some(value),
@@ -2709,8 +2729,8 @@ fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String
             ..
         }, rest @ ..] if !rest.is_empty() && lean_identifier(name) => Ok(format!(
             "let {name} := {};\n  {}",
-            lean_kernel_expr(value)?,
-            lean_kernel_block_refs(rest)?
+            lean_kernel_expr(value, rust_i64_division)?,
+            lean_kernel_block_refs(rest, rust_i64_division)?
         )),
         _ => bail!(
             "the body needs pure returns, immutable lets or complete conditionals; effects and mutation remain explicit boundaries."
@@ -2718,15 +2738,21 @@ fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String
     }
 }
 
-fn lean_kernel_block_refs(statements: &[&crate::transpile::ir::Stmt]) -> Result<String> {
+fn lean_kernel_block_refs(
+    statements: &[&crate::transpile::ir::Stmt],
+    rust_i64_division: bool,
+) -> Result<String> {
     let owned = statements
         .iter()
         .map(|statement| (*statement).clone())
         .collect::<Vec<_>>();
-    lean_kernel_block(&owned)
+    lean_kernel_block(&owned, rust_i64_division)
 }
 
-fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
+fn lean_kernel_expr(
+    expression: &crate::transpile::ir::Expr,
+    rust_i64_division: bool,
+) -> Result<String> {
     use crate::transpile::ir::{BinaryOp, Expr, UnaryOp};
     match expression {
         Expr::Int(value)
@@ -2739,6 +2765,20 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
         Expr::Str(value) => Ok(crate::formal_kernel::quote_string(value)),
         Expr::Bool(value) => Ok(value.to_string()),
         Expr::Name(name) if lean_identifier(name) => Ok(name.clone()),
+        Expr::Binary { op, left, right }
+            if rust_i64_division && matches!(op, BinaryOp::Div | BinaryOp::Rem) =>
+        {
+            let operation = if matches!(op, BinaryOp::Div) {
+                "tdiv"
+            } else {
+                "tmod"
+            };
+            Ok(format!(
+                "(Int.{operation} ({}) ({}))",
+                lean_kernel_expr(left, rust_i64_division)?,
+                lean_kernel_expr(right, rust_i64_division)?
+            ))
+        }
         Expr::Binary { op, left, right } => {
             let operator = match op {
                 BinaryOp::Add => "+",
@@ -2756,36 +2796,42 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
             };
             Ok(format!(
                 "({} {operator} {})",
-                lean_kernel_expr(left)?,
-                lean_kernel_expr(right)?
+                lean_kernel_expr(left, rust_i64_division)?,
+                lean_kernel_expr(right, rust_i64_division)?
             ))
         }
         Expr::Unary {
             op: UnaryOp::Not,
             operand,
-        } => Ok(format!("(!{})", lean_kernel_expr(operand)?)),
+        } => Ok(format!(
+            "(!{})",
+            lean_kernel_expr(operand, rust_i64_division)?
+        )),
         Expr::Unary {
             op: UnaryOp::Neg,
             operand,
-        } => Ok(format!("(-{})", lean_kernel_expr(operand)?)),
+        } => Ok(format!(
+            "(-{})",
+            lean_kernel_expr(operand, rust_i64_division)?
+        )),
         Expr::Ternary {
             condition,
             then,
             otherwise,
         } => Ok(format!(
             "if {} then {} else {}",
-            lean_kernel_expr(condition)?,
-            lean_kernel_expr(then)?,
-            lean_kernel_expr(otherwise)?
+            lean_kernel_expr(condition, rust_i64_division)?,
+            lean_kernel_expr(then, rust_i64_division)?,
+            lean_kernel_expr(otherwise, rust_i64_division)?
         )),
         Expr::Tuple(values) => values
             .iter()
-            .map(lean_kernel_expr)
+            .map(|value| lean_kernel_expr(value, rust_i64_division))
             .collect::<Result<Vec<_>>>()
             .map(|values| format!("({})", values.join(", "))),
         Expr::ListLit(values) => values
             .iter()
-            .map(lean_kernel_expr)
+            .map(|value| lean_kernel_expr(value, rust_i64_division))
             .collect::<Result<Vec<_>>>()
             .map(|values| format!("[{}]", values.join(", "))),
         _ => bail!("an expression uses a call, effect, partial access or unsupported kernel form."),

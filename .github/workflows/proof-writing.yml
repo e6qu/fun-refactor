@@ -1,0 +1,46 @@
+name: M3 proof writing
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches: [milestone/agent-lean-proofs]
+permissions:
+  contents: read
+concurrency:
+  group: m3-proof-writing-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  model:
+    name: Check early returns and numeric proof models
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+      RUST_TEST_THREADS: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - uses: ./.github/actions/native-tools
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: m3-proof-writing
+          cache-on-failure: true
+      - run: cargo fmt --all --check
+      - name: Check generated Lean models and unsafe-input refusals
+        run: cargo test --locked --test formal_kernel --test lean_adoption -- --test-threads=1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: m3-linux-tool
+          path: target/debug/fr
+          if-no-files-found: error
+          retention-days: 30

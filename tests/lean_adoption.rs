@@ -2,6 +2,145 @@ use std::process::Command;
 
 const FR: &str = env!("CARGO_BIN_EXE_fr");
 
+#[test]
+fn guarded_page_count_keeps_early_returns_and_truncating_arithmetic() {
+    use fun_refactor::formal_kernel::{evaluate, Value};
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::create_dir(workspace.path().join("src")).unwrap();
+    std::fs::write(workspace.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+    std::fs::write(
+        workspace.path().join("src/pages.rs"),
+        include_str!("agent-eval/checked-translation/pages.rs"),
+    )
+    .unwrap();
+    let plan =
+        fun_refactor::spec::formal_plan(workspace.path(), "src/pages.rs::page_count", &[]).unwrap();
+    let term = &plan.kernel.evaluation.as_ref().unwrap().term;
+    for (items, size, expected) in [
+        (-1, 5, -1),
+        (11, 0, -1),
+        (11, -5, -1),
+        (0, 5, 0),
+        (11, 5, 3),
+        (10, 5, 2),
+        (i64::MAX, 1, i64::MAX),
+        (i64::MAX, 2, i64::MAX / 2 + 1),
+        (i64::MAX, i64::MAX, 1),
+        (1, i64::MAX, 1),
+        (i64::MIN, 1, -1),
+    ] {
+        assert_eq!(
+            evaluate(term, &[Value::Int(items), Value::Int(size)], 256),
+            Ok(Value::Int(expected))
+        );
+    }
+    assert!(plan.kernel.lean_definition.contains("Int.tdiv"));
+    assert!(plan.kernel.lean_definition.contains("Int.tmod"));
+    assert!(plan
+        .assumptions
+        .iter()
+        .any(|item| item.contains("division by zero")));
+    let init = run(workspace.path(), &["spec", "init", "specs", "--write"]);
+    assert!(
+        init.status.success(),
+        "{}",
+        String::from_utf8_lossy(&init.stderr)
+    );
+    std::fs::write(
+        workspace.path().join("plan.json"),
+        serde_json::to_vec(&plan).unwrap(),
+    )
+    .unwrap();
+    let scaffold = run(
+        workspace.path(),
+        &[
+            "spec",
+            "scaffold",
+            "--from",
+            "plan.json",
+            "--package",
+            "specs",
+            "--write",
+        ],
+    );
+    assert!(
+        scaffold.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scaffold.stderr)
+    );
+    let verify = run(workspace.path(), &["spec", "verify", "specs"]);
+    assert!(
+        verify.status.success(),
+        "{}",
+        String::from_utf8_lossy(&verify.stderr)
+    );
+}
+
+#[test]
+fn early_guard_bindings_stay_in_their_branch_and_fallthrough_refuses() {
+    use fun_refactor::formal_kernel::{evaluate, Value};
+    let workspace = tempfile::tempdir().unwrap();
+    let path = workspace.path().join("guard.rs");
+    std::fs::write(
+        &path,
+        "pub fn choose(n: i64) -> i64 { if n > 0 { let n = 3; return n; } n + 1 }\n",
+    )
+    .unwrap();
+    let plan = fun_refactor::spec::formal_plan(workspace.path(), "guard.rs::choose", &[]).unwrap();
+    let term = &plan.kernel.evaluation.as_ref().unwrap().term;
+    assert_eq!(evaluate(term, &[Value::Int(17)], 256), Ok(Value::Int(3)));
+    assert_eq!(evaluate(term, &[Value::Int(-1)], 256), Ok(Value::Int(0)));
+    for source in [
+        "pub fn choose(n: i64) -> i64 { if n > 0 { let m = n + 1; } n }",
+        "pub fn choose(n: i64) -> i64 { if n > 0 { record(); return 1; } n }",
+        "pub fn choose(n: i64) -> i64 { if n > 0 { let mut m = n; m = 3; return m; } n }",
+    ] {
+        std::fs::write(&path, source).unwrap();
+        assert!(
+            fun_refactor::spec::formal_plan(workspace.path(), "guard.rs::choose", &[]).is_err(),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn signed_division_models_keep_all_signs_and_source_failures_visible() {
+    use fun_refactor::formal_kernel::{evaluate, Failure, Value};
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::write(workspace.path().join("division.rs"), "pub fn quotient(a: i64, b: i64) -> i64 { a / b }\npub fn remainder(a: i64, b: i64) -> i64 { a % b }\n").unwrap();
+    for (name, operation) in [
+        ("quotient", i64::checked_div as fn(i64, i64) -> Option<i64>),
+        ("remainder", i64::checked_rem),
+    ] {
+        let plan =
+            fun_refactor::spec::formal_plan(workspace.path(), &format!("division.rs::{name}"), &[])
+                .unwrap();
+        let term = &plan.kernel.evaluation.as_ref().unwrap().term;
+        for (a, b) in [(7, 3), (-7, 3), (7, -3), (-7, -3), (0, 3), (i64::MAX, 1)] {
+            assert_eq!(
+                evaluate(term, &[Value::Int(a), Value::Int(b)], 256),
+                operation(a, b).map(Value::Int).ok_or(Failure::Overflow)
+            );
+        }
+        assert_eq!(
+            evaluate(term, &[Value::Int(7), Value::Int(0)], 256),
+            Err(Failure::DivisionByZero)
+        );
+        assert_eq!(
+            evaluate(term, &[Value::Int(i64::MIN), Value::Int(-1)], 256),
+            Err(Failure::Overflow)
+        );
+    }
+    std::fs::write(
+        workspace.path().join("unsigned.rs"),
+        "pub fn quotient(a: u64, b: u64) -> u64 { a / b }\n",
+    )
+    .unwrap();
+    assert!(
+        fun_refactor::spec::formal_plan(workspace.path(), "unsigned.rs::quotient", &[]).is_err()
+    );
+}
+
 fn run(workspace: &std::path::Path, args: &[&str]) -> std::process::Output {
     Command::new(FR)
         .arg("-C")

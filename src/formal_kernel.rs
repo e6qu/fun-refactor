@@ -595,6 +595,20 @@ fn infer(
     })
 }
 
+pub(crate) fn explicitly_returns(statements: &[Stmt]) -> bool {
+    match statements
+        .iter()
+        .rfind(|statement| !matches!(statement, Stmt::Comment(_)))
+    {
+        Some(Stmt::Return(_)) => true,
+        Some(Stmt::Block(body)) => explicitly_returns(body),
+        Some(Stmt::If {
+            then, otherwise, ..
+        }) => explicitly_returns(then) && explicitly_returns(otherwise),
+        _ => false,
+    }
+}
+
 fn compile_block(statements: &[Stmt], names: &[String], depth: usize) -> anyhow::Result<Term> {
     if depth > 64 {
         anyhow::bail!("formal kernel scope depth exceeds 64.");
@@ -615,6 +629,12 @@ fn compile_block(statements: &[Stmt], names: &[String], depth: usize) -> anyhow:
             then: Box::new(compile_block(then, names, depth + 1)?),
             otherwise: Box::new(compile_block(otherwise, names, depth + 1)?),
         },
+        [Stmt::If { condition, then, otherwise }, rest @ ..]
+            if otherwise.is_empty() && !rest.is_empty() && explicitly_returns(then) => Term::If {
+                condition: Box::new(compile_expr(condition, names, depth + 1)?),
+                then: Box::new(compile_block(then, names, depth + 1)?),
+                otherwise: Box::new(compile_block(&rest.iter().map(|statement| (*statement).clone()).collect::<Vec<_>>(), names, depth + 1)?),
+            },
         [Stmt::Let { name, value: Some(value), mutable: false, .. }, rest @ ..] if !rest.is_empty() => {
             let mut nested = vec![name.clone()];
             nested.extend_from_slice(names);
