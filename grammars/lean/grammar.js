@@ -71,7 +71,6 @@ module.exports = grammar({
     // are valid top-level alternatives.  GLR resolves at runtime.
     [$.have, $._pattern],
     [$._atom, $._name],
-    [$._binding_body, $.tactic_have],
     // `public`/`meta` can prefix either an `import` (only in the module header)
     // or a declaration via `_modifier`. GLR resolves at runtime by lookahead
     // for `import` vs a declaration keyword. This mirrors lean4's `atomic`
@@ -894,7 +893,7 @@ module.exports = grammar({
     )),
 
     // `have h : T := proof` in tactic mode
-    tactic_have: $ => prec.right(seq(
+    tactic_have: $ => prec.right(1, seq(
       choice('have', 'obtain', 'suffices'),
       optional(field('name', $._pattern)),
       optional($._type_spec),
