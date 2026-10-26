@@ -839,7 +839,7 @@ module.exports = grammar({
       '⟨', commaSep1($._rcases_atom), '⟩',
     ),
 
-    rcases_alternative_pattern: $ => prec.right(choice(
+    rcases_alternative_pattern: $ => prec.right(1, choice(
       seq(
         choice($._rcases_atom, $.rcases_tuple_pattern),
         repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))),
