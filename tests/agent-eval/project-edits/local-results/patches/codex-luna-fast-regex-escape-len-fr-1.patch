@@ -1,0 +1,43 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..e584af7 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -196,12 +196,20 @@ mod unicode;
+ mod unicode_tables;
+ pub mod utf8;
+ 
++/// Returns the UTF-8 byte length of `text` after regex meta characters are
++/// escaped.
++pub fn escape_len(text: &str) -> usize {
++    text.chars()
++        .map(|c| c.len_utf8() + usize::from(is_meta_character(c)))
++        .sum()
++}
++
+ /// Escapes all regular expression meta characters in `text`.
+ ///
+ /// The string returned may be safely used as a literal in a regular
+ /// expression.
+ pub fn escape(text: &str) -> String {
+-    let mut quoted = String::new();
++    let mut quoted = String::with_capacity(escape_len(text));
+     escape_into(text, &mut quoted);
+     quoted
+ }
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..1112816 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,12 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the UTF-8 byte length of `pattern` after regex meta characters are
++/// escaped.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {

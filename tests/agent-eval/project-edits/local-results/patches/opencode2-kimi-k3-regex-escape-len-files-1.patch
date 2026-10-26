@@ -1,0 +1,70 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..d54b733 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -201,11 +201,26 @@ pub mod utf8;
+ /// The string returned may be safely used as a literal in a regular
+ /// expression.
+ pub fn escape(text: &str) -> String {
+-    let mut quoted = String::new();
++    let mut quoted = String::with_capacity(escape_len(text));
+     escape_into(text, &mut quoted);
+     quoted
+ }
+ 
++/// Returns the number of UTF-8 bytes needed to store the escaped form of
++/// `text`.
++///
++/// This is equivalent to `escape(text).len()`, but does not allocate a
++/// temporary string.
++pub fn escape_len(text: &str) -> usize {
++    let mut len = text.len();
++    for c in text.chars() {
++        if is_meta_character(c) {
++            len += 1;
++        }
++    }
++    len
++}
++
+ /// Escapes all meta characters in `text` and writes the result into `buf`.
+ ///
+ /// This will append escape characters into the given buffer. The characters
+@@ -396,6 +411,17 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn escape_len() {
++        assert_eq!(super::escape_len(""), 0);
++        assert_eq!(super::escape_len("a.b"), 4);
++        assert_eq!(super::escape_len("é"), 2);
++        assert_eq!(super::escape_len(r"\.+*?()|[]{}^$#&-~"), 36);
++        // Escaping a non-empty string requires exactly one allocation.
++        let escaped = escape("a.b");
++        assert_eq!(escaped.len(), escaped.capacity());
++    }
++
+     #[test]
+     fn word_byte() {
+         assert!(is_word_byte(b'a'));
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..50d09c7 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,15 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the number of UTF-8 bytes needed to store the escaped form of
++/// `pattern`.
++///
++/// This is equivalent to `escape(pattern).len()`, but does not allocate a
++/// temporary string.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {
