@@ -65,6 +65,10 @@ def prompt(task, setup, checkers, milestone):
                   {name: value['path'] for name, value in checkers.items()})]
         request = cases.TASKS[task]['request']
     return (request + '\n\n'
+        f'The whole attempt has a {LIMITS["wall_seconds"]}-second deadline, including preparation, '
+        'model work, tools, checks, patch delivery and final session accounting. '
+        'Leave time to deliver change.patch and finish the session. '
+        'Run the supplied checks once; do not repeat checks already passed by fr workflow or add optional checks before delivery. '
         'Complete this task independently in the current project. Ordinary reading, search, editing and shell tools '
         'are available. Do not browse the Internet, inspect the experiment or other attempts, delegate, call another '
         'model, commit, push, or change dependencies or checking settings. Do not inspect account stores or host configuration. '
@@ -73,7 +77,9 @@ def prompt(task, setup, checkers, milestone):
         'Run tool commands serially, keeping at most one compiler or fr command active. '
         'Use only small checks for this task. Keep failed checks and limitations in your report. '
         'Remove temporary source files before delivery; leave unrelated project files unchanged.\n'
-        + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md, then use fr when useful.\n'
+        + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
+           'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '
+           'Ordinary tools remain available for the rest.\n'
            if setup == 'fr' else 'Fr is not provided in this setup. Use the ordinary tools.\n')
         + 'Available project checking commands:\n' + '\n'.join(checks) + '\n'
         'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. '
@@ -130,9 +136,10 @@ def freeze(inputs, binaries, runtime, output, milestone):
         checker_paths.update({name: runtime['lean_root'] / 'bin' / name for name in ('lean', 'lake', 'leanc')})
     else:
         checker_paths.update({name: runtime[name] for name in ('node', 'typescript')})
+        checker_paths['objcopy'] = runtime['rust_root'] / 'lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy'
     checkers = {name: {'path': str(path.absolute()), 'sha256': hash_file(path)} for name, path in checker_paths.items()}
     checker_versions = {}
-    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone == 'M1' else ['node', 'typescript'])
+    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone == 'M1' else ['node', 'typescript', 'objcopy'])
     for name in names:
         argv = [checkers[name]['path'], '--version']
         if name == 'typescript':
@@ -178,6 +185,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require((runtime['cargo_home'] / 'registry/src').is_dir(), 'prepare the actual pinned offline dependencies first')
         source_paths = list((runtime['cargo_home'] / 'registry/src').rglob('*'))
         source_paths += list(runtime['typescript'].resolve().parent.parent.rglob('*'))
+        source_paths.append(checker_paths['objcopy'].parent.parent / 'lib/libLLVM.dylib')
         value['runtime_source_bindings'] = {str(path.resolve()): hash_file(path) for path in sorted(source_paths)
                                           if path.is_file()}
         require(value['runtime_source_bindings'], 'freeze actual offline compiler and dependency inputs')

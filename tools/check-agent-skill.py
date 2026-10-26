@@ -498,7 +498,7 @@ def verified_workflow(exercise, root):
     plan, _ = exercise.run(root, ["rename", "before", "after", "--save-plan"])
     transaction = str(plan["transaction"])
     shown, _ = exercise.run(root, ["history", "show", transaction])
-    control = root / ".fr-workflow"
+    control = root / ".fr/deliver"
     control.write_text(json.dumps({
         "schema": 1,
         "transaction": plan["transaction"],
@@ -508,7 +508,6 @@ def verified_workflow(exercise, root):
         "patch": {"output": "change.patch"},
         "check-output-bytes": 256,
     }))
-    exercise.values["<WORKFLOW_MANIFEST>"] = str(control)
     path = SKILL / "references/workflow.md"
     for command in commands(path):
         value = exercise.example(root, path, command)

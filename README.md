@@ -102,6 +102,7 @@ This checkout includes project skills for [Claude Code](.claude/skills/fr)
 and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
+For a request described by a name, see [prepare a change from a name](skills/fr/references/guide.md).
 
 To use the skill in another project, copy the complete `skills/fr` directory from the source tree or release archive.
 Choose your agent's user directory below:
