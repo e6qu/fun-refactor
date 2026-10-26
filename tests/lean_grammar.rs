@@ -2,6 +2,13 @@ use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
 
 #[test]
+fn simplifier_locations_and_equality_transport_parse() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+}
+
+#[test]
 fn agent_proof_forms_parse_structurally() {
     let source = r#"
 def allowed (purpose : Nat) : Bool :=

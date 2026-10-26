@@ -48,9 +48,12 @@ Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
 M3 implementation is in progress on `milestone/agent-lean-proofs`; keep all of it in the same PR.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-Finish ten example controls, six native-client checks and eighteen isolated patch controls before the first model call.
-Record their successful checks and use the GitHub-built macOS executable.
-Then run and independently grade all 36 scheduled attempts. A prepared harness alone does not complete M3.
+The first controls passed: ten examples, six native-client exchanges and eighteen isolated patch checks.
+The [first run stopped after seven attempts](tests/agent-eval/proof-writing/interrupted-results/README.md).
+It exposed a resource-monitor timeout during CPU throttling and valid Lean tactics rejected by the syntax reader.
+Keep those outcomes and patches. Check both repairs, repeat the controls, then freeze a complete new comparison.
+Run and independently grade all 36 attempts with the GitHub-built macOS executable and unchanged limits.
+A prepared harness or an interrupted comparison does not complete M3.
 
 ### M1. Run the selected agents on three complete tasks
 

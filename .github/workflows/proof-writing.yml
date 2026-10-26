@@ -150,8 +150,8 @@ jobs:
           retention-days: 30
   receipt:
     name: Require every proof, source and native-client control
-    needs: [protocol, sdk, cases, source-runtime, native, private]
-    if: always() && !cancelled() && inputs.operation != 'grade' && needs.protocol.result == 'success' && needs.sdk.result == 'success' && needs.cases.result == 'success' && needs.source-runtime.result == 'success' && needs.native.result == 'success' && needs.private.result == 'success'
+    needs: [protocol, host-monitor, sdk, cases, source-runtime, native, private]
+    if: always() && !cancelled() && inputs.operation != 'grade' && needs.protocol.result == 'success' && needs.host-monitor.result == 'success' && needs.sdk.result == 'success' && needs.cases.result == 'success' && needs.source-runtime.result == 'success' && needs.native.result == 'success' && needs.private.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
@@ -206,6 +206,22 @@ jobs:
           python3 -B tools/agent_eval/test_selected_plan.py
           python3 -B tools/agent_eval/test_selected_public.py
           python3 -B tools/agent_eval/test_selected_grading.py
+          PYTHONPATH=tools python3 -B -m unittest agent_eval.test_darwin_sampling
+  host-monitor:
+    needs: configuration
+    if: inputs.operation != 'grade'
+    name: Check macOS resource accounting with stopped workers
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: tools
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: PYTHONPATH=tools python3 -B -m unittest agent_eval.test_darwin_sampling agent_eval.test_host.BoundedHost
   native:
     name: Check all six native client and tool exchanges
     needs: [configuration, model]
@@ -280,6 +296,7 @@ jobs:
       - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: |
+          lean -j 1 tests/fixtures/lean-proof-locations.lean
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel --test lean_adoption --test lean_grammar --test known_grammar_gaps -- --test-threads=1
           cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
       - name: Check complete schedules and refuse unaudited live-call inputs

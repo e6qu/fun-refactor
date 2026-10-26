@@ -1,5 +1,8 @@
 # Help the selected agents write three small Lean proofs
 
+The [first local run](interrupted-results/README.md) stopped after seven attempts when its resource monitor failed.
+Its outcomes and submitted patches remain public. The complete comparison requires a new frozen run after the repairs pass their controls.
+
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,

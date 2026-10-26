@@ -640,7 +640,7 @@ module.exports = grammar({
 
       // Right-associative: $, <|, ::, ^, ∘
       const rightAssoc = [
-        [PREC.low, '$'],
+        [PREC.low, choice('$', '▸')],
         [PREC.add, '::'],
         [PREC.mul, choice('^', '∘')],
         [PREC.app + 1, '<|'],
@@ -784,6 +784,7 @@ module.exports = grammar({
       repeat(field('arg', choice(
         $._expression, $.tactic_config,
       ))),
+      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
     )),
 
     // `by_cases h : proposition` and `by_cases proposition`.
@@ -881,7 +882,7 @@ module.exports = grammar({
         $.tactic_config,
         repeat1(field('arg', $._expression)),
       ),
-      optional(seq('at', repeat1(choice($.identifier, '*')))),
+      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
     )),
 
     // `have h : T := proof` in tactic mode
