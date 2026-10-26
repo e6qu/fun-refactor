@@ -1,16 +1,38 @@
 name: M3 proof writing
 on:
   workflow_dispatch:
+    inputs:
+      tool_run:
+        description: Successful M3 model/build run to reuse after checking identical native inputs
+        required: true
+        type: string
   workflow_call:
-  push:
-    branches: [milestone/agent-lean-proofs]
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: m3-proof-writing-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  protocol:
+    name: Check proof schedules and artifact identity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: |
+          python3 -B -m unittest discover -s tools/agent_eval -p 'test_proof_writing*.py'
+          python3 -B tools/agent_eval/test_selected_local.py
+          python3 -B tools/agent_eval/test_selected_plan.py
   model:
+    if: github.event_name != 'workflow_dispatch'
     name: Check early returns and numeric proof models
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -53,9 +75,42 @@ jobs:
           path: target/debug/fr
           if-no-files-found: error
           retention-days: 30
+  source-runtime:
+    name: Execute the source independently (${{ matrix.case }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [access-rust, access-python, access-go, access-java, access-typescript, access-tsx, access-zig, access-lean, page-count, fits-window]
+    env:
+      PYTHONPATH: tools
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      GOMAXPROCS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: ./.github/actions/native-tools
+      - name: Compare native source results with independent expected values
+        run: >-
+          python3 -B -m agent_eval.proof_writing_runtime --case '${{ matrix.case }}'
+          --output "$RUNNER_TEMP/m3-source-runtime"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m3-source-runtime-${{ matrix.case }}
+          path: ${{ runner.temp }}/m3-source-runtime/*.json
+          if-no-files-found: error
+          retention-days: 30
   cases:
     name: Prepare the fixed proof claim (${{ matrix.case }})
     needs: model
+    if: always() && !cancelled() && (needs.model.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
@@ -80,6 +135,16 @@ jobs:
         with:
           name: m3-linux-tool
           path: ${{ runner.temp }}/m3-tool
+          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.tool_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Refuse a reused executable when native inputs differ
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M3_TOOL_RUN: ${{ inputs.tool_run }}
+        run: >-
+          python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
+          --fr "$RUNNER_TEMP/m3-tool/fr" --output "$RUNNER_TEMP/m3-case-build.json"
       - run: chmod +x "$RUNNER_TEMP/m3-tool/fr"
       - name: Check the fixed claim, tactic diagnostics and exact proof delivery
         run: >-
