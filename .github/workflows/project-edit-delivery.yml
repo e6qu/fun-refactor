@@ -161,6 +161,9 @@ jobs:
             ${{ runner.temp }}/m2-native/*/native/result.json
             ${{ runner.temp }}/m2-native/*/native/native.stdout
             ${{ runner.temp }}/m2-native/*/native/native.stderr
+            ${{ runner.temp }}/m2-native/*/native/provider.json
+            ${{ runner.temp }}/m2-native/*/native/export.stdout
+            ${{ runner.temp }}/m2-native/*/native/export.stderr
             ${{ runner.temp }}/m2-native/*/native/api/server.stdout
             ${{ runner.temp }}/m2-native/*/native/api/server.stderr
           if-no-files-found: error

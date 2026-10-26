@@ -113,9 +113,43 @@ jobs:
               --output "$RUNNER_TEMP/m1-tasks/$task"
           done
       - name: Exercise real native tool results with scripted replies and no external network
+        if: github.ref != 'refs/heads/milestone/m2-native-diagnostics'
         run: >-
           python3 -B -m agent_eval.selected_native --fr target/debug/fr
           --output "$RUNNER_TEMP/m1-native"
+      - name: Reproduce the intermittent Kimi exchange with fresh isolated state
+        if: github.ref == 'refs/heads/milestone/m2-native-diagnostics'
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          from agent_eval import selected_native as native
+          from agent_eval.selected_plan import DIRECTORY, ROOT
+          output = Path(os.environ['RUNNER_TEMP']) / 'm1-native'
+          output.mkdir()
+          clients = json.loads((ROOT / DIRECTORY / 'clients.json').read_text())
+          client = clients['opencode2']
+          executable = native.packages.install(client, output / 'package')
+          image_dir = output / 'image'
+          image_dir.mkdir()
+          image = native.build('opencode2', 'fr', executable,
+              Path('target/debug/fr').resolve(), image_dir, client)
+          summary = {'passed': False, 'live_model_calls': 0, 'scheduled': 20, 'attempts': []}
+          try:
+              for number in range(20):
+                  directory = output / f'reproduction-{number:02}'
+                  try:
+                      result = native.exchange(image, 'opencode2-kimi-k3', 'fr', directory)
+                      summary['attempts'].append({'number': number, 'passed': result['passed']})
+                      print(json.dumps(summary['attempts'][-1]), flush=True)
+                  except Exception as error:
+                      summary['attempts'].append({'number': number, 'passed': False,
+                          'error': type(error).__name__ + ': ' + str(error)})
+                      raise
+              summary['passed'] = True
+          finally:
+              native.save(output / 'summary.json', summary)
+          PY
       - name: Reject wrong changes and deliver correct patches inside private containers
         run: >-
           python3 -B -m agent_eval.selected_grading --fr target/debug/fr
@@ -142,6 +176,9 @@ jobs:
             ${{ runner.temp }}/m1-native/*/native/result.json
             ${{ runner.temp }}/m1-native/*/native/native.stdout
             ${{ runner.temp }}/m1-native/*/native/native.stderr
+            ${{ runner.temp }}/m1-native/*/native/provider.json
+            ${{ runner.temp }}/m1-native/*/native/export.stdout
+            ${{ runner.temp }}/m1-native/*/native/export.stderr
             ${{ runner.temp }}/m1-native/*/native/api/server.stdout
             ${{ runner.temp }}/m1-native/*/native/api/server.stderr
             ${{ runner.temp }}/m1-private-grading/summary.json
