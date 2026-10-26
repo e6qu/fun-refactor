@@ -37,6 +37,7 @@ enum TokenType {
   LAYOUT_END,
   MATCH_BODY_START,
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
+  BINDING_SEMICOLON,
 };
 
 #define MAX_DEPTH 64
@@ -286,7 +287,8 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_END;
       return true;
     }
-    if (qi == ci && valid_symbols[LAYOUT_SEMICOLON]) {
+    if ((qi == ci && valid_symbols[LAYOUT_SEMICOLON]) ||
+        (qi >= ci && valid_symbols[BINDING_SEMICOLON])) {
       // Peek ahead past newlines+whitespace to see the actual next token.
       // Don't emit semicolon before `|` — match arms are delimited
       // by `|` tokens, not by layout semicolons.
@@ -301,7 +303,8 @@ bool tree_sitter_lean_external_scanner_scan(
         return false;
       }
       s->queued_indent = NO_QUEUED;
-      lexer->result_symbol = LAYOUT_SEMICOLON;
+      lexer->result_symbol = qi == ci && valid_symbols[LAYOUT_SEMICOLON]
+        ? LAYOUT_SEMICOLON : BINDING_SEMICOLON;
       return true;
     }
     s->queued_indent = NO_QUEUED;
@@ -326,26 +329,16 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_END;
       return true;
     }
-    if (next == ci && valid_symbols[LAYOUT_SEMICOLON]) {
+    if ((next == ci && valid_symbols[LAYOUT_SEMICOLON]) ||
+        (next >= ci && valid_symbols[BINDING_SEMICOLON])) {
       // Suppress semicolon before `|`
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
         return false;
       }
       s->queued_indent = NO_QUEUED;
-      lexer->result_symbol = LAYOUT_SEMICOLON;
-      return true;
-    }
-    // A term `let` can open a more deeply indented body without a preceding
-    // `do`, `where`, or declaration body to put that column on the stack. A
-    // layout semicolon is valid only at a place the grammar can split, so it
-    // gives the binding's value and body the same boundary as equal columns.
-    if (next > ci && valid_symbols[LAYOUT_SEMICOLON]) {
-      lexer->mark_end(lexer);
-      if (should_suppress_semicolon(lexer)) {
-        return false;
-      }
-      lexer->result_symbol = LAYOUT_SEMICOLON;
+      lexer->result_symbol = next == ci && valid_symbols[LAYOUT_SEMICOLON]
+        ? LAYOUT_SEMICOLON : BINDING_SEMICOLON;
       return true;
     }
     return false;

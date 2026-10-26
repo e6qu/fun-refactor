@@ -47,6 +47,7 @@ module.exports = grammar({
     $._layout_end,              // End of layout block (indent decreased)
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
+    $._binding_semicolon,
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -732,7 +733,7 @@ module.exports = grammar({
       ':=',
       field('value', $._expression),
       optional(seq(
-        choice(';', $._layout_semicolon),
+        choice(';', $._binding_semicolon),
         field('body', $._expression),
       )),
     )),

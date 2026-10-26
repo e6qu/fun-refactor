@@ -50,3 +50,20 @@ theorem tuple_proofs (p q : Prop) (hp : p) (hq : q) : p ∧ q := by
   exact ⟨by exact hp, by exact hq⟩
 
 theorem after_tuple_proofs : 1 = 1 := by rfl
+
+theorem wrapped_parenthesized_argument (n : Nat) : n ≤ n + 1 := by
+  have bound := Nat.le_add_right n
+    (1)
+  exact bound
+
+theorem wrapped_arguments (n : Nat) : n ≤ n + 1 := by
+  have bound := Nat.le_add_right
+    n
+    1
+  exact bound
+
+def nestedLet (n : Nat) : Nat :=
+  if n == 0 then
+    let count := n
+    count + 1
+  else n
