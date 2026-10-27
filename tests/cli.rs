@@ -894,7 +894,7 @@ fn spec_init_previews_then_creates_and_reverses_a_pinned_package() {
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["operation"], "spec_init", "{report}");
     assert_eq!(report["toolchain"], "leanprover/lean4:v4.28.0", "{report}");
-    assert_eq!(report["files_changed"], 3, "{report}");
+    assert_eq!(report["files_changed"], 4, "{report}");
     assert_eq!(report["applied"], true, "{report}");
     let id = report["transaction"].as_u64().expect("transaction id");
     assert_eq!(
@@ -906,14 +906,31 @@ fn spec_init_previews_then_creates_and_reverses_a_pinned_package() {
             .unwrap()
             .contains("defaultTargets = [\"FrSpecs\"]")
     );
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(ws.root().join("specs/lake-manifest.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(manifest["name"], "«fr-specs»");
+    assert_eq!(manifest["packages"], serde_json::json!([]));
+    let created = [
+        "specs/lean-toolchain",
+        "specs/lakefile.toml",
+        "specs/lake-manifest.json",
+        "specs/FrSpecs.lean",
+    ]
+    .map(|path| (path, std::fs::read(ws.root().join(path)).unwrap()));
 
     let id = id.to_string();
     let (undone, ok) = ws.run(&["history", "undo", &id, "--write"]);
     assert!(ok, "{undone}");
-    assert!(!ws.root().join("specs/FrSpecs.lean").exists());
+    for (path, _) in &created {
+        assert!(!ws.root().join(path).exists(), "undo left {path}");
+    }
     let (redone, ok) = ws.run(&["history", "redo", &id, "--write"]);
     assert!(ok, "{redone}");
-    assert!(ws.root().join("specs/FrSpecs.lean").is_file());
+    for (path, bytes) in &created {
+        assert_eq!(std::fs::read(ws.root().join(path)).unwrap(), *bytes, "{path}");
+    }
 
     std::fs::write(
         ws.root().join("specs/lakefile.toml"),
