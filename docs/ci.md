@@ -242,6 +242,13 @@ The final gate runs after dependency failures but skips cancelled workflows. An 
 condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
 needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).
 
+The manual [Lean reader comparison](../.github/workflows/lean-reader-review.yml) builds two selected fr commits and reads the same selected Lean files.
+A commit ID selects one recorded copy of the code. Supply both fr commits and the commit containing the unchanged files.
+The report records exact added or removed names and references, changed targets and syntax errors.
+For example, a parser repair can reveal a theorem the older reader missed, changing benchmark totals even though the files stayed the same.
+Review those exact locations before accepting new totals; keep the original timing baselines.
+Both builds run on GitHub.
+
 Formatting, strict Clippy, the focused VFS regressions, Lean kernel checks, Python
 type checking and prose checks run in the static job. Browser feature checks and
 the playground remain separate. `tools/check.sh default` still runs the whole
