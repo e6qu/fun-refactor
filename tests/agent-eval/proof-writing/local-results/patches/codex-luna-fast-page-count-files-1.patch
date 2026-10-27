@@ -1,0 +1,55 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..3c0d6f7 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,48 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    simp [page_countModel, h]
++  constructor
++  · intro h
++    rcases h with ⟨h0, hmax, hs, hsmax⟩
++    have hspos : 0 < size := by omega
++    have hqnonneg : 0 ≤ Int.tdiv items size := by
++      rw [Int.tdiv_eq_ediv_of_nonneg h0]
++      exact Int.ediv_nonneg h0 (by omega)
++    have hremnonneg : 0 ≤ Int.tmod items size := Int.tmod_nonneg size h0
++    have hremlt : Int.tmod items size < size := Int.tmod_lt_of_pos items hspos
++    have hidentity : Int.tmod items size + size * Int.tdiv items size = items :=
++      Int.tmod_add_mul_tdiv items size
++    have hguard : (decide (items < 0) || decide (size ≤ 0)) = false := by
++      simp [show ¬ items < 0 by omega, show ¬ size ≤ 0 by omega]
++    simp only [page_countModel, hguard]
++    by_cases hrem : Int.tmod items size == 0
++    · simp only [hrem]
++      simp
++      constructor
++      · exact hqnonneg
++      · have hqle : Int.tdiv items size ≤ items := by
++          exact Int.tdiv_le_self size h0
++        exact hqle
++    · simp only [hrem]
++      simp
++      have hrempos : 0 < Int.tmod items size := by
++        have : Int.tmod items size ≠ 0 := by
++          intro hz
++          apply hrem
++          simp [hz]
++        omega
++      constructor
++      · omega
++      · have hmul : Int.tdiv items size ≤ size * Int.tdiv items size := by
++          have := Int.mul_le_mul_of_nonneg_right (show (1 : Int) ≤ size by omega) hqnonneg
++          simpa [Int.mul_comm] using this
++        calc
++          Int.tdiv items size + 1 ≤ Int.tmod items size + size * Int.tdiv items size := by omega
++          _ = items := hidentity
++  · simp [page_countModel, Int.tdiv, Int.tmod]
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
