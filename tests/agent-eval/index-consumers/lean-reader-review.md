@@ -10,17 +10,17 @@ them as expressions and continued into the next declaration. The repaired gramma
 these proof instructions together and recovers the later declarations.
 
 Two GitHub runs built both readers independently and read the same source bytes:
-[consumer snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40445752303) and
-[indexing snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40448615861).
+[consumer snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40455362549) and
+[indexing snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40456777694).
 The exact reader commits, source hashes and every changed location are in
 [the retained inventory](lean-reader-review.json).
 
 | Fixed source copy | Before this reader repair | After this reader repair |
 | --- | ---: | ---: |
 | Consumer benchmark declarations and parameters | 98,147 | 98,231 |
-| Consumer benchmark reference occurrences | 592,956 | 592,650 |
+| Consumer benchmark reference occurrences | 592,956 | 592,648 |
 | Indexing benchmark declarations and parameters | 98,355 | 98,439 |
-| Indexing benchmark reference occurrences | 594,282 | 593,976 |
+| Indexing benchmark reference occurrences | 594,282 | 593,974 |
 
 The original baselines each contain six more references than the “before” column.
 Those six were false variable reads of `_` in patterns such as `rcases value with _ | other`.
@@ -28,11 +28,17 @@ Their earlier correction and exact source locations remain checked separately.
 
 Both copies have the same Lean files. The repair adds 84 declarations and parameters and
 removes none: 18 functions and 62 parameters in `Workspace.lean`, plus one function and its
-parameter in each of `Source.lean` and `Project.lean`. Fourteen existing declaration records
-change their extent or enclosing declaration. Reference changes remove 488 records, add
-182 records and change the target or classification details of 310 otherwise matched records.
+parameter in each of `Source.lean` and `Project.lean`. Thirteen existing declaration records
+change their extent or enclosing declaration. Reference changes remove 484 records, add
+176 records and change the target or classification details of 311 otherwise matched records.
 A removed record paired with an added record at the same source location can be a change
 from a plain name to a function call, rather than a lost occurrence.
+
+For example, `change n ≤ limit` asks Lean to restate the current goal.
+The reader previously ended the proof after `change n` and misread the remaining comparison.
+It now keeps the comparison inside that proof step. This removes the parser errors in
+`Project.lean` and `Patch.lean` and two false variable reads of the tactic names `rcases` and `rw`.
+No declaration disappears, and no previously clean file gains a parser error.
 
 The checks hash all current Lean declarations, parameters and references using source
 locations instead of temporary numeric IDs. They require the reviewed digest, all 59 Lean

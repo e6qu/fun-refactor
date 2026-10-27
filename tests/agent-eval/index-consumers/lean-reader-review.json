@@ -1,7 +1,7 @@
 {
   "purpose": "Exact Lean facts from two independently built readers on unchanged public sources. Original timing baselines stay unchanged.",
   "before_source": "869f6272b291009c95991ae34148d5e40991b60b",
-  "after_source": "0193d3d0b7625852676e06566102467fd2f6dc5b",
+  "after_source": "94c30ce300de174892d59b46e80965dbf534946f",
   "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
   "lean_sources": {
     "kernels/CorrespondenceMain.lean": "81f0d107b4f84c62e9130d9e760ec8184b99f3b77eabda3de6c98881294ec8ba",
@@ -64,7 +64,7 @@
     "tests/conformance/sets/main.lean": "67880db6f3253180e005ba22d729734ef0890773173a915bef33a94c22407e5d",
     "tests/conformance/strings/main.lean": "a13c0b47e74199e0702d7bdec8c8bfbd2ab8b759b54a5aa744eec0de34babcf3"
   },
-  "lean_facts_sha256": "cc22407b716d7e716c0b35fcd24aad605bbf1cf1aef813e07906660ed9018b28",
+  "lean_facts_sha256": "b4e2b0713256ac3922d737c3b328eb46302a6a740062681ce150f4286da54b54",
   "normalization": "tests/lean_reader_inventory.rs: ordered Lean symbols and references, source identities instead of numeric symbol IDs; canonical compact JSON with sorted object keys and UTF-8 strings.",
   "changes": {
     "added_symbols": [
@@ -2280,44 +2280,6 @@
             "name_span": {
               "end": 3074,
               "start": 3046
-            }
-          },
-          "qualifier": null
-        }
-      },
-      {
-        "before": {
-          "container": null,
-          "exported": false,
-          "full_span": {
-            "end": 8016,
-            "start": 7511
-          },
-          "identity": {
-            "file": "kernels/FrKernels/Patch.lean",
-            "kind": "function",
-            "name": "patch_basis_does_not_require_full_permissions",
-            "name_span": {
-              "end": 7564,
-              "start": 7519
-            }
-          },
-          "qualifier": null
-        },
-        "after": {
-          "container": null,
-          "exported": false,
-          "full_span": {
-            "end": 7982,
-            "start": 7511
-          },
-          "identity": {
-            "file": "kernels/FrKernels/Patch.lean",
-            "kind": "function",
-            "name": "patch_basis_does_not_require_full_permissions",
-            "name_span": {
-              "end": 7564,
-              "start": 7519
             }
           },
           "qualifier": null
@@ -5009,38 +4971,6 @@
         "confidence": "name-only",
         "expects": null,
         "file": "kernels/FrKernels/Patch.lean",
-        "kind": "field",
-        "member_in_macro": false,
-        "name": "injEq",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 8015,
-          "start": 8010
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Patch.lean",
-        "kind": "field",
-        "member_in_macro": false,
-        "name": "mk",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 8009,
-          "start": 8007
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Patch.lean",
         "kind": "identifier",
         "member_in_macro": false,
         "name": "at",
@@ -5859,30 +5789,6 @@
           "start": 4611
         },
         "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "exact",
-        "expects": null,
-        "file": "kernels/FrKernels/Project.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "ceiling",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 31133,
-          "start": 31126
-        },
-        "target": {
-          "file": "kernels/FrKernels/Project.lean",
-          "kind": "parameter",
-          "name": "ceiling",
-          "name_span": {
-            "end": 30899,
-            "start": 30892
-          }
-        },
         "twin": false
       },
       {
@@ -8233,22 +8139,6 @@
         "span": {
           "end": 1129,
           "start": 1124
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Workspace.lean",
-        "kind": "call",
-        "member_in_macro": false,
-        "name": "workspace_closure_fixed",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 9081,
-          "start": 9058
         },
         "target": null,
         "twin": false
@@ -11626,38 +11516,6 @@
       {
         "confidence": "name-only",
         "expects": null,
-        "file": "kernels/FrKernels/Patch.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "injEq",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 8015,
-          "start": 8010
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Patch.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "mk",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 8009,
-          "start": 8007
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
         "file": "kernels/FrKernels/Position.lean",
         "kind": "call",
         "member_in_macro": false,
@@ -11896,30 +11754,6 @@
         "twin": false
       },
       {
-        "confidence": "exact",
-        "expects": null,
-        "file": "kernels/FrKernels/Project.lean",
-        "kind": "call",
-        "member_in_macro": false,
-        "name": "ceiling",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 31133,
-          "start": 31126
-        },
-        "target": {
-          "file": "kernels/FrKernels/Project.lean",
-          "kind": "parameter",
-          "name": "ceiling",
-          "name_span": {
-            "end": 30899,
-            "start": 30892
-          }
-        },
-        "twin": false
-      },
-      {
         "confidence": "name-only",
         "expects": null,
         "file": "kernels/FrKernels/Project.lean",
@@ -12107,22 +11941,6 @@
         "span": {
           "end": 33523,
           "start": 33518
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Project.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "rcases",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 30681,
-          "start": 30675
         },
         "target": null,
         "twin": false
@@ -13731,46 +13549,6 @@
           "name_span": {
             "end": 934,
             "start": 929
-          }
-        },
-        "twin": false
-      },
-      {
-        "confidence": "name-only",
-        "expects": null,
-        "file": "kernels/FrKernels/Workspace.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "rw",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 9042,
-          "start": 9040
-        },
-        "target": null,
-        "twin": false
-      },
-      {
-        "confidence": "exact",
-        "expects": null,
-        "file": "kernels/FrKernels/Workspace.lean",
-        "kind": "identifier",
-        "member_in_macro": false,
-        "name": "workspace_closure_fixed",
-        "receiver": null,
-        "receiver_is_path": false,
-        "span": {
-          "end": 9081,
-          "start": 9058
-        },
-        "target": {
-          "file": "kernels/FrKernels/Workspace.lean",
-          "kind": "function",
-          "name": "workspace_closure_fixed",
-          "name_span": {
-            "end": 8501,
-            "start": 8478
           }
         },
         "twin": false
@@ -16214,6 +15992,48 @@
             "name_span": {
               "end": 8226,
               "start": 8203
+            }
+          },
+          "twin": false
+        }
+      },
+      {
+        "before": {
+          "confidence": "name-only",
+          "expects": null,
+          "file": "kernels/FrKernels/Workspace.lean",
+          "kind": "call",
+          "member_in_macro": false,
+          "name": "workspace_closure_fixed",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 9081,
+            "start": 9058
+          },
+          "target": null,
+          "twin": false
+        },
+        "after": {
+          "confidence": "exact",
+          "expects": null,
+          "file": "kernels/FrKernels/Workspace.lean",
+          "kind": "call",
+          "member_in_macro": false,
+          "name": "workspace_closure_fixed",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 9081,
+            "start": 9058
+          },
+          "target": {
+            "file": "kernels/FrKernels/Workspace.lean",
+            "kind": "function",
+            "name": "workspace_closure_fixed",
+            "name_span": {
+              "end": 8501,
+              "start": 8478
             }
           },
           "twin": false
@@ -27017,7 +26837,7 @@
   },
   "corpora": {
     "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
-      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40445752303",
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40455362549",
       "original_counts": {
         "symbols": 98147,
         "references": 592962
@@ -27030,13 +26850,13 @@
       },
       "after": {
         "files": 1255,
-        "references": 592650,
+        "references": 592648,
         "resolved": 306705,
         "symbols": 98231
       }
     },
     "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
-      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40448615861",
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40456777694",
       "original_counts": {
         "symbols": 98355,
         "references": 594288
@@ -27049,7 +26869,7 @@
       },
       "after": {
         "files": 1262,
-        "references": 593976,
+        "references": 593974,
         "resolved": 308629,
         "symbols": 98439
       }
