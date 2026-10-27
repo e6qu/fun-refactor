@@ -121,7 +121,9 @@ static bool is_nl(int32_t c) { return c == '\n' || c == '\r'; }
 /**
  * Skip newlines + leading whitespace, return column of first non-blank char.
  * If EOF is reached, return 0 (dedent everything).
- * After this call, lexer->lookahead is the first non-blank character.
+ * Retain the first character even when checking `-` advances the lexer.
+ * Opening a block marks its start before that check; delimiter scans keep
+ * their earlier token boundary instead.
  */
 /**
  * The indent of the next line that carries something.
@@ -130,17 +132,24 @@ static bool is_nl(int32_t c) { return c == '\n' || c == '\r'; }
  * block ends. Measuring it kept a block open past its last statement, and the
  * declaration after the comment landed inside it.
  */
-static uint32_t measure_indent(TSLexer *lexer) {
+typedef struct {
+  uint32_t column;
+  int32_t first;
+} Indent;
+
+static Indent measure_indent(TSLexer *lexer, bool mark_start) {
   for (;;) {
     while (is_nl(lexer->lookahead))
       lexer->advance(lexer, true);
     skip_spaces(lexer);
-    if (lexer->eof(lexer)) return 0;
-    if (lexer->lookahead != '-') return lexer->get_column(lexer);
+    if (mark_start) lexer->mark_end(lexer);
+    if (lexer->eof(lexer)) return (Indent){0, 0};
+    Indent indent = {lexer->get_column(lexer), lexer->lookahead};
+    if (lexer->lookahead != '-') return indent;
     // `-` opens a line comment only when a second one follows. Anything else is an
     // operator or a negative number, and the line carries it.
     lexer->advance(lexer, true);
-    if (lexer->lookahead != '-') return lexer->get_column(lexer);
+    if (lexer->lookahead != '-') return indent;
     while (!lexer->eof(lexer) && !is_nl(lexer->lookahead))
       lexer->advance(lexer, true);
   }
@@ -184,6 +193,25 @@ static bool should_suppress_semicolon(TSLexer *lexer) {
   return starts_with_pipe(lexer) || starts_with_continuation(lexer);
 }
 
+/* At the binding's column, an infix operator still extends its value. A
+   negative body therefore needs an explicit semicolon after the value. */
+static bool starts_with_infix(TSLexer *lexer, int32_t first) {
+  switch (first) {
+    case '+': case '-': case '*': case '/': case '%': case '^': case '=':
+    case '<': case '>': case '&': case '|': case '$': case '\\': case ':':
+    case 0x2264: case 0x2265: case 0x2260: case 0x2208: case 0x2209:
+    case 0x2286: case 0x2282: case 0x2223: case 0x2194: case 0x22a2:
+    case 0x2228: case 0x2227: case 0x222a: case 0x2229: case 0x00d7:
+    case 0x2218: case 0x25b8: case 0x2192:
+      return true;
+    case '!':
+      lexer->advance(lexer, true);
+      return lexer->lookahead == '=';
+    default:
+      return false;
+  }
+}
+
 /* Peek at a binding keyword without consuming it. Every term, tactic and do
    binding uses this same start token, so choosing it cannot hide another form. */
 static bool starts_with_binding(TSLexer *lexer) {
@@ -212,8 +240,8 @@ static bool starts_with_binding(TSLexer *lexer) {
 static void push_layout_indent(Scanner *s, TSLexer *lexer) {
   skip_spaces(lexer);
   if (is_nl(lexer->lookahead)) {
-    uint32_t indent = measure_indent(lexer);
-    push(s, indent, false);
+    Indent indent = measure_indent(lexer, true);
+    push(s, indent.column, false);
   } else {
     push(s, lexer->get_column(lexer), false);
   }
@@ -296,12 +324,9 @@ bool tree_sitter_lean_external_scanner_scan(
     if ((qi < ci || (binding && qi == ci)) && valid_symbols[LAYOUT_END]) {
       lexer->mark_end(lexer);
       if (binding) {
-        skip_spaces(lexer);
-        while (is_nl(lexer->lookahead)) {
-          lexer->advance(lexer, true);
-          skip_spaces(lexer);
-        }
-        if (should_suppress_semicolon(lexer)) {
+        Indent next = measure_indent(lexer, false);
+        if ((qi == ci && starts_with_infix(lexer, next.first)) ||
+            (lexer->lookahead == next.first && should_suppress_semicolon(lexer))) {
           s->queued_indent = NO_QUEUED;
           return false;
         }
@@ -355,12 +380,14 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 4. Newline — measure indent of next line and start processing. */
   if (is_nl(lexer->lookahead) && s->depth > 0) {
     lexer->mark_end(lexer);
-    uint32_t next = measure_indent(lexer);
+    Indent indent = measure_indent(lexer, false);
+    uint32_t next = indent.column;
     uint32_t ci   = top_indent(s);
     bool binding = s->bindings[s->depth - 1];
 
     if ((next < ci || (binding && next == ci)) && valid_symbols[LAYOUT_END]) {
-      if (binding && should_suppress_semicolon(lexer)) {
+      if (binding && ((next == ci && starts_with_infix(lexer, indent.first)) ||
+          (lexer->lookahead == indent.first && should_suppress_semicolon(lexer)))) {
         return false;
       }
       // Mirror of the depth==1 / `|` guard in step 2.

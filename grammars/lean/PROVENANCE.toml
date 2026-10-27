@@ -58,6 +58,11 @@ change = "`measure_indent` skips comment lines and measures the next line that c
 why = "a comment is an extra, not an element, so its column kept a block open past its last statement and the declaration after it landed inside"
 
 [[scanner]]
+subject = "keep minus signs and arithmetic continuations"
+change = "preserve the first operator when checking for comments, and keep infix continuations attached to binding values"
+why = "a negative return value must retain its minus sign; after `let value := n`, a following line `- 1` continues the value unless a semicolon ends it"
+
+[[scanner]]
 subject = "the layout semicolon before a continuation word"
 change = "`should_suppress_semicolon` covers `else`, `catch` and `finally` as well as `|`"
 why = "each continues the construct above it rather than opening an element beside it, so the semicolon turned the `else` of a `do`-level `if` into an application of a name called `else`"

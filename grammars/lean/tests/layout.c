@@ -7,6 +7,7 @@ typedef struct {
   TSLexer lexer;
   const char *source;
   size_t offset, end;
+  bool marked;
 } Input;
 
 static void advance(TSLexer *lexer, bool skip) {
@@ -18,6 +19,7 @@ static void advance(TSLexer *lexer, bool skip) {
 static void mark_end(TSLexer *lexer) {
   Input *input = (Input *)lexer;
   input->end = input->offset;
+  input->marked = true;
 }
 static uint32_t column(TSLexer *lexer) {
   Input *input = (Input *)lexer;
@@ -43,8 +45,9 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
   valid[token] = true;
   size_t previous = input->offset;
   input->end = previous;
+  input->marked = false;
   bool found = tree_sitter_lean_external_scanner_scan(scanner, &input->lexer, valid);
-  input->offset = found ? input->end : previous;
+  input->offset = found ? (input->marked ? input->end : input->offset) : previous;
   input->lexer.lookahead = input->source[input->offset];
   return found;
 }
@@ -68,6 +71,19 @@ int main(void) {
   assert(scan(scanner, &binding, BINDING_START));
   Input nested_body = input("\n    n + 1");
   assert(scan(scanner, &nested_body, LAYOUT_END));
+
+  Input negative_binding = input("    let n := value");
+  assert(scan(scanner, &negative_binding, BINDING_START));
+  Input subtraction = input("\n    - 1");
+  assert(!scan(scanner, &subtraction, LAYOUT_END));
+  Input after_subtraction = input("\n    n");
+  assert(scan(scanner, &after_subtraction, LAYOUT_END));
+
+  Input negative_block = input("\n    -n");
+  assert(scan(scanner, &negative_block, LAYOUT_START));
+  assert(negative_block.lexer.lookahead == '-');
+  Input done = input("");
+  assert(scan(scanner, &done, LAYOUT_END));
 
   Input inline_binding = input("let n := 1; n");
   assert(scan(scanner, &inline_binding, BINDING_START));

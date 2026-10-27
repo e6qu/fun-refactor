@@ -11,13 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(binary, diagnostics):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
-    for fixture, require_clean in [('lean-proof-locations.lean', True), ('lean-source-declarations.lean', False)]:
+    for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean']:
         result = subprocess.run([str(binary), 'parse', '--xml', str(ROOT / 'tests/fixtures' / fixture)],
                                 cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
         (diagnostics / (fixture + '.xml')).write_text(result.stdout)
         (diagnostics / (fixture + '.stderr')).write_text(result.stderr)
         assert result.returncode in {0, 1}, result.stderr
-        if require_clean and result.returncode != 0:
+        if result.returncode != 0:
             failures.append(fixture + ': syntax errors')
         start = result.stdout.index('<sources>')
         end = result.stdout.index('</sources>', start) + len('</sources>')

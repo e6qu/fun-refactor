@@ -72,8 +72,51 @@ fn low_precedence_call_arguments_require_parentheses() {
 }
 
 #[test]
+fn negative_returns_and_binding_continuations_keep_their_signs() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        let body = definition.child_by_field_name("body").unwrap();
+        match &source[name.byte_range()] {
+            "negativeDeclaration" => {
+                checked += 1;
+                assert_eq!(body.kind(), "unary_expression");
+                assert_eq!(&source[body.byte_range()], "-n");
+            }
+            "negativeBindingBody" => {
+                checked += 1;
+                assert_eq!(body.kind(), "let");
+                let returned = body.child_by_field_name("body").unwrap();
+                assert_eq!(returned.kind(), "unary_expression");
+                assert_eq!(&source[returned.byte_range()], "-value");
+            }
+            "subtractionContinuation" => {
+                checked += 1;
+                assert_eq!(body.kind(), "let");
+                let value = body.child_by_field_name("value").unwrap();
+                assert_eq!(value.kind(), "binary_expression");
+                let operator = value.child_by_field_name("operator").unwrap();
+                assert_eq!(&source[operator.byte_range()], "-");
+                let returned = body.child_by_field_name("body").unwrap();
+                assert_eq!(&source[returned.byte_range()], "value");
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(checked, 3);
+}
+
+#[test]
 fn tactic_locations_preserve_later_source_declarations() {
     let source = include_str!("fixtures/lean-source-declarations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
     let (_directory, index) = common::workspace(&[("Source.lean", source)]);
     let expected: BTreeSet<_> = source
         .lines()

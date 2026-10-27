@@ -79,6 +79,22 @@ def nestedLet (n : Nat) : Nat :=
     count + 1
   else n
 
+def negativeBindingBody (n : Int) : Int :=
+  let value := n;
+  -value
+
+def negativeDeclaration (n : Int) : Int :=
+  -n
+
+def subtractionContinuation (n : Int) : Int :=
+  let value := n
+  - 1
+  value
+
+example : negativeBindingBody 3 = -3 := by rfl
+example : negativeDeclaration 3 = -3 := by rfl
+example : subtractionContinuation 3 = 2 := by rfl
+
 def appliedLambda : Nat := (fun n : Nat => n + 1) 2
 
 def appliedTypedLambda : Nat := (fun n m : Nat => n + m) 2 3
