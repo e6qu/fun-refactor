@@ -200,7 +200,15 @@ fn calculation_steps_and_following_tactics_keep_their_boundaries() {
             .collect::<Vec<_>>();
         assert_eq!(steps.len(), 2, "{}", calc.to_sexp());
         for step in steps {
-            assert_eq!(step.named_child_count(), 2, "{}", step.to_sexp());
+            let mut children = step.walk();
+            assert_eq!(
+                step.named_children(&mut children)
+                    .filter(|node| node.kind() != "comment")
+                    .count(),
+                2,
+                "{}",
+                step.to_sexp()
+            );
         }
     }
     assert_eq!(

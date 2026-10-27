@@ -7,9 +7,9 @@ Both packets retain every outcome and submitted patch.
 The [first complete comparison](first-results/README.md) independently accepted 26 of 36 attempts.
 Eight page-count attempts timed out. Luna's two fr page-count attempts submitted an empty or rejected proof;
 its ordinary-tool page proofs passed. Each selected agent passed the access and range tasks with fr.
-The [second complete comparison](local-results/README.md) retains all 36 attempts and 26 submitted patches; independent checking is pending.
+The [second complete comparison](second-results/README.md) independently accepted 25 of 36 attempts and retains all 26 submitted patches.
 Eleven attempts reached the unchanged deadline. GLM still timed out on both page-count and both fr range attempts.
-Kimi timed out on all page-count attempts. Luna's first fr page-count proof passed its local checks.
+Kimi timed out on all page-count attempts. Luna's first fr page-count proof passed independent checking.
 Review also found fr rejecting valid calculation steps and changing pasted proof indentation. Both defects need rebuilt-tool validation.
 M3 remains open; these results cannot meet every agent/task completion condition.
 

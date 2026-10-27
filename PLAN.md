@@ -57,9 +57,9 @@ The [first complete comparison](tests/agent-eval/proof-writing/first-results/REA
 with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
 Each agent delivered accepted access and range proofs with fr in that comparison.
 
-The [second complete comparison](tests/agent-eval/proof-writing/local-results/README.md) has finished all 36 attempts; independent checking is pending.
+The [second complete comparison](tests/agent-eval/proof-writing/second-results/README.md) independently accepted 25 of 36 attempts.
 Eleven attempts reached the unchanged deadline. GLM timed out on both page-count and both fr range attempts.
-Kimi timed out on all page-count attempts. Luna submitted one fr page-count proof that passed its local checks.
+Kimi timed out on all page-count attempts. Luna delivered an independently accepted fr page-count proof.
 Review found two fr defects: pasted indentation changed proof structure, and a calculation could consume its following step.
 Their repairs need a rebuilt tool and passing regression checks before another complete comparison.
 The guide now starts with goal discovery and a draft check. Both setups receive the exact installed library path.
