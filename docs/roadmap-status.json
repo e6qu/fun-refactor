@@ -20,6 +20,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -38,6 +39,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -56,6 +58,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -92,6 +95,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -120,6 +124,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -176,6 +181,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -387,13 +393,13 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40552539072",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40593329181",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40552539072/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40593329181/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
@@ -441,6 +447,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/_version.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -452,8 +459,10 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-27-m3-library-fixed-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "sdk/python/src/fr_ir/_version.py"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -494,7 +503,7 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
@@ -502,13 +511,14 @@
       "engineering_remaining": 0,
       "remaining": [
         "C.resume",
-        "C.clean"
+        "C.clean",
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 3,
         "total": 6
@@ -516,6 +526,7 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
+        "D.structural",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -857,7 +868,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -876,7 +889,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -955,7 +968,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -974,7 +989,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
