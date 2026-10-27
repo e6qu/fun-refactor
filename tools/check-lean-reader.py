@@ -36,6 +36,20 @@ def check(binary, diagnostics):
             if names != expected:
                 failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    for name, source in [
+        ('if', 'def bad : Nat := Nat.succ if true then 1 else 0'),
+        ('match', 'def bad : Nat := Nat.succ match true with | true => 1 | false => 0'),
+        ('by', 'theorem bad : 0 = 0 := id by rfl'),
+    ]:
+        path = diagnostics / ('invalid-' + name + '.lean')
+        path.write_text(source + '\n')
+        result = subprocess.run([str(binary), 'parse', '--xml', str(path)],
+                                cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+        path.with_suffix('.xml').write_text(result.stdout)
+        path.with_suffix('.stderr').write_text(result.stderr)
+        if result.returncode != 1:
+            failures.append(path.name + ': expected a syntax error')
+        print('Checked rejection of', path.name, flush=True)
     assert not failures, '\n'.join(failures)
 
 

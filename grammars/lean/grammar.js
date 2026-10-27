@@ -54,6 +54,13 @@ module.exports = grammar({
   // Keyword extraction improves error detection and compile time
   word: $ => $.identifier,
 
+  // Control words cannot turn into ordinary arguments when a construct is
+  // misplaced. Qualified members and escaped names still admit words such as `if`.
+  reserved: {
+    global: _ => ['if', 'then', 'else', 'match', 'with', 'by'],
+    qualified: _ => [],
+  },
+
   // Supertype nodes for better queries
   supertypes: $ => [
     $._expression,
@@ -593,7 +600,7 @@ module.exports = grammar({
     // prec.right so the longest dotted run wins (set_option/import disambiguation).
     _name: $ => prec.right(seq(
       choice($.identifier, $.escaped_identifier),
-      repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
+      repeat(seq(token.immediate('.'), choice(reserved('qualified', $.identifier), $.escaped_identifier))),
     )),
 
     // The same thing, as a node of its own.
@@ -604,7 +611,7 @@ module.exports = grammar({
     // nowhere. A declaration's name is one node, and the parts are inside it.
     qualified_name: $ => prec.right(seq(
       choice($.identifier, $.escaped_identifier),
-      repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
+      repeat(seq(token.immediate('.'), choice(reserved('qualified', $.identifier), $.escaped_identifier))),
     )),
 
     // Projection: `x.foo` or `x.1` or `x.«name»` or `.field` (leading dot)
@@ -614,7 +621,7 @@ module.exports = grammar({
         token.immediate('.'),  // For `x.field` where x is an expression
         '.',                   // For `.field` (leading dot)
       ),
-      field('name', choice($.identifier, $.escaped_identifier, $.number)),
+      field('name', choice(reserved('qualified', $.identifier), $.escaped_identifier, $.number)),
     )),
 
     // Arrow type: `A → B`
@@ -1410,8 +1417,8 @@ module.exports = grammar({
     synthetic_hole: _ => /\?[_a-zA-Z]\w*/,
 
     // Quoted name: `` `name `` or ``` ``name ```
-    quoted_name: $ => seq('`', $.identifier),
-    double_quoted_name: $ => seq('``', $.identifier),
+    quoted_name: $ => seq('`', choice($.identifier, $.escaped_identifier)),
+    double_quoted_name: $ => seq('``', choice($.identifier, $.escaped_identifier)),
 
     // Syntax quotation: `` `(category| pattern) `` or `` `(pattern) `` —
     // Lean 4's syntax-pattern matching used in macros and `match` over

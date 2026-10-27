@@ -125,6 +125,13 @@ change = "use the grammar's complete identifier-continuation set when recognizin
 why = "elseValue, catchValue and finallyValue begin new expressions; they must not be mistaken for else, catch or finally"
 
 [[patch]]
+subject = "control keywords cannot become ordinary arguments"
+rule = "reserved, projection, qualified_name, quoted_name"
+change = "reserve if, then, else, match, with and by in ordinary code; qualified member names keep their name context, and quoted names admit explicitly escaped identifiers"
+accepts = ["KeywordNames.if", "id (by rfl)"]
+why = "when an if or by argument was misplaced, keyword extraction previously reclassified its words as identifiers and accepted the invalid sequence"
+
+[[patch]]
 subject = "unparenthesized typed lambda binders"
 rule = "fun"
 change = "allow a type annotation after the lambda's binders"

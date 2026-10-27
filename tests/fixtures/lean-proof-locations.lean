@@ -159,3 +159,15 @@ def catchPrefix (n catchValue : Int) : Int :=
 def finallyPrefix (n finallyValue : Int) : Int :=
   let value := n
   finallyValue + value
+
+namespace KeywordNames
+
+def «if» : Nat := 1
+def «by» : Nat := 2
+
+def quotedIfName : Lean.Name := ``«if»
+
+end KeywordNames
+
+example : KeywordNames.if = 1 := by rfl
+example : KeywordNames.by = 2 := by rfl
