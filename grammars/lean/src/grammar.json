@@ -3088,8 +3088,12 @@
                   "type": "CHOICE",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "identifier"
+                      "type": "RESERVED",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "identifier"
+                      },
+                      "context_name": "qualified"
                     },
                     {
                       "type": "SYMBOL",
@@ -3138,8 +3142,12 @@
                   "type": "CHOICE",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "identifier"
+                      "type": "RESERVED",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "identifier"
+                      },
+                      "context_name": "qualified"
                     },
                     {
                       "type": "SYMBOL",
@@ -3198,8 +3206,12 @@
               "type": "CHOICE",
               "members": [
                 {
-                  "type": "SYMBOL",
-                  "name": "identifier"
+                  "type": "RESERVED",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  },
+                  "context_name": "qualified"
                 },
                 {
                   "type": "SYMBOL",
@@ -7711,8 +7723,17 @@
           "value": "`"
         },
         {
-          "type": "SYMBOL",
-          "name": "identifier"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "escaped_identifier"
+            }
+          ]
         }
       ]
     },
@@ -7724,8 +7745,17 @@
           "value": "``"
         },
         {
-          "type": "SYMBOL",
-          "name": "identifier"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "escaped_identifier"
+            }
+          ]
         }
       ]
     },
@@ -7937,5 +7967,33 @@
     "_expression",
     "_declaration"
   ],
-  "reserved": {}
+  "reserved": {
+    "global": [
+      {
+        "type": "STRING",
+        "value": "if"
+      },
+      {
+        "type": "STRING",
+        "value": "then"
+      },
+      {
+        "type": "STRING",
+        "value": "else"
+      },
+      {
+        "type": "STRING",
+        "value": "match"
+      },
+      {
+        "type": "STRING",
+        "value": "with"
+      },
+      {
+        "type": "STRING",
+        "value": "by"
+      }
+    ],
+    "qualified": []
+  }
 }

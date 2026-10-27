@@ -2131,6 +2131,10 @@
       "required": true,
       "types": [
         {
+          "type": "escaped_identifier",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         }
@@ -4022,6 +4026,10 @@
       "multiple": false,
       "required": true,
       "types": [
+        {
+          "type": "escaped_identifier",
+          "named": true
+        },
         {
           "type": "identifier",
           "named": true
