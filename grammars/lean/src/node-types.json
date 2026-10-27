@@ -1011,10 +1011,6 @@
             "named": false
           },
           {
-            "type": "⊢",
-            "named": false
-          },
-          {
             "type": "▸",
             "named": false
           }
@@ -1298,9 +1294,13 @@
         ]
       },
       "constructor": {
-        "multiple": false,
+        "multiple": true,
         "required": true,
         "types": [
+          {
+            "type": ".",
+            "named": false
+          },
           {
             "type": "identifier",
             "named": true
@@ -3045,6 +3045,16 @@
     "type": "let_bind",
     "named": true,
     "fields": {
+      "fallback": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      },
       "name": {
         "multiple": false,
         "required": true,
@@ -5217,6 +5227,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "rcases_tuple_pattern",
             "named": true
           },
           {
