@@ -45,6 +45,22 @@ def check(binary, diagnostics):
                     failures.append(text + ': comparison escaped the proof tactic')
             if checked != {'changeComparison', 'changeBeforeSplit'}:
                 failures.append(fixture + ': missing comparison proof declarations')
+            shown = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'showComparison', 'showFrom'}:
+                    continue
+                shown.add(text)
+                term = next(definition.iter('show'), None)
+                if term is None or term.find('binary_expression') is None:
+                    failures.append(text + ': expected a show term with a comparison type')
+                elif text == 'showComparison' and term.find('by') is None:
+                    failures.append(text + ': proof block escaped the show term')
+            if shown != {'showComparison', 'showFrom'}:
+                failures.append(fixture + ': missing show proof declarations')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -61,6 +77,7 @@ def check(binary, diagnostics):
         ('match', 'def bad : Nat := Nat.succ match true with | true => 1 | false => 0'),
         ('by', 'theorem bad : 0 = 0 := id by rfl'),
         ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
+        ('show', 'theorem bad (p : Prop) : p := show p'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

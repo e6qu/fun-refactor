@@ -59,6 +59,58 @@ fn tactic_comparisons_stay_inside_the_proof() {
 }
 
 #[test]
+fn show_terms_keep_their_type_and_proof_separate_from_show_tactics() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        let body = definition.child_by_field_name("body").unwrap();
+        let term = match &source[name.byte_range()] {
+            "showComparison" => {
+                checked += 1;
+                assert_eq!(body.kind(), "by");
+                let tactic = body.named_child(0).unwrap();
+                assert_eq!(tactic.kind(), "tactic_apply");
+                let argument = tactic.child_by_field_name("arg").unwrap();
+                assert_eq!(argument.kind(), "parenthesized");
+                argument.named_child(0).unwrap()
+            }
+            "showFrom" => {
+                checked += 1;
+                body
+            }
+            "showThenTactic" => {
+                checked += 1;
+                assert_eq!(body.kind(), "by");
+                assert_eq!(body.named_child(0).unwrap().kind(), "tactic_show");
+                assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+                continue;
+            }
+            "afterShow" => {
+                checked += 1;
+                assert_eq!(body.kind(), "by");
+                continue;
+            }
+            _ => continue,
+        };
+        assert_eq!(term.kind(), "show");
+        assert_eq!(
+            term.child_by_field_name("type").unwrap().kind(),
+            "binary_expression"
+        );
+        let proof = term.child_by_field_name("body").unwrap();
+        assert!(matches!(proof.kind(), "by" | "identifier"));
+    }
+    assert_eq!(checked, 4);
+}
+
+#[test]
 fn fields_and_subscripts_belong_to_the_function_argument() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -112,6 +164,7 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "def bad : Nat := Nat.succ match true with | true => 1 | false => 0",
         "theorem bad : 0 = 0 := id by rfl",
         "def bad (p q : Prop) : Prop := p ⊢ q",
+        "theorem bad (p : Prop) : p := show p",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");

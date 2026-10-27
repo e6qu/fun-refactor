@@ -212,3 +212,15 @@ theorem changeBeforeSplit (head value : Nat) (tail : List Nat)
   rcases List.mem_cons.mp member with same | rest
   · exact Or.inl same
   · exact Or.inr rest
+
+theorem showComparison (n : Int) (h : 1 ≤ n) : 1 ≤ n := by
+  exact (show (1 : Int) ≤ n by omega)
+
+theorem showFrom (n : Int) (h : 1 ≤ n) : 1 ≤ n :=
+  show (1 : Int) ≤ n from h
+
+theorem showThenTactic (n : Int) (h : 1 ≤ n) : 1 ≤ n := by
+  show (1 : Int) ≤ n
+  exact h
+
+theorem afterShow : True := by trivial

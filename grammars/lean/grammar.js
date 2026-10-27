@@ -57,7 +57,7 @@ module.exports = grammar({
   // Control words cannot turn into ordinary arguments when a construct is
   // misplaced. Qualified members and escaped names still admit words such as `if`.
   reserved: {
-    global: _ => ['if', 'then', 'else', 'match', 'with', 'by'],
+    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show'],
     qualified: _ => [],
   },
 
@@ -494,13 +494,24 @@ module.exports = grammar({
       $._application_head,
       alias($._block_application, $.application),
       $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
-      $.if, $.if_let, $.match, $.do, $.by, $.try, $.return, $.as_pattern,
+      $.if, $.if_let, $.match, $.do, $.by, $.show, $.try, $.return, $.as_pattern,
     ),
 
     _application_head: $ => choice(
       $._postfix_head,
       $.application,
     ),
+
+    // A term supplies both its claimed type and proof; tactic `show T`
+    // below only changes the current goal and has no term body.
+    show: $ => prec.right(seq(
+      'show',
+      field('type', $._expression),
+      choice(
+        field('body', $.by),
+        seq('from', field('body', $._expression)),
+      ),
+    )),
 
     _postfix_head: $ => choice(
       $._atom,
