@@ -79,6 +79,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/project-edit-checkers
+      - name: Install the pinned TypeScript checker used by authoring tests
+        run: npm ci --no-fund --no-audit
+        working-directory: tests/typesafety/typescript
       - name: Check the task boundaries and Rust formatting
         run: |
           python3 -B -m unittest discover -s tools/agent_eval -p 'test_project_edits*.py' -v
