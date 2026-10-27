@@ -57,11 +57,10 @@ The [first complete comparison](tests/agent-eval/proof-writing/first-results/REA
 with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
 Each agent delivered accepted access and range proofs with fr. All three still need an accepted fr page-count proof.
 
-The syntax reader now accepts an inline proof that Lean already accepted. The rebuilt implementation passes
-the generated-model and proof API controls. The guide starts with
+The syntax reader now accepts an inline proof that Lean already accepted. All proof controls and guide checks pass.
+The guide starts with
 the actual proof command and shows how to search the installed library with fr.
-Finish qualifying those repairs and the new macOS executable, then freeze and independently check
-a complete new comparison with the same models, fixed claims and limits.
+A new 36-attempt comparison is running with the same models, fixed claims and limits.
 Keep all fifty earlier outcomes, including the interrupted runs. M3 remains open until its completion checks and CI pass.
 
 ### M1. Run the selected agents on three complete tasks
