@@ -65,7 +65,8 @@ class Reasoning(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("retained_reasoning", here / "check-review-reasoning.py")
         control = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(control)
-        memory_spec = importlib.util.spec_from_file_location("memory", repo / "tools/check-client-memory.py")
+        memory_spec = importlib.util.spec_from_file_location("retained_reasoning_memory",
+            repo / "tests/agent-eval/opencode/memory/2026-10-07-providers/check-client-memory.py")
         memory = importlib.util.module_from_spec(memory_spec)
         memory_spec.loader.exec_module(memory)
         current_profile = memory.client_memory_profile
