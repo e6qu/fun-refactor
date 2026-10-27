@@ -140,6 +140,11 @@ def source_workflow(exercise, root):
             if "proof-task" in command:
                 continue
             value = exercise.example(root, path, command)
+            if value.get("query") == "explore" and value.get("mode") == "names":
+                selected, = [row for row in value["rows"] if row["name"] == "greet"]
+                exercise.values["<HANDLE>"] = selected["handle"]
+                assert value["page"]["returned"] <= 12
+                assert "coverage" in value and "omitted" in value
             if value.get("query") in ("map", "find"):
                 rows = [dict(zip(value["columns"], row)) for row in value["rows"]]
                 selected = [row for row in rows if row["name"] == "greet" and "handle" in row]
