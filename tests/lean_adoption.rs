@@ -90,8 +90,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_eq!(first["passed"], true);
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
-        "exact (show keepModel value = value by rfl)\n",
-        "exact (show keepModel value = value from rfl)\n",
+        "exact (show keepModel x = x by rfl)\n",
+        "exact (show keepModel x = x from rfl)\n",
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();
