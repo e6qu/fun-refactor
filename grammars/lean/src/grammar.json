@@ -4472,8 +4472,8 @@
                     }
                   },
                   {
-                    "type": "STRING",
-                    "value": ":"
+                    "type": "SYMBOL",
+                    "name": "_tactic_label_colon"
                   }
                 ]
               },
@@ -4531,8 +4531,8 @@
                     }
                   },
                   {
-                    "type": "STRING",
-                    "value": ":"
+                    "type": "SYMBOL",
+                    "name": "_tactic_label_colon"
                   }
                 ]
               },
@@ -8063,6 +8063,10 @@
     {
       "type": "SYMBOL",
       "name": "_calc_step_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_tactic_label_colon"
     },
     {
       "type": "SYMBOL",
