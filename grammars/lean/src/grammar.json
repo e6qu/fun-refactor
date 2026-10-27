@@ -4236,16 +4236,8 @@
             "name": "_tactic_seq"
           },
           {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_layout_end"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -5297,16 +5289,8 @@
             }
           },
           {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_layout_end"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -5319,6 +5303,10 @@
         "members": [
           {
             "type": "SYMBOL",
+            "name": "_calc_step_start"
+          },
+          {
+            "type": "SYMBOL",
             "name": "_expression"
           },
           {
@@ -5328,6 +5316,10 @@
           {
             "type": "SYMBOL",
             "name": "_expression"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -8067,6 +8059,10 @@
     {
       "type": "SYMBOL",
       "name": "_binding_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_calc_step_start"
     },
     {
       "type": "SYMBOL",
