@@ -6329,6 +6329,10 @@
             }
           },
           {
+            "type": "SYMBOL",
+            "name": "_for_body_start"
+          },
+          {
             "type": "FIELD",
             "name": "body",
             "content": {
@@ -6367,12 +6371,8 @@
           "type": "FIELD",
           "name": "iterable",
           "content": {
-            "type": "PREC",
-            "value": 81,
-            "content": {
-              "type": "SYMBOL",
-              "name": "_expression"
-            }
+            "type": "SYMBOL",
+            "name": "_expression"
           }
         }
       ]
@@ -7926,6 +7926,10 @@
     {
       "type": "SYMBOL",
       "name": "_binding_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_for_body_start"
     }
   ],
   "inline": [],
