@@ -108,6 +108,10 @@ The model can repair rejected tactics within that attempt. A failed slot is neve
 The standard library is Lean's shipped collection of definitions and proofs. Both setups may inspect it.
 `lean --print-prefix` prints the installation folder; the library sources are under its `src/lean` subfolder.
 The instructions explain this lookup without supplying proof steps for the requested claim.
+Both setups also receive the existing 1,048,576-byte limit for the combined CLI transcript,
+including command output. The instructions show how to limit printed search matches.
+An unrestricted search through the library exhausted that limit in the interrupted run;
+the limit stays unchanged.
 
 Record complete elapsed time, available CLI token categories, timeouts, submitted patches and
 reviewed fr contributions. Keep missing counters and account charges unknown. These are proof-writing

@@ -96,6 +96,8 @@ def prompt(task, setup, checkers, milestone):
             'The installed Lean includes its standard library, not Mathlib. No proof steps are supplied. '
             'Use lean --print-prefix to locate the installation; its src/lean folder contains the standard library sources. '
             'Search names from the supplied model when looking up definitions or existing library proofs. '
+            f'The combined CLI transcript, including command output, is limited to {LIMITS["transcript_bytes"]:,} bytes. '
+            'Search narrow paths and cap printed matches, for example rg -n "name" FILE | head -40. '
             'Keep working files under .fr/, or remove them before delivery. Only the marked proof region may change. '
             'A fr proof-check report with passed=false is a failed check even if the command exits successfully. '
             'Repair rejected tactics using the reported diagnostics; keep the theorem and definitions fixed.')

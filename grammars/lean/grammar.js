@@ -789,7 +789,7 @@ module.exports = grammar({
     // terms also admits every partition of that application into arguments,
     // multiplying parser states without describing another Lean construct.
     // Argument operators must bind before the tactic and its `by` block end.
-    tactic_apply: $ => prec.right(0, seq(
+    tactic_apply: $ => prec.right(1, seq(
       field('tactic', $.identifier),
       optional('only'),
       optional(field('arg', choice($._expression, $.tactic_config))),
