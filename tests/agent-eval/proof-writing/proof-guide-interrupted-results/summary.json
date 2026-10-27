@@ -1,0 +1,549 @@
+{
+  "study": "M3 interrupted proof-guide run",
+  "complete": false,
+  "interruption": "Stopped after the first GLM proof attempt exhausted its time in generic edit planning and exposed an unhandled post-deadline accounting step. Preserve all seven outcomes and six submitted patches; this is not a completed comparison.",
+  "plan_sha256": "a9bf0454c51017143a3be7d4d8d6aa05c58ce28f1f302c930f522d9c4c181f36",
+  "source_commit": "94c30ce300de174892d59b46e80965dbf534946f",
+  "controls_run": "40455874490",
+  "native_inputs": {
+    "src": "6ab161474adf59c1c080a2fb9eb2ebea53642670",
+    "grammars": "8ec7d2d67453183c4bb8f678eb13479f01e162ff",
+    "crates": "feec596d97f3bdfe8d13d4cbfa9a60ea3614c301",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "24f76acb12d40b598c3d89166fa9721f15a4beed",
+    "Cargo.lock": "d8a2e75965f3d61c0ea97251a0c64e6652e59281",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "versions": {
+    "fr": "fr 0.85.0",
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32"
+  },
+  "native_binary_sha256": {
+    "fr": "7e39658742024ce73899307ca6baec28b5a439fe10c31926e0c723b69f20be3e",
+    "codex": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+    "opencode2": "cd03022601e4848a957999a2a7b1c1ccf18b94f9a084a44719f62abaacebe83c"
+  },
+  "planned_attempts": 36,
+  "recorded_attempts": 7,
+  "unstarted_attempts": [
+    "opencode2-glm-flash-access-rust-files-1",
+    "opencode2-glm-flash-page-count-files-1",
+    "opencode2-glm-flash-page-count-fr-1",
+    "opencode2-glm-flash-fits-window-fr-1",
+    "opencode2-glm-flash-fits-window-files-1",
+    "opencode2-kimi-k3-access-rust-files-1",
+    "opencode2-kimi-k3-access-rust-fr-1",
+    "opencode2-kimi-k3-page-count-fr-1",
+    "opencode2-kimi-k3-page-count-files-1",
+    "opencode2-kimi-k3-fits-window-files-1",
+    "opencode2-kimi-k3-fits-window-fr-1",
+    "codex-luna-fast-access-rust-fr-2",
+    "codex-luna-fast-access-rust-files-2",
+    "codex-luna-fast-page-count-files-2",
+    "codex-luna-fast-page-count-fr-2",
+    "codex-luna-fast-fits-window-fr-2",
+    "codex-luna-fast-fits-window-files-2",
+    "opencode2-glm-flash-access-rust-files-2",
+    "opencode2-glm-flash-access-rust-fr-2",
+    "opencode2-glm-flash-page-count-fr-2",
+    "opencode2-glm-flash-page-count-files-2",
+    "opencode2-glm-flash-fits-window-files-2",
+    "opencode2-glm-flash-fits-window-fr-2",
+    "opencode2-kimi-k3-access-rust-fr-2",
+    "opencode2-kimi-k3-access-rust-files-2",
+    "opencode2-kimi-k3-page-count-files-2",
+    "opencode2-kimi-k3-page-count-fr-2",
+    "opencode2-kimi-k3-fits-window-fr-2",
+    "opencode2-kimi-k3-fits-window-files-2"
+  ],
+  "total_recorded_seconds": 519.5802886665333,
+  "publication": "Patches and summaries only. Raw prompts, CLI transcripts, source archives, session exports and account data remain local.",
+  "checking": "Native completion is not independent acceptance. These patches have not been independently graded; no fr contribution is credited in this interrupted packet.",
+  "attempts": [
+    {
+      "id": "codex-luna-fast-access-rust-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "81282a4ce37b5252b6fdfd3822525f3dd399fb0c9754045ee3ec295a7cedeee9",
+      "elapsed_seconds": 20.80311099998653,
+      "stop_reason": null,
+      "sampled_rss_bytes": 130826240,
+      "sampled_cpu_seconds": 0.35109925,
+      "transcript_bytes": 6624,
+      "reported_usage": [
+        {
+          "input_tokens": 72733,
+          "cached_input_tokens": 46592,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1106,
+          "reasoning_output_tokens": 392
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-files-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-access-rust-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "5fc934dd50913d39998f82f0764dff25c86471d576b1661ec61be4b2b99765f3",
+      "elapsed_seconds": 28.754695000126958,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128155648,
+      "sampled_cpu_seconds": 0.4319025,
+      "transcript_bytes": 35661,
+      "reported_usage": [
+        {
+          "input_tokens": 161634,
+          "cached_input_tokens": 139904,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1712,
+          "reasoning_output_tokens": 657
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-fr-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "a36c6dc73ab736f0d0db2b19b4460e13cafcb32d94771b8e44c3f6b6e99282b0",
+      "elapsed_seconds": 95.03457329212688,
+      "stop_reason": null,
+      "sampled_rss_bytes": 132366336,
+      "sampled_cpu_seconds": 0.6685122083333334,
+      "transcript_bytes": 77854,
+      "reported_usage": [
+        {
+          "input_tokens": 605665,
+          "cached_input_tokens": 550784,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6402,
+          "reasoning_output_tokens": 3297
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-fr-1.patch",
+      "patch_sha256": "a39bba38117464ab6b2c452c99ca2010910b936e69c9c8eed5a46d859eab7abe",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-files-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "a07b3785b88f3c480afa9e5503b54a679bed35b5599d7ade1b70326898959da2",
+      "elapsed_seconds": 90.76081654103473,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126009344,
+      "sampled_cpu_seconds": 0.613734125,
+      "transcript_bytes": 63589,
+      "reported_usage": [
+        {
+          "input_tokens": 473529,
+          "cached_input_tokens": 424960,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5661,
+          "reasoning_output_tokens": 2605
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-files-1.patch",
+      "patch_sha256": "21006ec567761b92e1e8789ede224f99ae72a13b4d0ed2f712510419eeb5ee7e",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-files-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "988e3e8c7159852cb875e3968a00426f7fa93eaac7a0e8b530db7d7471b663de",
+      "elapsed_seconds": 32.21450658305548,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128663552,
+      "sampled_cpu_seconds": 0.4396952916666667,
+      "transcript_bytes": 14247,
+      "reported_usage": [
+        {
+          "input_tokens": 132868,
+          "cached_input_tokens": 100992,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1987,
+          "reasoning_output_tokens": 719
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-files-1.patch",
+      "patch_sha256": "c8cf060f475ccc70bccdbfe470528f7aac6a0e7cf41ba2f293f531d1e794e70a",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "87398d123863cf5724308fd14f9579e9ed027fd9ccea3073140d545c6c500bdb",
+      "elapsed_seconds": 101.98264875006862,
+      "stop_reason": null,
+      "sampled_rss_bytes": 130875392,
+      "sampled_cpu_seconds": 0.6925761666666667,
+      "transcript_bytes": 65123,
+      "reported_usage": [
+        {
+          "input_tokens": 529714,
+          "cached_input_tokens": 484480,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6468,
+          "reasoning_output_tokens": 3058
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-fr-1.patch",
+      "patch_sha256": "fa7feea9768f34344e14ad1a9df11a27d4393713b4f4fab0e9a11034ddc6f222",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "34a5684920bca8b0fbc54192187e6040bb78dd87cd408cd3764bacf65ed1fae5",
+      "elapsed_seconds": 150.0299375001341,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 85819392,
+      "sampled_cpu_seconds": 2.3279321666666664,
+      "transcript_bytes": 71312,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6335,
+            "output": 24,
+            "reasoning": 74,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 323,
+            "output": 30,
+            "reasoning": 19,
+            "cache": {
+              "read": 6272,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 173,
+            "output": 26,
+            "reasoning": 0,
+            "cache": {
+              "read": 6592,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 119,
+            "output": 62,
+            "reasoning": 0,
+            "cache": {
+              "read": 6720,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 475,
+            "output": 28,
+            "reasoning": 0,
+            "cache": {
+              "read": 6784,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 681,
+            "output": 34,
+            "reasoning": 0,
+            "cache": {
+              "read": 7232,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 647,
+            "output": 107,
+            "reasoning": 95,
+            "cache": {
+              "read": 7872,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 244,
+            "output": 22,
+            "reasoning": 0,
+            "cache": {
+              "read": 8512,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 91,
+            "output": 106,
+            "reasoning": 0,
+            "cache": {
+              "read": 8704,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 154,
+            "output": 12,
+            "reasoning": 0,
+            "cache": {
+              "read": 8768,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 267,
+            "output": 155,
+            "reasoning": 42,
+            "cache": {
+              "read": 8896,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 230,
+            "output": 31,
+            "reasoning": 0,
+            "cache": {
+              "read": 9152,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 98,
+            "output": 21,
+            "reasoning": 0,
+            "cache": {
+              "read": 9344,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 399,
+            "output": 28,
+            "reasoning": 67,
+            "cache": {
+              "read": 9408,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 712,
+            "output": 46,
+            "reasoning": 82,
+            "cache": {
+              "read": 9792,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 143,
+            "output": 53,
+            "reasoning": 0,
+            "cache": {
+              "read": 10496,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 408,
+            "output": 35,
+            "reasoning": 0,
+            "cache": {
+              "read": 10624,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 209,
+            "output": 22,
+            "reasoning": 142,
+            "cache": {
+              "read": 11008,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 442,
+            "output": 23,
+            "reasoning": 206,
+            "cache": {
+              "read": 11200,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 614,
+            "output": 52,
+            "reasoning": 58,
+            "cache": {
+              "read": 11584,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 484,
+            "output": 39,
+            "reasoning": 0,
+            "cache": {
+              "read": 12160,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "The client reached the unchanged 150-second limit without delivering a patch; its subsequent session-accounting step also ran out of time."
+    }
+  ]
+}

@@ -350,6 +350,8 @@ jobs:
           python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
       - run: chmod +x target/debug/fr
+      - name: Execute the current skill examples and supplied-theorem proof route
+        run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
       - run: |
           python3 -B -m pytest -q sdk/python/tests/test_ir.py -k proof_task_and_attempt
           python3 -B -m pytest -q sdk/python/tests/test_refinement.py

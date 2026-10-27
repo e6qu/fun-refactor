@@ -42,6 +42,9 @@ Early-return guards, truncating integer division, dependency-sensitive proof rec
 of handwritten theorems are implemented on that branch. The latter fixes a defect found by the new controls.
 Complete all ten source/proof controls, six native exchanges and eighteen isolated patch controls
 before freezing and running the 36 real attempts. No M3 agent outcome is claimed by the scripted controls.
+Two interrupted packets preserve [seven initial attempts](../tests/agent-eval/proof-writing/interrupted-results/README.md)
+and [seven after the parser repairs](../tests/agent-eval/proof-writing/proof-guide-interrupted-results/README.md).
+Check the clearer existing-theorem guide and deadline handling before the next complete frozen run.
 Keep its implementation, examples, real attempts and results in one milestone PR.
 Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
 

@@ -516,25 +516,33 @@ def verified_workflow(exercise, root):
 def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
-    (root / "specs").mkdir()
-    (root / "src/lib.rs").write_text(blocks(path, "rust")[0])
-    model = root / "specs/Model.lean"
-    model.write_text(blocks(path, "lean")[0])
-    (root / "specs/lean-toolchain").write_text((ROOT / "kernels/lean-toolchain").read_text())
-    (root / "specs/lakefile.toml").write_text('name = "agent_skill_fixture"\nversion = "0.1.0"\ndefaultTargets = ["Model"]\n\n[[lean_lib]]\nname = "Model"\n')
+    (root / ".fr").mkdir()
+    source = root / "src/lib.rs"
+    source.write_text("pub fn allowed(value: bool) -> bool { value }\n")
+    exercise.run(root, ["spec", "init", "specs", "--write"])
+    task, _ = exercise.run(root, ["spec", "property-task", "src/lib.rs::allowed", "--token-limit", "4096"])
+    property_file, plan_file = root / ".fr/property", root / ".fr/plan"
+    variable = {"kind": "variable", "name": "value"}
+    property_file.write_text(json.dumps({"schema": "fr-formal-property-1", "task_digest": task["object_digest"],
+        "name": "identity_rule", "parameters": [{"name": "value", "lean_type": "Bool"}],
+        "proposition": {"kind": "equals", "left": {"kind": "model", "arguments": [variable]}, "right": variable}}))
+    plan, _ = exercise.run(root, ["spec", "plan", "src/lib.rs::allowed", "--property-from", str(property_file)])
+    plan_file.write_text(json.dumps(plan))
+    exercise.run(root, ["spec", "scaffold", "--from", str(plan_file), "--package", "specs", "--write"])
+    model = root / "specs/FrSpecs" / (plan["kernel"]["module"] + ".lean")
+    exercise.values["<LEAN_TARGET>"] = str(model.relative_to(root)) + "::" + plan["properties"][0]["name"]
+    (root / ".fr/proof-tactics").write_text("rfl\n")
+    original, original_program = model.read_bytes(), source.read_bytes()
     for command in commands(path):
-        value = exercise.example(root, path, command, success="check" not in command)
-        if "check" in command:
-            assert any(anchor["status"] == "stale" for anchor in value["anchors"])
-        if "verify" in command:
-            assert value["report"]["obligations"] == 0
-            assert len(value["report"]["anchors"]) == 1
-            assert all(anchor["status"] == "fresh" and anchor["signature"]["status"] == "fresh"
-                       for anchor in value["report"]["anchors"])
-            assert value["packages"] and all(package["passed"] for package in value["packages"])
-    model.write_text(model.read_text().replace("allowed true = true", "allowed true = false"))
-    failed, _ = exercise.run(root, ["spec", "verify", "specs"], success=False)
-    assert any(not package["passed"] for package in failed["packages"])
+        value = exercise.example(root, path, command)
+        if "proof-check" in command:
+            assert value["passed"] and model.read_bytes() == original
+    assert model.read_bytes() != original and source.read_bytes() == original_program
+    accepted = model.read_bytes()
+    (root / ".fr/proof-tactics").write_text("exact (0 : Nat)\n")
+    failed, _ = exercise.run(root, ["spec", "proof-check", exercise.values["<LEAN_TARGET>"],
+                                  "--from", ".fr/proof-tactics", "--token-limit", "4096"])
+    assert not failed["passed"] and failed["diagnostics"] and model.read_bytes() == accepted
 
 
 def guide_workflow(exercise, root):

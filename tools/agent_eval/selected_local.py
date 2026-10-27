@@ -334,6 +334,26 @@ def usage(client, events):
             'explanation': 'A zero catalog cost is not an observed account charge.'}
 
 
+def record_opencode_accounting(report, binary, session, project, env, output, profile, events, deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        report['status'] = 'failed'
+        report['session_accounting'] = {'status': 'deadline-exceeded', 'exported': False}
+        return
+    try:
+        saved = export_session(binary, session, project, env, output, timeout_seconds=min(10, remaining))
+    except subprocess.TimeoutExpired:
+        report['status'] = 'failed'
+        report['session_accounting'] = {'status': 'timed-out', 'exported': False}
+        return
+    observed = verify_export(saved, profile, session, events)
+    tasks.save(output / 'session-export.json', saved)
+    report['usage']['exported'] = observed
+    report['session_accounting'] = {'status': 'completed', 'exported': True}
+    if observed['outcome'] != 'succeeded':
+        report['status'] = 'failed'
+
+
 def retain_result(project, output, report):
     """Keep bounded failed source too, and always remove per-attempt compiler output."""
     try:
@@ -393,7 +413,7 @@ def attempt(plan_path, attempt_id):
               'task': row['task'], 'setup': row['setup'], 'independent_outcome': None,
               'controller_checkout': checkout,
               'actual_cost': None, 'started_at': entered_at, 'verification_seconds': time.monotonic() - entered,
-              'process': None, 'usage': None, 'error': None, 'collection_errors': [],
+              'process': None, 'usage': None, 'session_accounting': None, 'error': None, 'collection_errors': [],
               'checking_input_changes': [],
               'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
@@ -476,18 +496,15 @@ def attempt(plan_path, attempt_id):
                 report['incomplete_json_lines'] = report.get('incomplete_json_lines', 0) + 1
         report['usage'] = usage(profile['client'], events)
         report['status'] = 'completed' if process['exit_code'] == 0 and not process['stop_reason'] else 'failed'
-        if profile['client'] == 'opencode2' and events:
-            session = argv[argv.index('--session') + 1]
-            require(all(event['sessionID'] == session for event in events), 'native stream belongs to another session')
-            remaining = LIMITS['wall_seconds'] - (time.monotonic() - started)
-            require(remaining > 0, 'attempt deadline expired before native session accounting')
-            saved = export_session(value['binaries']['opencode2']['path'], session, project, env, output,
-                                   timeout_seconds=min(10, remaining))
-            observed = verify_export(saved, profile, session, events)
-            tasks.save(output / 'session-export.json', saved)
-            report['usage']['exported'] = observed
-            if observed['outcome'] != 'succeeded':
+        if profile['client'] == 'opencode2':
+            if not events:
                 report['status'] = 'failed'
+                report['session_accounting'] = {'status': 'no-native-events', 'exported': False}
+            else:
+                session = argv[argv.index('--session') + 1]
+                require(all(event['sessionID'] == session for event in events), 'native stream belongs to another session')
+                record_opencode_accounting(report, value['binaries']['opencode2']['path'], session,
+                    project, env, output, profile, events, started + LIMITS['wall_seconds'])
         elif profile['client'] == 'codex' and report['usage']['complete_turns'] != 1:
             report['status'] = 'failed'
         report['fr_contribution'] = None

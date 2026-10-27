@@ -1,7 +1,10 @@
 # Help the selected agents write three small Lean proofs
 
 The [first local run](interrupted-results/README.md) stopped after seven attempts when its resource monitor failed.
-Its outcomes and submitted patches remain public. The complete comparison requires a new frozen run after the repairs pass their controls.
+The [next run](proof-guide-interrupted-results/README.md) also stopped after seven: the first GLM
+attempt exhausted its time in generic edit planning, then exposed a post-deadline accounting error.
+Both packets retain every outcome and submitted patch. Check the direct proof guide and deadline
+handling, then freeze a complete new comparison under the unchanged limits.
 
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior
@@ -112,6 +115,11 @@ Both setups also receive the existing 1,048,576-byte limit for the combined CLI 
 including command output. The instructions show how to limit printed search matches.
 An unrestricted search through the library exhausted that limit in the interrupted run;
 the limit stays unchanged.
+
+Session accounting also uses the complete-attempt deadline. When no time remains, the
+controller records a failed attempt and leaves the unavailable export and complete usage unknown.
+It preserves the client timeout and available counters. An export that times out also fails
+the attempt. Neither condition starts another model call or extends the limit.
 
 Record complete elapsed time, available CLI token categories, timeouts, submitted patches and
 reviewed fr contributions. Keep missing counters and account charges unknown. These are proof-writing
