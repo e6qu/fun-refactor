@@ -2595,6 +2595,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "show"
+        },
+        {
+          "type": "SYMBOL",
           "name": "try"
         },
         {
@@ -2619,6 +2623,57 @@
           "name": "application"
         }
       ]
+    },
+    "show": {
+      "type": "PREC_RIGHT",
+      "value": 1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "show"
+          },
+          {
+            "type": "FIELD",
+            "name": "type",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_expression"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "body",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "by"
+                }
+              },
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": "from"
+                  },
+                  {
+                    "type": "FIELD",
+                    "name": "body",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_expression"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     "_postfix_head": {
       "type": "CHOICE",
@@ -8048,6 +8103,10 @@
       {
         "type": "STRING",
         "value": "by"
+      },
+      {
+        "type": "STRING",
+        "value": "show"
       }
     ],
     "qualified": []

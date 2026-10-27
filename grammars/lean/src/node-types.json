@@ -174,6 +174,10 @@
         "named": true
       },
       {
+        "type": "show",
+        "named": true
+      },
+      {
         "type": "sorry",
         "named": true
       },
@@ -4236,6 +4240,32 @@
     }
   },
   {
+    "type": "show",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "string",
     "named": true,
     "fields": {},
@@ -6238,6 +6268,10 @@
   },
   {
     "type": "forall",
+    "named": false
+  },
+  {
+    "type": "from",
     "named": false
   },
   {
