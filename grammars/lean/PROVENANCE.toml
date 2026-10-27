@@ -114,8 +114,8 @@ why = "Lean rejects `id by rfl` and corresponding bare if and match arguments; a
 
 [[patch]]
 subject = "the do after a for iterator opens its body"
-rule = "_for_binding"
-change = "reduce the completed iterator binding above function application precedence"
+rule = "for_in, _for_body_start"
+change = "mark the do keyword belonging to a for body before it can be consumed as a function argument"
 accepts = ["for left in [false, true] do IO.println left"]
 why = "treating the loop's do as an argument to its iterable rejected ordinary and nested loops, including the independent Boolean runtime check"
 

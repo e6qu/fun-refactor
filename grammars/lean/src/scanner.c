@@ -8,6 +8,7 @@
  *   LAYOUT_SEMICOLON — same-indent newline within a layout block
  *   LAYOUT_END       — indent decreased below current layout level
  *   MATCH_BODY_START — like LAYOUT_START but dedicated to match arm bodies
+ *   FOR_BODY_START   — marks a for loop's `do` without consuming it or pushing layout
  *
  * MATCH_BODY_START is a separate token so match_arm can open a layout
  * block without creating grammar conflicts with _do_element.  It pushes
@@ -38,6 +39,7 @@ enum TokenType {
   MATCH_BODY_START,
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
   BINDING_START,
+  FOR_BODY_START,
 };
 
 #define MAX_DEPTH 64
@@ -435,6 +437,16 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_END;
       return true;
     }
+  }
+
+  if (valid_symbols[FOR_BODY_START] && lexer->lookahead == 'd') {
+    lexer->mark_end(lexer);
+    lexer->advance(lexer, true);
+    if (lexer->lookahead != 'o') return false;
+    lexer->advance(lexer, true);
+    if (identifier_continues(lexer->lookahead)) return false;
+    lexer->result_symbol = FOR_BODY_START;
+    return true;
   }
 
   if (valid_symbols[BINDING_START]) {

@@ -41,7 +41,7 @@ static Input input(const char *text) {
   return result;
 }
 static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
-  bool valid[6] = {false};
+  bool valid[FOR_BODY_START + 1] = {false};
   valid[token] = true;
   size_t previous = input->offset;
   input->end = previous;
@@ -97,6 +97,12 @@ int main(void) {
 
   Input suffixed_name = input("let?");
   assert(!scan(scanner, &suffixed_name, BINDING_START));
+
+  Input for_body = input("do pure 1");
+  assert(scan(scanner, &for_body, FOR_BODY_START));
+  assert(for_body.lexer.lookahead == 'd' && scanner->depth == 0);
+  Input do_prefix = input("doSomething");
+  assert(!scan(scanner, &do_prefix, FOR_BODY_START));
 
   Input inline_binding = input("let n := 1; n");
   assert(scan(scanner, &inline_binding, BINDING_START));

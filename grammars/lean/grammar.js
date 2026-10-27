@@ -48,6 +48,7 @@ module.exports = grammar({
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
     $._binding_start,           // Track a binding value's indentation separately
+    $._for_body_start,          // The following `do` belongs to a for loop
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -1131,20 +1132,21 @@ module.exports = grammar({
     // For loop: `for x in xs do body` or `for x in xs, y in ys do body`
     // Uses an explicit for_binding helper to help the parser generator
     // produce correct state transitions for multi-iterator loops.
-    // Precedence > PREC.app so `do` is the for body, not an app argument.
+    // A scanner marker distinguishes the body from a function's do argument.
     for_in: $ => prec.right(PREC.app + 1, seq(
       'for',
       $._for_binding,
       repeat(seq(',', $._for_binding)),
+      $._for_body_start,
       field('body', $.do),
     )),
 
-    // Finish the iterator binding before `do` can become a function argument.
-    _for_binding: $ => prec(PREC.app + 1, seq(
+    // The body marker ends the iterable before its `do` keyword.
+    _for_binding: $ => seq(
       field('var', choice($._pattern, $.structure_instance)),
       'in',
       field('iterable', $._expression),
-    )),
+    ),
 
     // If in do-block: branches are do-sequences (can contain reassignment etc.)
     do_if: $ => prec.right(1, seq(
