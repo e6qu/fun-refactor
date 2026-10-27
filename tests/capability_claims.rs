@@ -1,10 +1,10 @@
 //! Every `✓` in the capability matrix, asked to prove itself.
 
-use fun_refactor::capabilities::{Capability, is_whole_workspace, support};
+use fun_refactor::capabilities::{is_whole_workspace, support, Capability};
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
 use fun_refactor::model::SymbolId;
-use fun_refactor::scan::{ScanOptions, scan};
+use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::Span;
 use std::path::PathBuf;
 

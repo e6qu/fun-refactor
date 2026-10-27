@@ -232,10 +232,12 @@ impl Support {
     }
 }
 
-const NO_BINDING_FORM: &str = "markup has no binding form: a reusable value here is a CSS custom property, which \
+const NO_BINDING_FORM: &str =
+    "markup has no binding form: a reusable value here is a CSS custom property, which \
      belongs to the stylesheet instead of the document";
 /// The same absence, for a data format that has no stylesheet to point at.
-const NO_NAME_TO_BIND: &str = "this format writes a value where the value goes: there is no name to put in \
+const NO_NAME_TO_BIND: &str =
+    "this format writes a value where the value goes: there is no name to put in \
      front of one and nowhere to put it";
 const NO_CALLABLES: &str = "this language has no functions, so there is nothing to call";
 const NO_SUBSTITUTION: &str =
