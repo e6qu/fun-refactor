@@ -38,36 +38,36 @@
       "sha256": "923ad969e6203086fd69ce40cf144485b92831aac191ddfe10584833e5ec0bb8"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "51b05effa86dfe57bfd422a6bc4282e5920952ee65902ce54657a11f771968c2"
+      "sha256": "0b5807ab64b6617b1ab0fb1c4c3ceca4beb95ca9f2ded15d02ca84ed8bb58cb7"
     },
     {
-      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "b1ff6fd6b866d95ca4892736127c8a955cd9cbab098ed19deccc10f39252e136"
+      "sha256": "a099f00c45561a9f695ad30b6fe03f5fb4d5271501d20cf91dbc088ae9ba157f"
     },
     {
-      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
       "sha256": "64543f42e89d31e8a00507903658b51a3ec1caaaaf3b92c2b5897aa6c8628181"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "99d8522116b88cc30c9432ec57ece31456dac3d6c14b4cd8fda8a081777781f0"
+      "sha256": "c42dfa4b85b4d69ab2399ee59786f68636fe48a8a04aafe0fed7bf9b4f1b6916"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
       "sha256": "b05f5fd269331e2289924e3a8675aa1f5d23baaa804d145b28e67e60e1d034e3"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "ffbf495d640d2335febc00046218910228bdde8975e60f32fd4afc0bd5628367"
+      "sha256": "aa0698403591f13cb74675ee145b4ef384962fda74982a91431141d8be811f44"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-27-m3-tactic-scalar-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "2c2914696a4279a3bca9dfbabdfc12c92a382b31897ff7196ea11eae5938cfe3"
+      "sha256": "3c4f79032601e9123b72a3250ea98f848dd1f47b6d595bbeec4d17aee0b56089"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
