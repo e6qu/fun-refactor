@@ -190,7 +190,8 @@ fn calculation_steps_and_following_tactics_keep_their_boundaries() {
                 .named_child(0)
                 .unwrap()
         } else {
-            body.named_child(body.named_child_count() - 1).unwrap()
+            let mut tactics = body.walk();
+            body.named_children(&mut tactics).last().unwrap()
         };
         assert_eq!(calc.kind(), "tactic_calc");
         let mut steps = calc.walk();
