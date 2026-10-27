@@ -50,9 +50,9 @@ def build(output):
     require(len(requirements) == 5, 'the private grader requires its exact five pinned Python wheels')
     (output / 'requirements.txt').write_text('\n'.join(requirements) + '\n')
     shutil.copyfile(ROOT / DIRECTORY / 'Grader.Dockerfile', output / 'Dockerfile')
-    result = subprocess.run(DOCKER + ['build', '--tag', 'fr-m1-private-grader', str(output)], capture_output=True, timeout=120)
-    (output / 'build.stdout').write_bytes(result.stdout)
-    (output / 'build.stderr').write_bytes(result.stderr)
+    with (output / 'build.stdout').open('wb') as stdout, (output / 'build.stderr').open('wb') as stderr:
+        result = subprocess.run(DOCKER + ['build', '--progress=plain', '--tag', 'fr-m1-private-grader', str(output)],
+                                stdout=stdout, stderr=stderr, timeout=120)
     require(result.returncode == 0, 'private grader image did not build; inspect build.stderr')
     image = subprocess.check_output(DOCKER + ['image', 'inspect', '--format', '{{.Id}}', 'fr-m1-private-grader'],
                                     timeout=10).decode().strip()

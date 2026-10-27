@@ -428,6 +428,8 @@ jobs:
           name: m3-private-controls
           path: |
             ${{ runner.temp }}/m3-private/summary.json
+            ${{ runner.temp }}/m3-private/image/build.stdout
+            ${{ runner.temp }}/m3-private/image/build.stderr
             ${{ runner.temp }}/m3-private/*/result.json
             ${{ runner.temp }}/m3-private/*/grader.stdout
             ${{ runner.temp }}/m3-private/*/grader.stderr

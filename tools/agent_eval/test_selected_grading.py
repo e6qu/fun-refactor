@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import selected_grading as grading
@@ -10,6 +11,22 @@ from agent_eval.selected_grade_probe import restore_dependency_cache
 
 
 class SelectedGradingTests(unittest.TestCase):
+    def test_image_timeout_retains_the_build_log_without_extending_the_deadline(self):
+        output = self.root / 'image'
+
+        def timeout(argv, *, stdout, stderr, timeout):
+            self.assertEqual(timeout, 120)
+            self.assertIn('--progress=plain', argv)
+            stdout.write(b'build output before timeout\n')
+            stderr.write(b'package download did not finish\n')
+            raise grading.subprocess.TimeoutExpired(argv, timeout)
+
+        with mock.patch.object(grading.subprocess, 'run', side_effect=timeout), \
+                self.assertRaises(grading.subprocess.TimeoutExpired):
+            grading.build(output)
+        self.assertEqual((output / 'build.stdout').read_bytes(), b'build output before timeout\n')
+        self.assertEqual((output / 'build.stderr').read_bytes(), b'package download did not finish\n')
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

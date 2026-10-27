@@ -93,12 +93,13 @@ def prepare_audit(binary, output):
 def controls(inputs, binary, output):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'check private grading on GitHub')
     output.mkdir(parents=True, exist_ok=False)
-    rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True, timeout=10).strip())
-    image = grading.build(output / 'image')
-    result = {'passed': False, 'live_model_calls': 0, 'image': image, 'checked_controls': 0, 'controls': {},
+    result = {'passed': False, 'live_model_calls': 0, 'image': None, 'checked_controls': 0, 'controls': {},
               'source_commit': local.identity()['commit'], 'run': os.environ['GITHUB_RUN_ID'],
               'bindings': local.implementation_bindings('M3'), 'fr_sha256': common.digest(binary)}
     try:
+        rust = Path(subprocess.check_output(['rustc', '--print', 'sysroot'], text=True, timeout=10).strip())
+        image = grading.build(output / 'image')
+        result['image'] = image
         with tempfile.TemporaryDirectory(prefix='fr-m3-private-controls-') as temporary:
             root = Path(temporary)
             for task in TASKS:

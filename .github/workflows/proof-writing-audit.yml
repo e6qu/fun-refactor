@@ -84,6 +84,8 @@ jobs:
           name: m3-audit-private-controls
           path: |
             ${{ runner.temp }}/m3-audit-private/summary.json
+            ${{ runner.temp }}/m3-audit-private/image/build.stdout
+            ${{ runner.temp }}/m3-audit-private/image/build.stderr
             ${{ runner.temp }}/m3-audit-private/*/result.json
             ${{ runner.temp }}/m3-audit-private/*/grader.stdout
             ${{ runner.temp }}/m3-audit-private/*/grader.stderr

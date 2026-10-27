@@ -1,8 +1,10 @@
 """Historical rechecks must retain failed attempts and one exact checking environment."""
 import copy
 import hashlib
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -12,6 +14,24 @@ from agent_eval import selected_plan
 
 
 class ProofOutcomeChecks(unittest.TestCase):
+    def test_image_setup_failure_still_records_zero_completed_controls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / 'controls'
+            with mock.patch.dict('os.environ', {'GITHUB_ACTIONS': 'true', 'GITHUB_RUN_ID': '123'}), \
+                    mock.patch.object(results.local, 'identity', return_value={'commit': 'a' * 40}), \
+                    mock.patch.object(results.local, 'implementation_bindings', return_value={'checker': 'b' * 64}), \
+                    mock.patch.object(results.common, 'digest', return_value='c' * 64), \
+                    mock.patch.object(results.subprocess, 'check_output', return_value='/rust\n'), \
+                    mock.patch.object(results.grading, 'build', side_effect=TimeoutError('image setup stopped')), \
+                    self.assertRaises(TimeoutError):
+                results.controls(root / 'inputs', root / 'fr', output)
+            summary = json.loads((output / 'summary.json').read_text())
+            self.assertFalse(summary['passed'])
+            self.assertIsNone(summary['image'])
+            self.assertEqual(summary['checked_controls'], 0)
+            self.assertEqual(summary['controls'], {})
+
     def packet(self):
         schedule = selected_plan.prepare(selected_plan.ROOT, 'M3')
         rows = [{**row, 'native_status': 'failed' if index == 0 else 'completed', 'patch_sha256': 'd' * 64}
