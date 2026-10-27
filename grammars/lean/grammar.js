@@ -1006,7 +1006,7 @@ module.exports = grammar({
     // Constructor pattern: `some x`, `none`, `Foo.bar x y`
     // An identifier alone is just an identifier, not a constructor_pattern
     constructor_pattern: $ => prec.left(PREC.app, seq(
-      field('constructor', choice($._name, seq('.', $.identifier))),
+      field('constructor', choice($.identifier, seq('.', $.identifier))),
       repeat1(field('arg', $._pattern)),
     )),
 

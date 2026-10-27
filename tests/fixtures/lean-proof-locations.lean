@@ -194,8 +194,9 @@ def takePresent (value : Option Nat) : Option Nat := do
   let .some n ← some value | none
   pure n
 
-theorem split_bool_after_locations (p q : Bool) (h : (p || q) = true) :
-    (p || q) = true := by
+theorem split_bool_after_locations (p q : Bool) :
+    Unit → (p || q) = true → (p || q) = true := by
+  intro origin h
   simp only [Bool.or_eq_true] at h ⊢
   rcases h with h | h
   · exact Or.inl h
