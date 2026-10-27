@@ -6342,7 +6342,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_for_body_start"
+            "name": "_do_body_start"
           },
           {
             "type": "FIELD",
@@ -6700,7 +6700,7 @@
     },
     "do_while": {
       "type": "PREC_RIGHT",
-      "value": 1,
+      "value": 81,
       "content": {
         "type": "SEQ",
         "members": [
@@ -6717,6 +6717,10 @@
             }
           },
           {
+            "type": "SYMBOL",
+            "name": "_do_body_start"
+          },
+          {
             "type": "FIELD",
             "name": "body",
             "content": {
@@ -6729,7 +6733,7 @@
     },
     "do_unless": {
       "type": "PREC_RIGHT",
-      "value": 1,
+      "value": 81,
       "content": {
         "type": "SEQ",
         "members": [
@@ -6744,6 +6748,10 @@
               "type": "SYMBOL",
               "name": "_expression"
             }
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_do_body_start"
           },
           {
             "type": "FIELD",
@@ -7959,7 +7967,7 @@
     },
     {
       "type": "SYMBOL",
-      "name": "_for_body_start"
+      "name": "_do_body_start"
     }
   ],
   "inline": [],
