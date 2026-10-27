@@ -1,0 +1,40 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..d57cb3a 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,33 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    simp [page_countModel, h]
++  constructor
++  · intro h
++    rcases h with ⟨hi0, hiMax, hs1, hsMax⟩
++    simp only [page_countModel]
++    have hq : 0 ≤ Int.tdiv items size := Int.tdiv_nonneg hi0 (by omega)
++    have hqle : Int.tdiv items size ≤ items := by
++      rw [Int.tdiv_eq_ediv_of_nonneg hi0]
++      exact Int.ediv_le_self size hi0
++    have hr0 : 0 ≤ Int.tmod items size := by
++      rw [Int.tmod_eq_emod_of_nonneg hi0]
++      exact Int.emod_nonneg _ (by omega)
++    have hrlt : Int.tmod items size < size := by
++      rw [Int.tmod_eq_emod_of_nonneg hi0]
++      exact Int.emod_lt_of_pos _ (by omega)
++    have hid : Int.tmod items size + size * Int.tdiv items size = items := Int.tmod_add_mul_tdiv _ _
++    by_cases hrem : Int.tmod items size = 0
++    · simp [hrem]
++      omega
++    · simp [hrem]
++      have hqmul : Int.tdiv items size ≤ size * Int.tdiv items size := by
++        simpa [Int.mul_comm] using Int.mul_le_mul_of_nonneg_left hs1 hq
++      have hrpos : 0 < Int.tmod items size := by omega
++      omega
++  · simp [page_countModel, Int.tdiv, Int.tmod]
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
