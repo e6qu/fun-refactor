@@ -403,7 +403,7 @@ fr capabilities [--capability <C>] [--lang <L>] [--markdown]
 ```
 
 Support comes from the rules the commands use. An unsupported operation includes its reason.
-For example, ask only whether Lean names can be renamed:
+For example, ask whether fr can rename Lean names:
 
 ```sh
 fr --json capabilities --capability rename --lang lean
