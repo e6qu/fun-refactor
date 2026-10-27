@@ -73,6 +73,11 @@ int main(void) {
   assert(scanner->depth == 1 && assignment.offset == 0);
   bool label_tokens[DO_BODY_START + 1] = {false};
   label_tokens[LAYOUT_END] = label_tokens[TACTIC_LABEL_COLON] = true;
+  Input cons = input(":: values");
+  assert(!scan(scanner, &cons, LAYOUT_END));
+  assert(scanner->depth == 1 && cons.offset == 0);
+  assert(!tree_sitter_lean_external_scanner_scan(scanner, &cons.lexer, label_tokens));
+  assert(scanner->depth == 1);
   Input label = input(": proposition");
   assert(tree_sitter_lean_external_scanner_scan(scanner, &label.lexer, label_tokens));
   assert(label.lexer.result_symbol == TACTIC_LABEL_COLON && scanner->depth == 1);

@@ -392,6 +392,7 @@ bool tree_sitter_lean_external_scanner_scan(
 
   if (valid_symbols[TACTIC_LABEL_COLON] && lexer->lookahead == ':') {
     lexer->advance(lexer, false);
+    if (lexer->lookahead == ':' || lexer->lookahead == '=') return false;
     lexer->mark_end(lexer);
     lexer->result_symbol = TACTIC_LABEL_COLON;
     return true;
@@ -444,7 +445,7 @@ bool tree_sitter_lean_external_scanner_scan(
     if (c == ':') {
       lexer->mark_end(lexer);
       lexer->advance(lexer, true);
-      if (lexer->lookahead != '=') {
+      if (lexer->lookahead != '=' && lexer->lookahead != ':') {
         pop(s);
         lexer->result_symbol = LAYOUT_END;
         return true;
