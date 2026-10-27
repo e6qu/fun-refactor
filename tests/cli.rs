@@ -906,10 +906,9 @@ fn spec_init_previews_then_creates_and_reverses_a_pinned_package() {
             .unwrap()
             .contains("defaultTargets = [\"FrSpecs\"]")
     );
-    let manifest: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(ws.root().join("specs/lake-manifest.json")).unwrap(),
-    )
-    .unwrap();
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(ws.root().join("specs/lake-manifest.json")).unwrap())
+            .unwrap();
     assert_eq!(manifest["name"], "«fr-specs»");
     assert_eq!(manifest["packages"], serde_json::json!([]));
     let created = [
@@ -929,7 +928,11 @@ fn spec_init_previews_then_creates_and_reverses_a_pinned_package() {
     let (redone, ok) = ws.run(&["history", "redo", &id, "--write"]);
     assert!(ok, "{redone}");
     for (path, bytes) in &created {
-        assert_eq!(std::fs::read(ws.root().join(path)).unwrap(), *bytes, "{path}");
+        assert_eq!(
+            std::fs::read(ws.root().join(path)).unwrap(),
+            *bytes,
+            "{path}"
+        );
     }
 
     std::fs::write(
