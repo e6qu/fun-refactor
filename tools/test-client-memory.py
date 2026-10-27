@@ -38,50 +38,6 @@ def fixture(root):
 
 
 class ClientMemory(unittest.TestCase):
-    def test_combined_setting_compares_the_same_catalog_without_changing_limits(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            binary = base / "binary"
-            binary.write_bytes(b"not executed")
-            source = base / "catalog-source.json"
-            source.write_bytes(b'{"scripted":{"models":{}}}\n')
-            root = base / "measurement"
-            observed = []
-            def launch(command, **kwargs):
-                destination = Path(command[4])
-                destination.mkdir()
-                env = kwargs["env"]
-                observed.append((destination.name, env["BUN_OPTIONS"],
-                                 Path(env["OPENCODE_MODELS_PATH"]).read_bytes()))
-                return type("Process", (), {"returncode": 0})()
-            with patch.dict(os.environ, {"GITHUB_ACTIONS": "true", "GITHUB_SHA": "a" * 40,
-                                         "BUN_OPTIONS": "unrelated-personal-option"}), \
-                    patch.object(memory.subprocess, "run", side_effect=launch), \
-                    patch.object(memory, "report", return_value={"admitted": False}), patch("sys.stdout", new=io.StringIO()):
-                memory.check(root, binary, binary, experiment="catalog-smol", catalog=source)
-            self.assertEqual(observed, [(f"{mode}-{index}", option, source.read_bytes())
-                for index in range(3) for mode, option in (("catalog", ""), ("catalog-smol", "--smol"))])
-            plan = json.loads((root / "plan.json").read_text())
-            self.assertEqual(plan["limits"]["rss_bytes"], 768 * 1024**2)
-            self.assertEqual(plan["limits"]["wall_seconds"], 120)
-            self.assertEqual(plan["admission_rss_bytes"], 640 * 1024**2)
-
-    def test_combined_setting_requires_every_lower_memory_attempt_to_pass(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with patch.object(memory, "CELLS", memory.CATALOG_SMOL_CELLS):
-                audits = fixture(root)
-            catalog = root / "catalog.json"
-            catalog.write_bytes(memory.CATALOG_DATA)
-            plan = json.loads((root / "plan.json").read_text())
-            plan.update(experiment="catalog-smol", catalog_sha256=memory.identity(catalog))
-            (root / "plan.json").write_text(json.dumps(plan))
-            self.assertTrue(self.replay(root, audits)["admitted"])
-            failed = audits["catalog-smol-2"]["attempts"][0]
-            failed.update(status="failed", failure="capture process did not complete")
-            (root / "catalog-smol-2/result.json").unlink()
-            self.assertFalse(self.replay(root, audits)["admitted"])
-
     def test_provided_catalog_is_bound_and_replays_without_assuming_empty(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

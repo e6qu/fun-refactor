@@ -17,9 +17,6 @@ CELLS = [{"id": f"{mode}-{index}", "mode": mode, "bun_options": option}
          for index in range(3) for mode, option in (("default", ""), ("smol", "--smol"))]
 CATALOG_CELLS = [{"id": f"{mode}-{index}", "mode": mode, "bun_options": ""}
                  for index in range(3) for mode in ("default", "catalog")]
-CATALOG_SMOL_CELLS = [{"id": f"{mode}-{index}", "mode": mode, "bun_options": option}
-                      for index in range(3)
-                      for mode, option in (("catalog", ""), ("catalog-smol", "--smol"))]
 CATALOG_DATA = b"{}\n"
 HEADROOM_RSS = 640 * 1024**2
 LIMITS = {"wall_seconds": 120, "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
@@ -41,9 +38,9 @@ def report(root):
     plan = json.loads((root / "plan.json").read_bytes())
     require(plan["script_sha256"] == identity(Path(__file__)), "control implementation changed")
     experiment = plan.get("experiment", "smol")
-    require(experiment in ("smol", "catalog", "catalog-smol"), "unknown memory experiment")
-    cells = {"smol": CELLS, "catalog": CATALOG_CELLS, "catalog-smol": CATALOG_SMOL_CELLS}[experiment]
-    if experiment in ("catalog", "catalog-smol"):
+    require(experiment in ("smol", "catalog"), "unknown memory experiment")
+    cells = CATALOG_CELLS if experiment == "catalog" else CELLS
+    if experiment == "catalog":
         data = read_catalog(root / "catalog.json")
         require(plan["catalog_sha256"] == identity(root / "catalog.json"), "scripted catalog changed")
         if "catalog_source_sha256" in plan:
@@ -92,16 +89,16 @@ def report(root):
 
 def check(root, binary, opencode, *, profile=False, experiment="smol", catalog=None):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run the complete memory gate on GitHub")
-    require(experiment in ("smol", "catalog", "catalog-smol"), "unknown memory experiment")
-    require(catalog is None or experiment in ("catalog", "catalog-smol"), "a catalog requires the catalog experiment")
+    require(experiment in ("smol", "catalog"), "unknown memory experiment")
+    require(catalog is None or experiment == "catalog", "a catalog requires the catalog experiment")
     data = CATALOG_DATA if catalog is None else read_catalog(catalog)
     root.mkdir(parents=True, exist_ok=False)
-    cells = {"smol": CELLS, "catalog": CATALOG_CELLS, "catalog-smol": CATALOG_SMOL_CELLS}[experiment]
+    cells = CATALOG_CELLS if experiment == "catalog" else CELLS
     plan = {"schema": SCHEMA, "experiment": experiment, "cells": cells, "limits": LIMITS, "admission_rss_bytes": HEADROOM_RSS,
             "platform": sys.platform, "machine": platform.machine(), "os_release": platform.release(),
             "commit": os.environ["GITHUB_SHA"], "script_sha256": identity(Path(__file__)),
             "fr_sha256": identity(binary), "opencode_sha256": identity(opencode)}
-    if experiment in ("catalog", "catalog-smol"):
+    if experiment == "catalog":
         (root / "catalog.json").write_bytes(data)
         plan["catalog_sha256"] = identity(root / "catalog.json")
         if catalog is not None:
@@ -114,7 +111,7 @@ def check(root, binary, opencode, *, profile=False, experiment="smol", catalog=N
     for cell in cells:
         env = {**os.environ, "BUN_OPTIONS": cell["bun_options"], "RAYON_NUM_THREADS": "1"}
         env.pop("OPENCODE_MODELS_PATH", None)
-        if cell["mode"] in ("catalog", "catalog-smol"):
+        if cell["mode"] == "catalog":
             env["OPENCODE_MODELS_PATH"] = str(root / "catalog.json")
         destination = root / cell["id"]
         log = root / (cell["id"] + ".log")
@@ -137,7 +134,7 @@ def main():
     parser.add_argument("--fr", type=Path)
     parser.add_argument("--opencode", type=Path)
     parser.add_argument("--profile", action="store_true", help="Retain process samples and inferred capture stages")
-    parser.add_argument("--experiment", choices=("smol", "catalog", "catalog-smol"), default="smol")
+    parser.add_argument("--experiment", choices=("smol", "catalog"), default="smol")
     parser.add_argument("--catalog", type=Path, help="Use a bounded, hash-bound model catalog in catalog candidates")
     args = parser.parse_args()
     if args.command in ("report", "admit"):

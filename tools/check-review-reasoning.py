@@ -39,7 +39,7 @@ def capture(root, case, binary, client):
             settings["provider"] = {case["provider"]: {"options": {"apiKey": "scripted-no-credential"}}}
             fixture = root / "fixture.json"
             fixture.write_bytes(encode({"provider": settings["provider"]}))
-            env.update(OPENCODE_CONFIG=str(fixture), OPENCODE_MODELS_PATH=str(root / "catalog.json"), BUN_OPTIONS="--smol")
+            env.update(OPENCODE_CONFIG=str(fixture), OPENCODE_MODELS_PATH=str(root / "catalog.json"), BUN_OPTIONS="")
             model = {"providerID": case["provider"], "modelID": case["model"], "configured": True,
                      "context": 32768, "output": 2048, "variant": case["variant"]}
             frozen, snapshots = review.freeze(control["questions"]("configured"), [model], binary, client,
