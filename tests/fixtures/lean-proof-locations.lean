@@ -201,3 +201,14 @@ theorem split_bool_after_locations (p q : Bool) :
   rcases h with h | h
   · exact Or.inl h
   · exact Or.inr h
+
+theorem changeComparison (left right : Nat) : left ≤ max left right := by
+  change left ≤ max left right
+  exact Nat.le_max_left _ _
+
+theorem changeBeforeSplit (head value : Nat) (tail : List Nat)
+    (member : value ∈ head :: tail) : value = head ∨ value ∈ tail := by
+  change value = head ∨ value ∈ tail
+  rcases List.mem_cons.mp member with same | rest
+  · exact Or.inl same
+  · exact Or.inr rest

@@ -116,9 +116,7 @@ module.exports = grammar({
 
     module_header: _ => 'module',
 
-    // A single top-level element in a code fragment (hover popup, docstring).
-    // Tactics are tried first (higher precedence) so that `intro x`, `simp`,
-    // `rw [...]` etc. produce proper tactic nodes instead of bare applications.
+    // A fragment can contain tactics or ordinary expressions.
     _fragment_element: $ => choice(
       $._tactic,
       $._expression,
@@ -790,7 +788,8 @@ module.exports = grammar({
     // One term already includes applications such as `f x y`. Repeating full
     // terms also admits every partition of that application into arguments,
     // multiplying parser states without describing another Lean construct.
-    tactic_apply: $ => prec.right(PREC.app, seq(
+    // Argument operators must bind before the tactic and its `by` block end.
+    tactic_apply: $ => prec.right(0, seq(
       field('tactic', $.identifier),
       optional('only'),
       optional(field('arg', choice($._expression, $.tactic_config))),

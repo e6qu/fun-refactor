@@ -27,9 +27,24 @@ def check(binary, diagnostics):
             failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-proof-locations.lean':
             for kind, count in [('do_while', 2), ('do_unless', 1), ('let_bind', 2),
-                                ('tactic_rcases', 1), ('rcases_tuple_pattern', 1)]:
+                                ('tactic_rcases', 2), ('rcases_tuple_pattern', 1)]:
                 if len(list(tree.iter(kind))) != count:
                     failures.append(fixture + ': expected ' + str(count) + ' ' + kind + ' statements')
+            checked = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'changeComparison', 'changeBeforeSplit'}:
+                    continue
+                checked.add(text)
+                body = definition.find('by')
+                tactic = body.find('tactic_apply') if body is not None else None
+                if tactic is None or tactic.find('binary_expression') is None:
+                    failures.append(text + ': comparison escaped the proof tactic')
+            if checked != {'changeComparison', 'changeBeforeSplit'}:
+                failures.append(fixture + ': missing comparison proof declarations')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()

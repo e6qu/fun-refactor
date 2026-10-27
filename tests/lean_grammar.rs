@@ -14,7 +14,7 @@ fn simplifier_locations_and_equality_transport_parse() {
     assert_eq!(tree.root().to_sexp().matches("(do_while ").count(), 2);
     assert_eq!(tree.root().to_sexp().matches("(do_unless ").count(), 1);
     assert_eq!(tree.root().to_sexp().matches("(let_bind ").count(), 2);
-    assert_eq!(tree.root().to_sexp().matches("(tactic_rcases ").count(), 1);
+    assert_eq!(tree.root().to_sexp().matches("(tactic_rcases ").count(), 2);
     assert_eq!(
         tree.root()
             .to_sexp()
@@ -22,6 +22,40 @@ fn simplifier_locations_and_equality_transport_parse() {
             .count(),
         1
     );
+}
+
+#[test]
+fn tactic_comparisons_stay_inside_the_proof() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        if !matches!(
+            &source[name.byte_range()],
+            "changeComparison" | "changeBeforeSplit"
+        ) {
+            continue;
+        }
+        checked += 1;
+        let body = definition.child_by_field_name("body").unwrap();
+        assert_eq!(body.kind(), "by", "{}", body.to_sexp());
+        let tactic = body.named_child(0).unwrap();
+        assert_eq!(tactic.kind(), "tactic_apply");
+        assert_eq!(
+            &source[tactic.child_by_field_name("tactic").unwrap().byte_range()],
+            "change"
+        );
+        assert_eq!(
+            tactic.child_by_field_name("arg").unwrap().kind(),
+            "binary_expression"
+        );
+    }
+    assert_eq!(checked, 2);
 }
 
 #[test]
