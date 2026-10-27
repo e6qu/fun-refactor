@@ -1,9 +1,9 @@
 use crate::application_ir::{Adapter, FeatureKind};
 use crate::capabilities::{self, Capability};
 use crate::lang::{Language, LanguageClass};
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use clap::{Args, ValueEnum};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub const SCHEMA: &str = "fr-completion-audit-1";
 
@@ -175,7 +175,7 @@ const WORKFLOWS: &[Workflow] = &[
 
 fn capability_report() -> Value {
     let rows = capabilities::matrix();
-    let (supported, not_applicable, refused) = capabilities::totals();
+    let (supported, not_applicable, refused) = capabilities::totals(&capabilities::matrix());
     let cells = rows
         .into_iter()
         .map(|row| {
@@ -356,7 +356,7 @@ fn boundary_report() -> Value {
 }
 
 fn summary_report() -> Value {
-    let (supported, not_applicable, refused) = capabilities::totals();
+    let (supported, not_applicable, refused) = capabilities::totals(&capabilities::matrix());
     let framework_cells = Adapter::ALL.len() * Adapter::ALL.len() * FeatureKind::ALL.len();
     let framework_supported = Adapter::ALL
         .into_iter()

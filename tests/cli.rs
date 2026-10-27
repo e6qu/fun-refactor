@@ -215,7 +215,10 @@ fn a_position_names_the_one_that_was_meant() {
             "one/a.go",
             "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc use() int {\n\treturn Handle()\n}\n",
         ),
-        ("two/b.go", "package two\n\nfunc Handle() int {\n\treturn 2\n}\n"),
+        (
+            "two/b.go",
+            "package two\n\nfunc Handle() int {\n\treturn 2\n}\n",
+        ),
     ]);
     let (out, ok) = ws.run(&["refs", "one/a.go:3:6"]);
     assert!(ok, "{out}");
@@ -293,6 +296,60 @@ fn the_capability_matrix_is_printable_and_totals_add_up() {
 }
 
 #[test]
+fn capability_filters_apply_to_json_markdown_and_text_totals() {
+    let ws = Workspace::new(&[]);
+    let selection = ["capabilities", "--lang", "lean", "--capability", "rename"];
+    let mut json_args = vec!["--json"];
+    json_args.extend(selection);
+    let (out, ok) = ws.run(&json_args);
+    assert!(ok, "{out}");
+    let rows: serde_json::Value = serde_json::from_str(&out).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["capability"], "rename");
+    let languages = rows[0]["languages"].as_array().unwrap();
+    assert_eq!(languages.len(), 1);
+    assert_eq!(languages[0][0], "lean");
+
+    let mut markdown_args = selection.to_vec();
+    markdown_args.push("--markdown");
+    let (out, ok) = ws.run(&markdown_args);
+    assert!(ok, "{out}");
+    assert_eq!(out.lines().next(), Some("| Capability | lean |"));
+    assert_eq!(out.lines().count(), 3, "{out}");
+    assert!(out.lines().last().unwrap().starts_with("| rename |"));
+
+    let (out, ok) = ws.run(&selection);
+    assert!(ok, "{out}");
+    assert!(out.contains("(of 1 capability x language pairs)"), "{out}");
+
+    let (out, ok) = ws.run(&["--json", "capabilities", "--language", "lean"]);
+    assert!(ok, "{out}");
+    let rows: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(
+        rows.as_array().unwrap().len(),
+        fun_refactor::capabilities::Capability::ALL.len()
+    );
+    for row in rows.as_array().unwrap() {
+        assert_eq!(row["languages"].as_array().unwrap().len(), 1);
+        assert_eq!(row["languages"][0][0], "lean");
+    }
+
+    for arguments in [
+        vec!["capabilities", "--markdown", "--lang", "unknown-language"],
+        vec![
+            "capabilities",
+            "--markdown",
+            "--capability",
+            "unknown-capability",
+        ],
+    ] {
+        let (out, ok) = ws.run(&arguments);
+        assert!(!ok, "{out}");
+    }
+}
+
+#[test]
 fn compatibility_report_names_the_exact_agent_protocol() {
     let ws = workspace();
     let (out, ok) = ws.run(&["--json", "compatibility"]);
@@ -358,7 +415,10 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
 fn what_unused_reports_can_be_given_to_delete() {
     // The next command after `fr unused` is `fr delete`.
     let ws = Workspace::new(&[
-        ("a/one.go", "package a\n\nfunc Shared() int {\n\treturn 1\n}\n"),
+        (
+            "a/one.go",
+            "package a\n\nfunc Shared() int {\n\treturn 1\n}\n",
+        ),
         (
             "b/two.go",
             "package b\n\nfunc Shared() int {\n\treturn 2\n}\n\nfunc Used() int {\n\treturn Shared()\n}\n",
@@ -482,7 +542,10 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
             "one/a.go",
             "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc Other() int {\n\treturn Handle()\n}\n",
         ),
-        ("two/b.go", "package two\n\nfunc Handle() int {\n\treturn 2\n}\n"),
+        (
+            "two/b.go",
+            "package two\n\nfunc Handle() int {\n\treturn 2\n}\n",
+        ),
     ]);
     let code = |args: &[&str]| {
         Command::new(FR)
@@ -636,7 +699,10 @@ fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
 #[test]
 fn a_run_and_an_explain_agree_on_how_long_the_recipe_is() {
     let ws = Workspace::new(&[
-        ("m.py", "def a(x):\n    return x\n\n\ndef b(x):\n    return a(x)\n"),
+        (
+            "m.py",
+            "def a(x):\n    return x\n\n\ndef b(x):\n    return a(x)\n",
+        ),
         (
             "r.recipe",
             "schema 1\n\nrecipe two {\n  rename to \"a2\" where name=\"a\" kind=function\n  signature \"remove:0\" where name=\"b\" kind=function\n  rename to \"b2\" where name=\"b\" kind=function\n}\n",
@@ -1063,9 +1129,11 @@ fn spec_sync_refuses_to_renew_any_anchor_when_one_declaration_is_missing() {
     let (out, ok) = ws.run(&["spec", "sync", "specs", "--write"]);
     assert!(!ok, "{out}");
     assert!(out.contains("Nothing written"), "{out}");
-    assert!(std::fs::read_to_string(ws.root().join("specs/code.lean"))
-        .unwrap()
-        .contains("current @ deadbeef"));
+    assert!(
+        std::fs::read_to_string(ws.root().join("specs/code.lean"))
+            .unwrap()
+            .contains("current @ deadbeef")
+    );
 }
 
 #[test]

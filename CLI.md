@@ -402,9 +402,15 @@ Show what this tool can do, per language.
 fr capabilities [--capability <C>] [--lang <L>] [--markdown]
 ```
 
-The matrix comes from asking each refactoring's own predicate, so it cannot drift
-from the code. Every cell that is not supported carries its reason.
-`--markdown` prints the table the README publishes.
+Support comes from the rules the commands use. An unsupported operation includes its reason.
+For example, ask only whether Lean names can be renamed:
+
+```sh
+fr --json capabilities --capability rename --lang lean
+```
+
+The filters apply to JSON, plain text and `--markdown` tables.
+Plain-text totals count only the selected operations and languages.
 
 ### `fr intent`
 

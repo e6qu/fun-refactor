@@ -1,10 +1,10 @@
 //! Every `✓` in the capability matrix, asked to prove itself.
 
-use fun_refactor::capabilities::{is_whole_workspace, support, Capability};
+use fun_refactor::capabilities::{Capability, is_whole_workspace, support};
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
 use fun_refactor::model::SymbolId;
-use fun_refactor::scan::{scan, ScanOptions};
+use fun_refactor::scan::{ScanOptions, scan};
 use fun_refactor::span::Span;
 use std::path::PathBuf;
 
@@ -444,7 +444,7 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
 fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
     // A capability added without a driver above quietly drops out of the check, and the count
     // is what notices.
-    let (yes, _, _) = fun_refactor::capabilities::totals();
+    let (yes, _, _) = fun_refactor::capabilities::totals(&fun_refactor::capabilities::matrix());
     let driven: usize = Language::ALL
         .iter()
         .flat_map(|language| {

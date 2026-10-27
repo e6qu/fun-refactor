@@ -6,7 +6,7 @@ use crate::index::Index;
 use crate::lang::Language;
 use crate::model::Symbol;
 use crate::parse::Parsers;
-use crate::scan::{scan, ScanOptions};
+use crate::scan::{ScanOptions, scan};
 use crate::span::{LineCol, LineIndex, TextLocation};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -2573,7 +2573,7 @@ fn refuse_stale_plan(index: &Index, edits: &crate::edit::EditSet) -> Result<()> 
             }
             Err(e) => {
                 return Err(anyhow::Error::from(e))
-                    .with_context(|| format!("re-reading {}", path.display()))
+                    .with_context(|| format!("re-reading {}", path.display()));
             }
         };
         if crate::index::content_hash_of(&current) != recorded {
@@ -2819,7 +2819,10 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut compiled = project.compile_agent_intent(options)?;
         if let Some(action) = compiled.tagged_action.take() {
-            anyhow::ensure!(cli.context_basis.is_none(), "an intent action carries its complete context and does not accept --context-basis.");
+            anyhow::ensure!(
+                cli.context_basis.is_none(),
+                "an intent action carries its complete context and does not accept --context-basis."
+            );
             context.apply(&mut compiled.report)?;
             return run_tagged_intent(project, root, compiled, action, options);
         }
@@ -2981,19 +2984,21 @@ fn run_tagged_intent(
     )));
     prepared.report["targets"] = serde_json::json!(prepared.targets);
     prepared.report["writable"] = serde_json::json!(prepared.delivery.is_some());
-    prepared.report["stages"] = serde_json::json!(prepared
-        .delivery
-        .as_ref()
-        .map(|delivery| crate::workflow::planned_stage_names(
-            delivery.check_original,
-            delivery.exercise_reversal,
-            delivery.patch.is_some(),
-            false
-        ))
-        .unwrap_or_default()
-        .into_iter()
-        .map(|stage| serde_json::json!({"stage":stage, "status":"pending"}))
-        .collect::<Vec<_>>());
+    prepared.report["stages"] = serde_json::json!(
+        prepared
+            .delivery
+            .as_ref()
+            .map(|delivery| crate::workflow::planned_stage_names(
+                delivery.check_original,
+                delivery.exercise_reversal,
+                delivery.patch.is_some(),
+                false
+            ))
+            .unwrap_or_default()
+            .into_iter()
+            .map(|stage| serde_json::json!({"stage":stage, "status":"pending"}))
+            .collect::<Vec<_>>()
+    );
     anyhow::ensure!(
         serde_json::to_vec(&prepared.report)?.len() <= prepared.report_bytes,
         "intent operation review exceeds the action report byte limit."
@@ -3377,15 +3382,17 @@ fn run_task_change(
     prepared.plan.report["context_inherited"] =
         serde_json::json!(["coverage", "revision", "handle_prefix"]);
     prepared.report["author"] = prepared.plan.report;
-    prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
-        prepared.delivery.check_original,
-        prepared.delivery.exercise_reversal,
-        prepared.delivery.patch.is_some(),
-        prepared.acceptance_checks.is_some(),
-    )
-    .into_iter()
-    .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
-    .collect::<Vec<_>>());
+    prepared.report["stages"] = serde_json::json!(
+        crate::workflow::planned_stage_names(
+            prepared.delivery.check_original,
+            prepared.delivery.exercise_reversal,
+            prepared.delivery.patch.is_some(),
+            prepared.acceptance_checks.is_some(),
+        )
+        .into_iter()
+        .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
+        .collect::<Vec<_>>()
+    );
     let exact = exact_plan_changes(root, &changes, &[]);
     let task_change_basis = crate::project::task_change::review_basis(&prepared.report, &exact)?;
     prepared.report["task_change_basis"] = serde_json::json!(&task_change_basis);
@@ -4019,8 +4026,7 @@ fn cmd_duplicates(
 }
 
 /// The caveat both renderings of `fr unused` carry, one copy so they cannot drift.
-const UNUSED_CAVEAT: &str =
-    "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
+const UNUSED_CAVEAT: &str = "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
      candidates. So a method reached only through a trait object, an interface \n\
      value or a base class is no longer listed. A function held in a map or a \n\
      struct field and called through it, and a name assembled at runtime, still \n\
@@ -7019,25 +7025,30 @@ fn cmd_capabilities(
 ) -> Result<()> {
     use crate::capabilities::{self, Capability};
 
-    if markdown {
-        print!("{}", capabilities::render_markdown());
-        return Ok(());
-    }
-
     let wanted_language = match language {
         Some(name) => Some(resolve_languages(&[name.to_string()])?[0]),
         None => None,
     };
-    let rows: Vec<_> = capabilities::matrix()
+    let mut rows: Vec<_> = capabilities::matrix()
         .into_iter()
         .filter(|r| {
             capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c)
         })
         .collect();
 
+    for row in &mut rows {
+        row.languages
+            .retain(|(name, _)| wanted_language.is_none_or(|l| l.name() == *name));
+    }
+
     if rows.is_empty() {
         let known: Vec<_> = Capability::ALL.iter().map(|c| c.label()).collect();
         anyhow::bail!("unknown capability. Known: {}", known.join(", "));
+    }
+
+    if markdown {
+        print!("{}", capabilities::render_markdown(&rows));
+        return Ok(());
     }
 
     if cli.json {
@@ -7048,9 +7059,6 @@ fn cmd_capabilities(
     for row in &rows {
         println!("{}  ({})", row.capability, row.command);
         for (name, support) in &row.languages {
-            if wanted_language.is_some_and(|l| l.name() != *name) {
-                continue;
-            }
             match support.reason() {
                 Some(why) => println!("  {:<4} {:<11} {why}", support.mark(), name),
                 None => println!("  {:<4} {name}", support.mark()),
@@ -7059,7 +7067,7 @@ fn cmd_capabilities(
         println!();
     }
 
-    let (yes, not_applicable, refused) = capabilities::totals();
+    let (yes, not_applicable, refused) = capabilities::totals(&rows);
     println!(
         "{yes} supported, {not_applicable} not applicable, {refused} refused \n\
          (of {} capability x language pairs)",
@@ -7790,7 +7798,8 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
             .collect();
         let mut payload = serde_json::json!({ "languages": langs });
         if !stats {
-            payload["files_with_errors"] = serde_json::json!(failures
+            payload["files_with_errors"] =
+                serde_json::json!(failures
                 .iter()
                 .map(|(p, at)| {
                     serde_json::json!({

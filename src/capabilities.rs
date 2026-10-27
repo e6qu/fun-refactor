@@ -232,12 +232,10 @@ impl Support {
     }
 }
 
-const NO_BINDING_FORM: &str =
-    "markup has no binding form: a reusable value here is a CSS custom property, which \
+const NO_BINDING_FORM: &str = "markup has no binding form: a reusable value here is a CSS custom property, which \
      belongs to the stylesheet instead of the document";
 /// The same absence, for a data format that has no stylesheet to point at.
-const NO_NAME_TO_BIND: &str =
-    "this format writes a value where the value goes: there is no name to put in \
+const NO_NAME_TO_BIND: &str = "this format writes a value where the value goes: there is no name to put in \
      front of one and nowhere to put it";
 const NO_CALLABLES: &str = "this language has no functions, so there is nothing to call";
 const NO_SUBSTITUTION: &str =
@@ -609,17 +607,22 @@ pub fn matrix() -> Vec<Row> {
         .collect()
 }
 
-/// Render the matrix as a markdown table.
-pub fn render_markdown() -> String {
+/// Render the selected rows and language columns as a markdown table.
+pub fn render_markdown(rows: &[Row]) -> String {
     let mut out = String::from("| Capability |");
-    for language in Language::ALL {
-        out.push_str(&format!(" {} |", language.name()));
-    }
+    let columns = if let Some(row) = rows.first() {
+        for (language, _) in &row.languages {
+            out.push_str(&format!(" {language} |"));
+        }
+        row.languages.len()
+    } else {
+        0
+    };
     out.push_str("\n|---|");
-    out.push_str(&"---|".repeat(Language::ALL.len()));
+    out.push_str(&"---|".repeat(columns));
     out.push('\n');
 
-    for row in matrix() {
+    for row in rows {
         out.push_str(&format!("| {} |", row.capability));
         for (_, support) in &row.languages {
             out.push_str(&format!(" {} |", support.mark()));
@@ -630,12 +633,12 @@ pub fn render_markdown() -> String {
 }
 
 /// Counts for a summary line.
-pub fn totals() -> (usize, usize, usize) {
+pub fn totals(rows: &[Row]) -> (usize, usize, usize) {
     let mut yes = 0;
     let mut not_applicable = 0;
     let mut refused = 0;
-    for row in matrix() {
-        for (_, support) in row.languages {
+    for row in rows {
+        for (_, support) in &row.languages {
             match support {
                 Support::Yes => yes += 1,
                 Support::NotApplicable { .. } => not_applicable += 1,
@@ -723,7 +726,7 @@ mod tests {
 
     #[test]
     fn markdown_renders_a_row_per_capability() {
-        let table = render_markdown();
+        let table = render_markdown(&matrix());
         assert_eq!(
             table.lines().count(),
             Capability::ALL.len() + 2,
@@ -740,7 +743,7 @@ mod tests {
 
     #[test]
     fn totals_account_for_every_cell() {
-        let (yes, not_applicable, refused) = totals();
+        let (yes, not_applicable, refused) = totals(&matrix());
         assert_eq!(
             yes + not_applicable + refused,
             Capability::ALL.len() * Language::ALL.len()
