@@ -242,8 +242,9 @@ The final gate runs after dependency failures but skips cancelled workflows. An 
 condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
 needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).
 
-The manual [Lean reader comparison](../.github/workflows/lean-reader-review.yml) builds two selected fr commits and reads the same selected Lean files.
+The [evidence workflow](../.github/workflows/refinement-evidence.yml) group `lean-reader-review` builds two selected fr commits and reads the same selected Lean files.
 A commit ID selects one recorded copy of the code. Supply both fr commits and the commit containing the unchanged files.
+Set `reader_revisions` to a JSON object with the required `before_source`, `after_source` and `repository_revision` commit IDs.
 The report records exact added or removed names and references, changed targets and syntax errors.
 For example, a parser repair can reveal a theorem the older reader missed, changing benchmark totals even though the files stayed the same.
 Review those exact locations before accepting new totals; keep the original timing baselines.
