@@ -54,6 +54,14 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
 
 int main(void) {
   Scanner *scanner = tree_sitter_lean_external_scanner_create();
+  Input blank_lines = input("\n  \n\t\n    rfl");
+  assert(scan(scanner, &blank_lines, LAYOUT_START));
+  assert(scanner->depth == 1 && top_indent(scanner) == 4);
+  assert(blank_lines.lexer.lookahead == 'r');
+  Input blank_end = input("");
+  assert(scan(scanner, &blank_end, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input outer = input("  have bound := f");
   assert(scan(scanner, &outer, LAYOUT_START));
   outer.offset = 2; outer.lexer.lookahead = 'h';
@@ -61,7 +69,7 @@ int main(void) {
   assert(scanner->depth == 2 && scanner->bindings[1] == 1);
   Input wrapped = input("\n    (1)");
   assert(!scan(scanner, &wrapped, LAYOUT_END));
-  Input next = input("\n  exact bound");
+  Input next = input("\n \t\n  exact bound");
   assert(scan(scanner, &next, LAYOUT_END));
   assert(scanner->depth == 1);
   assert(scan(scanner, &next, LAYOUT_SEMICOLON));

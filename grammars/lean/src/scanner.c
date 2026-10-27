@@ -145,6 +145,7 @@ static Indent measure_indent(TSLexer *lexer, bool mark_start) {
     while (is_nl(lexer->lookahead))
       lexer->advance(lexer, true);
     skip_spaces(lexer);
+    if (is_nl(lexer->lookahead)) continue;
     if (mark_start) lexer->mark_end(lexer);
     if (lexer->eof(lexer)) return (Indent){0, 0};
     Indent indent = {lexer->get_column(lexer), lexer->lookahead};

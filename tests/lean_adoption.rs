@@ -98,8 +98,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();
-        let checked =
-            fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+        let checked = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+            .unwrap_or_else(|error| panic!("{tactics:?}: {error:#}"));
         assert!(
             checked.passed,
             "{}",

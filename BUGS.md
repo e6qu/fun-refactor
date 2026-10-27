@@ -5,10 +5,11 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Open correctness defects
 
-Two Lean proof repairs are awaiting rebuilt-tool validation in PR #588.
+Lean proof insertion and syntax repairs are awaiting complete validation in PR #588.
 Pasting an indented proof changed its first line's indentation relative to the following lines.
 For example, an indented `have h := …` followed by `exact h` failed before Lean could check it.
 A `calc` proof could also consume the next calculation step and reject its `:=`.
+A blank line containing spaces could set the wrong block indentation. Pinned Lean accepts the exact rejected proof.
 The [regression fixture](tests/fixtures/lean-proof-locations.lean) checks calculation steps, nested proofs and following declarations.
 The proof API tests check pasted indentation and require read-only checks to preserve the original file.
 The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.

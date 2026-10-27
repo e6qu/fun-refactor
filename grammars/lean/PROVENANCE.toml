@@ -158,3 +158,8 @@ rule = "calc_step, _calc_step_start"
 change = "track each step's indentation; proof blocks and calculations must consume their own closing layout token before the surrounding step closes"
 accepts = ["calc a = a := by rfl", "calc\n  a = a := by rfl\n  _ = a := rfl"]
 why = "an inline proof could consume the next step's left-hand expression and reject its assignment; the scoped boundary also preserves following tactics and declarations"
+
+[[scanner]]
+subject = "blank lines cannot set a proof block's indentation"
+change = "skip lines containing only horizontal whitespace before measuring the next token's column"
+why = "a blank line with spaces opened a false layout level and rejected valid pasted proofs even when their relative indentation was preserved"
