@@ -1139,13 +1139,12 @@ module.exports = grammar({
       field('body', $.do),
     )),
 
-    // Precedence on the iterable > PREC.app so `do` reduces the expression
-    // rather than being consumed as an application argument.
-    _for_binding: $ => seq(
+    // Finish the iterator binding before `do` can become a function argument.
+    _for_binding: $ => prec(PREC.app + 1, seq(
       field('var', choice($._pattern, $.structure_instance)),
       'in',
-      field('iterable', prec(PREC.app + 1, $._expression)),
-    ),
+      field('iterable', $._expression),
+    )),
 
     // If in do-block: branches are do-sequences (can contain reassignment etc.)
     do_if: $ => prec.right(1, seq(

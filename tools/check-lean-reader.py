@@ -23,6 +23,8 @@ def check(binary, diagnostics):
         end = result.stdout.index('</sources>', start) + len('</sources>')
         tree = ET.fromstring(result.stdout[start:end])
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
+        if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
+            failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()

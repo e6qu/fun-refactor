@@ -299,7 +299,8 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
           "$RUNNER_TEMP/lean-layout"
           lean -j 1 tests/fixtures/lean-proof-locations.lean
-          cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel --test lean_adoption --test lean_grammar --test known_grammar_gaps -- --test-threads=1
+          cargo test --locked --test lean_grammar -- --test-threads=1
+          cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel --test lean_adoption --test known_grammar_gaps -- --test-threads=1
           cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |

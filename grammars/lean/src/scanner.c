@@ -166,6 +166,15 @@ static bool starts_with_pipe(TSLexer *lexer) {
   return lexer->lookahead == '|';
 }
 
+/* Match `identifier` in grammar.js when checking a keyword's boundary. */
+static bool identifier_continues(int32_t c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+         (c >= '0' && c <= '9') || c == '_' || c == '\'' || c == '?' || c == '!' ||
+         (c >= 0x03b1 && c <= 0x03c9) || (c >= 0x0391 && c <= 0x03a9) ||
+         c == 0x2115 || c == 0x2124 || c == 0x211a || c == 0x211d ||
+         c == 0x2102 || c == 0x2207;
+}
+
 /**
  * `else`, `catch` and `finally` continue the construct above them. Reading the word
  * costs an advance, so only the three letters that could open one pay it, and the
@@ -185,6 +194,7 @@ static bool starts_with_continuation(TSLexer *lexer) {
     lexer->advance(lexer, true);
   }
   word[n] = '\0';
+  if (identifier_continues(lexer->lookahead)) return false;
   return strcmp(word, "else") == 0 || strcmp(word, "catch") == 0 ||
          strcmp(word, "finally") == 0;
 }
@@ -223,9 +233,7 @@ static bool starts_with_binding(TSLexer *lexer) {
   }
   word[n] = '\0';
   int32_t c = lexer->lookahead;
-  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-      (c >= '0' && c <= '9') || c == '_' || c == '\'' ||
-      (c >= 0x80 && c != 0x27e8)) {
+  if (identifier_continues(c)) {
     return false;
   }
   return strcmp(word, "let") == 0 || strcmp(word, "have") == 0 ||

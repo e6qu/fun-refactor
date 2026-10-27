@@ -113,6 +113,18 @@ accepts = ["Id.run do pure 1", "id (by rfl)"]
 why = "Lean rejects `id by rfl` and corresponding bare if and match arguments; admitting them as repeatable function heads multiplied parser contexts and let proof steps escape their block"
 
 [[patch]]
+subject = "the do after a for iterator opens its body"
+rule = "_for_binding"
+change = "reduce the completed iterator binding above function application precedence"
+accepts = ["for left in [false, true] do IO.println left"]
+why = "treating the loop's do as an argument to its iterable rejected ordinary and nested loops, including the independent Boolean runtime check"
+
+[[scanner]]
+subject = "a keyword prefix is still an identifier"
+change = "use the grammar's complete identifier-continuation set when recognizing layout keywords"
+why = "elseValue, catchValue and finallyValue begin new expressions; they must not be mistaken for else, catch or finally"
+
+[[patch]]
 subject = "unparenthesized typed lambda binders"
 rule = "fun"
 change = "allow a type annotation after the lambda's binders"

@@ -140,3 +140,22 @@ def doBindings (n : Nat) : Id Nat := do
 def doPattern (n : Nat) : Id Nat := do
   let (left, right) := (n, n + 1)
   pure (left + right)
+
+def conjoinInputs (left right : Bool) : Bool := left && right
+
+def printTruthTable : IO Unit := do
+  for left in [false, true] do
+    for right in [false, true] do
+      IO.println (conjoinInputs left right)
+
+def elsePrefix (n elseValue : Int) : Int :=
+  let value := n
+  elseValue + value
+
+def catchPrefix (n catchValue : Int) : Int :=
+  let value := n
+  catchValue + value
+
+def finallyPrefix (n finallyValue : Int) : Int :=
+  let value := n
+  finallyValue + value

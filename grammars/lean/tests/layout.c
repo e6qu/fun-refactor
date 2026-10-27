@@ -85,6 +85,19 @@ int main(void) {
   Input done = input("");
   assert(scan(scanner, &done, LAYOUT_END));
 
+  const char *prefixes[] = {"elseValue", "catchValue", "finallyValue", "else_case", "catch2", "finally!", "else?"};
+  for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); i++) {
+    Input prefix_binding = input("let n := value");
+    assert(scan(scanner, &prefix_binding, BINDING_START));
+    char line[64];
+    snprintf(line, sizeof(line), "\n%s", prefixes[i]);
+    Input prefix_body = input(line);
+    assert(scan(scanner, &prefix_body, LAYOUT_END));
+  }
+
+  Input suffixed_name = input("let?");
+  assert(!scan(scanner, &suffixed_name, BINDING_START));
+
   Input inline_binding = input("let n := 1; n");
   assert(scan(scanner, &inline_binding, BINDING_START));
   Input separator = input("; n");
