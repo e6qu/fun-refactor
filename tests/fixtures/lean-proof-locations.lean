@@ -185,3 +185,18 @@ end KeywordNames
 
 example : KeywordNames.if = 1 := by rfl
 example : KeywordNames.by = 2 := by rfl
+
+theorem obtain_many (p q r s t : Prop) (h : p ∧ q ∧ r ∧ s ∧ t) : p := by
+  obtain ⟨hp, hq, hr, hs, ht⟩ := h
+  exact hp
+
+def takePresent (value : Option Nat) : Option Nat := do
+  let .some n ← some value | none
+  pure n
+
+theorem split_bool_after_locations (p q : Bool) (h : (p || q) = true) :
+    (p || q) = true := by
+  simp only [Bool.or_eq_true] at h ⊢
+  rcases h with h | h
+  · exact Or.inl h
+  · exact Or.inr h

@@ -897,7 +897,7 @@ module.exports = grammar({
     tactic_have: $ => prec.right(1, seq(
       $._binding_start,
       choice('have', 'obtain', 'suffices'),
-      optional(field('name', $._pattern)),
+      optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
@@ -1006,7 +1006,7 @@ module.exports = grammar({
     // Constructor pattern: `some x`, `none`, `Foo.bar x y`
     // An identifier alone is just an identifier, not a constructor_pattern
     constructor_pattern: $ => prec.left(PREC.app, seq(
-      field('constructor', $.identifier),
+      field('constructor', choice($._name, seq('.', $.identifier))),
       repeat1(field('arg', $._pattern)),
     )),
 
@@ -1103,6 +1103,7 @@ module.exports = grammar({
       optional($._type_spec),
       choice('<-', '←'),
       field('value', $._expression),
+      optional(seq('|', field('fallback', $._expression))),
       $._layout_end,
     ),
 

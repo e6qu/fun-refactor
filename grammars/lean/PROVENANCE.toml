@@ -125,6 +125,13 @@ change = "use the grammar's complete identifier-continuation set when recognizin
 why = "elseValue, catchValue and finallyValue begin new expressions; they must not be mistaken for else, catch or finally"
 
 [[patch]]
+subject = "proof tuples and refutable monadic bindings"
+rule = "tactic_have, constructor_pattern, let_bind"
+change = "obtain and have admit constructor tuples; monadic lets admit named or shorthand constructor patterns and an explicit failure branch"
+accepts = ["obtain ⟨left, right⟩ := proof", "let .some n ← some value | none"]
+why = "these valid forms occur in the shipped Lean proofs; missing tuple patterns or a monadic failure branch produced extra syntax errors"
+
+[[patch]]
 subject = "control keywords cannot become ordinary arguments"
 rule = "reserved, projection, qualified_name, quoted_name"
 change = "reserve if, then, else, match, with and by in ordinary code; qualified member names keep their name context, and quoted names admit explicitly escaped identifiers"
