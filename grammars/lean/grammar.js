@@ -504,7 +504,7 @@ module.exports = grammar({
 
     // A term supplies both its claimed type and proof; tactic `show T`
     // below only changes the current goal and has no term body.
-    show: $ => prec.right(seq(
+    show: $ => prec.right(1, seq(
       'show',
       field('type', $._expression),
       choice(
