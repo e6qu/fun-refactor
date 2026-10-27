@@ -25,6 +25,10 @@ def check(binary, diagnostics):
         print('Syntax errors:', [(node.attrib, ''.join(node.itertext())[:100]) for node in tree.iter('ERROR')], flush=True)
         if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
             failures.append(fixture + ': expected two nested for loops')
+        if fixture == 'lean-proof-locations.lean':
+            for kind, count in [('do_while', 2), ('do_unless', 1)]:
+                if len(list(tree.iter(kind))) != count:
+                    failures.append(fixture + ': expected ' + str(count) + ' ' + kind + ' statements')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()

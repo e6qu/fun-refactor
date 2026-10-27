@@ -148,6 +148,20 @@ def printTruthTable : IO Unit := do
     for right in [false, true] do
       IO.println (conjoinInputs left right)
 
+def printBracketedCounter : IO Unit := do
+  let mut i : Int := 0
+  while (i < 3) do
+    i := i + 1
+
+def printCounter : IO Unit := do
+  let mut i : Int := 0
+  while i < 3 do
+    i := i + 1
+
+def printUnlessThree (i : Int) : IO Unit := do
+  unless i = 3 do
+    IO.println i
+
 def elsePrefix (n elseValue : Int) : Int :=
   let value := n
   elseValue + value

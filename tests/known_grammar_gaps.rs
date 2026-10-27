@@ -652,20 +652,14 @@ fn lean_reads_the_forms_around_a_mutual_block() {
     }
 }
 
-/// A `while` whose condition is a comparison needs brackets around it. Lean applies a
-/// function by writing its argument beside it, and `3 do ...` is an application. Lean
-/// itself forbids that reading. The grammar cannot, so the writer brackets instead.
+/// The `do` after a comparison opens the loop body, with or without brackets.
 #[test]
-fn lean_reads_a_bracketed_while_condition() {
+fn lean_reads_while_comparisons_with_and_without_brackets() {
     let bracketed =
         "def g : IO Unit := do\n  let mut i : Int := 0\n  while (i < 3) do\n    i := i + 1\n";
     assert_eq!(error_nodes(Language::Lean, bracketed), 0, "{bracketed}");
     let bare = "def g : IO Unit := do\n  let mut i : Int := 0\n  while i < 3 do\n    i := i + 1\n";
-    assert!(
-        error_nodes(Language::Lean, bare) > 0,
-        "the bare form is the one the writer avoids; if it reads cleanly now, the \
-         brackets in `write/lean.rs` have stopped earning their place"
-    );
+    assert_eq!(error_nodes(Language::Lean, bare), 0, "{bare}");
 }
 
 /// A trailing `else` belongs to its own `if`, at whatever column it sits.

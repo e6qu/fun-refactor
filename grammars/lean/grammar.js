@@ -48,7 +48,7 @@ module.exports = grammar({
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
     $._binding_start,           // Track a binding value's indentation separately
-    $._for_body_start,          // The following `do` belongs to a for loop
+    $._do_body_start,           // The following `do` opens a statement body
   ],
 
   // Keyword extraction improves error detection and compile time
@@ -1144,7 +1144,7 @@ module.exports = grammar({
       'for',
       $._for_binding,
       repeat(seq(',', $._for_binding)),
-      $._for_body_start,
+      $._do_body_start,
       field('body', $.do),
     )),
 
@@ -1219,21 +1219,19 @@ module.exports = grammar({
       optional($._layout_end),
     )),
 
-    // While loop in do-block: `while cond do body`. The condition's `do`
-    // greediness when followed by a binary expression `x == y do` is a known
-    // limitation; mirrors lean4's `withForbidden "do"` need but tree-sitter
-    // can't enforce that without a full `_term_before_do` clone (state-cost
-    // prohibitive). Workaround: simple conditions parse fine.
-    do_while: $ => prec.right(1, seq(
+    // A body marker ends the condition before `do`, including comparisons.
+    do_while: $ => prec.right(PREC.app + 1, seq(
       'while',
       field('condition', $._expression),
+      $._do_body_start,
       field('body', $.do),
     )),
 
-    // `unless cond do body` — same caveat as `do_while`.
-    do_unless: $ => prec.right(1, seq(
+    // `unless cond do body` uses the same statement-body boundary.
+    do_unless: $ => prec.right(PREC.app + 1, seq(
       'unless',
       field('condition', $._expression),
+      $._do_body_start,
       field('body', $.do),
     )),
 

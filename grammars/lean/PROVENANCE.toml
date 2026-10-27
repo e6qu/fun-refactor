@@ -113,11 +113,11 @@ accepts = ["Id.run do pure 1", "id (by rfl)"]
 why = "Lean rejects `id by rfl` and corresponding bare if and match arguments; admitting them as repeatable function heads multiplied parser contexts and let proof steps escape their block"
 
 [[patch]]
-subject = "the do after a for iterator opens its body"
-rule = "for_in, _for_body_start"
-change = "mark the do keyword belonging to a for body before it can be consumed as a function argument"
-accepts = ["for left in [false, true] do IO.println left"]
-why = "treating the loop's do as an argument to its iterable rejected ordinary and nested loops, including the independent Boolean runtime check"
+subject = "the do after an iterable or condition opens its statement body"
+rule = "for_in, do_while, do_unless, _do_body_start"
+change = "mark the do keyword belonging to a statement body before it can be consumed as a function argument"
+accepts = ["for left in [false, true] do IO.println left", "while i < 3 do i := i + 1", "unless i = 3 do IO.println i"]
+why = "treating the body's do as an argument rejected valid for, while and unless statements; one marker preserves that boundary without duplicating all expression rules"
 
 [[scanner]]
 subject = "a keyword prefix is still an identifier"

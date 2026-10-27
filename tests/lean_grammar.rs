@@ -11,6 +11,8 @@ fn simplifier_locations_and_equality_transport_parse() {
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
     assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
     assert_eq!(tree.root().to_sexp().matches("(for_in ").count(), 2);
+    assert_eq!(tree.root().to_sexp().matches("(do_while ").count(), 2);
+    assert_eq!(tree.root().to_sexp().matches("(do_unless ").count(), 1);
 }
 
 #[test]
