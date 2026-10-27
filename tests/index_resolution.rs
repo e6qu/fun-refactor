@@ -101,6 +101,8 @@ fn measure_resolution() {
     } else {
         Vec::new()
     };
+    let lean_reader_review = (workload == "repository")
+        .then(|| lean_reference_corrections::reviewed_lean_facts(&index, &root));
     for symbol in &mut index.symbols {
         if let Ok(path) = symbol.file.strip_prefix(&root) {
             symbol.file = path.to_path_buf();
@@ -115,7 +117,8 @@ fn measure_resolution() {
     let report = json!({"workload": workload, "symbols": index.symbols.len(),
         "references": index.references.len(), "answer_bytes": answers.len(),
         "answer_sha256": hex::encode(Sha256::digest(&answers)), "build_seconds": build_seconds,
-        "removed_wildcard_references": removed_wildcard_references});
+        "removed_wildcard_references": removed_wildcard_references,
+        "lean_reader_review": lean_reader_review});
     std::fs::write(
         std::env::var("FR_RESOLUTION_OUTPUT").unwrap(),
         serde_json::to_vec_pretty(&report).unwrap(),

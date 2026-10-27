@@ -16,7 +16,7 @@
   },
   "acceptance": [
     "Keep the original complete-output comparison reproducible against source 06294a686ef7ebe29987787bd2ef29b441ac0147. Preserve its original baseline.",
-    "Current smaller workloads must match the original complete output. Repository runs keep exact symbol counts, account for the six corrected wildcard reads, and repeat their full answer digest exactly.",
+    "Current smaller workloads must match the original complete output. Repository runs must match the reviewed Lean fact digest, account for every declaration and reference count change, and repeat their full answer digest exactly.",
     "Compare entity counts with the original ordered linear algorithm on duplicates, missing IDs, mixed groups and public symbol mutations.",
     "Preserve ambiguity, overloads, repeated assignments, configuration and CSS scope behavior.",
     "Retain one-worker unoptimized indexing latency and isolated process RSS. Report the comparison's checker, source snapshot and limits; timing includes the language changes."
@@ -27,5 +27,6 @@
     "file": "kernels/FrKernels/Disclosure.lean",
     "fixture": "../index-consumers/ignored-wildcards.lean",
     "sha256": "af7c1fd041cec31a8896f52cda32cc57579c9ee6d98ace400c1bcdb9d2199568"
-  }
+  },
+  "reader_review": "../index-consumers/lean-reader-review.json"
 }

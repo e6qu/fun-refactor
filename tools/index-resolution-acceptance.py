@@ -15,12 +15,12 @@ import time
 import tomllib
 
 from evidence_basis import file_digest, native_source_bindings
-from lean_reference_corrections import check_snapshot, wildcard_sites
+from lean_reference_corrections import check_review, check_snapshot, wildcard_sites
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-resolution/task.json"
 BASELINE = TASK.parent / "baseline.json"
-COMPARISON = 'Fixed source workloads; Rust namespace, attribute and conditional-declaration fixes change repository answers. The corrected Lean reader also removes six false variable reads for ignored wildcard binders. Exact source sites account for those six changes. The smaller workloads retain exact original answers. Timing includes language changes; no repository-wide identical-answer or optimization-only claim.'
+COMPARISON = 'Fixed source workloads; Rust namespace, attribute and conditional-declaration fixes change repository answers. An exact before/after inventory accounts for the Lean reader changes, plus six previously removed false wildcard reads. The smaller workloads retain exact original answers. Timing includes language changes; no repository-wide identical-answer or optimization-only claim.'
 
 
 def digest(path):
@@ -46,7 +46,8 @@ def bindings():
               "tools/index-resolution-acceptance.py", "tools/evidence_basis.py", str(TASK.relative_to(ROOT))]]
     paths += [ROOT / 'tools/audit-historical-index-resolution.py']
     paths += [ROOT / name for name in ('tools/lean_reference_corrections.py',
-              'tests/common/lean_reference_corrections.rs', 'tests/agent-eval/index-consumers/ignored-wildcards.lean')]
+              'tests/common/lean_reference_corrections.rs', 'tests/agent-eval/index-consumers/ignored-wildcards.lean',
+              'tests/agent-eval/index-consumers/lean-reader-review.json')]
     return {str(p.relative_to(ROOT)): hashlib.sha256(manifest_basis(p.read_bytes())).hexdigest()
             if p.name == "Cargo.toml" else file_digest(p) for p in paths} | native_source_bindings(ROOT)
 
@@ -73,13 +74,14 @@ def verify(path):
     assert report["baseline_sha256"] == digest(BASELINE)
     sites = wildcard_sites(TASK)
     for before, after in zip(baseline["samples"], report["samples"]):
-        fields = ("workload", "symbols") if after['workload'] == 'repository' else (
+        fields = ("workload",) if after['workload'] == 'repository' else (
             "workload", "symbols", "references", "answer_bytes", "answer_sha256")
         if after['workload'] == 'repository':
             assert after['removed_wildcard_references'] == sites
-            assert before['references'] == after['references'] + len(sites)
+            check_review(TASK, before, after)
         else:
             assert after['removed_wildcard_references'] == []
+            assert after['lean_reader_review'] is None
         for field in fields:
             assert before[field] == after[field], (field, before, after)
     for workload in json.loads(TASK.read_text())["budgets"]["workloads"]:

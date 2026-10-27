@@ -14,7 +14,7 @@
     "measurement_timeout_seconds": 240
   },
   "acceptance": [
-    "Compare cold and repeated consumer queries with an independent linear membership oracle.",
+    "Ask the same 512 saved repository definitions on every current run and compare each answer with an independent linear membership oracle. Keep exact synthetic answers and account for repository changes with the retained Lean source-fact inventory.",
     "Invalidate derived lookups after target changes, name changes, replacement, reordering, insertion, removal and mutable iteration.",
     "Preserve overload groups, cross-language references, ambiguity, Unicode coordinates and source order.",
     "Measure repository and generated workloads before and after, retaining source identities, output sizes, latency and process RSS.",
@@ -26,5 +26,6 @@
     "file": "kernels/FrKernels/Disclosure.lean",
     "fixture": "ignored-wildcards.lean",
     "sha256": "af7c1fd041cec31a8896f52cda32cc57579c9ee6d98ace400c1bcdb9d2199568"
-  }
+  },
+  "reader_review": "lean-reader-review.json"
 }

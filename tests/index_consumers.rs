@@ -145,13 +145,43 @@ fn measure_consumer_queries() {
             .unwrap()
     };
     let build_seconds = start.elapsed().as_secs_f64();
-    let stride = index.symbols.len().div_ceil(512).max(1);
-    let ids = index
-        .symbols
-        .iter()
-        .step_by(stride)
-        .map(|s| s.id)
-        .collect::<Vec<_>>();
+    let root = PathBuf::from(std::env::var("FR_CONSUMER_ROOT").unwrap());
+    let ids = if workload == "repository" {
+        let selection: serde_json::Value = serde_json::from_str(include_str!(
+            "agent-eval/index-consumers/repository-queries.json"
+        ))
+        .unwrap();
+        let mut by_site = std::collections::BTreeMap::<String, Vec<SymbolId>>::new();
+        for symbol in &index.symbols {
+            by_site
+                .entry(lean_reference_corrections::source_identity(symbol, &root).to_string())
+                .or_default()
+                .push(symbol.id);
+        }
+        selection["queries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|site| {
+                let matches = by_site
+                    .get(&site.to_string())
+                    .expect("saved query definition missing");
+                assert_eq!(
+                    matches.len(),
+                    1,
+                    "saved query definition is ambiguous: {site}"
+                );
+                matches[0]
+            })
+            .collect::<Vec<_>>()
+    } else {
+        index
+            .symbols
+            .iter()
+            .step_by(index.symbols.len().div_ceil(512).max(1))
+            .map(|s| s.id)
+            .collect::<Vec<_>>()
+    };
     let oracle = ids
         .iter()
         .map(|id| {
@@ -186,11 +216,20 @@ fn measure_consumer_queries() {
     } else {
         Vec::new()
     };
+    let lean_reader_review = (workload == "repository")
+        .then(|| lean_reference_corrections::reviewed_lean_facts(&index, &root));
+    let query_selection_sha256 = (workload == "repository").then(|| {
+        use sha2::{Digest, Sha256};
+        hex::encode(Sha256::digest(include_bytes!(
+            "agent-eval/index-consumers/repository-queries.json"
+        )))
+    });
     let output = json!({"workload": workload, "symbols": index.symbols.len(),
         "references": index.references.len(), "queries": ids.len(),
         "build_seconds": build_seconds, "query_seconds": samples,
         "answer_bytes": serde_json::to_vec(&oracle).unwrap().len(), "oracle_agrees": true,
-        "removed_wildcard_references": removed_wildcard_references});
+        "removed_wildcard_references": removed_wildcard_references,
+        "lean_reader_review": lean_reader_review, "query_selection_sha256": query_selection_sha256});
     std::fs::write(
         std::env::var("FR_CONSUMER_OUTPUT").unwrap(),
         serde_json::to_vec_pretty(&output).unwrap(),
