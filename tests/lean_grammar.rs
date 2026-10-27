@@ -13,7 +13,7 @@ fn simplifier_locations_and_equality_transport_parse() {
     assert_eq!(tree.root().to_sexp().matches("(for_in ").count(), 2);
     assert_eq!(tree.root().to_sexp().matches("(do_while ").count(), 2);
     assert_eq!(tree.root().to_sexp().matches("(do_unless ").count(), 1);
-    assert_eq!(tree.root().to_sexp().matches("(let_bind ").count(), 1);
+    assert_eq!(tree.root().to_sexp().matches("(let_bind ").count(), 2);
     assert_eq!(tree.root().to_sexp().matches("(tactic_rcases ").count(), 1);
     assert_eq!(tree.root().to_sexp().matches("(rcases_tuple_pattern ").count(), 1);
 }
@@ -66,11 +66,12 @@ fn fields_and_subscripts_belong_to_the_function_argument() {
 }
 
 #[test]
-fn low_precedence_call_arguments_require_parentheses() {
+fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
     for source in [
         "def bad : Nat := Nat.succ if true then 1 else 0",
         "def bad : Nat := Nat.succ match true with | true => 1 | false => 0",
         "theorem bad : 0 = 0 := id by rfl",
+        "def bad (p q : Prop) : Prop := p ⊢ q",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");

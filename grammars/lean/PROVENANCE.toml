@@ -125,6 +125,13 @@ change = "use the grammar's complete identifier-continuation set when recognizin
 why = "elseValue, catchValue and finallyValue begin new expressions; they must not be mistaken for else, catch or finally"
 
 [[patch]]
+subject = "a tactic goal marker does not end its proof"
+rule = "binary_expression, tactic_apply, tactic_rewrite"
+change = "keep the goal marker in tactic locations and remove it from ordinary binary operators"
+accepts = ["simp only [Bool.or_eq_true] at h ⊢"]
+why = "treating the goal marker as an operator closed the by block before subsequent rcases steps; Lean rejects the same token as an ordinary operator without a custom notation declaration"
+
+[[patch]]
 subject = "proof tuples and refutable monadic bindings"
 rule = "tactic_have, constructor_pattern, let_bind"
 change = "obtain and have admit constructor tuples; monadic lets admit named or shorthand constructor patterns and an explicit failure branch"

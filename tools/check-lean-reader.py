@@ -26,7 +26,7 @@ def check(binary, diagnostics):
         if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
             failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-proof-locations.lean':
-            for kind, count in [('do_while', 2), ('do_unless', 1), ('let_bind', 1),
+            for kind, count in [('do_while', 2), ('do_unless', 1), ('let_bind', 2),
                                 ('tactic_rcases', 1), ('rcases_tuple_pattern', 1)]:
                 if len(list(tree.iter(kind))) != count:
                     failures.append(fixture + ': expected ' + str(count) + ' ' + kind + ' statements')
@@ -45,6 +45,7 @@ def check(binary, diagnostics):
         ('if', 'def bad : Nat := Nat.succ if true then 1 else 0'),
         ('match', 'def bad : Nat := Nat.succ match true with | true => 1 | false => 0'),
         ('by', 'theorem bad : 0 = 0 := id by rfl'),
+        ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')
