@@ -537,12 +537,13 @@ def lean_workflow(exercise, root):
         value = exercise.example(root, path, command)
         if "proof-check" in command:
             assert value["passed"] and model.read_bytes() == original
+            tactics = root / ".fr/proof-tactics"
+            tactics.write_text("exact (0 : Nat)\n")
+            failed, _ = exercise.run(root, ["spec", "proof-check", exercise.values["<LEAN_TARGET>"],
+                                          "--from", ".fr/proof-tactics", "--token-limit", "4096"])
+            assert not failed["passed"] and failed["diagnostics"] and model.read_bytes() == original
+            tactics.write_text("rfl\n")
     assert model.read_bytes() != original and source.read_bytes() == original_program
-    accepted = model.read_bytes()
-    (root / ".fr/proof-tactics").write_text("exact (0 : Nat)\n")
-    failed, _ = exercise.run(root, ["spec", "proof-check", exercise.values["<LEAN_TARGET>"],
-                                  "--from", ".fr/proof-tactics", "--token-limit", "4096"])
-    assert not failed["passed"] and failed["diagnostics"] and model.read_bytes() == accepted
 
 
 def guide_workflow(exercise, root):
