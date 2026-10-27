@@ -112,6 +112,22 @@ int main(void) {
 
   Input name = input("letter");
   assert(!scan(scanner, &name, BINDING_START));
+
+  tree_sitter_lean_external_scanner_deserialize(scanner, "", 0);
+  Input step = input("    a = a := by rfl");
+  assert(scan(scanner, &step, CALC_STEP_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 1);
+  Input calc_continuation = input("\n    + 1");
+  assert(!scan(scanner, &calc_continuation, LAYOUT_END));
+  Input next_step = input("\n    (-a) = -a := by rfl");
+  assert(scan(scanner, &next_step, LAYOUT_END));
+  assert(scanner->depth == 0);
+  assert(scan(scanner, &next_step, CALC_STEP_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 1);
+  Input following_tactic = input("\n  exact h");
+  assert(scan(scanner, &following_tactic, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input have = input("have h := by rfl");
   assert(scan(scanner, &have, BINDING_START));
   char state[1024];

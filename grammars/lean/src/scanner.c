@@ -39,6 +39,7 @@ enum TokenType {
   MATCH_BODY_START,
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
   BINDING_START,
+  CALC_STEP_START,
   DO_BODY_START,
 };
 
@@ -458,6 +459,19 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = BINDING_START;
       return true;
     }
+  }
+
+  // A calc step has no opening keyword. The grammar requests this token only
+  // before its left-hand expression. As with a let value, the next same-column
+  // expression starts another step. Infix continuations keep the same rules
+  // as binding values; a negative left-hand side needs parentheses in Lean.
+  if (valid_symbols[CALC_STEP_START]) {
+    Indent indent = measure_indent(lexer, true);
+    if (!indent.first) return false;
+    push(s, indent.column, true);
+    s->queued_indent = NO_QUEUED;
+    lexer->result_symbol = CALC_STEP_START;
+    return true;
   }
 
   return false;

@@ -151,3 +151,10 @@ rule = "fun"
 change = "allow a type annotation after the lambda's binders"
 accepts = ["fun n : Nat => n + 1", "fun n m : Nat => n + m", "fun f : Nat → Nat => f 1"]
 why = "Lean accepts the annotation without binder parentheses; the reader previously reported the colon as a syntax error"
+
+[[patch]]
+subject = "calculation proofs end before the next calculation step"
+rule = "calc_step, _calc_step_start"
+change = "track each step's indentation and require its scope to close before its sibling"
+accepts = ["calc a = a := by rfl", "calc\n  a = a := by rfl\n  _ = a := rfl"]
+why = "an inline proof could consume the next step's left-hand expression and reject its assignment; the scoped boundary also preserves following tactics and declarations"

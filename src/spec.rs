@@ -1566,7 +1566,7 @@ pub fn proof_task(
         author: "agent",
         format: "utf8-lean-tactics",
         insertion_point: "inside-existing-by-block",
-        normalization: "trim-outer-whitespace-indent-two-spaces",
+        normalization: "trim-outer-newlines-indent-two-spaces",
         forbidden: vec![
             "leading-by",
             "sorry",
@@ -1702,8 +1702,10 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     let path = root.join(&spec);
     let original = crate::vfs::read_to_string(&path)?;
     let proof = crate::vfs::read_to_string(proof_path)?;
-    let proof = proof.trim();
-    if proof.is_empty() || proof.len() > 65_536 {
+    // Removing the first line's spaces changes its indentation relative to every
+    // following line. Keep that relationship when pasting tactics into `by`.
+    let proof = proof.trim_matches(['\r', '\n']);
+    if proof.trim().is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
     if proof.split_whitespace().next() == Some("by") {

@@ -224,3 +224,26 @@ theorem showThenTactic (n : Int) (h : 1 ≤ n) : 1 ≤ n := by
   exact h
 
 theorem afterShow : True := by trivial
+
+theorem calcInline (a : Int) : a = a := by
+  let q := a
+  have : q = a := by rfl
+  calc
+    a = q := by rfl
+    _ = a := this
+
+theorem calcNested (a : Int) : a = a := by
+  have h : a = a := by
+    calc
+      a = a := by
+        rfl
+      -- The second step starts after the first proof has ended.
+      _ = a := rfl
+  exact h
+
+theorem calcNegative (a : Int) : -a = -a := by
+  calc
+    (-a) = -a := by rfl
+    (-a) = -a := by rfl
+
+theorem afterCalc : True := by trivial

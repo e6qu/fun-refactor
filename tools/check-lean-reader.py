@@ -61,6 +61,26 @@ def check(binary, diagnostics):
                     failures.append(text + ': proof block escaped the show term')
             if shown != {'showComparison', 'showFrom'}:
                 failures.append(fixture + ': missing show proof declarations')
+            calculated = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+                    continue
+                calculated.add(text)
+                if text == 'afterCalc':
+                    continue
+                calc = next(definition.iter('tactic_calc'), None)
+                if calc is None or len(calc.findall('calc_step')) != 2:
+                    failures.append(text + ': expected two separate calculation steps')
+                if text == 'calcNested':
+                    body = definition.find('by')
+                    if body is None or [child.tag for child in body] != ['tactic_have', 'tactic_apply']:
+                        failures.append(text + ': following exact tactic escaped its proof')
+            if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+                failures.append(fixture + ': missing calculation proof declarations')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -78,6 +98,7 @@ def check(binary, diagnostics):
         ('by', 'theorem bad : 0 = 0 := id by rfl'),
         ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
         ('show', 'theorem bad (p : Prop) : p := show p'),
+        ('calc', 'theorem bad (a : Int) : a = a := by\n  calc\n    a = a :='),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

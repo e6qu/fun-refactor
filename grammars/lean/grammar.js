@@ -48,6 +48,7 @@ module.exports = grammar({
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
     $._binding_start,           // Track a binding value's indentation separately
+    $._calc_step_start,         // Close each calculation step before its sibling
     $._do_body_start,           // The following `do` opens a statement body
   ],
 
@@ -937,9 +938,11 @@ module.exports = grammar({
     )),
 
     calc_step: $ => prec.right(seq(
+      $._calc_step_start,
       $._expression,
       ':=',
       $._expression,
+      $._layout_end,
     )),
 
     // Let binding: modeled after Lean's letDecl.
