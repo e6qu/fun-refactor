@@ -247,3 +247,15 @@ theorem calcNegative (a : Int) : -a = -a := by
     (-a) = -a := by rfl
 
 theorem afterCalc : True := by trivial
+
+theorem typedProof (n : Int) (h : 0 ≤ n) : 0 ≤ n := by
+  exact (by exact h : 0 ≤ n)
+
+theorem typedCaseLabel (flag : Bool) : flag = flag := by
+  exact (by cases h : flag <;> rfl : flag = flag)
+
+theorem typedByCases (p : Prop) [Decidable p] (h : p) : p := by
+  exact (by by_cases hp : p <;> exact h : p)
+
+theorem typedCalc (n : Int) : n = n := by
+  exact (by calc n = n := by rfl : n = n)

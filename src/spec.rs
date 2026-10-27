@@ -1744,7 +1744,16 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     updated.push_str(&original[content_end..]);
     let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
     if parsed.has_errors() {
-        bail!("proof replacement does not parse as Lean; no files changed.");
+        let span = parsed
+            .error_spans()
+            .into_iter()
+            .next()
+            .context("fr parser reported no location for the rejected proof")?;
+        let position = crate::span::LineIndex::new(&updated).line_col(span.start, &updated);
+        bail!(
+            "fr could not parse candidate proof at {}:{position}; no files changed.",
+            spec.display()
+        );
     }
     let task = proof_task(root, target, 16_384, true)?;
     let proof_digest = crate::project::object_merkle(&serde_json::json!(proof))?;

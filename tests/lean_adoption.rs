@@ -92,6 +92,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     for tactics in [
         "exact (show keepModel x = x by rfl)\n",
         "exact (show keepModel x = x from rfl)\n",
+        "exact (by rfl : keepModel x = x)\n",
         "  have h : keepModel x = x := by rfl\n  exact h\n",
         "\n  \n    have h : keepModel x = x := by\n      rfl\n    exact h\n  \n\n",
         "let q := x\nhave : q = x := by rfl\ncalc\n  keepModel x = q := by rfl\n  _ = x := this\n",
@@ -107,6 +108,23 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         );
         assert_eq!(std::fs::read(&model).unwrap(), before_show);
     }
+    let proof = workspace.path().join("proof.lean");
+    std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
+    let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+        .unwrap_err()
+        .to_string();
+    let proof_line = std::str::from_utf8(&before_show)
+        .unwrap()
+        .lines()
+        .position(|line| line.contains("fr:proof-begin"))
+        .unwrap()
+        + 2;
+    assert!(
+        syntax_error.contains(&format!("specs/FrSpecs/SrcLibRsKeep.lean:{proof_line}:")),
+        "{syntax_error}"
+    );
+    assert!(syntax_error.ends_with("; no files changed."));
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     std::fs::write(&dependency, policy.replace(":= value", ":= !value")).unwrap();
     let second_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();

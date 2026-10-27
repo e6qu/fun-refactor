@@ -62,6 +62,23 @@ int main(void) {
   assert(scan(scanner, &blank_end, LAYOUT_END));
   assert(scanner->depth == 0);
 
+  Input proof_body = input("  rfl");
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  Input annotation = input(": True");
+  assert(scan(scanner, &annotation, LAYOUT_END));
+  assert(scanner->depth == 0 && annotation.offset == 0);
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  Input assignment = input(":= value");
+  assert(!scan(scanner, &assignment, LAYOUT_END));
+  assert(scanner->depth == 1 && assignment.offset == 0);
+  bool label_tokens[DO_BODY_START + 1] = {false};
+  label_tokens[LAYOUT_END] = label_tokens[TACTIC_LABEL_COLON] = true;
+  Input label = input(": proposition");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &label.lexer, label_tokens));
+  assert(label.lexer.result_symbol == TACTIC_LABEL_COLON && scanner->depth == 1);
+  assert(label.end == 1);
+  assert(scan(scanner, &blank_end, LAYOUT_END));
+
   Input outer = input("  have bound := f");
   assert(scan(scanner, &outer, LAYOUT_START));
   outer.offset = 2; outer.lexer.lookahead = 'h';

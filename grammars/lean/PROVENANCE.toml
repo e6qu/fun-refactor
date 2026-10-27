@@ -163,3 +163,8 @@ why = "an inline proof could consume the next step's left-hand expression and re
 subject = "blank lines cannot set a proof block's indentation"
 change = "skip lines containing only horizontal whitespace before measuring the next token's column"
 why = "a blank line with spaces opened a false layout level and rejected valid pasted proofs even when their relative indentation was preserved"
+
+[[scanner]]
+subject = "a proof can end at its parenthesized type annotation"
+change = "close layout before an ascription colon; case labels request their own colon token and keep it inside the tactic"
+why = "requiring a proof block's closing token rejected `(by omega : 0 ≤ size)` because its type annotation is not an indentation change or closing parenthesis"

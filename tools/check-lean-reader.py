@@ -81,6 +81,27 @@ def check(binary, diagnostics):
                         failures.append(text + ': following exact tactic escaped its proof')
             if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
                 failures.append(fixture + ': missing calculation proof declarations')
+            typed = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'typedProof', 'typedCaseLabel', 'typedByCases', 'typedCalc'}:
+                    continue
+                typed.add(text)
+                term = next(definition.iter('parenthesized'), None)
+                proof = term.find('by') if term is not None else None
+                if proof is None or term.find("*[@field='type']") is None:
+                    failures.append(text + ': missing the typed proof or its annotation')
+                if text == 'typedCaseLabel' and proof is not None:
+                    if proof.find("tactic_cases/identifier[@field='equation']") is None:
+                        failures.append(text + ': case label escaped its tactic')
+                if text == 'typedByCases' and proof is not None:
+                    if proof.find("tactic_by_cases/identifier[@field='name']") is None:
+                        failures.append(text + ': proposition label escaped its tactic')
+            if typed != {'typedProof', 'typedCaseLabel', 'typedByCases', 'typedCalc'}:
+                failures.append(fixture + ': missing typed proof declarations')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -99,6 +120,7 @@ def check(binary, diagnostics):
         ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
         ('show', 'theorem bad (p : Prop) : p := show p'),
         ('calc', 'theorem bad (a : Int) : a = a := by\n  calc\n    a = a :='),
+        ('proof-type', 'theorem bad : True := by exact (by trivial : )'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

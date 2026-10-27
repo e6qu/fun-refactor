@@ -40,6 +40,7 @@ enum TokenType {
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
   BINDING_START,
   CALC_STEP_START,
+  TACTIC_LABEL_COLON,
   DO_BODY_START,
 };
 
@@ -389,6 +390,13 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 3. Skip horizontal whitespace before inspecting the character. */
   skip_spaces(lexer);
 
+  if (valid_symbols[TACTIC_LABEL_COLON] && lexer->lookahead == ':') {
+    lexer->advance(lexer, false);
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_LABEL_COLON;
+    return true;
+  }
+
   /* 4. Newline — measure indent of next line and start processing. */
   if (is_nl(lexer->lookahead) && s->depth > 0) {
     lexer->mark_end(lexer);
@@ -433,6 +441,16 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
+    if (c == ':') {
+      lexer->mark_end(lexer);
+      lexer->advance(lexer, true);
+      if (lexer->lookahead != '=') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      return false;
+    }
     if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9 ||
         (c == ';' && s->bindings[s->depth - 1])) {
       pop(s);

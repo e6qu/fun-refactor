@@ -49,6 +49,7 @@ module.exports = grammar({
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
     $._binding_start,           // Track a binding value's indentation separately
     $._calc_step_start,         // Close each calculation step before its sibling
+    $._tactic_label_colon,      // A case label's colon belongs to the tactic
     $._do_body_start,           // The following `do` opens a statement body
   ],
 
@@ -811,7 +812,7 @@ module.exports = grammar({
     // `by_cases h : proposition` and `by_cases proposition`.
     tactic_by_cases: $ => prec.right(2, seq(
       'by_cases',
-      optional(seq(field('name', $.identifier), ':')),
+      optional(seq(field('name', $.identifier), $._tactic_label_colon)),
       field('condition', $._expression),
     )),
 
@@ -819,7 +820,7 @@ module.exports = grammar({
     // falling through the generic identifier-and-arguments tactic rule.
     tactic_cases: $ => prec.right(3, seq(
       field('tactic', choice('cases', 'induction')),
-      optional(seq(field('equation', $.identifier), ':')),
+      optional(seq(field('equation', $.identifier), $._tactic_label_colon)),
       field('subject', $._application_head),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(

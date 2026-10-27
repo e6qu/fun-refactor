@@ -219,6 +219,56 @@ fn calculation_steps_and_following_tactics_keep_their_boundaries() {
 }
 
 #[test]
+fn typed_proofs_keep_their_annotations_and_case_labels() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if !matches!(
+            name,
+            "typedProof" | "typedCaseLabel" | "typedByCases" | "typedCalc"
+        ) {
+            continue;
+        }
+        checked += 1;
+        let body = definition.child_by_field_name("body").unwrap();
+        assert_eq!(body.kind(), "by");
+        let exact = body.named_child(0).unwrap();
+        let argument = exact.child_by_field_name("arg").unwrap();
+        assert_eq!(argument.kind(), "parenthesized");
+        assert!(argument.child_by_field_name("type").is_some());
+        let proof = argument.named_child(0).unwrap();
+        assert_eq!(proof.kind(), "by");
+        let tactic = proof.named_child(0).unwrap();
+        match name {
+            "typedCaseLabel" => {
+                assert_eq!(tactic.kind(), "tactic_cases");
+                assert_eq!(
+                    &source[tactic.child_by_field_name("equation").unwrap().byte_range()],
+                    "h"
+                );
+            }
+            "typedByCases" => {
+                assert_eq!(tactic.kind(), "tactic_by_cases");
+                assert_eq!(
+                    &source[tactic.child_by_field_name("name").unwrap().byte_range()],
+                    "hp"
+                );
+            }
+            "typedCalc" => assert_eq!(tactic.kind(), "tactic_calc"),
+            _ => assert_eq!(tactic.kind(), "tactic_apply"),
+        }
+    }
+    assert_eq!(checked, 4);
+}
+
+#[test]
 fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
     for source in [
         "def bad : Nat := Nat.succ if true then 1 else 0",
@@ -227,6 +277,7 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "def bad (p q : Prop) : Prop := p ⊢ q",
         "theorem bad (p : Prop) : p := show p",
         "theorem bad (a : Int) : a = a := by\n  calc\n    a = a :=\n",
+        "theorem bad : True := by exact (by trivial : )",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");
