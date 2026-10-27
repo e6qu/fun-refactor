@@ -7,11 +7,20 @@ import uuid
 from .selected_plan import require
 
 
-def configuration(profile, setup, project):
+def configuration(profile, setup, project, *, read_only_directories):
     selection = profile['model']
     rules = [{'action': '*', 'resource': '*', 'effect': 'deny'}] + [
         {'action': action, 'resource': '*', 'effect': 'allow'}
         for action in ('read', 'glob', 'grep', 'edit', 'write', 'shell', 'skill')]
+    for directory in read_only_directories:
+        directory = Path(directory)
+        require(directory.is_absolute() and directory.is_dir() and directory == directory.resolve() and
+                not any(character in str(directory) for character in '*?'),
+                'reference directories must be existing canonical absolute paths without wildcards')
+        resource = str(directory) + '/*'
+        rules += [{'action': 'external_directory', 'resource': resource, 'effect': 'allow'},
+                  {'action': 'read', 'resource': resource, 'effect': 'allow'},
+                  {'action': 'edit', 'resource': resource, 'effect': 'deny'}]
     model = {'providerID': selection['providerID'], 'model': selection['id'], 'variant': selection['variant']}
     return {'model': model, 'default_agent': 'build',
         'agents': {'build': {'model': model, 'steps': 32, 'permissions': rules}},

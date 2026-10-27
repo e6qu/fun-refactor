@@ -58,7 +58,8 @@ def codex(binary, project, env, profile, endpoint, setup, output):
 
 def opencode(binary, project, env, profile, endpoint, setup, output, version):
     config = scripted_configuration(profile, endpoint)
-    config.update(configuration(profile, setup, project))
+    config.update(configuration(profile, setup, project,
+                                read_only_directories=[Path('/home/control/lean-library')]))
     env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
     with OpenCode2Server(binary, project, env, output / 'api', version=version,
                          startup_seconds=10, call_seconds=10, reply_bytes=4 * 1024**2) as server:
@@ -103,6 +104,10 @@ def run(profile_name, setup):
     subprocess.run(['git', 'init', '-q', '-b', 'main'], cwd=project, check=True, capture_output=True, timeout=5)
     state = Path('/home/control')
     require(state.is_dir(), 'fresh private client home mount is required')
+    library = state / 'lean-library'
+    library.mkdir()
+    reference = library / 'Library.lean'
+    reference.write_text('-- M3 standard library access fixture\n')
     env = packages.environment(state)
     env.update(GOMAXPROCS='1', BUN_JSC_useJIT='false', PYTHONDONTWRITEBYTECODE='1')
     if setup == 'fr':
@@ -111,6 +116,9 @@ def run(profile_name, setup):
     command = ('cat .agents/skills/fr/SKILL.md && fr --json project find normalize_total --in app.py --source --bytes 4096'
                if setup == 'fr' else 'python3 -c \'from pathlib import Path; print("app.py"); print(Path("app.py").read_text())\'')
     expected = ['app.py', 'normalize_total', 'return value + 2'] + (['Work with fr'] if setup == 'fr' else [])
+    if profile['client'] == 'opencode2':
+        command += ' && cd /home/control/lean-library && cat Library.lean'
+        expected += ['M3 standard library access fixture']
     summary = {'profile': profile_name, 'setup': setup, 'passed': False, 'live_model_calls': 0,
                'scope': 'Scripted replies to real native clients, not live outcomes or a cost comparison.'}
     try:
@@ -123,6 +131,8 @@ def run(profile_name, setup):
                 result = opencode(executable, project, env, profile, endpoint, setup, output,
                                   clients['opencode2']['version'])
             require(len(requests) == 2 and not errors, 'scripted request count or provider validation failed')
+            require(reference.read_text() == '-- M3 standard library access fixture\n',
+                    'native control changed the reference library')
         summary.update(passed=True, scripted_requests=len(requests), warmup_requests=len(warmups), native=result)
         return summary
     except Exception as error:

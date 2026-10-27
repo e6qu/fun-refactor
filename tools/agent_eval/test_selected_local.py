@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+from fnmatch import fnmatchcase
 import shlex
 import subprocess
 from pathlib import Path
@@ -17,6 +18,30 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_reference_access_is_explicit_narrow_and_shared_by_both_setups(self):
+        profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'high'}}
+        with tempfile.TemporaryDirectory() as temporary:
+            library = Path(temporary).resolve() / 'Lean sources'
+            library.mkdir()
+            for setup in ('files', 'fr'):
+                with self.subTest(setup=setup):
+                    config = local.configuration(profile, setup, Path('/project'), read_only_directories=[library])
+                    for rules in (config['permissions'], config['agents']['build']['permissions']):
+                        for action, resource, expected in (
+                            ('external_directory', str(library) + '/*', 'allow'),
+                            ('read', str(library / 'Init/Data/Int/DivMod.lean'), 'allow'),
+                            ('edit', str(library / 'Init/Data/Int/DivMod.lean'), 'deny'),
+                            ('external_directory', str(library.parent / 'accounts') + '/*', 'deny'),
+                            ('subagent', '*', 'deny'),
+                            ('webfetch', 'https://example.com', 'deny'),
+                        ):
+                            matches = [rule['effect'] for rule in rules if
+                                       fnmatchcase(action, rule['action']) and fnmatchcase(resource, rule['resource'])]
+                            self.assertEqual(matches[-1], expected, (action, resource))
+            for directory in (Path('relative'), library / 'missing', library / '..'):
+                with self.subTest(directory=directory), self.assertRaisesRegex(ValueError, 'canonical absolute paths'):
+                    local.configuration(profile, 'files', Path('/project'), read_only_directories=[directory])
+
     def test_expired_attempt_keeps_its_failure_and_partial_usage_without_an_export(self):
         events = [{'type': 'step_finish', 'part': {'tokens': {'input': 3}, 'cost': 0}}]
         report = {'status': 'failed', 'usage': local.usage('opencode2', events),
@@ -88,7 +113,7 @@ class SelectedLocalTests(unittest.TestCase):
                 self.assertTrue(argv[argv.index('--session') + 1].startswith('ses_'))
                 self.assertEqual(argv[argv.index('--model') + 1],
                     profile['model']['providerID'] + '/' + profile['model']['id'] + '#high')
-                config = local.configuration(profile, 'files', Path('/project'))
+                config = local.configuration(profile, 'files', Path('/project'), read_only_directories=[])
                 self.assertEqual(config['agents']['build']['model'], config['model'])
                 self.assertEqual(config['skills'], [])
                 self.assertEqual(config['permissions'][0], {'action': '*', 'resource': '*', 'effect': 'deny'})

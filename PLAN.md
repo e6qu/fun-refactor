@@ -60,10 +60,15 @@ Each agent delivered accepted access and range proofs with fr in that comparison
 The [second complete comparison](tests/agent-eval/proof-writing/second-results/README.md) independently accepted 25 of 36 attempts.
 Eleven attempts reached the unchanged deadline. GLM timed out on both page-count and both fr range attempts.
 Kimi timed out on all page-count attempts. Luna delivered an independently accepted fr page-count proof.
-Review found two fr defects: pasted indentation changed proof structure, and a calculation could consume its following step.
-Their repairs need a rebuilt tool and passing regression checks before another complete comparison.
+Review found fr rejecting valid proof syntax and changing pasted indentation.
+The rebuilt tool passed all 29 proof-qualification jobs, including the new syntax regressions.
 The guide now starts with goal discovery and a draft check. Both setups receive the exact installed library path.
-Keep all 86 outcomes, including both interrupted runs. M3 remains open until every completion check and current CI pass.
+The [next packet](tests/agent-eval/proof-writing/library-access-interrupted-results/README.md) stopped after 15 attempts.
+OpenCode2 denied a command entering that library because its permissions omitted the directory.
+Those 15 outcomes and 12 submitted patches remain unchanged; the other 21 slots never started.
+Next: qualify the explicit library permission with real native-client commands, then freeze a new complete comparison.
+GLM still needs an accepted page-count and range proof with a contributing fr step; Kimi needs a page-count proof.
+Keep all 101 outcomes. M3 remains open until every completion check and current CI pass.
 
 ### M1. Run the selected agents on three complete tasks
 

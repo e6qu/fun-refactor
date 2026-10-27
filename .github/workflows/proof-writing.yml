@@ -207,12 +207,16 @@ jobs:
           python3 -B tools/agent_eval/test_selected_public.py
           python3 -B tools/agent_eval/test_selected_grading.py
           PYTHONPATH=tools python3 -B -m unittest agent_eval.test_darwin_sampling
-      - name: Preserve every outcome from both independently checked comparisons
+      - name: Preserve every complete and interrupted comparison
         run: |
-          sha256sum --check tests/agent-eval/proof-writing/first-results.sha256 tests/agent-eval/proof-writing/second-results.sha256
+          sha256sum --check tests/agent-eval/proof-writing/first-results.sha256 tests/agent-eval/proof-writing/second-results.sha256 \
+            tests/agent-eval/proof-writing/interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/proof-guide-interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/library-access-interrupted-results.sha256
           python3 -B - <<'PY'
           from pathlib import Path
-          for name in ('first-results', 'second-results'):
+          for name in ('first-results', 'second-results', 'interrupted-results',
+                       'proof-guide-interrupted-results', 'library-access-interrupted-results'):
               directory = Path('tests/agent-eval/proof-writing') / name
               manifest = directory.with_suffix('.sha256')
               expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}

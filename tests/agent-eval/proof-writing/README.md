@@ -10,12 +10,18 @@ its ordinary-tool page proofs passed. Each selected agent passed the access and 
 The [second complete comparison](second-results/README.md) independently accepted 25 of 36 attempts and retains all 26 submitted patches.
 Eleven attempts reached the unchanged deadline. GLM still timed out on both page-count and both fr range attempts.
 Kimi timed out on all page-count attempts. Luna's first fr page-count proof passed independent checking.
-Review also found fr rejecting valid calculation steps and changing pasted proof indentation. Both defects need rebuilt-tool validation.
+Review also found fr rejecting valid proof syntax and changing pasted indentation.
+The rebuilt tool passed all 29 qualification jobs, including syntax regressions.
 M3 remains open; these results cannot meet every agent/task completion condition.
 
 The revised guide starts with goal discovery and a draft check, before library research.
 Programs, claims, models and limits stay the same. Each attempt gives fr a separate new `.fr/cache`.
-Keep all 86 outcomes and grade every submission independently before preparing another complete comparison.
+The [next packet](library-access-interrupted-results/README.md) retains 15 more outcomes and 12 submitted patches.
+It stopped when OpenCode2 denied a command entering the Lean library named in the instructions.
+The other 21 slots never started. These 12 patches have no independent acceptance result.
+The repaired configuration explicitly allows that exact external directory in both setups and denies native edits there.
+The scripted native checks must enter a reference directory and read its file before another complete comparison.
+Keep all 101 outcomes; a setup repair does not erase an earlier failed attempt.
 
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior

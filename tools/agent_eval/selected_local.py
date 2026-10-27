@@ -483,7 +483,8 @@ def attempt(plan_path, attempt_id):
         require((shutil.which('fr', path=env['PATH']) is not None) == (row['setup'] == 'fr'), 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
-            config = configuration(profile, row['setup'], project)
+            references = [checkers['lean']['source_root']] if milestone == 'M3' else []
+            config = configuration(profile, row['setup'], project, read_only_directories=references)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
         prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
