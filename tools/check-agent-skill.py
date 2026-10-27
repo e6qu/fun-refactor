@@ -95,7 +95,7 @@ class Exercise:
         value, size = self.run(root, command[1:], success)
         self.examples += 1
         self.executed.append((path, tuple(command)))
-        if path.name in ("SKILL.md", "explore.md", "batch.md") and "proof-task" not in command:
+        if path.name in ("SKILL.md", "explore.md", "batch.md") and "spec" not in command:
             self.exploration_bytes += size
         return value
 
@@ -137,7 +137,7 @@ def source_workflow(exercise, root):
 
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
-            if "proof-task" in command:
+            if "spec" in command:
                 continue
             value = exercise.example(root, path, command)
             if value.get("query") == "explore" and value.get("mode") == "names":
@@ -552,10 +552,13 @@ def lean_workflow(exercise, root):
     (root / ".fr/proof-tactics").write_text("rfl\n")
     original, original_program = model.read_bytes(), source.read_bytes()
     proof_examples = [(SKILL / "SKILL.md", command) for command in commands(SKILL / "SKILL.md")
-                      if "proof-task" in command]
+                      if "spec" in command]
     proof_examples += [(path, command) for command in commands(path)]
     for example_path, command in proof_examples:
         value = exercise.example(root, example_path, command)
+        if "goals" in command:
+            goal, = value["catalog"]
+            assert goal["spec"] + "::" + goal["name"] == exercise.values["<LEAN_TARGET>"]
         if "<LIBRARY_QUERY>" in command:
             assert value["rows"] and value["page"]["returned"] <= 12
             assert value["source_budget"]["returned_bytes"] <= 1536

@@ -1,15 +1,18 @@
 ---
 name: fr
-description: Use fr to refactor code, check targeted edits, or write and check Lean proofs for supported code.
+description: Find code, refactor, check edits, and write Lean proofs.
 ---
 # Work with fr
 
-Existing Lean theorem (`FILE::THEOREM`): start here with its target.
+Lean: a goal is a claim; tactics are proof steps. Discover the target:
 ```sh
-fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
+fr --json spec goals specs --limit 8 --token-limit 4096
 ```
-[Proofs](references/lean.md): write, check and save your tactics.
+Use `spec::name` as `<LEAN_TARGET>`. Write `.fr/proof-tactics` without `by`:
+```sh
+fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
+```
+Read `passed` and diagnostics. [Proofs](references/lean.md) covers repairs and saving.
 
-Source edit: [Author](references/author.md); [Workflow](references/workflow.md) needs a saved plan.
-Copy handles, IDs and bases unchanged. Read omissions.
-[Explore](references/explore.md) code; [First change](references/first-change.md) gives an example.
+Code edits: [Author](references/author.md); [Explore](references/explore.md).
+Copy IDs and bases; read omissions.

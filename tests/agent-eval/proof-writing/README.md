@@ -7,11 +7,15 @@ Both packets retain every outcome and submitted patch.
 The [first complete comparison](first-results/README.md) independently accepted 26 of 36 attempts.
 Eight page-count attempts timed out. Luna's two fr page-count attempts submitted an empty or rejected proof;
 its ordinary-tool page proofs passed. Each selected agent passed the access and range tasks with fr.
-M3 still needs an accepted fr page-count proof from each agent.
+The [second complete comparison](local-results/README.md) retains all 36 attempts and 26 submitted patches; independent checking is pending.
+Eleven attempts reached the unchanged deadline. GLM still timed out on both page-count and both fr range attempts.
+Kimi timed out on all page-count attempts. Luna's first fr page-count proof passed its local checks.
+Review also found fr rejecting valid calculation steps and changing pasted proof indentation. Both defects need rebuilt-tool validation.
+M3 remains open; these results cannot meet every agent/task completion condition.
 
-The next complete comparison uses the repaired inline-proof reader, direct proof entry and
-an example of searching the installed library with fr. Programs, claims, models and limits stay the same.
-Each attempt gives fr a separate new `.fr/cache`. Keep all fifty earlier outcomes and grade every new submission.
+The revised guide starts with goal discovery and a draft check, before library research.
+Programs, claims, models and limits stay the same. Each attempt gives fr a separate new `.fr/cache`.
+Keep all 86 outcomes and grade every submission independently before preparing another complete comparison.
 
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior
@@ -116,8 +120,8 @@ checking commands and a 150-second complete-attempt deadline, with time reserved
 The model can repair rejected tactics within that attempt. A failed slot is never retried.
 
 The standard library is Lean's shipped collection of definitions and proofs. Both setups may inspect it.
-`lean --print-prefix` prints the installation folder; the library sources are under its `src/lean` subfolder.
-The instructions explain this lookup without supplying proof steps for the requested claim.
+The controller checks the selected binary's `lean --print-prefix` against the declared installation.
+Both setups receive its exact `src/lean` folder and integer-source subfolder, without proof steps for the requested claim.
 Both setups also receive the existing 1,048,576-byte limit for the combined CLI transcript,
 including command output. The instructions show how to limit printed search matches.
 An unrestricted search through the library exhausted that limit in the interrupted run;

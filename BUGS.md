@@ -5,10 +5,13 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Open correctness defects
 
-The inline Lean proof repair in PR #587 is awaiting rebuilt-tool validation.
-Fr rejected a valid `show … by …` fragment before Lean could check it.
-The reader repair and hosted syntax checks are complete; the full proof controls and agent comparison still need to pass.
-The [regression fixture](tests/fixtures/lean-proof-locations.lean) includes both inline forms and the separate `show` proof instruction.
+Two Lean proof repairs are awaiting rebuilt-tool validation in PR #588.
+Pasting an indented proof changed its first line's indentation relative to the following lines.
+For example, an indented `have h := …` followed by `exact h` failed before Lean could check it.
+A `calc` proof could also consume the next calculation step and reject its `:=`.
+The [regression fixture](tests/fixtures/lean-proof-locations.lean) checks calculation steps, nested proofs and following declarations.
+The proof API tests check pasted indentation and require read-only checks to preserve the original file.
+The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.

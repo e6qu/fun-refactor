@@ -15,8 +15,18 @@ fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 
 Read the fixed claim, model and empty templates. Write a draft early, without a leading
 `by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
-repair it. You supply the proof steps.
+repair it. Keep relative indentation; fr adds two spaces to each line. You supply the proof steps.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
+
+Check before searching the library; this leaves source unchanged:
+
+```sh
+fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
+```
+
+Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
+proof. Repair the tactics in that file. If diagnostics require a library definition,
+search its type's folder rather than indexing the whole installation.
 
 For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
 Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
@@ -25,21 +35,14 @@ the part after the dot.
 Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
 
 ```sh
-fr --no-cache -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
+fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
 ```
 
 `--contains` matches a literal name fragment. Read the returned headers for argument types
 and order. `--bytes` limits source text across the page; metadata adds output.
 Check coverage and remaining results; refine the fragment or follow the cursor.
 
-For a check that leaves source unchanged:
-
-```sh
-fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
-```
-
-Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
-proof. Repair the tactics in that file. To check and write them into the proof region:
+To check and write the tactics into the proof region:
 
 ```sh
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write

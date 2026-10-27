@@ -27,13 +27,16 @@ class ProofWritingTasks(unittest.TestCase):
             for setup in ('files', 'fr'):
                 prompt = selected_local.prompt(case, setup, {
                     'lake': {'path': '/pinned/lake'},
-                    'lean': {'path': '/pinned/Lean tools/bin/lean'},
+                    'lean': {'path': '/pinned/Lean tools/bin/lean', 'source_root': '/pinned/Lean tools/src/lean'},
                 }, 'M3')
                 self.assertIn(requirements['tasks'][case]['request'], prompt)
                 self.assertIn('150-second', prompt)
                 self.assertIn('passed=false', prompt)
                 self.assertIn('Mathlib', prompt)
-                self.assertIn("'/pinned/Lean tools/bin/lean' --print-prefix", prompt)
+                self.assertIn("'/pinned/Lean tools/bin/lean'", prompt)
+                self.assertIn("'/pinned/Lean tools/src/lean'", prompt)
+                self.assertIn("'/pinned/Lean tools/src/lean/Init/Data/Int'", prompt)
+                self.assertNotIn('--print-prefix', prompt)
                 self.assertNotIn('rfl', prompt)
                 self.assertNotIn('omega', prompt)
                 self.assertNotIn('Int.tdiv_nonneg', prompt)

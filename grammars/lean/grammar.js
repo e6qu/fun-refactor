@@ -765,7 +765,7 @@ module.exports = grammar({
       'by',
       $._layout_start,
       $._tactic_seq,
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     // Tactics separated by `;`, `<;>` (broadcast), or newlines
@@ -934,7 +934,7 @@ module.exports = grammar({
       'calc',
       $._layout_start,
       repeat1($.calc_step),
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     calc_step: $ => prec.right(seq(

@@ -55,13 +55,15 @@ and [the next seven](tests/agent-eval/proof-writing/proof-guide-interrupted-resu
 The [first complete comparison](tests/agent-eval/proof-writing/first-results/README.md) checked all 36 attempts:
 26 passed and 10 failed. Eight page-count attempts timed out. Luna's two page-count attempts
 with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
-Each agent delivered accepted access and range proofs with fr. All three still need an accepted fr page-count proof.
+Each agent delivered accepted access and range proofs with fr in that comparison.
 
-The syntax reader now accepts an inline proof that Lean already accepted. All proof controls and guide checks pass.
-The guide starts with
-the actual proof command and shows how to search the installed library with fr.
-A new 36-attempt comparison is running with the same models, fixed claims and limits.
-Keep all fifty earlier outcomes, including the interrupted runs. M3 remains open until its completion checks and CI pass.
+The [second complete comparison](tests/agent-eval/proof-writing/local-results/README.md) has finished all 36 attempts; independent checking is pending.
+Eleven attempts reached the unchanged deadline. GLM timed out on both page-count and both fr range attempts.
+Kimi timed out on all page-count attempts. Luna submitted one fr page-count proof that passed its local checks.
+Review found two fr defects: pasted indentation changed proof structure, and a calculation could consume its following step.
+Their repairs need a rebuilt tool and passing regression checks before another complete comparison.
+The guide now starts with goal discovery and a draft check. Both setups receive the exact installed library path.
+Keep all 86 outcomes, including both interrupted runs. M3 remains open until every completion check and current CI pass.
 
 ### M1. Run the selected agents on three complete tasks
 

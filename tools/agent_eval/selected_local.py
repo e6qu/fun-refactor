@@ -94,8 +94,9 @@ def prompt(task, setup, checkers, milestone):
             request += '\n\n' + requirements['arithmetic']
         request += ('\n\nLean checks a theorem under its definitions and assumptions. Tactics are the proof steps you write. '
             'The installed Lean includes its standard library, not Mathlib. No proof steps are supplied. '
-            f'Use {shlex.quote(checkers["lean"]["path"])} --print-prefix to locate the installation; '
-            'its src/lean folder contains the standard library sources. Use that exact Lean binary and the supplied Lake command. '
+            f'The standard library source folder is {shlex.quote(checkers["lean"]["source_root"])}. '
+            f'Its integer definitions are in {shlex.quote(str(Path(checkers["lean"]["source_root"]) / "Init/Data/Int"))}. '
+            f'Use {shlex.quote(checkers["lean"]["path"])} and the supplied Lake command. '
             'Search names from the supplied model when looking up definitions or existing library proofs. '
             f'The combined CLI transcript, including command output, is limited to {LIMITS["transcript_bytes"]:,} bytes. '
             'Search narrow paths and cap printed matches, for example rg -n "name" FILE | head -40. '
@@ -244,6 +245,13 @@ def freeze(inputs, binaries, runtime, output, milestone):
         python_packages = {}
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(checker_versions['python'] == 'Python ' + settings['local_python'], 'M3 Python differs from its pin')
+        prefix = subprocess.run([checkers['lean']['path'], '--print-prefix'],
+                                capture_output=True, text=True, timeout=10)
+        require(prefix.returncode == 0 and Path(prefix.stdout.strip()).resolve() == runtime['lean_root'].resolve(),
+                'the Lean binary must belong to the explicitly selected installation')
+        source_root = runtime['lean_root'].resolve() / 'src/lean'
+        require((source_root / 'Init/Data/Int').is_dir(), 'the selected Lean installation needs its standard library sources')
+        checkers['lean']['source_root'] = str(source_root)
     else:
         packages = subprocess.run([checkers['python']['path'], '-c',
             'import importlib.metadata,json;print(json.dumps({name:importlib.metadata.version(name) '
