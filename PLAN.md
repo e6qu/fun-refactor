@@ -46,7 +46,8 @@ all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
-M3 implementation is in progress on `milestone/agent-lean-proofs`; keep all of it in the same PR.
+The M3 implementation merged in PR #587 before its full CI gate finished.
+Finish the remaining checks, repairs and complete agent comparison together on `milestone/finish-agent-proofs`.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
 The first controls passed: ten examples, six native-client exchanges and eighteen isolated patch checks.
 Two interrupted runs retain [the first seven outcomes](tests/agent-eval/proof-writing/interrupted-results/README.md)
@@ -56,9 +57,10 @@ The [first complete comparison](tests/agent-eval/proof-writing/first-results/REA
 with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
 Each agent delivered accepted access and range proofs with fr. All three still need an accepted fr page-count proof.
 
-The syntax reader now accepts an inline proof that Lean already accepted. The guide starts with
+The syntax reader now accepts an inline proof that Lean already accepted. The rebuilt implementation passes
+the generated-model and proof API controls. The guide starts with
 the actual proof command and shows how to search the installed library with fr.
-Qualify those repairs, build the new macOS executable, then freeze and independently check
+Finish qualifying those repairs and the new macOS executable, then freeze and independently check
 a complete new comparison with the same models, fixed claims and limits.
 Keep all fifty earlier outcomes, including the interrupted runs. M3 remains open until its completion checks and CI pass.
 

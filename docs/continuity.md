@@ -36,7 +36,9 @@ The supplied regex command now checks actual text, byte counts, allocations and 
 Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
 Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
 
-M3 is in progress on `milestone/agent-lean-proofs`. The [task guide](../tests/agent-eval/proof-writing/README.md)
+PR #587 merged the M3 implementation before its full CI gate finished.
+Complete its remaining checks, repairs and new comparison on `milestone/finish-agent-proofs`.
+The [task guide](../tests/agent-eval/proof-writing/README.md)
 lists the access-rule lesson, eight language examples, two numeric tasks and exact validation steps.
 Early-return guards, truncating integer division, dependency-sensitive proof receipts and preservation
 of handwritten theorems are implemented on that branch. The latter fixes a defect found by the new controls.
@@ -46,7 +48,8 @@ and [seven after the parser repairs](../tests/agent-eval/proof-writing/proof-gui
 The [first complete comparison](../tests/agent-eval/proof-writing/first-results/README.md) independently accepted 26 of 36 attempts.
 Eight page-count attempts timed out; two Luna fr attempts delivered rejected or empty page proofs.
 The three agents still need accepted fr page-count proofs. Keep all fifty earlier outcomes.
-Qualify the inline-proof syntax repair, direct proof instructions and library lookup example before a complete new comparison.
+The rebuilt implementation passes the inline-proof API and generated-model checks.
+Finish qualifying the direct proof instructions and library lookup example before a complete new comparison.
 Use the same model selections and limits. Each attempt now gives fr its own cache under `.fr/cache`.
 Keep its implementation, examples, real attempts and results in one milestone PR.
 Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
