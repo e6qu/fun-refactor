@@ -96,7 +96,7 @@ jobs:
           PY
       - name: Measure six serial model-free runs without granting admission
         run: >-
-          python3 -B tools/check-client-memory.py measure target/client-memory --profile --experiment catalog
+          python3 -B tools/check-client-memory.py measure target/client-memory --profile --experiment catalog-smol
           --catalog tests/agent-eval/opencode/catalog/2026-10-07/catalog.json
           --fr target/client-memory-tools/fr/fr
           --opencode target/client-memory-tools/client/opencode
