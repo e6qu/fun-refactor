@@ -458,15 +458,13 @@
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-27-m3-library-fixed-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [
-        "sdk/python/src/fr_ir/_version.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-27-m3-release-fixed-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-library-fixed-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-release-fixed-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate."
     }
   ],
@@ -503,7 +501,7 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
@@ -511,14 +509,13 @@
       "engineering_remaining": 0,
       "remaining": [
         "C.resume",
-        "C.clean",
-        "C.repository-mutations"
+        "C.clean"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 3,
         "total": 6
@@ -526,7 +523,6 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
-        "D.structural",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -868,9 +864,7 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [
-        "current-project-changes: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -889,7 +883,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -968,9 +962,7 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [
-        "current-project-changes: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -989,7 +981,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Change a declaration and update its callers"
     },
     {
