@@ -94,12 +94,14 @@ def prompt(task, setup, checkers, milestone):
             request += '\n\n' + requirements['arithmetic']
         request += ('\n\nLean checks a theorem under its definitions and assumptions. Tactics are the proof steps you write. '
             'The installed Lean includes its standard library, not Mathlib. No proof steps are supplied. '
-            'Use lean --print-prefix to locate the installation; its src/lean folder contains the standard library sources. '
+            f'Use {shlex.quote(checkers["lean"]["path"])} --print-prefix to locate the installation; '
+            'its src/lean folder contains the standard library sources. Use that exact Lean binary and the supplied Lake command. '
             'Search names from the supplied model when looking up definitions or existing library proofs. '
             f'The combined CLI transcript, including command output, is limited to {LIMITS["transcript_bytes"]:,} bytes. '
             'Search narrow paths and cap printed matches, for example rg -n "name" FILE | head -40. '
             'Keep working files under .fr/, or remove them before delivery. Only the marked proof region may change. '
             'A fr proof-check report with passed=false is a failed check even if the command exits successfully. '
+            'Write a draft and check it early, then use Lean diagnostics to repair it. '
             'Repair rejected tactics using the reported diagnostics; keep the theorem and definitions fixed.')
         checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]
     else:
@@ -438,6 +440,7 @@ def attempt(plan_path, attempt_id):
         tool_path = [binary_directory, Path(checkers['python']['path']).parent, Path(checkers['rustc']['path']).parent]
         tool_path.append(Path(checkers['lean' if milestone in {'M1', 'M3'} else 'node']['path']).parent)
         env.update(PATH=os.pathsep.join(map(str, tool_path)) + os.pathsep + env['PATH'], PYTHONDONTWRITEBYTECODE='1',
+            FUN_REFACTOR_CACHE=str(project / '.fr/cache'),
             CARGO_NET_OFFLINE='true', RUSTUP_TOOLCHAIN='1.98.1', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1', RAYON_NUM_THREADS='1',
             RUSTC=checkers['rustc']['path'], RUSTDOC=checkers['rustdoc']['path'], PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
             GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1',

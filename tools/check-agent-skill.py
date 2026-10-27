@@ -79,8 +79,13 @@ class Exercise:
     def run(self, root, args, success=True):
         args = [self.values.get(arg, arg) for arg in args]
         assert not any(re.fullmatch(r"<[^>]+>", arg) for arg in args), args
-        options = [] if "--json" in args else ["--json"]
-        result = subprocess.run([self.binary, "--no-cache", "-C", str(root), *options, *args],
+        options = [] if "--no-cache" in args else ["--no-cache"]
+        if "-C" not in args and "--root" not in args:
+            options += ["-C", str(root)]
+        if "--json" not in args:
+            options.append("--json")
+        environment = dict(os.environ, FUN_REFACTOR_CACHE=str(root / ".fr/skill-cache"))
+        result = subprocess.run([self.binary, *options, *args], env=environment,
                                 capture_output=True, text=True, timeout=120)
         assert (result.returncode == 0) == success, (args, result.stdout, result.stderr)
         value = json.loads(result.stdout)
@@ -90,7 +95,7 @@ class Exercise:
         value, size = self.run(root, command[1:], success)
         self.examples += 1
         self.executed.append((path, tuple(command)))
-        if path.name in ("SKILL.md", "explore.md", "batch.md"):
+        if path.name in ("SKILL.md", "explore.md", "batch.md") and "proof-task" not in command:
             self.exploration_bytes += size
         return value
 
@@ -132,6 +137,8 @@ def source_workflow(exercise, root):
 
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
+            if "proof-task" in command:
+                continue
             value = exercise.example(root, path, command)
             if value.get("query") in ("map", "find"):
                 rows = [dict(zip(value["columns"], row)) for row in value["rows"]]
@@ -531,10 +538,23 @@ def lean_workflow(exercise, root):
     exercise.run(root, ["spec", "scaffold", "--from", str(plan_file), "--package", "specs", "--write"])
     model = root / "specs/FrSpecs" / (plan["kernel"]["module"] + ".lean")
     exercise.values["<LEAN_TARGET>"] = str(model.relative_to(root)) + "::" + plan["properties"][0]["name"]
+    prefix = subprocess.run(["lake", "env", "lean", "--print-prefix"], cwd=root / "specs",
+                            capture_output=True, text=True, check=True, timeout=10)
+    library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int"
+    assert library.is_dir()
+    exercise.values["<LEAN_LIBRARY_DIR>"] = str(library)
+    exercise.values["<LIBRARY_QUERY>"] = "tdiv"
     (root / ".fr/proof-tactics").write_text("rfl\n")
     original, original_program = model.read_bytes(), source.read_bytes()
-    for command in commands(path):
-        value = exercise.example(root, path, command)
+    proof_examples = [(SKILL / "SKILL.md", command) for command in commands(SKILL / "SKILL.md")
+                      if "proof-task" in command]
+    proof_examples += [(path, command) for command in commands(path)]
+    for example_path, command in proof_examples:
+        value = exercise.example(root, example_path, command)
+        if "<LIBRARY_QUERY>" in command:
+            assert value["rows"] and value["page"]["returned"] <= 12
+            assert value["source_budget"]["returned_bytes"] <= 1536
+            assert "coverage" in value and "omitted" in value
         if "proof-check" in command:
             assert value["passed"] and model.read_bytes() == original
             tactics = root / ".fr/proof-tactics"

@@ -25,11 +25,15 @@ class ProofWritingTasks(unittest.TestCase):
         requirements = json.loads((tasks.ROOT / tasks.DIRECTORY / 'tasks.json').read_text())
         for case in requirements['tasks']:
             for setup in ('files', 'fr'):
-                prompt = selected_local.prompt(case, setup, {'lake': {'path': '/pinned/lake'}}, 'M3')
+                prompt = selected_local.prompt(case, setup, {
+                    'lake': {'path': '/pinned/lake'},
+                    'lean': {'path': '/pinned/Lean tools/bin/lean'},
+                }, 'M3')
                 self.assertIn(requirements['tasks'][case]['request'], prompt)
                 self.assertIn('150-second', prompt)
                 self.assertIn('passed=false', prompt)
                 self.assertIn('Mathlib', prompt)
+                self.assertIn("'/pinned/Lean tools/bin/lean' --print-prefix", prompt)
                 self.assertNotIn('rfl', prompt)
                 self.assertNotIn('omega', prompt)
                 self.assertNotIn('Int.tdiv_nonneg', prompt)

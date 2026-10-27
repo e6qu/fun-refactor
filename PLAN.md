@@ -51,11 +51,16 @@ The [task guide](tests/agent-eval/proof-writing/README.md) names the exact input
 The first controls passed: ten examples, six native-client exchanges and eighteen isolated patch checks.
 Two interrupted runs retain [the first seven outcomes](tests/agent-eval/proof-writing/interrupted-results/README.md)
 and [the next seven](tests/agent-eval/proof-writing/proof-guide-interrupted-results/README.md).
-The parser and resource-monitor repairs passed preparation checks. The second run exposed
-confusing proof instructions and accounting that started after the attempt deadline.
-Check the direct proof guide and failed-attempt recording, repeat preparation, then freeze a complete new comparison.
-Run and independently grade all 36 attempts with the GitHub-built macOS executable and unchanged limits.
-A prepared harness or an interrupted comparison does not complete M3.
+The [first complete comparison](tests/agent-eval/proof-writing/first-results/README.md) checked all 36 attempts:
+26 passed and 10 failed. Eight page-count attempts timed out. Luna's two page-count attempts
+with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
+Each agent delivered accepted access and range proofs with fr. All three still need an accepted fr page-count proof.
+
+The syntax reader now accepts an inline proof that Lean already accepted. The guide starts with
+the actual proof command and shows how to search the installed library with fr.
+Qualify those repairs, build the new macOS executable, then freeze and independently check
+a complete new comparison with the same models, fixed claims and limits.
+Keep all fifty earlier outcomes, including the interrupted runs. M3 remains open until its completion checks and CI pass.
 
 ### M1. Run the selected agents on three complete tasks
 

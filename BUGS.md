@@ -5,7 +5,10 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Open correctness defects
 
-No actionable correctness defect is currently recorded here.
+The inline Lean proof repair in PR #587 is awaiting rebuilt-tool validation.
+Fr rejected a valid `show … by …` fragment before Lean could check it.
+The reader repair and hosted syntax checks are complete; the full proof controls and agent comparison still need to pass.
+The [regression fixture](tests/fixtures/lean-proof-locations.lean) includes both inline forms and the separate `show` proof instruction.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.

@@ -13,9 +13,24 @@ target. `spec goals specs` lists generated goals when the target is unknown.
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 
-Read the fixed claim, model and empty templates. Write your tactics, without a leading
-`by`, in the extensionless file `.fr/proof-tactics`. You supply the proof steps.
+Read the fixed claim, model and empty templates. Write a draft early, without a leading
+`by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
+repair it. You supply the proof steps.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
+
+For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
+Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
+A namespace groups definitions: `List.length` belongs to `List`. Search for `length`,
+the part after the dot.
+Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
+
+```sh
+fr --no-cache -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
+```
+
+`--contains` matches a literal name fragment. Read the returned headers for argument types
+and order. `--bytes` limits source text across the page; metadata adds output.
+Check coverage and remaining results; refine the fragment or follow the cursor.
 
 For a check that leaves source unchanged:
 

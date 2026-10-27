@@ -10,10 +10,14 @@ them as expressions and continued into the next declaration. The repaired gramma
 these proof instructions together and recovers the later declarations.
 
 Two GitHub runs built both readers independently and read the same source bytes:
-[consumer snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40455362549) and
-[indexing snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40456777694).
+[consumer snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40477575144) and
+[indexing snapshot review](https://github.com/e6qu/fun-refactor/actions/runs/40478787425).
 The exact reader commits, source hashes and every changed location are in
 [the retained inventory](lean-reader-review.json).
+
+The latest repair accepts inline `show … by …` proof terms that Lean accepts.
+Both fixed copies retain exactly the previous reviewed facts, syntax results and 512 question sites.
+The original timing baselines stay unchanged; current timings need the rebuilt executable.
 
 | Fixed source copy | Before this reader repair | After this reader repair |
 | --- | ---: | ---: |

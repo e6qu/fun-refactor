@@ -193,7 +193,7 @@ def export(plan_path, review, destination):
         'public_check_environment': plan['public_check_environment'],
         'provider_request_cap_enforced': False, 'token_cap_enforced': False,
         'accounting': 'CLI-reported categories retain client meanings. Unknown account charges and incomplete usage are not replaced with zero.',
-        'cache_state': 'Fresh conversations and projects. Operating-system and provider caches are uncontrolled.',
+        'cache_state': 'Fresh conversations and projects, with a separate new .fr/cache for each attempt. Operating-system and provider caches are uncontrolled.',
         'resource_scope': 'Elapsed time covers the complete controller attempt. CPU and RSS samples describe the native CLI process group. The outer workstation guard also covers controller preparation and capture.',
         'unmeasured_per_attempt': {'controller_python_startup_seconds': None, 'outer_guard_startup_seconds': None},
         'controls': plan['controls'],

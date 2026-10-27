@@ -88,6 +88,23 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     );
     let first: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
     assert_eq!(first["passed"], true);
+    let before_show = std::fs::read(&model).unwrap();
+    for tactics in [
+        "exact (show keepModel value = value by rfl)\n",
+        "exact (show keepModel value = value from rfl)\n",
+    ] {
+        let proof = workspace.path().join("proof.lean");
+        std::fs::write(&proof, tactics).unwrap();
+        let checked =
+            fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+        assert!(
+            checked.passed,
+            "{}",
+            serde_json::to_string(&checked).unwrap()
+        );
+        assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    }
+    std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     std::fs::write(&dependency, policy.replace(":= value", ":= !value")).unwrap();
     let second_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
     assert_ne!(first_task.goal.id, second_task.goal.id);

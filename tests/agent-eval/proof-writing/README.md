@@ -3,8 +3,15 @@
 The [first local run](interrupted-results/README.md) stopped after seven attempts when its resource monitor failed.
 The [next run](proof-guide-interrupted-results/README.md) also stopped after seven: the first GLM
 attempt exhausted its time in generic edit planning, then exposed a post-deadline accounting error.
-Both packets retain every outcome and submitted patch. Check the direct proof guide and deadline
-handling, then freeze a complete new comparison under the unchanged limits.
+Both packets retain every outcome and submitted patch.
+The [first complete comparison](first-results/README.md) independently accepted 26 of 36 attempts.
+Eight page-count attempts timed out. Luna's two fr page-count attempts submitted an empty or rejected proof;
+its ordinary-tool page proofs passed. Each selected agent passed the access and range tasks with fr.
+M3 still needs an accepted fr page-count proof from each agent.
+
+The next complete comparison uses the repaired inline-proof reader, direct proof entry and
+an example of searching the installed library with fr. Programs, claims, models and limits stay the same.
+Each attempt gives fr a separate new `.fr/cache`. Keep all fifty earlier outcomes and grade every new submission.
 
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior
@@ -126,6 +133,10 @@ reviewed fr contributions. Keep missing counters and account charges unknown. Th
 times, not execution-speed benchmarks of Rust or Lean. The comparison cannot establish general
 time or money savings. Each profile needs an independently accepted fr proof for each task,
 with a useful fr step identified, within the frozen repetitions.
+
+Successful-time averages include only the tasks accepted in that setup. When different tasks
+succeed, those averages describe different work. Use the paired table to compare the same
+accepted requests. Total time per success includes time spent on failed attempts.
 
 Only submitted patches and summaries may be published. Raw prompts, CLI transcripts, session
 exports, local paths and account data stay local. The public exporter selects approved fields;
