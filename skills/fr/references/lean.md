@@ -2,6 +2,7 @@
 
 State a concrete property, such as the Boolean condition required for access. Check the proof and its link to the selected code.
 Keep the requested claim fixed while repairing tactics. A stronger model's supplied proof is assistance, not the selected agent's unaided result.
+Inspect supported Lean operations with `fr --json capabilities --lang lean`.
 
 Lean checks a theorem under its definitions and assumptions. A model represents supported source behavior; a proof still needs a checked connection to that source.
 

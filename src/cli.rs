@@ -168,7 +168,7 @@ enum Command {
         /// Only this language.
         #[arg(long = "lang", alias = "language")]
         language: Option<String>,
-        /// Emit the markdown table used in the README.
+        /// Print the selected operations and languages as a Markdown table.
         #[arg(long)]
         markdown: bool,
     },

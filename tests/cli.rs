@@ -196,7 +196,10 @@ fn a_bare_name_defined_twice_is_refused_with_both_locations() {
             "one/a.go",
             "package one\n\nfunc Handle() int {\n\treturn 1\n}\n",
         ),
-        ("two/b.go", "package two\n\nfunc Handle() int {\n\treturn 2\n}\n"),
+        (
+            "two/b.go",
+            "package two\n\nfunc Handle() int {\n\treturn 2\n}\n",
+        ),
     ]);
     let (out, ok) = ws.run(&["refs", "Handle"]);
     assert!(!ok, "guessing between them would be worse:\n{out}");
