@@ -324,83 +324,33 @@
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/formal_kernel.rs",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs",
-        "src/vfs.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-checked-translation",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "checked-translation",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-checked-translation/result.json",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof."
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/formal_kernel.rs",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs",
-        "src/vfs.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-effects",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-effects",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-effects/result.json",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks."
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/formal_kernel.rs",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs",
-        "src/vfs.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-text-flow",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "python-text-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-text-flow/result.json",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim."
     },
     {
@@ -429,15 +379,13 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [
-        "B.effects"
-      ],
+      "remaining": [],
       "state": "open",
       "total": 4
     },
@@ -453,14 +401,13 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 3,
+      "demonstrated": 4,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
-        "D.translation",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -697,9 +644,7 @@
     },
     {
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
-      "blockers": [
-        "python-effects: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.effects",
       "kind": "deterministic",
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
@@ -730,7 +675,7 @@
           "evidence": "python-effects"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Handle exceptions and shared mutable values honestly"
     },
     {
@@ -907,9 +852,7 @@
     },
     {
       "acceptance": "Translate one pure function between Rust and Python with integer arithmetic and branches. Specify input ranges, overflow, errors and evaluation order. Independently compare every input in a bounded range and the declared boundary cases.",
-      "blockers": [
-        "checked-translation: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.translation",
       "kind": "deterministic",
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
@@ -940,7 +883,7 @@
           "evidence": "checked-translation"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Translate a function without changing its promised behavior"
     },
     {
