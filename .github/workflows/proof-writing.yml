@@ -207,6 +207,17 @@ jobs:
           python3 -B tools/agent_eval/test_selected_public.py
           python3 -B tools/agent_eval/test_selected_grading.py
           PYTHONPATH=tools python3 -B -m unittest agent_eval.test_darwin_sampling
+      - name: Preserve every independently checked outcome from the first comparison
+        run: |
+          sha256sum --check tests/agent-eval/proof-writing/first-results.sha256
+          python3 -B - <<'PY'
+          from pathlib import Path
+          directory = Path('tests/agent-eval/proof-writing/first-results')
+          manifest = Path('tests/agent-eval/proof-writing/first-results.sha256')
+          expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}
+          actual = {str(path) for path in directory.rglob('*') if path.is_file()}
+          assert actual == expected and not any(path.is_symlink() for path in directory.rglob('*'))
+          PY
   host-monitor:
     needs: configuration
     if: inputs.operation != 'grade'
