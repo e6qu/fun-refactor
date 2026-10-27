@@ -50,47 +50,23 @@
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs."
     },
     {
-      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-package-flow/result.json",
-      "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-package-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout."
     },
     {
-      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-python-repositories",
-      "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-repositories",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits."
     },
     {
@@ -122,47 +98,33 @@
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-host-recovery/result.json",
-      "changed_sources": [
-        "src/cli.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-host-recovery/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-structural-change",
-      "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-26-m3-ci-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-model-comparisons",
       "changed_sources": [],
       "freshness": "historical",
       "id": "model-relations",
       "integrity": "checked",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations."
     },
     {
@@ -176,25 +138,13 @@
       "scope": "Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check."
     },
     {
-      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-26-m3-ci-compiler-profile/result.json",
-      "changed_sources": [
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/build.rs",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "src/audit.rs",
-        "src/capabilities.rs",
-        "src/cli.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-compiler-profile/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-26-m3-ci-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
@@ -539,37 +489,6 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 0,
-      "engineering": {
-        "done": 6,
-        "total": 6
-      },
-      "engineering_remaining": 0,
-      "remaining": [
-        "A.exact",
-        "A.repositories",
-        "A.live-repeat",
-        "A.compiler-profile"
-      ],
-      "state": "open",
-      "total": 4
-    },
-    "B": {
-      "demonstrated": 1,
-      "engineering": {
-        "done": 4,
-        "total": 5
-      },
-      "engineering_remaining": 1,
-      "remaining": [
-        "B.scalar",
-        "B.contract",
-        "B.effects"
-      ],
-      "state": "open",
-      "total": 4
-    },
-    "C": {
       "demonstrated": 2,
       "engineering": {
         "done": 6,
@@ -577,31 +496,54 @@
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.resume",
-        "C.clean"
+        "A.exact",
+        "A.live-repeat"
       ],
       "state": "open",
       "total": 4
     },
+    "B": {
+      "demonstrated": 2,
+      "engineering": {
+        "done": 4,
+        "total": 5
+      },
+      "engineering_remaining": 1,
+      "remaining": [
+        "B.contract",
+        "B.effects"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "C": {
+      "demonstrated": 4,
+      "engineering": {
+        "done": 6,
+        "total": 6
+      },
+      "engineering_remaining": 0,
+      "remaining": [],
+      "state": "complete",
+      "total": 4
+    },
     "D": {
-      "demonstrated": 1,
+      "demonstrated": 3,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
-        "D.checked",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof",
-        "D.host"
+        "D.new-proof"
       ],
       "state": "open",
       "total": 6
     }
   },
-  "milestones_complete": 0,
+  "milestones_complete": 1,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
@@ -631,9 +573,7 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -652,7 +592,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -669,9 +609,7 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [
-        "compiler-profile: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -706,14 +644,12 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -736,7 +672,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -878,9 +814,7 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -899,14 +833,12 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -929,7 +861,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
@@ -1006,9 +938,7 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -1027,7 +957,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Check and replay a delivered change"
     },
     {
@@ -1118,9 +1048,7 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [
-        "host-recovery: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -1135,7 +1063,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],
