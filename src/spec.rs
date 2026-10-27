@@ -35,6 +35,15 @@ namespace FrSpecs
 end FrSpecs
 "#;
 
+const LAKE_MANIFEST: &str = r#"{
+  "version": "1.1.0",
+  "packagesDir": ".lake/packages",
+  "packages": [],
+  "name": "«fr-specs»",
+  "lakeDir": ".lake"
+}
+"#;
+
 #[derive(Debug, Serialize)]
 pub struct InitPlan {
     pub package: PathBuf,
@@ -511,6 +520,7 @@ pub struct ProofAttempt {
     pub goal_id: String,
     pub proof_digest: String,
     pub checker: &'static str,
+    pub checker_context_digest: String,
     pub passed: bool,
     pub diagnostics: Vec<ProofDiagnostic>,
     pub diagnostics_omitted: usize,
@@ -678,11 +688,13 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let definitions = [
         ("lean-toolchain", concat!("leanprover/lean4:v4.28.0", "\n")),
         ("lakefile.toml", LAKEFILE),
+        ("lake-manifest.json", LAKE_MANIFEST),
         ("FrSpecs.lean", ROOT_MODULE),
     ];
     let mut files = Vec::with_capacity(definitions.len());
     for (name, content) in definitions {
         let path = package.join(name);
+        let preserve_existing = matches!(name, "FrSpecs.lean" | "lake-manifest.json");
         let existing = if crate::vfs::is_in_memory() {
             if crate::vfs::paths()
                 .iter()
@@ -695,7 +707,7 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
             }
             if crate::vfs::exists(&path) {
                 let current = crate::vfs::read_to_string(&path)?;
-                if current != content && name != "FrSpecs.lean" {
+                if current != content && !preserve_existing {
                     bail!(
                         "refusing to replace existing spec package file {}.",
                         path.display()
@@ -710,7 +722,7 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
                 Ok(metadata) if metadata.is_file() => {
                     let current = crate::vfs::read_to_string(&path)
                         .with_context(|| format!("reading {}", path.display()))?;
-                    if current != content && name != "FrSpecs.lean" {
+                    if current != content && !preserve_existing {
                         bail!(
                             "refusing to replace existing spec package file {}.",
                             path.display()
@@ -1143,10 +1155,13 @@ pub(crate) fn formal_plan_from_agent_specs(
     };
     let mut assumptions = vec![
         format!("{} parsing, semantic IR extraction and SHA-256 remain trusted.", detect(&target.source).context("formal target has no source language")?),
-        "The supported kernel excludes effects, mutation, calls, unsafe code and partial operations."
+        "The supported kernel excludes effects, mutation, calls, unsafe code and partial source access."
             .into(),
         "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic.".into(),
     ];
+    if kernel.lean_definition.contains("Int.tdiv") || kernel.lean_definition.contains("Int.tmod") {
+        assumptions.push("Rust i64 division and remainder use Lean Int.tdiv and Int.tmod, which truncate toward zero. Lean arithmetic is total; source division by zero and signed-64 overflow require separate exclusion or failure evidence. This is not a proof of source arithmetic safety.".into());
+    }
     if structural {
         assumptions.push("The model checks retained byte spans and parent provenance only; omitted facts, parser completeness, style, rendering, configuration and embedded language execution are not proved.".into());
     }
@@ -1253,7 +1268,12 @@ pub(crate) fn scaffold_formal_plan(
         proof_regions(&original)?
     };
     let proof_bytes_preserved = proofs.values().map(String::len).sum();
-    let updated = render_formal_module(&expected, &proofs)?;
+    let handwritten = if original.is_empty() {
+        "-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n"
+    } else {
+        handwritten_region(&original, "additional-models-and-proofs")?
+    };
+    let updated = render_formal_module(&expected, &proofs, handwritten)?;
     let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
     if parsed.has_errors() {
         bail!("generated formal kernel did not parse as Lean; no files changed.");
@@ -1344,6 +1364,7 @@ pub fn formal_goals(
     let root = root.canonicalize()?;
     let report = check(&root, inputs, respect_ignore)?;
     let mut details = Vec::new();
+    let mut package_contexts = BTreeMap::new();
     for debt in report.debts {
         let Some(name) = debt.name.clone() else {
             continue;
@@ -1392,7 +1413,17 @@ pub fn formal_goals(
         if source.starts_with("import FrSpecs.PureKernel\n") {
             context.push_str(crate::formal_kernel::LEAN_SOURCE);
         }
-        let model_context_digest = crate::project::object_merkle(&serde_json::json!(context))?;
+        let package = lean_package(&root, &debt.spec)?;
+        if !package_contexts.contains_key(&package) {
+            package_contexts.insert(
+                package.clone(),
+                proof_package_inputs(&package, None, false)?,
+            );
+        }
+        let model_context_digest = crate::project::object_merkle(&serde_json::json!({
+            "module": context,
+            "package_inputs": package_contexts[&package],
+        }))?;
         let addressed = serde_json::json!({
             "name": name,
             "spec": spec,
@@ -1735,18 +1766,39 @@ fn check_prepared_proof(
 ) -> Result<ProofAttempt> {
     let package = checked_proof_package(root, &prepared.spec)?;
     let checker_source = reviewed_kernel_context(&package, &prepared.updated)?;
+    let dependency_target = format!("{}:deps", prepared.spec.strip_prefix(&package)?.display());
+    let mut output = Command::new("lake")
+        .args(["build", &dependency_target])
+        .current_dir(&package)
+        .output()
+        .context("building the proof module's dependencies")?;
+    let package_inputs =
+        proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?;
+    if proof_task(root, target, 16_384, true)?.goal.id != prepared.goal_id {
+        bail!(
+            "proof package changed while preparing its dependencies; request a fresh proof task."
+        );
+    }
     let mut scratch = tempfile::Builder::new()
         .prefix("fr-proof-check-")
         .suffix(".lean")
         .tempfile()?;
     scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
-    let output = Command::new("lake")
-        .args(["env", "lean"])
-        .arg(scratch.path())
-        .current_dir(&package)
-        .output()
-        .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    if output.status.success() {
+        output = Command::new("lake")
+            .args(["env", "lean"])
+            .arg(scratch.path())
+            .current_dir(&package)
+            .output()
+            .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    }
+    if proof_package_inputs(&package, Some((&prepared.spec, &prepared.updated)), true)?
+        != package_inputs
+        || crate::vfs::read_to_string(&prepared.spec)? != prepared.original
+    {
+        bail!("proof package inputs changed during checking; no receipt was issued.");
+    }
     let passed =
         proof_submission_admitted(true, true, true, true, true, true, output.status.success());
     let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
@@ -1757,6 +1809,10 @@ fn check_prepared_proof(
         lean_diagnostics(&raw, scratch.path(), root)
     };
     let all_diagnostics = diagnostics.len();
+    let checker_context_digest = crate::project::object_merkle(&serde_json::json!({
+        "package_inputs": package_inputs,
+        "checked_module": checker_source,
+    }))?;
     let receipt = passed
         .then(|| {
             crate::project::object_merkle(&serde_json::json!({
@@ -1764,6 +1820,7 @@ fn check_prepared_proof(
                 "goal_id": prepared.goal_id,
                 "proof_digest": prepared.proof_digest,
                 "checker": LEAN_TOOLCHAIN,
+                "checker_context_digest": checker_context_digest,
             }))
         })
         .transpose()?;
@@ -1797,6 +1854,7 @@ fn check_prepared_proof(
             "goal_id": &prepared.goal_id,
             "proof_digest": &prepared.proof_digest,
             "checker": LEAN_TOOLCHAIN,
+            "checker_context_digest": checker_context_digest,
             "passed": passed,
             "diagnostics": &diagnostics,
             "diagnostics_omitted": all_diagnostics.saturating_sub(diagnostics.len()),
@@ -1811,6 +1869,7 @@ fn check_prepared_proof(
                 goal_id: prepared.goal_id.clone(),
                 proof_digest: prepared.proof_digest.clone(),
                 checker: LEAN_TOOLCHAIN,
+                checker_context_digest,
                 passed,
                 diagnostics_omitted: all_diagnostics.saturating_sub(diagnostics.len()),
                 diagnostics,
@@ -1886,6 +1945,86 @@ fn checked_proof_package(root: &Path, spec: &Path) -> Result<PathBuf> {
         bail!("proof checking requires the fr pinned Lean toolchain {LEAN_TOOLCHAIN}.");
     }
     Ok(package)
+}
+
+fn proof_package_inputs(
+    package: &Path,
+    replacement: Option<(&Path, &str)>,
+    include_tactics: bool,
+) -> Result<BTreeMap<String, String>> {
+    let mut pending = vec![package.to_path_buf()];
+    let mut inputs = BTreeMap::new();
+    let mut entries = 0;
+    let mut bytes = 0;
+    while let Some(directory) = pending.pop() {
+        for path in crate::vfs::read_dir_bounded(directory, 4096 - entries)? {
+            entries += 1;
+            if matches!(
+                path.file_name().and_then(|name| name.to_str()),
+                Some(".lake" | ".git" | ".fr-history")
+            ) {
+                continue;
+            }
+            match crate::vfs::entry_kind(&path)? {
+                crate::vfs::EntryKind::Directory => {
+                    pending.push(path);
+                    continue;
+                }
+                crate::vfs::EntryKind::File => {}
+                crate::vfs::EntryKind::Symlink | crate::vfs::EntryKind::Other => {
+                    bail!("proof package inputs must be regular files and directories.");
+                }
+            }
+            if path.extension().is_none_or(|extension| extension != "lean")
+                && !matches!(
+                    path.file_name().and_then(|name| name.to_str()),
+                    Some("lean-toolchain" | "lakefile.toml" | "lake-manifest.json")
+                )
+            {
+                continue;
+            }
+            if inputs.len() >= 256 {
+                bail!("proof package inputs exceed 256 files or 1 MiB per file.");
+            }
+            let current = crate::vfs::read_to_string_bounded(&path, 1024 * 1024)?;
+            let mut text = match replacement {
+                Some((selected, source)) if path == selected => source.to_string(),
+                _ => current,
+            };
+            if text.len() > 1024 * 1024 {
+                bail!("proof package source exceeds 1 MiB while reading.");
+            }
+            bytes += text.len();
+            if bytes > 8 * 1024 * 1024 {
+                bail!("proof package inputs exceed 8 MiB.");
+            }
+            if !include_tactics
+                && path
+                    .extension()
+                    .is_some_and(|extension| extension == "lean")
+            {
+                let mut context = String::new();
+                let mut proof = false;
+                for line in text.split_inclusive('\n') {
+                    if line.trim().starts_with("-- fr:proof-begin ") {
+                        proof = true;
+                        context.push_str(line);
+                    } else if line.trim().starts_with("-- fr:proof-end ") {
+                        proof = false;
+                        context.push_str(line);
+                    } else if !proof {
+                        context.push_str(line);
+                    }
+                }
+                text = context;
+            }
+            inputs.insert(
+                path.strip_prefix(package)?.to_string_lossy().into_owned(),
+                hex::encode(Sha256::digest(text.as_bytes())),
+            );
+        }
+    }
+    Ok(inputs)
 }
 
 fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagnostic> {
@@ -2209,7 +2348,7 @@ fn shell_quote(value: &str) -> String {
 fn replace_generated_region(original: &str, replacement: &str) -> Result<(String, usize)> {
     const BEGIN: &str = "-- fr:generated-begin scaffold";
     const END: &str = "-- fr:generated-end scaffold";
-    let handwritten = handwritten_region(original)?.to_string();
+    let handwritten = handwritten_region(original, "model-and-proofs")?.to_string();
     let start = original
         .find(BEGIN)
         .context("existing model has no generated scaffold region")?;
@@ -2230,26 +2369,26 @@ fn replace_generated_region(original: &str, replacement: &str) -> Result<(String
     updated.push_str(&original[..start]);
     updated.push_str(replacement);
     updated.push_str(&original[end..]);
-    if handwritten_region(&updated)? != handwritten {
+    if handwritten_region(&updated, "model-and-proofs")? != handwritten {
         bail!("scaffold regeneration did not preserve its handwritten region.");
     }
     Ok((updated, handwritten.len()))
 }
 
-fn handwritten_region(text: &str) -> Result<&str> {
-    const BEGIN: &str = "-- fr:handwritten-begin model-and-proofs";
-    const END: &str = "-- fr:handwritten-end model-and-proofs";
+fn handwritten_region<'a>(text: &'a str, name: &str) -> Result<&'a str> {
+    let begin = format!("-- fr:handwritten-begin {name}");
+    let end_marker = format!("-- fr:handwritten-end {name}");
     let start = text
-        .find(BEGIN)
+        .find(&begin)
         .context("existing model has no handwritten region")?;
-    if text[start + BEGIN.len()..].contains(BEGIN) {
+    if text.matches(&begin).count() != 1 {
         bail!("existing model has more than one handwritten region.");
     }
     let end_start = text[start..]
-        .find(END)
+        .find(&end_marker)
         .map(|offset| start + offset)
         .context("existing model has no handwritten end marker")?;
-    if text[end_start + END.len()..].contains(END) {
+    if text.matches(&end_marker).count() != 1 {
         bail!("existing model has more than one handwritten end marker.");
     }
     let end = text[end_start..]
@@ -2581,11 +2720,19 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         && function.params.iter().all(|parameter| {
             parameter.default.is_none() && parameter.kind == crate::transpile::ir::ParamKind::Normal
         });
+    let signature = if typed {
+        source_signature(&source_path, symbol)?
+    } else {
+        Vec::new()
+    };
+    let rust_i64_division = language == crate::lang::Language::Rust
+        && !signature.is_empty()
+        && signature.iter().all(|part| part.ty == "i64");
     let term = crate::formal_kernel::compile(function);
     let expression = term
         .as_ref()
         .map_err(|error| anyhow::anyhow!("{error}"))
-        .and_then(|_| lean_kernel_block(&function.body));
+        .and_then(|_| lean_kernel_block(&function.body, rust_i64_division));
     if !formal_candidate_admitted(true, receiver_free, typed, pure, expression.is_ok()) {
         if !receiver_free {
             bail!("methods need an explicit receiver model before kernel generation.");
@@ -2600,7 +2747,6 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     }
     let expression = expression?;
     let term = term?;
-    let signature = source_signature(&source_path, symbol)?;
     let ir_types = function
         .params
         .iter()
@@ -2682,26 +2828,36 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     })
 }
 
-fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String> {
+fn lean_kernel_block(
+    statements: &[crate::transpile::ir::Stmt],
+    rust_i64_division: bool,
+) -> Result<String> {
     use crate::transpile::ir::Stmt;
     let statements = statements
         .iter()
         .filter(|statement| !matches!(statement, Stmt::Comment(_)))
         .collect::<Vec<_>>();
     match statements.as_slice() {
-        [Stmt::Return(Some(expression))] | [Stmt::Expr(expression)] => lean_kernel_expr(expression),
+        [Stmt::Return(Some(expression))] | [Stmt::Expr(expression)] => lean_kernel_expr(expression, rust_i64_division),
         [Stmt::Return(None)] => Ok("()".into()),
-        [Stmt::Block(body)] => lean_kernel_block(body),
+        [Stmt::Block(body)] => lean_kernel_block(body, rust_i64_division),
         [Stmt::If {
             condition,
             then,
             otherwise,
         }] if !otherwise.is_empty() => Ok(format!(
             "if {} then\n    {}\n  else\n    {}",
-            lean_kernel_expr(condition)?,
-            lean_kernel_block(then)?,
-            lean_kernel_block(otherwise)?
+            lean_kernel_expr(condition, rust_i64_division)?,
+            lean_kernel_block(then, rust_i64_division)?.replace('\n', "\n  "),
+            lean_kernel_block(otherwise, rust_i64_division)?.replace('\n', "\n  ")
         )),
+        [Stmt::If { condition, then, otherwise }, rest @ ..]
+            if otherwise.is_empty() && !rest.is_empty() && crate::formal_kernel::explicitly_returns(then, 0) => Ok(format!(
+                "if {} then\n    {}\n  else\n    {}",
+                lean_kernel_expr(condition, rust_i64_division)?,
+                lean_kernel_block(then, rust_i64_division)?.replace('\n', "\n  "),
+                lean_kernel_block_refs(rest, rust_i64_division)?.replace('\n', "\n  ")
+            )),
         [Stmt::Let {
             name,
             value: Some(value),
@@ -2709,8 +2865,8 @@ fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String
             ..
         }, rest @ ..] if !rest.is_empty() && lean_identifier(name) => Ok(format!(
             "let {name} := {};\n  {}",
-            lean_kernel_expr(value)?,
-            lean_kernel_block_refs(rest)?
+            lean_kernel_expr(value, rust_i64_division)?,
+            lean_kernel_block_refs(rest, rust_i64_division)?
         )),
         _ => bail!(
             "the body needs pure returns, immutable lets or complete conditionals; effects and mutation remain explicit boundaries."
@@ -2718,15 +2874,21 @@ fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String
     }
 }
 
-fn lean_kernel_block_refs(statements: &[&crate::transpile::ir::Stmt]) -> Result<String> {
+fn lean_kernel_block_refs(
+    statements: &[&crate::transpile::ir::Stmt],
+    rust_i64_division: bool,
+) -> Result<String> {
     let owned = statements
         .iter()
         .map(|statement| (*statement).clone())
         .collect::<Vec<_>>();
-    lean_kernel_block(&owned)
+    lean_kernel_block(&owned, rust_i64_division)
 }
 
-fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
+fn lean_kernel_expr(
+    expression: &crate::transpile::ir::Expr,
+    rust_i64_division: bool,
+) -> Result<String> {
     use crate::transpile::ir::{BinaryOp, Expr, UnaryOp};
     match expression {
         Expr::Int(value)
@@ -2739,6 +2901,20 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
         Expr::Str(value) => Ok(crate::formal_kernel::quote_string(value)),
         Expr::Bool(value) => Ok(value.to_string()),
         Expr::Name(name) if lean_identifier(name) => Ok(name.clone()),
+        Expr::Binary { op, left, right }
+            if rust_i64_division && matches!(op, BinaryOp::Div | BinaryOp::Rem) =>
+        {
+            let operation = if matches!(op, BinaryOp::Div) {
+                "tdiv"
+            } else {
+                "tmod"
+            };
+            Ok(format!(
+                "(Int.{operation} ({}) ({}))",
+                lean_kernel_expr(left, rust_i64_division)?,
+                lean_kernel_expr(right, rust_i64_division)?
+            ))
+        }
         Expr::Binary { op, left, right } => {
             let operator = match op {
                 BinaryOp::Add => "+",
@@ -2756,36 +2932,42 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
             };
             Ok(format!(
                 "({} {operator} {})",
-                lean_kernel_expr(left)?,
-                lean_kernel_expr(right)?
+                lean_kernel_expr(left, rust_i64_division)?,
+                lean_kernel_expr(right, rust_i64_division)?
             ))
         }
         Expr::Unary {
             op: UnaryOp::Not,
             operand,
-        } => Ok(format!("(!{})", lean_kernel_expr(operand)?)),
+        } => Ok(format!(
+            "(!{})",
+            lean_kernel_expr(operand, rust_i64_division)?
+        )),
         Expr::Unary {
             op: UnaryOp::Neg,
             operand,
-        } => Ok(format!("(-{})", lean_kernel_expr(operand)?)),
+        } => Ok(format!(
+            "(-{})",
+            lean_kernel_expr(operand, rust_i64_division)?
+        )),
         Expr::Ternary {
             condition,
             then,
             otherwise,
         } => Ok(format!(
             "if {} then {} else {}",
-            lean_kernel_expr(condition)?,
-            lean_kernel_expr(then)?,
-            lean_kernel_expr(otherwise)?
+            lean_kernel_expr(condition, rust_i64_division)?,
+            lean_kernel_expr(then, rust_i64_division)?,
+            lean_kernel_expr(otherwise, rust_i64_division)?
         )),
         Expr::Tuple(values) => values
             .iter()
-            .map(lean_kernel_expr)
+            .map(|value| lean_kernel_expr(value, rust_i64_division))
             .collect::<Result<Vec<_>>>()
             .map(|values| format!("({})", values.join(", "))),
         Expr::ListLit(values) => values
             .iter()
-            .map(lean_kernel_expr)
+            .map(|value| lean_kernel_expr(value, rust_i64_division))
             .collect::<Result<Vec<_>>>()
             .map(|values| format!("[{}]", values.join(", "))),
         _ => bail!("an expression uses a call, effect, partial access or unsupported kernel form."),
@@ -3333,7 +3515,11 @@ fn proof_regions(text: &str) -> Result<BTreeMap<String, String>> {
     Ok(regions)
 }
 
-fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) -> Result<String> {
+fn render_formal_module(
+    plan: &FormalPlan,
+    proofs: &BTreeMap<String, String>,
+    handwritten: &str,
+) -> Result<String> {
     let mapping = plan
         .kernel
         .inputs
@@ -3388,7 +3574,9 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
             property.name
         ));
     }
-    text.push_str("-- fr:generated-end formal-kernel\n\n-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n\nend FrSpecs\n");
+    text.push_str("-- fr:generated-end formal-kernel\n\n");
+    text.push_str(handwritten);
+    text.push_str("\nend FrSpecs\n");
     Ok(text)
 }
 
@@ -4549,6 +4737,86 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     #[test]
+    fn proof_package_sources_follow_the_active_workspace_and_bind_dependencies() {
+        let disk = tempfile::tempdir().unwrap();
+        let root = disk.path();
+        let files = [
+            ("lean-toolchain", super::LEAN_TOOLCHAIN),
+            ("FrSpecs/Dependency.lean", "def enabled := true\n"),
+            ("FrSpecs/Goal.lean", "theorem claim : True := by\n-- fr:proof-begin claim\n  sorry\n-- fr:proof-end claim\n"),
+        ];
+        for (name, text) in files {
+            let path = root.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        }
+        let expected = super::proof_package_inputs(root, None, false).unwrap();
+        let raw = super::proof_package_inputs(root, None, true).unwrap();
+        let memory =
+            crate::vfs::new_handle(files.map(|(name, text)| (root.join(name), text.into())));
+        crate::vfs::with_handle(&memory, || {
+            assert_eq!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+            assert_eq!(super::proof_package_inputs(root, None, true).unwrap(), raw);
+            let goal = root.join("FrSpecs/Goal.lean");
+            let changed = files[2].1.replace("sorry", "trivial");
+            crate::vfs::write(&goal, &changed).unwrap();
+            assert_eq!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+            assert_ne!(super::proof_package_inputs(root, None, true).unwrap(), raw);
+            crate::vfs::write(
+                root.join("FrSpecs/Dependency.lean"),
+                "def enabled := false\n",
+            )
+            .unwrap();
+            assert_ne!(
+                super::proof_package_inputs(root, None, false).unwrap(),
+                expected
+            );
+        });
+        assert_eq!(
+            super::proof_package_inputs(root, None, false).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn proof_package_sources_refuse_links_and_keep_input_bounds() {
+        let disk = tempfile::tempdir().unwrap();
+        let root = disk.path();
+        std::os::unix::fs::symlink(root.join("outside"), root.join("Link.lean")).unwrap();
+        assert!(super::proof_package_inputs(root, None, true).is_err());
+        let oversized =
+            crate::vfs::new_handle([(root.join("Big.lean"), "x".repeat(1024 * 1024 + 1))]);
+        let too_many_files = crate::vfs::new_handle(
+            (0..257).map(|index| (root.join(format!("{index}.lean")), String::new())),
+        );
+        let too_many_entries = crate::vfs::new_handle(
+            (0..4097).map(|index| (root.join(format!("{index}.txt")), String::new())),
+        );
+        let too_many_bytes = crate::vfs::new_handle(
+            (0..9).map(|index| (root.join(format!("{index}.lean")), "x".repeat(1024 * 1024))),
+        );
+        crate::vfs::with_handle(&oversized, || {
+            assert!(super::proof_package_inputs(
+                root,
+                Some((&root.join("Big.lean"), "small")),
+                true
+            )
+            .is_err());
+        });
+        for handle in [oversized, too_many_files, too_many_entries, too_many_bytes] {
+            crate::vfs::with_handle(&handle, || {
+                assert!(super::proof_package_inputs(root, None, true).is_err())
+            });
+        }
+    }
+
+    #[test]
     fn reads_anchors_and_counts_only_live_obligations() {
         let anchors = anchors_in(
             "-- fr:spec src/edit.rs::apply_to_string @ deadbeef\ndef x := sorry\n-- sorry\n",
@@ -4924,7 +5192,7 @@ mod tests {
         let workspace = tempfile::tempdir().unwrap();
         let root = workspace.path();
         let plan = init(root, Path::new("verification/lean")).unwrap();
-        assert_eq!(plan.files.len(), 3);
+        assert_eq!(plan.files.len(), 4);
         assert!(plan.files.iter().all(|file| !file.existing));
         assert!(init(root, Path::new("../outside")).is_err());
         assert!(init(root, &root.parent().unwrap().join("outside")).is_err());

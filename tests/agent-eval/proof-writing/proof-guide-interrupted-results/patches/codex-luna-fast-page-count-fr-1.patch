@@ -1,0 +1,44 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..905567c 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,37 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    rcases h with h | h
++    · simp [page_countModel, h]
++    · simp [page_countModel, h]
++  · constructor
++    · intro h
++      have hn : ¬ items < 0 := by omega
++      have hs : ¬ size ≤ 0 := by omega
++      have ht : Int.tdiv items size = items / size := Int.tdiv_eq_ediv_of_nonneg h.1
++      have hm : Int.tmod items size = items % size := Int.tmod_eq_emod_of_nonneg h.1
++      by_cases hr : items % size = 0
++      · simp [page_countModel, hn, hs, ht, hm, hr]
++        constructor
++        · exact Int.ediv_nonneg h.1 (by omega)
++        · exact Int.ediv_le_self size h.1
++      · simp [page_countModel, hn, hs, ht, hm, hr]
++        have hi : 0 < items := by
++          by_cases hz : items = 0
++          · subst items
++            simp at hr
++          · omega
++        have hne : size ≠ 1 := by
++          intro he
++          subst size
++          simp at hr
++        have hlt : items / size < items := Int.ediv_lt_self_of_pos_of_ne_one hi hne
++        constructor
++        · exact Int.add_nonneg (Int.ediv_nonneg h.1 (by omega)) (by decide)
++        · exact Int.lt_iff_add_one_le.mp hlt
++    · rfl
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

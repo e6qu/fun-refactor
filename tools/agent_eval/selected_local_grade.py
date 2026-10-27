@@ -25,7 +25,7 @@ CORE_FILES = (
 
 
 def core_digest(milestone):
-    require(milestone in {'M1', 'M2'}, 'choose an explicit checker milestone')
+    require(milestone in {'M1', 'M2', 'M3'}, 'choose an explicit checker milestone')
     paths = [ROOT / name for name in CORE_FILES] + list((ROOT / 'sdk/python/src').rglob('*.py'))
     if milestone == 'M2':
         paths += [ROOT / 'tools/agent_eval' / name for name in (
@@ -38,6 +38,15 @@ def core_digest(milestone):
         paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile',
                   ROOT / 'tests/agent-eval/regex/workspace.tar.gz',
                   ROOT / 'tests/agent-eval/regex/Cargo.lock']
+    elif milestone == 'M3':
+        paths += [ROOT / 'tools/agent_eval' / name for name in (
+            'proof_writing_tasks.py', 'proof_writing_controls.py', 'proof_writing_runtime.py',
+            'proof_writing_collect.py', 'proof_writing_results.py', 'selected_grade_probe.py',
+            'selected_grading.py', 'selected_local_grade.py', 'container_resources.py',
+            'bounded_host.py', 'selected_plan.py', 'isolated_grade.py', 'selected_native.py')]
+        paths += [path for path in (ROOT / CASE_DIRECTORIES['M3']).rglob('*') if path.is_file()
+                  and 'local-results' not in path.parts and path.name != 'README.md']
+        paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile']
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()
 
@@ -48,7 +57,7 @@ def verify(summary, milestone):
     require(summary['task_bindings'] == expected['bindings'], 'public task requirements differ')
     require(summary['core_checker_sha256'] == core_digest(milestone), 'independent task checks changed after collection')
     require(summary['native_inputs'] == local.identity()['native_inputs'], 'fr source differs from the measured source')
-    if milestone == 'M2':
+    if milestone in {'M2', 'M3'}:
         require(summary['limits'] == local.LIMITS and summary['provider_request_cap_enforced'] is False and
                 summary['token_cap_enforced'] is False, 'retain the actual limits and unavailable token/request caps')
     rows = summary['attempts']
@@ -60,7 +69,7 @@ def verify(summary, milestone):
         if supplied['native_status'] != 'unstarted':
             require(supplied['actual_cost'] is None, 'no observed account charges were collected by this CLI study')
             require(supplied['patch_file'] in {None, 'patches/' + supplied['id'] + '.patch'}, 'unsafe public patch path')
-            if milestone == 'M2' and supplied['native_status'] == 'completed':
+            if milestone in {'M2', 'M3'} and supplied['native_status'] == 'completed':
                 require(0 <= supplied['total_seconds'] <= local.LIMITS['wall_seconds'] and
                         supplied['stop_reason'] is None and not supplied['complete_attempt_deadline_missed'],
                         'a stopped or late native attempt must remain failed')

@@ -29,6 +29,14 @@ GROUPS = {
     'compiler-profile': ['compiler-profile'],
     'sdk-contexts': ['agent-context-workspace', 'agent-guide-context', 'agent-runtime-context',
                      'native-intent-context', 'intent-action-context'],
+    'all': ['model-comparisons', 'checked-outcomes', 'completion-workflows', 'structural-change'],
+    'dependency': ['retained-proofs', 'host-recovery', 'resumable-correspondence', 'index-consumers'],
+}
+ARTIFACT_GROUPS = {**GROUPS,
+    'all': ['model-comparisons', 'checked-outcomes', 'retained-proofs', 'agent-guide-context',
+            'completion-workflows', 'structural-change', 'intent-action-context', 'index-resolution', 'host-recovery'],
+    'dependency': ['compiler-evidence', 'resumable-correspondence', 'semantic-evidence',
+                   'index-consumers', 'retained-proofs', 'host-recovery'],
 }
 SCRIPTS = {
     'checked-outcomes': 'outcome-acceptance',
@@ -69,6 +77,35 @@ REGISTERED_REPORTS = {
 }
 
 
+def collection_reports(data, collection, identity):
+    """Validate the complete named batch before selecting its assigned reports."""
+    prefixes, inventory = set(), set()
+    payloads = {}
+    for group in ARTIFACT_GROUPS[collection]:
+        matches = [name for name in data if re.fullmatch(
+            r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-' + re.escape(group) + '/result.json', name)]
+        require(len(matches) == 1, 'need exactly one report in the declared collection: ' + group)
+        path = matches[0]
+        prefixes.add(path.removesuffix('-' + group + '/result.json'))
+        parent = str(Path(path).parent) + '/'
+        if group in DIRECTORY_REPORTS:
+            payload = {name[len(parent):]: content for name, content in data.items() if name.startswith(parent)}
+            require('manifest.json' in payload, 'directory collection needs its manifest')
+            manifest = json.loads(payload['manifest.json'])
+            source_key = 'revision' if group == 'checked-outcomes' else 'source_commit'
+            require(manifest[source_key] == identity['source_commit'], 'directory collection source changed')
+            require(set(payload) == {'manifest.json', *manifest['files']}, 'directory archive inventory changed')
+            for name, expected in manifest['files'].items():
+                require(hashlib.sha256(payload[name]).hexdigest() == expected, 'directory artifact changed: ' + name)
+        else:
+            payload = {'result.json': data[path]}
+        inventory.update(parent + name for name in payload)
+        payloads[group] = payload
+    require(len(prefixes) == 1 and all(name in inventory or name.startswith('refinement-refresh-logs/') for name in data),
+            'collection prefixes or report artifact inventory changed')
+    return {group: payloads[group] for group in GROUPS[collection]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runs', required=True)
@@ -82,9 +119,10 @@ def main():
     require(type(runs) is dict and bool(runs) and set(runs) <= set(GROUPS)
             and all(type(run) is int and run > 0 for run in runs.values()),
             'declare the requested hosted collections explicitly')
+    selected = [group for collection in runs for group in GROUPS[collection]]
+    require(len(selected) == len(set(selected)), 'assign each retained report to exactly one collection')
     collected = []
     for collection in sorted(runs):
-        groups = GROUPS[collection]
         if collection == 'python-repositories':
             artifact, producer = 'roadmap-evidence', 'repositories'
         elif collection == 'compiler-profile':
@@ -106,30 +144,9 @@ def main():
                     'compiler report source changed')
             collected.append((collection, data, identity))
             continue
-        if collection in DIRECTORY_REPORTS:
-            matches = [name for name in data if re.fullmatch(
-                r'refinement-evidence/[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}-' + re.escape(collection) + '/result.json', name)]
-            require(len(matches) == 1, 'need one directory collection')
-            prefix = str(Path(matches[0]).parent) + '/'
-            require(all(name.startswith(prefix) or name.startswith('refinement-refresh-logs/') for name in data),
-                    'directory archive contains unrelated files')
-            paths = {collection: matches[0]}
-        else:
-            paths = scalar.report_paths(data, groups)
-        for group, path in paths.items():
-            payload = {'result.json': data[path]}
-            if group in DIRECTORY_REPORTS:
-                prefix = str(Path(path).parent) + '/'
-                payload = {name[len(prefix):]: content for name, content in data.items() if name.startswith(prefix)}
-                manifest = json.loads(payload['manifest.json'])
-                source_key = 'revision' if group == 'checked-outcomes' else 'source_commit'
-                require(manifest[source_key] == identity['source_commit'], 'directory collection source changed')
-                require(set(payload) == {'manifest.json', *manifest['files']}, 'directory archive inventory changed')
-                for name, expected in manifest['files'].items():
-                    require(hashlib.sha256(payload[name]).hexdigest() == expected, 'directory artifact changed: ' + name)
+        for group, payload in collection_reports(data, collection, identity).items():
             collected.append((group, payload, identity))
     revisions = {identity['source_commit'] for _, _, identity in collected}
-    require(len(revisions) == 1, 'collect the repair reports from the same source commit')
     for revision in revisions:
         scalar.retain.command(['git', 'fetch', '--no-tags', '--depth=1', 'origin', revision],
                               capture_output=True)

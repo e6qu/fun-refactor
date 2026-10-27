@@ -35,7 +35,7 @@ def check_boundary(milestone):
     require(not Path('/var/run/docker.sock').exists(), 'private grader can see the runner Docker socket')
     readonly = ['/inputs/original', '/inputs/project.json', '/inputs/delivery.json', '/inputs/change.patch',
                 '/review/tools', '/opt/rust']
-    readonly += (['/opt/lean', '/opt/tool/bin/fr'] if milestone == 'M1' else
+    readonly += (['/opt/lean', '/opt/tool/bin/fr'] if milestone in {'M1', 'M3'} else
                  ['/opt/node/bin/node', '/opt/typescript', '/review/target/cargo-home/registry'])
     require(all(os.statvfs(path).f_flag & os.ST_RDONLY for path in readonly), 'private source or tool mount is writable')
     return {'uid': os.geteuid(), 'effective_capabilities': 0, 'new_privileges_allowed': False,
@@ -51,6 +51,10 @@ def run(task, milestone):
     if milestone == 'M2':
         from . import project_edits_tasks as cases
         require(task in cases.TASKS and prepared['requirement'] == cases.TASKS[task], 'private M2 task requirements differ')
+    elif milestone == 'M3':
+        from . import proof_writing_tasks as cases
+        require(task in cases.CASES and prepared['property'] == cases.property_for(task,
+                {'object_digest': prepared['property']['task_digest']}), 'private M3 fixed property differs')
     else:
         require(milestone == 'M1' and task in tasks.TASKS, 'choose one explicit private task')
     require(prepared['task'] == task and tasks.sources(original) == prepared['original'],
@@ -81,6 +85,8 @@ def run(task, milestone):
         permitted = set(prepared['original']) | {path for path in paths if task == 'regex-escape-len'
             and path.startswith(('src/', 'regex-syntax/src/')) and path.endswith('.rs')
             and all(part not in {'.', '..'} for part in Path(path).parts)}
+    elif milestone == 'M3':
+        permitted = {prepared['spec']}
     else:
         permitted = ({'src/lib.rs'} if task == 'unicode-dice' else
                      {tasks.PROOF_PATH} if task == 'access-proof' else set(prepared['rename_paths']))
@@ -117,6 +123,14 @@ def run(task, milestone):
                 result['checker_versions']['typescript'] == 'Version ' + settings['typescript']['version'],
                 'private compiler versions differ from their explicit pins')
         verdict = cases.check(task, changed, prepared, checkers, root / 'changed-checks')
+    elif milestone == 'M3':
+        settings = json.loads((cases.ROOT / cases.DIRECTORY / 'checkers.json').read_text())
+        result['checker_versions'] = {name: subprocess.check_output([name, '--version'], text=True, timeout=10).strip()
+                                      for name in ('lean', 'lake', 'rustc', 'python3')}
+        require(result['checker_versions']['lean'].startswith('Lean (version ' + settings['lean'] + ',') and
+                result['checker_versions']['rustc'].startswith('rustc ' + settings['hosted_rust'] + ' '),
+                'private proof checker differs from the pinned Lean and Rust versions')
+        verdict = cases.check(changed, prepared, binary, root / 'changed-checks')
     else:
         verdict = tasks.check(task, changed, prepared, binary, root / 'changed-checks')
     result.update(stage='source checks', changed=verdict)
@@ -132,6 +146,8 @@ def run(task, milestone):
         result['receiver'] = {'passed': True, 'source_identity_verified': True,
             'checked_source_sha256': hashlib.sha256(encoded(candidate_sources)).hexdigest(),
             'scope': 'All language checks ran in the first fresh patch receiver. This second copy has identical source bytes and modes.'}
+    elif milestone == 'M3':
+        result['receiver'] = cases.check(receiver, prepared, binary, root / 'receiver-checks')
     else:
         result['receiver'] = tasks.check(task, receiver, prepared, binary, root / 'receiver-checks')
     require(tasks.sources(receiver) == candidate_sources, 'receiver checks changed the delivered source')
@@ -148,7 +164,7 @@ def run(task, milestone):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--milestone', choices=('M1', 'M2'), required=True)
+    parser.add_argument('--milestone', choices=('M1', 'M2', 'M3'), required=True)
     parser.add_argument('--task', required=True)
     args = parser.parse_args()
     try:

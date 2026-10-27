@@ -1,0 +1,1 @@
+cases staff <;> rfl

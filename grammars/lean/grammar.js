@@ -47,10 +47,19 @@ module.exports = grammar({
     $._layout_end,              // End of layout block (indent decreased)
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
+    $._binding_start,           // Track a binding value's indentation separately
+    $._do_body_start,           // The following `do` opens a statement body
   ],
 
   // Keyword extraction improves error detection and compile time
   word: $ => $.identifier,
+
+  // Control words cannot turn into ordinary arguments when a construct is
+  // misplaced. Qualified members and escaped names still admit words such as `if`.
+  reserved: {
+    global: _ => ['if', 'then', 'else', 'match', 'with', 'by', 'show'],
+    qualified: _ => [],
+  },
 
   // Supertype nodes for better queries
   supertypes: $ => [
@@ -70,7 +79,6 @@ module.exports = grammar({
     // are valid top-level alternatives.  GLR resolves at runtime.
     [$.have, $._pattern],
     [$._atom, $._name],
-    [$._binding_body, $.tactic_have],
     // `public`/`meta` can prefix either an `import` (only in the module header)
     // or a declaration via `_modifier`. GLR resolves at runtime by lookahead
     // for `import` vs a declaration keyword. This mirrors lean4's `atomic`
@@ -108,9 +116,7 @@ module.exports = grammar({
 
     module_header: _ => 'module',
 
-    // A single top-level element in a code fragment (hover popup, docstring).
-    // Tactics are tried first (higher precedence) so that `intro x`, `simp`,
-    // `rw [...]` etc. produce proper tactic nodes instead of bare applications.
+    // A fragment can contain tactics or ordinary expressions.
     _fragment_element: $ => choice(
       $._tactic,
       $._expression,
@@ -485,27 +491,34 @@ module.exports = grammar({
     // ============================================================
 
     _expression: $ => choice(
-      $._atom,
+      $._application_head,
+      alias($._block_application, $.application),
+      $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
+      $.if, $.if_let, $.match, $.do, $.by, $.show, $.try, $.return, $.as_pattern,
+    ),
+
+    _application_head: $ => choice(
+      $._postfix_head,
       $.application,
+    ),
+
+    // A term supplies both its claimed type and proof; tactic `show T`
+    // below only changes the current goal and has no term body.
+    show: $ => prec.right(1, seq(
+      'show',
+      field('type', $._expression),
+      choice(
+        field('body', $.by),
+        seq('from', field('body', $._expression)),
+      ),
+    )),
+
+    _postfix_head: $ => choice(
+      $._atom,
       $.subscript,
-      $.binary_expression,
-      $.unary_expression,
       $.explicit,
       // postfix ! and ? are handled by subscript modifier and notation
       $.projection,
-      $.arrow,
-      $.fun,
-      $.quantifier,
-      $.let,
-      $.have,
-      $.if,
-      $.if_let,
-      $.match,
-      $.do,
-      $.by,
-      $.try,
-      $.return,
-      $.as_pattern,
     ),
 
     // `try BODY catch x => HANDLER` — term-mode try/catch.
@@ -567,21 +580,24 @@ module.exports = grammar({
     // Function application: `f x y z`
     // Uses prec.left to parse `f x y` as `(f x) y`
     application: $ => prec.left(PREC.app, seq(
-      field('name', $._expression),
+      field('name', $._application_head),
+      field('arguments', $._postfix_head),
+    )),
+
+    // A final block argument extends to its own boundary. The resulting call
+    // needs parentheses before another argument, field or subscript can follow.
+    _block_application: $ => prec.right(PREC.app, seq(
+      field('name', $._application_head),
       field('arguments', choice(
-        $._atom,
         $.fun,
-        $.if,
-        $.match,
         $.do,
-        $.by,
       )),
     )),
 
     // Array/list subscript: `arr[i]` or `arr[i]!` or `arr[i]?`
     // Also handles subarray slice: `arr[start:stop]`
     subscript: $ => prec.left(PREC.proj, seq(
-      field('object', $._expression),
+      field('object', $._postfix_head),
       token.immediate('['),
       optional(field('index', $._expression)),
       optional(seq(':', optional(field('stop', $._expression)))),
@@ -593,7 +609,7 @@ module.exports = grammar({
     // prec.right so the longest dotted run wins (set_option/import disambiguation).
     _name: $ => prec.right(seq(
       choice($.identifier, $.escaped_identifier),
-      repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
+      repeat(seq(token.immediate('.'), choice(reserved('qualified', $.identifier), $.escaped_identifier))),
     )),
 
     // The same thing, as a node of its own.
@@ -604,17 +620,17 @@ module.exports = grammar({
     // nowhere. A declaration's name is one node, and the parts are inside it.
     qualified_name: $ => prec.right(seq(
       choice($.identifier, $.escaped_identifier),
-      repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
+      repeat(seq(token.immediate('.'), choice(reserved('qualified', $.identifier), $.escaped_identifier))),
     )),
 
     // Projection: `x.foo` or `x.1` or `x.«name»` or `.field` (leading dot)
     projection: $ => prec.left(PREC.proj, seq(
-      optional(field('term', $._expression)),
+      optional(field('term', $._postfix_head)),
       choice(
         token.immediate('.'),  // For `x.field` where x is an expression
         '.',                   // For `.field` (leading dot)
       ),
-      field('name', choice($.identifier, $.escaped_identifier, $.number)),
+      field('name', choice(reserved('qualified', $.identifier), $.escaped_identifier, $.number)),
     )),
 
     // Arrow type: `A → B`
@@ -632,7 +648,7 @@ module.exports = grammar({
         [PREC.low, choice('||', '∨', '|||', '<|>', '<$>', '<*>', '*>', '<*')],
         [PREC.and, choice('&&', '∧', '&&&')],
         [PREC.compare, choice('==', '!=', '=', '<', '>', '<=', '>=', '≤', '≥', '≠',
-                               '∈', '∉', '⊆', '⊂', '∣', '↔', '⊢')],
+                               '∈', '∉', '⊆', '⊂', '∣', '↔')],
         [PREC.add, choice('+', '-', '++', '∪', '∩', '×', '\\')],
         [PREC.mul, choice('*', '/', '%', '^^^', '<<<', '>>>')],
         [PREC.app + 1, choice('|>', '|>.')],
@@ -640,7 +656,7 @@ module.exports = grammar({
 
       // Right-associative: $, <|, ::, ^, ∘
       const rightAssoc = [
-        [PREC.low, '$'],
+        [PREC.low, choice('$', '▸')],
         [PREC.add, '::'],
         [PREC.mul, choice('^', '∘')],
         [PREC.app + 1, '<|'],
@@ -684,6 +700,7 @@ module.exports = grammar({
       choice(
         seq(
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
+          optional($._type_spec),
           '=>',
           $._layout_start,
           field('body', $._expression),
@@ -719,21 +736,21 @@ module.exports = grammar({
 
     // Have expression: `have h : T := proof; body`
     have: $ => prec.right(seq(
+      $._binding_start,
       'have',
       optional(field('name', $.identifier)),
       optional($._type_spec),
       $._binding_body,
     )),
 
-    // Shared `:= value [; body]` tail for `let` and `have` — extracted
-    // so the parser reuses states across both forms.
+    // A term binding always has a body. Bindings without a body are tactics
+    // or do statements, whose rules are separate below.
     _binding_body: $ => prec.right(seq(
       ':=',
       field('value', $._expression),
-      optional(seq(
-        choice(';', $._layout_semicolon),
-        field('body', $._expression),
-      )),
+      $._layout_end,
+      optional(';'),
+      field('body', $._expression),
     )),
 
     // ============================================================
@@ -779,11 +796,15 @@ module.exports = grammar({
     ),
 
     // Most tactics: `intro n`, `simp [lemma]`, `apply foo`, `exact bar`, `omega`
-    tactic_apply: $ => prec.right(PREC.app, seq(
+    // One term already includes applications such as `f x y`. Repeating full
+    // terms also admits every partition of that application into arguments,
+    // multiplying parser states without describing another Lean construct.
+    // Argument operators must bind before the tactic and its `by` block end.
+    tactic_apply: $ => prec.right(1, seq(
       field('tactic', $.identifier),
-      repeat(field('arg', choice(
-        $._expression, $.tactic_config,
-      ))),
+      optional('only'),
+      optional(field('arg', choice($._expression, $.tactic_config))),
+      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
     )),
 
     // `by_cases h : proposition` and `by_cases proposition`.
@@ -797,7 +818,9 @@ module.exports = grammar({
     // falling through the generic identifier-and-arguments tactic rule.
     tactic_cases: $ => prec.right(3, seq(
       field('tactic', choice('cases', 'induction')),
-      field('subject', $._tactic_subject),
+      optional(seq(field('equation', $.identifier), ':')),
+      field('subject', $._application_head),
+      optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
         'with',
         repeat1($.tactic_constructor_branch),
@@ -818,7 +841,7 @@ module.exports = grammar({
     // constructor tuples remain named nodes so an agent can reveal one branch.
     tactic_rcases: $ => prec.right(3, seq(
       'rcases',
-      field('subject', $._tactic_subject),
+      field('subject', $._application_head),
       'with',
       field('pattern', $._rcases_pattern),
     )),
@@ -831,18 +854,20 @@ module.exports = grammar({
 
     _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
 
-    // Keeping the scrutinized value name-shaped prevents the full expression
-    // grammar from being duplicated across every structural tactic branch.
-    _tactic_subject: $ => choice($.qualified_name, $.number, $.hole),
-
     rcases_tuple_pattern: $ => seq(
       '⟨', commaSep1($._rcases_atom), '⟩',
     ),
 
-    rcases_alternative_pattern: $ => seq(
-      '(', choice($._rcases_atom, $.rcases_tuple_pattern),
-      repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
-    ),
+    rcases_alternative_pattern: $ => prec.right(1, choice(
+      seq(
+        choice($._rcases_atom, $.rcases_tuple_pattern),
+        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))),
+      ),
+      seq(
+        '(', choice($._rcases_atom, $.rcases_tuple_pattern),
+        repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
+      ),
+    )),
 
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.
@@ -875,25 +900,29 @@ module.exports = grammar({
         $.tactic_config,
         repeat1(field('arg', $._expression)),
       ),
-      optional(seq('at', repeat1(choice($.identifier, '*')))),
+      optional(seq('at', repeat1(choice($.identifier, '*', '⊢')))),
     )),
 
     // `have h : T := proof` in tactic mode
-    tactic_have: $ => prec.right(seq(
+    tactic_have: $ => prec.right(1, seq(
+      $._binding_start,
       choice('have', 'obtain', 'suffices'),
-      optional(field('name', $._pattern)),
+      optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // `let x := e` in tactic mode
     tactic_let: $ => prec(1, seq(
+      $._binding_start,
       'let',
       field('pattern', $._pattern),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // `show T`
@@ -921,12 +950,12 @@ module.exports = grammar({
     let: $ => prec.right(choice(
       // Identifier form: always wins for bare identifiers.
       // Subsumes function form (with binders) and simple form (without).
-      seq('let', field('name', $.identifier),
+      seq($._binding_start, 'let', field('name', $.identifier),
           optional(field('parameters', $.parameters)),
           optional($._type_spec), $._binding_body),
       // Pattern form: tuple destructuring and holes only.
       // Constructor patterns in `let` require qualified names, parsed differently.
-      seq('let', field('pattern', choice($.tuple_pattern, $.hole)),
+      seq($._binding_start, 'let', field('pattern', choice($.tuple_pattern, $.hole)),
           optional($._type_spec), $._binding_body),
     )),
 
@@ -987,7 +1016,7 @@ module.exports = grammar({
     // Constructor pattern: `some x`, `none`, `Foo.bar x y`
     // An identifier alone is just an identifier, not a constructor_pattern
     constructor_pattern: $ => prec.left(PREC.app, seq(
-      field('constructor', $.identifier),
+      field('constructor', choice($.identifier, seq('.', $.identifier))),
       repeat1(field('arg', $._pattern)),
     )),
 
@@ -1066,21 +1095,26 @@ module.exports = grammar({
     // the block as its body, so a `let` followed by a `for` parsed as a term whose body
     // was an application called `for`. Inside a `do`, Lean reads the do-let.
     do_let: $ => prec.dynamic(2, prec.right(2, seq(
+      $._binding_start,
       'let',
       field('pattern', choice($._pattern, $.list_pattern)),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
       optional(seq('|', field('fallback', $._expression))),
+      $._layout_end,
     ))),
 
     // Monadic bind: `let x ← e` or `let (a, b) ← e` or `let x : T ← e`
     let_bind: $ => seq(
+      $._binding_start,
       'let',
       field('name', $._pattern),
       optional($._type_spec),
       choice('<-', '←'),
       field('value', $._expression),
+      optional(seq('|', field('fallback', $._expression))),
+      $._layout_end,
     ),
 
     // Mutable let: `let mut x := e` or `let mut x : Type := e`.
@@ -1088,12 +1122,14 @@ module.exports = grammar({
     // Dynamic precedence for the same reason `do_let` has it, and one more: a term
     // `let` reads `let mut x` as a binding of `mut` taking a parameter `x`.
     let_mut: $ => prec.dynamic(2, seq(
+      $._binding_start,
       'let',
       'mut',
       field('name', $.identifier),
       optional($._type_spec),
       choice('<-', '←', ':='),
       field('value', $._expression),
+      $._layout_end,
     )),
 
     // Reassignment: `x := e`
@@ -1114,20 +1150,20 @@ module.exports = grammar({
     // For loop: `for x in xs do body` or `for x in xs, y in ys do body`
     // Uses an explicit for_binding helper to help the parser generator
     // produce correct state transitions for multi-iterator loops.
-    // Precedence > PREC.app so `do` is the for body, not an app argument.
+    // A scanner marker distinguishes the body from a function's do argument.
     for_in: $ => prec.right(PREC.app + 1, seq(
       'for',
       $._for_binding,
       repeat(seq(',', $._for_binding)),
+      $._do_body_start,
       field('body', $.do),
     )),
 
-    // Precedence on the iterable > PREC.app so `do` reduces the expression
-    // rather than being consumed as an application argument.
+    // The body marker ends the iterable before its `do` keyword.
     _for_binding: $ => seq(
       field('var', choice($._pattern, $.structure_instance)),
       'in',
-      field('iterable', prec(PREC.app + 1, $._expression)),
+      field('iterable', $._expression),
     ),
 
     // If in do-block: branches are do-sequences (can contain reassignment etc.)
@@ -1194,21 +1230,19 @@ module.exports = grammar({
       optional($._layout_end),
     )),
 
-    // While loop in do-block: `while cond do body`. The condition's `do`
-    // greediness when followed by a binary expression `x == y do` is a known
-    // limitation; mirrors lean4's `withForbidden "do"` need but tree-sitter
-    // can't enforce that without a full `_term_before_do` clone (state-cost
-    // prohibitive). Workaround: simple conditions parse fine.
-    do_while: $ => prec.right(1, seq(
+    // A body marker ends the condition before `do`, including comparisons.
+    do_while: $ => prec.right(PREC.app + 1, seq(
       'while',
       field('condition', $._expression),
+      $._do_body_start,
       field('body', $.do),
     )),
 
-    // `unless cond do body` — same caveat as `do_while`.
-    do_unless: $ => prec.right(1, seq(
+    // `unless cond do body` uses the same statement-body boundary.
+    do_unless: $ => prec.right(PREC.app + 1, seq(
       'unless',
       field('condition', $._expression),
+      $._do_body_start,
       field('body', $.do),
     )),
 
@@ -1392,8 +1426,8 @@ module.exports = grammar({
     synthetic_hole: _ => /\?[_a-zA-Z]\w*/,
 
     // Quoted name: `` `name `` or ``` ``name ```
-    quoted_name: $ => seq('`', $.identifier),
-    double_quoted_name: $ => seq('``', $.identifier),
+    quoted_name: $ => seq('`', choice($.identifier, $.escaped_identifier)),
+    double_quoted_name: $ => seq('``', choice($.identifier, $.escaped_identifier)),
 
     // Syntax quotation: `` `(category| pattern) `` or `` `(pattern) `` —
     // Lean 4's syntax-pattern matching used in macros and `match` over

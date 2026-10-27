@@ -1,0 +1,44 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..f1d1432 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,37 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    rcases h with h | h
++    · simp [page_countModel, h]
++    · simp [page_countModel, h]
++  · constructor
++    · intro h
++      rcases h with ⟨hi0, hiMax, hs1, hsMax⟩
++      have hdiv : Int.tdiv items size = items / size :=
++        Int.tdiv_eq_ediv_of_nonneg (by omega)
++      have hmod : Int.tmod items size = items % size :=
++        Int.tmod_eq_emod_of_nonneg (by omega)
++      have hrem0 : 0 ≤ items % size := Int.emod_nonneg items (by omega)
++      have hremLt : items % size < size := Int.emod_lt_of_pos items (by omega)
++      have hrec : items / size * size + items % size = items :=
++        Int.ediv_mul_add_emod items size
++      have hqnonneg : 0 ≤ items / size := Int.ediv_nonneg hi0 (by omega)
++      have hqle : items / size ≤ items := Int.ediv_le_self size hi0
++      have hqmul : items / size ≤ items / size * size :=
++        by simpa using Int.mul_le_mul_of_nonneg_left (a := (1 : Int)) (b := size) (by omega) hqnonneg
++      have hitem : ¬ items < 0 := by omega
++      have hsize : ¬ size ≤ 0 := by omega
++      unfold page_countModel
++      simp [hitem, hsize, hdiv, hmod]
++      by_cases hr : items % size = 0
++      · simp [hr]
++        omega
++      · have hremPos : 0 < items % size := by omega
++        simp [hr]
++        omega
++    · rfl
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

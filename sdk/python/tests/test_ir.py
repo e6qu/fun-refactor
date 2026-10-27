@@ -167,7 +167,10 @@ class TestIr:
             "proof_region": "keep_identity", "object_digest": "a" * 64,
             "prove_template": ["spec", "prove", "specs/Keep.lean::keep_identity"],
             "verify": ["spec", "verify", "specs/Keep.lean"],
+            "model_context_digest": merkle_object_digest("fixed model and package inputs"),
         }
+        goal["id"] = goal["object_digest"] = merkle_object_digest({key: goal[key] for key in (
+            "name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")})
         contract = {
             "author": "agent", "format": "utf8-lean-tactics",
             "insertion_point": "inside-existing-by-block",
@@ -205,17 +208,20 @@ class TestIr:
             ProofTask.from_data(bound)
         changed_task = json.loads(json.dumps(task))
         changed_task["goal"]["theorem"] = "changed"
-        with pytest.raises(IrError, match="Merkle content address"):
+        with pytest.raises(IrError, match="model context identity"):
             ProofTask.from_data(changed_task)
 
         proof_digest = merkle_object_digest("rfl")
+        checker_context = merkle_object_digest("checked module and exact package inputs")
         receipt_core = {
             "schema": "fr-proof-receipt-1", "goal_id": goal["id"],
             "proof_digest": proof_digest, "checker": contract["checker"],
+            "checker_context_digest": checker_context,
         }
         attempt = {
             "schema": "fr-proof-attempt-1", "goal_id": goal["id"],
             "proof_digest": proof_digest, "checker": contract["checker"], "passed": True,
+            "checker_context_digest": checker_context,
             "diagnostics": [], "diagnostics_omitted": 0,
             "receipt": merkle_object_digest(receipt_core),
             "actions": {
@@ -227,6 +233,14 @@ class TestIr:
             },
         }
         assert ProofAttempt.from_data(attempt).to_data() == attempt
+        changed_context = json.loads(json.dumps(attempt))
+        changed_context["checker_context_digest"] = merkle_object_digest("changed dependency")
+        with pytest.raises(IrError, match="invalid receipt"):
+            ProofAttempt.from_data(changed_context)
+        missing_context = json.loads(json.dumps(attempt))
+        del missing_context["checker_context_digest"]
+        with pytest.raises(IrError):
+            ProofAttempt.from_data(missing_context)
         attempt["receipt"] = "0" * 64
         with pytest.raises(IrError, match="invalid receipt"):
             ProofAttempt.from_data(attempt)

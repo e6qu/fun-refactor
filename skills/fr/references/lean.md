@@ -1,71 +1,74 @@
 # Write and check a Lean proof
 
-State a concrete property, such as the Boolean condition required for access. Check the proof and its link to the selected code.
-Keep the requested claim fixed while repairing tactics. A stronger model's supplied proof is assistance, not the selected agent's unaided result.
+A theorem states the claim. Tactics are the proof steps you write for Lean to check.
+Keep the supplied claim, model, assumptions and program unchanged.
 
-Lean checks a theorem under its definitions and assumptions. A model represents supported source behavior; a proof still needs a checked connection to that source.
+## When the theorem already exists
 
-Ordinary use does not require Lean. `spec verify` requires Lean/Lake and an owning checked package.
-Preview `fr --json spec init`, then apply with `--write` or save with `--save-plan`.
-
-For typed pure declarations across the shared readers, run `fr --json spec candidates src`, save
-`fr --json spec plan TARGET --property KIND`, and apply it with
-`fr --json spec scaffold --from PLAN --write`. Review each property. Use `spec goals specs`, reveal
-one returned digest, then request its `spec proof-task`. The task contains empty templates; write the
-tactics without `by` yourself. Run `spec proof-check` until Lean accepts them, then use `spec prove`
-and `spec verify`. `docs/agent-formalization.md` defines the subset and evidence boundary.
-
-For custom properties, request `spec property-task TARGET`. Author `fr-formal-property-1` with its
-model signature, grammar and digest; the Python property classes mirror that tree.
-Pass it to `spec plan TARGET --property-from FILE`. Keep Lean text and tactics outside property IR;
-`fr` validates and elaborates, then the agent writes tactics through the proof-task loop.
-
-Declarative file targets use `PATH::__fr_structure__` for retained spans, name containment and
-ordered parent provenance. Inspect omissions; rendering and embedded execution remain unproved.
-Choose `retained-facts-wellformed` for validity or `ir-model` for Boolean kernel/model correspondence.
-The latter accepts at most eight Boolean inputs and a Boolean output. Write its tactics yourself;
-strict checks pin the semantic library. `evidence.kernel_correspondence` identifies checked model
-relations; `source_implementation_proved` stays false.
-
-Generated `Int`/`Nat` models use Lean arithmetic. Check source widths, overflow and coercion before claiming numeric source correspondence.
-
-Manual scaffolding remains available as `fr --json spec scaffold src/lib.rs::allowed`. It creates an
-anchor, signature map and visible `sorry`; replace its model and add reviewed properties. On source
-drift, rerun it and review the generated-region diff; the handwritten region is preserved. Keep debt
-below `-- fr:debt NAME`, ratchet `spec check specs --strict --max-debt N`, generate CI with
-`spec ci --max-debt N`, and report assumptions and obligations with `spec evidence specs`.
-
-A manual source and model pair:
-
-```rust
-pub fn allowed(ok: bool) -> bool { ok }
-```
-
-```lean
--- fr:spec src/lib.rs::allowed @ 00000000
--- fr:signature ok: bool => ok: Bool; return: bool => return: Bool
-def allowed (ok : Bool) : Bool := ok
-
-theorem accepts_true : allowed true = true := by rfl
-```
-
-Review source, types, model and property before renewing its stale anchor:
+A target joins the file and theorem with `::`, for example
+`specs/FrSpecs/Rules.lean::access_rule`. Replace `<LEAN_TARGET>` below with the supplied
+target. `spec goals specs` lists generated goals when the target is unknown.
 
 ```sh
-fr --json spec check specs --strict
-fr --json spec sync specs
-fr --json spec sync specs --write
-fr --json spec verify specs
+fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 
-Hash renewal repairs no model, signature or proof. Verify the owning checked target.
+Read the fixed claim, model and empty templates. Write a draft early, without a leading
+`by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
+repair it. You supply the proof steps.
+The `--token-limit` value bounds serialized UTF-8 response bytes.
 
-Keep four claims separate in the final evidence:
+For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
+Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
+A namespace groups definitions: `List.length` belongs to `List`. Search for `length`,
+the part after the dot.
+Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
 
-- A fresh anchor matches recorded source bytes.
-- A fresh signature map matches the declared source and model surfaces.
-- A Lean theorem proves its proposition under the model's definitions and assumptions.
-- Shared execution cases test correspondence on those cases only.
+```sh
+fr --no-cache -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
+```
 
-None alone proves the full source implementation correct. State the covered domain, assumptions, axioms, trusted tools and remaining correspondence obligations.
-Translation into Lean also does not supply an implementation-equivalence proof.
+`--contains` matches a literal name fragment. Read the returned headers for argument types
+and order. `--bytes` limits source text across the page; metadata adds output.
+Check coverage and remaining results; refine the fragment or follow the cursor.
+
+For a check that leaves source unchanged:
+
+```sh
+fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
+```
+
+Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
+proof. Repair the tactics in that file. To check and write them into the proof region:
+
+```sh
+fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
+```
+
+This command checks the proof and records its source change. Review the diff and deliver
+the requested patch. If the request specifies `git diff --binary HEAD`, write that output
+to `change.patch`. The separate source-edit workflow needs a saved edit plan; use actual
+returned IDs when working with such a plan.
+
+If you already edited the proof directly, check the owning Lean package and deliver the
+requested patch. A contributing proof-task or proof-check step can help without creating
+a source-edit transaction. Run supplied checks once and retain failed-check diagnostics.
+
+## When a model or claim still needs to be created
+
+Inspect `fr --json capabilities --lang lean`. A model describes selected source behavior
+in Lean; proving its theorem does not establish a general source-to-model connection.
+
+For typed pure source declarations, use `spec candidates src`, `spec property-task TARGET`,
+then `spec plan TARGET --property-from FILE` and `spec scaffold --from PLAN --write`.
+A property-task describes the model signature, allowed claim grammar and input digest.
+Write the requested claim using that grammar, review the generated model and theorem,
+then follow the proof steps above. Never substitute an easier claim.
+
+Generated `Int` and `Nat` models use Lean arithmetic. Review source widths, overflow and
+coercions before claiming correspondence. `spec verify specs` checks the owning package;
+Lean and Lake must be installed. Hash renewal alone repairs no model or proof.
+
+State the proved claim, domain, assumptions, axioms and trusted tools. A source hash
+identifies bytes; a signature map identifies declared types; runtime examples check their
+particular inputs. A checked model theorem leaves general implementation equivalence open.

@@ -6,7 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = Path('tests/agent-eval/selected-agents')
 INPUTS = ('clients.json', 'profiles.json', 'tasks.json')
-CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits')}
+CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'),
+                    'M3': Path('tests/agent-eval/proof-writing')}
 
 
 def encoded(value):
@@ -19,7 +20,7 @@ def require(condition, message):
 
 
 def prepare(root, milestone):
-    require(milestone in CASE_DIRECTORIES, 'choose M1 or M2 explicitly')
+    require(milestone in CASE_DIRECTORIES, 'choose M1, M2 or M3 explicitly')
     case_directory = CASE_DIRECTORIES[milestone]
     paths = {name: (case_directory if name == 'tasks.json' else DIRECTORY) / name for name in INPUTS}
     documents = {name: json.loads((root / path).read_text()) for name, path in paths.items()}
@@ -27,7 +28,8 @@ def prepare(root, milestone):
     require(set(profiles) == {'codex-luna-fast', 'opencode2-glm-flash', 'opencode2-kimi-k3'},
             'the comparison requires the three selected profiles')
     expected_tasks = {'M1': {'boltons-rename', 'unicode-dice', 'access-proof'},
-                      'M2': {'rust-parameter', 'typescript-alias', 'regex-escape-len', 'python-invoice'}}[milestone]
+                      'M2': {'rust-parameter', 'typescript-alias', 'regex-escape-len', 'python-invoice'},
+                      'M3': {'access-rust', 'page-count', 'fits-window'}}[milestone]
     require(set(tasks['tasks']) == expected_tasks, milestone + ' requires its fixed tasks')
     require(tasks['repetitions'] == 2 and tasks['setups'] == ['files', 'fr'],
             'the comparison requires two repetitions and both tool setups')
@@ -54,8 +56,10 @@ def prepare(root, milestone):
                         'position': position + 1, 'status': 'unstarted', 'outcome': None,
                         'usage': None, 'cost': None, 'fr_contribution': None})
     bound_paths = list(paths.values())
-    if milestone == 'M2':
+    if milestone in {'M2', 'M3'}:
         bound_paths += [case_directory / 'checkers.json']
+        if milestone == 'M3':
+            bound_paths += [case_directory / 'cases.json']
         bound_paths += [path.relative_to(root) for path in sorted((root / case_directory / 'fixtures').rglob('*'))
                         if path.is_file()]
     bindings = {str(path): hashlib.sha256((root / path).read_bytes()).hexdigest() for path in bound_paths}

@@ -53,12 +53,18 @@ class SelectedPublicTests(unittest.TestCase):
         self.assertIsNone(completed_tool_time([])['completed_tool_wall_seconds'])
 
     def test_export_keeps_raw_prompts_and_exception_commands_private(self):
+        self.assert_private_export('M2', 48)
+
+    def test_m3_export_keeps_raw_proof_prompts_and_records_private(self):
+        self.assert_private_export('M3', 36)
+
+    def assert_private_export(self, milestone, count):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            schedule = prepare(ROOT, 'M2')
+            schedule = prepare(ROOT, milestone)
             plan = {'schedule': schedule, 'implementation': {}, 'source': {'native_inputs': {}, 'commit': 'source'},
                     'seeds': {}, 'versions': {}, 'checker_versions': {}, 'limits': {}, 'controls': {}, 'shared_setup': {},
-                    'binaries': {}, 'components': {}, 'client_finish_seconds': 10,
+                    'binaries': {}, 'components': {}, 'client_finish_seconds': 10, 'formal_inputs': {},
                     'public_check_environment': dict(public.local.PUBLIC_CHECK_ENVIRONMENT),
                     'fr_build': {'source_commit': 'built-source', 'source_tree': 'built-tree', 'executable_sha256': 'binary'}}
             plan['sha256'] = hashlib.sha256(encoded(plan)).hexdigest()
@@ -84,7 +90,7 @@ class SelectedPublicTests(unittest.TestCase):
             with patch.object(public.local, 'implementation_bindings', return_value={}), \
                     patch.object(public.grading, 'core_digest', return_value='checker'):
                 result = public.export(plan_path, review, destination)
-            self.assertEqual(len(result['attempts']), 48)
+            self.assertEqual(len(result['attempts']), count)
             self.assertEqual(result['public_check_environment']['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
             self.assertEqual(result['client_finish_seconds'], 10)
             self.assertTrue(all(row['checking_input_changes'] == ['.fr/checks.json'] for row in result['attempts']))

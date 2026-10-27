@@ -175,7 +175,7 @@ const WORKFLOWS: &[Workflow] = &[
 
 fn capability_report() -> Value {
     let rows = capabilities::matrix();
-    let (supported, not_applicable, refused) = capabilities::totals();
+    let (supported, not_applicable, refused) = capabilities::totals(&rows);
     let cells = rows
         .into_iter()
         .map(|row| {
@@ -356,7 +356,7 @@ fn boundary_report() -> Value {
 }
 
 fn summary_report() -> Value {
-    let (supported, not_applicable, refused) = capabilities::totals();
+    let (supported, not_applicable, refused) = capabilities::totals(&capabilities::matrix());
     let framework_cells = Adapter::ALL.len() * Adapter::ALL.len() * FeatureKind::ALL.len();
     let framework_supported = Adapter::ALL
         .into_iter()

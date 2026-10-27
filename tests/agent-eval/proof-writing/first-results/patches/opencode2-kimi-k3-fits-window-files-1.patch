@@ -1,0 +1,21 @@
+diff --git a/specs/FrSpecs/SrcWindowRsFitsWindow.lean b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
+index a5e6f92..0d0dfc3 100644
+--- a/specs/FrSpecs/SrcWindowRsFitsWindow.lean
++++ b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
+@@ -11,8 +11,14 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
+ -- fr:property agent unproved
+ theorem fits_windowModel_fits_exactly (offset : Nat) (count : Nat) (total : Nat) : (((fits_windowModel (offset) (count) (total)) = true) → ((((offset) + (count))) ≤ (total))) ∧ (((((offset) + (count))) ≤ (total)) → ((fits_windowModel (offset) (count) (total)) = true)) := by
+   -- fr:proof-begin fits_windowModel_fits_exactly
+-  -- fr:debt fits_windowModel_fits_exactly
+-  sorry
++  unfold fits_windowModel
++  rw [Bool.and_eq_true, decide_eq_true_eq, decide_eq_true_eq]
++  constructor
++  · intro h
++    exact Nat.add_comm count offset ▸ (Nat.le_sub_iff_add_le h.1).mp h.2
++  · intro h
++    have ho : offset ≤ total := Nat.le_trans (Nat.le_add_right offset count) h
++    exact ⟨ho, (Nat.le_sub_iff_add_le ho).mpr (Nat.add_comm offset count ▸ h)⟩
+   -- fr:proof-end fits_windowModel_fits_exactly
+ -- fr:generated-end formal-kernel
+ 

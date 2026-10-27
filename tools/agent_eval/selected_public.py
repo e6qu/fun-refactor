@@ -103,10 +103,11 @@ def completed_tool_time(events):
 
 def export(plan_path, review, destination):
     plan = json.loads(plan_path.read_text())
-    require(plan['schedule']['milestone'] == 'M2' and
+    milestone = plan['schedule']['milestone']
+    require(milestone in {'M2', 'M3'} and
             hashlib.sha256(encoded({key: value for key, value in plan.items() if key != 'sha256'})).hexdigest() == plan['sha256'],
-            'export the unchanged M2 execution plan')
-    require(plan['implementation'] == local.implementation_bindings('M2'), 'collection code changed after freezing')
+            'export the unchanged execution plan')
+    require(plan['implementation'] == local.implementation_bindings(milestone), 'collection code changed after freezing')
     require(not destination.exists(), 'retain the original publication; write a new destination')
     destination.mkdir(parents=True)
     (destination / 'patches').mkdir()
@@ -178,10 +179,10 @@ def export(plan_path, review, destination):
             'completed_tools': completed_tool_time(events), 'independent_outcome': None,
             'collection_error_recorded': bool(record['error'] or record['collection_errors']),
             'failure_summary': failure_summary})
-    summary = {'study': 'M2', 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
+    summary = {'study': milestone, 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',
         'profiles': plan['schedule']['profiles'], 'task_bindings': plan['schedule']['bindings'],
-        'native_inputs': plan['source']['native_inputs'], 'core_checker_sha256': grading.core_digest('M2'),
+        'native_inputs': plan['source']['native_inputs'], 'core_checker_sha256': grading.core_digest(milestone),
         'task_source_sha256': {task: hashlib.sha256(encoded(seed['receipt']['original'])).hexdigest()
                               for task, seed in plan['seeds'].items()},
         'native_app_versions': plan['versions'], 'local_checker_versions': plan['checker_versions'],
@@ -192,11 +193,16 @@ def export(plan_path, review, destination):
         'public_check_environment': plan['public_check_environment'],
         'provider_request_cap_enforced': False, 'token_cap_enforced': False,
         'accounting': 'CLI-reported categories retain client meanings. Unknown account charges and incomplete usage are not replaced with zero.',
-        'cache_state': 'Fresh conversations and projects. Operating-system and provider caches are uncontrolled.',
+        'cache_state': 'Fresh conversations and projects, with a separate new .fr/cache for each attempt. Operating-system and provider caches are uncontrolled.',
         'resource_scope': 'Elapsed time covers the complete controller attempt. CPU and RSS samples describe the native CLI process group. The outer workstation guard also covers controller preparation and capture.',
         'unmeasured_per_attempt': {'controller_python_startup_seconds': None, 'outer_guard_startup_seconds': None},
-        'controls': plan['controls'], 'shared_setup': plan['shared_setup'],
+        'controls': plan['controls'],
         'collection_receipts': {plan['sha256']: plan['source']['commit']}, 'attempts': rows}
+    if milestone == 'M2':
+        summary['shared_setup'] = plan['shared_setup']
+    elif milestone == 'M3':
+        summary['formal_inputs'] = plan['formal_inputs']
+        summary['proof_trust'] = json.loads((local.ROOT / 'tests/agent-eval/proof-writing/checkers.json').read_text())
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
 
@@ -206,10 +212,14 @@ def accept_checks(data, checked_path, run):
             'supply the exact independent GitHub check run')
     summary = json.loads((data / 'summary.json').read_text())
     checked = json.loads(checked_path.read_text())
-    require(checked['passed'] is True and checked['all_48_checked'] is True and checked['checked_attempts'] == 48 and
+    milestone = summary['study']
+    require(milestone in {'M2', 'M3'}, 'choose the explicit public study')
+    count = 48 if milestone == 'M2' else 36
+    require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count and
             checked['core_checker_sha256'] == summary['core_checker_sha256'] and
-            checked['control_policy'] == 'frozen' and checked['image'] == summary['controls']['private']['image'] and
-            set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check all 48 original submissions')
+            set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check every original submission')
+    require(checked['control_policy'] == 'frozen' and checked['image'] == summary['controls']['private']['image'],
+            'use the independent checker frozen before model calls')
     for row in summary['attempts']:
         verdict = checked['attempts'][row['id']]
         require(verdict['status'] == 'checked' and verdict['native_status'] == row['native_status'] and
@@ -225,12 +235,17 @@ if __name__ == '__main__':
     exporting = commands.add_parser('export-m2')
     for name in ('plan', 'review', 'output'):
         exporting.add_argument('--' + name, type=Path, required=True)
+    exporting_m3 = commands.add_parser('export-m3')
+    for name in ('plan', 'review', 'output'):
+        exporting_m3.add_argument('--' + name, type=Path, required=True)
     checking = commands.add_parser('accept-checks')
     for name in ('data', 'checks'):
         checking.add_argument('--' + name, type=Path, required=True)
     checking.add_argument('--run', required=True)
     args = parser.parse_args()
-    if args.operation == 'export-m2':
+    if args.operation in {'export-m2', 'export-m3'}:
+        require(json.loads(args.plan.read_text())['schedule']['milestone'] ==
+                ('M2' if args.operation == 'export-m2' else 'M3'), 'export operation differs from the frozen milestone')
         summary = export(args.plan.resolve(), json.loads(args.review.read_text()), args.output.resolve())
         print(json.dumps({'study': summary['study'], 'attempts': len(summary['attempts']), 'publication': 'patches and summary only'}))
     else:

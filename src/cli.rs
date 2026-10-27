@@ -168,7 +168,7 @@ enum Command {
         /// Only this language.
         #[arg(long = "lang", alias = "language")]
         language: Option<String>,
-        /// Emit the markdown table used in the README.
+        /// Print the selected operations and languages as a Markdown table.
         #[arg(long)]
         markdown: bool,
     },
@@ -7019,25 +7019,30 @@ fn cmd_capabilities(
 ) -> Result<()> {
     use crate::capabilities::{self, Capability};
 
-    if markdown {
-        print!("{}", capabilities::render_markdown());
-        return Ok(());
-    }
-
     let wanted_language = match language {
         Some(name) => Some(resolve_languages(&[name.to_string()])?[0]),
         None => None,
     };
-    let rows: Vec<_> = capabilities::matrix()
+    let mut rows: Vec<_> = capabilities::matrix()
         .into_iter()
         .filter(|r| {
             capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c)
         })
         .collect();
 
+    for row in &mut rows {
+        row.languages
+            .retain(|(name, _)| wanted_language.is_none_or(|l| l.name() == *name));
+    }
+
     if rows.is_empty() {
         let known: Vec<_> = Capability::ALL.iter().map(|c| c.label()).collect();
         anyhow::bail!("unknown capability. Known: {}", known.join(", "));
+    }
+
+    if markdown {
+        print!("{}", capabilities::render_markdown(&rows));
+        return Ok(());
     }
 
     if cli.json {
@@ -7048,9 +7053,6 @@ fn cmd_capabilities(
     for row in &rows {
         println!("{}  ({})", row.capability, row.command);
         for (name, support) in &row.languages {
-            if wanted_language.is_some_and(|l| l.name() != *name) {
-                continue;
-            }
             match support.reason() {
                 Some(why) => println!("  {:<4} {:<11} {why}", support.mark(), name),
                 None => println!("  {:<4} {name}", support.mark()),
@@ -7059,7 +7061,7 @@ fn cmd_capabilities(
         println!();
     }
 
-    let (yes, not_applicable, refused) = capabilities::totals();
+    let (yes, not_applicable, refused) = capabilities::totals(&rows);
     println!(
         "{yes} supported, {not_applicable} not applicable, {refused} refused \n\
          (of {} capability x language pairs)",

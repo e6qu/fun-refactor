@@ -1,0 +1,1045 @@
+{
+  "acceptance_checks": {
+    "basis": "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+    "names": [
+      "behavior"
+    ],
+    "toolchain-digest": "afe1f7d86033dc6e1b2b0ef22a7afc54e0817ebc25af89722fa9702de37e9e77"
+  },
+  "author": {
+    "atomic_snapshot": false,
+    "behavior_checked": false,
+    "changed": true,
+    "context_inherited": [
+      "coverage",
+      "revision",
+      "handle_prefix"
+    ],
+    "diff": "--- a/api.rs\n+++ b/api.rs\n@@ -1,54 +1,54 @@\n pub const LABEL: &str = \"κόστος\";\n pub fn quotes() -> [i64; 49] {\n     [\n-        crate::pricing::subtotal(-3, -3, 0),\n-        crate::pricing::subtotal(-3, -2, 0),\n-        crate::pricing::subtotal(-3, -1, 0),\n-        crate::pricing::subtotal(-3, 0, 0),\n-        crate::pricing::subtotal(-3, 1, 0),\n-        crate::pricing::subtotal(-3, 2, 0),\n-        crate::pricing::subtotal(-3, 3, 0),\n-        crate::pricing::subtotal(-2, -3, 0),\n-        crate::pricing::subtotal(-2, -2, 0),\n-        crate::pricing::subtotal(-2, -1, 0),\n-        crate::pricing::subtotal(-2, 0, 0),\n-        crate::pricing::subtotal(-2, 1, 0),\n-        crate::pricing::subtotal(-2, 2, 0),\n-        crate::pricing::subtotal(-2, 3, 0),\n-        crate::pricing::subtotal(-1, -3, 0),\n-        crate::pricing::subtotal(-1, -2, 0),\n-        crate::pricing::subtotal(-1, -1, 0),\n-        crate::pricing::subtotal(-1, 0, 0),\n-        crate::pricing::subtotal(-1, 1, 0),\n-        crate::pricing::subtotal(-1, 2, 0),\n-        crate::pricing::subtotal(-1, 3, 0),\n-        crate::pricing::subtotal(0, -3, 0),\n-        crate::pricing::subtotal(0, -2, 0),\n-        crate::pricing::subtotal(0, -1, 0),\n-        crate::pricing::subtotal(0, 0, 0),\n-        crate::pricing::subtotal(0, 1, 0),\n-        crate::pricing::subtotal(0, 2, 0),\n-        crate::pricing::subtotal(0, 3, 0),\n-        crate::pricing::subtotal(1, -3, 0),\n-        crate::pricing::subtotal(1, -2, 0),\n-        crate::pricing::subtotal(1, -1, 0),\n-        crate::pricing::subtotal(1, 0, 0),\n-        crate::pricing::subtotal(1, 1, 0),\n-        crate::pricing::subtotal(1, 2, 0),\n-        crate::pricing::subtotal(1, 3, 0),\n-        crate::pricing::subtotal(2, -3, 0),\n-        crate::pricing::subtotal(2, -2, 0),\n-        crate::pricing::subtotal(2, -1, 0),\n-        crate::pricing::subtotal(2, 0, 0),\n-        crate::pricing::subtotal(2, 1, 0),\n-        crate::pricing::subtotal(2, 2, 0),\n-        crate::pricing::subtotal(2, 3, 0),\n-        crate::pricing::subtotal(3, -3, 0),\n-        crate::pricing::subtotal(3, -2, 0),\n-        crate::pricing::subtotal(3, -1, 0),\n-        crate::pricing::subtotal(3, 0, 0),\n-        crate::pricing::subtotal(3, 1, 0),\n-        crate::pricing::subtotal(3, 2, 0),\n-        crate::pricing::subtotal(3, 3, 0),\n+        crate::pricing::sum_values(-3, -3),\n+        crate::pricing::sum_values(-3, -2),\n+        crate::pricing::sum_values(-3, -1),\n+        crate::pricing::sum_values(-3, 0),\n+        crate::pricing::sum_values(-3, 1),\n+        crate::pricing::sum_values(-3, 2),\n+        crate::pricing::sum_values(-3, 3),\n+        crate::pricing::sum_values(-2, -3),\n+        crate::pricing::sum_values(-2, -2),\n+        crate::pricing::sum_values(-2, -1),\n+        crate::pricing::sum_values(-2, 0),\n+        crate::pricing::sum_values(-2, 1),\n+        crate::pricing::sum_values(-2, 2),\n+        crate::pricing::sum_values(-2, 3),\n+        crate::pricing::sum_values(-1, -3),\n+        crate::pricing::sum_values(-1, -2),\n+        crate::pricing::sum_values(-1, -1),\n+        crate::pricing::sum_values(-1, 0),\n+        crate::pricing::sum_values(-1, 1),\n+        crate::pricing::sum_values(-1, 2),\n+        crate::pricing::sum_values(-1, 3),\n+        crate::pricing::sum_values(0, -3),\n+        crate::pricing::sum_values(0, -2),\n+        crate::pricing::sum_values(0, -1),\n+        crate::pricing::sum_values(0, 0),\n+        crate::pricing::sum_values(0, 1),\n+        crate::pricing::sum_values(0, 2),\n+        crate::pricing::sum_values(0, 3),\n+        crate::pricing::sum_values(1, -3),\n+        crate::pricing::sum_values(1, -2),\n+        crate::pricing::sum_values(1, -1),\n+        crate::pricing::sum_values(1, 0),\n+        crate::pricing::sum_values(1, 1),\n+        crate::pricing::sum_values(1, 2),\n+        crate::pricing::sum_values(1, 3),\n+        crate::pricing::sum_values(2, -3),\n+        crate::pricing::sum_values(2, -2),\n+        crate::pricing::sum_values(2, -1),\n+        crate::pricing::sum_values(2, 0),\n+        crate::pricing::sum_values(2, 1),\n+        crate::pricing::sum_values(2, 2),\n+        crate::pricing::sum_values(2, 3),\n+        crate::pricing::sum_values(3, -3),\n+        crate::pricing::sum_values(3, -2),\n+        crate::pricing::sum_values(3, -1),\n+        crate::pricing::sum_values(3, 0),\n+        crate::pricing::sum_values(3, 1),\n+        crate::pricing::sum_values(3, 2),\n+        crate::pricing::sum_values(3, 3),\n     ]\n }\n--- a/pricing.rs\n+++ b/pricing.rs\n@@ -1,1 +1,1 @@\n-pub fn subtotal(a: i64, b: i64, _legacy: i64) -> i64 { a + b }\n+pub fn sum_values(a: i64, b: i64) -> i64 { a + b }\n",
+    "files_changed": 2,
+    "postconditions": [
+      {
+        "actual": 2,
+        "expected": 2,
+        "held": true,
+        "postcondition": "files-changed"
+      },
+      {
+        "actual": 2,
+        "expected": 2,
+        "held": true,
+        "postcondition": "changed-operations"
+      },
+      {
+        "actual": [
+          "api.rs",
+          "pricing.rs"
+        ],
+        "expected": [
+          "api.rs",
+          "pricing.rs"
+        ],
+        "held": true,
+        "postcondition": "paths-changed"
+      }
+    ],
+    "postconditions_held": true,
+    "query": "batch",
+    "schema": "fr-author-batch-1",
+    "span_basis": "original-source",
+    "steps": [
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "documentation_edits": 0,
+          "new_name": "sum_values",
+          "old_name": "subtotal",
+          "operation": "rename",
+          "reference_edits": 49
+        },
+        "edits": [
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 109,
+              "start": 101
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 154,
+              "start": 146
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 199,
+              "start": 191
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 244,
+              "start": 236
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 288,
+              "start": 280
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 332,
+              "start": 324
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 376,
+              "start": 368
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 420,
+              "start": 412
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 465,
+              "start": 457
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 510,
+              "start": 502
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 555,
+              "start": 547
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 599,
+              "start": 591
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 643,
+              "start": 635
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 687,
+              "start": 679
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 731,
+              "start": 723
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 776,
+              "start": 768
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 821,
+              "start": 813
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 866,
+              "start": 858
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 910,
+              "start": 902
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 954,
+              "start": 946
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 998,
+              "start": 990
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1042,
+              "start": 1034
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1086,
+              "start": 1078
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1130,
+              "start": 1122
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1174,
+              "start": 1166
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1217,
+              "start": 1209
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1260,
+              "start": 1252
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1303,
+              "start": 1295
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1346,
+              "start": 1338
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1390,
+              "start": 1382
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1434,
+              "start": 1426
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1478,
+              "start": 1470
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1521,
+              "start": 1513
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1564,
+              "start": 1556
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1607,
+              "start": 1599
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1650,
+              "start": 1642
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1694,
+              "start": 1686
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1738,
+              "start": 1730
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1782,
+              "start": 1774
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1825,
+              "start": 1817
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1868,
+              "start": 1860
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1911,
+              "start": 1903
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1954,
+              "start": 1946
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 1998,
+              "start": 1990
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 2042,
+              "start": 2034
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 2086,
+              "start": 2078
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 2129,
+              "start": 2121
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 2172,
+              "start": 2164
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 2215,
+              "start": 2207
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 10,
+            "before_span": {
+              "end": 15,
+              "start": 7
+            },
+            "path": "pricing.rs"
+          }
+        ],
+        "handle": "frp1:0f82aab789761715487e3a89f968b0eb:9",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      },
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "call_sites": 49,
+          "request": {
+            "index": 2,
+            "operation": "remove-parameter"
+          }
+        },
+        "edits": [
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 119,
+              "start": 116
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 164,
+              "start": 161
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 209,
+              "start": 206
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 253,
+              "start": 250
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 297,
+              "start": 294
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 341,
+              "start": 338
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 385,
+              "start": 382
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 430,
+              "start": 427
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 475,
+              "start": 472
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 520,
+              "start": 517
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 564,
+              "start": 561
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 608,
+              "start": 605
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 652,
+              "start": 649
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 696,
+              "start": 693
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 741,
+              "start": 738
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 786,
+              "start": 783
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 831,
+              "start": 828
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 875,
+              "start": 872
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 919,
+              "start": 916
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 963,
+              "start": 960
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1007,
+              "start": 1004
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1051,
+              "start": 1048
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1095,
+              "start": 1092
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1139,
+              "start": 1136
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1182,
+              "start": 1179
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1225,
+              "start": 1222
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1268,
+              "start": 1265
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1311,
+              "start": 1308
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1355,
+              "start": 1352
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1399,
+              "start": 1396
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1443,
+              "start": 1440
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1486,
+              "start": 1483
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1529,
+              "start": 1526
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1572,
+              "start": 1569
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1615,
+              "start": 1612
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1659,
+              "start": 1656
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1703,
+              "start": 1700
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1747,
+              "start": 1744
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1790,
+              "start": 1787
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1833,
+              "start": 1830
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1876,
+              "start": 1873
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1919,
+              "start": 1916
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 1963,
+              "start": 1960
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2007,
+              "start": 2004
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2051,
+              "start": 2048
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2094,
+              "start": 2091
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2137,
+              "start": 2134
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2180,
+              "start": 2177
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 2223,
+              "start": 2220
+            },
+            "path": "api.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 44,
+              "start": 30
+            },
+            "path": "pricing.rs"
+          }
+        ],
+        "handle": "frp1:0f82aab789761715487e3a89f968b0eb:9",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      }
+    ],
+    "validation": "reparse-strict"
+  },
+  "change_scope": {
+    "affected_paths": [
+      "api.rs",
+      "main.rs",
+      "pricing.rs"
+    ],
+    "checks": [
+      {
+        "declared_paths": [
+          "pricing.rs",
+          "api.rs",
+          "main.rs"
+        ],
+        "matched_paths": [
+          "pricing.rs",
+          "api.rs",
+          "main.rs"
+        ],
+        "name": "behavior",
+        "status": "declared-candidate"
+      }
+    ],
+    "input_digest": "9dd4a1e5c25608914417c078084d664fb83a56eee45a9b058bf580fd5344ef45",
+    "review_ready": true,
+    "runtime_coverage": false,
+    "targets": [
+      "frp1:0f82aab789761715487e3a89f968b0eb:9",
+      "frp1:0f82aab789761715487e3a89f968b0eb:9"
+    ]
+  },
+  "checks": {
+    "basis": "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+    "command": [
+      "fr",
+      "checks",
+      "--run",
+      "behavior",
+      "--basis",
+      "807ff46da5dfdaf751f1267dae4e2832c26fa8cdf5fb6a393a53b8ecad6171e5",
+      "--quiet-success",
+      "--no-declarations"
+    ],
+    "coverage": [
+      {
+        "covers": [
+          "49 compiled public results"
+        ],
+        "name": "behavior"
+      }
+    ],
+    "names": [
+      "behavior"
+    ],
+    "selected": true
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 3,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 50,
+    "unsupported_files": 0
+  },
+  "delivery": {
+    "check_original": true,
+    "check_output_bytes": 2048,
+    "compact_success": true,
+    "exercise_reversal": true,
+    "patch": "artifacts/change.patch"
+  },
+  "executed": false,
+  "manifest_sha256": "fddd796d397b50cd183c044fc31a09319d32680e7056b69157394a71dd444f60",
+  "passed": null,
+  "ready": true,
+  "requests": [],
+  "revision": "0f82aab789761715487e3a89f968b0eb80bd5791a30147df0e446667bef08f88",
+  "schema": "fr-task-change-1",
+  "stages": [
+    {
+      "stage": "check-original",
+      "status": "pending"
+    },
+    {
+      "stage": "apply",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "undo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-restored",
+      "status": "pending"
+    },
+    {
+      "stage": "redo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "deliver-patch",
+      "status": "pending"
+    }
+  ],
+  "targets": [
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:0f82aab789761715487e3a89f968b0eb:9",
+      "id": "rename",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "pricing.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:0f82aab789761715487e3a89f968b0eb:9",
+      "id": "remove",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "pricing.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    }
+  ],
+  "task_basis": "frpt1:40eee60343b2e2ebd09e560b0d9f061f8758eeb6642d911abb22640abf0a0d2b",
+  "task_change_basis": "frtc1:73dd2b4ce547a2484da5802738eadfda0c1bd0bd639d4a7eb4f1e92b682b10d7",
+  "task_resolution_basis": "frpt2:a7999028fb444d6487d42c18558eace569d31498ca087d7ae6060cc47eba9ad1"
+}

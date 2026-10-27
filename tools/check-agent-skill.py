@@ -79,8 +79,13 @@ class Exercise:
     def run(self, root, args, success=True):
         args = [self.values.get(arg, arg) for arg in args]
         assert not any(re.fullmatch(r"<[^>]+>", arg) for arg in args), args
-        options = [] if "--json" in args else ["--json"]
-        result = subprocess.run([self.binary, "--no-cache", "-C", str(root), *options, *args],
+        options = [] if "--no-cache" in args else ["--no-cache"]
+        if "-C" not in args and "--root" not in args:
+            options += ["-C", str(root)]
+        if "--json" not in args:
+            options.append("--json")
+        environment = dict(os.environ, FUN_REFACTOR_CACHE=str(root / ".fr/skill-cache"))
+        result = subprocess.run([self.binary, *options, *args], env=environment,
                                 capture_output=True, text=True, timeout=120)
         assert (result.returncode == 0) == success, (args, result.stdout, result.stderr)
         value = json.loads(result.stdout)
@@ -90,7 +95,7 @@ class Exercise:
         value, size = self.run(root, command[1:], success)
         self.examples += 1
         self.executed.append((path, tuple(command)))
-        if path.name in ("SKILL.md", "explore.md", "batch.md"):
+        if path.name in ("SKILL.md", "explore.md", "batch.md") and "proof-task" not in command:
             self.exploration_bytes += size
         return value
 
@@ -132,6 +137,8 @@ def source_workflow(exercise, root):
 
     for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
+            if "proof-task" in command:
+                continue
             value = exercise.example(root, path, command)
             if value.get("query") in ("map", "find"):
                 rows = [dict(zip(value["columns"], row)) for row in value["rows"]]
@@ -516,25 +523,47 @@ def verified_workflow(exercise, root):
 def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
-    (root / "specs").mkdir()
-    (root / "src/lib.rs").write_text(blocks(path, "rust")[0])
-    model = root / "specs/Model.lean"
-    model.write_text(blocks(path, "lean")[0])
-    (root / "specs/lean-toolchain").write_text((ROOT / "kernels/lean-toolchain").read_text())
-    (root / "specs/lakefile.toml").write_text('name = "agent_skill_fixture"\nversion = "0.1.0"\ndefaultTargets = ["Model"]\n\n[[lean_lib]]\nname = "Model"\n')
-    for command in commands(path):
-        value = exercise.example(root, path, command, success="check" not in command)
-        if "check" in command:
-            assert any(anchor["status"] == "stale" for anchor in value["anchors"])
-        if "verify" in command:
-            assert value["report"]["obligations"] == 0
-            assert len(value["report"]["anchors"]) == 1
-            assert all(anchor["status"] == "fresh" and anchor["signature"]["status"] == "fresh"
-                       for anchor in value["report"]["anchors"])
-            assert value["packages"] and all(package["passed"] for package in value["packages"])
-    model.write_text(model.read_text().replace("allowed true = true", "allowed true = false"))
-    failed, _ = exercise.run(root, ["spec", "verify", "specs"], success=False)
-    assert any(not package["passed"] for package in failed["packages"])
+    (root / ".fr").mkdir()
+    source = root / "src/lib.rs"
+    source.write_text("pub fn allowed(value: bool) -> bool { value }\n")
+    exercise.run(root, ["spec", "init", "specs", "--write"])
+    task, _ = exercise.run(root, ["spec", "property-task", "src/lib.rs::allowed", "--token-limit", "4096"])
+    property_file, plan_file = root / ".fr/property", root / ".fr/plan"
+    variable = {"kind": "variable", "name": "value"}
+    property_file.write_text(json.dumps({"schema": "fr-formal-property-1", "task_digest": task["object_digest"],
+        "name": "identity_rule", "parameters": [{"name": "value", "lean_type": "Bool"}],
+        "proposition": {"kind": "equals", "left": {"kind": "model", "arguments": [variable]}, "right": variable}}))
+    plan, _ = exercise.run(root, ["spec", "plan", "src/lib.rs::allowed", "--property-from", str(property_file)])
+    plan_file.write_text(json.dumps(plan))
+    exercise.run(root, ["spec", "scaffold", "--from", str(plan_file), "--package", "specs", "--write"])
+    model = root / "specs/FrSpecs" / (plan["kernel"]["module"] + ".lean")
+    exercise.values["<LEAN_TARGET>"] = str(model.relative_to(root)) + "::" + plan["properties"][0]["name"]
+    prefix = subprocess.run(["lake", "env", "lean", "--print-prefix"], cwd=root / "specs",
+                            capture_output=True, text=True, check=True, timeout=10)
+    library = Path(prefix.stdout.strip()) / "src/lean/Init/Data/Int"
+    assert library.is_dir()
+    exercise.values["<LEAN_LIBRARY_DIR>"] = str(library)
+    exercise.values["<LIBRARY_QUERY>"] = "tdiv"
+    (root / ".fr/proof-tactics").write_text("rfl\n")
+    original, original_program = model.read_bytes(), source.read_bytes()
+    proof_examples = [(SKILL / "SKILL.md", command) for command in commands(SKILL / "SKILL.md")
+                      if "proof-task" in command]
+    proof_examples += [(path, command) for command in commands(path)]
+    for example_path, command in proof_examples:
+        value = exercise.example(root, example_path, command)
+        if "<LIBRARY_QUERY>" in command:
+            assert value["rows"] and value["page"]["returned"] <= 12
+            assert value["source_budget"]["returned_bytes"] <= 1536
+            assert "coverage" in value and "omitted" in value
+        if "proof-check" in command:
+            assert value["passed"] and model.read_bytes() == original
+            tactics = root / ".fr/proof-tactics"
+            tactics.write_text("exact (0 : Nat)\n")
+            failed, _ = exercise.run(root, ["spec", "proof-check", exercise.values["<LEAN_TARGET>"],
+                                          "--from", ".fr/proof-tactics", "--token-limit", "4096"])
+            assert not failed["passed"] and failed["diagnostics"] and model.read_bytes() == original
+            tactics.write_text("rfl\n")
+    assert model.read_bytes() != original and source.read_bytes() == original_program
 
 
 def guide_workflow(exercise, root):

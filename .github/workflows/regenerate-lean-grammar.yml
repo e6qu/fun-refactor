@@ -1,0 +1,65 @@
+name: Regenerate the Lean syntax reader
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: regenerate-lean-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            grammars/lean
+            tests/fixtures/lean-proof-locations.lean
+            tests/fixtures/lean-source-declarations.lean
+            tools/check-lean-reader.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26.5.0'
+      - name: Install the exact syntax-generator release
+        run: npm install --prefix "$RUNNER_TEMP/lean-generator" --no-audit --no-fund tree-sitter-cli@0.27.0
+      - name: Check binding layout boundaries and saved scanner state
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
+          "$RUNNER_TEMP/lean-layout"
+      - name: Generate the Lean parser and node descriptions
+        working-directory: grammars/lean
+        run: |
+          "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
+          /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
+      - name: Check proof syntax and preserve following declarations before committing
+        run: >-
+          python3 -B tools/check-lean-reader.py
+          --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter"
+          --diagnostics "$RUNNER_TEMP/lean-reader-diagnostics"
+      - name: Commit generated source to the same milestone branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          test "$BRANCH" != main
+          git add grammars/lean/src/parser.c grammars/lean/src/grammar.json grammars/lean/src/node-types.json grammars/lean/src/tree_sitter
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Generate the checked Lean syntax reader'
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-syntax-reader
+          path: grammars/lean/src
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-reader-diagnostics
+          path: ${{ runner.temp }}/lean-reader-diagnostics
+          if-no-files-found: ignore
+          retention-days: 7

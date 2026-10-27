@@ -60,7 +60,7 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertIn('[M2](../PLAN.md#', page)
         self.assertIn('[M3](../PLAN.md#', page)
         self.assertIn('its counts do not measure completion of the focused roadmap', page)
-        self.assertIn('M3 is next.', page)
+        self.assertIn('[M3 task guide](../tests/agent-eval/proof-writing/README.md)', page)
         self.assertIn('43 finished with correct patches and five timed out.', page)
         for name in ('C.repository-mutations', 'D.structural'):
             with self.subTest(missing=name):
@@ -70,7 +70,7 @@ class RoadmapStatusTests(unittest.TestCase):
                 page = status.markdown(self.compute())
                 self.assertIn('[M1](../PLAN.md#', page)
                 self.assertIn('its counts do not measure completion of the focused roadmap', page)
-                self.assertIn('M3 is next.', page)
+                self.assertIn('[M3 task guide](../tests/agent-eval/proof-writing/README.md)', page)
                 self.assertIn('Every selected agent has an accepted result per task using fr.', page)
                 gate['requires'] = requirements
 

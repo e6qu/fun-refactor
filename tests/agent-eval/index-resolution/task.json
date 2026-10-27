@@ -3,14 +3,30 @@
   "baseline": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
   "problem": "Keep measuring fresh indexing on fixed inputs as language support changes. Preserve the earlier ambiguity-counting speed comparison with its original checker and exact answers.",
   "subset": "Rust method lookups, Python repeated assignments and the fixed repository snapshot. Namespace, attribute and complementary-cfg fixes intentionally change repository answers; the smaller unchanged workloads still require exact original answers.",
-  "budgets": {"workers": 1, "workloads": ["members-128", "members-256", "assignments-128", "repository"], "repetitions": 2, "measurement_timeout_seconds": 600},
+  "budgets": {
+    "workers": 1,
+    "workloads": [
+      "members-128",
+      "members-256",
+      "assignments-128",
+      "repository"
+    ],
+    "repetitions": 2,
+    "measurement_timeout_seconds": 600
+  },
   "acceptance": [
     "Keep the original complete-output comparison reproducible against source 06294a686ef7ebe29987787bd2ef29b441ac0147. Preserve its original baseline.",
-    "Current smaller workloads must match the original complete output. Current repository runs must retain symbol/reference counts and repeat their full answer digest exactly; describe the intentional Rust answer changes.",
+    "Current smaller workloads must match the original complete output. Repository runs must match the reviewed Lean fact digest, account for every declaration and reference count change, and repeat their full answer digest exactly.",
     "Compare entity counts with the original ordered linear algorithm on duplicates, missing IDs, mixed groups and public symbol mutations.",
     "Preserve ambiguity, overloads, repeated assignments, configuration and CSS scope behavior.",
     "Retain one-worker unoptimized indexing latency and isolated process RSS. Report the comparison's checker, source snapshot and limits; timing includes the language changes."
   ],
   "edit_boundary": "Use fr guide to inspect count_entities. Direct edits change resolver internals and implement independent differential tests and measurements; no admitted author operation expresses this algorithm change.",
-  "claims": "Fresh indexing measurements on fixed workloads, with exact old answers required for unchanged smaller inputs. The original whole-repository equivalence claim belongs to its original checker. No compiler-completeness, production-task speed or milestone claim."
+  "claims": "Fresh indexing measurements on fixed workloads, with exact old answers required for unchanged smaller inputs. The original whole-repository equivalence claim belongs to its original checker. No compiler-completeness, production-task speed or milestone claim.",
+  "reference_correction": {
+    "file": "kernels/FrKernels/Disclosure.lean",
+    "fixture": "../index-consumers/ignored-wildcards.lean",
+    "sha256": "af7c1fd041cec31a8896f52cda32cc57579c9ee6d98ace400c1bcdb9d2199568"
+  },
+  "reader_review": "../index-consumers/lean-reader-review.json"
 }

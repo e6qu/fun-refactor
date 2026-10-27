@@ -100,10 +100,7 @@ runs:
         node-version: 26
         package-manager-cache: false
     - uses: ./.github/actions/go-toolchain
-    - uses: actions/setup-java@v6
-      with:
-        distribution: temurin
-        java-version: "26"
+    - uses: ./.github/actions/java-toolchain
     - name: Install the tutorial's TypeScript checker
       shell: bash
       run: npm ci --no-fund --no-audit

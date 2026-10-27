@@ -725,8 +725,7 @@ fn stmt(out: &mut Out, s: &Stmt, tail: bool) {
         }
         Stmt::While { condition, body } => {
             let test = expr(out, condition);
-            // The brackets are load-bearing. Lean applies by juxtaposition, so a bare
-            // `while i < 3 do` reads the `do` block as an argument of `3`.
+            // Group the complete condition before opening the body.
             out.line(&format!("while ({test}) do"));
             nested(out, body, false);
         }

@@ -1,0 +1,4617 @@
+{
+  "repository_revision": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+  "selection_source": "869f6272b291009c95991ae34148d5e40991b60b",
+  "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40445752303",
+  "selection": "The 512 source definitions selected by the pre-change reader. Current measurements require these same definitions; missing or duplicate matches fail.",
+  "historical_limit": "The original timing baseline did not save its selected source sites. This saved selection makes current and future runs comparable; it does not reconstruct an unrecorded historical selection.",
+  "queries": [
+    {
+      "file": "API_CONTRACTS.md",
+      "kind": "heading",
+      "name": "HTTP contracts and framework translation",
+      "name_span": {
+        "end": 42,
+        "start": 2
+      }
+    },
+    {
+      "file": "CROSS_LANGUAGE.md",
+      "kind": "heading",
+      "name": "Current relationships and limits",
+      "name_span": {
+        "end": 2209,
+        "start": 2177
+      }
+    },
+    {
+      "file": "catalogs/infra.yaml",
+      "kind": "key",
+      "name": "declaration_keyword",
+      "name_span": {
+        "end": 1090,
+        "start": 1071
+      }
+    },
+    {
+      "file": "catalogs/java.yaml",
+      "kind": "key",
+      "name": "annotated_with",
+      "name_span": {
+        "end": 5933,
+        "start": 5919
+      }
+    },
+    {
+      "file": "catalogs/rust.yaml",
+      "kind": "key",
+      "name": "id",
+      "name_span": {
+        "end": 153,
+        "start": 151
+      }
+    },
+    {
+      "file": "catalogs/zig.yaml",
+      "kind": "key",
+      "name": "threat_model",
+      "name_span": {
+        "end": 193,
+        "start": 181
+      }
+    },
+    {
+      "file": "docs/demo.js",
+      "kind": "variable",
+      "name": "list",
+      "name_span": {
+        "end": 9015,
+        "start": 9011
+      }
+    },
+    {
+      "file": "docs/panes.js",
+      "kind": "parameter",
+      "name": "before",
+      "name_span": {
+        "end": 4480,
+        "start": 4474
+      }
+    },
+    {
+      "file": "docs/style.css",
+      "kind": "selector",
+      "name": "entry",
+      "name_span": {
+        "end": 12966,
+        "start": 12961
+      }
+    },
+    {
+      "file": "docs/theme.js",
+      "kind": "variable",
+      "name": "e",
+      "name_span": {
+        "end": 857,
+        "start": 856
+      }
+    },
+    {
+      "file": "docs/type-safety.js",
+      "kind": "function",
+      "name": "loadPyodideOnce",
+      "name_span": {
+        "end": 10900,
+        "start": 10885
+      }
+    },
+    {
+      "file": "grammars/go/build.rs",
+      "kind": "function",
+      "name": "main",
+      "name_span": {
+        "end": 50,
+        "start": 46
+      }
+    },
+    {
+      "file": "grammars/lean/grammar.js",
+      "kind": "parameter",
+      "name": "$",
+      "name_span": {
+        "end": 5970,
+        "start": 5969
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "members",
+      "name_span": {
+        "end": 1517,
+        "start": 1510
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 8990,
+        "start": 8986
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "universe",
+      "name_span": {
+        "end": 17414,
+        "start": 17406
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "value",
+      "name_span": {
+        "end": 25023,
+        "start": 25018
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "content",
+      "name_span": {
+        "end": 33585,
+        "start": 33578
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "content",
+      "name_span": {
+        "end": 43105,
+        "start": 43098
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 52430,
+        "start": 52426
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 59866,
+        "start": 59862
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "members",
+      "name_span": {
+        "end": 67954,
+        "start": 67947
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 76897,
+        "start": 76893
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "name",
+      "name_span": {
+        "end": 86074,
+        "start": 86070
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "members",
+      "name_span": {
+        "end": 94402,
+        "start": 94395
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "name",
+      "name_span": {
+        "end": 102799,
+        "start": 102795
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "value",
+      "name_span": {
+        "end": 111021,
+        "start": 111016
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "members",
+      "name_span": {
+        "end": 119409,
+        "start": 119402
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 127233,
+        "start": 127229
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 135497,
+        "start": 135493
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 143357,
+        "start": 143353
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 150947,
+        "start": 150943
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "value",
+      "name_span": {
+        "end": 160054,
+        "start": 160049
+      }
+    },
+    {
+      "file": "grammars/lean/src/grammar.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 168346,
+        "start": 168342
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 1255,
+        "start": 1251
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "types",
+      "name_span": {
+        "end": 7969,
+        "start": 7964
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 14897,
+        "start": 14892
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "arg",
+      "name_span": {
+        "end": 21368,
+        "start": 21365
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 28034,
+        "start": 28029
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 35201,
+        "start": 35196
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "multiple",
+      "name_span": {
+        "end": 41757,
+        "start": 41749
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "required",
+      "name_span": {
+        "end": 48020,
+        "start": 48012
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "multiple",
+      "name_span": {
+        "end": 54040,
+        "start": 54032
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 60415,
+        "start": 60411
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 66795,
+        "start": 66790
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 72961,
+        "start": 72956
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 79229,
+        "start": 79225
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 85589,
+        "start": 85585
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 92354,
+        "start": 92350
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "type",
+      "name_span": {
+        "end": 98721,
+        "start": 98717
+      }
+    },
+    {
+      "file": "grammars/lean/src/node-types.json",
+      "kind": "key",
+      "name": "named",
+      "name_span": {
+        "end": 103347,
+        "start": 103342
+      }
+    },
+    {
+      "file": "grammars/python/build.rs",
+      "kind": "variable",
+      "name": "path",
+      "name_span": {
+        "end": 231,
+        "start": 227
+      }
+    },
+    {
+      "file": "grammars/sass/grammar.js",
+      "kind": "parameter",
+      "name": "$",
+      "name_span": {
+        "end": 3340,
+        "start": 3339
+      }
+    },
+    {
+      "file": "grammars/scss/grammar.js",
+      "kind": "parameter",
+      "name": "_",
+      "name_span": {
+        "end": 7639,
+        "start": 7638
+      }
+    },
+    {
+      "file": "grammars/zig/grammar.js",
+      "kind": "constant",
+      "name": "builtinTypes",
+      "name_span": {
+        "end": 400,
+        "start": 388
+      }
+    },
+    {
+      "file": "kernels/FrKernels/AgentContext.lean",
+      "kind": "function",
+      "name": "admitted_store_is_bounded",
+      "name_span": {
+        "end": 2203,
+        "start": 2178
+      }
+    },
+    {
+      "file": "kernels/FrKernels/AgentIntent.lean",
+      "kind": "parameter",
+      "name": "complete",
+      "name_span": {
+        "end": 2910,
+        "start": 2902
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Author.lean",
+      "kind": "parameter",
+      "name": "referenceFormat",
+      "name_span": {
+        "end": 11301,
+        "start": 11286
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Digest.lean",
+      "kind": "parameter",
+      "name": "fragment",
+      "name_span": {
+        "end": 466,
+        "start": 458
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Edit.lean",
+      "kind": "parameter",
+      "name": "right",
+      "name_span": {
+        "end": 131,
+        "start": 126
+      }
+    },
+    {
+      "file": "kernels/FrKernels/FormalPlan.lean",
+      "kind": "function",
+      "name": "agent_relation_equality_requires_matching_types",
+      "name_span": {
+        "end": 6775,
+        "start": 6728
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Git.lean",
+      "kind": "parameter",
+      "name": "branch",
+      "name_span": {
+        "end": 11736,
+        "start": 11730
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Git.lean",
+      "kind": "parameter",
+      "name": "present",
+      "name_span": {
+        "end": 24617,
+        "start": 24610
+      }
+    },
+    {
+      "file": "kernels/FrKernels/History.lean",
+      "kind": "parameter",
+      "name": "retained",
+      "name_span": {
+        "end": 6997,
+        "start": 6989
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Investigation.lean",
+      "kind": "function",
+      "name": "check_scope_requires_sources",
+      "name_span": {
+        "end": 2572,
+        "start": 2544
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Patch.lean",
+      "kind": "parameter",
+      "name": "actual",
+      "name_span": {
+        "end": 5171,
+        "start": 5165
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Project.lean",
+      "kind": "function",
+      "name": "componentHooksCompatible",
+      "name_span": {
+        "end": 13229,
+        "start": 13205
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Project.lean",
+      "kind": "function",
+      "name": "page_stays_in_result",
+      "name_span": {
+        "end": 31679,
+        "start": 31659
+      }
+    },
+    {
+      "file": "kernels/FrKernels/Project.lean",
+      "kind": "function",
+      "name": "lockfileInventoryAllowed",
+      "name_span": {
+        "end": 45975,
+        "start": 45951
+      }
+    },
+    {
+      "file": "kernels/FrKernels/PureKernel.lean",
+      "kind": "field",
+      "name": "xor",
+      "name_span": {
+        "end": 864,
+        "start": 861
+      }
+    },
+    {
+      "file": "kernels/FrKernels/SemanticIntent.lean",
+      "kind": "parameter",
+      "name": "node",
+      "name_span": {
+        "end": 5960,
+        "start": 5956
+      }
+    },
+    {
+      "file": "kernels/FrKernels/TaskChange.lean",
+      "kind": "parameter",
+      "name": "write",
+      "name_span": {
+        "end": 722,
+        "start": 717
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/application.py",
+      "kind": "function",
+      "name": "request_input_admitted",
+      "name_span": {
+        "end": 1685,
+        "start": 1663
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/application.py",
+      "kind": "variable",
+      "name": "candidates",
+      "name_span": {
+        "end": 18129,
+        "start": 18119
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/compiler_evidence.py",
+      "kind": "parameter",
+      "name": "cls",
+      "name_span": {
+        "end": 2373,
+        "start": 2370
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/context.py",
+      "kind": "parameter",
+      "name": "initial",
+      "name_span": {
+        "end": 9252,
+        "start": 9245
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/context.py",
+      "kind": "variable",
+      "name": "_",
+      "name_span": {
+        "end": 32133,
+        "start": 32132
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/correspondence.py",
+      "kind": "variable",
+      "name": "selected",
+      "name_span": {
+        "end": 16722,
+        "start": 16714
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/flow_facts.py",
+      "kind": "field",
+      "name": "id",
+      "name_span": {
+        "end": 1427,
+        "start": 1425
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/formal_kernel.py",
+      "kind": "constant",
+      "name": "SEMANTICS",
+      "name_span": {
+        "end": 204,
+        "start": 195
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/guide.py",
+      "kind": "field",
+      "name": "target",
+      "name_span": {
+        "end": 7648,
+        "start": 7642
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/guide.py",
+      "kind": "variable",
+      "name": "operation",
+      "name_span": {
+        "end": 30167,
+        "start": 30158
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/intent.py",
+      "kind": "variable",
+      "name": "target",
+      "name_span": {
+        "end": 13480,
+        "start": 13474
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/intent_actions.py",
+      "kind": "function",
+      "name": "_action_purpose_allowed",
+      "name_span": {
+        "end": 12722,
+        "start": 12699
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/investigation_checks.py",
+      "kind": "parameter",
+      "name": "plan",
+      "name_span": {
+        "end": 444,
+        "start": 440
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/investigation_session.py",
+      "kind": "method",
+      "name": "refresh",
+      "name_span": {
+        "end": 4951,
+        "start": 4944
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "class",
+      "name": "_Node",
+      "name_span": {
+        "end": 13331,
+        "start": 13326
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "parameter",
+      "name": "value",
+      "name_span": {
+        "end": 24709,
+        "start": 24704
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "parameter",
+      "name": "_seen",
+      "name_span": {
+        "end": 38090,
+        "start": 38085
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "parameter",
+      "name": "left",
+      "name_span": {
+        "end": 51155,
+        "start": 51151
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "field",
+      "name": "properties",
+      "name_span": {
+        "end": 71478,
+        "start": 71468
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/ir.py",
+      "kind": "parameter",
+      "name": "indent",
+      "name_span": {
+        "end": 94455,
+        "start": 94449
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/runtime.py",
+      "kind": "variable",
+      "name": "fragment",
+      "name_span": {
+        "end": 12055,
+        "start": 12047
+      }
+    },
+    {
+      "file": "sdk/python/src/fr_ir/runtime.py",
+      "kind": "field",
+      "name": "executable",
+      "name_span": {
+        "end": 35721,
+        "start": 35711
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_compiler_evidence.py",
+      "kind": "variable",
+      "name": "checks",
+      "name_span": {
+        "end": 4189,
+        "start": 4183
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_correspondence.py",
+      "kind": "function",
+      "name": "test_session_resumption_refresh_and_independent_evidence",
+      "name_span": {
+        "end": 9423,
+        "start": 9367
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_flow_facts.py",
+      "kind": "variable",
+      "name": "facts",
+      "name_span": {
+        "end": 3398,
+        "start": 3393
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_flow_imports.py",
+      "kind": "variable",
+      "name": "retained",
+      "name_span": {
+        "end": 17234,
+        "start": 17226
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_guide.py",
+      "kind": "variable",
+      "name": "manifest_sha256",
+      "name_span": {
+        "end": 5671,
+        "start": 5656
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_intent.py",
+      "kind": "variable",
+      "name": "name",
+      "name_span": {
+        "end": 3629,
+        "start": 3625
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_investigation_proofs.py",
+      "kind": "function",
+      "name": "test_invalid_proof_requirements_refuse",
+      "name_span": {
+        "end": 8331,
+        "start": 8293
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_package_flow.py",
+      "kind": "variable",
+      "name": "modules",
+      "name_span": {
+        "end": 4813,
+        "start": 4806
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_runtime.py",
+      "kind": "variable",
+      "name": "code_map",
+      "name_span": {
+        "end": 31979,
+        "start": 31971
+      }
+    },
+    {
+      "file": "sdk/python/tests/test_semantic_evidence.py",
+      "kind": "variable",
+      "name": "config",
+      "name_span": {
+        "end": 12159,
+        "start": 12153
+      }
+    },
+    {
+      "file": "src/analysis/call_graph.rs",
+      "kind": "variable",
+      "name": "visited",
+      "name_span": {
+        "end": 27705,
+        "start": 27698
+      }
+    },
+    {
+      "file": "src/analysis/call_graph.rs",
+      "kind": "variable",
+      "name": "related",
+      "name_span": {
+        "end": 60907,
+        "start": 60900
+      }
+    },
+    {
+      "file": "src/analysis/call_graph.rs",
+      "kind": "variable",
+      "name": "found",
+      "name_span": {
+        "end": 93923,
+        "start": 93918
+      }
+    },
+    {
+      "file": "src/analysis/entrypoints.rs",
+      "kind": "variable",
+      "name": "parsed",
+      "name_span": {
+        "end": 11927,
+        "start": 11921
+      }
+    },
+    {
+      "file": "src/analysis/flags.rs",
+      "kind": "struct",
+      "name": "Declared",
+      "name_span": {
+        "end": 252,
+        "start": 244
+      }
+    },
+    {
+      "file": "src/analysis/flow.rs",
+      "kind": "variable",
+      "name": "flow",
+      "name_span": {
+        "end": 20837,
+        "start": 20833
+      }
+    },
+    {
+      "file": "src/analysis/provenance.rs",
+      "kind": "constant",
+      "name": "Default",
+      "name_span": {
+        "end": 1131,
+        "start": 1124
+      }
+    },
+    {
+      "file": "src/analysis/provenance.rs",
+      "kind": "field",
+      "name": "alias",
+      "name_span": {
+        "end": 25130,
+        "start": 25125
+      }
+    },
+    {
+      "file": "src/analysis/provenance.rs",
+      "kind": "method",
+      "name": "helm_action",
+      "name_span": {
+        "end": 61680,
+        "start": 61669
+      }
+    },
+    {
+      "file": "src/analysis/provenance.rs",
+      "kind": "variable",
+      "name": "hop",
+      "name_span": {
+        "end": 97725,
+        "start": 97722
+      }
+    },
+    {
+      "file": "src/analysis/stitch.rs",
+      "kind": "function",
+      "name": "analyze_snapshot",
+      "name_span": {
+        "end": 2345,
+        "start": 2329
+      }
+    },
+    {
+      "file": "src/analysis/types.rs",
+      "kind": "constant",
+      "name": "BothOperands",
+      "name_span": {
+        "end": 2461,
+        "start": 2449
+      }
+    },
+    {
+      "file": "src/analysis/types.rs",
+      "kind": "variable",
+      "name": "answer",
+      "name_span": {
+        "end": 28510,
+        "start": 28504
+      }
+    },
+    {
+      "file": "src/application_ir.rs",
+      "kind": "variable",
+      "name": "size",
+      "name_span": {
+        "end": 634,
+        "start": 630
+      }
+    },
+    {
+      "file": "src/application_ir.rs",
+      "kind": "field",
+      "name": "children",
+      "name_span": {
+        "end": 30100,
+        "start": 30092
+      }
+    },
+    {
+      "file": "src/cache.rs",
+      "kind": "variable",
+      "name": "runtimes",
+      "name_span": {
+        "end": 18810,
+        "start": 18802
+      }
+    },
+    {
+      "file": "src/checks/evidence.rs",
+      "kind": "variable",
+      "name": "cargo_config",
+      "name_span": {
+        "end": 5316,
+        "start": 5304
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "field",
+      "name": "stats",
+      "name_span": {
+        "end": 7217,
+        "start": 7212
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "field",
+      "name": "write",
+      "name_span": {
+        "end": 27028,
+        "start": 27023
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "function",
+      "name": "cmd_trace",
+      "name_span": {
+        "end": 77414,
+        "start": 77405
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "variable",
+      "name": "context",
+      "name_span": {
+        "end": 114794,
+        "start": 114787
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "variable",
+      "name": "verb",
+      "name_span": {
+        "end": 148834,
+        "start": 148830
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "parameter",
+      "name": "expect",
+      "name_span": {
+        "end": 189961,
+        "start": 189955
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "method",
+      "name": "not_found_near",
+      "name_span": {
+        "end": 231737,
+        "start": 231723
+      }
+    },
+    {
+      "file": "src/cli.rs",
+      "kind": "variable",
+      "name": "index",
+      "name_span": {
+        "end": 262984,
+        "start": 262979
+      }
+    },
+    {
+      "file": "src/edit/commit.rs",
+      "kind": "variable",
+      "name": "failed",
+      "name_span": {
+        "end": 10626,
+        "start": 10620
+      }
+    },
+    {
+      "file": "src/edit.rs",
+      "kind": "variable",
+      "name": "outcomes",
+      "name_span": {
+        "end": 19944,
+        "start": 19936
+      }
+    },
+    {
+      "file": "src/extract.rs",
+      "kind": "parameter",
+      "name": "key",
+      "name_span": {
+        "end": 18934,
+        "start": 18931
+      }
+    },
+    {
+      "file": "src/extract.rs",
+      "kind": "variable",
+      "name": "method",
+      "name_span": {
+        "end": 50920,
+        "start": 50914
+      }
+    },
+    {
+      "file": "src/git/changes/records/tests.rs",
+      "kind": "function",
+      "name": "raw",
+      "name_span": {
+        "end": 21,
+        "start": 18
+      }
+    },
+    {
+      "file": "src/git/commit/host.rs",
+      "kind": "variable",
+      "name": "check",
+      "name_span": {
+        "end": 12220,
+        "start": 12215
+      }
+    },
+    {
+      "file": "src/git/diff/symbols/calls.rs",
+      "kind": "variable",
+      "name": "incoming",
+      "name_span": {
+        "end": 6281,
+        "start": 6273
+      }
+    },
+    {
+      "file": "src/git/diff.rs",
+      "kind": "variable",
+      "name": "output",
+      "name_span": {
+        "end": 8235,
+        "start": 8229
+      }
+    },
+    {
+      "file": "src/git/stage/journal.rs",
+      "kind": "struct",
+      "name": "Compaction",
+      "name_span": {
+        "end": 941,
+        "start": 931
+      }
+    },
+    {
+      "file": "src/git/stage.rs",
+      "kind": "field",
+      "name": "assume_unchanged",
+      "name_span": {
+        "end": 1009,
+        "start": 993
+      }
+    },
+    {
+      "file": "src/git/worktree/create/checkout.rs",
+      "kind": "parameter",
+      "name": "resume",
+      "name_span": {
+        "end": 8537,
+        "start": 8531
+      }
+    },
+    {
+      "file": "src/git/worktree/create/recovery.rs",
+      "kind": "variable",
+      "name": "output",
+      "name_span": {
+        "end": 1793,
+        "start": 1787
+      }
+    },
+    {
+      "file": "src/git/worktree/create/removal/resume/inspect.rs",
+      "kind": "method",
+      "name": "can_resume",
+      "name_span": {
+        "end": 769,
+        "start": 759
+      }
+    },
+    {
+      "file": "src/git/worktree/create/removal/reversal.rs",
+      "kind": "variable",
+      "name": "restoring",
+      "name_span": {
+        "end": 8888,
+        "start": 8879
+      }
+    },
+    {
+      "file": "src/git/worktree/create.rs",
+      "kind": "variable",
+      "name": "requested",
+      "name_span": {
+        "end": 4485,
+        "start": 4476
+      }
+    },
+    {
+      "file": "src/git.rs",
+      "kind": "variable",
+      "name": "output",
+      "name_span": {
+        "end": 3748,
+        "start": 3742
+      }
+    },
+    {
+      "file": "src/helm.rs",
+      "kind": "field",
+      "name": "branches",
+      "name_span": {
+        "end": 7497,
+        "start": 7489
+      }
+    },
+    {
+      "file": "src/helm.rs",
+      "kind": "constant",
+      "name": "Assign",
+      "name_span": {
+        "end": 34054,
+        "start": 34048
+      }
+    },
+    {
+      "file": "src/history/files.rs",
+      "kind": "variable",
+      "name": "_locks",
+      "name_span": {
+        "end": 7015,
+        "start": 7009
+      }
+    },
+    {
+      "file": "src/history/host.rs",
+      "kind": "variable",
+      "name": "staged",
+      "name_span": {
+        "end": 2131,
+        "start": 2125
+      }
+    },
+    {
+      "file": "src/history.rs",
+      "kind": "constant",
+      "name": "DIRECTORY",
+      "name_span": {
+        "end": 783,
+        "start": 774
+      }
+    },
+    {
+      "file": "src/history.rs",
+      "kind": "function",
+      "name": "compaction_digest",
+      "name_span": {
+        "end": 24659,
+        "start": 24642
+      }
+    },
+    {
+      "file": "src/history.rs",
+      "kind": "variable",
+      "name": "files",
+      "name_span": {
+        "end": 53240,
+        "start": 53235
+      }
+    },
+    {
+      "file": "src/index.rs",
+      "kind": "parameter",
+      "name": "reference",
+      "name_span": {
+        "end": 28613,
+        "start": 28604
+      }
+    },
+    {
+      "file": "src/index.rs",
+      "kind": "variable",
+      "name": "inner",
+      "name_span": {
+        "end": 82143,
+        "start": 82138
+      }
+    },
+    {
+      "file": "src/memory_history.rs",
+      "kind": "struct",
+      "name": "History",
+      "name_span": {
+        "end": 1082,
+        "start": 1075
+      }
+    },
+    {
+      "file": "src/mentions.rs",
+      "kind": "parameter",
+      "name": "haystack",
+      "name_span": {
+        "end": 4851,
+        "start": 4843
+      }
+    },
+    {
+      "file": "src/navigate.rs",
+      "kind": "field",
+      "name": "confidence",
+      "name_span": {
+        "end": 1936,
+        "start": 1926
+      }
+    },
+    {
+      "file": "src/parse.rs",
+      "kind": "method",
+      "name": "parse",
+      "name_span": {
+        "end": 3455,
+        "start": 3450
+      }
+    },
+    {
+      "file": "src/project/agent_actions.rs",
+      "kind": "field",
+      "name": "basis",
+      "name_span": {
+        "end": 875,
+        "start": 870
+      }
+    },
+    {
+      "file": "src/project/agent_actions.rs",
+      "kind": "variable",
+      "name": "snapshot_sha256",
+      "name_span": {
+        "end": 46845,
+        "start": 46830
+      }
+    },
+    {
+      "file": "src/project/agent_guide.rs",
+      "kind": "variable",
+      "name": "actions",
+      "name_span": {
+        "end": 17534,
+        "start": 17527
+      }
+    },
+    {
+      "file": "src/project/application/normalize.rs",
+      "kind": "variable",
+      "name": "value",
+      "name_span": {
+        "end": 1322,
+        "start": 1317
+      }
+    },
+    {
+      "file": "src/project/application/normalize.rs",
+      "kind": "parameter",
+      "name": "node",
+      "name_span": {
+        "end": 39556,
+        "start": 39552
+      }
+    },
+    {
+      "file": "src/project/author.rs",
+      "kind": "parameter",
+      "name": "node",
+      "name_span": {
+        "end": 17396,
+        "start": 17392
+      }
+    },
+    {
+      "file": "src/project/author.rs",
+      "kind": "method",
+      "name": "replace_declaration",
+      "name_span": {
+        "end": 59058,
+        "start": 59039
+      }
+    },
+    {
+      "file": "src/project/batch.rs",
+      "kind": "variable",
+      "name": "validated",
+      "name_span": {
+        "end": 3199,
+        "start": 3190
+      }
+    },
+    {
+      "file": "src/project/components.rs",
+      "kind": "struct",
+      "name": "Effect",
+      "name_span": {
+        "end": 913,
+        "start": 907
+      }
+    },
+    {
+      "file": "src/project/context.rs",
+      "kind": "parameter",
+      "name": "supplied",
+      "name_span": {
+        "end": 458,
+        "start": 450
+      }
+    },
+    {
+      "file": "src/project/control_flow.rs",
+      "kind": "variable",
+      "name": "origins",
+      "name_span": {
+        "end": 5840,
+        "start": 5833
+      }
+    },
+    {
+      "file": "src/project/dataflow.rs",
+      "kind": "variable",
+      "name": "lexical",
+      "name_span": {
+        "end": 14483,
+        "start": 14476
+      }
+    },
+    {
+      "file": "src/project/digest_tests.rs",
+      "kind": "variable",
+      "name": "text",
+      "name_span": {
+        "end": 1086,
+        "start": 1082
+      }
+    },
+    {
+      "file": "src/project/disclose.rs",
+      "kind": "variable",
+      "name": "id",
+      "name_span": {
+        "end": 19262,
+        "start": 19260
+      }
+    },
+    {
+      "file": "src/project/disclose.rs",
+      "kind": "variable",
+      "name": "report",
+      "name_span": {
+        "end": 59601,
+        "start": 59595
+      }
+    },
+    {
+      "file": "src/project/fast_routes.rs",
+      "kind": "variable",
+      "name": "constructors",
+      "name_span": {
+        "end": 1364,
+        "start": 1352
+      }
+    },
+    {
+      "file": "src/project/features/boundaries.rs",
+      "kind": "variable",
+      "name": "detail",
+      "name_span": {
+        "end": 12745,
+        "start": 12739
+      }
+    },
+    {
+      "file": "src/project/features.rs",
+      "kind": "field",
+      "name": "authentication_candidates",
+      "name_span": {
+        "end": 2722,
+        "start": 2697
+      }
+    },
+    {
+      "file": "src/project/features.rs",
+      "kind": "variable",
+      "name": "schema_handle",
+      "name_span": {
+        "end": 40193,
+        "start": 40180
+      }
+    },
+    {
+      "file": "src/project/flow_facts.rs",
+      "kind": "function",
+      "name": "add",
+      "name_span": {
+        "end": 1151,
+        "start": 1148
+      }
+    },
+    {
+      "file": "src/project/flow_summaries.rs",
+      "kind": "parameter",
+      "name": "flow",
+      "name_span": {
+        "end": 3109,
+        "start": 3105
+      }
+    },
+    {
+      "file": "src/project/investigation.rs",
+      "kind": "constant",
+      "name": "Pending",
+      "name_span": {
+        "end": 2131,
+        "start": 2124
+      }
+    },
+    {
+      "file": "src/project/links.rs",
+      "kind": "function",
+      "name": "path_text",
+      "name_span": {
+        "end": 319,
+        "start": 310
+      }
+    },
+    {
+      "file": "src/project/lockfiles.rs",
+      "kind": "variable",
+      "name": "matched",
+      "name_span": {
+        "end": 16539,
+        "start": 16532
+      }
+    },
+    {
+      "file": "src/project/manifests.rs",
+      "kind": "variable",
+      "name": "toolchain",
+      "name_span": {
+        "end": 15052,
+        "start": 15043
+      }
+    },
+    {
+      "file": "src/project/migration.rs",
+      "kind": "variable",
+      "name": "language",
+      "name_span": {
+        "end": 21591,
+        "start": 21583
+      }
+    },
+    {
+      "file": "src/project/migration.rs",
+      "kind": "variable",
+      "name": "generated_shapes",
+      "name_span": {
+        "end": 69071,
+        "start": 69055
+      }
+    },
+    {
+      "file": "src/project/relationships.rs",
+      "kind": "parameter",
+      "name": "outgoing",
+      "name_span": {
+        "end": 4420,
+        "start": 4412
+      }
+    },
+    {
+      "file": "src/project/semantic.rs",
+      "kind": "variable",
+      "name": "matches",
+      "name_span": {
+        "end": 3765,
+        "start": 3758
+      }
+    },
+    {
+      "file": "src/project/semantic_change.rs",
+      "kind": "parameter",
+      "name": "value",
+      "name_span": {
+        "end": 10000,
+        "start": 9995
+      }
+    },
+    {
+      "file": "src/project/semantic_intent.rs",
+      "kind": "field",
+      "name": "to",
+      "name_span": {
+        "end": 7823,
+        "start": 7821
+      }
+    },
+    {
+      "file": "src/project/semantic_intent.rs",
+      "kind": "variable",
+      "name": "intent_basis",
+      "name_span": {
+        "end": 39130,
+        "start": 39118
+      }
+    },
+    {
+      "file": "src/project/semantic_origins.rs",
+      "kind": "variable",
+      "name": "analyzer",
+      "name_span": {
+        "end": 15642,
+        "start": 15634
+      }
+    },
+    {
+      "file": "src/project/surface_edit.rs",
+      "kind": "parameter",
+      "name": "source",
+      "name_span": {
+        "end": 3750,
+        "start": 3744
+      }
+    },
+    {
+      "file": "src/project/task_change.rs",
+      "kind": "field",
+      "name": "from",
+      "name_span": {
+        "end": 1538,
+        "start": 1534
+      }
+    },
+    {
+      "file": "src/project.rs",
+      "kind": "module",
+      "name": "batch",
+      "name_span": {
+        "end": 1063,
+        "start": 1058
+      }
+    },
+    {
+      "file": "src/project.rs",
+      "kind": "struct",
+      "name": "ConstructionTimer",
+      "name_span": {
+        "end": 13893,
+        "start": 13876
+      }
+    },
+    {
+      "file": "src/project.rs",
+      "kind": "parameter",
+      "name": "id",
+      "name_span": {
+        "end": 37211,
+        "start": 37209
+      }
+    },
+    {
+      "file": "src/recipe/lex.rs",
+      "kind": "variable",
+      "name": "i",
+      "name_span": {
+        "end": 1544,
+        "start": 1543
+      }
+    },
+    {
+      "file": "src/recipe/parse.rs",
+      "kind": "variable",
+      "name": "what",
+      "name_span": {
+        "end": 17761,
+        "start": 17757
+      }
+    },
+    {
+      "file": "src/recipe/run.rs",
+      "kind": "variable",
+      "name": "touched",
+      "name_span": {
+        "end": 23492,
+        "start": 23485
+      }
+    },
+    {
+      "file": "src/refactor/cascade.rs",
+      "kind": "field",
+      "name": "edits",
+      "name_span": {
+        "end": 741,
+        "start": 736
+      }
+    },
+    {
+      "file": "src/refactor/cascade.rs",
+      "kind": "variable",
+      "name": "quoted",
+      "name_span": {
+        "end": 37290,
+        "start": 37284
+      }
+    },
+    {
+      "file": "src/refactor/cascade.rs",
+      "kind": "parameter",
+      "name": "source",
+      "name_span": {
+        "end": 63578,
+        "start": 63572
+      }
+    },
+    {
+      "file": "src/refactor/delete.rs",
+      "kind": "field",
+      "name": "warnings",
+      "name_span": {
+        "end": 757,
+        "start": 749
+      }
+    },
+    {
+      "file": "src/refactor/delete.rs",
+      "kind": "struct",
+      "name": "Sources",
+      "name_span": {
+        "end": 37212,
+        "start": 37205
+      }
+    },
+    {
+      "file": "src/refactor/extract.rs",
+      "kind": "variable",
+      "name": "run",
+      "name_span": {
+        "end": 22045,
+        "start": 22042
+      }
+    },
+    {
+      "file": "src/refactor/extract.rs",
+      "kind": "variable",
+      "name": "cursor",
+      "name_span": {
+        "end": 60525,
+        "start": 60519
+      }
+    },
+    {
+      "file": "src/refactor/extract.rs",
+      "kind": "variable",
+      "name": "language",
+      "name_span": {
+        "end": 86042,
+        "start": 86034
+      }
+    },
+    {
+      "file": "src/refactor/extract.rs",
+      "kind": "function",
+      "name": "bash_script_top",
+      "name_span": {
+        "end": 123495,
+        "start": 123480
+      }
+    },
+    {
+      "file": "src/refactor/imports.rs",
+      "kind": "variable",
+      "name": "members",
+      "name_span": {
+        "end": 25836,
+        "start": 25829
+      }
+    },
+    {
+      "file": "src/refactor/inline.rs",
+      "kind": "variable",
+      "name": "stack",
+      "name_span": {
+        "end": 11889,
+        "start": 11884
+      }
+    },
+    {
+      "file": "src/refactor/inline.rs",
+      "kind": "variable",
+      "name": "list",
+      "name_span": {
+        "end": 40395,
+        "start": 40391
+      }
+    },
+    {
+      "file": "src/refactor/inline.rs",
+      "kind": "variable",
+      "name": "source",
+      "name_span": {
+        "end": 73986,
+        "start": 73980
+      }
+    },
+    {
+      "file": "src/refactor/mod.rs",
+      "kind": "parameter",
+      "name": "index",
+      "name_span": {
+        "end": 9318,
+        "start": 9313
+      }
+    },
+    {
+      "file": "src/refactor/move_symbol.rs",
+      "kind": "function",
+      "name": "repoint_existing_imports",
+      "name_span": {
+        "end": 33291,
+        "start": 33267
+      }
+    },
+    {
+      "file": "src/refactor/move_symbol.rs",
+      "kind": "parameter",
+      "name": "destination",
+      "name_span": {
+        "end": 65628,
+        "start": 65617
+      }
+    },
+    {
+      "file": "src/refactor/move_symbol.rs",
+      "kind": "parameter",
+      "name": "taken",
+      "name_span": {
+        "end": 106123,
+        "start": 106118
+      }
+    },
+    {
+      "file": "src/refactor/move_symbol.rs",
+      "kind": "function",
+      "name": "move_lean",
+      "name_span": {
+        "end": 140246,
+        "start": 140237
+      }
+    },
+    {
+      "file": "src/refactor/rename.rs",
+      "kind": "parameter",
+      "name": "file",
+      "name_span": {
+        "end": 18684,
+        "start": 18680
+      }
+    },
+    {
+      "file": "src/refactor/restructure.rs",
+      "kind": "field",
+      "name": "trim_trailing",
+      "name_span": {
+        "end": 9212,
+        "start": 9199
+      }
+    },
+    {
+      "file": "src/refactor/restructure.rs",
+      "kind": "function",
+      "name": "is_atomic",
+      "name_span": {
+        "end": 34287,
+        "start": 34278
+      }
+    },
+    {
+      "file": "src/refactor/rewrite.rs",
+      "kind": "parameter",
+      "name": "parsed",
+      "name_span": {
+        "end": 14835,
+        "start": 14829
+      }
+    },
+    {
+      "file": "src/refactor/signature.rs",
+      "kind": "parameter",
+      "name": "language",
+      "name_span": {
+        "end": 20752,
+        "start": 20744
+      }
+    },
+    {
+      "file": "src/refactor/signature.rs",
+      "kind": "function",
+      "name": "shell_argument_is_indeterminate",
+      "name_span": {
+        "end": 56277,
+        "start": 56246
+      }
+    },
+    {
+      "file": "src/refactor/signature.rs",
+      "kind": "variable",
+      "name": "what",
+      "name_span": {
+        "end": 91808,
+        "start": 91804
+      }
+    },
+    {
+      "file": "src/span.rs",
+      "kind": "variable",
+      "name": "inner",
+      "name_span": {
+        "end": 7113,
+        "start": 7108
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "field",
+      "name": "source_hash",
+      "name_span": {
+        "end": 2257,
+        "start": 2246
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "field",
+      "name": "plan_digest",
+      "name_span": {
+        "end": 9811,
+        "start": 9800
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "parameter",
+      "name": "token_limit",
+      "name_span": {
+        "end": 29704,
+        "start": 29693
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "variable",
+      "name": "diagnostics",
+      "name_span": {
+        "end": 61038,
+        "start": 61027
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "parameter",
+      "name": "name",
+      "name_span": {
+        "end": 102622,
+        "start": 102618
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "variable",
+      "name": "actual",
+      "name_span": {
+        "end": 134368,
+        "start": 134362
+      }
+    },
+    {
+      "file": "src/spec.rs",
+      "kind": "variable",
+      "name": "hash",
+      "name_span": {
+        "end": 159602,
+        "start": 159598
+      }
+    },
+    {
+      "file": "src/translate.rs",
+      "kind": "function",
+      "name": "span_key",
+      "name_span": {
+        "end": 14710,
+        "start": 14702
+      }
+    },
+    {
+      "file": "src/transpile/fastapi.rs",
+      "kind": "parameter",
+      "name": "models",
+      "name_span": {
+        "end": 22810,
+        "start": 22804
+      }
+    },
+    {
+      "file": "src/transpile/ir.rs",
+      "kind": "field",
+      "name": "arms",
+      "name_span": {
+        "end": 14818,
+        "start": 14814
+      }
+    },
+    {
+      "file": "src/transpile/mod.rs",
+      "kind": "parameter",
+      "name": "path",
+      "name_span": {
+        "end": 3751,
+        "start": 3747
+      }
+    },
+    {
+      "file": "src/transpile/nextjs.rs",
+      "kind": "function",
+      "name": "in_expr",
+      "name_span": {
+        "end": 15094,
+        "start": 15087
+      }
+    },
+    {
+      "file": "src/transpile/normalize.rs",
+      "kind": "parameter",
+      "name": "found",
+      "name_span": {
+        "end": 3974,
+        "start": 3969
+      }
+    },
+    {
+      "file": "src/transpile/normalize.rs",
+      "kind": "parameter",
+      "name": "body",
+      "name_span": {
+        "end": 55770,
+        "start": 55766
+      }
+    },
+    {
+      "file": "src/transpile/read/lean.rs",
+      "kind": "variable",
+      "name": "methods",
+      "name_span": {
+        "end": 1554,
+        "start": 1547
+      }
+    },
+    {
+      "file": "src/transpile/read/lean.rs",
+      "kind": "parameter",
+      "name": "cx",
+      "name_span": {
+        "end": 32637,
+        "start": 32635
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "method",
+      "name": "text",
+      "name_span": {
+        "end": 16191,
+        "start": 16187
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "some_capture",
+      "name_span": {
+        "end": 51163,
+        "start": 51151
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "settle_variant_constructions",
+      "name_span": {
+        "end": 115196,
+        "start": 115168
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "marker_interface",
+      "name_span": {
+        "end": 172794,
+        "start": 172778
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "variable",
+      "name": "params",
+      "name_span": {
+        "end": 229353,
+        "start": 229347
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "declaration",
+      "name_span": {
+        "end": 286583,
+        "start": 286572
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "return_if_payload",
+      "name_span": {
+        "end": 333855,
+        "start": 333838
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "variable",
+      "name": "captures",
+      "name_span": {
+        "end": 378891,
+        "start": 378883
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "function",
+      "name": "function",
+      "name_span": {
+        "end": 441077,
+        "start": 441069
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "variable",
+      "name": "key",
+      "name_span": {
+        "end": 504616,
+        "start": 504613
+      }
+    },
+    {
+      "file": "src/transpile/read.rs",
+      "kind": "parameter",
+      "name": "cx",
+      "name_span": {
+        "end": 544980,
+        "start": 544978
+      }
+    },
+    {
+      "file": "src/transpile/routes.rs",
+      "kind": "variable",
+      "name": "name",
+      "name_span": {
+        "end": 4901,
+        "start": 4897
+      }
+    },
+    {
+      "file": "src/transpile/scaffold.rs",
+      "kind": "variable",
+      "name": "directory",
+      "name_span": {
+        "end": 16820,
+        "start": 16811
+      }
+    },
+    {
+      "file": "src/transpile/write/lean.rs",
+      "kind": "variable",
+      "name": "settled",
+      "name_span": {
+        "end": 22293,
+        "start": 22286
+      }
+    },
+    {
+      "file": "src/transpile/write/lean.rs",
+      "kind": "variable",
+      "name": "end",
+      "name_span": {
+        "end": 61405,
+        "start": 61402
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "functions",
+      "name_span": {
+        "end": 14334,
+        "start": 14325
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "field",
+      "name": "needs_floor_div",
+      "name_span": {
+        "end": 53682,
+        "start": 53667
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "value",
+      "name_span": {
+        "end": 88456,
+        "start": 88451
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "function",
+      "name": "float_side",
+      "name_span": {
+        "end": 144041,
+        "start": 144031
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "parameter",
+      "name": "target",
+      "name_span": {
+        "end": 200305,
+        "start": 200299
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "parameter",
+      "name": "out",
+      "name_span": {
+        "end": 248873,
+        "start": 248870
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "commented",
+      "name_span": {
+        "end": 307948,
+        "start": 307939
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "f",
+      "name_span": {
+        "end": 363083,
+        "start": 363082
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "word",
+      "name_span": {
+        "end": 423384,
+        "start": 423380
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "clean",
+      "name_span": {
+        "end": 475039,
+        "start": 475034
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "parameter",
+      "name": "e",
+      "name_span": {
+        "end": 525275,
+        "start": 525274
+      }
+    },
+    {
+      "file": "src/transpile/write.rs",
+      "kind": "variable",
+      "name": "r",
+      "name_span": {
+        "end": 567576,
+        "start": 567575
+      }
+    },
+    {
+      "file": "src/wasm.rs",
+      "kind": "field",
+      "name": "indexed",
+      "name_span": {
+        "end": 10836,
+        "start": 10829
+      }
+    },
+    {
+      "file": "src/wasm.rs",
+      "kind": "field",
+      "name": "destination",
+      "name_span": {
+        "end": 33521,
+        "start": 33510
+      }
+    },
+    {
+      "file": "src/wasm.rs",
+      "kind": "field",
+      "name": "schema",
+      "name_span": {
+        "end": 59477,
+        "start": 59471
+      }
+    },
+    {
+      "file": "tests/agent-eval/compiler-evidence/diagnostics.json",
+      "kind": "key",
+      "name": "stage",
+      "name_span": {
+        "end": 490,
+        "start": 485
+      }
+    },
+    {
+      "file": "tests/agent-eval/flow-cache/storage-probe.json",
+      "kind": "key",
+      "name": "write_seconds",
+      "name_span": {
+        "end": 346,
+        "start": 333
+      }
+    },
+    {
+      "file": "tests/agent-eval/flow-fixed-point/subject.py",
+      "kind": "function",
+      "name": "stopped",
+      "name_span": {
+        "end": 302,
+        "start": 295
+      }
+    },
+    {
+      "file": "tests/agent-eval/host-recovery/guide.json",
+      "kind": "key",
+      "name": "arguments",
+      "name_span": {
+        "end": 23,
+        "start": 14
+      }
+    },
+    {
+      "file": "tests/agent-eval/imported-flow/oracle.py",
+      "kind": "variable",
+      "name": "outcomes",
+      "name_span": {
+        "end": 648,
+        "start": 640
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "version",
+      "name_span": {
+        "end": 5526,
+        "start": 5519
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "license",
+      "name_span": {
+        "end": 15252,
+        "start": 15245
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "dependencies",
+      "name_span": {
+        "end": 25544,
+        "start": 25532
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "node",
+      "name_span": {
+        "end": 33408,
+        "start": 33404
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "license",
+      "name_span": {
+        "end": 42410,
+        "start": 42403
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "d3-sankey",
+      "name_span": {
+        "end": 51557,
+        "start": 51548
+      }
+    },
+    {
+      "file": "tests/agent-eval/mermaid-oracle/package-lock.json",
+      "kind": "key",
+      "name": "license",
+      "name_span": {
+        "end": 61443,
+        "start": 61436
+      }
+    },
+    {
+      "file": "tests/agent-eval/recursive-flow/baseline.json",
+      "kind": "key",
+      "name": "complete",
+      "name_span": {
+        "end": 1116,
+        "start": 1108
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 9448,
+        "start": 9442
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 19955,
+        "start": 19949
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 30063,
+        "start": 30057
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 39922,
+        "start": 39916
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 50685,
+        "start": 50679
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 59950,
+        "start": 59944
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "sha256",
+      "name_span": {
+        "end": 69567,
+        "start": 69561
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": ".github/ISSUE_TEMPLATE/config.yml",
+      "name_span": {
+        "end": 79063,
+        "start": 79030
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "record/old-bench-log/04/re2",
+      "name_span": {
+        "end": 89526,
+        "start": 89499
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "record/old-bench-log/old/11-compiler-rewrite",
+      "name_span": {
+        "end": 99597,
+        "start": 99553
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "regex-automata/src/util/pool.rs",
+      "name_span": {
+        "end": 109422,
+        "start": 109391
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "regex-capi/Cargo.toml",
+      "name_span": {
+        "end": 120286,
+        "start": 120265
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "regex-lite/LICENSE-APACHE",
+      "name_span": {
+        "end": 129552,
+        "start": 129527
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "rustfmt.toml",
+      "name_span": {
+        "end": 139221,
+        "start": 139209
+      }
+    },
+    {
+      "file": "tests/agent-eval/regex/coordinated-rehearsal.json",
+      "kind": "key",
+      "name": "tests/suite_string.rs",
+      "name_span": {
+        "end": 148655,
+        "start": 148634
+      }
+    },
+    {
+      "file": "tests/agent-eval/resumable-correspondence/baseline.json",
+      "kind": "key",
+      "name": "files_by_gap",
+      "name_span": {
+        "end": 2011,
+        "start": 1999
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/application-migration-agent-2026-09-21.py",
+      "kind": "variable",
+      "name": "visible",
+      "name_span": {
+        "end": 10891,
+        "start": 10884
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/proof-authoring-agent-2026-09-21.py",
+      "kind": "variable",
+      "name": "value",
+      "name_span": {
+        "end": 9928,
+        "start": 9923
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-cross-crate-bodies-agent-2026-09-21.py",
+      "kind": "function",
+      "name": "evaluator_hash",
+      "name_span": {
+        "end": 4333,
+        "start": 4319
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-css-agent-2026-09-20.py",
+      "kind": "function",
+      "name": "unpack",
+      "name_span": {
+        "end": 3128,
+        "start": 3122
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-mermaid-agent-2026-09-20.py",
+      "kind": "function",
+      "name": "config",
+      "name_span": {
+        "end": 7489,
+        "start": 7483
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-multibody-agent-2026-09-21.py",
+      "kind": "variable",
+      "name": "bodies",
+      "name_span": {
+        "end": 10472,
+        "start": 10466
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-react-agent-2026-09-20.py",
+      "kind": "variable",
+      "name": "selected",
+      "name_span": {
+        "end": 8066,
+        "start": 8058
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-read-agent-2026-09-20.py",
+      "kind": "variable",
+      "name": "stream",
+      "name_span": {
+        "end": 9944,
+        "start": 9938
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-rename-agent-2026-09-20.py",
+      "kind": "variable",
+      "name": "stderr",
+      "name_span": {
+        "end": 12020,
+        "start": 12014
+      }
+    },
+    {
+      "file": "tests/agent-eval/runner-snapshots/upstream-tsx-body-agent-2026-09-21.py",
+      "kind": "parameter",
+      "name": "session",
+      "name_span": {
+        "end": 15328,
+        "start": 15321
+      }
+    },
+    {
+      "file": "tests/agent_guide_cli.rs",
+      "kind": "variable",
+      "name": "request",
+      "name_span": {
+        "end": 10382,
+        "start": 10375
+      }
+    },
+    {
+      "file": "tests/agent_intent_cli.rs",
+      "kind": "variable",
+      "name": "lakefile",
+      "name_span": {
+        "end": 25531,
+        "start": 25523
+      }
+    },
+    {
+      "file": "tests/application-fixtures/behavior_fastapi.py",
+      "kind": "function",
+      "name": "load_session",
+      "name_span": {
+        "end": 261,
+        "start": 249
+      }
+    },
+    {
+      "file": "tests/application-runtime/express/package-lock.json",
+      "kind": "key",
+      "name": "node_modules/@types/body-parser",
+      "name_span": {
+        "end": 336,
+        "start": 305
+      }
+    },
+    {
+      "file": "tests/application-runtime/express/package-lock.json",
+      "kind": "key",
+      "name": "optional",
+      "name_span": {
+        "end": 9184,
+        "start": 9176
+      }
+    },
+    {
+      "file": "tests/application-runtime/express/package-lock.json",
+      "kind": "key",
+      "name": "version",
+      "name_span": {
+        "end": 17573,
+        "start": 17566
+      }
+    },
+    {
+      "file": "tests/application-runtime/express/package-lock.json",
+      "kind": "key",
+      "name": "resolved",
+      "name_span": {
+        "end": 26461,
+        "start": 26453
+      }
+    },
+    {
+      "file": "tests/application-runtime/express/package-lock.json",
+      "kind": "key",
+      "name": "engines",
+      "name_span": {
+        "end": 34976,
+        "start": 34969
+      }
+    },
+    {
+      "file": "tests/application_cli.rs",
+      "kind": "variable",
+      "name": "preview",
+      "name_span": {
+        "end": 4094,
+        "start": 4087
+      }
+    },
+    {
+      "file": "tests/application_cli.rs",
+      "kind": "variable",
+      "name": "dir",
+      "name_span": {
+        "end": 50678,
+        "start": 50675
+      }
+    },
+    {
+      "file": "tests/author_cli.rs",
+      "kind": "function",
+      "name": "semantic_contract_is_bounded_and_selectable_without_a_project",
+      "name_span": {
+        "end": 6884,
+        "start": 6823
+      }
+    },
+    {
+      "file": "tests/author_cli.rs",
+      "kind": "variable",
+      "name": "output_path",
+      "name_span": {
+        "end": 60124,
+        "start": 60113
+      }
+    },
+    {
+      "file": "tests/author_cli.rs",
+      "kind": "variable",
+      "name": "source",
+      "name_span": {
+        "end": 139125,
+        "start": 139119
+      }
+    },
+    {
+      "file": "tests/cache.rs",
+      "kind": "variable",
+      "name": "valid",
+      "name_span": {
+        "end": 7271,
+        "start": 7266
+      }
+    },
+    {
+      "file": "tests/cascade.rs",
+      "kind": "variable",
+      "name": "plan",
+      "name_span": {
+        "end": 6120,
+        "start": 6116
+      }
+    },
+    {
+      "file": "tests/checks_cli.rs",
+      "kind": "parameter",
+      "name": "program",
+      "name_span": {
+        "end": 100,
+        "start": 93
+      }
+    },
+    {
+      "file": "tests/cli.rs",
+      "kind": "variable",
+      "name": "ws",
+      "name_span": {
+        "end": 13828,
+        "start": 13826
+      }
+    },
+    {
+      "file": "tests/commands_agree.rs",
+      "kind": "parameter",
+      "name": "n",
+      "name_span": {
+        "end": 2193,
+        "start": 2192
+      }
+    },
+    {
+      "file": "tests/compiler_evidence.rs",
+      "kind": "function",
+      "name": "declared_identity_drift_during_execution_fails_stability",
+      "name_span": {
+        "end": 1666,
+        "start": 1610
+      }
+    },
+    {
+      "file": "tests/config_extract_inline.rs",
+      "kind": "variable",
+      "name": "out",
+      "name_span": {
+        "end": 13119,
+        "start": 13116
+      }
+    },
+    {
+      "file": "tests/config_extract_inline.rs",
+      "kind": "variable",
+      "name": "src",
+      "name_span": {
+        "end": 35506,
+        "start": 35503
+      }
+    },
+    {
+      "file": "tests/conformance/cleanup/main.go",
+      "kind": "function",
+      "name": "main",
+      "name_span": {
+        "end": 181,
+        "start": 177
+      }
+    },
+    {
+      "file": "tests/conformance/comprehensions/main.zig",
+      "kind": "function",
+      "name": "frPrint",
+      "name_span": {
+        "end": 39,
+        "start": 32
+      }
+    },
+    {
+      "file": "tests/conformance/errors/main.zig",
+      "kind": "constant",
+      "name": "std",
+      "name_span": {
+        "end": 9,
+        "start": 6
+      }
+    },
+    {
+      "file": "tests/conformance/numbers/main.rs",
+      "kind": "function",
+      "name": "main",
+      "name_span": {
+        "end": 251,
+        "start": 247
+      }
+    },
+    {
+      "file": "tests/corpus/fastapi/models.py",
+      "kind": "field",
+      "name": "is_active",
+      "name_span": {
+        "end": 961,
+        "start": 952
+      }
+    },
+    {
+      "file": "tests/corpus/gson/JsonPrimitive.java",
+      "kind": "variable",
+      "name": "number",
+      "name_span": {
+        "end": 11966,
+        "start": 11960
+      }
+    },
+    {
+      "file": "tests/corpus/zls/DocumentStore.zig",
+      "kind": "field",
+      "name": "Canceled",
+      "name_span": {
+        "end": 13470,
+        "start": 13462
+      }
+    },
+    {
+      "file": "tests/corpus/zls/DocumentStore.zig",
+      "kind": "variable",
+      "name": "old_handle",
+      "name_span": {
+        "end": 32331,
+        "start": 32321
+      }
+    },
+    {
+      "file": "tests/corpus/zls/DocumentStore.zig",
+      "kind": "parameter",
+      "name": "uri",
+      "name_span": {
+        "end": 56125,
+        "start": 56122
+      }
+    },
+    {
+      "file": "tests/corpus/zls/offsets.zig",
+      "kind": "function",
+      "name": "tokenToSlice",
+      "name_span": {
+        "end": 18332,
+        "start": 18320
+      }
+    },
+    {
+      "file": "tests/corpus.rs",
+      "kind": "function",
+      "name": "optional_chaining_is_never_written_away",
+      "name_span": {
+        "end": 9332,
+        "start": 9293
+      }
+    },
+    {
+      "file": "tests/cross_language.rs",
+      "kind": "variable",
+      "name": "hooks",
+      "name_span": {
+        "end": 13072,
+        "start": 13067
+      }
+    },
+    {
+      "file": "tests/docs_ir.rs",
+      "kind": "variable",
+      "name": "missing",
+      "name_span": {
+        "end": 2075,
+        "start": 2068
+      }
+    },
+    {
+      "file": "tests/entrypoints_conventions.rs",
+      "kind": "function",
+      "name": "a_parameterised_fixture_is_an_entry_point",
+      "name_span": {
+        "end": 2558,
+        "start": 2517
+      }
+    },
+    {
+      "file": "tests/extract_function.rs",
+      "kind": "variable",
+      "name": "src",
+      "name_span": {
+        "end": 12325,
+        "start": 12322
+      }
+    },
+    {
+      "file": "tests/extract_inline_remaining.rs",
+      "kind": "variable",
+      "name": "start",
+      "name_span": {
+        "end": 2787,
+        "start": 2782
+      }
+    },
+    {
+      "file": "tests/extract_inline_remaining.rs",
+      "kind": "variable",
+      "name": "ws",
+      "name_span": {
+        "end": 20409,
+        "start": 20407
+      }
+    },
+    {
+      "file": "tests/facts_bash.rs",
+      "kind": "variable",
+      "name": "greet_refs",
+      "name_span": {
+        "end": 7299,
+        "start": 7289
+      }
+    },
+    {
+      "file": "tests/facts_go.rs",
+      "kind": "function",
+      "name": "multi_name_var_spec_yields_one_symbol_per_name",
+      "name_span": {
+        "end": 7644,
+        "start": 7598
+      }
+    },
+    {
+      "file": "tests/facts_hcl.rs",
+      "kind": "variable",
+      "name": "f",
+      "name_span": {
+        "end": 16129,
+        "start": 16128
+      }
+    },
+    {
+      "file": "tests/facts_markdown.rs",
+      "kind": "function",
+      "name": "headings_do_not_nest_into_scopes",
+      "name_span": {
+        "end": 6977,
+        "start": 6945
+      }
+    },
+    {
+      "file": "tests/facts_sass.rs",
+      "kind": "function",
+      "name": "a_mixin_and_a_function_are_callables_with_parameters",
+      "name_span": {
+        "end": 2504,
+        "start": 2452
+      }
+    },
+    {
+      "file": "tests/facts_xml.rs",
+      "kind": "variable",
+      "name": "src",
+      "name_span": {
+        "end": 3982,
+        "start": 3979
+      }
+    },
+    {
+      "file": "tests/facts_zig.rs",
+      "kind": "function",
+      "name": "error_set_members_are_qualified_fields_spanning_only_their_name",
+      "name_span": {
+        "end": 9851,
+        "start": 9788
+      }
+    },
+    {
+      "file": "tests/flags.rs",
+      "kind": "function",
+      "name": "a_ci_step_passing_a_flag_counts_as_passing_it",
+      "name_span": {
+        "end": 3469,
+        "start": 3424
+      }
+    },
+    {
+      "file": "tests/formal_kernel.rs",
+      "kind": "variable",
+      "name": "target",
+      "name_span": {
+        "end": 9184,
+        "start": 9178
+      }
+    },
+    {
+      "file": "tests/git_calls_cli.rs",
+      "kind": "variable",
+      "name": "dir",
+      "name_span": {
+        "end": 13744,
+        "start": 13741
+      }
+    },
+    {
+      "file": "tests/git_commit_cli.rs",
+      "kind": "function",
+      "name": "commit_supports_initial_sha256_binary_symlink_and_all_file_deletion_trees",
+      "name_span": {
+        "end": 5771,
+        "start": 5698
+      }
+    },
+    {
+      "file": "tests/git_diff_cli.rs",
+      "kind": "variable",
+      "name": "error",
+      "name_span": {
+        "end": 21616,
+        "start": 21611
+      }
+    },
+    {
+      "file": "tests/git_stage_history_cli.rs",
+      "kind": "parameter",
+      "name": "root",
+      "name_span": {
+        "end": 1923,
+        "start": 1919
+      }
+    },
+    {
+      "file": "tests/git_status_cli.rs",
+      "kind": "variable",
+      "name": "out",
+      "name_span": {
+        "end": 7933,
+        "start": 7930
+      }
+    },
+    {
+      "file": "tests/git_worktree_cli.rs",
+      "kind": "variable",
+      "name": "temp",
+      "name_span": {
+        "end": 10909,
+        "start": 10905
+      }
+    },
+    {
+      "file": "tests/git_worktree_create_cli.rs",
+      "kind": "variable",
+      "name": "value",
+      "name_span": {
+        "end": 13262,
+        "start": 13257
+      }
+    },
+    {
+      "file": "tests/git_worktree_recover_cli.rs",
+      "kind": "parameter",
+      "name": "args",
+      "name_span": {
+        "end": 3758,
+        "start": 3754
+      }
+    },
+    {
+      "file": "tests/git_worktree_remove_cli.rs",
+      "kind": "variable",
+      "name": "target",
+      "name_span": {
+        "end": 14570,
+        "start": 14564
+      }
+    },
+    {
+      "file": "tests/go_package_resolution.rs",
+      "kind": "function",
+      "name": "a_package_is_a_directory_and_not_the_whole_tree",
+      "name_span": {
+        "end": 1633,
+        "start": 1586
+      }
+    },
+    {
+      "file": "tests/helm_inputs.rs",
+      "kind": "function",
+      "name": "a_computed_index_key_is_named_unresolved_rather_than_invented",
+      "name_span": {
+        "end": 25866,
+        "start": 25805
+      }
+    },
+    {
+      "file": "tests/helm_values_refs.rs",
+      "kind": "variable",
+      "name": "index",
+      "name_span": {
+        "end": 4961,
+        "start": 4956
+      }
+    },
+    {
+      "file": "tests/history_cli.rs",
+      "kind": "function",
+      "name": "git",
+      "name_span": {
+        "end": 1403,
+        "start": 1400
+      }
+    },
+    {
+      "file": "tests/history_patch_cli.rs",
+      "kind": "variable",
+      "name": "index",
+      "name_span": {
+        "end": 3220,
+        "start": 3215
+      }
+    },
+    {
+      "file": "tests/imports_liveness.rs",
+      "kind": "function",
+      "name": "zig_keeps_an_import_its_const_name_reaches",
+      "name_span": {
+        "end": 11783,
+        "start": 11741
+      }
+    },
+    {
+      "file": "tests/inline_call.rs",
+      "kind": "variable",
+      "name": "plan",
+      "name_span": {
+        "end": 15961,
+        "start": 15957
+      }
+    },
+    {
+      "file": "tests/investigation.rs",
+      "kind": "variable",
+      "name": "fragment_file",
+      "name_span": {
+        "end": 14200,
+        "start": 14187
+      }
+    },
+    {
+      "file": "tests/known_grammar_gaps.rs",
+      "kind": "variable",
+      "name": "cases",
+      "name_span": {
+        "end": 15648,
+        "start": 15643
+      }
+    },
+    {
+      "file": "tests/lean_digest.rs",
+      "kind": "function",
+      "name": "buffered_revision_states_match_lean_and_explicit_byte_oracle",
+      "name_span": {
+        "end": 2152,
+        "start": 2092
+      }
+    },
+    {
+      "file": "tests/lean_kernels.rs",
+      "kind": "variable",
+      "name": "position_engine",
+      "name_span": {
+        "end": 40059,
+        "start": 40044
+      }
+    },
+    {
+      "file": "tests/lean_kernels.rs",
+      "kind": "variable",
+      "name": "candidates",
+      "name_span": {
+        "end": 81902,
+        "start": 81892
+      }
+    },
+    {
+      "file": "tests/lean_kernels.rs",
+      "kind": "variable",
+      "name": "actual",
+      "name_span": {
+        "end": 128411,
+        "start": 128405
+      }
+    },
+    {
+      "file": "tests/markdown_inline.rs",
+      "kind": "variable",
+      "name": "f",
+      "name_span": {
+        "end": 5360,
+        "start": 5359
+      }
+    },
+    {
+      "file": "tests/migration-runtime/fastapi-target-runner.py",
+      "kind": "variable",
+      "name": "body",
+      "name_span": {
+        "end": 428,
+        "start": 424
+      }
+    },
+    {
+      "file": "tests/migration-runtime/nextjs-framework/package-lock.json",
+      "kind": "key",
+      "name": "url",
+      "name_span": {
+        "end": 9422,
+        "start": 9419
+      }
+    },
+    {
+      "file": "tests/migration-runtime/nextjs-framework/package-lock.json",
+      "kind": "key",
+      "name": "engines",
+      "name_span": {
+        "end": 18617,
+        "start": 18610
+      }
+    },
+    {
+      "file": "tests/migration-runtime/nextjs-framework/package-lock.json",
+      "kind": "key",
+      "name": "optional",
+      "name_span": {
+        "end": 27921,
+        "start": 27913
+      }
+    },
+    {
+      "file": "tests/migration-runtime/nextjs-framework/package-lock.json",
+      "kind": "key",
+      "name": "node",
+      "name_span": {
+        "end": 37161,
+        "start": 37157
+      }
+    },
+    {
+      "file": "tests/migration-runtime/nextjs-framework/package.json",
+      "kind": "key",
+      "name": "next",
+      "name_span": {
+        "end": 98,
+        "start": 94
+      }
+    },
+    {
+      "file": "tests/migration_cli.rs",
+      "kind": "variable",
+      "name": "escaping",
+      "name_span": {
+        "end": 32929,
+        "start": 32921
+      }
+    },
+    {
+      "file": "tests/move_imports.rs",
+      "kind": "parameter",
+      "name": "to",
+      "name_span": {
+        "end": 728,
+        "start": 726
+      }
+    },
+    {
+      "file": "tests/move_languages.rs",
+      "kind": "variable",
+      "name": "id",
+      "name_span": {
+        "end": 22906,
+        "start": 22904
+      }
+    },
+    {
+      "file": "tests/move_languages.rs",
+      "kind": "function",
+      "name": "a_moved_go_body_using_an_unexported_name_refuses",
+      "name_span": {
+        "end": 50985,
+        "start": 50937
+      }
+    },
+    {
+      "file": "tests/move_remaining.rs",
+      "kind": "variable",
+      "name": "ws",
+      "name_span": {
+        "end": 21612,
+        "start": 21610
+      }
+    },
+    {
+      "file": "tests/output_compiles.rs",
+      "kind": "variable",
+      "name": "id",
+      "name_span": {
+        "end": 1846,
+        "start": 1844
+      }
+    },
+    {
+      "file": "tests/overloads.rs",
+      "kind": "variable",
+      "name": "add",
+      "name_span": {
+        "end": 2666,
+        "start": 2663
+      }
+    },
+    {
+      "file": "tests/petstore/app/api/pets/[petId]/route.ts",
+      "kind": "field",
+      "name": "petId",
+      "name_span": {
+        "end": 1031,
+        "start": 1026
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "dir",
+      "name_span": {
+        "end": 25366,
+        "start": 25363
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "subtree",
+      "name_span": {
+        "end": 80387,
+        "start": 80380
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "function",
+      "name": "package_gaps_cover_bad_syntax_and_unsupported_shapes",
+      "name_span": {
+        "end": 127487,
+        "start": 127435
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "current",
+      "name_span": {
+        "end": 167100,
+        "start": 167093
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "full",
+      "name_span": {
+        "end": 207110,
+        "start": 207106
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "root",
+      "name_span": {
+        "end": 266935,
+        "start": 266931
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "variable",
+      "name": "plain",
+      "name_span": {
+        "end": 306766,
+        "start": 306761
+      }
+    },
+    {
+      "file": "tests/project_cli.rs",
+      "kind": "function",
+      "name": "test_catalogs_report_broken_inputs_and_missing_language_rules",
+      "name_span": {
+        "end": 343859,
+        "start": 343798
+      }
+    },
+    {
+      "file": "tests/provenance.rs",
+      "kind": "variable",
+      "name": "result",
+      "name_span": {
+        "end": 9756,
+        "start": 9750
+      }
+    },
+    {
+      "file": "tests/python_modules.rs",
+      "kind": "variable",
+      "name": "found",
+      "name_span": {
+        "end": 797,
+        "start": 792
+      }
+    },
+    {
+      "file": "tests/qualified_calls.rs",
+      "kind": "function",
+      "name": "index_of",
+      "name_span": {
+        "end": 668,
+        "start": 660
+      }
+    },
+    {
+      "file": "tests/refactor_delete.rs",
+      "kind": "variable",
+      "name": "found",
+      "name_span": {
+        "end": 894,
+        "start": 889
+      }
+    },
+    {
+      "file": "tests/refactor_imports.rs",
+      "kind": "function",
+      "name": "a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go",
+      "name_span": {
+        "end": 8676,
+        "start": 8610
+      }
+    },
+    {
+      "file": "tests/release.rs",
+      "kind": "variable",
+      "name": "manifest",
+      "name_span": {
+        "end": 3854,
+        "start": 3846
+      }
+    },
+    {
+      "file": "tests/rename_hierarchy.rs",
+      "kind": "variable",
+      "name": "source",
+      "name_span": {
+        "end": 7881,
+        "start": 7875
+      }
+    },
+    {
+      "file": "tests/restructure_languages.rs",
+      "kind": "constant",
+      "name": "HELM_SRC",
+      "name_span": {
+        "end": 9613,
+        "start": 9605
+      }
+    },
+    {
+      "file": "tests/rewrite.rs",
+      "kind": "variable",
+      "name": "src",
+      "name_span": {
+        "end": 5049,
+        "start": 5046
+      }
+    },
+    {
+      "file": "tests/rewrites_compile.rs",
+      "kind": "variable",
+      "name": "run",
+      "name_span": {
+        "end": 10561,
+        "start": 10558
+      }
+    },
+    {
+      "file": "tests/rust_receivers.rs",
+      "kind": "function",
+      "name": "a_bare_call_cannot_mean_a_method",
+      "name_span": {
+        "end": 1459,
+        "start": 1427
+      }
+    },
+    {
+      "file": "tests/semantic_evidence.rs",
+      "kind": "function",
+      "name": "normalized_and_shadowed_bodies_never_invent_source_correspondence",
+      "name_span": {
+        "end": 2201,
+        "start": 2136
+      }
+    },
+    {
+      "file": "tests/signature_bash.rs",
+      "kind": "variable",
+      "name": "ws",
+      "name_span": {
+        "end": 17449,
+        "start": 17447
+      }
+    },
+    {
+      "file": "tests/signature_config.rs",
+      "kind": "variable",
+      "name": "ws",
+      "name_span": {
+        "end": 19588,
+        "start": 19586
+      }
+    },
+    {
+      "file": "tests/site_data.rs",
+      "kind": "constant",
+      "name": "PAYOUT",
+      "name_span": {
+        "end": 2356,
+        "start": 2350
+      }
+    },
+    {
+      "file": "tests/site_data.rs",
+      "kind": "variable",
+      "name": "lost",
+      "name_span": {
+        "end": 66688,
+        "start": 66684
+      }
+    },
+    {
+      "file": "tests/task_change_cli.rs",
+      "kind": "variable",
+      "name": "manifest_path",
+      "name_span": {
+        "end": 4741,
+        "start": 4728
+      }
+    },
+    {
+      "file": "tests/tfjson.rs",
+      "kind": "variable",
+      "name": "hcl",
+      "name_span": {
+        "end": 3290,
+        "start": 3287
+      }
+    },
+    {
+      "file": "tests/translate_classes.rs",
+      "kind": "function",
+      "name": "an_annotated_instance_field_carries_with_its_type",
+      "name_span": {
+        "end": 6346,
+        "start": 6297
+      }
+    },
+    {
+      "file": "tests/translate_division.rs",
+      "kind": "variable",
+      "name": "java",
+      "name_span": {
+        "end": 1545,
+        "start": 1541
+      }
+    },
+    {
+      "file": "tests/translate_go_package.rs",
+      "kind": "function",
+      "name": "translated",
+      "name_span": {
+        "end": 253,
+        "start": 243
+      }
+    },
+    {
+      "file": "tests/translate_lambdas.rs",
+      "kind": "function",
+      "name": "a_python_lambda_is_a_typescript_arrow",
+      "name_span": {
+        "end": 699,
+        "start": 662
+      }
+    },
+    {
+      "file": "tests/translate_narrowing.rs",
+      "kind": "function",
+      "name": "a_variant_dodging_a_name_collision_is_built_under_its_dodge",
+      "name_span": {
+        "end": 3083,
+        "start": 3024
+      }
+    },
+    {
+      "file": "tests/translate_precedence.rs",
+      "kind": "variable",
+      "name": "out",
+      "name_span": {
+        "end": 5164,
+        "start": 5161
+      }
+    },
+    {
+      "file": "tests/translate_sums.rs",
+      "kind": "variable",
+      "name": "plan",
+      "name_span": {
+        "end": 1273,
+        "start": 1269
+      }
+    },
+    {
+      "file": "tests/translate_variants.rs",
+      "kind": "variable",
+      "name": "inline",
+      "name_span": {
+        "end": 4241,
+        "start": 4235
+      }
+    },
+    {
+      "file": "tests/types.rs",
+      "kind": "variable",
+      "name": "found",
+      "name_span": {
+        "end": 1527,
+        "start": 1522
+      }
+    },
+    {
+      "file": "tests/types_tutorial/stage1_annotated/payments.py",
+      "kind": "parameter",
+      "name": "payment",
+      "name_span": {
+        "end": 1462,
+        "start": 1455
+      }
+    },
+    {
+      "file": "tests/types_tutorial/stage4_grouped/payments.ts",
+      "kind": "parameter",
+      "name": "payment",
+      "name_span": {
+        "end": 1573,
+        "start": 1566
+      }
+    },
+    {
+      "file": "tests/types_tutorial/stage6_state_machine/payments.py",
+      "kind": "field",
+      "name": "id",
+      "name_span": {
+        "end": 2231,
+        "start": 2229
+      }
+    },
+    {
+      "file": "tests/types_tutorial/stage7_deleted/payments.ts",
+      "kind": "constant",
+      "name": "RETRY_LIMIT",
+      "name_span": {
+        "end": 274,
+        "start": 263
+      }
+    },
+    {
+      "file": "tests/typesafety/python/config_validate_everywhere.py",
+      "kind": "variable",
+      "name": "port_text",
+      "name_span": {
+        "end": 329,
+        "start": 320
+      }
+    },
+    {
+      "file": "tests/typesafety/python/exercise_shipping_misuse.py",
+      "kind": "variable",
+      "name": "rate",
+      "name_span": {
+        "end": 486,
+        "start": 482
+      }
+    },
+    {
+      "file": "tests/typesafety/python/json_parsed.py",
+      "kind": "parameter",
+      "name": "lines",
+      "name_span": {
+        "end": 659,
+        "start": 654
+      }
+    },
+    {
+      "file": "tests/typesafety/python/typed_arguments_misuse.py",
+      "kind": "function",
+      "name": "invoice_line",
+      "name_span": {
+        "end": 113,
+        "start": 101
+      }
+    },
+    {
+      "file": "tests/typesafety/typescript/dispatch_typed.ts",
+      "kind": "function",
+      "name": "advance",
+      "name_span": {
+        "end": 547,
+        "start": 540
+      }
+    },
+    {
+      "file": "tests/typesafety/typescript/exercise_shipping_start.ts",
+      "kind": "parameter",
+      "name": "fragile",
+      "name_span": {
+        "end": 130,
+        "start": 123
+      }
+    },
+    {
+      "file": "tests/typesafety/typescript/json_parsed.ts",
+      "kind": "function",
+      "name": "isLarge",
+      "name_span": {
+        "end": 872,
+        "start": 865
+      }
+    },
+    {
+      "file": "tests/typesafety/typescript/package-lock.json",
+      "kind": "key",
+      "name": "integrity",
+      "name_span": {
+        "end": 6349,
+        "start": 6340
+      }
+    },
+    {
+      "file": "tests/typesafety/typescript/result_chain.ts",
+      "kind": "parameter",
+      "name": "result",
+      "name_span": {
+        "end": 354,
+        "start": 348
+      }
+    },
+    {
+      "file": "tests/typesafety.rs",
+      "kind": "struct",
+      "name": "Example",
+      "name_span": {
+        "end": 271,
+        "start": 264
+      }
+    },
+    {
+      "file": "tests/validators_accept.rs",
+      "kind": "function",
+      "name": "the_validator_gate_states_what_it_covers",
+      "name_span": {
+        "end": 16847,
+        "start": 16807
+      }
+    },
+    {
+      "file": "tests/wasm_native.rs",
+      "kind": "variable",
+      "name": "files",
+      "name_span": {
+        "end": 10697,
+        "start": 10692
+      }
+    },
+    {
+      "file": "tools/agent-context-protocol-v3.py",
+      "kind": "variable",
+      "name": "frozen",
+      "name_span": {
+        "end": 9720,
+        "start": 9714
+      }
+    },
+    {
+      "file": "tools/agent-context-workspace.py",
+      "kind": "variable",
+      "name": "binary",
+      "name_span": {
+        "end": 4616,
+        "start": 4610
+      }
+    },
+    {
+      "file": "tools/agent-eval.py",
+      "kind": "parameter",
+      "name": "destination",
+      "name_span": {
+        "end": 4671,
+        "start": 4660
+      }
+    },
+    {
+      "file": "tools/agent-eval.py",
+      "kind": "parameter",
+      "name": "use_stdin",
+      "name_span": {
+        "end": 35205,
+        "start": 35196
+      }
+    },
+    {
+      "file": "tools/agent-eval.py",
+      "kind": "parameter",
+      "name": "sessions",
+      "name_span": {
+        "end": 58018,
+        "start": 58010
+      }
+    },
+    {
+      "file": "tools/agent-ir-sdk-trial.py",
+      "kind": "variable",
+      "name": "reads",
+      "name_span": {
+        "end": 3207,
+        "start": 3202
+      }
+    },
+    {
+      "file": "tools/agent-semantic-delta-trial.py",
+      "kind": "variable",
+      "name": "name",
+      "name_span": {
+        "end": 7894,
+        "start": 7890
+      }
+    },
+    {
+      "file": "tools/agent-semantic-intent-trial.py",
+      "kind": "variable",
+      "name": "command",
+      "name_span": {
+        "end": 6541,
+        "start": 6534
+      }
+    },
+    {
+      "file": "tools/agent_eval/regex_workspace.py",
+      "kind": "variable",
+      "name": "compiled",
+      "name_span": {
+        "end": 5750,
+        "start": 5742
+      }
+    },
+    {
+      "file": "tools/agent_eval/test_harness.py",
+      "kind": "parameter",
+      "name": "self",
+      "name_span": {
+        "end": 15336,
+        "start": 15332
+      }
+    },
+    {
+      "file": "tools/agent_eval/test_harness.py",
+      "kind": "variable",
+      "name": "events",
+      "name_span": {
+        "end": 38251,
+        "start": 38245
+      }
+    },
+    {
+      "file": "tools/agent_eval/test_harness.py",
+      "kind": "variable",
+      "name": "root",
+      "name_span": {
+        "end": 67445,
+        "start": 67441
+      }
+    },
+    {
+      "file": "tools/application-migration-agent.py",
+      "kind": "function",
+      "name": "config",
+      "name_span": {
+        "end": 9265,
+        "start": 9259
+      }
+    },
+    {
+      "file": "tools/author-batch-context.py",
+      "kind": "parameter",
+      "name": "arm",
+      "name_span": {
+        "end": 4143,
+        "start": 4140
+      }
+    },
+    {
+      "file": "tools/check-agent-skill.py",
+      "kind": "variable",
+      "name": "recipe_examples",
+      "name_span": {
+        "end": 8082,
+        "start": 8067
+      }
+    },
+    {
+      "file": "tools/check-prose.py",
+      "kind": "variable",
+      "name": "line",
+      "name_span": {
+        "end": 8779,
+        "start": 8775
+      }
+    },
+    {
+      "file": "tools/checks-policy-context.py",
+      "kind": "variable",
+      "name": "trial",
+      "name_span": {
+        "end": 7404,
+        "start": 7399
+      }
+    },
+    {
+      "file": "tools/completion-agent-eval.py",
+      "kind": "parameter",
+      "name": "session",
+      "name_span": {
+        "end": 9273,
+        "start": 9266
+      }
+    },
+    {
+      "file": "tools/completion-workflows.py",
+      "kind": "parameter",
+      "name": "executable",
+      "name_span": {
+        "end": 1277,
+        "start": 1267
+      }
+    },
+    {
+      "file": "tools/disclosed-edit-eval.py",
+      "kind": "function",
+      "name": "run",
+      "name_span": {
+        "end": 562,
+        "start": 559
+      }
+    },
+    {
+      "file": "tools/fetch-verified-ranges.sh",
+      "kind": "variable",
+      "name": "expected",
+      "name_span": {
+        "end": 895,
+        "start": 887
+      }
+    },
+    {
+      "file": "tools/flow-cache-acceptance.py",
+      "kind": "variable",
+      "name": "strategy",
+      "name_span": {
+        "end": 7543,
+        "start": 7535
+      }
+    },
+    {
+      "file": "tools/history-context.py",
+      "kind": "function",
+      "name": "main",
+      "name_span": {
+        "end": 3471,
+        "start": 3467
+      }
+    },
+    {
+      "file": "tools/intent-action-context.py",
+      "kind": "variable",
+      "name": "name",
+      "name_span": {
+        "end": 1302,
+        "start": 1298
+      }
+    },
+    {
+      "file": "tools/matched-agent-context.py",
+      "kind": "variable",
+      "name": "surface",
+      "name_span": {
+        "end": 8655,
+        "start": 8648
+      }
+    },
+    {
+      "file": "tools/matched-agent-context.py",
+      "kind": "variable",
+      "name": "metrics",
+      "name_span": {
+        "end": 30507,
+        "start": 30500
+      }
+    },
+    {
+      "file": "tools/matched-agent-source.py",
+      "kind": "variable",
+      "name": "run",
+      "name_span": {
+        "end": 18643,
+        "start": 18640
+      }
+    },
+    {
+      "file": "tools/package-flow-acceptance.py",
+      "kind": "variable",
+      "name": "safe",
+      "name_span": {
+        "end": 4538,
+        "start": 4534
+      }
+    },
+    {
+      "file": "tools/progressive-evidence.py",
+      "kind": "function",
+      "name": "run",
+      "name_span": {
+        "end": 2990,
+        "start": 2987
+      }
+    },
+    {
+      "file": "tools/project-batch-context.py",
+      "kind": "variable",
+      "name": "run",
+      "name_span": {
+        "end": 13038,
+        "start": 13035
+      }
+    },
+    {
+      "file": "tools/project-identity.py",
+      "kind": "variable",
+      "name": "result",
+      "name_span": {
+        "end": 953,
+        "start": 947
+      }
+    },
+    {
+      "file": "tools/proof-authoring-agent.py",
+      "kind": "variable",
+      "name": "operation",
+      "name_span": {
+        "end": 4921,
+        "start": 4912
+      }
+    },
+    {
+      "file": "tools/proof-authoring-agent.py",
+      "kind": "variable",
+      "name": "error",
+      "name_span": {
+        "end": 30230,
+        "start": 30225
+      }
+    },
+    {
+      "file": "tools/recursive-flow-acceptance.py",
+      "kind": "variable",
+      "name": "report",
+      "name_span": {
+        "end": 4125,
+        "start": 4119
+      }
+    },
+    {
+      "file": "tools/representative-acceptance.py",
+      "kind": "variable",
+      "name": "row",
+      "name_span": {
+        "end": 6534,
+        "start": 6531
+      }
+    },
+    {
+      "file": "tools/representative-acceptance.py",
+      "kind": "variable",
+      "name": "original",
+      "name_span": {
+        "end": 35342,
+        "start": 35334
+      }
+    },
+    {
+      "file": "tools/representative-acceptance.py",
+      "kind": "variable",
+      "name": "blocks",
+      "name_span": {
+        "end": 64014,
+        "start": 64008
+      }
+    },
+    {
+      "file": "tools/semantic-context.py",
+      "kind": "variable",
+      "name": "outputs",
+      "name_span": {
+        "end": 1604,
+        "start": 1597
+      }
+    },
+    {
+      "file": "tools/semantic-evidence-acceptance.py",
+      "kind": "variable",
+      "name": "name",
+      "name_span": {
+        "end": 7794,
+        "start": 7790
+      }
+    },
+    {
+      "file": "tools/task-bundle-context.py",
+      "kind": "constant",
+      "name": "CHECKS",
+      "name_span": {
+        "end": 994,
+        "start": 988
+      }
+    },
+    {
+      "file": "tools/task-change-context.py",
+      "kind": "variable",
+      "name": "workflow_path",
+      "name_span": {
+        "end": 4593,
+        "start": 4580
+      }
+    },
+    {
+      "file": "tools/trim-comments.py",
+      "kind": "variable",
+      "name": "s",
+      "name_span": {
+        "end": 3400,
+        "start": 3399
+      }
+    },
+    {
+      "file": "tools/upstream-cross-crate-bodies-agent.py",
+      "kind": "variable",
+      "name": "selected",
+      "name_span": {
+        "end": 19368,
+        "start": 19360
+      }
+    },
+    {
+      "file": "tools/upstream-css-agent.py",
+      "kind": "variable",
+      "name": "preview",
+      "name_span": {
+        "end": 16779,
+        "start": 16772
+      }
+    },
+    {
+      "file": "tools/upstream-mermaid-agent.py",
+      "kind": "parameter",
+      "name": "destination",
+      "name_span": {
+        "end": 20617,
+        "start": 20606
+      }
+    },
+    {
+      "file": "tools/upstream-multibody-agent.py",
+      "kind": "parameter",
+      "name": "diagnostic",
+      "name_span": {
+        "end": 24191,
+        "start": 24181
+      }
+    },
+    {
+      "file": "tools/upstream-react-agent.py",
+      "kind": "variable",
+      "name": "p",
+      "name_span": {
+        "end": 20505,
+        "start": 20504
+      }
+    },
+    {
+      "file": "tools/upstream-read-agent.py",
+      "kind": "variable",
+      "name": "expected",
+      "name_span": {
+        "end": 20375,
+        "start": 20367
+      }
+    },
+    {
+      "file": "tools/upstream-rename-agent.py",
+      "kind": "function",
+      "name": "main",
+      "name_span": {
+        "end": 22659,
+        "start": 22655
+      }
+    },
+    {
+      "file": "tools/upstream-tsx-body-agent.py",
+      "kind": "variable",
+      "name": "value",
+      "name_span": {
+        "end": 24909,
+        "start": 24904
+      }
+    },
+    {
+      "file": "web/README.md",
+      "kind": "heading",
+      "name": "Run locally",
+      "name_span": {
+        "end": 217,
+        "start": 206
+      }
+    },
+    {
+      "file": "web/package-lock.json",
+      "kind": "key",
+      "name": "libc",
+      "name_span": {
+        "end": 6101,
+        "start": 6097
+      }
+    },
+    {
+      "file": "web/package-lock.json",
+      "kind": "key",
+      "name": "optional",
+      "name_span": {
+        "end": 15511,
+        "start": 15503
+      }
+    },
+    {
+      "file": "web/package-lock.json",
+      "kind": "key",
+      "name": "funding",
+      "name_span": {
+        "end": 24454,
+        "start": 24447
+      }
+    },
+    {
+      "file": "web/package-lock.json",
+      "kind": "key",
+      "name": "dependencies",
+      "name_span": {
+        "end": 33219,
+        "start": 33207
+      }
+    },
+    {
+      "file": "web/sample/chart/templates/deployment.yaml",
+      "kind": "key",
+      "name": "kind",
+      "name_span": {
+        "end": 24,
+        "start": 20
+      }
+    },
+    {
+      "file": "web/sample/docs/README.md",
+      "kind": "heading",
+      "name": "Layout",
+      "name_span": {
+        "end": 234,
+        "start": 228
+      }
+    },
+    {
+      "file": "web/sample/web/dashboard.css",
+      "kind": "property",
+      "name": "--ink",
+      "name_span": {
+        "end": 15,
+        "start": 10
+      }
+    },
+    {
+      "file": "web/src/app.ts",
+      "kind": "constant",
+      "name": "astPane",
+      "name_span": {
+        "end": 5055,
+        "start": 5048
+      }
+    },
+    {
+      "file": "web/src/app.ts",
+      "kind": "parameter",
+      "name": "m",
+      "name_span": {
+        "end": 29118,
+        "start": 29117
+      }
+    },
+    {
+      "file": "web/src/graph.ts",
+      "kind": "field",
+      "name": "edges",
+      "name_span": {
+        "end": 559,
+        "start": 554
+      }
+    },
+    {
+      "file": "web/src/render.ts",
+      "kind": "parameter",
+      "name": "entry",
+      "name_span": {
+        "end": 6024,
+        "start": 6019
+      }
+    },
+    {
+      "file": "web/src/shell.ts",
+      "kind": "variable",
+      "name": "below",
+      "name_span": {
+        "end": 5499,
+        "start": 5494
+      }
+    },
+    {
+      "file": "web/src/style.css",
+      "kind": "selector",
+      "name": "statusbar",
+      "name_span": {
+        "end": 12113,
+        "start": 12104
+      }
+    },
+    {
+      "file": "web/test/api.mjs",
+      "kind": "constant",
+      "name": "after",
+      "name_span": {
+        "end": 7711,
+        "start": 7706
+      }
+    },
+    {
+      "file": "web/test/scale.mjs",
+      "kind": "parameter",
+      "name": "entry",
+      "name_span": {
+        "end": 2343,
+        "start": 2338
+      }
+    },
+    {
+      "file": "web/test/style.mjs",
+      "kind": "constant",
+      "name": "darkNames",
+      "name_span": {
+        "end": 3674,
+        "start": 3665
+      }
+    }
+  ]
+}

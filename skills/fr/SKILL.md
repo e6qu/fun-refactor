@@ -4,12 +4,12 @@ description: Use fr to refactor code, check targeted edits, or write and check L
 ---
 # Work with fr
 
-Run `fr` directly at the project root (`-C PATH`):
+Existing Lean theorem (`FILE::THEOREM`): start here with its target.
 ```sh
-fr project find greet --signature --source --bytes 512 --limit 12
+fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
-`greet` is an example. Handles select code at one revision; copy them unchanged. Read omissions.
+[Proofs](references/lean.md): write, check and save your tactics.
 
-Edit: [Author](references/author.md), then [Workflow](references/workflow.md).
-Use [Explore](references/explore.md) for unfamiliar code, [Lean](references/lean.md) for a fixed property,
-or [First change](references/first-change.md) for an example.
+Source edit: [Author](references/author.md); [Workflow](references/workflow.md) needs a saved plan.
+Copy handles, IDs and bases unchanged. Read omissions.
+[Explore](references/explore.md) code; [First change](references/first-change.md) gives an example.

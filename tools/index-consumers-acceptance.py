@@ -13,12 +13,16 @@ import subprocess
 import tempfile
 import time
 
-from evidence_basis import file_digest
+from evidence_basis import native_bindings
+from lean_reference_corrections import check_review, check_snapshot, wildcard_sites
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-consumers/task.json"
 BINDINGS = ["tests/index_consumers.rs", "tests/reference_storage.rs",
-            "tests/agent-eval/index-consumers/task.json", "tools/index-consumers-acceptance.py",
+            "tests/common/lean_reference_corrections.rs", "tools/lean_reference_corrections.py",
+            "tests/agent-eval/index-consumers/lean-reader-review.json",
+            "tests/agent-eval/index-consumers/repository-queries.json",
+            "tests/agent-eval/index-consumers/task.json", "tests/agent-eval/index-consumers/ignored-wildcards.lean", "tools/index-consumers-acceptance.py",
             "tools/evidence_basis.py", "src/index.rs", "src/index/references.rs",
             "src/model.rs", "src/extract.rs", "src/parse.rs", "src/scan.rs", "Cargo.lock"]
 
@@ -32,13 +36,24 @@ def verify(path):
     baseline = json.loads((TASK.parent / "baseline.json").read_text())
     assert report["schema"] == "fr-index-consumers-result-1"
     assert report["repository_revision"] == json.loads(TASK.read_text())["baseline"]
-    assert report["bindings"] == {p: file_digest(ROOT / p) for p in BINDINGS}
+    assert report["bindings"] == native_bindings(ROOT, BINDINGS)
     assert report["baseline_sha256"] == digest(TASK.parent / "baseline.json")
     assert len(report["samples"]) == len(baseline["samples"]) == 3
+    sites = wildcard_sites(TASK)
     for before, after in zip(baseline["samples"], report["samples"]):
-        portable_fields = ["workload", "symbols", "references", "queries"]
+        portable_fields = ["workload", "queries"]
         if after["workload"] != "repository":
-            portable_fields.append("answer_bytes")
+            portable_fields.extend(["symbols", "references", "answer_bytes"])
+            assert after['removed_wildcard_references'] == []
+            assert after['lean_reader_review'] is None and after['query_selection_sha256'] is None
+        else:
+            assert after['removed_wildcard_references'] == sites
+            check_review(TASK, before, after)
+            selection = TASK.parent / 'repository-queries.json'
+            queries = json.loads(selection.read_text())
+            assert queries['repository_revision'] == report['repository_revision']
+            assert after['queries'] == len(queries['queries']) == 512
+            assert after['query_selection_sha256'] == digest(selection)
         for field in portable_fields:
             assert before[field] == after[field], (field, before[field], after[field])
         assert type(after["answer_bytes"]) is int and after["answer_bytes"] > 0
@@ -60,8 +75,10 @@ def main():
         return
     if not args.binary or not args.output:
         parser.error("measurement requires --binary and --output")
+    subprocess.run([str(args.binary.resolve()), 'ignored_rcases_alternatives_do_not_read_a_variable_named_underscore', '--exact'],
+                   cwd=ROOT, check=True, timeout=30)
     task = json.loads(TASK.read_text())
-    bindings = {path: file_digest(ROOT / path) for path in BINDINGS}
+    bindings = native_bindings(ROOT, BINDINGS)
     binary_digest = digest(args.binary)
     samples = []
     with tempfile.TemporaryDirectory(prefix="fr-consumers-") as temporary:
@@ -72,6 +89,7 @@ def main():
         with archive.open("wb") as stream:
             subprocess.run(["git", "archive", task["baseline"]], cwd=ROOT, stdout=stream, check=True)
         subprocess.run(["tar", "-xf", str(archive), "-C", str(snapshot)], check=True)
+        check_snapshot(TASK, snapshot)
         for workload in ["128", "512", "repository"]:
             output = work / "sample.json"
             env = dict(os.environ, FR_CONSUMER_ROOT=str(snapshot), FR_CONSUMER_WORKLOAD=workload,
@@ -110,8 +128,8 @@ def main():
               "profile": "unoptimized test, debug information and incremental compilation disabled",
               "bindings": bindings, "samples": samples,
               "baseline_sha256": digest(TASK.parent / "baseline.json"),
-              "claim": "Membership and occurrence order agree with a linear oracle on this finite workload. Process RSS includes indexing and oracle storage."}
-    assert bindings == {path: file_digest(ROOT / path) for path in BINDINGS}, "sources changed during measurement"
+              "claim": "Membership and occurrence order agree with a linear oracle. Repository queries use 512 saved source definitions; the original timing baseline did not retain its selected sites. Exact reviewed Lean facts account for changed repository counts, including six ignored wildcard reads removed before the review. Synthetic answers remain equal. Language changes affect repository answers and timing; this is not an identical-answer speed comparison. Process RSS includes indexing and oracle storage."}
+    assert bindings == native_bindings(ROOT, BINDINGS), "sources changed during measurement"
     assert binary_digest == digest(args.binary), "binary changed during measurement"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

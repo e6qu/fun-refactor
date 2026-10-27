@@ -1,0 +1,288 @@
+{
+  "study": "M3 interrupted run",
+  "complete": false,
+  "interruption": "Stopped after a resource-monitor failure. Preserve every attempted slot; do not treat this partial run as the completed comparison.",
+  "plan_sha256": "136163bbfde5739096b63fad7585ea537c5da6175cb34fd2d3d9029612662147",
+  "source_commit": "f08baa8856b9b80073e29149f359e0eda81d94ec",
+  "controls_run": "40383054671",
+  "native_inputs": {
+    "src": "d5db7f3b955d4c070618201d547f8d4b1229b8bf",
+    "grammars": "8e7dfe27c9f0c0665626e68ed96a0af50317250b",
+    "crates": "feec596d97f3bdfe8d13d4cbfa9a60ea3614c301",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "24f76acb12d40b598c3d89166fa9721f15a4beed",
+    "Cargo.lock": "d8a2e75965f3d61c0ea97251a0c64e6652e59281",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "versions": {
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32",
+    "fr": "fr 0.85.0"
+  },
+  "native_binary_sha256": {
+    "codex": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+    "opencode2": "cd03022601e4848a957999a2a7b1c1ccf18b94f9a084a44719f62abaacebe83c",
+    "fr": "3c10482f8a587f1247509e243076de6c37941165ad2c8ddc18cb41cffec830bf"
+  },
+  "planned_attempts": 36,
+  "recorded_attempts": 7,
+  "unstarted_attempts": [
+    "opencode2-glm-flash-access-rust-files-1",
+    "opencode2-glm-flash-page-count-files-1",
+    "opencode2-glm-flash-page-count-fr-1",
+    "opencode2-glm-flash-fits-window-fr-1",
+    "opencode2-glm-flash-fits-window-files-1",
+    "opencode2-kimi-k3-access-rust-files-1",
+    "opencode2-kimi-k3-access-rust-fr-1",
+    "opencode2-kimi-k3-page-count-fr-1",
+    "opencode2-kimi-k3-page-count-files-1",
+    "opencode2-kimi-k3-fits-window-files-1",
+    "opencode2-kimi-k3-fits-window-fr-1",
+    "codex-luna-fast-access-rust-fr-2",
+    "codex-luna-fast-access-rust-files-2",
+    "codex-luna-fast-page-count-files-2",
+    "codex-luna-fast-page-count-fr-2",
+    "codex-luna-fast-fits-window-fr-2",
+    "codex-luna-fast-fits-window-files-2",
+    "opencode2-glm-flash-access-rust-files-2",
+    "opencode2-glm-flash-access-rust-fr-2",
+    "opencode2-glm-flash-page-count-fr-2",
+    "opencode2-glm-flash-page-count-files-2",
+    "opencode2-glm-flash-fits-window-files-2",
+    "opencode2-glm-flash-fits-window-fr-2",
+    "opencode2-kimi-k3-access-rust-fr-2",
+    "opencode2-kimi-k3-access-rust-files-2",
+    "opencode2-kimi-k3-page-count-files-2",
+    "opencode2-kimi-k3-page-count-fr-2",
+    "opencode2-kimi-k3-fits-window-fr-2",
+    "opencode2-kimi-k3-fits-window-files-2"
+  ],
+  "total_recorded_seconds": 328.06390183395706,
+  "publication": "Patches and summaries only. Raw prompts, CLI transcripts, source archives, session exports and account data remain local.",
+  "checking": "Native completion is not independent acceptance. These original patches have not been independently graded.",
+  "attempts": [
+    {
+      "id": "codex-luna-fast-access-rust-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "33515e28dbcaf51556090761bb54bbb1c98ec7115ee229f30f68fdcaf63aad0d",
+      "elapsed_seconds": 17.392903707921505,
+      "stop_reason": "transcript_bytes",
+      "sampled_rss_bytes": 124239872,
+      "sampled_cpu_seconds": 0.33,
+      "transcript_bytes": 1048576,
+      "reported_usage": [],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "A broad standard-library search reached the unchanged 1 MiB transcript cap; no patch was delivered."
+    },
+    {
+      "id": "codex-luna-fast-access-rust-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "fcdb96d385e77df3a0044e2a18a313cd053ecd0f7ab1905f9e8b148f75946cb0",
+      "elapsed_seconds": 35.07409441610798,
+      "stop_reason": null,
+      "sampled_rss_bytes": 119865344,
+      "sampled_cpu_seconds": 0.43,
+      "transcript_bytes": 24541,
+      "reported_usage": [
+        {
+          "input_tokens": 163150,
+          "cached_input_tokens": 143104,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2602,
+          "reasoning_output_tokens": 1277
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-fr-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "fr_contribution": "Disclosed the fixed goal, checked the tactics and saved the proof through fr.",
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "512ab5d41e1130912fec31d07c13ab788bf83bdf25877a389d893446812b402c",
+      "elapsed_seconds": 80.64701529196464,
+      "stop_reason": null,
+      "sampled_rss_bytes": 119996416,
+      "sampled_cpu_seconds": 0.53,
+      "transcript_bytes": 86711,
+      "reported_usage": [
+        {
+          "input_tokens": 447491,
+          "cached_input_tokens": 370048,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6097,
+          "reasoning_output_tokens": 3431
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-fr-1.patch",
+      "patch_sha256": "668a99fccd9a850f953828af7b4f4bbebc1ed77ce739296d2aad8244cf0f0aab",
+      "fr_contribution": "Used the proof task, Lean diagnostics and checked write to replace the unfinished proof.",
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-files-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "957b8761cb308bd34bed406e5672b5cc77cf13c084914c74ab63f82370676007",
+      "elapsed_seconds": 66.97405895893462,
+      "stop_reason": null,
+      "sampled_rss_bytes": 128188416,
+      "sampled_cpu_seconds": 0.53,
+      "transcript_bytes": 70854,
+      "reported_usage": [
+        {
+          "input_tokens": 399032,
+          "cached_input_tokens": 364544,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5165,
+          "reasoning_output_tokens": 2519
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-files-1.patch",
+      "patch_sha256": "b74694dc52a147474baa384e2122a67e508c91ce67c27127a740624f8a7c2606",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-files-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "3cde80a00eff80ebd591f94a6e92341be10ed41ae490644da0b400e005c95e9b",
+      "elapsed_seconds": 27.414276708150283,
+      "stop_reason": null,
+      "sampled_rss_bytes": 125632512,
+      "sampled_cpu_seconds": 0.37,
+      "transcript_bytes": 11426,
+      "reported_usage": [
+        {
+          "input_tokens": 91111,
+          "cached_input_tokens": 74880,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2043,
+          "reasoning_output_tokens": 1072
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-files-1.patch",
+      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "1fe51b3b8cafd73c06a87e690fb7d043e7459686b652a66a58899d43928684da",
+      "elapsed_seconds": 97.36710233404301,
+      "stop_reason": null,
+      "sampled_rss_bytes": 122748928,
+      "sampled_cpu_seconds": 0.62,
+      "transcript_bytes": 66489,
+      "reported_usage": [
+        {
+          "input_tokens": 577139,
+          "cached_input_tokens": 518144,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 8491,
+          "reasoning_output_tokens": 5513
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-fr-1.patch",
+      "patch_sha256": "fa7feea9768f34344e14ad1a9df11a27d4393713b4f4fab0e9a11034ddc6f222",
+      "fr_contribution": "Used proof diagnostics and checked write; fr rejected several tactic fragments before another proof was saved.",
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "010cb7e4a3e70afa87efcc376b8031a39128db273de5adf59ce55f94160ab40c",
+      "elapsed_seconds": 3.194450416835025,
+      "stop_reason": "monitor_error",
+      "sampled_rss_bytes": 0,
+      "sampled_cpu_seconds": 0,
+      "transcript_bytes": 0,
+      "reported_usage": [],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "The resource monitor hit its two-second ps deadline while CPU throttling paused the collector; no output or patch was delivered."
+    }
+  ]
+}

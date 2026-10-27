@@ -99,6 +99,52 @@ fn source_is_read_only_through_the_vfs() {
 }
 
 #[test]
+fn entry_kinds_follow_the_active_workspace_without_following_symlinks() {
+    use fun_refactor::vfs::{self, EntryKind};
+    let disk = tempfile::tempdir().unwrap();
+    let root = disk.path();
+    std::fs::write(root.join("one.lean"), "source").unwrap();
+    std::fs::create_dir(root.join("nested")).unwrap();
+    std::os::unix::fs::symlink(root.join("one.lean"), root.join("link")).unwrap();
+    let socket = std::os::unix::net::UnixListener::bind(root.join("socket")).unwrap();
+    assert_eq!(
+        vfs::entry_kind(root.join("one.lean")).unwrap(),
+        EntryKind::File
+    );
+    assert_eq!(
+        vfs::entry_kind(root.join("nested")).unwrap(),
+        EntryKind::Directory
+    );
+    assert_eq!(
+        vfs::entry_kind(root.join("link")).unwrap(),
+        EntryKind::Symlink
+    );
+    assert_eq!(
+        vfs::entry_kind(root.join("socket")).unwrap(),
+        EntryKind::Other
+    );
+    let memory = vfs::new_handle([
+        (root.join("nested/leaf.lean"), "memory".into()),
+        (root.join("link"), "ordinary memory file".into()),
+    ]);
+    vfs::with_handle(&memory, || {
+        assert_eq!(vfs::entry_kind(root).unwrap(), EntryKind::Directory);
+        assert_eq!(
+            vfs::entry_kind(root.join("nested")).unwrap(),
+            EntryKind::Directory
+        );
+        assert_eq!(vfs::entry_kind(root.join("link")).unwrap(), EntryKind::File);
+        for missing in ["one.lean", "socket", "absent"] {
+            assert_eq!(
+                vfs::entry_kind(root.join(missing)).unwrap_err().kind(),
+                std::io::ErrorKind::NotFound
+            );
+        }
+    });
+    drop(socket);
+}
+
+#[test]
 fn byte_reads_preserve_disk_content_and_follow_the_active_workspace() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("asset.bin");

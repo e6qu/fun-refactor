@@ -1,20 +1,22 @@
-# Write and check your first Lean proof
+# Prove a small access rule with Lean
 
-This lesson starts with a complete Rust function and ends with a saved Lean proof.
-Lean is a proof checker. Lake builds a Lean package, which is a group of Lean source files.
-A model describes the admitted Rust behavior in Lean.
-A theorem states the claim; tactics are the steps used to prove it.
+Suppose your program lets staff members and owners open a document.
+We will generate a Lean model of that function, state that exact rule, reject a bad proof,
+and save a checked proof. All files and commands are included below.
 
-You need an installed fr command and Lean/Lake 4.28.0, matching this fr source.
-The generated package pins that Lean release. Follow the [installation guide](../README.md#install) and your [workstation rules](development.md#working-on-a-shared-desktop).
-Keep builds and full checks on a runner when sharing a desktop.
-This lesson makes no model calls.
+Lean checks proofs. A **model** describes the selected program behavior in Lean.
+A **theorem** states the claim to prove; **tactics** are instructions that construct its proof.
+Lake builds a package of Lean files. A checked theorem about a model does not by itself prove
+that the original Rust program behaves the same way. We will keep that connection open.
 
-## Create the whole example
+You need fr, Python 3 and Lean/Lake 4.28.0. The generated package pins that Lean release.
+See [installation](../README.md#install) and the [workstation rules](development.md#working-on-a-shared-desktop).
+Use a runner for builds and full checks on a shared desktop. This lesson makes no model calls;
+its supplied proof steps are a worked example, not an agent success result.
 
-Create a new empty folder and open a terminal there.
-Make a `src` subfolder.
-Save this as `Cargo.toml`, the file identifying this Rust project:
+## Create the program
+
+Open a new empty folder and create a `src` subfolder. Save this project description as `Cargo.toml`:
 
 ```toml
 [package]
@@ -25,98 +27,149 @@ edition = "2024"
 [workspace]
 ```
 
-Save this as `src/lib.rs`:
+Save this complete function as `src/lib.rs`:
 
 ```rust
-pub fn keep(value: bool) -> bool {
-    value
+pub fn allowed(staff: bool, owner: bool) -> bool {
+    if staff {
+        return true;
+    }
+    owner
 }
 ```
 
-A Boolean has two values, `true` and `false`.
-This function returns the supplied value unchanged.
-The property `identity` asks whether the generated model returns its input for every admitted value.
+A Boolean is either `true` or `false`. The function immediately accepts staff members;
+otherwise it returns whether the person owns the document. There are four input pairs:
 
-## Prepare and review the proof task
+| Staff | Owner | Access |
+| --- | --- | --- |
+| false | false | false |
+| false | true | true |
+| true | false | true |
+| true | true | true |
+
+## State the exact claim
+
+Run these commands from the example folder:
 
 ```sh
 fr -C . --json spec init specs
 fr -C . --json spec init specs --write
-fr -C . --json spec plan src/lib.rs::keep --property identity > formal-plan.json
+fr -C . --json spec property-task src/lib.rs::allowed > property-task.json
+```
+
+`-C .` selects this folder. JSON is structured output that another program can read.
+`init` previews the Lean package; `--write` creates it. Here we choose `specs` as its directory.
+A dependency is another library the package uses. Its lockfile records those choices before
+the first proof task; this example starts with no dependencies.
+`property-task` describes the selected model, allowed claim forms and a fingerprint of those inputs.
+A fingerprint identifies particular content; it is not a proof of correctness.
+
+We want equality with `staff || owner`, meaning “staff or owner.”
+Save the following as `make-property.py`. It reads the fingerprint from the actual task
+and writes our claim as a small structured tree. `variable` names an input, `model` calls
+the selected generated model, `binary` applies an operation, and `equals` asks for equality.
+The two named parameters are Boolean inputs to the theorem, covering every value rather than one example.
+
+```python
+import json
+from pathlib import Path
+
+task = json.loads(Path("property-task.json").read_text())
+staff = {"kind": "variable", "name": "staff"}
+owner = {"kind": "variable", "name": "owner"}
+claim = {
+    "schema": "fr-formal-property-1",
+    "task_digest": task["object_digest"],
+    "name": "access_rule",
+    "parameters": [
+        {"name": "staff", "lean_type": "Bool"},
+        {"name": "owner", "lean_type": "Bool"},
+    ],
+    "proposition": {
+        "kind": "equals",
+        "left": {"kind": "model", "arguments": [staff, owner]},
+        "right": {"kind": "binary", "operator": "or", "left": staff, "right": owner},
+    },
+}
+Path("property.json").write_text(json.dumps(claim, indent=2) + "\n")
+```
+
+```sh
+python3 make-property.py
+fr -C . --json spec plan src/lib.rs::allowed --property-from property.json > formal-plan.json
 fr -C . --json spec scaffold --from formal-plan.json --package specs
 fr -C . --json spec scaffold --from formal-plan.json --package specs --write
 fr -C . --json spec goals specs
+fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule
 ```
 
-`-C .` confines fr to this folder. JSON is structured output that an agent or program can read.
-A preview shows the files or changes before a write; `--write` applies the reviewed operation.
+The plan describes the selected source, generated definition, claim and assumptions. Review it before
+scaffolding, which creates the Lean definition and an unfinished theorem. The goals report lists the
+one claim. `proof-task` reveals its context and empty proof templates. An unfinished theorem contains
+`sorry`, a visible proof gap; it is not an accepted proof.
 
-`init` creates the pinned Lake package under `specs`.
-Here `specs` is our chosen package directory; `--package specs` selects it for scaffolding.
-The plan describes the current source, its model and the requested property.
-Review it before scaffolding the model file.
-Scaffolding creates the selected definition and an unfinished theorem.
-An unfinished theorem has a proof gap; it is not a completed proof.
+For these exact names, the theorem target is
+`specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule`.
+The text before `::` names the file; the text after it names the theorem.
+For different source names, use the returned target rather than guessing it.
+Keep this claim and the generated definition fixed while repairing proof steps.
 
-For these exact files and names, the generated theorem target is
-`specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity`.
-The part after `::` names the theorem in the file before it.
-The goals report lists its identity and proof state.
-For another function, use the target returned for that function instead of changing names by guesswork.
+## Read a rejection, then check the proof
 
-```sh
-fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity
-```
-
-Read the requested equality and its assumptions.
-A proof task supplies context and empty templates, rather than the proof.
-Keep the property fixed while writing its tactics.
-
-## Write tactics and ask Lean to check them
-
-Save this as `proof.lean` in the example folder:
+Save this deliberately wrong tactic as `bad-proof.lean`:
 
 ```lean
-rfl
+exact false
 ```
 
-`rfl` proves an equality whose two sides reduce to the same definition.
-It works here because the model returns `value` unchanged.
-The file supplies tactics only; fr places them inside the theorem's existing proof region.
-
 ```sh
-fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean
+fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from bad-proof.lean
 ```
 
-Read `passed` in the report. It should be `true`.
-The command can return a valid report with `passed: false` when Lean rejects the tactics.
-Use its diagnostics to repair the tactics; the successful process exit alone is insufficient.
+The report should say `passed: false` and include Lean's explanation: a Boolean value is not a proof
+of the requested equality. A successful process exit means a report was produced; inspect `passed`
+to find out whether the proof worked. A rejected attempt has no checked receipt and changes no source.
 
-`proof-check` leaves the model file unchanged.
-To see and save the checked proof:
+Save the corrected tactics as `proof.lean`:
+
+```lean
+cases staff <;> rfl
+```
+
+`cases staff` considers both possible values of `staff`. `<;>` runs the following tactic on each case.
+`rfl` proves equality when both sides reduce to the same expression. For staff, both sides become
+`true`; otherwise both sides become `owner`. The tactics file omits `by`: fr inserts these steps
+inside the theorem's existing proof region.
 
 ```sh
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean
-fr -C . --json spec prove specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean --write
+fr -C . --json spec proof-check specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
+fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean
+fr -C . --json spec prove specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule --from proof.lean --write
 fr -C . --json spec check specs --strict --max-debt 0
 fr -C . --json spec evidence specs
 ```
 
-The first command previews the proof-region change.
-The write records it in history. Other source and proof regions should retain their bytes.
-The strict check requires valid source/signature references and zero unfinished proof gaps.
-The evidence command builds the owning Lean package and reports properties, assumptions and remaining obligations.
+The corrected check must report `passed: true`. It leaves source unchanged and returns a receipt,
+which identifies this checked goal, proof, checker and package inputs. `prove` previews the edit;
+`prove --write` checks again, inserts the proof and records an undoable change. Other source and
+proof regions retain their bytes. The strict check requires current source/signature references and
+zero unfinished proof gaps. `evidence` builds the owning package and reports its claims and assumptions.
 
-## What you have established
+## What the result establishes
 
-Lean accepted the identity property of this model.
-You supplied its proof tactic in this lesson; an agent independently choosing tactics is a separate result.
+Lean accepted that this model allows exactly staff members or owners, for every Boolean input pair.
+The lesson supplied its proof. An agent independently writing tactics is a separate result.
 
-The source reference identifies the reviewed Rust function.
-It does not establish every part of Rust-to-Lean translation correctness.
-For this workflow, `correspondence.proved_implementation_model` remains `false`.
-Keep that limit with the result before describing the original program as proved.
+The source fingerprint identifies the reviewed Rust declaration. It does not prove the translation
+from Rust into Lean. `correspondence.proved_implementation_model` remains `false`; keep that limit
+beside the checked theorem. Finite source execution tests can give additional examples, but cannot
+replace a proof of the connection.
 
-After changing the source or the property, obtain and review a fresh task.
-Do not renew a source fingerprint to make an old proof appear current.
-See the [proof reference](lean-specs.md), [agent proof workflow](agent-formalization.md) and [concrete proof milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs).
+Changing the source, model, property or relevant local package inputs requires a fresh reviewed task
+and check. A changed dependency is rebuilt before checking tactics. Do not renew a fingerprint to
+make an old proof appear current. Regenerating supported definitions preserves both declared proof
+regions and the separate handwritten extension region.
+
+See [proof results and limits](lean-specs.md), [agent proof authoring](agent-formalization.md), and
+the [concrete milestone](../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs).

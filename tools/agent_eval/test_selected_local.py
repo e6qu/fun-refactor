@@ -3,11 +3,13 @@ import hashlib
 import io
 import json
 import shlex
+import subprocess
 from pathlib import Path
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import selected_local as local
@@ -15,6 +17,59 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_expired_attempt_keeps_its_failure_and_partial_usage_without_an_export(self):
+        events = [{'type': 'step_finish', 'part': {'tokens': {'input': 3}, 'cost': 0}}]
+        report = {'status': 'failed', 'usage': local.usage('opencode2', events),
+                  'process': {'timed_out': True, 'stop_reason': 'wall_seconds'}, 'error': None}
+        with mock.patch.object(local.time, 'monotonic', return_value=150.03), \
+             mock.patch.object(local, 'export_session') as export:
+            local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                Path('/output'), {}, events, deadline=150)
+        export.assert_not_called()
+        self.assertEqual(report['status'], 'failed')
+        self.assertEqual(report['session_accounting'], {'status': 'deadline-exceeded', 'exported': False})
+        self.assertEqual(report['process'], {'timed_out': True, 'stop_reason': 'wall_seconds'})
+        self.assertEqual(report['usage']['reported'], [{'tokens': {'input': 3}, 'catalog_cost': 0}])
+        self.assertIsNone(report['usage']['exported'])
+        self.assertIsNone(report['usage']['actual_cost'])
+        self.assertIsNone(report['error'])
+
+    def test_session_export_timeout_is_a_failed_attempt_with_unknown_complete_usage(self):
+        report = {'status': 'completed', 'usage': local.usage('opencode2', []), 'error': None}
+        with mock.patch.object(local.time, 'monotonic', return_value=148.75), \
+             mock.patch.object(local, 'export_session', side_effect=subprocess.TimeoutExpired('/client', 1.25)) as export:
+            local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                Path('/output'), {}, [], deadline=150)
+        self.assertEqual(export.call_args.kwargs['timeout_seconds'], 1.25)
+        self.assertEqual(report['status'], 'failed')
+        self.assertEqual(report['session_accounting'], {'status': 'timed-out', 'exported': False})
+        self.assertIsNone(report['usage']['exported'])
+        self.assertIsNone(report['error'])
+
+    def test_accounting_does_not_accept_another_model_or_promote_a_timed_out_client(self):
+        profile = {'model': {'providerID': 'kimi-code-plan-global', 'id': 'k3', 'variant': 'high'}}
+        saved = {'info': {'id': 'ses_example', 'agent': 'build', 'model': profile['model'], 'outcome': 'succeeded'},
+                 'messages': [{'id': 'msg_example', 'type': 'assistant', 'agent': 'build', 'model': profile['model'],
+                    'finish': 'stop', 'tokens': {'input': 2}, 'cost': 0}]}
+        events = [{'type': 'step_finish', 'part': {'messageID': 'msg_example', 'tokens': {'input': 2}, 'cost': 0}}]
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            report = {'status': 'failed', 'usage': local.usage('opencode2', events)}
+            with mock.patch.object(local.time, 'monotonic', return_value=140), \
+                 mock.patch.object(local, 'export_session', return_value=saved) as export:
+                local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                    output, profile, events, deadline=150)
+            self.assertEqual(export.call_args.kwargs['timeout_seconds'], 10)
+            self.assertEqual(report['status'], 'failed')
+            self.assertTrue(report['usage']['exported']['model_observed'])
+            self.assertEqual(json.loads((output / 'session-export.json').read_text()), saved)
+            saved['info']['model'] = {**profile['model'], 'id': 'another-model'}
+            with mock.patch.object(local.time, 'monotonic', return_value=140), \
+                 mock.patch.object(local, 'export_session', return_value=saved), \
+                 self.assertRaisesRegex(ValueError, 'model or agent differs'):
+                local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                    output, profile, events, deadline=150)
+
     def test_native_invocations_choose_exact_models_and_new_conversations(self):
         profiles = json.loads((local.ROOT / local.DIRECTORY / 'profiles.json').read_text())
         binaries = {'codex': {'path': '/codex'}, 'opencode2': {'path': '/opencode2'}}

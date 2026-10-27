@@ -20,6 +20,7 @@ on:
           - structural-change
           - intent-action-context
           - index-resolution
+          - lean-reader-review
           - host-recovery
           - flow
           - dependency
@@ -110,12 +111,59 @@ on:
         description: JSON map of hosted collection names to run IDs
         type: string
         default: ''
+      reader_revisions:
+        description: JSON with explicit before_source, after_source and repository_revision commit IDs for lean-reader-review
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
+  lean-reader-review:
+    if: inputs.group == 'lean-reader-review'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RAYON_NUM_THREADS: '1'
+      RUST_TEST_THREADS: '1'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lean-reader-review
+          cache-on-failure: true
+      - run: python3 -B tools/test-lean-reader-compare.py
+      - env:
+          READER_REVISIONS: ${{ inputs.reader_revisions }}
+        run: >-
+          python3 -B tools/lean-reader-compare.py
+          --revisions "$READER_REVISIONS" --output "$RUNNER_TEMP/lean-reader-review"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-reader-review
+          path: ${{ runner.temp }}/lean-reader-review
+          if-no-files-found: error
+          retention-days: 30
   project-changes:
     if: startsWith(inputs.group, 'project-change-')
     runs-on: ubuntu-latest
@@ -450,7 +498,7 @@ jobs:
           git push origin "HEAD:refs/heads/$BRANCH"
 
   refresh:
-    if: inputs.group != 'retain-language-behavior' && inputs.group != 'language-behavior' && inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile' && inputs.group != 'python-contract' && inputs.group != 'python-report-writes' && inputs.group != 'python-report-audit' && inputs.group != 'retain-python-contract' && inputs.group != 'retain-workflows' && inputs.group != 'retain-repository-flow' && inputs.group != 'retain-package-questions' && inputs.group != 'flow-contract' && inputs.group != 'scalar-development' && inputs.group != 'docs-review' && inputs.group != 'freeze-repository-flow' && inputs.group != 'retain-scalar' && inputs.group != 'retain-ci-reports' && inputs.group != 'retain-contract-failure' && inputs.group != 'fixed-arity-probes' && inputs.group != 'go-toolchain' && !startsWith(inputs.group, 'repository-flow-') && !startsWith(inputs.group, 'package-questions-') && !startsWith(inputs.group, 'project-change-')
+    if: contains(fromJSON('["all","model-comparisons","checked-outcomes","retained-proofs","agent-guide-context","completion-workflows","structural-change","intent-action-context","host-recovery","flow","dependency","contexts","sdk-contexts","compiler-evidence","resumable-correspondence","semantic-evidence","index-consumers","flow-fixed-point","recursive-flow","flow-facts","imported-flow","flow-cache","package-flow","package-reexports","module-aliases","expression-control","call-binding","literal-defaults","namespace-packages","scalar-assignments"]'), inputs.group)
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "structural-change", "retained-proofs", "intent-action-context", "contexts", "sdk-contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -594,14 +642,14 @@ jobs:
       - name: Prepare the recorded Rust formatter for updated test references
         run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
       - name: Cache Lean for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         id: replay-lean
         uses: actions/cache@v6
         with:
           path: /opt/lean
           key: lean-4.28.0-linux-x86_64
       - name: Install Lean for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons') && steps.replay-lean.outputs.cache-hit != 'true'
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"')) && steps.replay-lean.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           curl -fsSL --retry 3 --connect-timeout 20 --max-time 120 \
@@ -610,14 +658,14 @@ jobs:
           sudo mkdir -p /opt/lean
           sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
       - name: Put the model checker on the path
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         run: echo '/opt/lean/bin' >> "$GITHUB_PATH"
       - uses: Swatinem/rust-cache@v2
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         with:
           key: default
       - name: Build fr for independent model replay
-        if: contains(inputs.evidence_runs, 'model-comparisons')
+        if: (contains(inputs.evidence_runs, 'model-comparisons') || contains(inputs.evidence_runs, '"all"'))
         run: cargo build --locked --bin fr
       - name: Retain and audit fresh CI reports
         env:

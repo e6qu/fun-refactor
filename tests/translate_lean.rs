@@ -268,8 +268,7 @@ impl Counter {
 
 #[test]
 fn a_while_condition_is_bracketed() {
-    // Lean applies a function by writing its argument beside it. A bare
-    // `while i < 3 do` reads the `do` block as an argument of `3`.
+    // The writer groups the complete comparison before opening the body.
     let source = "\
 pub fn f() -> i64 {
     let mut i = 0;

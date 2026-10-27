@@ -30,68 +30,68 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-26-distinct-answers-40298880359",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-27-distinct-answers-40458489593",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-26-distinct-answers-40298880359/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-distinct-answers-40458489593/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "eb0c1f7aa8d7593ec225fa636007df9e155a10705b8f3dc69738b76da8d35488"
+      "sha256": "923ad969e6203086fd69ce40cf144485b92831aac191ddfe10584833e5ec0bb8"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "51b05effa86dfe57bfd422a6bc4282e5920952ee65902ce54657a11f771968c2"
+      "sha256": "0b5807ab64b6617b1ab0fb1c4c3ceca4beb95ca9f2ded15d02ca84ed8bb58cb7"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "88f36b0644b4536d2dd81735af36d4d8c88066cdb9c9b57699ab8dd0c0fc04de"
+      "sha256": "a099f00c45561a9f695ad30b6fe03f5fb4d5271501d20cf91dbc088ae9ba157f"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "9318f2e824b5e9297fbeff2fd13cfb68aa6cfd8477ab6e56510e1d71291637a4"
+      "sha256": "64543f42e89d31e8a00507903658b51a3ec1caaaaf3b92c2b5897aa6c8628181"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "99d8522116b88cc30c9432ec57ece31456dac3d6c14b4cd8fda8a081777781f0"
+      "sha256": "c42dfa4b85b4d69ab2399ee59786f68636fe48a8a04aafe0fed7bf9b4f1b6916"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "fa4e89090368970a597d88a04fb64f8a005d9dd20c3ba1dbae34e476d2138a0d"
+      "sha256": "cd8b43ee5e895f61315da37c5e0b67fe13df76008f7ebfaa3a52b5da2d4a43d5"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "5198d82da81e671f59e80c75780604cae41aa04dce657815892e931b0d5f7918"
+      "sha256": "e4e7125a1d4ed0cba2b9a8d4b606edfaf8ba41cb8342443a2f8bdb05a3103548"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "cdac654dd4161d4ea6173d443d0a6717a2b7f689582f1add778ad5f3f51bb860"
+      "sha256": "0eeb49cbce1cd7a9c286045e3f40149109265669a881fc52f3b4abfa8bb08b4b"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "f7aadf2da656756c76715ddfd477b5b12f4d291bb150adc39397b4e88a3bc319"
+      "sha256": "b05f5fd269331e2289924e3a8675aa1f5d23baaa804d145b28e67e60e1d034e3"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "ffbf495d640d2335febc00046218910228bdde8975e60f32fd4afc0bd5628367"
+      "sha256": "aa0698403591f13cb74675ee145b4ef384962fda74982a91431141d8be811f44"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-27-m3-tactic-scalar-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-scalar-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "2c2914696a4279a3bca9dfbabdfc12c92a382b31897ff7196ea11eae5938cfe3"
+      "sha256": "3c4f79032601e9123b72a3250ea98f848dd1f47b6d595bbeec4d17aee0b56089"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "e6f9671ee61956fd90cb8f0ccfbb5052efaeae990cc208589799e6848b360076"
+      "sha256": "7e584af8e302a1ef6d47970aa778c9459f748ab02c35cc9a2ab15fee52b1a097"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
@@ -158,44 +158,44 @@
       "sha256": "e1c57da41f7cb5c2d0293a6f46c8106aee0ba74edef4ceac9e881308d733d8fd"
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40295210035",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40458487204",
       "id": "current-saved-work-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40295210035/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40458487204/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim.",
-      "sha256": "f3f054dc92fac6ebee5eadbaa66f2bbc6eb0d9f3a414bd9b4492fae1300a0abf"
+      "sha256": "936e9fcbc9e89de2ee0aa04579b2d2b50be0dddb6bc3bfc6f5fb77018f41532d"
     },
     {
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-checked-translation/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-checked-translation/result.json",
+      "sha256": "a45744b3dd5f465aca743be06148e531f6592651ce1b93ffa1b4fa2804aa1a87",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "sha256": "570aed07fca7ae99ed4582d3a94da5fc9b9bd850083815062a3371e78cb20719"
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-checked-translation"
     },
     {
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-effects/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-effects/result.json",
+      "sha256": "dcf35b30536b2de64f3c18eaeba58aba7df37f595c9d7743135b242d0bde6de3",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "sha256": "9d769e39a06392d08b98c10d04318dfc261719ce5b68fad845543dd3f1a65c00"
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-effects"
     },
     {
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-python-text-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-text-flow/result.json",
+      "sha256": "29d0fe73577e2d916a8ae0ac17a0d4e7b310879f04b20cae4e8bdf7174078580",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "sha256": "3b95fe1ea8c16101133809ffb28fee7a37a569424a2e321f88f33618051f5c21"
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-27-m3-tactic-fixed-python-text-flow"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-26-m2-import-scopes-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-27-m3-tactic-fixed-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-26-m2-import-scopes-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-tactic-fixed-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "1cfcc372d709831335dbaf220eda28197b93ba79cd7c4784546207ec2468409a"
+      "sha256": "8c939487dc76ee365370f4da3d3cfeeb075a1fbbcff55cb6c14237318db291fd"
     }
   ],
   "obligations": [
@@ -415,29 +415,29 @@
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
+          "evidence": "python-effects",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9,
-              "pointer": "/coverage/examples"
+              "pointer": "/coverage/examples",
+              "equals": 9
             },
             {
-              "equals": 18,
-              "pointer": "/coverage/renamed_and_moved_cases"
+              "pointer": "/coverage/renamed_and_moved_cases",
+              "equals": 18
             },
             {
-              "equals": 36,
-              "pointer": "/coverage/runtime_executions"
+              "pointer": "/coverage/runtime_executions",
+              "equals": 36
             },
             {
-              "equals": true,
-              "pointer": "/coverage/preserves_model_runtime_difference"
+              "pointer": "/coverage/preserves_model_runtime_difference",
+              "equals": true
             }
-          ],
-          "evidence": "python-effects"
+          ]
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -613,29 +613,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
+          "evidence": "checked-translation",
           "assertions": [
             {
-              "equals": true,
-              "pointer": "/passed"
+              "pointer": "/passed",
+              "equals": true
             },
             {
-              "equals": 9030,
-              "pointer": "/coverage/exhaustive_pairs"
+              "pointer": "/coverage/exhaustive_pairs",
+              "equals": 9030
             },
             {
-              "equals": 11,
-              "pointer": "/coverage/boundary_pairs"
+              "pointer": "/coverage/boundary_pairs",
+              "equals": 11
             },
             {
-              "equals": 2,
-              "pointer": "/coverage/directions"
+              "pointer": "/coverage/directions",
+              "equals": 2
             },
             {
-              "equals": true,
-              "pointer": "/coverage/renamed_and_moved"
+              "pointer": "/coverage/renamed_and_moved",
+              "equals": true
             }
-          ],
-          "evidence": "checked-translation"
+          ]
         }
       ],
       "title": "Translate a function without changing its promised behavior"

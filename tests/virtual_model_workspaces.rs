@@ -192,7 +192,20 @@ fn virtual_package_plans_ignore_host_metadata_and_refuse_virtual_conflicts() {
     vfs::with_handle(&workspace, || {
         spec::refinement::capture(&root, "subject.rs::allow").unwrap();
         let plan = spec::init(&root, Path::new("specs")).unwrap();
-        assert_eq!(plan.files.len(), 3);
+        let names = plan
+            .files
+            .iter()
+            .map(|file| file.path.file_name().unwrap().to_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            names,
+            std::collections::BTreeSet::from([
+                "lean-toolchain",
+                "lakefile.toml",
+                "lake-manifest.json",
+                "FrSpecs.lean"
+            ])
+        );
         assert!(plan.files.iter().all(|file| !file.existing));
         vfs::write(root.join("specs"), "virtual file").unwrap();
         assert!(spec::init(&root, Path::new("specs"))
