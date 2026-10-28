@@ -109,8 +109,9 @@ class ScriptedProvider(unittest.TestCase):
             else:
                 with self.assertRaises(urllib.error.HTTPError) as refused:
                     request()
-                self.assertEqual(refused.exception.code, 400)
-                self.assertIn("the native tool result was not returned", errors[0])
+                with refused.exception as response:
+                    self.assertEqual(response.code, 400)
+                    self.assertIn("the native tool result was not returned", errors[0])
             self.assertEqual(len(requests), 3)
 
     def test_two_distinct_tool_results_complete_the_script(self):
