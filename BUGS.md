@@ -52,7 +52,8 @@ Their checkout includes that specific fixture; it does not skip the measurement 
 Older session-cost and saved-answer PR checks also blocked checks of newer commits.
 New commits now cancel those superseded PR checks. Deliberate report-writing runs stay serialized.
 Language-report retention also spent five minutes fetching the complete result archive before running a check.
-It now fetches the reports, artifacts and trial records listed in the roadmap, then checks that the generated status still matches.
+It now fetches each listed report, its artifacts, trial records and referenced source records.
+The checkout checks every recorded hash and keeps genuine source changes visible. Final documentation generation updates the saved status.
 The same source checks, artifact hashes, retention audits and five-minute deadline remain.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

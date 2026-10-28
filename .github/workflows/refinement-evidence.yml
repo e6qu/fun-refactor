@@ -906,7 +906,7 @@ jobs:
           EVIDENCE_PREFIX: ${{ inputs.prefix }}
         run: |
           python3 -B - <<'PY'
-          import json, os, re, subprocess
+          import json, os, re, runpy, subprocess, sys
           from pathlib import Path
           prefix = os.environ['EVIDENCE_PREFIX']
           assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
@@ -916,17 +916,26 @@ jobs:
           patterns.append(f'/tests/agent-eval/results/{prefix}-*/')
           subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
                          input='\n'.join(patterns) + '\n', text=True, check=True, timeout=60)
-          trial_directories = set()
+          required_paths = set()
           for row in catalog['evidence']:
               report = json.loads(Path(row['path']).read_text())
+              field = 'bindings' if report['schema'] == 'fr-index-resolution-result-1' else 'source_bindings'
+              required_paths.update(report.get(field, {}))
               if report['schema'] == 'fr-unknown-target-cohort-1':
-                  trial_directories.update(trial['path'] for trial in report['trials'])
-          if trial_directories:
+                  required_paths.update(trial['path'] for trial in report['trials'])
+          source_directories = {Path(*Path(name).parts[:4]).as_posix() for name in required_paths
+                                if name.startswith('tests/agent-eval/results/')}
+          if source_directories:
               subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
-                             input='\n'.join(f'/{path}/' for path in sorted(trial_directories)) + '\n',
+                             input='\n'.join(f'/{path}/' for path in sorted(source_directories)) + '\n',
                              text=True, check=True, timeout=60)
+          tracked = set(subprocess.check_output(['git', 'ls-files', '-z'], text=True).split('\0'))
+          for name in sorted(required_paths & tracked):
+              assert Path(name).exists(), f'Checkout omitted a recorded source: {name}'
+          sys.path.insert(0, 'tools')
+          runpy.run_path('tools/roadmap-status.py')['compute'](Path.cwd(), catalog)
+          print('Checked every catalog record, its artifacts and its available source files.')
           PY
-          python3 -B tools/roadmap-status.py --check
       - run: python3 -B tools/test-retain-language-behavior.py
       - name: Retain the authenticated source and output records
         env:
