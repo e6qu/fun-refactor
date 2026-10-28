@@ -6,7 +6,7 @@ The active [roadmap](../PLAN.md) focuses on refactoring, targeted code changes a
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**4 of 18 specific test requirements have matching recorded results; 14 remain open. 0 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
+**5 of 18 specific test requirements have matching recorded results; 13 remain open. 0 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -34,7 +34,7 @@ The [earlier checklist](earlier-roadmap-checklist.md) retains these implementati
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
 | A. Find relevant code and explain the evidence | 6/6 | 0/4 | open |
-| B. Explain how values move through code | 4/5 | 0/4 | open |
+| B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 3/6 | 2/6 | open |
 
@@ -112,9 +112,9 @@ Earlier requirement still needs: R1 adds base-ten integer conversion errors and 
 
 User example: Trace an input through a real imported library without mistaking an unfinished answer for safety.
 
-**State: open.** With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.
+**State: demonstrated.** With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.
 
-Recorded results or remaining work: original-package-questions: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [original-package-questions](../tests/agent-eval/results/2026-10-28-m3-clock-fixed-text-package-recheck/result.json).
 
 Earlier requirement still needs: R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.
 
@@ -247,7 +247,7 @@ The entries below identify the stored test results. “Current” means their re
 | [python-contract](../tests/agent-eval/results/2026-10-27-m3-show-scalar-python-contract/result.json) / Python rule comparisons | checked | stale (9 changed inputs) | 16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-contract/result.json` |
 | [index-resolution](../tests/agent-eval/results/2026-10-27-m3-show-scalar-index-resolution/result.json) / measured tool operations | checked | stale (8 changed inputs) | Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source. Audit: `python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-27-m3-show-scalar-index-resolution/result.json` |
 | [repository-flow](../tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json) / scripted behavior checks | checked | stale (38 changed inputs) | Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow. Audit: `python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json` |
-| [original-package-questions](../tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck/result.json) / scripted behavior checks | checked | stale (4 changed inputs) | Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure. Audit: `python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck` |
+| [original-package-questions](../tests/agent-eval/results/2026-10-28-m3-clock-fixed-text-package-recheck/result.json) / scripted behavior checks | checked | current | Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure. Audit: `python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-28-m3-clock-fixed-text-package-recheck` |
 | [project-changes](../tests/agent-eval/results/2026-10-20-projects-project-changes/result.json) / scripted behavior checks | checked | stale (60 changed inputs) | Three original projects, seven change controls each, and checked Rust and Python rename delivery. Audit: `python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr` |
 | [saved-work-cost](../tests/agent-eval/results/2026-10-21-saved-work-39531778541/result.json) / measured tool operations | checked | stale (41 changed inputs) | Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim. Audit: `python3 -B tools/saved-work-cost.py --audit tests/agent-eval/results/2026-10-21-saved-work-39531778541` |
 | [current-saved-work-cost](../tests/agent-eval/results/2026-10-22-project-sessions-40662468996/result.json) / measured tool operations | checked | current | Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim. Audit: `python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40662468996` |
