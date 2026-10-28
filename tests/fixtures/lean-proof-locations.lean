@@ -259,3 +259,37 @@ theorem typedByCases (p : Prop) [Decidable p] (h : p) : p := by
 
 theorem typedCalc (n : Int) : n = n := by
   exact (by calc n = n := by rfl : n = n)
+
+theorem indexedClaim₁ (n₀ : Nat) (h₁ : n₀ = 0) : n₀ = 0 := by
+  have h₂ := h₁
+  exact h₂
+
+def subscriptLetters (nₐ nᵢ nⱼ : Nat) : Nat := nₐ + nᵢ + nⱼ
+
+def castArgument (n : Nat) : Int := Int.neg ↑n
+
+def castSum (n : Nat) : Int := ↑n + 1
+
+theorem castEquality (n : Nat) : (↑n : Int) = ↑n := by
+  have h₁ : (↑n : Int) = ↑n := by
+    refine ?goal₁
+    rfl
+  exact h₁
+
+structure Callable where
+  run : Nat → Nat
+
+instance callableCoercion : CoeFun Callable (fun _ => Nat → Nat) where
+  coe := Callable.run
+
+def functionCoercion (f : Callable) (n : Nat) : Nat := ⇑f n
+
+structure Carrier where
+  element : Type
+
+instance carrierCoercion : CoeSort Carrier Type where
+  coe := Carrier.element
+
+def typeCoercion (c : Carrier) : Type := ↥c
+
+def afterLibrarySyntax : Nat := 1

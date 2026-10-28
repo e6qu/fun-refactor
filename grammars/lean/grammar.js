@@ -519,6 +519,7 @@ module.exports = grammar({
       $._atom,
       $.subscript,
       $.explicit,
+      $.coercion,
       // postfix ! and ? are handled by subscript modifier and notation
       $.projection,
     ),
@@ -690,6 +691,13 @@ module.exports = grammar({
 
     // Explicit: `@ident` — suppresses implicit arguments
     explicit: $ => seq('@', $._atom),
+
+    // Lean's explicit conversions bind to one atomic/postfix operand, before
+    // function application: `f ↑n` and `⇑f n` have different application heads.
+    coercion: $ => prec(PREC.unary, seq(
+      field('operator', choice('↑', '⇑', '↥')),
+      field('operand', $._postfix_head),
+    )),
 
     // Note: postfix `!` and `?` are handled by:
     // - subscript modifier: `arr[i]!`, `arr[i]?`
@@ -1372,7 +1380,7 @@ module.exports = grammar({
 
     // Identifier with optional dot-separated parts: `Foo.Bar.baz`
     // Simple identifier without dots - projection handles qualified access
-    identifier: _ => /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!]*/,
+    identifier: _ => /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*/,
 
     // Escaped identifier: `«name with spaces»`
     escaped_identifier: _ => /«[^»]*»/,
@@ -1427,7 +1435,7 @@ module.exports = grammar({
     cdot: _ => '·',
 
     // Synthetic hole: `?foo` or `?_`
-    synthetic_hole: _ => /\?[_a-zA-Z]\w*/,
+    synthetic_hole: _ => /\?[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*/,
 
     // Quoted name: `` `name `` or ``` ``name ```
     quoted_name: $ => seq('`', choice($.identifier, $.escaped_identifier)),

@@ -6,6 +6,63 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn subscript_names_and_conversions_keep_their_full_tokens_and_operands() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        let name = &source[name.byte_range()];
+        let body = definition.child_by_field_name("body").unwrap();
+        let (conversion, operator, operand) = match name {
+            "indexedClaim₁" | "afterLibrarySyntax" => {
+                checked.insert(name);
+                continue;
+            }
+            "castArgument" => {
+                assert_eq!(body.kind(), "application");
+                (body.child_by_field_name("arguments").unwrap(), "↑", "n")
+            }
+            "castSum" => {
+                assert_eq!(body.kind(), "binary_expression");
+                (body.child_by_field_name("left").unwrap(), "↑", "n")
+            }
+            "functionCoercion" => {
+                assert_eq!(body.kind(), "application");
+                (body.child_by_field_name("name").unwrap(), "⇑", "f")
+            }
+            "typeCoercion" => (body, "↥", "c"),
+            _ => continue,
+        };
+        checked.insert(name);
+        assert_eq!(conversion.kind(), "coercion", "{name}");
+        assert_eq!(
+            &source[conversion
+                .child_by_field_name("operator")
+                .unwrap()
+                .byte_range()],
+            operator,
+            "{name}"
+        );
+        assert_eq!(
+            &source[conversion
+                .child_by_field_name("operand")
+                .unwrap()
+                .byte_range()],
+            operand,
+            "{name}"
+        );
+    }
+    assert_eq!(checked.len(), 6);
+    assert!(tree.root().to_sexp().contains("(synthetic_hole)"));
+}
+
+#[test]
 fn simplifier_locations_and_equality_transport_parse() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();

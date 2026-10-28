@@ -29,6 +29,10 @@ The latest agent records also exposed a repair gap: after a direct proof edit re
 fr could no longer select that theorem for a draft check, even when Lean rejected its proof.
 The repair resolves an exact named proof region directly. It also distinguishes names such as
 `claim` and `claim_extra`. Rebuilt validation of this repair is pending.
+Dogfooding the documented Lean-library search also found false syntax errors for
+subscript names such as `h₁`, named goals such as `?goal₁`, and explicit conversions such as `↑n`.
+Pinned Lean accepts the reproducer. A grammar repair and structural checks are being validated;
+the earlier integer-library scan reported gaps in 14 of 18 files, so it cannot establish complete lookup.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.

@@ -102,6 +102,35 @@ def check(binary, diagnostics):
                         failures.append(text + ': proposition label escaped its tactic')
             if typed != {'typedProof', 'typedCaseLabel', 'typedByCases', 'typedCalc'}:
                 failures.append(fixture + ': missing typed proof declarations')
+            converted = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'castArgument', 'castSum', 'functionCoercion', 'typeCoercion',
+                                'indexedClaim₁', 'afterLibrarySyntax'}:
+                    continue
+                converted.add(text)
+                if text in {'indexedClaim₁', 'afterLibrarySyntax'}:
+                    continue
+                body = definition.find("*[@field='body']")
+                selector, operator, operand = {
+                    'castArgument': ("*[@field='arguments']", '↑', 'n'),
+                    'castSum': ("*[@field='left']", '↑', 'n'),
+                    'functionCoercion': ("*[@field='name']", '⇑', 'f'),
+                    'typeCoercion': (None, '↥', 'c'),
+                }[text]
+                conversion = body.find(selector) if selector is not None and body is not None else body
+                if conversion is None or conversion.tag != 'coercion':
+                    failures.append(text + ': conversion escaped its application or arithmetic operand')
+                    continue
+                actual_operand = conversion.find("*[@field='operand']")
+                if not ''.join(conversion.itertext()).strip().startswith(operator) or actual_operand is None or actual_operand.text != operand:
+                    failures.append(text + ': conversion lost its operator or operand')
+            if converted != {'castArgument', 'castSum', 'functionCoercion', 'typeCoercion',
+                             'indexedClaim₁', 'afterLibrarySyntax'}:
+                failures.append(fixture + ': missing subscript or conversion declarations')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -121,6 +150,8 @@ def check(binary, diagnostics):
         ('show', 'theorem bad (p : Prop) : p := show p'),
         ('calc', 'theorem bad (a : Int) : a = a := by\n  calc\n    a = a :='),
         ('proof-type', 'theorem bad : True := by exact (by trivial : )'),
+        ('conversion', 'def bad : Int := ↑'),
+        ('subscript-name', 'def ₁bad : Nat := 0'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')
