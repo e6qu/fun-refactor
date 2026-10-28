@@ -45,48 +45,23 @@
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs."
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-package-flow/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-package-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-repositories",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-python-repositories",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits."
     },
     {
@@ -113,46 +88,33 @@
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss."
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-structural-change",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "sdk/python/src/fr_ir/_version.py",
-        "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal."
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons",
       "changed_sources": [],
       "freshness": "historical",
       "id": "model-relations",
       "integrity": "checked",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations."
     },
     {
@@ -166,24 +128,13 @@
       "scope": "Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check."
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-compiler-profile/result.json",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "grammars/lean/src/scanner.c",
-        "grammars/lean/tests/layout.c",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-compiler-profile/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
@@ -282,8 +233,10 @@
     },
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-28-m3-ci-repair-text-package-recheck",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/refinement-evidence.yml"
+      ],
+      "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
@@ -491,8 +444,10 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-28-m3-ci-repair-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        ".github/workflows/refinement-evidence.yml"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -502,7 +457,7 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 0,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
@@ -510,9 +465,7 @@
       "engineering_remaining": 0,
       "remaining": [
         "A.exact",
-        "A.repositories",
-        "A.live-repeat",
-        "A.compiler-profile"
+        "A.live-repeat"
       ],
       "state": "open",
       "total": 4
@@ -525,23 +478,22 @@
       },
       "engineering_remaining": 1,
       "remaining": [
-        "B.scalar",
         "B.contract",
+        "B.repository-flow",
         "B.effects"
       ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 3,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.resume",
-        "C.clean"
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
@@ -554,7 +506,7 @@
       },
       "engineering_remaining": 3,
       "remaining": [
-        "D.checked",
+        "D.structural",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -593,9 +545,7 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -614,7 +564,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -631,9 +581,7 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [
-        "compiler-profile: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -668,14 +616,12 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -698,7 +644,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -753,7 +699,9 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [],
+      "blockers": [
+        "original-package-questions: stale source binding"
+      ],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -797,7 +745,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace values in unfamiliar projects"
     },
     {
@@ -840,9 +788,7 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -861,14 +807,12 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [
-        "package-flow: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -891,12 +835,14 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -915,7 +861,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -968,9 +914,7 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -989,12 +933,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Check and replay a delivered change"
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -1013,7 +959,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {

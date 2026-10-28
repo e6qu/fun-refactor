@@ -7,7 +7,7 @@
         "rust-structural"
       ],
       "runner": "tests/structural_change.rs",
-      "runner_sha256": "5127c7e726315580bb8fab02a77161ae5e85d96b9857b4ed3936662517c06d5a",
+      "runner_sha256": "a82466f06578e87aabea146d8fde5a5d448e18a53e6431e0d02a2dd01ceb2791",
       "fixture_revision": "9b96ab3e28ce8000c4b4d173116b111a8180572513e4d38e19afa92e29b7d06c",
       "test": "retained_structural_migration_preserves_compiled_results_and_exact_reversal",
       "oracle": "independent rustc public-output matrix and exact receiver patch reversal",
@@ -226,7 +226,7 @@
         "old-new-model-proofs"
       ],
       "runner": "tests/model_comparisons.rs",
-      "runner_sha256": "95c203076d01c2315798cd737f227717661024c82cfa2c03ae0d06d61bcff97c",
+      "runner_sha256": "3dccbdf7fcc9cd3a1516c7fe67bc3f9e8ae6f1a9e2eba0d56d9ddf1d1e161d38",
       "fixture_revision": "f38225595bb0ced8cbcd14e8c9d884a5a412db52",
       "test": "retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal",
       "oracle": "compiled Rust and Python truth tables, Lean model relations and independent receiver reversal",

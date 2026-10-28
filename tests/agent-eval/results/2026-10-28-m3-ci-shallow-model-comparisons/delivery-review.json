@@ -1,0 +1,416 @@
+{
+  "acceptance_checks": {
+    "basis": "4805ee58187546f5fa183e6ee9b387dea9cd881afc7480a54b95d14c7fe3acce",
+    "names": [
+      "truth-table"
+    ],
+    "toolchain-digest": "5eb1e0444b5419b43905e6a88a31f3418aba8ddb2e035902a76297fec36cfbc4"
+  },
+  "author": {
+    "atomic_snapshot": false,
+    "behavior_checked": false,
+    "changed": true,
+    "context_inherited": [
+      "coverage",
+      "revision",
+      "handle_prefix"
+    ],
+    "diff": "--- a/main.rs\n+++ b/main.rs\n@@ -1,19 +1,19 @@\n mod subject;\n fn main() {\n-    let result = subject::allowed(false, false, false);\n+    let result = subject::permits(false, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, false, true);\n+    let result = subject::permits(false, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, true, false);\n+    let result = subject::permits(false, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, true, true);\n+    let result = subject::permits(false, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, false, false);\n+    let result = subject::permits(true, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, false, true);\n+    let result = subject::permits(true, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, true, false);\n+    let result = subject::permits(true, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, true, true);\n+    let result = subject::permits(true, true);\n     println!(\"{result}\");\n }\n--- a/subject.rs\n+++ b/subject.rs\n@@ -1,1 +1,1 @@\n-pub fn allowed(a: bool, b: bool, unused: bool) -> bool { a && !b }\n+pub fn permits(a: bool, b: bool) -> bool { a && !b }\n--- a/translation.py\n+++ b/translation.py\n@@ -1,5 +1,5 @@\n def permits(b: bool, a: bool) -> bool:\n-    return a and not b\n+    return not b and a\n \n \n def restricted(a: bool, b: bool, extra: bool) -> bool:\n",
+    "files_changed": 3,
+    "postconditions": [
+      {
+        "actual": 3,
+        "expected": 3,
+        "held": true,
+        "postcondition": "files-changed"
+      },
+      {
+        "actual": [
+          "main.rs",
+          "subject.rs",
+          "translation.py"
+        ],
+        "expected": [
+          "main.rs",
+          "subject.rs",
+          "translation.py"
+        ],
+        "held": true,
+        "postcondition": "paths-changed"
+      }
+    ],
+    "postconditions_held": true,
+    "query": "batch",
+    "schema": "fr-author-batch-1",
+    "span_basis": "original-source",
+    "steps": [
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "documentation_edits": 0,
+          "new_name": "permits",
+          "old_name": "allowed",
+          "operation": "rename",
+          "reference_edits": 8
+        },
+        "edits": [
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 58,
+              "start": 51
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 140,
+              "start": 133
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 221,
+              "start": 214
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 302,
+              "start": 295
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 382,
+              "start": 375
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 463,
+              "start": 456
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 543,
+              "start": 536
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 623,
+              "start": 616
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 7,
+            "before_span": {
+              "end": 14,
+              "start": 7
+            },
+            "path": "subject.rs"
+          }
+        ],
+        "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      },
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "call_sites": 8,
+          "request": {
+            "index": 2,
+            "operation": "remove-parameter"
+          }
+        },
+        "edits": [
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 78,
+              "start": 71
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 159,
+              "start": 153
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 240,
+              "start": 233
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 320,
+              "start": 314
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 401,
+              "start": 394
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 481,
+              "start": 475
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 561,
+              "start": 554
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 640,
+              "start": 634
+            },
+            "path": "main.rs"
+          },
+          {
+            "after_bytes": 0,
+            "before_span": {
+              "end": 45,
+              "start": 31
+            },
+            "path": "subject.rs"
+          }
+        ],
+        "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust, Python and TypeScript free-function renames; Rust scalar signatures. Documentation updates exclude executable strings. External consumers and dynamic dispatch remain unchecked."
+      },
+      {
+        "after_bytes": 18,
+        "after_sha256": "cd4832256b20f836eb324cc6698d529005acf54d4a054dc9f490c21483b0a300",
+        "before_bytes": 18,
+        "before_sha256": "b9875d30bf886fa6e7126efb1e601a196c9217ebdf4a037df172bf74b403628f",
+        "before_span": {
+          "end": 61,
+          "start": 43
+        },
+        "changed": true,
+        "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:12",
+        "operation": "replace-body",
+        "path": "translation.py",
+        "preservation": "bytes outside the selected body",
+        "signature": {
+          "basis": "syntax-header",
+          "text": "def permits(b: bool, a: bool) -> bool:"
+        }
+      }
+    ],
+    "validation": "reparse-strict"
+  },
+  "change_scope": {
+    "affected_paths": [
+      "main.rs",
+      "subject.rs",
+      "translation.py"
+    ],
+    "checks": [
+      {
+        "declared_paths": [
+          "subject.rs",
+          "main.rs",
+          "translation.py"
+        ],
+        "matched_paths": [
+          "subject.rs",
+          "main.rs",
+          "translation.py"
+        ],
+        "name": "truth-table",
+        "status": "declared-candidate"
+      }
+    ],
+    "input_digest": "5b512794971a109ce3b14f62a4e6770ed804d7729b536fbae164037c09795822",
+    "review_ready": true,
+    "runtime_coverage": false,
+    "targets": [
+      "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+      "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+      "frp1:0ecd26881523632df1ca8c6b95729ad4:12"
+    ]
+  },
+  "checks": {
+    "basis": "4805ee58187546f5fa183e6ee9b387dea9cd881afc7480a54b95d14c7fe3acce",
+    "command": [
+      "fr",
+      "checks",
+      "--run",
+      "truth-table",
+      "--basis",
+      "4805ee58187546f5fa183e6ee9b387dea9cd881afc7480a54b95d14c7fe3acce",
+      "--quiet-success",
+      "--no-declarations"
+    ],
+    "coverage": [
+      {
+        "covers": [
+          "All eight Boolean assignments in Rust and Python"
+        ],
+        "name": "truth-table"
+      }
+    ],
+    "names": [
+      "truth-table"
+    ],
+    "selected": true
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 3,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 15,
+    "unsupported_files": 0
+  },
+  "delivery": {
+    "check_original": true,
+    "check_output_bytes": 2048,
+    "compact_success": true,
+    "exercise_reversal": true,
+    "patch": "artifacts/migration.patch"
+  },
+  "executed": false,
+  "manifest_sha256": "2acf7fc6eb37c4e6827faf53b6088136412ec5be60ae1bdd93db8ac11dc0d783",
+  "passed": null,
+  "ready": true,
+  "requests": [],
+  "revision": "0ecd26881523632df1ca8c6b95729ad421f643f6a334691a6f053cd68dc9ab91",
+  "schema": "fr-task-change-1",
+  "stages": [
+    {
+      "stage": "check-original",
+      "status": "pending"
+    },
+    {
+      "stage": "apply",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "undo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-restored",
+      "status": "pending"
+    },
+    {
+      "stage": "redo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "deliver-patch",
+      "status": "pending"
+    }
+  ],
+  "targets": [
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+      "id": "rename",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "subject.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:d",
+      "id": "remove",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "subject.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:0ecd26881523632df1ca8c6b95729ad4:12",
+      "id": "translation",
+      "kind": "function",
+      "language": "python",
+      "operation": "replace-body",
+      "path": "translation.py",
+      "scalar": null,
+      "syntax_preflighted": false
+    }
+  ],
+  "task_basis": "frpt1:bc1c3ecf204757d4f767d9fc86ba143867adc435961f84350dac1f21f45eaf93",
+  "task_change_basis": "frtc1:fd5d1ab73dd2121299ad5a6cec0bcf6c58294bde246ce3e43bf1093a3145c577",
+  "task_resolution_basis": "frpt2:1e6f2e7ad8034351e8865861546a029aaab87c750b40c8974dcc58b3d6ab1f34"
+}

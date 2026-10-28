@@ -39,7 +39,7 @@ fn checked_outcomes_retain_failures_and_replay_independent_behavior() {
     python(&[
         "tools/outcome-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-27-m3-show-fixed-checked-outcomes",
+        "tests/agent-eval/results/2026-10-28-m3-ci-shallow-checked-outcomes",
     ]);
 }
 
@@ -133,7 +133,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-27-m3-show-fixed-project-batch-context/result.json",
+        "tests/agent-eval/results/2026-10-28-m3-ci-shallow-project-batch-context/result.json",
     ]);
 }
 
@@ -215,7 +215,7 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-27-m3-show-fixed-workflow-context/result.json",
+        "tests/agent-eval/results/2026-10-28-m3-ci-shallow-workflow-context/result.json",
     ]);
 }
 
@@ -231,7 +231,7 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
     python(&[
         "tools/task-bundle-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-27-m3-show-fixed-task-bundle-context/result.json",
+        "tests/agent-eval/results/2026-10-28-m3-ci-shallow-task-bundle-context/result.json",
     ]);
 }
 #[test]

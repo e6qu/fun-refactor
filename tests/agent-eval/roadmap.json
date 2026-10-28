@@ -46,20 +46,20 @@
       "sha256": "0cc33af86d609c54ef000fa56d72cfd46e013c4d85233865b31f9901d78fb696"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-package-flow/result.json",
+      "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "c1e8d4ca013765c741df0172b0e1a8dce2c4e04d5885336b31fc774a305eb11f"
+      "sha256": "4f9371ba5780158bdaf9126b70926e0bb644f5b19f0b1af5dd7e5e7bb6947785"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-repositories",
+      "audit": "python3 -B tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "d814f583903fa2d243d76e15d3771701ee309efadda7079b5b39f1cb1ac90e26"
+      "sha256": "8e50214703bea085e945ccd729755a1df03000ef4e6460fbbaf35e5376bc817a"
     },
     {
       "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-flow-cache/result.json",
@@ -70,28 +70,28 @@
       "sha256": "0eba3c5b7bbef5b3951faf9f451fe016c2eb9def8f03ae9a0d8bc7fdfdd16f80"
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
       "id": "host-recovery",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
       "scope": "224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss.",
-      "sha256": "98ee5aa80d7fad0bba8f60efed151f6b1dfd4f3618a204b2b9e5ef72122b1482"
+      "sha256": "40b9130469320a33aa53600b91519852c3cd6a36f6ec840985b5331546ccc5bb"
     },
     {
-      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-structural-change",
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change",
       "id": "structural",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-structural-change/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change/manifest.json",
       "scope": "Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal.",
-      "sha256": "5ab969931df325ee6ab13ddee1228b984979e05918618c5bf4e27c0553b5398c"
+      "sha256": "78f5a83cf8657bc5b7773c97434950c2b15ce0e25581255215f5943f1b4f3c24"
     },
     {
-      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-model-comparisons",
+      "audit": "python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons",
       "id": "model-relations",
       "kind": "model-proof",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-fixed-model-comparisons/manifest.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons/manifest.json",
       "scope": "Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations.",
-      "sha256": "09a965e27972978c28006f0bf5c7c54eba4c6e6782df160a63f52160e0993b3a"
+      "sha256": "7ea8a83ca78848b5738998dab87334f481d9d43898dee564240020481dafaf39"
     },
     {
       "audit": "python3 tools/investigation-cohort.py",
@@ -102,12 +102,12 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-compiler-profile/result.json",
+      "audit": "python3 -B tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-27-m3-show-scalar-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-m3-ci-shallow-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "c2e3ffcdf7e9f9010ecd995e4ccfab572ae6d77503623173a5cec65c44f7c41b"
+      "sha256": "09b5c40e16b7c998520cb3bdac47942d23c44fcf5fe165f2d130337b287a6b64"
     },
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-contract/result.json",
