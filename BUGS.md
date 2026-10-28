@@ -65,6 +65,7 @@ The [new four-package replay](https://github.com/e6qu/fun-refactor/actions/runs/
 The previous report remains available.
 Study accounting also reached its five-minute limit before any test ran while checking out 67,078 files.
 Its checkout now uses an explicit fixture list and the current records named by the tracking files.
+The initial checkout loads the fixed fixtures once; the current-record refresh avoids repeating that bulk fetch.
 Short package and toolchain jobs also omit older replay copies and fetch the current record where their audits require it.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
