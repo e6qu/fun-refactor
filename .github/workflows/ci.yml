@@ -22,7 +22,7 @@ env:
 jobs:
   project-changes:
     name: Original saved findings and delivered project changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CARGO_BUILD_JOBS: '2'
