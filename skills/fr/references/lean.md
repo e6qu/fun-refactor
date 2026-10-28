@@ -5,9 +5,8 @@ Keep the supplied claim, model, assumptions and program unchanged.
 
 ## When the theorem already exists
 
-A target joins the file and theorem with `::`, for example
-`specs/FrSpecs/Rules.lean::access_rule`. Replace `<LEAN_TARGET>` below with the supplied
-target. `spec goals specs` lists generated goals when the target is unknown.
+A target names the file and theorem. Run `spec goals specs` and copy its `target`
+as `<LEAN_TARGET>`.
 
 ```sh
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
@@ -17,6 +16,8 @@ Read the fixed claim, model and empty templates. Write a draft early, without a 
 `by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
 repair it. Keep relative indentation; fr adds two spaces to each line. You supply the proof steps.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
+
+`refine ?_` opens a temporary goal. Later tactics must solve it; an unfinished goal fails.
 
 Check before searching the library; this leaves source unchanged:
 

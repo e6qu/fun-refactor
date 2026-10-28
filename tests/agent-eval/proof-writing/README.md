@@ -21,7 +21,14 @@ It stopped when OpenCode2 denied a command entering the Lean library named in th
 The other 21 slots never started. These 12 patches have no independent acceptance result.
 The repaired configuration explicitly allows that exact external directory in both setups and denies native edits there.
 The scripted native checks must enter a reference directory and read its file before another complete comparison.
-Keep all 101 outcomes; a setup repair does not erase an earlier failed attempt.
+The explicit library permission then passed all six native-client controls.
+The [following comparison](clock-interrupted-results/README.md) retains all 36 outcomes and 21 submitted patches:
+18 clients completed and 18 failed. macOS sleep caused ten already-failed attempts to understate elapsed time.
+These durations cannot support a speed comparison; the submitted patches have not been independently graded.
+Review also found that fr rejected `refine ?_` even when later tactics solved its temporary goals.
+The next comparison requires a timer that includes sleep and a rebuilt tool that accepts solved temporary goals.
+Goal discovery also supplies an exact `target` to copy into proof commands.
+Keep all 137 outcomes; a repair does not erase an earlier failed attempt.
 
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior

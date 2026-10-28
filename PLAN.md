@@ -66,9 +66,14 @@ The guide now starts with goal discovery and a draft check. Both setups receive 
 The [next packet](tests/agent-eval/proof-writing/library-access-interrupted-results/README.md) stopped after 15 attempts.
 OpenCode2 denied a command entering that library because its permissions omitted the directory.
 Those 15 outcomes and 12 submitted patches remain unchanged; the other 21 slots never started.
-Next: qualify the explicit library permission with real native-client commands, then freeze a new complete comparison.
+The explicit library permission passed all six native-client controls.
+The [following 36 attempts](tests/agent-eval/proof-writing/clock-interrupted-results/README.md)
+closed with 18 client completions and 18 failures, but macOS sleep invalidated the timing comparison.
+Ten already-failed attempts recorded durations that excluded long sleep intervals.
+That run also exposed a false rejection of `refine ?_` even when later tactics solved its temporary goals.
+Next: qualify the sleep-aware timer, solved temporary goals and copyable goal targets, then run a new frozen comparison.
 GLM still needs an accepted page-count and range proof with a contributing fr step; Kimi needs a page-count proof.
-Keep all 101 outcomes. M3 remains open until every completion check and current CI pass.
+Keep all 137 outcomes. M3 remains open until every completion check and current CI pass.
 
 ### M1. Run the selected agents on three complete tasks
 

@@ -1,0 +1,45 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..874ff34 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,38 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    rcases h with hn | hs
++    · simp [page_countModel, hn]
++    · simp [page_countModel, hs]
++  constructor
++  · intro h
++    rcases h with ⟨hi, himax, hs, hsmax⟩
++    have hpos : 0 < size := by omega
++    have hbad : (items < 0 || size ≤ 0) = false := by
++      simp [show ¬ items < 0 by omega, show ¬ size ≤ 0 by omega]
++    have hq : 0 ≤ items / size := Int.ediv_nonneg hi (by omega)
++    have hqmul : items / size ≤ size * (items / size) := by
++      calc
++        items / size = 1 * (items / size) := by omega
++        _ ≤ size * (items / size) := Int.mul_le_mul_of_nonneg_right (by omega) hq
++    have hqle : items / size ≤ items := by
++      have hmul := Int.mul_ediv_self_le (x := items) (k := size) (by omega)
++      omega
++    have hrem : 0 ≤ items % size := Int.emod_nonneg _ (by omega)
++    have hrem_lt : items % size < size := Int.emod_lt_of_pos _ hpos
++    have hrepr : items % size + size * (items / size) = items := Int.emod_add_mul_ediv _ _
++    simp only [page_countModel, hbad]
++    rw [Int.tdiv_eq_ediv_of_nonneg hi, Int.tmod_eq_emod_of_nonneg hi]
++    by_cases hr : items % size = 0
++    · simp [hr] at hrepr
++      simp [hr]
++      omega
++    · have hrempos : 1 ≤ items % size := by omega
++      simp [hr]
++      constructor <;> omega
++  · rfl
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

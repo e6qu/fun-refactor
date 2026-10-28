@@ -558,7 +558,7 @@ def lean_workflow(exercise, root):
         value = exercise.example(root, example_path, command)
         if "goals" in command:
             goal, = value["catalog"]
-            assert goal["spec"] + "::" + goal["name"] == exercise.values["<LEAN_TARGET>"]
+            assert goal["target"] == exercise.values["<LEAN_TARGET>"]
         if "<LIBRARY_QUERY>" in command:
             assert value["rows"] and value["page"]["returned"] <= 12
             assert value["source_budget"]["returned_bytes"] <= 1536

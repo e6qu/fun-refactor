@@ -46,7 +46,7 @@ class SelectedLocalTests(unittest.TestCase):
         events = [{'type': 'step_finish', 'part': {'tokens': {'input': 3}, 'cost': 0}}]
         report = {'status': 'failed', 'usage': local.usage('opencode2', events),
                   'process': {'timed_out': True, 'stop_reason': 'wall_seconds'}, 'error': None}
-        with mock.patch.object(local.time, 'monotonic', return_value=150.03), \
+        with mock.patch.object(local, 'elapsed_time', return_value=150.03), \
              mock.patch.object(local, 'export_session') as export:
             local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
                 Path('/output'), {}, events, deadline=150)
@@ -59,9 +59,20 @@ class SelectedLocalTests(unittest.TestCase):
         self.assertIsNone(report['usage']['actual_cost'])
         self.assertIsNone(report['error'])
 
+    def test_sleep_can_expire_a_completed_client_before_session_accounting(self):
+        report = {'status': 'completed', 'usage': local.usage('opencode2', []), 'error': None}
+        with mock.patch.object(local, 'elapsed_time', return_value=151), \
+                mock.patch.object(local.time, 'monotonic', return_value=1), \
+                mock.patch.object(local, 'export_session') as export:
+            local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
+                Path('/output'), {}, [], deadline=150)
+        export.assert_not_called()
+        self.assertEqual(report['status'], 'failed')
+        self.assertEqual(report['session_accounting'], {'status': 'deadline-exceeded', 'exported': False})
+
     def test_session_export_timeout_is_a_failed_attempt_with_unknown_complete_usage(self):
         report = {'status': 'completed', 'usage': local.usage('opencode2', []), 'error': None}
-        with mock.patch.object(local.time, 'monotonic', return_value=148.75), \
+        with mock.patch.object(local, 'elapsed_time', return_value=148.75), \
              mock.patch.object(local, 'export_session', side_effect=subprocess.TimeoutExpired('/client', 1.25)) as export:
             local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
                 Path('/output'), {}, [], deadline=150)
@@ -80,7 +91,7 @@ class SelectedLocalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             report = {'status': 'failed', 'usage': local.usage('opencode2', events)}
-            with mock.patch.object(local.time, 'monotonic', return_value=140), \
+            with mock.patch.object(local, 'elapsed_time', return_value=140), \
                  mock.patch.object(local, 'export_session', return_value=saved) as export:
                 local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},
                     output, profile, events, deadline=150)
@@ -89,7 +100,7 @@ class SelectedLocalTests(unittest.TestCase):
             self.assertTrue(report['usage']['exported']['model_observed'])
             self.assertEqual(json.loads((output / 'session-export.json').read_text()), saved)
             saved['info']['model'] = {**profile['model'], 'id': 'another-model'}
-            with mock.patch.object(local.time, 'monotonic', return_value=140), \
+            with mock.patch.object(local, 'elapsed_time', return_value=140), \
                  mock.patch.object(local, 'export_session', return_value=saved), \
                  self.assertRaisesRegex(ValueError, 'model or agent differs'):
                 local.record_opencode_accounting(report, '/client', 'ses_example', Path('/project'), {},

@@ -8,7 +8,7 @@ Lean: a goal is a claim; tactics are proof steps. Discover the target:
 ```sh
 fr --json spec goals specs --limit 8 --token-limit 4096
 ```
-Use `spec::name` as `<LEAN_TARGET>`. Write `.fr/proof-tactics` without `by`:
+Copy `target` as `<LEAN_TARGET>`. Write `.fr/proof-tactics` without `by`:
 ```sh
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```

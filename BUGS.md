@@ -13,6 +13,13 @@ A blank line containing spaces could set the wrong block indentation. Pinned Lea
 A typed proof such as `(by rfl : x = x)` also needs its annotation kept outside its proof steps.
 The [regression fixture](tests/fixtures/lean-proof-locations.lean) checks calculation steps, nested proofs and following declarations.
 The proof API tests check pasted indentation and require read-only checks to preserve the original file.
+Fr also rejected `refine ?_` before Lean could check whether later tactics solved that temporary goal.
+The repair lets Lean check the complete proof. An unsolved goal must still fail.
+Goal discovery now supplies the exact `target` to copy into a proof command.
+
+The local attempt timer also omitted macOS system sleep, understating ten failed attempts in the latest packet.
+The repaired timer includes sleep and keeps the original 150-second deadline.
+The affected timing totals cannot establish speed or cost differences. Full rebuilt-tool validation is still pending.
 The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

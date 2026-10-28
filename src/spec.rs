@@ -441,6 +441,7 @@ pub struct FormalGoalCatalog {
     pub id: String,
     pub name: String,
     pub spec: PathBuf,
+    pub target: String,
     pub line: usize,
     pub object_digest: String,
     pub reveal: Vec<String>,
@@ -451,6 +452,7 @@ pub struct FormalGoalDetail {
     pub id: String,
     pub name: String,
     pub spec: PathBuf,
+    pub target: String,
     pub line: usize,
     pub theorem: String,
     pub source_anchor: Option<String>,
@@ -1427,6 +1429,7 @@ pub fn formal_goals(
         let addressed = serde_json::json!({
             "name": name,
             "spec": spec,
+            "target": format!("{}::{name}", spec.display()),
             "line": debt.line,
             "theorem": theorem,
             "source_anchor": source_anchor,
@@ -1439,6 +1442,7 @@ pub fn formal_goals(
             id: id.clone(),
             name: name.clone(),
             spec: spec.clone(),
+            target: format!("{}::{name}", spec.display()),
             line: debt.line,
             theorem,
             source_anchor,
@@ -1475,6 +1479,7 @@ pub fn formal_goals(
             id: detail.id.clone(),
             name: detail.name.clone(),
             spec: detail.spec.clone(),
+            target: detail.target.clone(),
             line: detail.line,
             object_digest: detail.object_digest.clone(),
             reveal: vec![
@@ -1711,11 +1716,11 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     if proof.split_whitespace().next() == Some("by") {
         bail!("proof input contains tactics only; omit the leading `by`.");
     }
-    if ["sorry", "admit", "?_", "fr:proof-", "fr:debt"]
+    if ["sorry", "admit", "fr:proof-", "fr:debt"]
         .iter()
         .any(|forbidden| proof.contains(forbidden))
     {
-        bail!("proof input cannot carry placeholders, debt or proof-region markers.");
+        bail!("proof input cannot carry admissions, debt or proof-region markers.");
     }
     let begin = format!("-- fr:proof-begin {obligation}");
     let end = format!("-- fr:proof-end {obligation}");

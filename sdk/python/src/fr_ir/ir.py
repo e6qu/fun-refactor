@@ -1745,10 +1745,10 @@ class ProofTask:
         if value["schema"] != PROOF_TASK_SCHEMA:
             raise IrError(f"proof task schema must be {PROOF_TASK_SCHEMA}")
         goal = _exact_mapping(value["goal"], {
-            "id", "name", "spec", "line", "theorem", "source_anchor", "signature_map",
+            "id", "name", "spec", "target", "line", "theorem", "source_anchor", "signature_map",
             "proof_region", "object_digest", "prove_template", "verify", "model_context_digest",
         }, "proof task goal")
-        for key in ("id", "name", "spec", "theorem", "proof_region", "object_digest"):
+        for key in ("id", "name", "spec", "target", "theorem", "proof_region", "object_digest"):
             if not isinstance(goal[key], str) or not goal[key]:
                 raise IrError("proof task goal fields must be non-empty strings")
         if not _is_digest(goal["id"]) or not _is_digest(goal["object_digest"]):
@@ -1760,7 +1760,9 @@ class ProofTask:
             raise IrError("proof task goal anchors must be strings or null")
         if not _is_digest(goal["model_context_digest"]):
             raise IrError("proof model context requires a canonical digest")
-        addressed = {key: goal[key] for key in ("name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
+        if goal["target"] != goal["spec"] + "::" + goal["name"]:
+            raise IrError("proof target must name the supplied file and theorem")
+        addressed = {key: goal[key] for key in ("name", "spec", "target", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
         if merkle_object_digest(addressed) != goal["id"] or goal["object_digest"] != goal["id"]:
             raise IrError("proof goal differs from its model context identity")
         _string_vector(goal["prove_template"], "proof task goal prove template")

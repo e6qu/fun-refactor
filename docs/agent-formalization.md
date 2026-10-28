@@ -236,7 +236,8 @@ fingerprint alone does not prove their correctness.
 
 A failed attempt returns structured diagnostics within the selected
 byte ceiling and no apply action. `spec prove` repeats that Lean check before it prepares history.
-It rejects a leading `by`, proof placeholders, debt markers and ambiguous proof regions. The
+It rejects a leading `by`, admissions such as `sorry`, debt markers and ambiguous proof regions.
+Temporary goals such as `refine ?_` are allowed when later tactics solve them; Lean rejects any goal left open. The
 transaction supports `history undo`, `history redo`, plan review and Git patch export. `spec verify`
 remains the authority for strict anchors and a warnings-as-errors Lake build.
 

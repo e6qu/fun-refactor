@@ -90,6 +90,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_eq!(first["passed"], true);
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
+        "refine ?_\nrfl\n",
+        "have h : keepModel x = x ∧ keepModel x = x := by\n  refine ⟨?_, ?_⟩\n  · rfl\n  · rfl\nexact h.1\n",
         "exact (show keepModel x = x by rfl)\n",
         "exact (show keepModel x = x from rfl)\n",
         "exact (by rfl : keepModel x = x)\n",
@@ -109,6 +111,12 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         assert_eq!(std::fs::read(&model).unwrap(), before_show);
     }
     let proof = workspace.path().join("proof.lean");
+    std::fs::write(&proof, "refine ?_\n").unwrap();
+    let unfinished =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!unfinished.passed);
+    assert!(!unfinished.diagnostics.is_empty());
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
     let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
         .unwrap_err()
@@ -435,6 +443,16 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let goals: serde_json::Value = serde_json::from_slice(&goals.stdout).unwrap();
     assert_eq!(goals["schema"], "fr-formal-goals-1");
     assert_eq!(goals["catalog"].as_array().unwrap().len(), 2);
+    for row in goals["catalog"].as_array().unwrap() {
+        assert_eq!(
+            row["target"],
+            format!(
+                "{}::{}",
+                row["spec"].as_str().unwrap(),
+                row["name"].as_str().unwrap()
+            )
+        );
+    }
     assert!(goals["revealed"].is_null());
     assert!(goals["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 4096);
     let goal = goals["catalog"][0]["id"].as_str().unwrap();
@@ -457,6 +475,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let obligation = revealed["revealed"]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    assert_eq!(revealed["revealed"]["target"], target);
     let request = serde_json::json!({"schema":"fr-agent-goal-1","purpose":"prove",
         "selector":{"path":"specs/FrSpecs/SrcLibRsKeep.lean"},
         "operation":{"kind":"proof","obligation":obligation}});

@@ -15,6 +15,14 @@ import time
 from .study import number, require
 
 
+def elapsed_time():
+    """Count system sleep without depending on wall-clock adjustments."""
+    if sys.platform == 'darwin':
+        return time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
+    require(sys.platform == 'linux', 'elapsed-time limits require macOS or Linux')
+    return time.clock_gettime(time.CLOCK_BOOTTIME)
+
+
 def disk_size(root):
     total = 0
     for directory, _, files in os.walk(root, followlinks=False):
@@ -122,7 +130,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
     for key, value in limits.items():
         number(value, key)
         require(value > 0, f"{key} must be positive")
-    started, initial_disk = time.monotonic(), disk_size(workspace)
+    started, initial_disk = elapsed_time(), disk_size(workspace)
     reason, error, process = None, None, None
     peak_rss, growth, written, cpu = 0, 0, 0, {}
     code = None
@@ -136,9 +144,10 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
             selector.register(process.stderr, selectors.EVENT_READ, stderr)
             next_sample = 0
             while selector.get_map() or process.poll() is None:
-                now = time.monotonic()
+                now = elapsed_time()
                 if now - started >= wall_seconds:
                     reason = "wall_seconds"
+                    break
                 if now >= next_sample:
                     memory, current = sample(process.pid)
                     peak_rss = max(peak_rss, memory)
@@ -191,6 +200,6 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
             "process_exit_code": code,
             "timed_out": reason == "wall_seconds", "stop_reason": reason,
             "launch_error": error if process is None else None, "monitor_error": error if process else None,
-            "elapsed_seconds": time.monotonic() - started, "limits": limits,
+            "elapsed_seconds": elapsed_time() - started, "limits": limits,
             "sampled_aggregate_rss_bytes": peak_rss, "sampled_cpu_seconds": sum(cpu.values()),
             "sampled_disk_growth_bytes": growth, "transcript_bytes": written}
