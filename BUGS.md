@@ -43,6 +43,9 @@ All compiler, proof, source-execution and refusal tests remain, with the same de
 The reduced setup passed the complete model job in ten minutes under its original fifteen-minute limit.
 Report retention separately reached its five-minute limit after fetching every branch and tag for nearly two and a half minutes.
 It now checks out the current commit and explicitly fetches each recorded producer revision, preserving the same audit and deadline.
+Other proof jobs also spent their deadlines checking out historical results before running their checks.
+Their checkouts now exclude that directory. Each proof matrix runs at most two jobs concurrently to reduce checkout and artifact-upload bursts.
+All language cases and original per-job deadlines remain unchanged.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
