@@ -201,6 +201,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -218,6 +223,8 @@ jobs:
               entry, = [row for row in catalog['evidence'] if row['id'] == name]
               path = Path(entry['path'])
               assert path.resolve().is_relative_to(Path.cwd())
+              subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/'],
+                             check=True, timeout=60)
               assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
               subprocess.run(['python3', '-B', 'tools/' + script + '.py', 'audit', '--directory', str(path.parent)], check=True)
           PY
@@ -228,6 +235,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/zig-toolchain
 
   go-toolchain:
@@ -236,6 +248,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/go-toolchain
 
   selected-agents:
@@ -300,10 +317,33 @@ jobs:
       FR_STUDY_CGROUP_TESTS: "1"
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
+      - name: Check out declared study fixtures and current recorded results
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          scalar = json.loads(Path('tests/agent-eval/current-scalar-reports.json').read_text())
+          paths = [Path(row['path']) for row in catalog['evidence']]
+          paths += [Path(row['path']) for row in scalar['reports'].values()]
+          for path in paths:
+              assert path.resolve().is_relative_to(Path.cwd())
+          patterns = Path('tests/agent-eval/study-checkout.txt').read_text()
+          patterns += ''.join('/' + path.as_posix() + '/\n' for path in sorted({p.parent for p in paths}))
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'], input=patterns,
+                         text=True, check=True, timeout=60)
+          for entry in catalog['evidence']:
+              assert hashlib.sha256(Path(entry['path']).read_bytes()).hexdigest() == entry['sha256']
+          PY
       - name: Check out the unchanged source for completed Python measurements
         uses: actions/checkout@v7
         with:
@@ -350,10 +390,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
       - name: Check code-change graders and retained submissions
         run: python3 tools/check-code-change-trials.py
       - name: Report all native attempts and observed costs

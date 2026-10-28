@@ -63,6 +63,9 @@ The audit also checks the original benchmark result; its checkout includes that 
 The package audit also detected a report collected before the final workflow repairs.
 The [new four-package replay](https://github.com/e6qu/fun-refactor/actions/runs/40769180066) passed against the final inputs.
 The previous report remains available.
+Study accounting also reached its five-minute limit before any test ran while checking out 67,078 files.
+Its checkout now uses an explicit fixture list and the current records named by the tracking files.
+Short package and toolchain jobs also omit older replay copies and fetch the current record where their audits require it.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
