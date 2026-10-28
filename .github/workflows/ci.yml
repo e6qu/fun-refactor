@@ -185,21 +185,25 @@ jobs:
           entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
           path = Path(entry['path'])
           assert path.resolve().is_relative_to(Path.cwd())
-          subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/'],
+          original = json.loads(Path('tests/agent-eval/saved-work-cost/record.json').read_text())
+          baseline = Path(original['directory'])
+          assert baseline.resolve().is_relative_to(Path.cwd())
+          subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/',
+                          '/' + baseline.as_posix() + '/'],
                          check=True, timeout=60)
           assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
           subprocess.run([sys.executable, '-B', 'tools/project-session-cost.py', '--audit', '--output', str(path.parent)], check=True)
           PY
 
   original-package-questions:
-    name: Original package questions
+    name: Original package answers and current text examples
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
       - name: Audit the original results and reject false completion records
         run: >-
           python3 -B tools/audit-historical-package-questions.py

@@ -59,6 +59,10 @@ The [complete proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/
 The [language-report job](https://github.com/e6qu/fun-refactor/actions/runs/40743704178) passed in 75 seconds under its original five-minute limit.
 The full suite's session audit reached the same limit while fetching the complete archive.
 Its checkout now selects its recorded session result and required source files before running the unchanged audit.
+The audit also checks the original benchmark result; its checkout includes that recorded directory.
+The package audit also detected a report collected before the final workflow repairs.
+The [new four-package replay](https://github.com/e6qu/fun-refactor/actions/runs/40769180066) passed against the final inputs.
+The previous report remains available.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
