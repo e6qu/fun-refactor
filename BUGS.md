@@ -40,6 +40,9 @@ The proof gate also reached its 15-minute limit after its Rust tests passed.
 Checkout spent about 100 seconds on files, and setup installed unrelated Terraform, Helm and web-application fixtures.
 The repair excludes historical result directories from that job's checkout and installs only its required pinned tools.
 All compiler, proof, source-execution and refusal tests remain, with the same deadline.
+The reduced setup passed the complete model job in ten minutes under its original fifteen-minute limit.
+Report retention separately reached its five-minute limit after fetching every branch and tag for nearly two and a half minutes.
+It now checks out the current commit and explicitly fetches each recorded producer revision, preserving the same audit and deadline.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
