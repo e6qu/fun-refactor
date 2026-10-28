@@ -104,6 +104,9 @@ def markdown(report, publication):
         'Processor work for copying, editing and cleanup remains separate.',
         'Memory is the largest sampled sum of resident memory across Python and the programs it starts.',
         'This measure, RSS, counts memory present in RAM. Sampling can miss short peaks, and shared pages can count twice.',
+        'A short process can finish before a memory sample catches it. Its raw measurement says unknown, never zero memory.',
+        'The memory column covers the three questions. The next column counts source edits whose memory was not observed.',
+        'Both SDKs use the same measurement checks. Each archive is decoded by the SDK that wrote it.',
         'Saved bytes include the database and saved task record, including the earlier answer retained after editing.',
         'Filesystem block allocation and directory entries add unmeasured overhead.',
         'Both SDKs use the same database format. This change is intended to reduce repeated computation, not stored bytes.',
@@ -111,12 +114,14 @@ def markdown(report, publication):
         'Releasing temporary references does not guarantee a lower operating-system memory reading; the table reports the measured totals.',
         'The memory samples include the database library. These results establish no memory saving.',
         'One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.', '',
-        '| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |',
-        '|---|---:|---:|---:|---:|']
+        '| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Largest observed memory MiB | Edits with no memory sample | Final saved KiB |',
+        '|---|---:|---:|---:|---:|---:|']
     for name, versions in report['summary'].items():
         for version in ('previous', 'current'):
             value = versions[version]['saved']
-            lines.append(f"| {name} / {version} | {value['median_reuse_seconds']:.3f} | {value['median_worker_cpu_seconds']:.3f} | {value['maximum_sampled_aggregate_rss_bytes'] / 1048576:.1f} | {value['median_final_saved_bytes'] / 1024:.1f} |")
+            memory = value['maximum_sampled_aggregate_rss_bytes']
+            shown_memory = 'Not observed' if memory is None else f'{memory / 1048576:.1f}'
+            lines.append(f"| {name} / {version} | {value['median_reuse_seconds']:.3f} | {value['median_worker_cpu_seconds']:.3f} | {shown_memory} | {value['source_edits_without_memory_sample']} | {value['median_final_saved_bytes'] / 1024:.1f} |")
     lines += ['', '## What the checks establish', '',
         'Separate profiles locate hashing work. Their timings include profiler overhead and do not enter these tables.',
         'Tests compare fingerprints with an independent implementation and the compiled `fr` program.',

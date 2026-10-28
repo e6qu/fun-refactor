@@ -21,7 +21,7 @@ from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKi
 def process(limits):
     return {'exit_code': 0, 'process_exit_code': 0, 'stop_reason': None, 'timed_out': False,
         'monitor_error': None, 'launch_error': None, 'elapsed_seconds': 1.0,
-        'sampled_aggregate_rss_bytes': 67108864, 'sampled_disk_growth_bytes': 100,
+        'sampled_aggregate_rss_bytes': 67108864, 'rss_observation': 'sampled', 'sampled_disk_growth_bytes': 100,
         'limits': {key: limits[key] for key in ('wall_seconds', 'rss_bytes', 'disk_bytes', 'cpu_seconds', 'transcript_bytes')}}
 
 
@@ -119,6 +119,7 @@ def fixture(directory, tasks):
             result['sessions'].append({'repetition': repetition, 'condition': condition,
                 'position': (tasks['conditions'].index(condition) - repetition) % 2,
                 'copy_seconds': .5, 'copy_cpu_seconds': .01, 'copy_bytes': result['source_bytes'],
+                'source_edit_rss_observation': 'sampled',
                 'cleanup_seconds': .2, 'cleanup_cpu_seconds': .01, 'stages': stages, 'total_seconds': 4.7})
     return result
 
@@ -136,6 +137,17 @@ class Accounting(unittest.TestCase):
 
     def test_complete_accounting_preserves_unfinished_scopes(self):
         self.audit()
+
+    def test_fast_edit_keeps_unknown_memory_and_all_other_costs(self):
+        path = self.directory / '0-saved/edit.json'
+        edit = json.loads(path.read_text())
+        edit['measurement'].update(sampled_aggregate_rss_bytes=None, rss_observation='unobserved')
+        cost.save(path, edit)
+        self.report['sessions'][0]['source_edit_rss_observation'] = 'unobserved'
+        self.audit()
+        self.report['sessions'][0]['source_edit_rss_observation'] = 'sampled'
+        with self.assertRaisesRegex(ValueError, 'source edit memory observation differs'):
+            self.audit()
 
     def test_missing_or_duplicate_repetitions_fail(self):
         self.report['sessions'][1] = copy.deepcopy(self.report['sessions'][0])
@@ -172,6 +184,33 @@ class Accounting(unittest.TestCase):
         value['timed_out'] = True
         with self.assertRaisesRegex(ValueError, 'failed measurement'):
             cost.check_measurement(value, self.tasks['limits'])
+
+    def test_unobserved_memory_is_explicitly_unknown(self):
+        value = process(self.tasks['limits'])
+        value.update(sampled_aggregate_rss_bytes=None, rss_observation='unobserved')
+        cost.check_measurement(value, self.tasks['limits'])
+        for forged in (0, 1):
+            value['sampled_aggregate_rss_bytes'] = forged
+            with self.subTest(forged=forged), self.assertRaisesRegex(ValueError, 'stay unknown'):
+                cost.check_measurement(value, self.tasks['limits'])
+        value.update(sampled_aggregate_rss_bytes=None, rss_observation='sampled')
+        with self.assertRaisesRegex(ValueError, 'invalid aggregate memory'):
+            cost.check_measurement(value, self.tasks['limits'])
+
+    def test_an_unobserved_fast_process_is_not_reported_as_zero_memory(self):
+        output, workspace = self.directory / 'fast-measurement', self.directory / 'workspace'
+
+        def run(*args, **kwargs):
+            (output / 'cpu.txt').write_text('0.01 0.01\n')
+            return {**process(self.tasks['limits']), 'sampled_aggregate_rss_bytes': 0}
+
+        with patch.object(cost, 'bounded_run', side_effect=run):
+            measured, cpu = cost.measured(['example'], output, workspace, self.tasks['limits'])
+        self.assertEqual(measured['rss_observation'], 'unobserved')
+        self.assertIsNone(measured['sampled_aggregate_rss_bytes'])
+        self.assertIsNone(json.loads((output / 'process.json').read_text())['measurement']['sampled_aggregate_rss_bytes'])
+        self.assertEqual(cpu, .02)
+        cost.check_measurement(measured, self.tasks['limits'])
 
     def test_limits_cannot_be_extended(self):
         value = process(self.tasks['limits'])
