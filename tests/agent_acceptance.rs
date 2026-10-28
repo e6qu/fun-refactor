@@ -239,6 +239,6 @@ fn consumer_scopes_retain_exact_discovery_and_replay_checked_delivery() {
     python(&[
         "tools/change-scope-acceptance.py",
         "--audit",
-        "tests/agent-eval/results/2026-10-27-m3-show-fixed-change-scope",
+        "tests/agent-eval/results/2026-10-28-m3-final-consumer-change-scope",
     ]);
 }
