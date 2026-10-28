@@ -387,7 +387,8 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /*
-            !/tests/agent-eval/results/
+            !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-09-25-flow-cache/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

@@ -46,6 +46,8 @@ It now checks out the current commit and explicitly fetches each recorded produc
 Other proof jobs also spent their deadlines checking out historical results before running their checks.
 Their checkouts now exclude that directory. Each proof matrix runs at most two jobs concurrently to reduce checkout and artifact-upload bursts.
 All language cases and original per-job deadlines remain unchanged.
+The SDK examples still need the saved flow-cache measurements to check the benchmark table.
+Their checkout includes that specific fixture; it does not skip the measurement check.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
