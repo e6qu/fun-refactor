@@ -133,6 +133,54 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     );
     assert!(syntax_error.ends_with("; no files changed."));
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    let manually_edited = std::str::from_utf8(&before_show).unwrap().replace(
+        "  -- fr:debt keepModel_identity\n  sorry\n",
+        "  exact false\n",
+    );
+    assert_ne!(manually_edited.as_bytes(), before_show);
+    std::fs::write(&model, &manually_edited).unwrap();
+    assert!(fun_refactor::spec::formal_goals(
+        workspace.path(),
+        &[model.clone()],
+        None,
+        8,
+        4096,
+        true,
+    )
+    .unwrap()
+    .catalog
+    .is_empty());
+    let edited_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
+    assert_eq!(edited_task.goal.target, target);
+    std::fs::write(&proof, "exact false\n").unwrap();
+    let rejected = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!rejected.passed);
+    assert!(rejected.receipt.is_none());
+    assert!(!rejected.diagnostics.is_empty());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
+    std::fs::write(&proof, "rfl\n").unwrap();
+    let repaired = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(
+        repaired.passed,
+        "{}",
+        serde_json::to_string(&repaired).unwrap()
+    );
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
+    let saved = run(
+        workspace.path(),
+        &["spec", "prove", target, "--from", "proof.lean", "--write"],
+    );
+    assert!(
+        saved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&saved.stderr)
+    );
+    let saved_model = std::fs::read_to_string(&model).unwrap();
+    assert!(saved_model.contains("  rfl\n"));
+    assert!(!saved_model.contains("  exact false\n"));
+    assert!(saved_model.contains("-- fr:proof-begin keepModel_identity"));
+    assert!(saved_model.contains("-- fr:proof-end keepModel_identity"));
+    std::fs::write(&model, &before_show).unwrap();
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     std::fs::write(&dependency, policy.replace(":= value", ":= !value")).unwrap();
     let second_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();

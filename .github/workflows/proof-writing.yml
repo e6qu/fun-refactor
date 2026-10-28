@@ -38,7 +38,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: m3-proof-writing-${{ github.ref }}
+  group: m3-proof-writing-${{ inputs.operation }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   configuration:

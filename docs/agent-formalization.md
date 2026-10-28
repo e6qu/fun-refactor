@@ -207,6 +207,11 @@ fr --json spec proof-task \
   specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --token-limit 4096
 ```
 
+An exact target also works after a direct proof edit removed its unfinished marker.
+For example, replacing `sorry` with an incorrect `exact false` still leaves the named theorem available
+to `proof-task` and `proof-check`. The unfinished-goal catalog lists pending work; an empty catalog
+does not establish that an edited proof passed Lean. Keep the named proof-region markers for repair.
+
 `fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
 address. Its direct and calculation templates contain only positions for agent-written tactics.
 They do not contain a proof. The agent writes the proof file, then asks Lean to check it without a

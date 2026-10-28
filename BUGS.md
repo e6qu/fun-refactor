@@ -20,11 +20,15 @@ Goal discovery now supplies the exact `target` to copy into a proof command.
 The local attempt timer also omitted macOS system sleep, understating ten failed attempts in the latest packet.
 The repaired timer includes sleep and keeps the original 150-second deadline.
 The affected timing totals cannot establish speed or cost differences. All 29 rebuilt-tool checks passed.
-The complete agent comparison and final CI remain pending.
+The replacement comparison finished all 36 attempts without detected sleep; independent grading and final CI remain pending.
 The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.
 The saved-answer benchmark also treated a missing memory sample as zero memory and rejected very short completed edits.
 The repair records unknown memory explicitly and counts edits without a sample in the report. Elapsed time, CPU and limits stay checked.
-Its new collection still needs to pass on GitHub; earlier failed artifacts remain unchanged.
+Its [replacement collection passed on GitHub](https://github.com/e6qu/fun-refactor/actions/runs/40670597090); earlier failed artifacts remain unchanged.
+The latest agent records also exposed a repair gap: after a direct proof edit removed `sorry`,
+fr could no longer select that theorem for a draft check, even when Lean rejected its proof.
+The repair resolves an exact named proof region directly. It also distinguishes names such as
+`claim` and `claim_extra`. Rebuilt validation of this repair is pending.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.

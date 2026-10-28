@@ -54,9 +54,9 @@ the requested patch. If the request specifies `git diff --binary HEAD`, write th
 to `change.patch`. The separate source-edit workflow needs a saved edit plan; use actual
 returned IDs when working with such a plan.
 
-If you already edited the proof directly, check the owning Lean package and deliver the
-requested patch. A contributing proof-task or proof-check step can help without creating
-a source-edit transaction. Run supplied checks once and retain failed-check diagnostics.
+These commands also work after a direct edit removed the unfinished-proof marker.
+Keep the named proof-region markers. Run supplied package checks once, retain failed-check
+diagnostics and deliver the requested patch.
 
 ## When a model or claim still needs to be created
 
