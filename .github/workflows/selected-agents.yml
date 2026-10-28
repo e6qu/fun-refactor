@@ -17,6 +17,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: |
+            .github/actions/native-tools/python-wheels.txt
             tools
             sdk/python/src
             tests/agent-eval/selected-agents
