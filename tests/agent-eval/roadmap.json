@@ -134,12 +134,12 @@
       "sha256": "191dd505876d18fe50a179951c32cdca1cf3e086a65a0113c6ac6bcb2c58fa00"
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-library-fixed-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck",
       "id": "original-package-questions",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-library-fixed-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure.",
-      "sha256": "eef7bcfccb5130b43c8a44c7515a6cf4fe71de6148ed01b8d3af994658c3d30a"
+      "sha256": "b37d199fbf024b5be2429533f31466ec977136f8faa4706cb16a88794598dfcc"
     },
     {
       "audit": "python3 tools/retain-project-changes.py --audit tests/agent-eval/results/2026-10-20-projects-project-changes/result.json --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",

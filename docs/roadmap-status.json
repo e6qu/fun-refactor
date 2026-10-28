@@ -260,13 +260,13 @@
       "scope": "Historical baseline: thirty cases call utility helpers that return their input. Replay uses the original checker and source. These records cannot qualify the current checker or complete B.repository-flow."
     },
     {
-      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-library-fixed-text-package-recheck",
+      "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck",
       "changed_sources": [],
       "freshness": "current",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-27-m3-library-fixed-text-package-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-27-m3-release-fixed-text-package-recheck/result.json",
       "scope": "Current maintenance replay of four familiar packages with one executable. The first unread Stringcase result remains checked separately at its original checker and procedure."
     },
     {
