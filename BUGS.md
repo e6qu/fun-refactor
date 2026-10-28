@@ -36,6 +36,10 @@ The earlier integer-library scan reported gaps in 14 of 18 files, so it cannot e
 CI also exposed a keyword-test defect: apostrophes in JavaScript comments confused its quote scanner.
 The test now reads generated grammar tokens. Its fuller inventory found two missing writer escapes, `obtain` and `suffices`.
 The repair escapes both names when writing Lean; GitHub validation is pending.
+The proof gate also reached its 15-minute limit after its Rust tests passed.
+Checkout spent about 100 seconds on files, and setup installed unrelated Terraform, Helm and web-application fixtures.
+The repair excludes historical result directories from that job's checkout and installs only its required pinned tools.
+All compiler, proof, source-execution and refusal tests remain, with the same deadline.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
