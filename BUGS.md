@@ -55,6 +55,8 @@ Language-report retention also spent five minutes fetching the complete result a
 It now fetches each listed report, its artifacts, trial records and referenced source records.
 The checkout checks every recorded hash and keeps genuine source changes visible. Final documentation generation updates the saved status.
 The same source checks, artifact hashes, retention audits and five-minute deadline remain.
+The [complete proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/40737530552) passed all 27 jobs.
+The [language-report job](https://github.com/e6qu/fun-refactor/actions/runs/40743704178) passed in 75 seconds under its original five-minute limit.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
