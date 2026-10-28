@@ -5,8 +5,8 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) records all 36 attempts: 25 clients finished,
-11 timed out and 25 patches were submitted. Independent grading is pending.
+The [latest comparison](local-results/README.md) records all 36 attempts: independent grading accepted 25 proofs.
+Eleven attempts timed out and remain failed. All 25 delivered patches passed their independent checks.
 The timer now includes system sleep; no sleep was detected. The deadline remains 150 seconds.
 The rebuilt tool passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
 Goal discovery supplies an exact `target`, valid proofs may use temporary goals that later tactics solve,

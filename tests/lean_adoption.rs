@@ -141,7 +141,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&model, &manually_edited).unwrap();
     assert!(fun_refactor::spec::formal_goals(
         workspace.path(),
-        &[model.clone()],
+        std::slice::from_ref(&model),
         None,
         8,
         4096,

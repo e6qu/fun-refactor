@@ -52,12 +52,12 @@ The [task guide](tests/agent-eval/proof-writing/README.md) names the exact input
 The tool used for the latest comparison passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
 These check ten examples, Codex and OpenCode2 behavior, Python proof records and rejection of bad submitted patches.
 The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-retains 25 client completions, 11 timeouts and 25 submitted patches. Independent grading is pending.
+retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
 Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
 
 GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-Next: independently grade every submission and finish CI. Then improve general proof support,
-starting with checking an existing theorem after an agent has edited its proof directly.
+Next: finish CI and validate the new library-reading repairs.
+Checking an existing theorem after a direct proof edit passed the rebuilt-tool checks.
 Use the recorded failures to improve library discovery and draft repair while keeping the requested claims and limits.
 Run another comparison only after a concrete repair or capability has passed its checks.
 Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).

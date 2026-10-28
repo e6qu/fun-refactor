@@ -20,19 +20,22 @@ Goal discovery now supplies the exact `target` to copy into a proof command.
 The local attempt timer also omitted macOS system sleep, understating ten failed attempts in the latest packet.
 The repaired timer includes sleep and keeps the original 150-second deadline.
 The affected timing totals cannot establish speed or cost differences. All 29 rebuilt-tool checks passed.
-The replacement comparison finished all 36 attempts without detected sleep; independent grading and final CI remain pending.
+Independent grading accepted 25 proofs and retained all 11 timeouts as failures. Final CI remains pending.
 The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.
 The saved-answer benchmark also treated a missing memory sample as zero memory and rejected very short completed edits.
 The repair records unknown memory explicitly and counts edits without a sample in the report. Elapsed time, CPU and limits stay checked.
 Its [replacement collection passed on GitHub](https://github.com/e6qu/fun-refactor/actions/runs/40670597090); earlier failed artifacts remain unchanged.
-The latest agent records also exposed a repair gap: after a direct proof edit removed `sorry`,
-fr could no longer select that theorem for a draft check, even when Lean rejected its proof.
+The latest agent records also exposed a repair gap after a direct proof edit removed `sorry`.
+Fr could no longer select that theorem for a draft check, even when Lean rejected its proof.
 The repair resolves an exact named proof region directly. It also distinguishes names such as
-`claim` and `claim_extra`. Rebuilt validation of this repair is pending.
-Dogfooding the documented Lean-library search also found false syntax errors for
-subscript names such as `h₁`, named goals such as `?goal₁`, and explicit conversions such as `↑n`.
-Pinned Lean accepts the reproducer. A grammar repair and structural checks are being validated;
-the earlier integer-library scan reported gaps in 14 of 18 files, so it cannot establish complete lookup.
+`claim` and `claim_extra`. The [rebuilt-tool checks passed](https://github.com/e6qu/fun-refactor/actions/runs/40678657753).
+Dogfooding the documented Lean-library search also found false syntax errors.
+Examples include subscript names such as `h₁`, named goals such as `?goal₁`, and explicit conversions such as `↑n`.
+Pinned Lean accepts the reproducer. GitHub generated the repaired parser and is running its structural checks.
+The earlier integer-library scan reported gaps in 14 of 18 files, so it cannot establish complete lookup.
+CI also exposed a keyword-test defect: apostrophes in JavaScript comments confused its quote scanner.
+The test now reads generated grammar tokens. Its fuller inventory found two missing writer escapes, `obtain` and `suffices`.
+The repair escapes both names when writing Lean; GitHub validation is pending.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
