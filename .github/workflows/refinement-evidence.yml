@@ -893,9 +893,40 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Check out every report and artifact used by the roadmap
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          prefix = os.environ['EVIDENCE_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          directories = {str(Path(row['path']).parent) for row in catalog['evidence']}
+          patterns = [f'/{directory}/' for directory in sorted(directories)]
+          patterns.append(f'/tests/agent-eval/results/{prefix}-*/')
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                         input='\n'.join(patterns) + '\n', text=True, check=True, timeout=60)
+          trial_directories = set()
+          for row in catalog['evidence']:
+              report = json.loads(Path(row['path']).read_text())
+              if report['schema'] == 'fr-unknown-target-cohort-1':
+                  trial_directories.update(trial['path'] for trial in report['trials'])
+          if trial_directories:
+              subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                             input='\n'.join(f'/{path}/' for path in sorted(trial_directories)) + '\n',
+                             text=True, check=True, timeout=60)
+          PY
+          python3 -B tools/roadmap-status.py --check
       - run: python3 -B tools/test-retain-language-behavior.py
       - name: Retain the authenticated source and output records
         env:

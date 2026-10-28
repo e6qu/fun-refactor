@@ -15,7 +15,7 @@ permissions:
   contents: read
 concurrency:
   group: project-session-cost-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   controls:
     name: Reject missing session costs and stale answers

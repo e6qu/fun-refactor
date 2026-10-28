@@ -3,9 +3,9 @@
 Use this page when fr refuses a command, gives a wrong answer, or cannot finish your task.
 The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and an incorrect answer need different reports.
 
-## Open correctness defects
+## Repairs under review
 
-Lean proof insertion and syntax repairs are awaiting complete validation in PR #588.
+PR #588 repairs Lean proof insertion and syntax handling. Its checks record the remaining validation.
 Pasting an indented proof changed its first line's indentation relative to the following lines.
 For example, an indented `have h := …` followed by `exact h` failed before Lean could check it.
 A `calc` proof could also consume the next calculation step and reject its `:=`.
@@ -20,7 +20,8 @@ Goal discovery now supplies the exact `target` to copy into a proof command.
 The local attempt timer also omitted macOS system sleep, understating ten failed attempts in the latest packet.
 The repaired timer includes sleep and keeps the original 150-second deadline.
 The affected timing totals cannot establish speed or cost differences. All 29 rebuilt-tool checks passed.
-Independent grading accepted 25 proofs and retained all 11 timeouts as failures. Final CI remains pending.
+Independent grading accepted 25 proofs and retained all 11 timeouts as failures.
+The [PR checks](https://github.com/e6qu/fun-refactor/pull/588/checks) show complete validation status.
 The earlier `show … by …` repair passed its rebuilt-tool controls; the live comparison still exposed these separate defects.
 The saved-answer benchmark also treated a missing memory sample as zero memory and rejected very short completed edits.
 The repair records unknown memory explicitly and counts edits without a sample in the report. Elapsed time, CPU and limits stay checked.
@@ -31,11 +32,11 @@ The repair resolves an exact named proof region directly. It also distinguishes 
 `claim` and `claim_extra`. The [rebuilt-tool checks passed](https://github.com/e6qu/fun-refactor/actions/runs/40678657753).
 Dogfooding the documented Lean-library search also found false syntax errors.
 Examples include subscript names such as `h₁`, named goals such as `?goal₁`, and explicit conversions such as `↑n`.
-Pinned Lean accepts the reproducer. GitHub generated the repaired parser and is running its structural checks.
+Pinned Lean accepts the reproducer. GitHub generated the repaired parser, and all 26 translation tests passed.
 The earlier integer-library scan reported gaps in 14 of 18 files, so it cannot establish complete lookup.
 CI also exposed a keyword-test defect: apostrophes in JavaScript comments confused its quote scanner.
 The test now reads generated grammar tokens. Its fuller inventory found two missing writer escapes, `obtain` and `suffices`.
-The repair escapes both names when writing Lean; GitHub validation is pending.
+The repair escapes both names when writing Lean; the translation tests cover both escapes.
 The proof gate also reached its 15-minute limit after its Rust tests passed.
 Checkout spent about 100 seconds on files, and setup installed unrelated Terraform, Helm and web-application fixtures.
 The repair excludes historical result directories from that job's checkout and installs only its required pinned tools.
@@ -48,6 +49,11 @@ Their checkouts now exclude that directory. Each proof matrix runs at most two j
 All language cases and original per-job deadlines remain unchanged.
 The SDK examples still need the saved flow-cache measurements to check the benchmark table.
 Their checkout includes that specific fixture; it does not skip the measurement check.
+Older session-cost and saved-answer PR checks also blocked checks of newer commits.
+New commits now cancel those superseded PR checks. Deliberate report-writing runs stay serialized.
+Language-report retention also spent five minutes fetching the complete result archive before running a check.
+It now fetches the reports, artifacts and trial records listed in the roadmap, then checks that the generated status still matches.
+The same source checks, artifact hashes, retention audits and five-minute deadline remain.
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
 Report a small program when a supported input produces the wrong result.
