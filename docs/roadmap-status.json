@@ -14,9 +14,20 @@
     {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-27-distinct-answers-40593325278",
       "changed_sources": [
+        "grammars/README.md",
+        "grammars/lean/PROVENANCE.toml",
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
         "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs",
-        "tools/agent_eval/bounded_host.py"
+        "src/transpile/write/lean.rs",
+        "tools/agent_eval/bounded_host.py",
+        "tools/saved-answer-comparison.py",
+        "tools/saved-work-cost.py",
+        "tools/test-saved-answer-comparison.py",
+        "tools/test-saved-work-cost.py"
       ],
       "freshness": "stale",
       "id": "current-answer-storage-cost",
@@ -28,15 +39,18 @@
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-flow-facts/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "exact-facts",
@@ -48,15 +62,18 @@
     {
       "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-package-flow/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "package-flow",
@@ -68,14 +85,17 @@
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-repositories",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "repository-tasks",
@@ -87,15 +107,18 @@
     {
       "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-flow-cache/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "cache-measurements",
@@ -117,15 +140,18 @@
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-27-m3-show-fixed-structural-change",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "structural",
@@ -157,13 +183,16 @@
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-compiler-profile/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "compiler-profile",
@@ -175,15 +204,18 @@
     {
       "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-27-m3-show-scalar-python-contract/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "python-contract",
@@ -195,13 +227,16 @@
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-27-m3-show-scalar-index-resolution/result.json",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "src/spec.rs",
+        "src/transpile/write/lean.rs",
         "tests/agent-eval/index-consumers/lean-reader-review.json"
       ],
       "freshness": "stale",
@@ -262,8 +297,17 @@
     },
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-28-m3-clock-fixed-text-package-recheck",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/README.md",
+        "grammars/lean/PROVENANCE.toml",
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
+      ],
+      "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
@@ -384,7 +428,8 @@
         "src/vfs.rs",
         "tools/agent_eval/bounded_host.py",
         "tools/evidence_basis.py",
-        "tools/saved-work-cost.py"
+        "tools/saved-work-cost.py",
+        "tools/test-saved-work-cost.py"
       ],
       "freshness": "stale",
       "id": "saved-work-cost",
@@ -394,25 +439,28 @@
       "scope": "Three repetitions on glob, Boltons and first reserved JMESPath. Saved and fresh answers agree across first use, unchanged reuse and a single-file edit. Includes startup, validation, discovery, storage and complete program requests; no agent savings claim."
     },
     {
-      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40662468996",
+      "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-40714840314",
       "changed_sources": [],
       "freshness": "current",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40662468996/result.json",
+      "path": "tests/agent-eval/results/2026-10-22-project-sessions-40714840314/result.json",
       "scope": "Complete CLI, fresh Python, running Python and saved-answer sessions on three familiar projects. All 135 answers agree; includes startup, edits, validation, shutdown and cleanup. No live-agent savings claim."
     },
     {
       "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-27-m3-show-fixed-checked-translation",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "checked-translation",
@@ -424,13 +472,16 @@
     {
       "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-27-m3-show-fixed-python-effects",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "python-effects",
@@ -442,15 +493,18 @@
     {
       "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-27-m3-show-fixed-python-text-flow",
       "changed_sources": [
+        "grammars/README.md",
         "grammars/lean/PROVENANCE.toml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
         "sdk/python/src/fr_ir/_version.py",
         "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs"
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
       ],
       "freshness": "stale",
       "id": "python-text-flow",
@@ -461,8 +515,17 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-28-m3-clock-fixed-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/README.md",
+        "grammars/lean/PROVENANCE.toml",
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs",
+        "src/transpile/write/lean.rs"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -488,7 +551,7 @@
       "total": 4
     },
     "B": {
-      "demonstrated": 1,
+      "demonstrated": 0,
       "engineering": {
         "done": 4,
         "total": 5
@@ -497,13 +560,14 @@
       "remaining": [
         "B.scalar",
         "B.contract",
+        "B.repository-flow",
         "B.effects"
       ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
@@ -511,13 +575,14 @@
       "engineering_remaining": 0,
       "remaining": [
         "C.resume",
-        "C.clean"
+        "C.clean",
+        "C.repository-mutations"
       ],
       "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 3,
         "total": 6
@@ -525,6 +590,7 @@
       "engineering_remaining": 3,
       "remaining": [
         "D.checked",
+        "D.structural",
         "D.translation",
         "D.existing-proof",
         "D.new-proof"
@@ -723,7 +789,9 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [],
+      "blockers": [
+        "original-package-questions: stale source binding"
+      ],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -767,7 +835,7 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace values in unfamiliar projects"
     },
     {
@@ -866,7 +934,9 @@
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -885,7 +955,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
@@ -964,7 +1034,9 @@
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -983,7 +1055,7 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
