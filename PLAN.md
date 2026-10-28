@@ -49,31 +49,18 @@ M1 and M2 now have their complete comparisons.
 The M3 implementation merged in PR #587 before its full CI gate finished.
 Finish the remaining checks, repairs and complete agent comparison together on `milestone/finish-agent-proofs`.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-The first controls passed: ten examples, six native-client exchanges and eighteen isolated patch checks.
-Two interrupted runs retain [the first seven outcomes](tests/agent-eval/proof-writing/interrupted-results/README.md)
-and [the next seven](tests/agent-eval/proof-writing/proof-guide-interrupted-results/README.md).
-The [first complete comparison](tests/agent-eval/proof-writing/first-results/README.md) checked all 36 attempts:
-26 passed and 10 failed. Eight page-count attempts timed out. Luna's two page-count attempts
-with fr delivered an empty or rejected proof; its ordinary-tool attempts passed.
-Each agent delivered accepted access and range proofs with fr in that comparison.
+The tool used for the latest comparison passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
+These check ten examples, Codex and OpenCode2 behavior, Python proof records and rejection of bad submitted patches.
+The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
+retains 25 client completions, 11 timeouts and 25 submitted patches. Independent grading is pending.
+Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
 
-The [second complete comparison](tests/agent-eval/proof-writing/second-results/README.md) independently accepted 25 of 36 attempts.
-Eleven attempts reached the unchanged deadline. GLM timed out on both page-count and both fr range attempts.
-Kimi timed out on all page-count attempts. Luna delivered an independently accepted fr page-count proof.
-Review found fr rejecting valid proof syntax and changing pasted indentation.
-The rebuilt tool passed all 29 proof-qualification jobs, including the new syntax regressions.
-The guide now starts with goal discovery and a draft check. Both setups receive the exact installed library path.
-The [next packet](tests/agent-eval/proof-writing/library-access-interrupted-results/README.md) stopped after 15 attempts.
-OpenCode2 denied a command entering that library because its permissions omitted the directory.
-Those 15 outcomes and 12 submitted patches remain unchanged; the other 21 slots never started.
-The explicit library permission passed all six native-client controls.
-The [following 36 attempts](tests/agent-eval/proof-writing/clock-interrupted-results/README.md)
-closed with 18 client completions and 18 failures, but macOS sleep invalidated the timing comparison.
-Ten already-failed attempts recorded durations that excluded long sleep intervals.
-That run also exposed a false rejection of `refine ?_` even when later tactics solved its temporary goals.
-Next: qualify the sleep-aware timer, solved temporary goals and copyable goal targets, then run a new frozen comparison.
-GLM still needs an accepted page-count and range proof with a contributing fr step; Kimi needs a page-count proof.
-Keep all 137 outcomes. M3 remains open until every completion check and current CI pass.
+GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
+Next: independently grade every submission and finish CI. Then improve general proof support,
+starting with checking an existing theorem after an agent has edited its proof directly.
+Use the recorded failures to improve library discovery and draft repair while keeping the requested claims and limits.
+Run another comparison only after a concrete repair or capability has passed its checks.
+Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
 
 ### M1. Run the selected agents on three complete tasks
 

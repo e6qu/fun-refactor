@@ -1,5 +1,5 @@
 diff --git a/specs/FrSpecs/SrcWindowRsFitsWindow.lean b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
-index a5e6f92..bbb0ef3 100644
+index a5e6f92..8415a1a 100644
 --- a/specs/FrSpecs/SrcWindowRsFitsWindow.lean
 +++ b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
 @@ -11,8 +11,13 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
@@ -10,11 +10,11 @@ index a5e6f92..bbb0ef3 100644
 -  sorry
 +  constructor
 +  · intro h
-+    simp only [fits_windowModel, Bool.and_eq_true, decide_eq_true_eq] at h
++    simp [fits_windowModel] at h
 +    omega
 +  · intro h
-+    simp only [fits_windowModel, Bool.and_eq_true, decide_eq_true_eq]
-+    constructor <;> omega
++    simp [fits_windowModel]
++    omega
    -- fr:proof-end fits_windowModel_fits_exactly
  -- fr:generated-end formal-kernel
  
