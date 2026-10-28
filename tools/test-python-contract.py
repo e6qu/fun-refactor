@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-27-m3-show-scalar-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
