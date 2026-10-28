@@ -46,9 +46,9 @@ Builds, dependency installation and initial downloads remain separate in raw rep
 
 | Project | Previous saved | Current saved | Change | Previous fresh | Current fresh | Current saved overhead versus fresh |
 |---|---:|---:|---:|---:|---:|---:|
-| boltons | 2.023 | 1.995 | -1.4% | 1.910 | 1.913 | +4.3% |
-| glob | 0.927 | 0.875 | -5.6% | 0.752 | 0.754 | +15.9% |
-| jmespath | 1.170 | 1.071 | -8.4% | 0.887 | 0.895 | +19.7% |
+| boltons | 3.559 | 3.565 | +0.2% | 3.422 | 3.414 | +4.4% |
+| glob | 1.646 | 1.545 | -6.1% | 1.341 | 1.342 | +15.1% |
+| jmespath | 2.044 | 1.864 | -8.8% | 1.549 | 1.550 | +20.3% |
 
 Negative change means less time than the previous saved approach.
 Positive overhead means saving costs more than asking again with the current SDK.
@@ -62,6 +62,9 @@ The GNU `time` command also measures those writes and rounds processor time to 0
 Processor work for copying, editing and cleanup remains separate.
 Memory is the largest sampled sum of resident memory across Python and the programs it starts.
 This measure, RSS, counts memory present in RAM. Sampling can miss short peaks, and shared pages can count twice.
+A short process can finish before a memory sample catches it. Its raw measurement says unknown, never zero memory.
+The memory column covers the three questions. The next column counts source edits whose memory was not observed.
+Both SDKs use the same measurement checks. Each archive is decoded by the SDK that wrote it.
 Saved bytes include the database and saved task record, including the earlier answer retained after editing.
 Filesystem block allocation and directory entries add unmeasured overhead.
 Both SDKs use the same database format. This change is intended to reduce repeated computation, not stored bytes.
@@ -70,14 +73,14 @@ Releasing temporary references does not guarantee a lower operating-system memor
 The memory samples include the database library. These results establish no memory saving.
 One KiB is 1,024 bytes. One MiB is 1,048,576 bytes.
 
-| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Maximum memory MiB | Final saved KiB |
-|---|---:|---:|---:|---:|
-| boltons / previous | 0.174 | 1.929 | 77.5 | 192.1 |
-| boltons / current | 0.171 | 1.908 | 77.6 | 192.1 |
-| glob / previous | 0.165 | 0.846 | 52.2 | 508.1 |
-| glob / current | 0.165 | 0.798 | 52.3 | 508.1 |
-| jmespath / previous | 0.190 | 1.075 | 60.0 | 856.1 |
-| jmespath / current | 0.190 | 0.989 | 60.2 | 856.1 |
+| Project / SDK | Unchanged reuse seconds | Request CPU seconds | Largest observed memory MiB | Edits with no memory sample | Final saved KiB |
+|---|---:|---:|---:|---:|---:|
+| boltons / previous | 0.296 | 3.447 | 84.4 | 0 | 196.1 |
+| boltons / current | 0.298 | 3.452 | 84.3 | 0 | 196.1 |
+| glob / previous | 0.300 | 1.533 | 54.1 | 0 | 524.1 |
+| glob / current | 0.298 | 1.443 | 54.0 | 0 | 524.1 |
+| jmespath / previous | 0.339 | 1.920 | 58.9 | 3 | 868.1 |
+| jmespath / current | 0.335 | 1.753 | 59.2 | 3 | 868.1 |
 
 ## What the checks establish
 
@@ -99,4 +102,4 @@ These scripted requests establish no general agent, model-token or billing savin
 All projects are familiar. The original first JMESPath result remains unchanged and separately audited.
 The earlier storage and hashing comparisons remain unchanged and are audited beside their measured code.
 
-[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-40593325278/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-40593325278/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)
+[Measurements and raw archives](../tests/agent-eval/distinct-answer-hashing-40714834614/record.json) | [Authenticated profiles and workflow steps](../tests/agent-eval/distinct-answer-hashing-40714834614/publication.json) | [Before the memory-lifetime fix](distinct-answer-hashing-release-results.md) | [First distinct-piece comparison](distinct-answer-hashing-first-results.md) | [Previous storage comparison](batched-answer-storage.md) | [Earlier hashing comparison](saved-answer-improvement.md)

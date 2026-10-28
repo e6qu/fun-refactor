@@ -12,28 +12,13 @@
   ],
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-27-distinct-answers-40593325278",
-      "changed_sources": [
-        "grammars/README.md",
-        "grammars/lean/PROVENANCE.toml",
-        "grammars/lean/grammar.js",
-        "grammars/lean/src/grammar.json",
-        "grammars/lean/src/node-types.json",
-        "grammars/lean/src/parser.c",
-        "sdk/python/src/fr_ir/ir.py",
-        "src/spec.rs",
-        "src/transpile/write/lean.rs",
-        "tools/agent_eval/bounded_host.py",
-        "tools/saved-answer-comparison.py",
-        "tools/saved-work-cost.py",
-        "tools/test-saved-answer-comparison.py",
-        "tools/test-saved-work-cost.py"
-      ],
-      "freshness": "stale",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-28-distinct-answers-40714834614",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-27-distinct-answers-40593325278/result.json",
+      "path": "tests/agent-eval/results/2026-10-28-distinct-answers-40714834614/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record."
     },
     {
