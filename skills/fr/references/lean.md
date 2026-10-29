@@ -42,6 +42,8 @@ fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature
 `--contains` matches a literal name fragment. Read the returned headers for argument types
 and order. `--bytes` limits source text across the page; metadata adds output.
 Check coverage and remaining results; refine the fragment or follow the cursor.
+Syntax gaps mean the reader missed some code. An empty result with gaps does not show
+that a library fact is absent. Keep the gap visible when reporting the search.
 
 To check and write the tactics into the proof region:
 
