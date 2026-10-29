@@ -25,10 +25,18 @@ fn introductions_keep_discarded_hypotheses_and_simplifier_phases() {
                 let pattern = introduction.child_by_field_name("pattern").unwrap();
                 let expected = match name {
                     "introduceAndDiscard" => "rcases_tuple_pattern",
-                    "introduceTyped" => "parenthesized",
-                    _ => "rcases_alternative_pattern",
+                    _ => "rintro_binder",
                 };
                 assert_eq!(pattern.kind(), expected);
+                if name == "introduceTyped" {
+                    assert_eq!(
+                        &source[pattern.child_by_field_name("type").unwrap().byte_range()],
+                        "Nat"
+                    );
+                }
+                if name == "introduceAlternatives" {
+                    assert!(pattern.to_sexp().contains("rcases_alternative_pattern"));
+                }
                 if name == "introduceAndDiscard" {
                     assert_eq!(&source[pattern.byte_range()], "⟨ha, -, -, -⟩");
                     assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");

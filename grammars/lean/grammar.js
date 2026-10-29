@@ -861,7 +861,14 @@ module.exports = grammar({
     // A dash discards a hypothesis; it is not a negative expression.
     tactic_rintro: $ => prec.right(3, seq(
       'rintro',
-      repeat1(field('pattern', choice($._rcases_pattern, $.parenthesized))),
+      repeat1(field('pattern', choice($._rcases_pattern, $.rintro_binder))),
+    )),
+
+    rintro_binder: $ => prec.right(2, seq(
+      '(',
+      repeat1(field('pattern', choice($._rcases_pattern, $.rintro_binder))),
+      optional($._type_spec),
+      ')',
     )),
 
     _rcases_pattern: $ => choice(
