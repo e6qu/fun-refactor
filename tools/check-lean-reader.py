@@ -160,7 +160,9 @@ def check(binary, diagnostics, integer_library):
                         aliases.add(text)
             if aliases != {'libraryReplacement', 'libraryAlias', 'afterAttributeSyntax'}:
                 failures.append(fixture + ': missing declarations after dated attributes')
-            if not any('since' in ''.join(node.itertext()) and '2025-09-01' in ''.join(node.itertext())
+            if not any(node.find("identifier[@field='name']") is not None and
+                       node.find("identifier[@field='name']").text == 'since' and
+                       node.find("string[@field='value']") is not None
                        for node in tree.findall('.//attribute_entry/named_argument')):
                 failures.append(fixture + ': missing named attribute argument')
         if fixture == 'lean-source-declarations.lean':
