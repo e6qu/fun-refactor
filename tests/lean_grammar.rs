@@ -461,6 +461,11 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "theorem bad (p : Prop) : p := show p",
         "theorem bad (a : Int) : a = a := by\n  calc\n    a = a :=\n",
         "theorem bad : True := by exact (by trivial : )",
+        "def bad : Nat → Nat := fun n ↦",
+        "theorem bad (h : True) : True := by obtain hp | := h",
+        "@[deprecated replacement (since := )] def bad : Nat := 0",
+        "theorem bad (h : True) : True := by have hp | hq := h",
+        "theorem bad (h : True) : True := by suffices hp | hq := h",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");
