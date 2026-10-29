@@ -38,36 +38,36 @@
       "sha256": "0c936bab6baf0c45359e880af70812a36d7901e1992cd2fb1561904b36501e06"
     },
     {
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-flow-facts/result.json",
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-facts/result.json",
       "id": "exact-facts",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-facts/result.json",
       "scope": "Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs.",
-      "sha256": "8fbf4e19c6357ed7b0bfe834a1f376ecbe770bcfe227870679b75983ebf39e83"
+      "sha256": "2815afedd02157d82057c178f614f03514185e31308dc5e0d5880a0cf3ea4acb"
     },
     {
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-package-flow/result.json",
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json",
       "id": "package-flow",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json",
       "scope": "Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout.",
-      "sha256": "55c17d4022c6e449d7e88bd9755db02022fa9ce8ce6ebedb982205c1e30fa637"
+      "sha256": "65d7fc06db5650d32f7a33e8c751e1329930aadbdbd067507018fa880b1c30f1"
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-python-repositories",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-repositories",
       "id": "repository-tasks",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-repositories/result.json",
       "scope": "Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits.",
-      "sha256": "8fe80af24b4e1002bacbd1d63e2bfc765075549fa7a39b5f42c05959a8fdb7be"
+      "sha256": "05d51c6ee52bf9e00fd329b73a4eadc2624f7323c0ff7c6460fa766d79a783c1"
     },
     {
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-flow-cache/result.json",
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-cache/result.json",
       "id": "cache-measurements",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-cache/result.json",
       "scope": "288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings.",
-      "sha256": "9ad09b23a82c0cb751636c228382e789ea47ce25e71fce0e797f312bb3a4fd89"
+      "sha256": "c40222c7d9c4c074d12e538980f8d809bd4260502e0b428f27537fbb8f321f64"
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json",
@@ -102,28 +102,28 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-compiler-profile/result.json",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-compiler-profile/result.json",
       "id": "compiler-profile",
       "kind": "compiler",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-compiler-profile/result.json",
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases.",
-      "sha256": "5042a424afa89833c42d5b8cb29fd5fe9c69f3a345c506f99325933a6e0b6021"
+      "sha256": "3095085c4e6db39ae40fc797e1d9460edb9e8ed2680512d1c6e43f9647b51b9b"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "0e6f41de30907ccfe81fd14e07f178e1bef5ea63402270003870f7d3959bd305"
+      "sha256": "4fd237ba9f46aee9bd6c1d63dc031ae4d67b7bdb2d34da932270a0033faaf701"
     },
     {
-      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-index-resolution/result.json",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-29-m3-proof-introductions-index-resolution/result.json",
       "id": "index-resolution",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-29-m3-library-clippy-repaired-index-resolution/result.json",
+      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-index-resolution/result.json",
       "scope": "Current indexing on fixed sources; unchanged smaller workloads match original answers. Rust language fixes intentionally change repository answers. The original complete-output speed comparison is audited against its original source.",
-      "sha256": "9b141aae0c6b35a2d7b31f22b6c20c41a874c32d4aa7d95874540acf8e7cc2cb"
+      "sha256": "fc7105cbd67daf634b73d1fb2225456f5e76d313d8879d97725b94f74e21ad6d"
     },
     {
       "audit": "python3 tools/frozen-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
