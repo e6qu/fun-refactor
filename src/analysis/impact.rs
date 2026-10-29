@@ -523,7 +523,7 @@ mod tests {
         };
         let first = columns(analyse(&index, helper, 0).unwrap());
         assert_eq!(first.len(), 2);
-        std::fs::write(tmp.path().join("a.rs"), source.replace('名', "abc")).unwrap();
+        crate::vfs::write(tmp.path().join("a.rs"), &source.replace('名', "abc")).unwrap();
         let second = columns(analyse(&index, helper, 0).unwrap());
         assert_eq!(
             second,

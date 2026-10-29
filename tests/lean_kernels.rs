@@ -1119,7 +1119,7 @@ fn the_edit_kernel_accepts_a_self_inline_plan() {
         .expect("line start definition")
         .id;
     let plan = inline::variable(&index, target).expect("self inline plan");
-    assert_eq!(plan.use_sites, 2, "the self inline rewrites both uses");
+    assert_eq!(plan.use_sites, 3, "the self inline rewrites all three uses");
     let edits = plan
         .edits
         .edits_for(&position_engine)

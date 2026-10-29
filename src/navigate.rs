@@ -529,7 +529,7 @@ impl Shape for Square {
         assert_eq!(first.usages.len(), 2);
         assert_eq!(first.in_text.len(), 1);
         assert_eq!(first.in_text[0].location.col, 6);
-        std::fs::write(tmp.path().join("a.rs"), source.replace('名', "abc")).unwrap();
+        crate::vfs::write(tmp.path().join("a.rs"), &source.replace('名', "abc")).unwrap();
         let second = usages_of(&index, helper);
         assert_eq!(second.usages, first.usages);
         assert_eq!(second.in_text.len(), 1);
