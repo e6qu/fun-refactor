@@ -25,7 +25,8 @@ fn introductions_keep_discarded_hypotheses_and_simplifier_phases() {
                 let pattern = introduction.child_by_field_name("pattern").unwrap();
                 let expected = match name {
                     "introduceAndDiscard" => "rcases_tuple_pattern",
-                    _ => "rintro_binder",
+                    "introduceTyped" => "rintro_binder",
+                    _ => "rcases_alternative_pattern",
                 };
                 assert_eq!(pattern.kind(), expected);
                 if name == "introduceTyped" {
