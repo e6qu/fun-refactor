@@ -916,8 +916,16 @@ module.exports = grammar({
     // `have h : T := proof` in tactic mode
     tactic_have: $ => prec.right(1, seq(
       $._binding_start,
-      choice('have', 'obtain', 'suffices'),
-      optional(field('name', choice($._pattern, $.rcases_tuple_pattern, $.rcases_alternative_pattern))),
+      choice(
+        seq(
+          choice('have', 'suffices'),
+          optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
+        ),
+        seq(
+          'obtain',
+          optional(field('name', choice($._pattern, $.rcases_tuple_pattern, $.rcases_alternative_pattern))),
+        ),
+      ),
       optional($._type_spec),
       ':=',
       field('value', $._expression),

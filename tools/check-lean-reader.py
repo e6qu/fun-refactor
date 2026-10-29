@@ -215,6 +215,8 @@ def check(binary, diagnostics, integer_library):
         ('lambda-body', 'def bad : Nat → Nat := fun n ↦'),
         ('obtain-branch', 'theorem bad (h : True) : True := by obtain hp | := h'),
         ('attribute-value', '@[deprecated replacement (since := )] def bad : Nat := 0'),
+        ('have-alternatives', 'theorem bad (h : True) : True := by have hp | hq := h'),
+        ('suffices-alternatives', 'theorem bad (h : True) : True := by suffices hp | hq := h'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')
