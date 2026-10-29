@@ -293,3 +293,17 @@ instance carrierCoercion : CoeSort Carrier Type where
 def typeCoercion (c : Carrier) : Type := ↥c
 
 def afterLibrarySyntax : Nat := 1
+
+def unicodeLambda : Nat → Nat := fun n ↦ n
+
+theorem obtainBranches (p q : Prop) (h : p ∨ q) : q ∨ p := by
+  obtain hp | hq := h
+  · exact Or.inr hp
+  · exact Or.inl hq
+
+theorem obtainTupleBranch (p q r : Prop) (h : (p ∧ q) ∨ r) : r ∨ (q ∧ p) := by
+  obtain ⟨hp, hq⟩ | hr := h
+  · exact Or.inr ⟨hq, hp⟩
+  · exact Or.inl hr
+
+def afterBranchSyntax : Nat := 2

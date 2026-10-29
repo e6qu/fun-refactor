@@ -46,8 +46,8 @@ all required live attempts, results and tracking updates belong together.
 Client setup or scripted checks alone are progress within that PR, not separate milestone PRs.
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
-The M3 implementation merged in PR #587 before its full CI gate finished.
-Finish the remaining checks, repairs and complete agent comparison together on `milestone/finish-agent-proofs`.
+PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
+Finish the remaining proof-library work and complete agent comparison together on `milestone/complete-proof-authoring`.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
 The tool used for the latest comparison passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
 These check ten examples, Codex and OpenCode2 behavior, Python proof records and rejection of bad submitted patches.
@@ -56,9 +56,10 @@ retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
 Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
 
 GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-Next: finish CI and validate the new library-reading repairs.
-Checking an existing theorem after a direct proof edit passed the rebuilt-tool checks.
-Use the recorded failures to improve library discovery and draft repair while keeping the requested claims and limits.
+Next: recover division theorems hidden by Unicode lambda arrows and branching `obtain` bindings.
+Check those forms, following declarations and the actual installed library before another complete comparison.
+Also repair the deep conformance job's missing TypeScript checker and rerun that audit.
+Keep the requested claims and limits unchanged.
 Run another comparison only after a concrete repair or capability has passed its checks.
 Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
 
