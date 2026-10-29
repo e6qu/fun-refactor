@@ -96,6 +96,8 @@ pub struct DefinitionLocation {
 pub struct LineIndex {
     /// Byte offset of the start of each line.
     line_starts: Vec<usize>,
+    /// Byte offsets that continue a multibyte UTF-8 character.
+    utf8_continuations: Vec<usize>,
     len: usize,
     ends_with_newline: bool,
 }
@@ -103,13 +105,15 @@ pub struct LineIndex {
 impl LineIndex {
     pub fn new(source: &str) -> Self {
         let mut line_starts = vec![0];
-        line_starts.extend(
-            source
-                .bytes()
-                .enumerate()
-                .filter(|(_, b)| *b == b'\n')
-                .map(|(i, _)| i + 1),
-        );
+        let mut utf8_continuations = Vec::new();
+        for (offset, byte) in source.bytes().enumerate() {
+            if byte == b'\n' {
+                line_starts.push(offset + 1);
+            }
+            if byte & 0xc0 == 0x80 {
+                utf8_continuations.push(offset);
+            }
+        }
         let ends_with_newline = source.ends_with('\n');
         if ends_with_newline {
             // The offset just past the final newline is the end of the last line,
@@ -118,6 +122,7 @@ impl LineIndex {
         }
         Self {
             line_starts,
+            utf8_continuations,
             len: source.len(),
             ends_with_newline,
         }
@@ -132,7 +137,7 @@ impl LineIndex {
         }
     }
 
-    /// Convert a byte offset to a 1-based line/column.
+    /// Convert a byte offset to a 1-based line/column using the original source.
     pub fn line_col(&self, offset: usize, source: &str) -> LineCol {
         let offset = offset.min(self.len);
         let line = self.line_of(offset);
@@ -140,11 +145,14 @@ impl LineIndex {
         // Clamp to the line's end so a trailing newline does not report a column
         // past the last visible character.
         let mut col_end = offset.min(self.line_end(line));
-        // And to a character boundary.
         while col_end > line_start && !source.is_char_boundary(col_end) {
             col_end -= 1;
         }
-        let col = source[line_start..col_end].chars().count() + 1;
+        let continued = self.utf8_continuations.partition_point(|&at| at < col_end)
+            - self
+                .utf8_continuations
+                .partition_point(|&at| at < line_start);
+        let col = col_end - line_start - continued + 1;
         LineCol {
             line: line + 1,
             col,
@@ -310,6 +318,33 @@ mod tests {
         // "let名 " is 5 characters, so '=' sits at column 6 despite the multi-byte char.
         assert_eq!(pos, LineCol { line: 1, col: 6 });
         assert_eq!(index.offset(pos, source), Some(offset));
+    }
+
+    #[test]
+    fn indexed_columns_agree_with_counting_characters_at_every_byte() {
+        let dense = "ascii 名🙂e\u{301}\r\nα\n".repeat(16);
+        for source in ["", "\n", "\n\n", "plain", "plain\n", "名🙂", dense.as_str()] {
+            let index = LineIndex::new(source);
+            for offset in 0..=source.len() + 3 {
+                let mut end = offset.min(source.len());
+                if source.ends_with('\n') && end == source.len() {
+                    end -= 1;
+                }
+                while !source.is_char_boundary(end) {
+                    end -= 1;
+                }
+                let prefix = &source[..end];
+                let expected = LineCol {
+                    line: prefix.bytes().filter(|&b| b == b'\n').count() + 1,
+                    col: prefix.rsplit('\n').next().unwrap().chars().count() + 1,
+                };
+                assert_eq!(
+                    index.line_col(offset, source),
+                    expected,
+                    "offset {offset}: {source:?}"
+                );
+            }
+        }
     }
 
     #[test]

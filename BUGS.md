@@ -17,6 +17,13 @@ That job installed Node but omitted the declared TypeScript checker.
 Its repair installs the locked checker and exposes its executable before running the unchanged conformance tests.
 The job keeps its original deadline and rejects missing compilers.
 
+Three repository-audit jobs also reached their original 15-minute limits while building reports.
+Usages reread the same file for each occurrence. Impact rebuilt its line map for each occurrence.
+Column lookup also rescanned the line prefix for every position, repeating work on long lines.
+The repair keeps one source and line map per file within each report and indexes UTF-8 character boundaries once.
+Unicode columns and fresh reads between reports must remain correct. The complete audit keeps its inputs, samples and deadline.
+For example, `名` occupies three UTF-8 bytes but still advances a reported character column by one.
+
 [PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
 Its final seven workflows passed, including all 90 main CI jobs.
 M3 still needs accepted fr-assisted page-count proofs from GLM and Kimi; that is an open milestone condition.

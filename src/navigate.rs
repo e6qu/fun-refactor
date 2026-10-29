@@ -119,14 +119,12 @@ impl Usages {
 }
 
 /// Build a location from a file and byte offset.
-fn locate(file: &Path, span: Span) -> Location {
-    let source = crate::vfs::read_to_string(file).unwrap_or_default();
-    let index = LineIndex::new(&source);
-    let text_location = index.locate(span, &source);
+fn locate(file: &Path, span: Span, source: &str, index: &LineIndex) -> Location {
+    let text_location = index.locate(span, source);
     let pos = text_location.range.start;
     let preview = index
         .line_span(pos.line)
-        .map(|l| l.text(&source).trim().to_string())
+        .map(|l| l.text(source).trim().to_string())
         .unwrap_or_default();
     Location {
         file: file.to_path_buf(),
@@ -146,7 +144,7 @@ fn definition_of(symbol: &Symbol, role: DefinitionRole) -> Definition {
         name: symbol.name.clone(),
         qualified_name: symbol.qualified_name(),
         kind: symbol.kind,
-        location: locate(&symbol.file, symbol.name_span),
+        location: locate(&symbol.file, symbol.name_span, &source, &lines),
         declaration: DefinitionLocation {
             name: lines.locate(symbol.name_span, &source),
             definition: lines.locate(symbol.full_span, &source),
@@ -225,6 +223,15 @@ pub fn implementations_with(
 
 /// Every use of a symbol, plus the same-named occurrences that are not uses of it.
 pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
+    let mut sources: BTreeMap<PathBuf, (String, LineIndex)> = BTreeMap::new();
+    let mut location_for = |file: &Path, span: Span| {
+        let (source, lines) = sources.entry(file.to_path_buf()).or_insert_with(|| {
+            let source = crate::vfs::read_to_string(file).unwrap_or_default();
+            let lines = LineIndex::new(&source);
+            (source, lines)
+        });
+        locate(file, span, source, lines)
+    };
     if let Some(symbol) = index.symbol(symbol_id) {
         crate::capabilities::record(crate::capabilities::Capability::Symbols, symbol.language);
     }
@@ -244,7 +251,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     for target in &targets {
         for reference in index.references_to(*target) {
             usages.push(Usage {
-                location: locate(&reference.file, reference.span),
+                location: location_for(&reference.file, reference.span),
                 kind: reference.kind,
                 confidence: reference.confidence,
                 within: enclosing_name(index, &reference.file, reference.span.start),
@@ -267,7 +274,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
             continue;
         }
         let usage = Usage {
-            location: locate(&reference.file, reference.span),
+            location: location_for(&reference.file, reference.span),
             kind: reference.kind,
             confidence: reference.confidence,
             within: enclosing_name(index, &reference.file, reference.span.start),
@@ -313,7 +320,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
             .unwrap_or_default()
             .into_iter()
             .map(|m| Usage {
-                location: locate(&m.file, m.span),
+                location: location_for(&m.file, m.span),
                 kind: crate::model::ReferenceKind::Textual,
                 confidence: Confidence::NameOnly,
                 within: enclosing_name(index, &m.file, m.span.start),
@@ -511,5 +518,22 @@ impl Shape for Square {
             paths, sorted,
             "usages came back out of path order: {paths:?}"
         );
+    }
+
+    #[test]
+    fn repeated_usages_keep_unicode_columns_and_refresh_between_reports() {
+        let source = "fn helper() {}\nfn caller() { helper(); helper(); }\n// 名 helper\n";
+        let (tmp, index) = workspace(&[("a.rs", source)]);
+        let helper = index.find_symbols("helper", None)[0].id;
+        let first = usages_of(&index, helper);
+        assert_eq!(first.usages.len(), 2);
+        assert_eq!(first.in_text.len(), 1);
+        assert_eq!(first.in_text[0].location.col, 6);
+        std::fs::write(tmp.path().join("a.rs"), source.replace('名', "abc")).unwrap();
+        let second = usages_of(&index, helper);
+        assert_eq!(second.usages, first.usages);
+        assert_eq!(second.in_text.len(), 1);
+        assert_eq!(second.in_text[0].location.col, 8);
+        assert_eq!(second.in_text[0].location.preview, "// abc helper");
     }
 }

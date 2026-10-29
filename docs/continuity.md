@@ -53,6 +53,9 @@ Only patches and summaries may be published; raw CLI records remain local.
 
 The merged commit's deep conformance job also found a missing TypeScript checker.
 Install the locked checker, keep the original conformance checks and deadline, and rerun the audit on this branch.
+The replacement audit also exposed three timeouts while constructing usages and impact reports.
+Remove repeated file reads, line-map construction and scans of line prefixes; preserve Unicode positions and report freshness.
+Keep the same audit sources, samples, assertions and 15-minute deadline.
 Complete these repairs, required live attempts, independent grading and tracking in the same milestone PR.
 
 ## Keep the other milestones concrete

@@ -357,6 +357,9 @@ jobs:
           cargo test --locked --test lean_adoption -- --test-threads=1
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel -- --test-threads=1
           cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
+          cargo test --locked --lib span::tests -- --test-threads=1
+          cargo test --locked --lib navigate::tests -- --test-threads=1
+          cargo test --locked --lib analysis::impact::tests -- --test-threads=1
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |
           python3 -B tools/agent_eval/test_proof_writing_tasks.py

@@ -20,7 +20,11 @@ fn dated_attributes_preserve_their_arguments_and_following_declarations() {
         .unwrap();
     let attributes = declaration.child_by_field_name("attributes").unwrap();
     let entry = attributes.named_child(0).unwrap();
-    let argument = entry.named_child(entry.named_child_count() - 1).unwrap();
+    let mut cursor = entry.walk();
+    let argument = entry
+        .named_children(&mut cursor)
+        .find(|node| node.kind() == "named_argument")
+        .unwrap();
     assert_eq!(argument.kind(), "named_argument");
     assert_eq!(
         &source[argument.child_by_field_name("name").unwrap().byte_range()],
