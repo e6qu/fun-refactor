@@ -33,10 +33,14 @@ jobs:
           "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" --version
           /usr/bin/time -v "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" generate --abi 15 --js-runtime node
       - name: Check proof syntax and preserve following declarations before committing
-        run: >-
-          python3 -B tools/check-lean-reader.py
-          --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter"
-          --diagnostics "$RUNNER_TEMP/lean-reader-diagnostics"
+        run: |
+          curl -fsSL --connect-timeout 10 --max-time 30 --max-filesize 524288 \
+            -o "$RUNNER_TEMP/lean-division-lemmas.lean" \
+            https://raw.githubusercontent.com/leanprover/lean4/v4.28.0/src/Init/Data/Int/DivMod/Lemmas.lean
+          python3 -B tools/check-lean-reader.py \
+            --tree-sitter "$RUNNER_TEMP/lean-generator/node_modules/.bin/tree-sitter" \
+            --diagnostics "$RUNNER_TEMP/lean-reader-diagnostics" \
+            --integer-library "$RUNNER_TEMP/lean-division-lemmas.lean"
       - name: Commit generated source to the same milestone branch
         env:
           BRANCH: ${{ github.ref_name }}

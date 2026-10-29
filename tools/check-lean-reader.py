@@ -1,5 +1,7 @@
 """Check generated syntax before committing it to a development branch."""
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -8,7 +10,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def check(binary, diagnostics):
+def check(binary, diagnostics, integer_library):
     diagnostics.mkdir(parents=True, exist_ok=False)
     failures = []
     for fixture in ['lean-proof-locations.lean', 'lean-source-declarations.lean']:
@@ -172,6 +174,32 @@ def check(binary, diagnostics):
             if names != expected:
                 failures.append(fixture + ': declaration mismatch: ' + repr({'missing': sorted(expected - names), 'extra': sorted(names - expected)}))
         print('Checked', fixture, flush=True)
+    library_source = integer_library.read_bytes()
+    assert hashlib.sha256(library_source).hexdigest() == '2e8bc644e6198a9fdd14c99558a77c459c0c5c6e6414dea2af0d3ef19704d8f2'
+    result = subprocess.run([str(binary), 'parse', '--xml', str(integer_library)],
+                            cwd=ROOT / 'grammars/lean', capture_output=True, text=True, timeout=120)
+    (diagnostics / 'integer-library.xml').write_text(result.stdout)
+    (diagnostics / 'integer-library.stderr').write_text(result.stderr)
+    assert result.returncode in {0, 1}, result.stderr
+    start = result.stdout.index('<sources>')
+    end = result.stdout.index('</sources>', start) + len('</sources>')
+    tree = ET.fromstring(result.stdout[start:end])
+    expected = {'tdiv_eq_ediv_of_nonneg', 'mul_tdiv_add_tmod', 'tdiv_mul_add_tmod',
+                'tdiv_nonneg', 'tmod_nonneg', 'tmod_lt_of_pos'}
+    names = []
+    for definition in tree.iter('definition'):
+        name = definition.find('qualified_name')
+        if name is not None:
+            names.append(''.join(''.join(name.itertext()).split()))
+    gaps = [node.attrib for node in tree.iter('ERROR')]
+    report = {'source_sha256': hashlib.sha256(library_source).hexdigest(),
+              'required_facts': sorted(expected), 'recovered_facts': sorted(set(names) & expected),
+              'syntax_gaps': gaps, 'complete_syntax_support': not gaps}
+    (diagnostics / 'integer-library.json').write_text(json.dumps(report, indent=2) + '\n')
+    print('Integer library:', json.dumps(report), flush=True)
+    for name in sorted(expected):
+        if names.count(name) != 1:
+            failures.append('integer library: missing or repeated division fact: ' + name)
     for name, source in [
         ('if', 'def bad : Nat := Nat.succ if true then 1 else 0'),
         ('match', 'def bad : Nat := Nat.succ match true with | true => 1 | false => 0'),
@@ -202,5 +230,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tree-sitter', type=Path, required=True)
     parser.add_argument('--diagnostics', type=Path, required=True)
+    parser.add_argument('--integer-library', type=Path, required=True)
     args = parser.parse_args()
-    check(args.tree_sitter.resolve(), args.diagnostics.resolve())
+    check(args.tree_sitter.resolve(), args.diagnostics.resolve(), args.integer_library.resolve())
