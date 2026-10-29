@@ -1,0 +1,4 @@
+have unpack : (keepModel x = x ∧ True ∧ True ∧ True) → keepModel x = x := by
+  rintro ⟨result, -, -, -⟩
+  exact result
+exact unpack ⟨rfl, True.intro, True.intro, True.intro⟩

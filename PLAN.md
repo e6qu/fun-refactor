@@ -65,7 +65,8 @@ Fix introductions that discard hypotheses and the same draft's simplifier phase 
 Retain every recorded attempt and leave its frozen inputs unchanged. Requalify changed code before more live calls.
 Keep the requested claims and limits unchanged.
 Run another comparison only after a concrete repair or capability has passed its checks.
-Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
+Keep all 191 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The latest interrupted packet has eighteen recorded attempts and eighteen unstarted slots; its patches have not been independently graded.
 
 ### M1. Run the selected agents on three complete tasks
 

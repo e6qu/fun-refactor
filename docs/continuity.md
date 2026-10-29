@@ -38,7 +38,7 @@ Later guidance clarifies fragment files, the exact workflow preview value and Gi
 
 PR #588 merged the proof, parser, timer and CI repairs after all seven PR workflows passed.
 Its main CI run passed all 90 jobs. The [latest complete comparison](../tests/agent-eval/proof-writing/local-results/README.md)
-retains 25 accepted proofs and 11 timeouts. Keep all 173 outcomes across the earlier comparisons and interrupted packets.
+retains 25 accepted proofs and 11 timeouts. Keep all 191 recorded outcomes across the earlier comparisons and interrupted packets.
 Luna delivered an accepted fr-assisted page-count proof; GLM and Kimi did not. M3 remains open.
 The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
 
@@ -47,20 +47,17 @@ The integer-library forms now pass their checks. All 29 proof-preparation jobs a
 The next comparison stopped after eighteen recorded attempts: fr rejected `rintro ⟨ha, -, -, -⟩`, which pinned Lean accepts.
 The same draft uses the simplifier's `↓` phase marker. Fix these forms and check proof insertion before more live calls.
 Keep the eighteen original records, submitted patches and unstarted slots; never rewrite their frozen inputs or retry a closed slot.
-Failed page-count attempts spent their time searching integer-division facts without checking a first draft.
-The next reproduction found gaps in Unicode lambda arrows, branching `obtain` bindings and dated attributes.
-Fix these forms and check that the installed library's division theorems remain discoverable.
-Check the actual pinned library and runnable guide before freezing another complete comparison.
+Earlier page-count attempts spent their time searching integer-division facts without checking a first draft.
+The repair covers Unicode lambda arrows, branching `obtain` bindings and dated attributes, including actual division-fact lookup.
+Keep those checks while repairing the new introduction and simplifier forms before another complete comparison.
 Do not supply evaluator proof steps, a preselected proof or a weaker claim to the agents.
 Keep each attempt's separate cache under `.fr/cache`, the original deadline and every failed outcome.
 Only patches and summaries may be published; raw CLI records remain local.
 
-The merged commit's deep conformance job also found a missing TypeScript checker.
-Install the locked checker, keep the original conformance checks and deadline, and rerun the audit on this branch.
-The replacement audit also exposed three timeouts while constructing usages and impact reports.
-Remove repeated file reads, line-map construction and scans of line prefixes; preserve Unicode positions and report freshness.
-Keep the same audit sources, samples, assertions and 15-minute deadline.
-Complete these repairs, required live attempts, independent grading and tracking in the same milestone PR.
+The deep conformance repair installs its locked TypeScript checker. All original audit checks passed.
+Usages and impact reports now avoid repeated file reads, line-map construction and line-prefix scans.
+Their tests retain Unicode positions, fresh reads between reports, every audit sample and the 15-minute deadline.
+Complete the new reader repair, required live attempts, independent grading and tracking in the same milestone PR.
 
 ## Keep the other milestones concrete
 

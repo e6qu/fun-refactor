@@ -13,7 +13,9 @@ Goal discovery supplies an exact `target`, valid proofs may use temporary goals 
 and both setups can read the explicitly named Lean library directory.
 
 GLM and Kimi delivered no page-count proof with fr in this run, so M3 remains open.
-Keep all 173 outcomes. The [earlier attempts](#earlier-attempts) retain their original results;
+Keep all 191 recorded outcomes, including the [eighteen interrupted introduction-pattern attempts](introduction-interrupted-results/README.md).
+The other eighteen slots in that packet never started. No submitted patch from it has been independently accepted.
+The [earlier attempts](#earlier-attempts) retain their original results;
 a repair never erases an earlier failed attempt.
 
 This milestone is in progress. Scripted controls and the real agent comparison are separate.
@@ -157,6 +159,8 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 ## Earlier attempts
 
 These packets retain all 137 outcomes that preceded the latest 36 attempts.
+The later [introduction-pattern run](introduction-interrupted-results/README.md) adds eighteen recorded attempts;
+it stopped when fr rejected valid syntax in a draft. The remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
 | Packet | Recorded attempts | Original result or interruption |
