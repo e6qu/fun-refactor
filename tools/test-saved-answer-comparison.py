@@ -19,7 +19,7 @@ def projects():
         for repetition in range(3):
             for condition in ('saved', 'fresh'):
                 sessions.append({'repetition': repetition, 'condition': condition,
-                    'total_seconds': 20 + repetition, 'stages': [
+                    'total_seconds': 20 + repetition, 'source_edit_rss_observation': 'sampled', 'stages': [
                         {'stage': stage, 'answer_digest': name + stage, 'seconds': 1,
                          'worker_cpu_seconds': 2, 'sampled_aggregate_rss_bytes': 4096,
                          'storage_after': {'saved_state': 10}}
@@ -68,13 +68,34 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(value['maximum_sampled_aggregate_rss_bytes'], 4096)
         self.assertEqual(value['median_final_saved_bytes'], 10)
 
+    def test_summary_counts_unobserved_memory_without_inventing_a_peak(self):
+        value = projects()
+        for session in value['current'][0]['sessions']:
+            for stage in session['stages']:
+                stage['sampled_aggregate_rss_bytes'] = None
+        summary = comparison.summary(value)['glob']['current']['saved']
+        self.assertIsNone(summary['maximum_sampled_aggregate_rss_bytes'])
+        self.assertEqual(summary['observed_memory_stages'], 0)
+        self.assertEqual(summary['unobserved_memory_stages'], 9)
+        value['current'][0]['sessions'][0]['stages'][0]['sampled_aggregate_rss_bytes'] = 4096
+        summary = comparison.summary(value)['glob']['current']['saved']
+        self.assertEqual(summary['maximum_sampled_aggregate_rss_bytes'], 4096)
+        self.assertEqual(summary['observed_memory_stages'], 1)
+        self.assertEqual(summary['unobserved_memory_stages'], 8)
+        value['current'][0]['sessions'][0]['source_edit_rss_observation'] = 'unobserved'
+        self.assertEqual(comparison.summary(value)['glob']['current']['saved']['source_edits_without_memory_sample'], 1)
+
     def test_archive_paths_and_duplicate_entries_fail(self):
         for names in (['../escape'], ['/absolute'], ['same', 'same']):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 with zipfile.ZipFile(root / 'bad.zip', 'w') as archive:
-                    for name in names:
-                        archive.writestr(name, b'bad')
+                    for index, name in enumerate(names):
+                        if name in names[:index]:
+                            with self.assertWarnsRegex(UserWarning, 'Duplicate name'):
+                                archive.writestr(name, b'bad')
+                        else:
+                            archive.writestr(name, b'bad')
                 with self.assertRaisesRegex(ValueError, 'unsafe'):
                     comparison.unpack(root / 'bad.zip', root / 'result')
 

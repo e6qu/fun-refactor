@@ -484,37 +484,29 @@ fn the_reserved_words_are_the_ones_the_grammar_refuses() {
     use fun_refactor::lang::Language;
     use fun_refactor::parse::Parsers;
 
-    // Every literal in the grammar that is shaped like an identifier. Most are field
-    // names rather than keywords, and asking is what tells the two apart.
-    let grammar = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/grammars/lean/grammar.js"
-    ))
-    .expect("the grammar is readable");
-    let mut candidates: Vec<String> = Vec::new();
-    let mut word = String::new();
-    let mut quote = None;
-    for c in grammar.chars() {
-        match quote {
-            None if c == '\'' || c == '"' => {
-                quote = Some(c);
-                word.clear();
-            }
-            Some(q) if c == q => {
-                quote = None;
-                let identifier = !word.is_empty()
-                    && word.starts_with(|c: char| c.is_ascii_lowercase())
-                    && word.chars().all(|c| c.is_ascii_lowercase() || c == '_');
-                if identifier {
-                    candidates.push(std::mem::take(&mut word));
+    // Read generated terminals; quotes in JavaScript comments are not tokens.
+    let grammar: serde_json::Value =
+        serde_json::from_slice(include_bytes!("../grammars/lean/src/grammar.json"))
+            .expect("the generated grammar is readable");
+    let mut candidates = std::collections::BTreeSet::new();
+    let mut pending = vec![&grammar];
+    while let Some(node) = pending.pop() {
+        match node {
+            serde_json::Value::Object(fields) => {
+                if node["type"] == "STRING" {
+                    let word = node["value"].as_str().unwrap();
+                    if word.starts_with(|c: char| c.is_ascii_lowercase())
+                        && word.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+                    {
+                        candidates.insert(word.to_string());
+                    }
                 }
+                pending.extend(fields.values());
             }
-            Some(_) => word.push(c),
-            None => {}
+            serde_json::Value::Array(items) => pending.extend(items),
+            _ => {}
         }
     }
-    candidates.sort();
-    candidates.dedup();
     assert!(
         candidates.len() > 60,
         "the grammar should hold plenty of literals, and this found {}",

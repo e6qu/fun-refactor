@@ -1,0 +1,60 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..b749d1a 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,53 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    simp only [page_countModel]
++    rcases h with h | h
++    · simp [h]
++    · simp [h]
++  constructor
++  · intro h
++    rcases h with ⟨hitems, hitemsMax, hsize, hsizeMax⟩
++    have hitemNonneg : 0 ≤ items := by omega
++    have hsizeNonneg : 0 ≤ size := by omega
++    have hsizePos : 0 < size := by omega
++    have hn : (items.toNat : Int) = items := Int.toNat_of_nonneg hitemNonneg
++    have hk : (size.toNat : Int) = size := Int.toNat_of_nonneg hsizeNonneg
++    have hkpos : 0 < size.toNat := by omega
++    have hguard : ((items < 0) || (size <= 0)) = false := by
++      simp [Int.not_lt.mpr hitemNonneg, Int.not_le.mpr (by omega)]
++    simp only [page_countModel, hguard]
++    by_cases hz : Int.tmod items size = 0
++    · have hzN : items.toNat % size.toNat = 0 := by
++        have hz' : (items.toNat : Int).tmod (size.toNat : Int) = 0 := by
++          simpa [hn, hk] using hz
++        rw [Int.tmod_eq_emod_of_nonneg (Int.natCast_nonneg _)] at hz'
++        exact_mod_cast hz'
++      have hzB : (Int.tmod items size == 0) = true := by simp [hz]
++      simp [hz]
++      rw [Int.tdiv_eq_ediv_of_nonneg hitemNonneg, ← hn, ← hk, ← Int.natCast_ediv]
++      constructor
++      · exact_mod_cast Nat.zero_le (items.toNat / size.toNat)
++      · exact_mod_cast (Nat.div_le_self items.toNat size.toNat)
++    · have hnz : items.toNat % size.toNat ≠ 0 := by
++        have hz' : (items.toNat : Int).tmod (size.toNat : Int) ≠ 0 := by
++          simpa [hn, hk] using hz
++        rw [Int.tmod_eq_emod_of_nonneg (Int.natCast_nonneg _)] at hz'
++        exact_mod_cast hz'
++      have hzB : (Int.tmod items size == 0) = false := by simp [hz]
++      simp [hz]
++      have hrem : 0 < items.toNat % size.toNat := Nat.pos_of_ne_zero hnz
++      have hdecomp := Nat.div_add_mod items.toNat size.toNat
++      have hmul : items.toNat / size.toNat ≤ size.toNat * (items.toNat / size.toNat) :=
++        Nat.le_mul_of_pos_left _ hkpos
++      have hupper : items.toNat / size.toNat + 1 ≤ items.toNat := by omega
++      rw [Int.tdiv_eq_ediv_of_nonneg hitemNonneg, ← hn, ← hk, ← Int.natCast_ediv]
++      constructor
++      · exact_mod_cast Nat.zero_le (items.toNat / size.toNat + 1)
++      · exact_mod_cast hupper
++  · rfl
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

@@ -1,0 +1,292 @@
+{
+  "request": {
+    "schema": "fr-model-comparison-1",
+    "name": "RustPreservation",
+    "before": {
+      "schema": "fr-model-snapshot-1",
+      "target": "subject.rs::allowed",
+      "source": "pub fn allowed(a: bool, b: bool, unused: bool) -> bool { a && !b }\n",
+      "model": {
+        "schema": "fr-formal-plan-1",
+        "target": {
+          "source": "subject.rs",
+          "symbol": "allowed",
+          "source_hash": "4daff1738bbe1d218fb9b8cfb1d3fea42ae731e62017cb3ed735d2fa6e02e6be"
+        },
+        "kernel": {
+          "module": "SubjectRsAllowed",
+          "model": "allowedModel",
+          "inputs": [
+            {
+              "name": "a",
+              "rust_type": "bool",
+              "lean_type": "Bool"
+            },
+            {
+              "name": "b",
+              "rust_type": "bool",
+              "lean_type": "Bool"
+            },
+            {
+              "name": "unused",
+              "rust_type": "bool",
+              "lean_type": "Bool"
+            }
+          ],
+          "output": {
+            "name": "return",
+            "rust_type": "bool",
+            "lean_type": "Bool"
+          },
+          "semantic_ir": [
+            {
+              "kind": "return",
+              "value": {
+                "kind": "binary",
+                "value": {
+                  "left": {
+                    "kind": "name",
+                    "value": "a"
+                  },
+                  "op": "and",
+                  "right": {
+                    "kind": "unary",
+                    "value": {
+                      "op": "not",
+                      "operand": {
+                        "kind": "name",
+                        "value": "b"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "lean_definition": "def allowedModel (a : Bool) (b : Bool) (unused : Bool) : Bool :=\n  (a && (!b))",
+          "evaluation": {
+            "schema": "fr-formal-evaluation-1",
+            "source_language": "rust",
+            "term": {
+              "kind": "binary",
+              "operator": "and",
+              "left": {
+                "kind": "bound",
+                "index": 0
+              },
+              "right": {
+                "kind": "not",
+                "operand": {
+                  "kind": "bound",
+                  "index": 1
+                }
+              }
+            },
+            "bindings": [
+              {
+                "name": "a",
+                "source_type": "bool",
+                "lean_type": "Bool"
+              },
+              {
+                "name": "b",
+                "source_type": "bool",
+                "lean_type": "Bool"
+              },
+              {
+                "name": "unused",
+                "source_type": "bool",
+                "lean_type": "Bool"
+              },
+              {
+                "name": "return",
+                "source_type": "bool",
+                "lean_type": "Bool"
+              }
+            ],
+            "ir_digest": "f19a13e1f56fd3f571bd2bed884743be018cfc22eb8b7f1f343b725f8e305991",
+            "term_digest": "ee7cc0544c0a6074bfc13781c0296fc0f2d7e5a206784f8cf33ac567ee03318d",
+            "model_digest": "26274425bcb7e181f0ccedc5bf55b77dcb88351b48c5c75dd246cd1e513389b8",
+            "evaluator_arithmetic": "checked-signed-64",
+            "lean_arithmetic": "mathematical-Int-and-Nat",
+            "source_correspondence": false
+          }
+        },
+        "properties": [],
+        "correspondence": {
+          "source_identity": "sha256-anchored-declaration",
+          "signature_surface": "strict-rust-lean-map",
+          "model_generation": "deterministic-supported-semantic-ir",
+          "implementation_model": "generated-model-with-executable-comparison-required"
+        },
+        "assumptions": [
+          "rust parsing, semantic IR extraction and SHA-256 remain trusted.",
+          "The supported kernel excludes effects, mutation, calls, unsafe code and partial source access.",
+          "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic."
+        ],
+        "obligations": [],
+        "object_digest": "d9b6cee1d8556853c4b10ca9ff6bc9e606b43417deca3cce8ef9aa1f4c12005d",
+        "actions": {
+          "scaffold": [
+            "spec",
+            "scaffold",
+            "--from",
+            "<PLAN_FILE>"
+          ],
+          "goals": [
+            "spec",
+            "goals",
+            "specs"
+          ],
+          "verify": [
+            "spec",
+            "verify",
+            "specs"
+          ]
+        }
+      },
+      "digest": "dae79a7375ec1f314a3bb81c0984094e8e4e072bab4353d682f83166c20eb01c"
+    },
+    "after": "subject.rs::permits",
+    "relation": "equivalent",
+    "arguments": [
+      0,
+      1
+    ]
+  },
+  "after": {
+    "schema": "fr-model-snapshot-1",
+    "target": "subject.rs::permits",
+    "source": "pub fn permits(a: bool, b: bool) -> bool { a && !b }\n",
+    "model": {
+      "schema": "fr-formal-plan-1",
+      "target": {
+        "source": "subject.rs",
+        "symbol": "permits",
+        "source_hash": "af1dc204097ca6fd6758e06ad5a015fe67ac283ee58794b7eb4dc06e16a66ad0"
+      },
+      "kernel": {
+        "module": "SubjectRsPermits",
+        "model": "permitsModel",
+        "inputs": [
+          {
+            "name": "a",
+            "rust_type": "bool",
+            "lean_type": "Bool"
+          },
+          {
+            "name": "b",
+            "rust_type": "bool",
+            "lean_type": "Bool"
+          }
+        ],
+        "output": {
+          "name": "return",
+          "rust_type": "bool",
+          "lean_type": "Bool"
+        },
+        "semantic_ir": [
+          {
+            "kind": "return",
+            "value": {
+              "kind": "binary",
+              "value": {
+                "left": {
+                  "kind": "name",
+                  "value": "a"
+                },
+                "op": "and",
+                "right": {
+                  "kind": "unary",
+                  "value": {
+                    "op": "not",
+                    "operand": {
+                      "kind": "name",
+                      "value": "b"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "lean_definition": "def permitsModel (a : Bool) (b : Bool) : Bool :=\n  (a && (!b))",
+        "evaluation": {
+          "schema": "fr-formal-evaluation-1",
+          "source_language": "rust",
+          "term": {
+            "kind": "binary",
+            "operator": "and",
+            "left": {
+              "kind": "bound",
+              "index": 0
+            },
+            "right": {
+              "kind": "not",
+              "operand": {
+                "kind": "bound",
+                "index": 1
+              }
+            }
+          },
+          "bindings": [
+            {
+              "name": "a",
+              "source_type": "bool",
+              "lean_type": "Bool"
+            },
+            {
+              "name": "b",
+              "source_type": "bool",
+              "lean_type": "Bool"
+            },
+            {
+              "name": "return",
+              "source_type": "bool",
+              "lean_type": "Bool"
+            }
+          ],
+          "ir_digest": "f19a13e1f56fd3f571bd2bed884743be018cfc22eb8b7f1f343b725f8e305991",
+          "term_digest": "ee7cc0544c0a6074bfc13781c0296fc0f2d7e5a206784f8cf33ac567ee03318d",
+          "model_digest": "a5f66ed79e3bf2d9c12057483982c55d3f4f6c682e25d8b450f92637409507a8",
+          "evaluator_arithmetic": "checked-signed-64",
+          "lean_arithmetic": "mathematical-Int-and-Nat",
+          "source_correspondence": false
+        }
+      },
+      "properties": [],
+      "correspondence": {
+        "source_identity": "sha256-anchored-declaration",
+        "signature_surface": "strict-rust-lean-map",
+        "model_generation": "deterministic-supported-semantic-ir",
+        "implementation_model": "generated-model-with-executable-comparison-required"
+      },
+      "assumptions": [
+        "rust parsing, semantic IR extraction and SHA-256 remain trusted.",
+        "The supported kernel excludes effects, mutation, calls, unsafe code and partial source access.",
+        "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic."
+      ],
+      "obligations": [],
+      "object_digest": "af01b4a28e843edc4d783274db33c2b513dc46c370d91125f44cf9a834768e10",
+      "actions": {
+        "scaffold": [
+          "spec",
+          "scaffold",
+          "--from",
+          "<PLAN_FILE>"
+        ],
+        "goals": [
+          "spec",
+          "goals",
+          "specs"
+        ],
+        "verify": [
+          "spec",
+          "verify",
+          "specs"
+        ]
+      }
+    },
+    "digest": "61687ccdbe521a8f5533d4b2f9ca6ad4a77e9abe78727b9fd04a15428afcd78c"
+  }
+}

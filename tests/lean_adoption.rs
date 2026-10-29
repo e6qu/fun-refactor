@@ -90,13 +90,19 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_eq!(first["passed"], true);
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
+        "refine ?_\nrfl\n",
+        "have h : keepModel x = x ∧ keepModel x = x := by\n  refine ⟨?_, ?_⟩\n  · rfl\n  · rfl\nexact h.1\n",
         "exact (show keepModel x = x by rfl)\n",
         "exact (show keepModel x = x from rfl)\n",
+        "exact (by rfl : keepModel x = x)\n",
+        "  have h : keepModel x = x := by rfl\n  exact h\n",
+        "\n  \n    have h : keepModel x = x := by\n      rfl\n    exact h\n  \n\n",
+        "let q := x\nhave : q = x := by rfl\ncalc\n  keepModel x = q := by rfl\n  _ = x := this\n",
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();
-        let checked =
-            fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+        let checked = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+            .unwrap_or_else(|error| panic!("{tactics:?}: {error:#}"));
         assert!(
             checked.passed,
             "{}",
@@ -104,6 +110,77 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         );
         assert_eq!(std::fs::read(&model).unwrap(), before_show);
     }
+    let proof = workspace.path().join("proof.lean");
+    std::fs::write(&proof, "refine ?_\n").unwrap();
+    let unfinished =
+        fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!unfinished.passed);
+    assert!(!unfinished.diagnostics.is_empty());
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
+    let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
+        .unwrap_err()
+        .to_string();
+    let proof_line = std::str::from_utf8(&before_show)
+        .unwrap()
+        .lines()
+        .position(|line| line.contains("fr:proof-begin"))
+        .unwrap()
+        + 2;
+    assert!(
+        syntax_error.contains(&format!("specs/FrSpecs/SrcLibRsKeep.lean:{proof_line}:")),
+        "{syntax_error}"
+    );
+    assert!(syntax_error.ends_with("; no files changed."));
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    let manually_edited = std::str::from_utf8(&before_show).unwrap().replace(
+        "  -- fr:debt keepModel_identity\n  sorry\n",
+        "  exact false\n",
+    );
+    assert_ne!(manually_edited.as_bytes(), before_show);
+    std::fs::write(&model, &manually_edited).unwrap();
+    assert!(fun_refactor::spec::formal_goals(
+        workspace.path(),
+        std::slice::from_ref(&model),
+        None,
+        8,
+        4096,
+        true,
+    )
+    .unwrap()
+    .catalog
+    .is_empty());
+    let edited_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
+    assert_eq!(edited_task.goal.target, target);
+    std::fs::write(&proof, "exact false\n").unwrap();
+    let rejected = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!rejected.passed);
+    assert!(rejected.receipt.is_none());
+    assert!(!rejected.diagnostics.is_empty());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
+    std::fs::write(&proof, "rfl\n").unwrap();
+    let repaired = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(
+        repaired.passed,
+        "{}",
+        serde_json::to_string(&repaired).unwrap()
+    );
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), manually_edited);
+    let saved = run(
+        workspace.path(),
+        &["spec", "prove", target, "--from", "proof.lean", "--write"],
+    );
+    assert!(
+        saved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&saved.stderr)
+    );
+    let saved_model = std::fs::read_to_string(&model).unwrap();
+    assert!(saved_model.contains("  rfl\n"));
+    assert!(!saved_model.contains("  exact false\n"));
+    assert!(saved_model.contains("-- fr:proof-begin keepModel_identity"));
+    assert!(saved_model.contains("-- fr:proof-end keepModel_identity"));
+    std::fs::write(&model, &before_show).unwrap();
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     std::fs::write(&dependency, policy.replace(":= value", ":= !value")).unwrap();
     let second_task = fun_refactor::spec::proof_task(workspace.path(), target, 4096, true).unwrap();
@@ -414,6 +491,16 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let goals: serde_json::Value = serde_json::from_slice(&goals.stdout).unwrap();
     assert_eq!(goals["schema"], "fr-formal-goals-1");
     assert_eq!(goals["catalog"].as_array().unwrap().len(), 2);
+    for row in goals["catalog"].as_array().unwrap() {
+        assert_eq!(
+            row["target"],
+            format!(
+                "{}::{}",
+                row["spec"].as_str().unwrap(),
+                row["name"].as_str().unwrap()
+            )
+        );
+    }
     assert!(goals["revealed"].is_null());
     assert!(goals["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 4096);
     let goal = goals["catalog"][0]["id"].as_str().unwrap();
@@ -436,6 +523,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let obligation = revealed["revealed"]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    assert_eq!(revealed["revealed"]["target"], target);
     let request = serde_json::json!({"schema":"fr-agent-goal-1","purpose":"prove",
         "selector":{"path":"specs/FrSpecs/SrcLibRsKeep.lean"},
         "operation":{"kind":"proof","obligation":obligation}});

@@ -26874,5 +26874,54 @@
         "symbols": 98439
       }
     }
+  },
+  "current_reader_check": {
+    "purpose": "The release reconciliation preserves the recorded facts. Original baseline counts and the correction ledger remain unchanged.",
+    "before_source": "603524669a6579ff9c86f8fab1ae9003fc4b6045",
+    "after_source": "d938d69972857b1de5f544bce9b7dfa546ac7b07",
+    "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+    "lean_facts_sha256": "b4e2b0713256ac3922d737c3b328eb46302a6a740062681ce150f4286da54b54",
+    "changed_facts": 0,
+    "retained_consumer_query_sha256": "e10733ec517ccde8e19b0ac45a0e16667399fdf822be96a4ca7195bc38a9458a",
+    "corpora": {
+      "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
+        "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40578131438",
+        "original_counts": {
+          "symbols": 98147,
+          "references": 592962
+        },
+        "before": {
+          "files": 1255,
+          "references": 592648,
+          "resolved": 306705,
+          "symbols": 98231
+        },
+        "after": {
+          "files": 1255,
+          "references": 592648,
+          "resolved": 306705,
+          "symbols": 98231
+        }
+      },
+      "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
+        "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40579713842",
+        "original_counts": {
+          "symbols": 98355,
+          "references": 594288
+        },
+        "before": {
+          "files": 1262,
+          "references": 593974,
+          "resolved": 308629,
+          "symbols": 98439
+        },
+        "after": {
+          "files": 1262,
+          "references": 593974,
+          "resolved": 308629,
+          "symbols": 98439
+        }
+      }
+    }
   }
 }

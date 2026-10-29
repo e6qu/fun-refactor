@@ -629,10 +629,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
       - name: Check writing and source identity controls
         run: |
           python3 -B tools/test-check-prose.py
@@ -893,9 +893,49 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Check out every report and artifact used by the roadmap
+        env:
+          EVIDENCE_PREFIX: ${{ inputs.prefix }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re, runpy, subprocess, sys
+          from pathlib import Path
+          prefix = os.environ['EVIDENCE_PREFIX']
+          assert re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', prefix)
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          directories = {str(Path(row['path']).parent) for row in catalog['evidence']}
+          patterns = [f'/{directory}/' for directory in sorted(directories)]
+          patterns.append(f'/tests/agent-eval/results/{prefix}-*/')
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                         input='\n'.join(patterns) + '\n', text=True, check=True, timeout=60)
+          required_paths = set()
+          for row in catalog['evidence']:
+              report = json.loads(Path(row['path']).read_text())
+              field = 'bindings' if report['schema'] == 'fr-index-resolution-result-1' else 'source_bindings'
+              required_paths.update(report.get(field, {}))
+              if report['schema'] == 'fr-unknown-target-cohort-1':
+                  required_paths.update(trial['path'] for trial in report['trials'])
+          source_directories = {Path(*Path(name).parts[:4]).as_posix() for name in required_paths
+                                if name.startswith('tests/agent-eval/results/')}
+          if source_directories:
+              subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'],
+                             input='\n'.join(f'/{path}/' for path in sorted(source_directories)) + '\n',
+                             text=True, check=True, timeout=60)
+          tracked = set(subprocess.check_output(['git', 'ls-files', '-z'], text=True).split('\0'))
+          for name in sorted(required_paths & tracked):
+              assert Path(name).exists(), f'Checkout omitted a recorded source: {name}'
+          sys.path.insert(0, 'tools')
+          runpy.run_path('tools/roadmap-status.py')['compute'](Path.cwd(), catalog)
+          print('Checked every catalog record, its artifacts and its available source files.')
+          PY
       - run: python3 -B tools/test-retain-language-behavior.py
       - name: Retain the authenticated source and output records
         env:
@@ -1694,6 +1734,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install the pinned TypeScript checker used by authoring tests
+        run: npm ci --no-fund --no-audit
+        working-directory: tests/typesafety/typescript
       - uses: Swatinem/rust-cache@v2
         with:
           key: default

@@ -1,0 +1,1249 @@
+{
+  "study": "M3 interrupted library-access run",
+  "complete": false,
+  "interruption": "The instructions allowed inspecting the installed Lean library, but OpenCode2 denied a shell command entering its source directory. Pause the coordinator, let the current bounded attempt close, and preserve all outcomes before changing the configuration. No remaining slot was retried.",
+  "plan_sha256": "9b69d29303e70ccb7f93b9a8afa4388b7860b6c40ac7f107a2919d557e293c1f",
+  "source_commit": "603524669a6579ff9c86f8fab1ae9003fc4b6045",
+  "controls_run": "40526084374",
+  "native_inputs": {
+    "src": "29ae5d02cdc005ed7569dbf9cb619c3218398d26",
+    "grammars": "58e2638f912b6ac704cac58c666d716ca0135ffe",
+    "crates": "feec596d97f3bdfe8d13d4cbfa9a60ea3614c301",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "24f76acb12d40b598c3d89166fa9721f15a4beed",
+    "Cargo.lock": "d8a2e75965f3d61c0ea97251a0c64e6652e59281",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "versions": {
+    "fr": "fr 0.85.0",
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32"
+  },
+  "native_binary_sha256": {
+    "fr": "a4b8f7f4f652d46b52b2bdd73c33e58b740dfd16c3bf900715462b29dca12dde",
+    "codex": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+    "opencode2": "cd03022601e4848a957999a2a7b1c1ccf18b94f9a084a44719f62abaacebe83c"
+  },
+  "planned_attempts": 36,
+  "recorded_attempts": 15,
+  "unstarted_attempts": [
+    "opencode2-kimi-k3-page-count-files-1",
+    "opencode2-kimi-k3-fits-window-files-1",
+    "opencode2-kimi-k3-fits-window-fr-1",
+    "codex-luna-fast-access-rust-fr-2",
+    "codex-luna-fast-access-rust-files-2",
+    "codex-luna-fast-page-count-files-2",
+    "codex-luna-fast-page-count-fr-2",
+    "codex-luna-fast-fits-window-fr-2",
+    "codex-luna-fast-fits-window-files-2",
+    "opencode2-glm-flash-access-rust-files-2",
+    "opencode2-glm-flash-access-rust-fr-2",
+    "opencode2-glm-flash-page-count-fr-2",
+    "opencode2-glm-flash-page-count-files-2",
+    "opencode2-glm-flash-fits-window-files-2",
+    "opencode2-glm-flash-fits-window-fr-2",
+    "opencode2-kimi-k3-access-rust-fr-2",
+    "opencode2-kimi-k3-access-rust-files-2",
+    "opencode2-kimi-k3-page-count-files-2",
+    "opencode2-kimi-k3-page-count-fr-2",
+    "opencode2-kimi-k3-fits-window-fr-2",
+    "opencode2-kimi-k3-fits-window-files-2"
+  ],
+  "external_directory_denials": [
+    "opencode2-glm-flash-page-count-files-1",
+    "opencode2-kimi-k3-page-count-fr-1"
+  ],
+  "total_recorded_seconds": 1108.7402082504705,
+  "publication": "Patches and summaries only. Raw prompts, CLI transcripts, source archives, session exports and account data remain local.",
+  "checking": "Native completion is not independent acceptance. No submitted patch in this interrupted packet has an independent acceptance result; no fr contribution is credited.",
+  "attempts": [
+    {
+      "id": "codex-luna-fast-access-rust-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "698c44ed076df8af316cae96d4d6a42351e43c53dc8f2a8e499f6424b34ff300",
+      "elapsed_seconds": 25.03882437502034,
+      "stop_reason": null,
+      "sampled_rss_bytes": 118849536,
+      "sampled_cpu_seconds": 0.3621102083333333,
+      "transcript_bytes": 7790,
+      "reported_usage": [
+        {
+          "input_tokens": 87418,
+          "cached_input_tokens": 60288,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1295,
+          "reasoning_output_tokens": 596
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-files-1.patch",
+      "patch_sha256": "e424115e7afbea366d23033782ec43eba6c30362402b2cfe249ecc332c219522",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-access-rust-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "3924302f3549bae0ede5348a1a7e16a765e44affaff53bcf4e24e41ee8d0994b",
+      "elapsed_seconds": 26.396606334019452,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126304256,
+      "sampled_cpu_seconds": 0.39012816666666666,
+      "transcript_bytes": 17065,
+      "reported_usage": [
+        {
+          "input_tokens": 125541,
+          "cached_input_tokens": 96896,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1295,
+          "reasoning_output_tokens": 341
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-fr-1.patch",
+      "patch_sha256": "ef206f79ae18a957782ba5b97367d05bc20bb029e2481e40bf5f6c38893f5112",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "5ee5fc57190f69420c05e7a47f2402bf1a594c5fb98d4fa5e12791d3b5e248f6",
+      "elapsed_seconds": 109.52079337509349,
+      "stop_reason": null,
+      "sampled_rss_bytes": 131612672,
+      "sampled_cpu_seconds": 0.5631564583333334,
+      "transcript_bytes": 85203,
+      "reported_usage": [
+        {
+          "input_tokens": 495646,
+          "cached_input_tokens": 453632,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7044,
+          "reasoning_output_tokens": 4022
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-fr-1.patch",
+      "patch_sha256": "4e6a6c36aa3c8c48776358a07c6ff8103052aef7c6715e60d477bf7ad235d2c1",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-files-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "2aa4eea7b87cfcd8fcf45042589ff27a328e475d190d343a8b774b0eb6f7f4a3",
+      "elapsed_seconds": 89.52064074994996,
+      "stop_reason": null,
+      "sampled_rss_bytes": 120750080,
+      "sampled_cpu_seconds": 0.557841125,
+      "transcript_bytes": 50490,
+      "reported_usage": [
+        {
+          "input_tokens": 378203,
+          "cached_input_tokens": 326144,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5596,
+          "reasoning_output_tokens": 2805
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-files-1.patch",
+      "patch_sha256": "346e30f538efab2c90e138e783f3dab441ac569c44c950af03f1fbc830046622",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-files-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "c7d0fd74eda28db50bb6bda553f6706e77f488f336255839c6938ccf9596d084",
+      "elapsed_seconds": 38.05674691707827,
+      "stop_reason": null,
+      "sampled_rss_bytes": 129351680,
+      "sampled_cpu_seconds": 0.413825375,
+      "transcript_bytes": 29023,
+      "reported_usage": [
+        {
+          "input_tokens": 163869,
+          "cached_input_tokens": 141056,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2100,
+          "reasoning_output_tokens": 747
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-files-1.patch",
+      "patch_sha256": "15a9e261ccb079e61d7b3529c02fbea1df2e638434476e9c523742df110e352c",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "f1d7387d162f62efff0ae297ecf3cde9c82c100aaf23fecddb7774a8fc01e705",
+      "elapsed_seconds": 24.773754915921018,
+      "stop_reason": null,
+      "sampled_rss_bytes": 126599168,
+      "sampled_cpu_seconds": 0.3591979583333333,
+      "transcript_bytes": 19877,
+      "reported_usage": [
+        {
+          "input_tokens": 87541,
+          "cached_input_tokens": 68992,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1948,
+          "reasoning_output_tokens": 845
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-fr-1.patch",
+      "patch_sha256": "adc7042a326d8be1d2c228b1c9d734f0955dcddaf92cd3aaa108cb4fccfe25b2",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "d2fc54fc74bd1815f3e4c19a66b51eeac58aba3adc7ef2e56a9e0f6ce4157209",
+      "elapsed_seconds": 89.91510858293623,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86294528,
+      "sampled_cpu_seconds": 1.2967657083333333,
+      "transcript_bytes": 32328,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6431,
+            "output": 37,
+            "reasoning": 14,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 5864,
+            "output": 31,
+            "reasoning": 0,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 153,
+            "output": 47,
+            "reasoning": 0,
+            "cache": {
+              "read": 6848,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 541,
+            "output": 97,
+            "reasoning": 351,
+            "cache": {
+              "read": 6976,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 539,
+            "output": 42,
+            "reasoning": 0,
+            "cache": {
+              "read": 7488,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 123,
+            "output": 50,
+            "reasoning": 0,
+            "cache": {
+              "read": 8000,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 636,
+            "output": 57,
+            "reasoning": 56,
+            "cache": {
+              "read": 8064,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 587,
+            "output": 35,
+            "reasoning": 44,
+            "cache": {
+              "read": 8640,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 143,
+            "output": 85,
+            "reasoning": 0,
+            "cache": {
+              "read": 9216,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 155,
+            "output": 54,
+            "reasoning": 48,
+            "cache": {
+              "read": 9344,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-access-rust-fr-1.patch",
+      "patch_sha256": "0a67609992ac62e8f7929805603bfe181d785de5de2a7056e08a49a842603879",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "f9682d336124e1f4ec31bac741868b67c927e10061919c422b8d61678a8565fc",
+      "elapsed_seconds": 52.10633591702208,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86212608,
+      "sampled_cpu_seconds": 0.7429564166666667,
+      "transcript_bytes": 15247,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6359,
+            "output": 32,
+            "reasoning": 16,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 5457,
+            "output": 34,
+            "reasoning": 0,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 489,
+            "output": 142,
+            "reasoning": 468,
+            "cache": {
+              "read": 6464,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 672,
+            "output": 57,
+            "reasoning": 0,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 135,
+            "output": 50,
+            "reasoning": 28,
+            "cache": {
+              "read": 7552,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-access-rust-files-1.patch",
+      "patch_sha256": "0a67609992ac62e8f7929805603bfe181d785de5de2a7056e08a49a842603879",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "b88a274c8e575410b653d5ad07407b51466cd1c4ce28fcf27e1a795f857591ba",
+      "elapsed_seconds": 150.0435530419927,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86081536,
+      "sampled_cpu_seconds": 2.0972028333333332,
+      "transcript_bytes": 13691,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6473,
+            "output": 32,
+            "reasoning": 16,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 5571,
+            "output": 32,
+            "reasoning": 52,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 777,
+            "output": 79,
+            "reasoning": 4696,
+            "cache": {
+              "read": 6592,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 4807,
+            "output": 60,
+            "reasoning": 70,
+            "cache": {
+              "read": 7360,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 231,
+            "output": 95,
+            "reasoning": 0,
+            "cache": {
+              "read": 12160,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "The attempt reached the unchanged 150-second limit. Its closed command record also contains an external-directory permission denial."
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "33f33ae5c87104c3e14089eaf43d41c2c21070a13fe03980995b6dd5e108c613",
+      "elapsed_seconds": 150.03850174997933,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86130688,
+      "sampled_cpu_seconds": 1.991662375,
+      "transcript_bytes": 16140,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6548,
+            "output": 51,
+            "reasoning": 137,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 3349,
+            "output": 79,
+            "reasoning": 36,
+            "cache": {
+              "read": 3648,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "The attempt reached the unchanged 150-second limit."
+    },
+    {
+      "id": "opencode2-glm-flash-fits-window-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "3f2bf9968f8e351d9f2f6326d3f23b9921bed4ad424a96b3dbee86445ea0a9cc",
+      "elapsed_seconds": 77.31682433304377,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85950464,
+      "sampled_cpu_seconds": 1.0408570833333333,
+      "transcript_bytes": 35511,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 5509,
+            "output": 37,
+            "reasoning": 15,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1487,
+            "output": 29,
+            "reasoning": 0,
+            "cache": {
+              "read": 5504,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 208,
+            "output": 30,
+            "reasoning": 0,
+            "cache": {
+              "read": 6976,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 472,
+            "output": 67,
+            "reasoning": 387,
+            "cache": {
+              "read": 7168,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 492,
+            "output": 44,
+            "reasoning": 0,
+            "cache": {
+              "read": 7616,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 142,
+            "output": 27,
+            "reasoning": 0,
+            "cache": {
+              "read": 8064,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 417,
+            "output": 55,
+            "reasoning": 0,
+            "cache": {
+              "read": 8192,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 617,
+            "output": 63,
+            "reasoning": 14,
+            "cache": {
+              "read": 8576,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 621,
+            "output": 42,
+            "reasoning": 0,
+            "cache": {
+              "read": 9152,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 133,
+            "output": 39,
+            "reasoning": 0,
+            "cache": {
+              "read": 9728,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 378,
+            "output": 33,
+            "reasoning": 0,
+            "cache": {
+              "read": 9856,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-fits-window-fr-1.patch",
+      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-fits-window-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "91793c9f6396faf42937e8bfb1d672602fbd815b4d4cb0c575608239b19e077c",
+      "elapsed_seconds": 62.01997775002383,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86147072,
+      "sampled_cpu_seconds": 0.7919395416666666,
+      "transcript_bytes": 19578,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 5434,
+            "output": 33,
+            "reasoning": 21,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 3154,
+            "output": 71,
+            "reasoning": 13,
+            "cache": {
+              "read": 3648,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 750,
+            "output": 178,
+            "reasoning": 552,
+            "cache": {
+              "read": 6784,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 799,
+            "output": 67,
+            "reasoning": 0,
+            "cache": {
+              "read": 7488,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 157,
+            "output": 51,
+            "reasoning": 70,
+            "cache": {
+              "read": 8256,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-fits-window-files-1.patch",
+      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-rust-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "d215099cd4cbcc07461c63b5d1c8a597167cc0b12fbbc1c03199c2013e98f52f",
+      "elapsed_seconds": 30.251496458193287,
+      "stop_reason": null,
+      "sampled_rss_bytes": 86081536,
+      "sampled_cpu_seconds": 0.4214582916666667,
+      "transcript_bytes": 15867,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6180,
+            "output": 54,
+            "reasoning": 11,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 167,
+            "output": 64,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 344,
+            "output": 58,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 476,
+            "output": 144,
+            "reasoning": 23,
+            "cache": {
+              "read": 6400,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 436,
+            "output": 86,
+            "reasoning": 3,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 345,
+            "output": 52,
+            "reasoning": 9,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-access-rust-files-1.patch",
+      "patch_sha256": "a79ba63ad893b9feaccb30048663aaa56ceb30931abadd5c1a9768380a417071",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-rust-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "e2531f4a3a3dd3e5a0fcba13c8192bedb2d9d373d096c49606c20e040676a535",
+      "elapsed_seconds": 33.725856750039384,
+      "stop_reason": null,
+      "sampled_rss_bytes": 85950464,
+      "sampled_cpu_seconds": 0.4868445833333333,
+      "transcript_bytes": 25466,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 2926,
+            "output": 108,
+            "reasoning": 16,
+            "cache": {
+              "read": 3328,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 646,
+            "output": 52,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 582,
+            "output": 84,
+            "reasoning": 131,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 369,
+            "output": 64,
+            "reasoning": 3,
+            "cache": {
+              "read": 7168,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 562,
+            "output": 79,
+            "reasoning": 3,
+            "cache": {
+              "read": 7424,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 660,
+            "output": 74,
+            "reasoning": 13,
+            "cache": {
+              "read": 7936,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 647,
+            "output": 110,
+            "reasoning": 3,
+            "cache": {
+              "read": 8448,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-access-rust-fr-1.patch",
+      "patch_sha256": "a79ba63ad893b9feaccb30048663aaa56ceb30931abadd5c1a9768380a417071",
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "5c97f2be78f5bfadaaaf4ad8a89fef95b0d3a5bf09db8d4aaa02f3081dd20092",
+      "elapsed_seconds": 150.0151870001573,
+      "stop_reason": "wall_seconds",
+      "sampled_rss_bytes": 86114304,
+      "sampled_cpu_seconds": 2.00085525,
+      "transcript_bytes": 57201,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 1237,
+            "output": 102,
+            "reasoning": 14,
+            "cache": {
+              "read": 5120,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 743,
+            "output": 64,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 420,
+            "output": 53,
+            "reasoning": 3,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 815,
+            "output": 109,
+            "reasoning": 1654,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1863,
+            "output": 109,
+            "reasoning": 14,
+            "cache": {
+              "read": 7680,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1012,
+            "output": 174,
+            "reasoning": 1244,
+            "cache": {
+              "read": 9472,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 2417,
+            "output": 372,
+            "reasoning": 2933,
+            "cache": {
+              "read": 10240,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 3461,
+            "output": 79,
+            "reasoning": 3,
+            "cache": {
+              "read": 12544,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 294,
+            "output": 91,
+            "reasoning": 3,
+            "cache": {
+              "read": 15872,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 213,
+            "output": 63,
+            "reasoning": 128,
+            "cache": {
+              "read": 16128,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1268,
+            "output": 81,
+            "reasoning": 4,
+            "cache": {
+              "read": 16128,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1143,
+            "output": 89,
+            "reasoning": 90,
+            "cache": {
+              "read": 17152,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 367,
+            "output": 376,
+            "reasoning": 218,
+            "cache": {
+              "read": 18176,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 749,
+            "output": 89,
+            "reasoning": 3,
+            "cache": {
+              "read": 18432,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "fr_contribution": null,
+      "failure_summary": "The attempt reached the unchanged 150-second limit. Its closed command record also contains an external-directory permission denial."
+    }
+  ]
+}

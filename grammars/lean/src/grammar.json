@@ -2692,6 +2692,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "coercion"
+        },
+        {
+          "type": "SYMBOL",
           "name": "projection"
         }
       ]
@@ -3910,6 +3914,44 @@
         }
       ]
     },
+    "coercion": {
+      "type": "PREC",
+      "value": 70,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "operator",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "↑"
+                },
+                {
+                  "type": "STRING",
+                  "value": "⇑"
+                },
+                {
+                  "type": "STRING",
+                  "value": "↥"
+                }
+              ]
+            }
+          },
+          {
+            "type": "FIELD",
+            "name": "operand",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_postfix_head"
+            }
+          }
+        ]
+      }
+    },
     "fun": {
       "type": "PREC_RIGHT",
       "value": 0,
@@ -4236,16 +4278,8 @@
             "name": "_tactic_seq"
           },
           {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_layout_end"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -4480,8 +4514,8 @@
                     }
                   },
                   {
-                    "type": "STRING",
-                    "value": ":"
+                    "type": "SYMBOL",
+                    "name": "_tactic_label_colon"
                   }
                 ]
               },
@@ -4539,8 +4573,8 @@
                     }
                   },
                   {
-                    "type": "STRING",
-                    "value": ":"
+                    "type": "SYMBOL",
+                    "name": "_tactic_label_colon"
                   }
                 ]
               },
@@ -5297,16 +5331,8 @@
             }
           },
           {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "_layout_end"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -5319,6 +5345,10 @@
         "members": [
           {
             "type": "SYMBOL",
+            "name": "_calc_step_start"
+          },
+          {
+            "type": "SYMBOL",
             "name": "_expression"
           },
           {
@@ -5328,6 +5358,10 @@
           {
             "type": "SYMBOL",
             "name": "_expression"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_layout_end"
           }
         ]
       }
@@ -7601,7 +7635,7 @@
     },
     "identifier": {
       "type": "PATTERN",
-      "value": "[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!]*"
+      "value": "[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*"
     },
     "escaped_identifier": {
       "type": "PATTERN",
@@ -7824,7 +7858,7 @@
     },
     "synthetic_hole": {
       "type": "PATTERN",
-      "value": "\\?[_a-zA-Z]\\w*"
+      "value": "\\?[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*"
     },
     "quoted_name": {
       "type": "SEQ",
@@ -8067,6 +8101,14 @@
     {
       "type": "SYMBOL",
       "name": "_binding_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_calc_step_start"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_tactic_label_colon"
     },
     {
       "type": "SYMBOL",

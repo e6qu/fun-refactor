@@ -161,6 +161,7 @@ class TestIr:
     def test_proof_task_and_attempt_bind_agent_context_and_tactics(self):
         goal = {
             "id": "a" * 64, "name": "keep_identity", "spec": "specs/Keep.lean", "line": 8,
+            "target": "specs/Keep.lean::keep_identity",
             "theorem": "theorem keep_identity (x : Bool) : keep x = x",
             "source_anchor": "-- fr:spec src/lib.rs::keep @ " + "b" * 64,
             "signature_map": "-- fr:signature value: bool => value: Bool",
@@ -170,11 +171,11 @@ class TestIr:
             "model_context_digest": merkle_object_digest("fixed model and package inputs"),
         }
         goal["id"] = goal["object_digest"] = merkle_object_digest({key: goal[key] for key in (
-            "name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")})
+            "name", "spec", "target", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")})
         contract = {
             "author": "agent", "format": "utf8-lean-tactics",
             "insertion_point": "inside-existing-by-block",
-            "normalization": "trim-outer-whitespace-indent-two-spaces", "forbidden": ["sorry"],
+            "normalization": "trim-outer-newlines-indent-two-spaces", "forbidden": ["sorry"],
             "checker": "leanprover/lean4:v4.28.0",
         }
         templates = [{"kind": "direct", "lines": ["<agent-written-tactics>"]}]
@@ -195,9 +196,13 @@ class TestIr:
         }
         parsed_task = ProofTask.from_data(task)
         assert parsed_task.to_data() == task
+        wrong_target = json.loads(json.dumps(task))
+        wrong_target["goal"]["target"] = "specs/Keep.lean::another_claim"
+        with pytest.raises(IrError, match="supplied file and theorem"):
+            ProofTask.from_data(wrong_target)
         bound = json.loads(json.dumps(task))
         bound["goal"]["model_context_digest"] = merkle_object_digest("current model module")
-        addressed = {key: bound["goal"][key] for key in ("name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
+        addressed = {key: bound["goal"][key] for key in ("name", "spec", "target", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
         bound["goal"]["id"] = bound["goal"]["object_digest"] = merkle_object_digest(addressed)
         core = {key: bound[key] for key in ("schema", "goal", "contract", "templates")}
         bound["object_digest"] = merkle_object_digest(core)

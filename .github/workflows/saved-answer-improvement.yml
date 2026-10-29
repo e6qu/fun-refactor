@@ -35,7 +35,7 @@ permissions:
   actions: read
 concurrency:
   group: saved-answer-improvement-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   profile:
     if: github.event_name == 'pull_request' || github.event_name == 'push' || inputs.phase == 'measure'

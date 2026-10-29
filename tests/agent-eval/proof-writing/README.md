@@ -1,22 +1,20 @@
 # Help the selected agents write three small Lean proofs
 
-The [first local run](interrupted-results/README.md) stopped after seven attempts when its resource monitor failed.
-The [next run](proof-guide-interrupted-results/README.md) also stopped after seven: the first GLM
-attempt exhausted its time in generic edit planning, then exposed a post-deadline accounting error.
-Both packets retain every outcome and submitted patch.
-The [first complete comparison](first-results/README.md) independently accepted 26 of 36 attempts.
-Eight page-count attempts timed out. Luna's two fr page-count attempts submitted an empty or rejected proof;
-its ordinary-tool page proofs passed. Each selected agent passed the access and range tasks with fr.
-M3 still needs an accepted fr page-count proof from each agent.
-
-The next complete comparison uses the repaired inline-proof reader, direct proof entry and
-an example of searching the installed library with fr. Programs, claims, models and limits stay the same.
-Each attempt gives fr a separate new `.fr/cache`. Keep all fifty earlier outcomes and grade every new submission.
-
 M3 asks whether Codex with Luna Fast and OpenCode2 with GLM Flash or non-Pro Kimi K3
 can write and check proofs for fixed program models. A model describes selected behavior
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
+
+The [latest comparison](local-results/README.md) records all 36 attempts: independent grading accepted 25 proofs.
+Eleven attempts timed out and remain failed. All 25 delivered patches passed their independent checks.
+The timer now includes system sleep; no sleep was detected. The deadline remains 150 seconds.
+The rebuilt tool passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
+Goal discovery supplies an exact `target`, valid proofs may use temporary goals that later tactics solve,
+and both setups can read the explicitly named Lean library directory.
+
+GLM and Kimi delivered no page-count proof with fr in this run, so M3 remains open.
+Keep all 173 outcomes. The [earlier attempts](#earlier-attempts) retain their original results;
+a repair never erases an earlier failed attempt.
 
 This milestone is in progress. Scripted controls and the real agent comparison are separate.
 The complete implementation, examples, checked attempts and tracking belong in one PR.
@@ -116,8 +114,8 @@ checking commands and a 150-second complete-attempt deadline, with time reserved
 The model can repair rejected tactics within that attempt. A failed slot is never retried.
 
 The standard library is Lean's shipped collection of definitions and proofs. Both setups may inspect it.
-`lean --print-prefix` prints the installation folder; the library sources are under its `src/lean` subfolder.
-The instructions explain this lookup without supplying proof steps for the requested claim.
+The controller checks the selected binary's `lean --print-prefix` against the declared installation.
+Both setups receive its exact `src/lean` folder and integer-source subfolder, without proof steps for the requested claim.
 Both setups also receive the existing 1,048,576-byte limit for the combined CLI transcript,
 including command output. The instructions show how to limit printed search matches.
 An unrestricted search through the library exhausted that limit in the interrupted run;
@@ -155,3 +153,20 @@ the pinned Lean checker and standard axioms, source compilers and the execution 
 The comparison freezes the local checking binaries and records hosted tool versions. Package
 fingerprints cover collected local Lean sources and build metadata; external dependency contents
 remain trusted. See [proof receipts and limits](../../../docs/agent-formalization.md#verification-boundary).
+
+## Earlier attempts
+
+These packets retain all 137 outcomes that preceded the latest 36 attempts.
+An accepted result passed independent checking and came from a completed client attempt.
+
+| Packet | Recorded attempts | Original result or interruption |
+| --- | ---: | --- |
+| [First interrupted run](interrupted-results/README.md) | 7 | The resource monitor failed |
+| [Guide repair run](proof-guide-interrupted-results/README.md) | 7 | A timeout exposed a session-accounting error |
+| [First complete comparison](first-results/README.md) | 36 | 26 accepted; eight page-count timeouts and two rejected or empty fr page-count patches |
+| [Second complete comparison](second-results/README.md) | 36 | 25 accepted; GLM and Kimi still lacked accepted fr page-count proofs |
+| [Library access run](library-access-interrupted-results/README.md) | 15 | OpenCode2 denied a permitted library directory; 21 slots never started |
+| [Run affected by sleep](clock-interrupted-results/README.md) | 36 | 18 client completions and 18 failures; ten failed attempts have unreliable elapsed times |
+
+All submitted patches and original failures remain available. The last two packets have no
+independent acceptance result. The sleep-affected packet cannot establish speed or cost differences.

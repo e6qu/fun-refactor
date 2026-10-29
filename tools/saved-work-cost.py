@@ -142,6 +142,12 @@ def measured(command, output, workspace, limits):
             transcript_bytes=limits['transcript_bytes'], cwd=ROOT,
             env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0',
                 'RAYON_NUM_THREADS': '1', 'FUN_REFACTOR_CACHE': str(workspace / 'project/.fr/cost-cache')})
+    require(integer(result['sampled_aggregate_rss_bytes']), 'invalid aggregate memory sample')
+    if result['sampled_aggregate_rss_bytes'] == 0:
+        result['sampled_aggregate_rss_bytes'] = None
+        result['rss_observation'] = 'unobserved'
+    else:
+        result['rss_observation'] = 'sampled'
     save(output / 'process.json', {'argv': command, 'measurement': result})
     require(result['stop_reason'] is None and result['exit_code'] == 0, 'measured process failed: ' + str(output))
     cpu = sum(float(value) for value in (output / 'cpu.txt').read_text().split())
@@ -246,6 +252,7 @@ def collect_project(task, output, binary, tasks, workspace):
             sessions.append({'repetition': repetition, 'condition': condition, 'position': position,
                 'copy_seconds': copy_seconds, 'copy_cpu_seconds': copy_cpu_seconds,
                 'cleanup_seconds': cleanup_seconds, 'cleanup_cpu_seconds': cleanup_cpu_seconds,
+                'source_edit_rss_observation': edit['rss_observation'],
                 'copy_bytes': source_bytes, 'stages': stages,
                 'total_seconds': copy_seconds + cleanup_seconds + sum(row['seconds'] for row in stages)
                     + edit['elapsed_seconds']})
@@ -311,6 +318,8 @@ def audit_project(value, directory, tasks):
         edit_path = directory / f'{repetition}-{condition}/edit.json'
         edit = json.loads(edit_path.read_text())
         check_measurement(edit['measurement'], tasks['limits'])
+        require(session['source_edit_rss_observation'] == edit['measurement']['rss_observation'],
+                'source edit memory observation differs')
         require(finite(edit['cpu_seconds']) and integer(edit['matches']) and edit['matches'] > 0, 'missing edit cost')
         require(math.isclose(session['total_seconds'], session['copy_seconds'] + session['cleanup_seconds']
             + edit['measurement']['elapsed_seconds']
@@ -330,8 +339,12 @@ def audit_project(value, directory, tasks):
             require(row['cpu_seconds'] == sum(float(x) for x in (base / 'cpu.txt').read_text().split())
                 and finite(row['worker_cpu_seconds']) and row['worker_cpu_seconds'] == raw['worker_cpu_seconds']
                 and row['worker_cpu_seconds'] <= row['cpu_seconds'] + .021, 'CPU omits worker or children')
-            for name in ('sampled_aggregate_rss_bytes', 'sampled_disk_growth_bytes'):
-                require(integer(row[name]) and row[name] == process['measurement'][name], 'resource measurement differs')
+            require((row['sampled_aggregate_rss_bytes'] is None or integer(row['sampled_aggregate_rss_bytes'])) and
+                    row['sampled_aggregate_rss_bytes'] == process['measurement']['sampled_aggregate_rss_bytes'],
+                    'resource measurement differs')
+            require(integer(row['sampled_disk_growth_bytes']) and
+                    row['sampled_disk_growth_bytes'] == process['measurement']['sampled_disk_growth_bytes'],
+                    'resource measurement differs')
             require(row['answer_digest'] == raw['answer_digest'] == digest(raw['answer'])
                 and row['answer_bytes'] == raw['answer_bytes'] == len(encode(raw['answer'])) + 1
                 and (base / 'stdout.txt').read_bytes() == encode(raw['answer']) + b'\n', 'answer differs')
@@ -426,8 +439,13 @@ def check_measurement(value, limits):
     expected = {key: limits[key] for key in ('wall_seconds', 'rss_bytes', 'disk_bytes', 'cpu_seconds', 'transcript_bytes')}
     require(value['limits'] == expected, 'measurement limits changed')
     require(finite(value['elapsed_seconds']) and 0 < value['elapsed_seconds'] <= limits['wall_seconds'], 'invalid elapsed time')
-    require(integer(value['sampled_aggregate_rss_bytes']) and 0 < value['sampled_aggregate_rss_bytes'] <= limits['rss_bytes'],
-        'invalid aggregate memory')
+    require('rss_observation' in value and value['rss_observation'] in {'sampled', 'unobserved'},
+        'missing RSS observation status')
+    rss = value['sampled_aggregate_rss_bytes']
+    if value['rss_observation'] == 'sampled':
+        require(integer(rss) and 0 < rss <= limits['rss_bytes'], 'invalid aggregate memory')
+    else:
+        require(rss is None, 'unobserved aggregate memory must stay unknown')
     require(integer(value['sampled_disk_growth_bytes']) and value['sampled_disk_growth_bytes'] <= limits['disk_bytes'],
         'invalid disk growth')
 

@@ -23,6 +23,14 @@ license = "MIT"
 generated_with = "tree-sitter-cli 0.27.0"
 
 [[patch]]
+subject = "subscript names and explicit conversions"
+rule = "identifier, synthetic_hole, coercion"
+change = "allow Lean's numeric and alphabetic subscript continuations in names and named goals; retain explicit value, function and type conversions as nodes with atomic/postfix operands"
+accepts = ["theorem claim₁ (h₁ : True) : True := by exact h₁", "refine ?goal₁", "Int.neg ↑n", "⇑f n", "↥c"]
+why = "the pinned Lean standard library uses these forms; splitting a subscript name or dropping an explicit conversion produced false syntax errors and incomplete library lookup"
+reference = "Lean v4.28.0 Init/Meta/Defs.lean isSubScriptAlnum and Init/Coe.lean coeNotation, coeFunNotation, coeSortNotation"
+
+[[patch]]
 subject = "a declaration's name as one node"
 rule = "qualified_name"
 change = "`definition`, `constant`, `opaque`, `axiom` and `constructor` take a visible `qualified_name` where they took the hidden `_name`"
@@ -151,3 +159,20 @@ rule = "fun"
 change = "allow a type annotation after the lambda's binders"
 accepts = ["fun n : Nat => n + 1", "fun n m : Nat => n + m", "fun f : Nat → Nat => f 1"]
 why = "Lean accepts the annotation without binder parentheses; the reader previously reported the colon as a syntax error"
+
+[[patch]]
+subject = "calculation proofs end before the next calculation step"
+rule = "calc_step, _calc_step_start"
+change = "track each step's indentation; proof blocks and calculations must consume their own closing layout token before the surrounding step closes"
+accepts = ["calc a = a := by rfl", "calc\n  a = a := by rfl\n  _ = a := rfl"]
+why = "an inline proof could consume the next step's left-hand expression and reject its assignment; the scoped boundary also preserves following tactics and declarations"
+
+[[scanner]]
+subject = "blank lines cannot set a proof block's indentation"
+change = "skip lines containing only horizontal whitespace before measuring the next token's column"
+why = "a blank line with spaces opened a false layout level and rejected valid pasted proofs even when their relative indentation was preserved"
+
+[[scanner]]
+subject = "a proof can end at its parenthesized type annotation"
+change = "close layout before an ascription colon; case labels request their own colon token and keep it inside the tactic"
+why = "requiring a proof block's closing token rejected `(by omega : 0 ≤ size)` because its type annotation is not an indentation change or closing parenthesis"

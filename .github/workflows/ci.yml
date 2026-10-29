@@ -22,7 +22,7 @@ env:
 jobs:
   project-changes:
     name: Original saved findings and delivered project changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CARGO_BUILD_JOBS: '2'
@@ -169,6 +169,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -181,19 +185,30 @@ jobs:
           entry, = [row for row in catalog['evidence'] if row['id'] == 'current-saved-work-cost']
           path = Path(entry['path'])
           assert path.resolve().is_relative_to(Path.cwd())
+          original = json.loads(Path('tests/agent-eval/saved-work-cost/record.json').read_text())
+          baseline = Path(original['directory'])
+          assert baseline.resolve().is_relative_to(Path.cwd())
+          subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/',
+                          '/' + baseline.as_posix() + '/'],
+                         check=True, timeout=60)
           assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
           subprocess.run([sys.executable, '-B', 'tools/project-session-cost.py', '--audit', '--output', str(path.parent)], check=True)
           PY
 
   original-package-questions:
-    name: Original package questions
+    name: Original package answers and current text examples
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
       - name: Audit the original results and reject false completion records
         run: >-
           python3 -B tools/audit-historical-package-questions.py
@@ -208,6 +223,8 @@ jobs:
               entry, = [row for row in catalog['evidence'] if row['id'] == name]
               path = Path(entry['path'])
               assert path.resolve().is_relative_to(Path.cwd())
+              subprocess.run(['git', 'sparse-checkout', 'add', '/' + path.parent.as_posix() + '/'],
+                             check=True, timeout=60)
               assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256']
               subprocess.run(['python3', '-B', 'tools/' + script + '.py', 'audit', '--directory', str(path.parent)], check=True)
           PY
@@ -218,6 +235,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/zig-toolchain
 
   go-toolchain:
@@ -226,6 +248,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/go-toolchain
 
   selected-agents:
@@ -290,10 +317,228 @@ jobs:
       FR_STUDY_CGROUP_TESTS: "1"
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-09-07-context/
+            /tests/agent-eval/results/2026-09-07/
+            /tests/agent-eval/results/2026-09-08-coordinated/
+            /tests/agent-eval/results/2026-09-08-regex/
+            /tests/agent-eval/results/2026-09-09-structural-authoring/
+            /tests/agent-eval/results/2026-09-11-context-v3/
+            /tests/agent-eval/results/2026-09-11-project-batch/
+            /tests/agent-eval/results/2026-09-11-semantic-ir-sdk/
+            /tests/agent-eval/results/2026-09-11-workflow-v4-diagnostic-1/
+            /tests/agent-eval/results/2026-09-11-workflow-v4/
+            /tests/agent-eval/results/2026-09-12-semantic-delta/
+            /tests/agent-eval/results/2026-09-12-semantic-edit-plan-diagnostic-1/
+            /tests/agent-eval/results/2026-09-12-semantic-edit-plan/
+            /tests/agent-eval/results/2026-09-12-semantic-intent/
+            /tests/agent-eval/results/2026-09-14-deferred-diagnostic-2/
+            /tests/agent-eval/results/2026-09-14-deferred-diagnostic/
+            /tests/agent-eval/results/2026-09-14-deferred-final/
+            /tests/agent-eval/results/2026-09-17-completion-acceptance/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-1/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-2/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-3/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-4/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-5/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-6/
+            /tests/agent-eval/results/2026-09-17-completion-diagnostic-7/
+            /tests/agent-eval/results/2026-09-17-matched-context-acceptance/
+            /tests/agent-eval/results/2026-09-17-matched-context-diagnostic-1/
+            /tests/agent-eval/results/2026-09-17-matched-context-diagnostic-2/
+            /tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/
+            /tests/agent-eval/results/2026-09-18-sdk-release-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-css-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-mermaid-diagnostic-1/
+            /tests/agent-eval/results/2026-09-20-upstream-react-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-read-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-1/
+            /tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-2/
+            /tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-3/
+            /tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-4/
+            /tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/
+            /tests/agent-eval/results/2026-09-20-upstream-rename-diagnostic-1/
+            /tests/agent-eval/results/2026-09-21-application-migration-acceptance/
+            /tests/agent-eval/results/2026-09-21-proof-authoring-acceptance/
+            /tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/
+            /tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-1/
+            /tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-2/
+            /tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-3/
+            /tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/
+            /tests/agent-eval/results/2026-09-21-upstream-multibody-diagnostic-1/
+            /tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/
+            /tests/agent-eval/results/2026-09-21-upstream-tsx-body-diagnostic-1/
+            /tests/agent-eval/results/2026-09-24-compiler-evidence/
+            /tests/agent-eval/results/2026-09-24-flow-facts/
+            /tests/agent-eval/results/2026-09-24-recursive-flow/
+            /tests/agent-eval/results/2026-09-24-resumable-correspondence/
+            /tests/agent-eval/results/2026-09-25-flow-cache/
+            /tests/agent-eval/results/2026-09-25-imported-flow/
+            /tests/agent-eval/results/2026-09-26-package-flow/
+            /tests/agent-eval/results/2026-09-27-unknown-target-bug-files-acceptance/
+            /tests/agent-eval/results/2026-09-27-unknown-target-bug-fr-acceptance/
+            /tests/agent-eval/results/2026-09-27-unknown-target-bug-fr-diagnostic-1/
+            /tests/agent-eval/results/2026-09-27-unknown-target-feature-files-failure/
+            /tests/agent-eval/results/2026-09-27-unknown-target-feature-files-r1-diagnostic/
+            /tests/agent-eval/results/2026-09-27-unknown-target-feature-fr-acceptance/
+            /tests/agent-eval/results/2026-09-27-unknown-target-feature-fr-interrupted/
+            /tests/agent-eval/results/2026-09-28-aliases-flow-cache/
+            /tests/agent-eval/results/2026-09-28-change-scope-dogfood/
+            /tests/agent-eval/results/2026-09-28-change-scope-flow-cache/
+            /tests/agent-eval/results/2026-09-28-change-scope/
+            /tests/agent-eval/results/2026-09-28-checked-outcomes/
+            /tests/agent-eval/results/2026-09-28-flow-cache/
+            /tests/agent-eval/results/2026-09-28-model-comparisons/
+            /tests/agent-eval/results/2026-09-28-reexports-flow-cache/
+            /tests/agent-eval/results/2026-09-28-refinement-dogfood/
+            /tests/agent-eval/results/2026-09-28-structural-change/
+            /tests/agent-eval/results/2026-09-28-structural-flow-cache/
+            /tests/agent-eval/results/2026-09-28-virtual-dogfood/
+            /tests/agent-eval/results/2026-09-28-virtual-model-comparisons/
+            /tests/agent-eval/results/2026-09-29-aliases-flow-cache/
+            /tests/agent-eval/results/2026-09-29-calls-call-binding/
+            /tests/agent-eval/results/2026-09-29-calls-dogfood/
+            /tests/agent-eval/results/2026-09-29-calls-flow-cache/
+            /tests/agent-eval/results/2026-09-29-defaults-dogfood/
+            /tests/agent-eval/results/2026-09-29-defaults-flow-cache/
+            /tests/agent-eval/results/2026-09-29-expressions-expression-control/
+            /tests/agent-eval/results/2026-09-29-expressions-flow-cache/
+            /tests/agent-eval/results/2026-09-29-namespaces-dogfood/
+            /tests/agent-eval/results/2026-09-29-namespaces-flow-cache/
+            /tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/
+            /tests/agent-eval/results/2026-09-30-assignments-dogfood/
+            /tests/agent-eval/results/2026-09-30-assignments-flow-cache/
+            /tests/agent-eval/results/2026-09-30-roadmap-dogfood/
+            /tests/agent-eval/results/2026-10-09-workflow-routes-python-repositories/
+            /tests/agent-eval/results/2026-10-09-workflow-routes/
+            /tests/agent-eval/results/2026-10-10-guided-body-inputs/
+            /tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/
+            /tests/agent-eval/results/2026-10-10-recovery-delivery/
+            /tests/agent-eval/results/2026-10-10-source-repair/
+            /tests/agent-eval/results/2026-10-11-coverage-compiler-profile/
+            /tests/agent-eval/results/2026-10-12-frozen-utility-source/
+            /tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/
+            /tests/agent-eval/results/2026-10-15-import-search-compiler-timeout/
+            /tests/agent-eval/results/2026-10-15-registry-startup-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-15-shared-star-searches-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-function-defaults-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-function-defaults-python-contract/
+            /tests/agent-eval/results/2026-10-16-import-order-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-incremental-reports-python-report-writes/
+            /tests/agent-eval/results/2026-10-16-parallel-bindings-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-shared-defaults-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-startup-diagnostics-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-16-startup-diagnostics-scalar-assignments/
+            /tests/agent-eval/results/2026-10-17-default-replacements-ci-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-17-value-aliases-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-17-value-aliases-literal-defaults/
+            /tests/agent-eval/results/2026-10-18-python-startup-cost/
+            /tests/agent-eval/results/2026-10-18-startup-registration-ci-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-coverage/
+            /tests/agent-eval/results/2026-10-19-original-package-questions-package-questions-held-out/
+            /tests/agent-eval/results/2026-10-19-python-optimized-cost/
+            /tests/agent-eval/results/2026-10-19-python-process-cost/
+            /tests/agent-eval/results/2026-10-19-python-together-cost/
+            /tests/agent-eval/results/2026-10-19-registration-arguments-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-19-registration-arguments-python-contract/
+            /tests/agent-eval/results/2026-10-20-leap-year-package-questions-coverage/
+            /tests/agent-eval/results/2026-10-20-leap-year-package-questions-held-out/
+            /tests/agent-eval/results/2026-10-20-projects-project-changes/
+            /tests/agent-eval/results/2026-10-21-batched-answers-39599573585/
+            /tests/agent-eval/results/2026-10-21-batched-answers-39612376706/
+            /tests/agent-eval/results/2026-10-21-distinct-answers-39664831023/
+            /tests/agent-eval/results/2026-10-21-distinct-answers-39670459804/
+            /tests/agent-eval/results/2026-10-21-distinct-answers-39680136839/
+            /tests/agent-eval/results/2026-10-21-final-ci-agent-context-workspace/
+            /tests/agent-eval/results/2026-10-21-final-ci-agent-runtime-context/
+            /tests/agent-eval/results/2026-10-21-final-ci-native-intent-context/
+            /tests/agent-eval/results/2026-10-21-saved-answer-39561749625/
+            /tests/agent-eval/results/2026-10-21-saved-work-39531778541/
+            /tests/agent-eval/results/2026-10-22-hash-lifetime-project-changes-recheck/
+            /tests/agent-eval/results/2026-10-22-project-sessions-40745359401/
+            /tests/agent-eval/results/2026-10-23-distinct-answers-39986199537/
+            /tests/agent-eval/results/2026-10-23-distinct-answers-40024786372/
+            /tests/agent-eval/results/2026-10-24-distinct-answers-40087126224/
+            /tests/agent-eval/results/2026-10-24-distinct-answers-40101600113/
+            /tests/agent-eval/results/2026-10-24-distinct-answers-40104552139/
+            /tests/agent-eval/results/2026-10-24-distinct-answers-40119836572/
+            /tests/agent-eval/results/2026-10-24-pr573-python-text-package/
+            /tests/agent-eval/results/2026-10-26-distinct-answers-40298880359/
+            /tests/agent-eval/results/2026-10-26-distinct-answers-40387061364/
+            /tests/agent-eval/results/2026-10-27-distinct-answers-40458489593/
+            /tests/agent-eval/results/2026-10-27-distinct-answers-40488385410/
+            /tests/agent-eval/results/2026-10-27-distinct-answers-40593325278/
+            /tests/agent-eval/results/2026-10-28-distinct-answers-40714834614/
+            /tests/agent-eval/results/2026-10-28-distinct-answers-40743699596/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-call-binding/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-compiler-profile/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-expression-control/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-fixed-arity-probes/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-cache/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-facts/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-flow-fixed-point/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-imported-flow/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-index-resolution/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-literal-defaults/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-module-aliases/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-namespace-packages/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-package-flow/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-package-reexports/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-contract/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-python-repositories/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-recursive-flow/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-scalar-assignments/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-source-repair/
+            /tests/agent-eval/results/2026-10-28-m3-ci-scalar-workflows/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-agent-context-workspace/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-agent-guide-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-agent-runtime-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-checked-outcomes/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-completion-workflows/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-index-consumers/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-intent-action-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-native-intent-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-project-batch-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-resumable-correspondence/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-retained-proofs/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-task-bundle-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-task-change-context/
+            /tests/agent-eval/results/2026-10-28-m3-ci-shallow-workflow-context/
+            /tests/agent-eval/results/2026-10-28-m3-final-consumer-change-scope/
+            /tests/agent-eval/results/2026-10-28-m3-final-language-checked-translation/
+            /tests/agent-eval/results/2026-10-28-m3-final-language-python-effects/
+            /tests/agent-eval/results/2026-10-28-m3-final-language-python-text-flow/
+            /tests/agent-eval/results/2026-10-28-m3-final-projects-project-changes-recheck/
+            /tests/agent-eval/results/2026-10-28-m3-final-text-text-package-recheck/
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
+      - name: Verify the current records selected for study audits
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          catalog = json.loads(Path('tests/agent-eval/roadmap.json').read_text())
+          scalar = json.loads(Path('tests/agent-eval/current-scalar-reports.json').read_text())
+          paths = [Path(row['path']) for row in catalog['evidence']]
+          paths += [Path(row['path']) for row in scalar['reports'].values()]
+          for path in paths:
+              assert path.resolve().is_relative_to(Path.cwd())
+          patterns = ''.join('/' + path.as_posix() + '/\n' for path in sorted({p.parent for p in paths}))
+          subprocess.run(['git', 'sparse-checkout', 'add', '--stdin'], input=patterns,
+                         text=True, check=True, timeout=60)
+          for entry in catalog['evidence']:
+              assert hashlib.sha256(Path(entry['path']).read_bytes()).hexdigest() == entry['sha256']
+          PY
       - name: Check out the unchanged source for completed Python measurements
         uses: actions/checkout@v7
         with:
@@ -340,10 +585,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*-text-package-recheck/
       - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.14.8'
       - name: Check code-change graders and retained submissions
         run: python3 tools/check-code-change-trials.py
       - name: Report all native attempts and observed costs

@@ -13,6 +13,7 @@ import time
 import tomllib
 
 from .bounded_host import run as bounded_run
+from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
 from .selected_plan import CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, prepare, require
@@ -94,8 +95,9 @@ def prompt(task, setup, checkers, milestone):
             request += '\n\n' + requirements['arithmetic']
         request += ('\n\nLean checks a theorem under its definitions and assumptions. Tactics are the proof steps you write. '
             'The installed Lean includes its standard library, not Mathlib. No proof steps are supplied. '
-            f'Use {shlex.quote(checkers["lean"]["path"])} --print-prefix to locate the installation; '
-            'its src/lean folder contains the standard library sources. Use that exact Lean binary and the supplied Lake command. '
+            f'The standard library source folder is {shlex.quote(checkers["lean"]["source_root"])}. '
+            f'Its integer definitions are in {shlex.quote(str(Path(checkers["lean"]["source_root"]) / "Init/Data/Int"))}. '
+            f'Use {shlex.quote(checkers["lean"]["path"])} and the supplied Lake command. '
             'Search names from the supplied model when looking up definitions or existing library proofs. '
             f'The combined CLI transcript, including command output, is limited to {LIMITS["transcript_bytes"]:,} bytes. '
             'Search narrow paths and cap printed matches, for example rg -n "name" FILE | head -40. '
@@ -244,6 +246,13 @@ def freeze(inputs, binaries, runtime, output, milestone):
         python_packages = {}
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(checker_versions['python'] == 'Python ' + settings['local_python'], 'M3 Python differs from its pin')
+        prefix = subprocess.run([checkers['lean']['path'], '--print-prefix'],
+                                capture_output=True, text=True, timeout=10)
+        require(prefix.returncode == 0 and Path(prefix.stdout.strip()).resolve() == runtime['lean_root'].resolve(),
+                'the Lean binary must belong to the explicitly selected installation')
+        source_root = runtime['lean_root'].resolve() / 'src/lean'
+        require((source_root / 'Init/Data/Int').is_dir(), 'the selected Lean installation needs its standard library sources')
+        checkers['lean']['source_root'] = str(source_root)
     else:
         packages = subprocess.run([checkers['python']['path'], '-c',
             'import importlib.metadata,json;print(json.dumps({name:importlib.metadata.version(name) '
@@ -337,7 +346,7 @@ def usage(client, events):
 
 
 def record_opencode_accounting(report, binary, session, project, env, output, profile, events, deadline):
-    remaining = deadline - time.monotonic()
+    remaining = deadline - elapsed_time()
     if remaining <= 0:
         report['status'] = 'failed'
         report['session_accounting'] = {'status': 'deadline-exceeded', 'exported': False}
@@ -390,7 +399,7 @@ def retain_result(project, output, report):
 
 
 def attempt(plan_path, attempt_id):
-    entered, entered_at = time.monotonic(), time.time()
+    entered, entered_at, awake_started = elapsed_time(), time.time(), time.monotonic()
     require(sys.platform == 'darwin', 'run the requested local CLI attempts on macOS')
     value = json.loads(plan_path.read_text())
     milestone = value['schedule']['milestone']
@@ -414,7 +423,8 @@ def attempt(plan_path, attempt_id):
     report = {'id': attempt_id, 'status': 'started', 'plan_sha256': value['sha256'], 'profile': row['profile'],
               'task': row['task'], 'setup': row['setup'], 'independent_outcome': None,
               'controller_checkout': checkout,
-              'actual_cost': None, 'started_at': entered_at, 'verification_seconds': time.monotonic() - entered,
+              'actual_cost': None, 'started_at': entered_at, 'verification_seconds': elapsed_time() - entered,
+              'timing_clock': 'includes-system-sleep', 'finished_at': None, 'suspended_seconds': None,
               'process': None, 'usage': None, 'session_accounting': None, 'error': None, 'collection_errors': [],
               'checking_input_changes': [],
               'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
@@ -475,7 +485,8 @@ def attempt(plan_path, attempt_id):
         require((shutil.which('fr', path=env['PATH']) is not None) == (row['setup'] == 'fr'), 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
-            config = configuration(profile, row['setup'], project)
+            references = [checkers['lean']['source_root']] if milestone == 'M3' else []
+            config = configuration(profile, row['setup'], project, read_only_directories=references)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
         prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
@@ -486,7 +497,7 @@ def attempt(plan_path, attempt_id):
         report['project'] = str(project)
         tasks.save(output / 'result.json', report)
         with (output / 'native.stdout').open('xb') as stdout, (output / 'native.stderr').open('xb') as stderr:
-            remaining = LIMITS['wall_seconds'] - (time.monotonic() - started)
+            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
             require(remaining > 0, 'attempt deadline expired during preparation')
             process = bounded_run(argv, stdin, stdout, stderr, project, env=env, cwd=project,
                                   **{**LIMITS, 'wall_seconds': remaining})
@@ -521,7 +532,9 @@ def attempt(plan_path, attempt_id):
             if report['checking_input_changes']:
                 report['status'] = 'failed'
             retain_result(project, output, report)
-        report['elapsed_seconds'] = time.monotonic() - started
+        report['elapsed_seconds'] = elapsed_time() - started
+        report['finished_at'] = time.time()
+        report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))
         report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']
         if report['complete_attempt_deadline_missed']:
             report.update(status='failed', complete_attempt_deadline_missed=True)

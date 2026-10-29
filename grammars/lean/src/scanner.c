@@ -39,6 +39,8 @@ enum TokenType {
   MATCH_BODY_START,
   SYNTAX_QUOTATION_BODY,  // content inside `` `( ... ) `` up to matching `)`
   BINDING_START,
+  CALC_STEP_START,
+  TACTIC_LABEL_COLON,
   DO_BODY_START,
 };
 
@@ -144,6 +146,7 @@ static Indent measure_indent(TSLexer *lexer, bool mark_start) {
     while (is_nl(lexer->lookahead))
       lexer->advance(lexer, true);
     skip_spaces(lexer);
+    if (is_nl(lexer->lookahead)) continue;
     if (mark_start) lexer->mark_end(lexer);
     if (lexer->eof(lexer)) return (Indent){0, 0};
     Indent indent = {lexer->get_column(lexer), lexer->lookahead};
@@ -387,6 +390,14 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 3. Skip horizontal whitespace before inspecting the character. */
   skip_spaces(lexer);
 
+  if (valid_symbols[TACTIC_LABEL_COLON] && lexer->lookahead == ':') {
+    lexer->advance(lexer, false);
+    if (lexer->lookahead == ':' || lexer->lookahead == '=') return false;
+    lexer->mark_end(lexer);
+    lexer->result_symbol = TACTIC_LABEL_COLON;
+    return true;
+  }
+
   /* 4. Newline — measure indent of next line and start processing. */
   if (is_nl(lexer->lookahead) && s->depth > 0) {
     lexer->mark_end(lexer);
@@ -431,6 +442,16 @@ bool tree_sitter_lean_external_scanner_scan(
   /* 6. Closing delimiters and tuple separators end one nested layout level. */
   if (valid_symbols[LAYOUT_END] && s->depth > 0) {
     int32_t c = lexer->lookahead;
+    if (c == ':') {
+      lexer->mark_end(lexer);
+      lexer->advance(lexer, true);
+      if (lexer->lookahead != '=' && lexer->lookahead != ':') {
+        pop(s);
+        lexer->result_symbol = LAYOUT_END;
+        return true;
+      }
+      return false;
+    }
     if (c == ')' || c == ']' || c == '}' || c == ',' || c == 0x27e9 ||
         (c == ';' && s->bindings[s->depth - 1])) {
       pop(s);
@@ -458,6 +479,19 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = BINDING_START;
       return true;
     }
+  }
+
+  // A calc step has no opening keyword. The grammar requests this token only
+  // before its left-hand expression. As with a let value, the next same-column
+  // expression starts another step. Infix continuations keep the same rules
+  // as binding values; a negative left-hand side needs parentheses in Lean.
+  if (valid_symbols[CALC_STEP_START]) {
+    Indent indent = measure_indent(lexer, true);
+    if (!indent.first) return false;
+    push(s, indent.column, true);
+    s->queued_indent = NO_QUEUED;
+    lexer->result_symbol = CALC_STEP_START;
+    return true;
   }
 
   return false;

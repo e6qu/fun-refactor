@@ -15,9 +15,18 @@ Two GitHub runs built both readers independently and read the same source bytes:
 The exact reader commits, source hashes and every changed location are in
 [the retained inventory](lean-reader-review.json).
 
-The latest repair accepts inline `show … by …` proof terms that Lean accepts.
-Both fixed copies retain exactly the previous reviewed facts, syntax results and 512 question sites.
+Inline `show … by …` proof terms also retain the previous reviewed facts and syntax results in both fixed copies.
+The consumer benchmark retains its 512 recorded questions.
 The original timing baselines stay unchanged; current timings need the rebuilt executable.
+
+The subscript-name and explicit-conversion repairs passed two further comparisons:
+[consumer source copy](https://github.com/e6qu/fun-refactor/actions/runs/40713786808) and
+[indexing source copy](https://github.com/e6qu/fun-refactor/actions/runs/40716624923).
+Complete source bytes, code facts, syntax results and the comparison driver's question selections remain identical before and after.
+The [follow-up record](reader-recheck-2026-10-28.json) retains both reader revisions, the exact counts and artifact hashes.
+Its driver sampled 512 questions in the first copy and 511 in the second.
+These samples are separate from the unchanged 512 recorded consumer questions linked below.
+The original correction inventory and timing baselines remain unchanged.
 
 | Fixed source copy | Before this reader repair | After this reader repair |
 | --- | ---: | ---: |

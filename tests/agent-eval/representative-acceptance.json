@@ -7,7 +7,7 @@
         "rust-structural"
       ],
       "runner": "tests/structural_change.rs",
-      "runner_sha256": "c05207d299066deb597446733a85d687029a829ea845abede8ced097e501ebca",
+      "runner_sha256": "a82466f06578e87aabea146d8fde5a5d448e18a53e6431e0d02a2dd01ceb2791",
       "fixture_revision": "9b96ab3e28ce8000c4b4d173116b111a8180572513e4d38e19afa92e29b7d06c",
       "test": "retained_structural_migration_preserves_compiled_results_and_exact_reversal",
       "oracle": "independent rustc public-output matrix and exact receiver patch reversal",
@@ -101,8 +101,8 @@
         "typescript-react"
       ],
       "runner": "tests/author_cli.rs",
-      "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
-      "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
+      "runner_sha256": "deaa303c58a5d5baa02dbe82f22ac0fb0072ea654ff2fcd0388ce2bf5e295956",
+      "fixture_revision": "deaa303c58a5d5baa02dbe82f22ac0fb0072ea654ff2fcd0388ce2bf5e295956",
       "test": "batch_combines_languages_and_resolves_fragments_from_workspace_root",
       "oracle": "exact TSX body bytes plus parser admission and transaction reversal",
       "postconditions": [
@@ -131,8 +131,8 @@
         "css-tailwind-mermaid"
       ],
       "runner": "tests/author_cli.rs",
-      "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
-      "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
+      "runner_sha256": "deaa303c58a5d5baa02dbe82f22ac0fb0072ea654ff2fcd0388ce2bf5e295956",
+      "fixture_revision": "deaa303c58a5d5baa02dbe82f22ac0fb0072ea654ff2fcd0388ce2bf5e295956",
       "test": "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history",
       "oracle": "exact CSS, Tailwind-class, Markdown and Mermaid source postconditions",
       "postconditions": [
@@ -226,7 +226,7 @@
         "old-new-model-proofs"
       ],
       "runner": "tests/model_comparisons.rs",
-      "runner_sha256": "2762c5936f9331ad85abf0859faa11a24c325364d7b46e148be7d4998d19f72c",
+      "runner_sha256": "3dccbdf7fcc9cd3a1516c7fe67bc3f9e8ae6f1a9e2eba0d56d9ddf1d1e161d38",
       "fixture_revision": "f38225595bb0ced8cbcd14e8c9d884a5a412db52",
       "test": "retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal",
       "oracle": "compiled Rust and Python truth tables, Lean model relations and independent receiver reversal",

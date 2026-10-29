@@ -1,0 +1,69 @@
+{
+  "purpose": "Validate subscript names and explicit conversions while preserving the original correction inventory and timing baselines.",
+  "before_source": "8fbdf65492156555507c6869b6a9dcb227b94a7e",
+  "after_source": "eaa70f7e8399cff5ae139888bfb88a2814d2a04e",
+  "original_inventory_sha256": "34e17e749996aea3ebd9a3774216c577f5ab16725d022fcab5adb2616303e601",
+  "lean_facts_sha256": "b4e2b0713256ac3922d737c3b328eb46302a6a740062681ce150f4286da54b54",
+  "retained_question_sites_sha256": "e10733ec517ccde8e19b0ac45a0e16667399fdf822be96a4ca7195bc38a9458a",
+  "retained_consumer_questions": 512,
+  "corpora": {
+    "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40713786808",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "06be75e3384f60b936edc7d24fac1fe73b41a9bee7a10202402d51936616126d",
+      "before_snapshot_sha256": "9674594cb6707c6c574be4de85bc2e8fb5f3c58cd5bcacf85b001fb92ab41ff0",
+      "after_snapshot_sha256": "9674594cb6707c6c574be4de85bc2e8fb5f3c58cd5bcacf85b001fb92ab41ff0",
+      "before": {
+        "files": 1255,
+        "references": 592648,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "after": {
+        "files": 1255,
+        "references": 592648,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "all_source_bytes_facts_syntax_and_question_sites_unchanged": true,
+      "driver_sampled_questions": 512,
+      "changes": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "removed_references": 0,
+        "added_references": 0,
+        "changed_references": 0
+      }
+    },
+    "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40716624923",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "6e63cf5c41ae58ac346cde54d7e1fbd803c958a40d725ef5ab2a8d7a4ebd43bc",
+      "before_snapshot_sha256": "4413cd0636bc7e3be9cc10ab4dd805b17623518252f812cf33d918fd59899427",
+      "after_snapshot_sha256": "4413cd0636bc7e3be9cc10ab4dd805b17623518252f812cf33d918fd59899427",
+      "before": {
+        "files": 1262,
+        "references": 593974,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "after": {
+        "files": 1262,
+        "references": 593974,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "all_source_bytes_facts_syntax_and_question_sites_unchanged": true,
+      "driver_sampled_questions": 511,
+      "changes": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "removed_references": 0,
+        "added_references": 0,
+        "changed_references": 0
+      }
+    }
+  }
+}

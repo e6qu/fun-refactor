@@ -441,6 +441,7 @@ pub struct FormalGoalCatalog {
     pub id: String,
     pub name: String,
     pub spec: PathBuf,
+    pub target: String,
     pub line: usize,
     pub object_digest: String,
     pub reveal: Vec<String>,
@@ -451,6 +452,7 @@ pub struct FormalGoalDetail {
     pub id: String,
     pub name: String,
     pub spec: PathBuf,
+    pub target: String,
     pub line: usize,
     pub theorem: String,
     pub source_anchor: Option<String>,
@@ -1347,40 +1349,22 @@ pub(crate) fn scaffold_formal_plan(
     })
 }
 
-pub fn formal_goals(
+fn formal_goal_details(
     root: &Path,
-    inputs: &[PathBuf],
-    selected: Option<&str>,
-    limit: usize,
-    token_limit: usize,
-    respect_ignore: bool,
-) -> Result<FormalGoals> {
-    if !(1..=64).contains(&limit) {
-        bail!("formal goal limit must be between 1 and 64.");
-    }
-    if !(1_024..=16_384).contains(&token_limit) {
-        bail!("formal goal token limit must be between 1024 and 16384.");
-    }
-    let root = root.canonicalize()?;
-    let report = check(&root, inputs, respect_ignore)?;
+    regions: &[(PathBuf, String)],
+) -> Result<Vec<FormalGoalDetail>> {
     let mut details = Vec::new();
     let mut package_contexts = BTreeMap::new();
-    for debt in report.debts {
-        let Some(name) = debt.name.clone() else {
-            continue;
-        };
-        let source = crate::vfs::read_to_string(&debt.spec)?;
-        let begin = format!("-- fr:proof-begin {name}");
-        let end = format!("-- fr:proof-end {name}");
-        let starts = source.match_indices(&begin).collect::<Vec<_>>();
-        let ends = source.match_indices(&end).collect::<Vec<_>>();
-        if starts.len() != 1 || ends.len() != 1 || starts[0].0 >= ends[0].0 {
-            continue;
-        }
-        let theorem = theorem_before(&source, debt.line)?;
+    for (file, name) in regions {
+        let file = file
+            .canonicalize()
+            .with_context(|| format!("resolving proof source {}", file.display()))?;
+        let source = crate::vfs::read_to_string(&file)?;
+        let (_, line) = proof_region_span(&source, name)?;
+        let theorem = theorem_before(&source, line)?;
         let before = source
             .lines()
-            .take(debt.line.saturating_sub(1))
+            .take(line.saturating_sub(1))
             .collect::<Vec<_>>();
         let source_anchor = before
             .iter()
@@ -1392,10 +1376,9 @@ pub fn formal_goals(
             .rev()
             .find(|line| line.trim().starts_with("-- fr:signature "))
             .map(|line| line.trim().to_string());
-        let spec = debt
-            .spec
-            .strip_prefix(&root)
-            .unwrap_or(&debt.spec)
+        let spec = file
+            .strip_prefix(root)
+            .context("proof goals must belong to the selected workspace")?
             .to_path_buf();
         let mut context = String::new();
         let mut in_proof = false;
@@ -1413,7 +1396,7 @@ pub fn formal_goals(
         if source.starts_with("import FrSpecs.PureKernel\n") {
             context.push_str(crate::formal_kernel::LEAN_SOURCE);
         }
-        let package = lean_package(&root, &debt.spec)?;
+        let package = lean_package(root, &file)?;
         if !package_contexts.contains_key(&package) {
             package_contexts.insert(
                 package.clone(),
@@ -1427,7 +1410,8 @@ pub fn formal_goals(
         let addressed = serde_json::json!({
             "name": name,
             "spec": spec,
-            "line": debt.line,
+            "target": format!("{}::{name}", spec.display()),
+            "line": line,
             "theorem": theorem,
             "source_anchor": source_anchor,
             "signature_map": signature_map,
@@ -1439,7 +1423,8 @@ pub fn formal_goals(
             id: id.clone(),
             name: name.clone(),
             spec: spec.clone(),
-            line: debt.line,
+            target: format!("{}::{name}", spec.display()),
+            line,
             theorem,
             source_anchor,
             signature_map,
@@ -1457,6 +1442,31 @@ pub fn formal_goals(
         });
     }
     details.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    Ok(details)
+}
+
+pub fn formal_goals(
+    root: &Path,
+    inputs: &[PathBuf],
+    selected: Option<&str>,
+    limit: usize,
+    token_limit: usize,
+    respect_ignore: bool,
+) -> Result<FormalGoals> {
+    if !(1..=64).contains(&limit) {
+        bail!("formal goal limit must be between 1 and 64.");
+    }
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("formal goal token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let report = check(&root, inputs, respect_ignore)?;
+    let regions = report
+        .debts
+        .into_iter()
+        .filter_map(|debt| debt.name.map(|name| (debt.spec, name)))
+        .collect::<Vec<_>>();
+    let details = formal_goal_details(&root, &regions)?;
     let object_root = crate::project::object_merkle(&serde_json::to_value(&details)?)?;
     let revealed = match selected {
         Some(id) => Some(
@@ -1475,6 +1485,7 @@ pub fn formal_goals(
             id: detail.id.clone(),
             name: detail.name.clone(),
             spec: detail.spec.clone(),
+            target: detail.target.clone(),
             line: detail.line,
             object_digest: detail.object_digest.clone(),
             reveal: vec![
@@ -1539,34 +1550,15 @@ pub fn proof_task(
         bail!("formal proof target has stale source or signature evidence.");
     }
     checked_proof_package(&root, &root.join(&spec))?;
-    let catalog = formal_goals(
-        &root,
-        std::slice::from_ref(&spec),
-        None,
-        64,
-        16_384,
-        respect_ignore,
-    )?;
-    let item = catalog
-        .catalog
-        .iter()
-        .find(|item| item.spec == spec && item.name == obligation)
-        .with_context(|| format!("formal proof target `{target}` is absent or already proved"))?;
-    let revealed = formal_goals(
-        &root,
-        std::slice::from_ref(&spec),
-        Some(&item.id),
-        1,
-        16_384,
-        respect_ignore,
-    )?
-    .revealed
-    .context("selected formal proof goal was not revealed")?;
+    let revealed = formal_goal_details(&root, &[(root.join(&spec), obligation)])?
+        .into_iter()
+        .next()
+        .with_context(|| format!("formal proof target `{target}` has no named proof region"))?;
     let contract = ProofInputContract {
         author: "agent",
         format: "utf8-lean-tactics",
         insertion_point: "inside-existing-by-block",
-        normalization: "trim-outer-whitespace-indent-two-spaces",
+        normalization: "trim-outer-newlines-indent-two-spaces",
         forbidden: vec![
             "leading-by",
             "sorry",
@@ -1697,52 +1689,64 @@ fn proof_target(target: &str) -> Result<(PathBuf, String)> {
     Ok((spec, obligation.into()))
 }
 
+fn proof_region_span(source: &str, name: &str) -> Result<(std::ops::Range<usize>, usize)> {
+    let regions = proof_regions(source)?;
+    let body = regions
+        .get(name)
+        .with_context(|| format!("formal model needs one ordered proof region for `{name}`."))?;
+    let begin = format!("-- fr:proof-begin {name}");
+    let mut offset = 0;
+    for (index, line) in source.split_inclusive('\n').enumerate() {
+        if line.trim() == begin {
+            let start = offset + line.len();
+            return Ok((start..start + body.len(), index + 2));
+        }
+        offset += line.len();
+    }
+    bail!("formal model needs one ordered proof region for `{name}`.")
+}
+
 fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
     let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
     let original = crate::vfs::read_to_string(&path)?;
     let proof = crate::vfs::read_to_string(proof_path)?;
-    let proof = proof.trim();
-    if proof.is_empty() || proof.len() > 65_536 {
+    // Removing the first line's spaces changes its indentation relative to every
+    // following line. Keep that relationship when pasting tactics into `by`.
+    let proof = proof.trim_matches(['\r', '\n']);
+    if proof.trim().is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
     if proof.split_whitespace().next() == Some("by") {
         bail!("proof input contains tactics only; omit the leading `by`.");
     }
-    if ["sorry", "admit", "?_", "fr:proof-", "fr:debt"]
+    if ["sorry", "admit", "fr:proof-", "fr:debt"]
         .iter()
         .any(|forbidden| proof.contains(forbidden))
     {
-        bail!("proof input cannot carry placeholders, debt or proof-region markers.");
+        bail!("proof input cannot carry admissions, debt or proof-region markers.");
     }
-    let begin = format!("-- fr:proof-begin {obligation}");
-    let end = format!("-- fr:proof-end {obligation}");
-    let starts = original.match_indices(&begin).collect::<Vec<_>>();
-    let ends = original.match_indices(&end).collect::<Vec<_>>();
-    if starts.len() != 1 || ends.len() != 1 || starts[0].0 >= ends[0].0 {
-        bail!("formal model needs one ordered proof region for `{obligation}`.");
-    }
-    let content_start = original[starts[0].0..]
-        .find('\n')
-        .map(|offset| starts[0].0 + offset + 1)
-        .context("proof begin marker needs a following line")?;
-    let content_end = original[..ends[0].0]
-        .rfind('\n')
-        .map_or(0, |index| index + 1);
-    if !original[content_end..ends[0].0].trim().is_empty() {
-        bail!("proof end marker must occupy its own line.");
-    }
+    let (content, _) = proof_region_span(&original, &obligation)?;
     let rendered = proof
         .lines()
         .map(|line| format!("  {line}\n"))
         .collect::<String>();
     let mut updated = String::with_capacity(original.len() + rendered.len());
-    updated.push_str(&original[..content_start]);
+    updated.push_str(&original[..content.start]);
     updated.push_str(&rendered);
-    updated.push_str(&original[content_end..]);
+    updated.push_str(&original[content.end..]);
     let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
     if parsed.has_errors() {
-        bail!("proof replacement does not parse as Lean; no files changed.");
+        let span = parsed
+            .error_spans()
+            .into_iter()
+            .next()
+            .context("fr parser reported no location for the rejected proof")?;
+        let position = crate::span::LineIndex::new(&updated).line_col(span.start, &updated);
+        bail!(
+            "fr could not parse candidate proof at {}:{position}; no files changed.",
+            spec.display()
+        );
     }
     let task = proof_task(root, target, 16_384, true)?;
     let proof_digest = crate::project::object_merkle(&serde_json::json!(proof))?;
@@ -3504,6 +3508,9 @@ fn proof_regions(text: &str) -> Result<BTreeMap<String, String>> {
         index = start;
         let expected = format!("-- fr:proof-end {name}");
         while index < lines.len() && lines[index].trim() != expected {
+            if lines[index].trim().starts_with("-- fr:proof-begin ") {
+                bail!("formal model has a nested proof region inside `{name}`.");
+            }
             index += 1;
         }
         if index == lines.len() {
@@ -4735,6 +4742,29 @@ mod tests {
     use std::collections::BTreeMap;
     use std::fs;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn proof_package_sources_distinguish_region_names_with_shared_prefix() {
+        let source = "theorem claim : True := by\n  -- fr:proof-begin claim\n  trivial\n  -- fr:proof-end claim\n\ntheorem claim_extra : True := by\n  -- fr:proof-begin claim_extra\n  exact True.intro\n  -- fr:proof-end claim_extra\n";
+        let (body, line) = super::proof_region_span(source, "claim").unwrap();
+        assert_eq!(&source[body], "  trivial\n");
+        assert_eq!(line, 3);
+        let (body, line) = super::proof_region_span(source, "claim_extra").unwrap();
+        assert_eq!(&source[body], "  exact True.intro\n");
+        assert_eq!(line, 8);
+        let crlf = source.replace('\n', "\r\n");
+        let (body, line) = super::proof_region_span(&crlf, "claim").unwrap();
+        assert_eq!(&crlf[body], "  trivial\r\n");
+        assert_eq!(line, 3);
+        assert!(super::proof_region_span(source, "absent").is_err());
+        let duplicated = format!("{source}\n{source}");
+        assert!(super::proof_region_span(&duplicated, "claim").is_err());
+        assert!(super::proof_region_span(
+            "-- fr:proof-begin claim\n-- fr:proof-begin nested\n-- fr:proof-end nested\n-- fr:proof-end claim\n",
+            "claim",
+        )
+        .is_err());
+    }
 
     #[test]
     fn proof_package_sources_follow_the_active_workspace_and_bind_dependencies() {

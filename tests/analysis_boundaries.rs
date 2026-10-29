@@ -32,7 +32,6 @@ fn symbol(index: &Index, name: &str) -> SymbolId {
 
 #[test]
 fn dispatch_is_followed_as_far_as_the_source_shows_it() {
-    // B5.
     let (_tmp, root) = workspace(&[
         (
             "a.rs",
@@ -107,8 +106,7 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
     let key = symbol(&index, "replicas");
     use fun_refactor::analysis::provenance::{self, SetFlags, ValuesInputs};
 
-    // The report says this in its stops: a channel outside the workspace that could pre-empt
-    // every source listed is a stop, and so is a competition the supplied inputs settle.
+    // Report unknown external overrides and conflicts resolved by supplied inputs.
     let said = |report: &provenance::Provenance| -> String {
         report
             .stops

@@ -1,0 +1,30 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..fac1228 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,23 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    simp only [page_countModel]
++    rcases h with h | h
++    · simp [h]
++    · simp [h]
++  · constructor
++    · intro h
++      rcases h with ⟨hi, hmax, hs, hsmax⟩
++      have hp : 0 < size := lt_of_lt_of_le (by decide) hs
++      simp [page_countModel, not_lt_of_ge hi, not_le_of_gt hp]
++      constructor
++      · grind [Int.tdiv_eq_ediv_of_nonneg, Int.ediv_nonneg]
++      · grind [Int.tdiv_eq_ediv_of_nonneg, Int.tmod_eq_emod_of_nonneg,
++          Int.ediv_le_self, Int.ediv_lt_of_lt_mul, Int.emod_nonneg,
++          Int.emod_lt_of_pos, Int.tmod_add_mul_tdiv]
++    · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 

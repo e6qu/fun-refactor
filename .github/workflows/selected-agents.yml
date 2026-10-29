@@ -17,6 +17,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: |
+            .github/actions/native-tools/python-wheels.txt
             tools
             sdk/python/src
             tests/agent-eval/selected-agents
@@ -157,6 +158,8 @@ jobs:
             ${{ runner.temp }}/m1-native/*/native/api/server.stdout
             ${{ runner.temp }}/m1-native/*/native/api/server.stderr
             ${{ runner.temp }}/m1-private-grading/summary.json
+            ${{ runner.temp }}/m1-private-grading/image/build.stdout
+            ${{ runner.temp }}/m1-private-grading/image/build.stderr
             ${{ runner.temp }}/m1-live-grading/summary.json
           if-no-files-found: error
           retention-days: 30

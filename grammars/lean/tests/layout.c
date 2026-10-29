@@ -54,6 +54,36 @@ static bool scan(Scanner *scanner, Input *input, enum TokenType token) {
 
 int main(void) {
   Scanner *scanner = tree_sitter_lean_external_scanner_create();
+  Input blank_lines = input("\n  \n\t\n    rfl");
+  assert(scan(scanner, &blank_lines, LAYOUT_START));
+  assert(scanner->depth == 1 && top_indent(scanner) == 4);
+  assert(blank_lines.lexer.lookahead == 'r');
+  Input blank_end = input("");
+  assert(scan(scanner, &blank_end, LAYOUT_END));
+  assert(scanner->depth == 0);
+
+  Input proof_body = input("  rfl");
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  Input annotation = input(": True");
+  assert(scan(scanner, &annotation, LAYOUT_END));
+  assert(scanner->depth == 0 && annotation.offset == 0);
+  assert(scan(scanner, &proof_body, LAYOUT_START));
+  Input assignment = input(":= value");
+  assert(!scan(scanner, &assignment, LAYOUT_END));
+  assert(scanner->depth == 1 && assignment.offset == 0);
+  bool label_tokens[DO_BODY_START + 1] = {false};
+  label_tokens[LAYOUT_END] = label_tokens[TACTIC_LABEL_COLON] = true;
+  Input cons = input(":: values");
+  assert(!scan(scanner, &cons, LAYOUT_END));
+  assert(scanner->depth == 1 && cons.offset == 0);
+  assert(!tree_sitter_lean_external_scanner_scan(scanner, &cons.lexer, label_tokens));
+  assert(scanner->depth == 1);
+  Input label = input(": proposition");
+  assert(tree_sitter_lean_external_scanner_scan(scanner, &label.lexer, label_tokens));
+  assert(label.lexer.result_symbol == TACTIC_LABEL_COLON && scanner->depth == 1);
+  assert(label.end == 1);
+  assert(scan(scanner, &blank_end, LAYOUT_END));
+
   Input outer = input("  have bound := f");
   assert(scan(scanner, &outer, LAYOUT_START));
   outer.offset = 2; outer.lexer.lookahead = 'h';
@@ -61,7 +91,7 @@ int main(void) {
   assert(scanner->depth == 2 && scanner->bindings[1] == 1);
   Input wrapped = input("\n    (1)");
   assert(!scan(scanner, &wrapped, LAYOUT_END));
-  Input next = input("\n  exact bound");
+  Input next = input("\n \t\n  exact bound");
   assert(scan(scanner, &next, LAYOUT_END));
   assert(scanner->depth == 1);
   assert(scan(scanner, &next, LAYOUT_SEMICOLON));
@@ -112,6 +142,22 @@ int main(void) {
 
   Input name = input("letter");
   assert(!scan(scanner, &name, BINDING_START));
+
+  tree_sitter_lean_external_scanner_deserialize(scanner, "", 0);
+  Input step = input("    a = a := by rfl");
+  assert(scan(scanner, &step, CALC_STEP_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 1);
+  Input calc_continuation = input("\n    + 1");
+  assert(!scan(scanner, &calc_continuation, LAYOUT_END));
+  Input next_step = input("\n    (-a) = -a := by rfl");
+  assert(scan(scanner, &next_step, LAYOUT_END));
+  assert(scanner->depth == 0);
+  assert(scan(scanner, &next_step, CALC_STEP_START));
+  assert(scanner->depth == 1 && scanner->bindings[0] == 1);
+  Input following_tactic = input("\n  exact h");
+  assert(scan(scanner, &following_tactic, LAYOUT_END));
+  assert(scanner->depth == 0);
+
   Input have = input("have h := by rfl");
   assert(scan(scanner, &have, BINDING_START));
   char state[1024];

@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install --yes --no-install-recommends \
-    python3 python3-venv git build-essential ca-certificates \
+    python3 python3-venv git gcc libc6-dev ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /opt/requirements.txt
 RUN python3 -m venv /opt/python && /opt/python/bin/python3 -m pip install \

@@ -2407,13 +2407,12 @@ fn typescript_result(root: &Path, file: &str) -> Vec<u8> {
     let output_dir = root.parent().unwrap().join("compiled");
     let pinned = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/typesafety/typescript/node_modules/typescript/bin/tsc");
-    let mut compiler = if pinned.is_file() {
-        let mut node = Command::new("node");
-        node.arg(pinned);
-        node
-    } else {
-        Command::new("tsc")
-    };
+    assert!(
+        pinned.is_file(),
+        "install the pinned TypeScript checker with npm ci in tests/typesafety/typescript"
+    );
+    let mut compiler = Command::new("node");
+    compiler.arg(pinned);
     let output = compiler
         .args([
             "--strict",

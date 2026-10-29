@@ -48,6 +48,8 @@ module.exports = grammar({
     $._match_body_start,        // Like _layout_start but only for match arm bodies
     $._syntax_quotation_body,   // Inner content of `` `( ... ) `` (balanced)
     $._binding_start,           // Track a binding value's indentation separately
+    $._calc_step_start,         // Close each calculation step before its sibling
+    $._tactic_label_colon,      // A case label's colon belongs to the tactic
     $._do_body_start,           // The following `do` opens a statement body
   ],
 
@@ -517,6 +519,7 @@ module.exports = grammar({
       $._atom,
       $.subscript,
       $.explicit,
+      $.coercion,
       // postfix ! and ? are handled by subscript modifier and notation
       $.projection,
     ),
@@ -689,6 +692,13 @@ module.exports = grammar({
     // Explicit: `@ident` — suppresses implicit arguments
     explicit: $ => seq('@', $._atom),
 
+    // Lean's explicit conversions bind to one atomic/postfix operand, before
+    // function application: `f ↑n` and `⇑f n` have different application heads.
+    coercion: $ => prec(PREC.unary, seq(
+      field('operator', choice('↑', '⇑', '↥')),
+      field('operand', $._postfix_head),
+    )),
+
     // Note: postfix `!` and `?` are handled by:
     // - subscript modifier: `arr[i]!`, `arr[i]?`
     // - notation system: `n !` (user-defined, parsed as application)
@@ -764,7 +774,7 @@ module.exports = grammar({
       'by',
       $._layout_start,
       $._tactic_seq,
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     // Tactics separated by `;`, `<;>` (broadcast), or newlines
@@ -810,7 +820,7 @@ module.exports = grammar({
     // `by_cases h : proposition` and `by_cases proposition`.
     tactic_by_cases: $ => prec.right(2, seq(
       'by_cases',
-      optional(seq(field('name', $.identifier), ':')),
+      optional(seq(field('name', $.identifier), $._tactic_label_colon)),
       field('condition', $._expression),
     )),
 
@@ -818,7 +828,7 @@ module.exports = grammar({
     // falling through the generic identifier-and-arguments tactic rule.
     tactic_cases: $ => prec.right(3, seq(
       field('tactic', choice('cases', 'induction')),
-      optional(seq(field('equation', $.identifier), ':')),
+      optional(seq(field('equation', $.identifier), $._tactic_label_colon)),
       field('subject', $._application_head),
       optional(seq('generalizing', repeat1(field('generalized', $.identifier)))),
       optional(seq(
@@ -933,13 +943,15 @@ module.exports = grammar({
       'calc',
       $._layout_start,
       repeat1($.calc_step),
-      optional($._layout_end),
+      $._layout_end,
     )),
 
     calc_step: $ => prec.right(seq(
+      $._calc_step_start,
       $._expression,
       ':=',
       $._expression,
+      $._layout_end,
     )),
 
     // Let binding: modeled after Lean's letDecl.
@@ -1368,7 +1380,7 @@ module.exports = grammar({
 
     // Identifier with optional dot-separated parts: `Foo.Bar.baz`
     // Simple identifier without dots - projection handles qualified access
-    identifier: _ => /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!]*/,
+    identifier: _ => /[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*/,
 
     // Escaped identifier: `«name with spaces»`
     escaped_identifier: _ => /«[^»]*»/,
@@ -1423,7 +1435,7 @@ module.exports = grammar({
     cdot: _ => '·',
 
     // Synthetic hole: `?foo` or `?_`
-    synthetic_hole: _ => /\?[_a-zA-Z]\w*/,
+    synthetic_hole: _ => /\?[_a-zA-Zα-ωΑ-Ωℕℤℚℝℂ∇][_a-zA-Z0-9'α-ωΑ-Ωℕℤℚℝℂ∇?!₀-₉ₐ-ₜᵢ-ᵪⱼ]*/,
 
     // Quoted name: `` `name `` or ``` ``name ```
     quoted_name: $ => seq('`', choice($.identifier, $.escaped_identifier)),

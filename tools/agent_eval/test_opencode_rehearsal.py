@@ -1,11 +1,13 @@
 """Offline OpenCode protocol and private-grader tests; never call a model service."""
 import base64
 import copy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import tracemalloc
 import unittest
 from unittest.mock import patch
 
@@ -30,6 +32,21 @@ def serialized(rows):
 
 
 class Protocol(unittest.TestCase):
+    def test_executable_hash_does_not_allocate_the_whole_file(self):
+        data = b"binary identity\x00\xff" * 131072
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary) / "client"
+            binary.write_bytes(data)
+            expected = hashlib.sha256(data).hexdigest()
+            tracemalloc.start()
+            try:
+                actual = runner.identity(binary)
+                _, peak = tracemalloc.get_traced_memory()
+            finally:
+                tracemalloc.stop()
+            self.assertEqual(actual, expected)
+            self.assertLess(peak, 512 * 1024)
+
     def test_prose_can_wrap_one_action_but_ambiguous_actions_refuse(self):
         rows = stream()
         rows[1]["part"]["text"] = "Here is my action:\n" + rows[1]["part"]["text"]

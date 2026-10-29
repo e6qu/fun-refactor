@@ -38,7 +38,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: m3-proof-writing-${{ github.ref }}
+  group: m3-proof-writing-${{ inputs.operation }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   configuration:
@@ -128,6 +128,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - run: |
           rustup toolchain install 1.98.1 --profile minimal
           rustup target add --toolchain 1.98.1 aarch64-apple-darwin
@@ -161,6 +165,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -197,6 +205,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -207,16 +219,23 @@ jobs:
           python3 -B tools/agent_eval/test_selected_public.py
           python3 -B tools/agent_eval/test_selected_grading.py
           PYTHONPATH=tools python3 -B -m unittest agent_eval.test_darwin_sampling
-      - name: Preserve every independently checked outcome from the first comparison
+      - name: Preserve every complete and interrupted comparison
         run: |
-          sha256sum --check tests/agent-eval/proof-writing/first-results.sha256
+          sha256sum --check tests/agent-eval/proof-writing/first-results.sha256 tests/agent-eval/proof-writing/second-results.sha256 \
+            tests/agent-eval/proof-writing/interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/proof-guide-interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/library-access-interrupted-results.sha256 \
+            tests/agent-eval/proof-writing/clock-interrupted-results.sha256
           python3 -B - <<'PY'
           from pathlib import Path
-          directory = Path('tests/agent-eval/proof-writing/first-results')
-          manifest = Path('tests/agent-eval/proof-writing/first-results.sha256')
-          expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}
-          actual = {str(path) for path in directory.rglob('*') if path.is_file()}
-          assert actual == expected and not any(path.is_symlink() for path in directory.rglob('*'))
+          for name in ('first-results', 'second-results', 'interrupted-results',
+                       'proof-guide-interrupted-results', 'library-access-interrupted-results',
+                       'clock-interrupted-results'):
+              directory = Path('tests/agent-eval/proof-writing') / name
+              manifest = directory.with_suffix('.sha256')
+              expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}
+              actual = {str(path) for path in directory.rglob('*') if path.is_file()}
+              assert actual == expected and not any(path.is_symlink() for path in directory.rglob('*'))
           PY
   host-monitor:
     needs: configuration
@@ -246,6 +265,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -298,8 +321,27 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
-      - uses: ./.github/actions/native-tools
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14.8'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26.5.0'
+          package-manager-cache: false
+      - uses: ./.github/actions/go-toolchain
+      - uses: ./.github/actions/java-toolchain
+      - uses: ./.github/actions/zig-toolchain
+      - uses: ./.github/actions/lean-toolchain
+      - name: Install the declared TypeScript checker
+        working-directory: tests/typesafety/typescript
+        run: |
+          npm ci --no-fund --no-audit
+          echo "$GITHUB_WORKSPACE/tests/typesafety/typescript/node_modules/.bin" >> "$GITHUB_PATH"
       - uses: Swatinem/rust-cache@v2
         with:
           key: m3-proof-writing
@@ -310,9 +352,10 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
           "$RUNNER_TEMP/lean-layout"
           lean -j 1 tests/fixtures/lean-proof-locations.lean
-          cargo test --locked --test lean_grammar --test known_grammar_gaps -- --test-threads=1
+          cargo test --locked --test lean_grammar --test known_grammar_gaps --test translate_lean -- --test-threads=1
           cargo test --locked --test cli capability_filters_apply_to_json_markdown_and_text_totals -- --exact --test-threads=1
-          cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel --test lean_adoption -- --test-threads=1
+          cargo test --locked --test lean_adoption -- --test-threads=1
+          cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel -- --test-threads=1
           cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
       - name: Check complete schedules and refuse unaudited live-call inputs
         run: |
@@ -341,6 +384,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/*
+            /tests/agent-eval/results/2026-09-25-flow-cache/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -383,6 +431,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -422,6 +474,8 @@ jobs:
           name: m3-private-controls
           path: |
             ${{ runner.temp }}/m3-private/summary.json
+            ${{ runner.temp }}/m3-private/image/build.stdout
+            ${{ runner.temp }}/m3-private/image/build.stderr
             ${{ runner.temp }}/m3-private/*/result.json
             ${{ runner.temp }}/m3-private/*/grader.stdout
             ${{ runner.temp }}/m3-private/*/grader.stderr
@@ -441,6 +495,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         case: [access-rust, access-python, access-go, access-java, access-typescript, access-tsx, access-zig, access-lean, page-count, fits-window]
     env:
@@ -454,6 +509,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -494,6 +553,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         case: [access-rust, access-python, access-go, access-java, access-typescript, access-tsx, access-zig, access-lean, page-count, fits-window]
     env:
@@ -506,6 +566,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'

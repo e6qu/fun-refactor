@@ -74,6 +74,10 @@
         "named": true
       },
       {
+        "type": "coercion",
+        "named": true
+      },
+      {
         "type": "do",
         "named": true
       },
@@ -302,6 +306,10 @@
             "named": true
           },
           {
+            "type": "coercion",
+            "named": true
+          },
+          {
             "type": "do",
             "named": true
           },
@@ -433,6 +441,10 @@
           },
           {
             "type": "char",
+            "named": true
+          },
+          {
+            "type": "coercion",
             "named": true
           },
           {
@@ -1190,6 +1202,156 @@
           {
             "type": "_expression",
             "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "coercion",
+    "named": true,
+    "fields": {
+      "operand": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "anonymous_constructor",
+            "named": true
+          },
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "cdot",
+            "named": true
+          },
+          {
+            "type": "char",
+            "named": true
+          },
+          {
+            "type": "coercion",
+            "named": true
+          },
+          {
+            "type": "double_quoted_name",
+            "named": true
+          },
+          {
+            "type": "ellipsis",
+            "named": true
+          },
+          {
+            "type": "escaped_identifier",
+            "named": true
+          },
+          {
+            "type": "explicit",
+            "named": true
+          },
+          {
+            "type": "false",
+            "named": true
+          },
+          {
+            "type": "float",
+            "named": true
+          },
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "interpolated_string",
+            "named": true
+          },
+          {
+            "type": "list",
+            "named": true
+          },
+          {
+            "type": "named_argument",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "projection",
+            "named": true
+          },
+          {
+            "type": "quoted_name",
+            "named": true
+          },
+          {
+            "type": "range",
+            "named": true
+          },
+          {
+            "type": "sorry",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "structure_instance",
+            "named": true
+          },
+          {
+            "type": "subscript",
+            "named": true
+          },
+          {
+            "type": "subtype",
+            "named": true
+          },
+          {
+            "type": "syntax_quotation",
+            "named": true
+          },
+          {
+            "type": "synthetic_hole",
+            "named": true
+          },
+          {
+            "type": "true",
+            "named": true
+          },
+          {
+            "type": "tuple",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "↑",
+            "named": false
+          },
+          {
+            "type": "↥",
+            "named": false
+          },
+          {
+            "type": "⇑",
+            "named": false
           }
         ]
       }
@@ -3805,6 +3967,10 @@
             "named": true
           },
           {
+            "type": "coercion",
+            "named": true
+          },
+          {
             "type": "double_quoted_name",
             "named": true
           },
@@ -4513,6 +4679,10 @@
             "named": true
           },
           {
+            "type": "coercion",
+            "named": true
+          },
+          {
             "type": "double_quoted_name",
             "named": true
           },
@@ -4947,6 +5117,10 @@
           },
           {
             "type": "char",
+            "named": true
+          },
+          {
+            "type": "coercion",
             "named": true
           },
           {
@@ -5403,6 +5577,10 @@
           },
           {
             "type": "char",
+            "named": true
+          },
+          {
+            "type": "coercion",
             "named": true
           },
           {
@@ -6623,11 +6801,23 @@
     "named": false
   },
   {
+    "type": "↑",
+    "named": false
+  },
+  {
     "type": "→",
     "named": false
   },
   {
     "type": "↔",
+    "named": false
+  },
+  {
+    "type": "↥",
+    "named": false
+  },
+  {
+    "type": "⇑",
     "named": false
   },
   {

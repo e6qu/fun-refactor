@@ -29,7 +29,7 @@ def bindings():
 
 def baseline_tree(destination):
     data = subprocess.check_output(['git', 'archive', BASELINE, 'sdk/python/src',
-                                    'tools/saved-work-worker.py', 'tools/saved-work-cost.py'])
+                                    'tools/saved-work-worker.py'])
     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
         for entry in archive.getmembers():
             path = Path(entry.name)
@@ -88,11 +88,10 @@ def compare_answers(projects):
                      'SDK versions disagree or omit requests')
 
 
-def audit_project_sdk(directory, sdk, auditor):
+def audit_project_sdk(directory, sdk):
     # Each archive is checked by its declared SDK, in a separate process.
     subprocess.run([sys.executable, '-B', str(Path(__file__).resolve()),
-                    '--audit-project', str(directory), '--sdk', str(sdk),
-                    '--project-auditor', str(auditor)], check=True)
+                    '--audit-project', str(directory), '--sdk', str(sdk)], check=True)
 
 
 def summary(projects):
@@ -106,12 +105,18 @@ def summary(projects):
             for condition in ('saved', 'fresh'):
                 sessions = [session for session in project['sessions'] if session['condition'] == condition]
                 stages = [row for session in sessions for row in session['stages']]
+                memory = [row['sampled_aggregate_rss_bytes'] for row in stages
+                          if row['sampled_aggregate_rss_bytes'] is not None]
                 result[name][version][condition] = {
                     'median_session_seconds': statistics.median(session['total_seconds'] for session in sessions),
                     'median_reuse_seconds': statistics.median(row['seconds'] for row in stages if row['stage'] == 'reuse'),
                     'median_worker_cpu_seconds': statistics.median(sum(row['worker_cpu_seconds']
                         for row in session['stages']) for session in sessions),
-                    'maximum_sampled_aggregate_rss_bytes': max(row['sampled_aggregate_rss_bytes'] for row in stages),
+                    'maximum_sampled_aggregate_rss_bytes': max(memory) if memory else None,
+                    'observed_memory_stages': len(memory),
+                    'unobserved_memory_stages': len(stages) - len(memory),
+                    'source_edits_without_memory_sample': sum(
+                        session['source_edit_rss_observation'] == 'unobserved' for session in sessions),
                     'median_final_saved_bytes': statistics.median(session['stages'][-1]['storage_after']['saved_state']
                         for session in sessions)}
     return result
@@ -154,8 +159,7 @@ def audit(directory):
             for task in report['tasks']['projects']:
                 value = json.loads((tree / task['id'] / 'result.json').read_text())
                 sdk = root / 'baseline/sdk/python/src' if version == 'previous' else ROOT / 'sdk/python/src'
-                auditor = root / 'baseline/tools/saved-work-cost.py' if version == 'previous' else ROOT / 'tools/saved-work-cost.py'
-                audit_project_sdk(tree / task['id'], sdk, auditor)
+                audit_project_sdk(tree / task['id'], sdk)
                 for session in value['sessions']:
                     for row in session['stages']:
                         process = json.loads((tree / task['id'] / row['path'] / 'process.json').read_text())
@@ -186,8 +190,7 @@ def collect(binary, output):
                 directory = output / 'raw' / version / task['id']
                 value = cost.collect_project(task, directory, binary, tasks, workspace)
                 sdk = root / 'baseline/sdk/python/src' if version == 'previous' else ROOT / 'sdk/python/src'
-                auditor = root / 'baseline/tools/saved-work-cost.py' if version == 'previous' else ROOT / 'tools/saved-work-cost.py'
-                audit_project_sdk(directory, sdk, auditor)
+                audit_project_sdk(directory, sdk)
                 values[version] = value
             for version in versions:
                 projects[version].append(values[version])
@@ -220,22 +223,17 @@ if __name__ == '__main__':
     mode.add_argument('--audit', type=Path)
     mode.add_argument('--audit-project', type=Path)
     parser.add_argument('--sdk', type=Path)
-    parser.add_argument('--project-auditor', type=Path)
     parser.add_argument('--fr', type=Path)
     args = parser.parse_args()
     if args.audit_project:
-        cost.require(args.sdk is not None and args.project_auditor is not None,
-                     'project audit requires explicit SDK and auditor paths')
+        cost.require(args.sdk is not None, 'project audit requires an explicit SDK path')
         tasks = json.loads(cost.TASKS.read_text())
-        spec = importlib.util.spec_from_file_location('project_auditor', args.project_auditor)
-        auditor = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(auditor)
         sys.path.insert(0, str(args.sdk.resolve()))
         import fr_ir.context
         cost.require(Path(fr_ir.context.__file__).resolve().is_relative_to(args.sdk.resolve()),
                      'audit loaded a different SDK')
-        auditor.audit_project(json.loads((args.audit_project / 'result.json').read_text()),
-                              args.audit_project, tasks)
+        cost.audit_project(json.loads((args.audit_project / 'result.json').read_text()),
+                           args.audit_project, tasks)
     elif args.audit:
         print(json.dumps(audit(args.audit)['summary'], indent=2))
     else:

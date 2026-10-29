@@ -68,7 +68,7 @@ runs:
         shellcheck --version | head -2
     - uses: actions/setup-python@v7
       with:
-        python-version: "3.14"
+        python-version: "3.14.8"
     - name: Cache the exact Python test wheels
       id: python-wheels
       uses: actions/cache@v6

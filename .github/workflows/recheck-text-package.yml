@@ -26,13 +26,14 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
+      RUSTUP_TOOLCHAIN: '1.99.1'
       PREFIX: ${{ inputs.prefix }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install 1.99.1 --profile minimal
       - name: Install the declared package runtime dependency
         run: >-
           python3 -m pip install --only-binary=:all: --require-hashes
@@ -49,6 +50,13 @@ jobs:
         run: >-
           python3 -B tools/recheck-text-package.py collect --binary target/debug/fr
           --output "$RUNNER_TEMP/current-text-package"
+      - name: Sync the work branch and reject a collection whose inputs changed
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git fetch --no-tags origin "refs/heads/$BRANCH"
+          git merge --ff-only FETCH_HEAD
+          python3 -B tools/recheck-text-package.py audit --directory "$RUNNER_TEMP/current-text-package"
       - name: Retain current answers and preserve original unread provenance
         run: |
           python3 -B - <<'PY'

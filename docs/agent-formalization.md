@@ -207,6 +207,11 @@ fr --json spec proof-task \
   specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --token-limit 4096
 ```
 
+An exact target also works after a direct proof edit removed its unfinished marker.
+For example, replacing `sorry` with an incorrect `exact false` still leaves the named theorem available
+to `proof-task` and `proof-check`. The unfinished-goal catalog lists pending work; an empty catalog
+does not establish that an edited proof passed Lean. Keep the named proof-region markers for repair.
+
 `fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
 address. Its direct and calculation templates contain only positions for agent-written tactics.
 They do not contain a proof. The agent writes the proof file, then asks Lean to check it without a
@@ -236,7 +241,8 @@ fingerprint alone does not prove their correctness.
 
 A failed attempt returns structured diagnostics within the selected
 byte ceiling and no apply action. `spec prove` repeats that Lean check before it prepares history.
-It rejects a leading `by`, proof placeholders, debt markers and ambiguous proof regions. The
+It rejects a leading `by`, admissions such as `sorry`, debt markers and ambiguous proof regions.
+Temporary goals such as `refine ?_` are allowed when later tactics solve them; Lean rejects any goal left open. The
 transaction supports `history undo`, `history redo`, plan review and Git patch export. `spec verify`
 remains the authority for strict anchors and a warnings-as-errors Lake build.
 

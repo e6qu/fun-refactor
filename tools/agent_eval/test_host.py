@@ -8,10 +8,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval.bounded_host import run
+from agent_eval import bounded_host as host
 from agent_eval.provider_usage import normalize, verify
 from agent_eval.study import plan
 from agent_eval.study_budget import Budget
@@ -243,6 +244,39 @@ class HostBudget(unittest.TestCase):
 
 
 class BoundedHost(unittest.TestCase):
+    def test_deadline_clock_includes_sleep_on_each_supported_host(self):
+        with patch.object(host.time, 'CLOCK_MONOTONIC_RAW', 101, create=True), \
+                patch.object(host.time, 'CLOCK_BOOTTIME', 202, create=True), \
+                patch.object(host.time, 'clock_gettime', return_value=7.5) as clock:
+            for platform, identity in (('darwin', 101), ('linux', 202)):
+                with self.subTest(platform=platform), patch.object(host.sys, 'platform', platform):
+                    self.assertEqual(host.elapsed_time(), 7.5)
+                    clock.assert_called_with(identity)
+
+    def test_system_sleep_uses_up_the_existing_deadline(self):
+        process = Mock(pid=123, stdout=Mock(), stderr=Mock())
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        selector = Mock()
+        selector.get_map.side_effect = [True, False]
+        selector.select.return_value = []
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(host.time, 'clock_gettime', side_effect=[0, 151, 151]), \
+                patch.object(host.time, 'monotonic', return_value=0) as awake_clock, \
+                patch.object(host.subprocess, 'Popen', return_value=process), \
+                patch.object(host.selectors, 'DefaultSelector') as selector_class, \
+                patch.object(host, 'sample', return_value=(0, {})) as sample, \
+                patch.object(host, 'stop') as stop:
+            selector_class.return_value.__enter__.return_value = selector
+            result = run(['not-executed'], b'', io.BytesIO(), io.BytesIO(), Path(directory), wall_seconds=150)
+        self.assertEqual(result['stop_reason'], 'wall_seconds')
+        self.assertEqual(result['elapsed_seconds'], 151)
+        self.assertEqual(result['limits']['wall_seconds'], 150)
+        self.assertEqual(result['exit_code'], 124)
+        awake_clock.assert_not_called()
+        sample.assert_not_called()
+        stop.assert_called_with(123)
+
     def test_explicit_environment_and_directory_reach_child(self):
         with tempfile.TemporaryDirectory() as directory:
             out = io.BytesIO()

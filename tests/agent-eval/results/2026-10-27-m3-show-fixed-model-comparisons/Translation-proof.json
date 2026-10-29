@@ -1,0 +1,38 @@
+{
+  "schema": "fr-proof-attempt-1",
+  "goal_id": "2c7e71be1363d2803af056546ab16987713c3ae12a4e4bc3684ca096df5e2304",
+  "proof_digest": "9d43222b6ebc2c5e085b5ad4838e0445573dd0650a9bef102eeb8437da60a41a",
+  "checker": "leanprover/lean4:v4.28.0",
+  "checker_context_digest": "4da3111558880d0af6f5789a5135d0a994a0a0d2225b8f612ccf5a1efeaeaea1",
+  "passed": true,
+  "diagnostics": [],
+  "diagnostics_omitted": 0,
+  "receipt": "b47ab03ff8ad4075d7753679738362e94678a64f8a432ccc7f49cbb336ea1c02",
+  "actions": {
+    "revise": [
+      "spec",
+      "proof-check",
+      "specs/FrSpecs/Translation.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-40485657623-1/refinement-evidence/2026-10-27-m3-show-fixed-model-comparisons/tactics.txt"
+    ],
+    "apply": [
+      "spec",
+      "prove",
+      "specs/FrSpecs/Translation.lean::preserves",
+      "--from",
+      "/home/runner/work/_temp/fr-refinement-40485657623-1/refinement-evidence/2026-10-27-m3-show-fixed-model-comparisons/tactics.txt",
+      "--write"
+    ],
+    "verify": [
+      "spec",
+      "verify",
+      "/tmp/fr-refinement-eval-qjpub92n/native/specs/FrSpecs/Translation.lean"
+    ]
+  },
+  "token_budget": {
+    "limit": 4096,
+    "used_upper_bound": 1286,
+    "measurement": "serialized_utf8_bytes"
+  }
+}

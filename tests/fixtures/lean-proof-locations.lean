@@ -224,3 +224,72 @@ theorem showThenTactic (n : Int) (h : 1 ≤ n) : 1 ≤ n := by
   exact h
 
 theorem afterShow : True := by trivial
+
+theorem calcInline (a : Int) : a = a := by
+  let q := a
+  have : q = a := by rfl
+  calc
+    a = q := by rfl
+    _ = a := this
+
+theorem calcNested (a : Int) : a = a := by
+  have h : a = a := by
+    calc
+      a = a := by
+        rfl
+      -- The second step starts after the first proof has ended.
+      _ = a := rfl
+  exact h
+
+theorem calcNegative (a : Int) : -a = -a := by
+  calc
+    (-a) = -a := by rfl
+    (-a) = -a := by rfl
+
+theorem afterCalc : True := by trivial
+
+theorem typedProof (n : Int) (h : 0 ≤ n) : 0 ≤ n := by
+  exact (by exact h : 0 ≤ n)
+
+theorem typedCaseLabel (flag : Bool) : flag = flag := by
+  exact (by cases h : flag <;> rfl : flag = flag)
+
+theorem typedByCases (p : Prop) [Decidable p] (h : p) : p := by
+  exact (by by_cases hp : p <;> exact h : p)
+
+theorem typedCalc (n : Int) : n = n := by
+  exact (by calc n = n := by rfl : n = n)
+
+theorem indexedClaim₁ (n₀ : Nat) (h₁ : n₀ = 0) : n₀ = 0 := by
+  have h₂ := h₁
+  exact h₂
+
+def subscriptLetters (nₐ nᵢ nⱼ : Nat) : Nat := nₐ + nᵢ + nⱼ
+
+def castArgument (n : Nat) : Int := Int.neg ↑n
+
+def castSum (n : Nat) : Int := ↑n + 1
+
+theorem castEquality (n : Nat) : (↑n : Int) = ↑n := by
+  have h₁ : (↑n : Int) = ↑n := by
+    refine ?goal₁
+    rfl
+  exact h₁
+
+structure Callable where
+  run : Nat → Nat
+
+instance callableCoercion : CoeFun Callable (fun _ => Nat → Nat) where
+  coe := Callable.run
+
+def functionCoercion (f : Callable) (n : Nat) : Nat := ⇑f n
+
+structure Carrier where
+  element : Type
+
+instance carrierCoercion : CoeSort Carrier Type where
+  coe := Carrier.element
+
+def typeCoercion (c : Carrier) : Type := ↥c
+
+def afterLibrarySyntax : Nat := 1

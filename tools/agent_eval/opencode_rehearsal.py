@@ -58,7 +58,8 @@ Start with names and signatures, then request source for the declarations needed
 
 
 def identity(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    with Path(path).open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
 
 
 def freeze(manifest, base, binary):

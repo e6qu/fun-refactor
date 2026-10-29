@@ -6,6 +6,63 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn subscript_names_and_conversions_keep_their_full_tokens_and_operands() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        if definition.kind() != "definition" {
+            continue;
+        }
+        let name = definition.child_by_field_name("name").unwrap();
+        let name = &source[name.byte_range()];
+        let body = definition.child_by_field_name("body").unwrap();
+        let (conversion, operator, operand) = match name {
+            "indexedClaim₁" | "afterLibrarySyntax" => {
+                checked.insert(name);
+                continue;
+            }
+            "castArgument" => {
+                assert_eq!(body.kind(), "application");
+                (body.child_by_field_name("arguments").unwrap(), "↑", "n")
+            }
+            "castSum" => {
+                assert_eq!(body.kind(), "binary_expression");
+                (body.child_by_field_name("left").unwrap(), "↑", "n")
+            }
+            "functionCoercion" => {
+                assert_eq!(body.kind(), "application");
+                (body.child_by_field_name("name").unwrap(), "⇑", "f")
+            }
+            "typeCoercion" => (body, "↥", "c"),
+            _ => continue,
+        };
+        checked.insert(name);
+        assert_eq!(conversion.kind(), "coercion", "{name}");
+        assert_eq!(
+            &source[conversion
+                .child_by_field_name("operator")
+                .unwrap()
+                .byte_range()],
+            operator,
+            "{name}"
+        );
+        assert_eq!(
+            &source[conversion
+                .child_by_field_name("operand")
+                .unwrap()
+                .byte_range()],
+            operand,
+            "{name}"
+        );
+    }
+    assert_eq!(checked.len(), 6);
+    assert!(tree.root().to_sexp().contains("(synthetic_hole)"));
+}
+
+#[test]
 fn simplifier_locations_and_equality_transport_parse() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -158,6 +215,117 @@ fn fields_and_subscripts_belong_to_the_function_argument() {
 }
 
 #[test]
+fn calculation_steps_and_following_tactics_keep_their_boundaries() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if !matches!(
+            name,
+            "calcInline" | "calcNested" | "calcNegative" | "afterCalc"
+        ) {
+            continue;
+        }
+        checked.insert(name);
+        let body = definition.child_by_field_name("body").unwrap();
+        assert_eq!(body.kind(), "by");
+        if name == "afterCalc" {
+            continue;
+        }
+        let calc = if name == "calcNested" {
+            let have = body.named_child(0).unwrap();
+            assert_eq!(have.kind(), "tactic_have");
+            assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+            have.child_by_field_name("value")
+                .unwrap()
+                .named_child(0)
+                .unwrap()
+        } else {
+            let mut tactics = body.walk();
+            body.named_children(&mut tactics).last().unwrap()
+        };
+        assert_eq!(calc.kind(), "tactic_calc");
+        let mut steps = calc.walk();
+        let steps = calc
+            .named_children(&mut steps)
+            .filter(|node| node.kind() == "calc_step")
+            .collect::<Vec<_>>();
+        assert_eq!(steps.len(), 2, "{}", calc.to_sexp());
+        for step in steps {
+            let mut children = step.walk();
+            assert_eq!(
+                step.named_children(&mut children)
+                    .filter(|node| node.kind() != "comment")
+                    .count(),
+                2,
+                "{}",
+                step.to_sexp()
+            );
+        }
+    }
+    assert_eq!(
+        checked,
+        BTreeSet::from(["calcInline", "calcNested", "calcNegative", "afterCalc"])
+    );
+}
+
+#[test]
+fn typed_proofs_keep_their_annotations_and_case_labels() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = 0;
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if !matches!(
+            name,
+            "typedProof" | "typedCaseLabel" | "typedByCases" | "typedCalc"
+        ) {
+            continue;
+        }
+        checked += 1;
+        let body = definition.child_by_field_name("body").unwrap();
+        assert_eq!(body.kind(), "by");
+        let exact = body.named_child(0).unwrap();
+        let argument = exact.child_by_field_name("arg").unwrap();
+        assert_eq!(argument.kind(), "parenthesized");
+        assert!(argument.child_by_field_name("type").is_some());
+        let proof = argument.named_child(0).unwrap();
+        assert_eq!(proof.kind(), "by");
+        let tactic = proof.named_child(0).unwrap();
+        match name {
+            "typedCaseLabel" => {
+                assert_eq!(tactic.kind(), "tactic_cases");
+                assert_eq!(
+                    &source[tactic.child_by_field_name("equation").unwrap().byte_range()],
+                    "h"
+                );
+            }
+            "typedByCases" => {
+                assert_eq!(tactic.kind(), "tactic_by_cases");
+                assert_eq!(
+                    &source[tactic.child_by_field_name("name").unwrap().byte_range()],
+                    "hp"
+                );
+            }
+            "typedCalc" => assert_eq!(tactic.kind(), "tactic_calc"),
+            _ => assert_eq!(tactic.kind(), "tactic_apply"),
+        }
+    }
+    assert_eq!(checked, 4);
+}
+
+#[test]
 fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
     for source in [
         "def bad : Nat := Nat.succ if true then 1 else 0",
@@ -165,6 +333,8 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "theorem bad : 0 = 0 := id by rfl",
         "def bad (p q : Prop) : Prop := p ⊢ q",
         "theorem bad (p : Prop) : p := show p",
+        "theorem bad (a : Int) : a = a := by\n  calc\n    a = a :=\n",
+        "theorem bad : True := by exact (by trivial : )",
     ] {
         let tree = Parsers::new().parse(Language::Lean, source).unwrap();
         assert!(tree.has_errors(), "invalid Lean parsed cleanly: {source}");

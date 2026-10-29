@@ -64,6 +64,14 @@ assumption into two proof cases. The reader incorrectly required `(left | right)
 Both forms now have an explicit alternative-pattern node. The page-count example
 keeps the unparenthesized form as a regression; Lean must still check the completed proof.
 
+Lean proof and library names can contain subscripts: `h₁`, `nₐ` and `?goal₁` each form one name.
+An explicit conversion such as `↑n` asks Lean to change the value's type, for example from
+`Nat` to `Int`. The reader keeps that conversion with its operand: `Int.neg ↑n` applies
+`Int.neg` to the converted value, while `↑n + 1` adds one after conversion.
+Function (`⇑f n`) and type (`↥c`) conversions have separate operators under the same rule.
+The regression fixture declares their conversion instances and is checked by pinned Lean.
+These repairs do not establish complete parsing of the installed standard library.
+
 ## zig
 
 `struct {}` is ordinary Zig. The four container rules take `$._container_members`, which
