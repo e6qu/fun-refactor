@@ -62,7 +62,7 @@ Three true-or-false inputs give eight combinations. Model proofs and Rust/Python
 
 A selected Python caller chain checks finding affected calls, repairing subtotal and replaying the patch. Broader affected-code discovery remains open.
 
-The [current caller-chain record](../tests/agent-eval/results/2026-10-28-m3-final-consumer-change-scope/manifest.json) identifies the exact source, checks and exported patches.
+The [current caller-chain record](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-change-scope/manifest.json) identifies the exact source, checks and exported patches.
 
 [Current guide](change-scopes.md) · [Original observations](https://github.com/e6qu/fun-refactor/blob/752af561fbd698f598f2786d3957c3d7e68a3180/docs/evaluations.md#consumer-scope-and-delivery)
 
