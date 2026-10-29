@@ -47,6 +47,7 @@ def bindings():
     paths += [ROOT / 'tools/audit-historical-index-resolution.py']
     paths += [ROOT / name for name in ('tools/lean_reference_corrections.py',
               'tests/common/lean_reference_corrections.rs', 'tests/agent-eval/index-consumers/ignored-wildcards.lean',
+              'tests/agent-eval/index-consumers/lean-reader-introductions.json',
               'tests/agent-eval/index-consumers/lean-reader-review.json')]
     return {str(p.relative_to(ROOT)): hashlib.sha256(manifest_basis(p.read_bytes())).hexdigest()
             if p.name == "Cargo.toml" else file_digest(p) for p in paths} | native_source_bindings(ROOT)

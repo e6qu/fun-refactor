@@ -12,8 +12,20 @@ pub fn source_identity(symbol: &Symbol, root: &Path) -> Value {
 }
 
 pub fn reviewed_lean_facts(index: &Index, root: &Path) -> Value {
-    let inventory_bytes = include_bytes!("../agent-eval/index-consumers/lean-reader-review.json");
+    let inventory_bytes =
+        include_bytes!("../agent-eval/index-consumers/lean-reader-introductions.json");
     let inventory: Value = serde_json::from_slice(inventory_bytes).unwrap();
+    let previous_bytes = include_bytes!("../agent-eval/index-consumers/lean-reader-review.json");
+    let previous: Value = serde_json::from_slice(previous_bytes).unwrap();
+    assert_eq!(
+        inventory["previous_review"]["path"],
+        "lean-reader-review.json"
+    );
+    assert_eq!(
+        inventory["previous_review"]["sha256"],
+        hex::encode(Sha256::digest(previous_bytes))
+    );
+    assert_eq!(inventory["lean_sources"], previous["lean_sources"]);
     let mut sources = BTreeMap::new();
     for (path, _) in index
         .files()

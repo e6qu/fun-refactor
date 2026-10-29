@@ -25,7 +25,10 @@ class ResolutionEvidence(unittest.TestCase):
         baseline = {'schema': 'fr-index-resolution-result-1', 'repository_revision': 'a' * 40,
                     'samples': samples}
         (root / 'baseline.json').write_text(json.dumps(baseline))
+        previous = b'{"purpose":"unchanged first review"}\n'
+        (root / 'lean-reader-review.json').write_bytes(previous)
         inventory = {'lean_facts_sha256': 'e' * 64,
+            'previous_review': {'path': 'lean-reader-review.json', 'sha256': hashlib.sha256(previous).hexdigest()},
             'changes': {'added_symbols': [{}], 'removed_symbols': [], 'added_references': [], 'removed_references': [{}]},
             'corpora': {'a' * 40: {'original_counts': {'symbols': 4, 'references': 10},
                 'before': {'symbols': 4, 'references': 9}, 'after': {'symbols': 5, 'references': 8}}}}
