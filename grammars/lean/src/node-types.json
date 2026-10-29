@@ -1124,6 +1124,10 @@
           "named": true
         },
         {
+          "type": "tactic_rintro",
+          "named": true
+        },
+        {
           "type": "tactic_show",
           "named": true
         }
@@ -3568,6 +3572,10 @@
           "named": true
         },
         {
+          "type": "tactic_rintro",
+          "named": true
+        },
+        {
           "type": "tactic_show",
           "named": true
         },
@@ -4342,6 +4350,56 @@
     }
   },
   {
+    "type": "rintro_binder",
+    "named": true,
+    "fields": {
+      "pattern": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "-",
+            "named": false
+          },
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "rcases_alternative_pattern",
+            "named": true
+          },
+          {
+            "type": "rcases_tuple_pattern",
+            "named": true
+          },
+          {
+            "type": "rfl",
+            "named": false
+          },
+          {
+            "type": "rintro_binder",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "section",
     "named": true,
     "fields": {
@@ -4424,6 +4482,22 @@
         ]
       },
       "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "simp_phase",
+    "named": true,
+    "fields": {
+      "lemma": {
         "multiple": false,
         "required": true,
         "types": [
@@ -5069,6 +5143,10 @@
           "named": true
         },
         {
+          "type": "tactic_rintro",
+          "named": true
+        },
+        {
           "type": "tactic_show",
           "named": true
         }
@@ -5266,6 +5344,10 @@
         {
           "type": "_expression",
           "named": true
+        },
+        {
+          "type": "simp_phase",
+          "named": true
         }
       ]
     }
@@ -5345,6 +5427,10 @@
             "named": true
           },
           {
+            "type": "tactic_rintro",
+            "named": true
+          },
+          {
             "type": "tactic_show",
             "named": true
           }
@@ -5408,6 +5494,10 @@
         },
         {
           "type": "tactic_rewrite",
+          "named": true
+        },
+        {
+          "type": "tactic_rintro",
           "named": true
         },
         {
@@ -5723,6 +5813,46 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "tactic_rintro",
+    "named": true,
+    "fields": {
+      "pattern": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "-",
+            "named": false
+          },
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "rcases_alternative_pattern",
+            "named": true
+          },
+          {
+            "type": "rcases_tuple_pattern",
+            "named": true
+          },
+          {
+            "type": "rfl",
+            "named": false
+          },
+          {
+            "type": "rintro_binder",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -6665,6 +6795,10 @@
     "named": false
   },
   {
+    "type": "rintro",
+    "named": false
+  },
+  {
     "type": "rw",
     "named": false
   },
@@ -6814,6 +6948,10 @@
   },
   {
     "type": "→",
+    "named": false
+  },
+  {
+    "type": "↓",
     "named": false
   },
   {

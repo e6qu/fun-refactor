@@ -4395,6 +4395,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "tactic_rintro"
+        },
+        {
+          "type": "SYMBOL",
           "name": "tactic_have"
         },
         {
@@ -4761,6 +4765,88 @@
         ]
       }
     },
+    "tactic_rintro": {
+      "type": "PREC_RIGHT",
+      "value": 3,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "rintro"
+          },
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "FIELD",
+              "name": "pattern",
+              "content": {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_rcases_pattern"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "rintro_binder"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "rintro_binder": {
+      "type": "PREC_RIGHT",
+      "value": 2,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "("
+          },
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "FIELD",
+              "name": "pattern",
+              "content": {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_rcases_pattern"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "rintro_binder"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_type_spec"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          },
+          {
+            "type": "STRING",
+            "value": ")"
+          }
+        ]
+      }
+    },
     "_rcases_pattern": {
       "type": "CHOICE",
       "members": [
@@ -4966,6 +5052,10 @@
                       {
                         "type": "STRING",
                         "value": "*"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "simp_phase"
                       }
                     ]
                   },
@@ -4988,6 +5078,10 @@
                             {
                               "type": "STRING",
                               "value": "*"
+                            },
+                            {
+                              "type": "SYMBOL",
+                              "name": "simp_phase"
                             }
                           ]
                         }
@@ -5007,6 +5101,23 @@
           }
         ]
       }
+    },
+    "simp_phase": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "↓"
+        },
+        {
+          "type": "FIELD",
+          "name": "lemma",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_expression"
+          }
+        }
+      ]
     },
     "tactic_focus": {
       "type": "PREC_RIGHT",
