@@ -307,3 +307,10 @@ theorem obtainTupleBranch (p q r : Prop) (h : (p ∧ q) ∨ r) : r ∨ (q ∧ p)
   · exact Or.inl hr
 
 def afterBranchSyntax : Nat := 2
+
+def libraryReplacement : Nat := 1
+
+@[deprecated libraryReplacement (since := "2025-09-01")]
+def libraryAlias := libraryReplacement
+
+def afterAttributeSyntax : Nat := 3

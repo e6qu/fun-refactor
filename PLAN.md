@@ -56,7 +56,7 @@ retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
 Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
 
 GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-Next: recover division theorems hidden by Unicode lambda arrows and branching `obtain` bindings.
+Next: recover division theorems hidden by Unicode lambda arrows, branching `obtain` bindings and dated attributes.
 Check those forms, following declarations and the actual installed library before another complete comparison.
 Also repair the deep conformance job's missing TypeScript checker and rerun that audit.
 Keep the requested claims and limits unchanged.

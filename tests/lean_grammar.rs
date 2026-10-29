@@ -6,6 +6,45 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn dated_attributes_preserve_their_arguments_and_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let declaration = tree
+        .root()
+        .named_children(&mut cursor)
+        .find(|node| {
+            node.kind() == "declaration" && source[node.byte_range()].contains("libraryAlias")
+        })
+        .unwrap();
+    let attributes = declaration.child_by_field_name("attributes").unwrap();
+    let entry = attributes.named_child(0).unwrap();
+    let argument = entry.named_child(entry.named_child_count() - 1).unwrap();
+    assert_eq!(argument.kind(), "named_argument");
+    assert_eq!(
+        &source[argument.child_by_field_name("name").unwrap().byte_range()],
+        "since"
+    );
+    assert_eq!(
+        &source[argument.child_by_field_name("value").unwrap().byte_range()],
+        "\"2025-09-01\""
+    );
+    let (_directory, index) = common::workspace(&[("Library.lean", source)]);
+    for name in ["libraryReplacement", "libraryAlias", "afterAttributeSyntax"] {
+        assert_eq!(
+            index
+                .symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+                .count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn installed_integer_library_exposes_division_facts() {
     let prefix = std::process::Command::new("lean")
         .arg("--print-prefix")

@@ -44,8 +44,8 @@ The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed cla
 
 Continue on `milestone/complete-proof-authoring` from the merged main commit.
 Failed page-count attempts spent their time searching integer-division facts without checking a first draft.
-The next reproduction found that fr misses those library theorems after Unicode lambda arrows and branching `obtain` bindings.
-Fix both forms and check that subsequent declarations remain discoverable.
+The next reproduction found gaps in Unicode lambda arrows, branching `obtain` bindings and dated attributes.
+Fix these forms and check that the installed library's division theorems remain discoverable.
 Check the actual pinned library and runnable guide before freezing another complete comparison.
 Do not supply evaluator proof steps, a preselected proof or a weaker claim to the agents.
 Keep each attempt's separate cache under `.fr/cache`, the original deadline and every failed outcome.
