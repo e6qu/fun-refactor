@@ -56,11 +56,13 @@ retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
 Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
 
 GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-Next: recover division theorems hidden by Unicode lambda arrows, branching `obtain` bindings and dated attributes.
-Check those forms, following declarations and the actual installed library before another complete comparison.
-Also repair the deep conformance job's missing TypeScript checker and rerun that audit.
-Remove repeated source reads and position scans exposed by the three report-audit timeouts.
-Preserve every audit sample, reference and report field under the existing deadline.
+The library reader now passes checks for Unicode lambda arrows, branching `obtain` bindings and dated attributes.
+The exact installed division library exposes all six required facts. All 29 proof-preparation jobs and 17 deep-audit jobs passed.
+The audit keeps every sample, reference and report field under its original deadline.
+Its slowest repaired report group finished in 9 minutes 34 seconds under the 15-minute limit.
+The next comparison stopped after eighteen recorded attempts when fr rejected a valid `rintro` pattern in an agent's draft.
+Fix introductions that discard hypotheses and the same draft's simplifier phase marker. Check pinned Lean, fr parsing and proof insertion.
+Retain every recorded attempt and leave its frozen inputs unchanged. Requalify changed code before more live calls.
 Keep the requested claims and limits unchanged.
 Run another comparison only after a concrete repair or capability has passed its checks.
 Keep all 173 outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).

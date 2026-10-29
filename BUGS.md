@@ -5,6 +5,13 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Repairs under review
 
+An agent's page-count draft exposed another valid Lean form that fr rejected before checking it.
+`rintro ⟨ha, -, -, -⟩` introduces several hypotheses and discards the unused ones.
+Pinned Lean accepts this form; fr treated its dash as a negative expression.
+The same draft used `↓reduceIte`, a simplifier instruction that runs before simplifying arguments.
+The repair gives both forms explicit syntax rules and checks typed introductions, alternatives and following declarations.
+The comparison stopped after eighteen recorded attempts. Keep them unchanged while checking the repair.
+
 Fr misses integer-division theorems when reading Lean's installed library.
 For example, searching for `tdiv` finds its definition but misses later facts about nonnegative division.
 The reader rejects Unicode lambda arrows such as `fun n ↦ n` and branching bindings such as `obtain hp | hq := h`.

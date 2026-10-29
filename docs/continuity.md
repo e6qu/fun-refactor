@@ -43,6 +43,10 @@ Luna delivered an accepted fr-assisted page-count proof; GLM and Kimi did not. M
 The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
 
 Continue on `milestone/complete-proof-authoring` from the merged main commit.
+The integer-library forms now pass their checks. All 29 proof-preparation jobs and 17 deep-audit jobs passed.
+The next comparison stopped after eighteen recorded attempts: fr rejected `rintro ⟨ha, -, -, -⟩`, which pinned Lean accepts.
+The same draft uses the simplifier's `↓` phase marker. Fix these forms and check proof insertion before more live calls.
+Keep the eighteen original records, submitted patches and unstarted slots; never rewrite their frozen inputs or retry a closed slot.
 Failed page-count attempts spent their time searching integer-division facts without checking a first draft.
 The next reproduction found gaps in Unicode lambda arrows, branching `obtain` bindings and dated attributes.
 Fix these forms and check that the installed library's division theorems remain discoverable.

@@ -23,6 +23,20 @@ license = "MIT"
 generated_with = "tree-sitter-cli 0.27.0"
 
 [[patch]]
+subject = "introducing hypotheses with discard patterns"
+rule = "tactic_rintro"
+change = "reuse destructuring patterns for rintro while retaining typed binders"
+accepts = ["rintro ⟨ha, -, -, -⟩", "rintro (n : Nat)", "rintro (ha | hb)"]
+why = "a live proof attempt used a valid dash to discard an unused hypothesis; treating it as a negative expression rejected the draft before Lean could check it"
+
+[[patch]]
+subject = "simplifier lemmas applied before their arguments"
+rule = "tactic_config, simp_phase"
+change = "retain the downward simplification prefix inside tactic argument lists"
+accepts = ["simp only [↓reduceIte]"]
+why = "the same draft used Lean's simplification phase marker; this is tactic syntax rather than an ordinary term operator"
+
+[[patch]]
 subject = "named arguments in declaration attributes"
 rule = "attribute_entry"
 change = "retain parenthesized named arguments such as the since date of a deprecated declaration"
