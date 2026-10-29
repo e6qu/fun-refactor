@@ -182,7 +182,7 @@ fn retained_correspondence_acceptance_matches_its_inputs() {
         .args([
             "tools/correspondence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-28-m3-ci-shallow-resumable-correspondence/result.json",
+            "tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-resumable-correspondence/result.json",
         ])
         .output()
         .unwrap();

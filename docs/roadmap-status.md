@@ -6,7 +6,7 @@ The active [roadmap](../PLAN.md) focuses on refactoring, targeted code changes a
 
 For example, a checkout repair should find the calculation and callers, explain the bug, produce a reviewed patch and pass the test that catches the rounding error. Finding the function is useful, but it does not establish that whole outcome.
 
-**8 of 18 specific test requirements have matching recorded results; 10 remain open. 0 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
+**9 of 18 specific test requirements have matching recorded results; 9 remain open. 0 of 4 earlier goals are complete.** These counts do not measure product readiness or savings for an agent.
 
 A requirement is one specific behavior we promise to check. A recorded result describes a chosen program, inputs and tool revision. “Demonstrated” means that result meets its stated requirement; “open” means required work or matching results are missing.
 
@@ -36,7 +36,7 @@ The [earlier checklist](earlier-roadmap-checklist.md) retains these implementati
 | A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
 | B. Explain how values move through code | 4/5 | 2/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
-| D. Make checked changes and useful proofs | 3/6 | 1/6 | open |
+| D. Make checked changes and useful proofs | 3/6 | 2/6 | open |
 
 ## Original finite acceptance obligations
 
@@ -94,7 +94,7 @@ User example: Follow an input through a simple helper and check whether overwrit
 
 **State: demonstrated.** The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.
 
-Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json).
+Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-package-flow/result.json).
 
 Earlier requirement still needs: Keep the small examples as regression tests while testing more varied programs.
 
@@ -144,7 +144,7 @@ User example: A reused answer must agree with a fresh analysis of the same curre
 
 **State: demonstrated.** In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.
 
-Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json).
+Recorded results or remaining work: [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-package-flow/result.json).
 
 Earlier requirement still needs: Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.
 
@@ -222,9 +222,9 @@ Earlier requirement still needs: R3 specifies and implements fits_window(offset,
 
 User example: Resume or undo an interrupted edit without overwriting someone else’s newer work.
 
-**State: open.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
+**State: demonstrated.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
 
-Recorded results or remaining work: host-recovery: recorded source inputs changed; collect and check a new result.
+Recorded results or remaining work: [host-recovery](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-host-recovery/result.json).
 
 Earlier requirement still needs: Keep the process-interruption tests passing and preserve the limit on what they establish.
 
@@ -236,12 +236,12 @@ The entries below identify the stored test results. “Current” means their re
 |---|---|---|---|
 | [current-answer-storage-cost](../tests/agent-eval/results/2026-10-28-distinct-answers-40743699596/result.json) / measured tool operations | checked | stale (8 changed inputs) | Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record. Audit: `python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-28-distinct-answers-40743699596` |
 | [exact-facts](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-facts/result.json) / scripted behavior checks | checked | current | Nine simple-value examples check exact source locations, visible omissions and refusal of outdated inputs. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-facts/result.json` |
-| [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json) / scripted behavior checks | checked | current | Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-package-flow/result.json` |
+| [package-flow](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-package-flow/result.json) / scripted behavior checks | checked | current | Selected package examples check the expected input connections, a bug repair and a feature patch applied again in another checkout. Audit: `python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-package-flow/result.json` |
 | [repository-tasks](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-repositories/result.json) / scripted behavior checks | checked | current | Two original Python projects at fixed revisions. Scripts supply the bug repair and feature, then check delivery and interrupted work; agents do not discover these edits. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-repositories` |
 | [cache-measurements](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-cache/result.json) / measured tool operations | checked | current | 288 measurements on six chosen simple-value workloads compare saved whole-analysis results. They do not measure general agent savings. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-flow-cache/result.json` |
-| [host-recovery](../tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json) / deliberately interrupted operations | checked | stale (1 changed inputs) | 224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-host-recovery/result.json` |
-| [structural](../tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change/manifest.json) / scripted behavior checks | checked | stale (8 changed inputs) | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-structural-change` |
-| [model-relations](../tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations. Audit: `python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-28-m3-ci-shallow-model-comparisons` |
+| [host-recovery](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-host-recovery/result.json) / deliberately interrupted operations | checked | current | 224 model cases and tests that stop the native process during selected write stages. These do not simulate machine power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-host-recovery/result.json` |
+| [structural](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-structural-change/manifest.json) / scripted behavior checks | checked | current | Current Rust rename and parameter removal on a fixed fixture, with 49 compiled public results and exact patch reversal. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-structural-change` |
+| [model-relations](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-model-comparisons/manifest.json) / proofs of stated models | checked | historical | Three proofs about models with true-or-false inputs. They lack a proof that the models describe the actual source implementations. Audit: `python3 -B tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-ci-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / recorded agent attempts | checked | historical | Four Rust comparison attempts and three diagnostic runs. Three attempts succeeded; the feature attempt using ordinary tools failed its behavior check. Audit: `python3 tools/investigation-cohort.py` |
 | [compiler-profile](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-compiler-profile/result.json) / compiler and execution comparisons | checked | current | Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-compiler-profile/result.json` |
 | [python-contract](../tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-contract/result.json) / Python rule comparisons | checked | current | 16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results. Audit: `python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-python-contract/result.json` |
