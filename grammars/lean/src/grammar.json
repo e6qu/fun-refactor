@@ -5187,45 +5187,85 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "STRING",
-                "value": "have"
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "have"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "suffices"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "FIELD",
+                        "name": "name",
+                        "content": {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "SYMBOL",
+                              "name": "_pattern"
+                            },
+                            {
+                              "type": "SYMBOL",
+                              "name": "rcases_tuple_pattern"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "BLANK"
+                      }
+                    ]
+                  }
+                ]
               },
               {
-                "type": "STRING",
-                "value": "obtain"
-              },
-              {
-                "type": "STRING",
-                "value": "suffices"
-              }
-            ]
-          },
-          {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "FIELD",
-                "name": "name",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_pattern"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "rcases_tuple_pattern"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "rcases_alternative_pattern"
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "BLANK"
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": "obtain"
+                  },
+                  {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "FIELD",
+                        "name": "name",
+                        "content": {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "SYMBOL",
+                              "name": "_pattern"
+                            },
+                            {
+                              "type": "SYMBOL",
+                              "name": "rcases_tuple_pattern"
+                            },
+                            {
+                              "type": "SYMBOL",
+                              "name": "rcases_alternative_pattern"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "BLANK"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           },
