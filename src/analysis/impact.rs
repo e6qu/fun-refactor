@@ -125,12 +125,14 @@ pub fn analyse_with_graph(
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
     let mut items = Vec::new();
-    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    let mut sources: BTreeMap<PathBuf, (String, LineIndex)> = BTreeMap::new();
     let mut locate = |file: &PathBuf, offset: usize| -> LineCol {
-        let source = sources
-            .entry(file.clone())
-            .or_insert_with(|| crate::vfs::read_to_string(file).unwrap_or_default());
-        LineIndex::new(source).line_col(offset, source)
+        let (source, lines) = sources.entry(file.clone()).or_insert_with(|| {
+            let source = crate::vfs::read_to_string(file).unwrap_or_default();
+            let lines = LineIndex::new(&source);
+            (source, lines)
+        });
+        lines.line_col(offset, source)
     };
 
     // Every definition site of the entity, and every reference to it.
@@ -504,6 +506,32 @@ mod tests {
         let orphan = index.find_symbols("orphan", None)[0].id;
         let impact = analyse(&index, orphan, 5).unwrap();
         assert!(impact.items.is_empty(), "got {:?}", impact.items);
+    }
+
+    #[test]
+    fn repeated_reference_locations_refresh_unicode_columns_between_reports() {
+        let source = "fn helper() {}\nfn caller() { /* 名 */ helper(); helper(); }\n";
+        let (tmp, index) = workspace(&[("a.rs", source)]);
+        let helper = index.find_symbols("helper", None)[0].id;
+        let columns = |report: Impact| {
+            report
+                .items
+                .into_iter()
+                .filter(|item| item.kind == ImpactKind::Reference)
+                .map(|item| (item.line, item.col))
+                .collect::<Vec<_>>()
+        };
+        let first = columns(analyse(&index, helper, 0).unwrap());
+        assert_eq!(first.len(), 2);
+        std::fs::write(tmp.path().join("a.rs"), source.replace('名', "abc")).unwrap();
+        let second = columns(analyse(&index, helper, 0).unwrap());
+        assert_eq!(
+            second,
+            first
+                .iter()
+                .map(|&(line, col)| (line, col + 2))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
