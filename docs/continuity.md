@@ -44,8 +44,8 @@ This branch installs the locked checker, and its corresponding 17-job deep audit
 The library and introduction-pattern repairs passed all 29 proof-preparation jobs.
 They expose the required integer-division facts and let Lean check valid drafts that discard hypotheses.
 The new [36-attempt comparison](../tests/agent-eval/proof-writing/local-results/README.md)
-retains 27 submitted patches and nine timeouts. Independent grading is pending.
-One delivered patch still failed its last local check; delivery alone is not acceptance.
+retains 26 independently accepted proofs, nine timeouts and one rejected proof.
+All 36 outcomes passed through independent grading run 40905976334.
 GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
 
 All 227 recorded outcomes are retained. The [previous complete comparison](../tests/agent-eval/proof-writing/clocked-results/README.md)
@@ -53,7 +53,7 @@ keeps its original 25 accepted proofs and 11 timeouts, with all 27 published fil
 The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
 The frozen checking source also has a stable `evidence/m3-introductions-c375ed815` branch.
 
-Independently grade the new submissions before choosing the next repair.
+Keep those independent verdicts and all failed outcomes unchanged.
 The remaining problem is getting the OpenCode2 agents to check a page-count draft before time runs out.
 Recorded fr lookups took roughly half a second to two seconds; the affected trials did not reach a draft check.
 The installed OpenCode2 2.0.32 catalog exposes low reasoning for both selected models.

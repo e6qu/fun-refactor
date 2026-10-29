@@ -39,6 +39,9 @@ They now share that graph while retaining every sample and assertion.
 [PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
 Its final seven workflows passed, including all 90 main CI jobs.
 M3 still needs accepted fr-assisted page-count proofs from GLM and Kimi; that is an open milestone condition.
+The latest 36-attempt comparison retains 26 accepted proofs, nine timeouts and one rejected proof.
+Both OpenCode2 models used high reasoning and reached no draft check in their fr-assisted page-count trials.
+The next setup selects their supported low settings; native controls and a new complete comparison must test the result.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

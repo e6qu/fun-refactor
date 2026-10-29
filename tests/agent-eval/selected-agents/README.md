@@ -61,7 +61,8 @@ checks a separate receiver, and verifies exact undo and redo.
 ## Read the inputs and results honestly
 
 - [clients.json](clients.json) identifies the exact client downloads and checksums.
-- [profiles.json](profiles.json) names the exact model, reasoning and speed settings.
+- [profiles.json](profiles.json) names the M1/M2 model, reasoning and speed settings.
+  The next M3 comparison has its own [profiles](../proof-writing/profiles.json), with low reasoning for the two OpenCode2 models.
 - [tasks.json](tasks.json) fixes the requests, independent checks, proposed limits and repeat count.
 - A proposed schedule marks all 36 attempts unstarted. Its usage and cost fields are unknown.
   It describes the schedule, rather than the outcomes in the completed report.

@@ -60,8 +60,8 @@ For example, `rintro ⟨h, -, -⟩` keeps one hypothesis and discards two others
 Fr previously rejected that pattern before Lean could check the proof.
 
 The [new 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-retains 27 submitted patches and nine timeouts. Independent grading is pending.
-A submitted patch is not an accepted proof: one draft still failed its final local check.
+retains 26 independently accepted proofs, nine timeouts and one rejected proof.
+The frozen independent checker examined all 36 outcomes.
 GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
 Their difficult trials spent the window reading and planning without checking a first draft.
 Fr's recorded goal and library lookups took roughly half a second to two seconds.
