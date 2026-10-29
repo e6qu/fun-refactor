@@ -4010,8 +4010,17 @@
                     ]
                   },
                   {
-                    "type": "STRING",
-                    "value": "=>"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "=>"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "↦"
+                      }
+                    ]
                   },
                   {
                     "type": "SYMBOL",
@@ -5203,6 +5212,10 @@
                     {
                       "type": "SYMBOL",
                       "name": "rcases_tuple_pattern"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "rcases_alternative_pattern"
                     }
                   ]
                 }
