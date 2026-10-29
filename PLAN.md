@@ -24,8 +24,8 @@ Reports must distinguish those claims.
 | Application | Exact model selection | Required setting |
 | --- | --- | --- |
 | Codex | `gpt-6-luna` | Fast mode; check and record the effective client service tier |
-| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | Explicit model and reasoning settings |
-| OpenCode2 | `kimi-code-plan-global/k3` | The configured non-Pro Kimi K3; explicit reasoning settings |
+| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; explicit low reasoning for the next M3 comparison |
+| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and explicit low reasoning for the next M3 comparison |
 
 The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
 Catalog entries and configured credentials do not establish that a live attempt will be admitted.
@@ -66,8 +66,12 @@ GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
 Their difficult trials spent the window reading and planning without checking a first draft.
 Fr's recorded goal and library lookups took roughly half a second to two seconds.
 
-Next, independently grade every submitted patch and review the full results.
-Then address the delay before the agents check a first draft, using measured client behavior.
+Independently grade every submitted patch and review the full results.
+The next M3 setup selects the installed OpenCode2 models' low reasoning variants.
+The installed client exposes these variants; this does not yet show that they solve the tasks.
+First require the native controls to confirm the exact settings sent to the scripted provider.
+Then freeze another complete comparison, with identical settings in both tool setups.
+M1/M2 settings and all earlier results remain unchanged. Luna keeps its existing high setting.
 Keep the fixed models, claims and 150-second limit. Do not retry a recorded slot.
 Run another comparison only after a concrete repair or capability has passed its checks.
 Keep all 227 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).

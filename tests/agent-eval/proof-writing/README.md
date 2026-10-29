@@ -105,6 +105,13 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.
+The next M3 comparison uses its own [profile settings](profiles.json): Luna Fast with high reasoning,
+GLM Flash with low reasoning, and non-Pro Kimi K3 with low reasoning.
+Both OpenCode2 models expose the low setting in the installed 2.0.32 client's model catalog.
+The preceding high-setting trials spent their page-count window reading and planning without checking a draft.
+Its effect on proof-writing success still needs a complete live comparison.
+Both tool setups receive the same setting. M1/M2 retain their separate high settings.
+Native controls must check the exact selected settings before live calls.
 Build the macOS fr executable on GitHub. Freeze the downloaded source archives, successful
 controls, checker image, CLI releases, model settings and instructions before the first call.
 Use the workstation resource guard for every local invocation. Do not rebuild fr locally.

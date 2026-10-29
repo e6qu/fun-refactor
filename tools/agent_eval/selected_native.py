@@ -1,5 +1,6 @@
 """Run the six selected app/tool exchanges on GitHub, without external model access."""
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -25,7 +26,7 @@ def save(path, value):
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + '\n')
 
 
-def build(client, setup, binary, fr, output, entry):
+def build(client, setup, binary, fr, output, entry, profiles_path):
     context = output / 'context'
     (context / 'client/bin').mkdir(parents=True)
     shutil.copy2(binary, context / 'client/bin' / entry['executable'])
@@ -39,8 +40,8 @@ def build(client, setup, binary, fr, output, entry):
     (context / 'agent_eval').mkdir()
     for name in MODULES:
         shutil.copyfile(ROOT / 'tools/agent_eval' / name, context / 'agent_eval' / name)
-    for name in ('clients.json', 'profiles.json'):
-        shutil.copyfile(ROOT / DIRECTORY / name, context / name)
+    shutil.copyfile(ROOT / DIRECTORY / 'clients.json', context / 'clients.json')
+    shutil.copyfile(profiles_path, context / 'profiles.json')
     shutil.copyfile(ROOT / DIRECTORY / 'native-requirements.txt', context / 'native-requirements.txt')
     shutil.copyfile(ROOT / 'tools/selected-agent-probe.py', context / 'selected-agent-probe.py')
     shutil.copyfile(ROOT / DIRECTORY / 'Native.Dockerfile', context / 'Dockerfile')
@@ -115,13 +116,14 @@ def exchange(image, profile, setup, output):
     return report
 
 
-def run(binary, output):
+def run(binary, output, profiles_path):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'run native controls on GitHub under the workstation rules')
     require(binary.is_file(), 'the checked fr executable is required')
     output.mkdir(parents=True, exist_ok=False)
-    profiles = json.loads((ROOT / DIRECTORY / 'profiles.json').read_text())
+    profiles = json.loads(profiles_path.read_text())
     clients = json.loads((ROOT / DIRECTORY / 'clients.json').read_text())
-    summary = {'passed': False, 'live_model_calls': 0, 'exchanges': {
+    summary = {'passed': False, 'live_model_calls': 0, 'profiles': profiles,
+        'profiles_sha256': hashlib.sha256(profiles_path.read_bytes()).hexdigest(), 'exchanges': {
         name + '-' + setup: {'status': 'unstarted'} for name in profiles for setup in ('files', 'fr')}}
     try:
         images = {}
@@ -130,7 +132,7 @@ def run(binary, output):
             for setup in ('files', 'fr'):
                 directory = output / ('image-' + name + '-' + setup)
                 directory.mkdir()
-                images[name, setup] = build(name, setup, executable, binary, directory, client)
+                images[name, setup] = build(name, setup, executable, binary, directory, client, profiles_path)
         for name, profile in profiles.items():
             for setup in ('files', 'fr'):
                 identity = name + '-' + setup
@@ -161,5 +163,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fr', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--profiles', type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(run(args.fr.resolve(), args.output.resolve())))
+    print(json.dumps(run(args.fr.resolve(), args.output.resolve(), args.profiles.resolve())))

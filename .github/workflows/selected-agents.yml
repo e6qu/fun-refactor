@@ -65,7 +65,7 @@ jobs:
             "$RUNNER_TEMP/m1-report-tools/agent_eval/"
           mkdir -p "$RUNNER_TEMP/m1-native-tools"
           cp tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py \
-            tools/agent_eval/selected_cli.py "$RUNNER_TEMP/m1-native-tools/"
+            tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py "$RUNNER_TEMP/m1-native-tools/"
       - uses: actions/checkout@v7
         with:
           # Preserve the study's original source and checker instead of rewriting
@@ -119,11 +119,12 @@ jobs:
           done
       - name: Exercise real native tool results with scripted replies and no external network
         run: |
-          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py' EXIT
-          for helper in opencode2_client.py selected_native_probe.py selected_cli.py; do
+          trap 'git restore -- tools/agent_eval/opencode2_client.py tools/agent_eval/selected_native_probe.py tools/agent_eval/selected_cli.py tools/agent_eval/selected_native.py' EXIT
+          for helper in opencode2_client.py selected_native_probe.py selected_cli.py selected_native.py; do
             cp "$RUNNER_TEMP/m1-native-tools/$helper" "tools/agent_eval/$helper"
           done
           python3 -B -m agent_eval.selected_native --fr target/debug/fr \
+          --profiles tests/agent-eval/selected-agents/profiles.json \
           --output "$RUNNER_TEMP/m1-native"
       - name: Reject wrong changes and deliver correct patches inside private containers
         run: >-

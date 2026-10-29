@@ -292,6 +292,7 @@ jobs:
       - name: Use scripted replies in network-free native clients
         run: >-
           python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/m3-tool/fr"
+          --profiles tests/agent-eval/proof-writing/profiles.json
           --output "$RUNNER_TEMP/m3-native"
       - uses: actions/upload-artifact@v7
         if: always()

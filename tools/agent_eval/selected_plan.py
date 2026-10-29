@@ -8,6 +8,8 @@ DIRECTORY = Path('tests/agent-eval/selected-agents')
 INPUTS = ('clients.json', 'profiles.json', 'tasks.json')
 CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'),
                     'M3': Path('tests/agent-eval/proof-writing')}
+PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
+                 'M3': CASE_DIRECTORIES['M3'] / 'profiles.json'}
 
 
 def encoded(value):
@@ -23,6 +25,7 @@ def prepare(root, milestone):
     require(milestone in CASE_DIRECTORIES, 'choose M1, M2 or M3 explicitly')
     case_directory = CASE_DIRECTORIES[milestone]
     paths = {name: (case_directory if name == 'tasks.json' else DIRECTORY) / name for name in INPUTS}
+    paths['profiles.json'] = PROFILE_PATHS[milestone]
     documents = {name: json.loads((root / path).read_text()) for name, path in paths.items()}
     profiles, tasks = documents['profiles.json'], documents['tasks.json']
     require(set(profiles) == {'codex-luna-fast', 'opencode2-glm-flash', 'opencode2-kimi-k3'},
@@ -43,7 +46,8 @@ def prepare(root, milestone):
         else:
             provider, model = ({'opencode2-glm-flash': ('zai-coding-plan', 'glm-5.3-flash'),
                                 'opencode2-kimi-k3': ('kimi-code-plan-global', 'k3')})[name]
-            require(profile == {'client': 'opencode2', 'model': {'providerID': provider, 'id': model, 'variant': 'high'}},
+            variant = {'M1': 'high', 'M2': 'high', 'M3': 'low'}[milestone]
+            require(profile == {'client': 'opencode2', 'model': {'providerID': provider, 'id': model, 'variant': variant}},
                     'OpenCode2 provider, model and reasoning must match the selected profile')
     attempts = []
     for repetition in range(tasks['repetitions']):

@@ -56,7 +56,10 @@ The frozen checking source also has a stable `evidence/m3-introductions-c375ed81
 Independently grade the new submissions before choosing the next repair.
 The remaining problem is getting the OpenCode2 agents to check a page-count draft before time runs out.
 Recorded fr lookups took roughly half a second to two seconds; the affected trials did not reach a draft check.
-Inspect the clients' effective reasoning controls before changing any setting.
+The installed OpenCode2 2.0.32 catalog exposes low reasoning for both selected models.
+The next M3 setup selects those variants in its own profile file; M1/M2 keep high reasoning.
+Luna retains its existing high setting. Forty-three focused setup and provenance tests passed.
+Require the real scripted native controls to verify the selected settings before another frozen comparison.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

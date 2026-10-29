@@ -52,7 +52,7 @@ def implementation_bindings(milestone):
         directory = ROOT / CASE_DIRECTORIES[milestone]
         paths += [directory / 'tasks.json', directory / 'checkers.json']
         if milestone == 'M3':
-            paths += [directory / 'cases.json']
+            paths += [directory / 'cases.json', directory / 'profiles.json']
             paths += list((directory / 'controls').glob('*.lean'))
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
