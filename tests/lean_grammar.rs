@@ -6,6 +6,58 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn library_lambda_and_obtain_branches_preserve_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let definitions: Vec<_> = tree.root().named_children(&mut cursor).collect();
+    let mut checked = BTreeSet::new();
+    for definition in definitions {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        match name {
+            "unicodeLambda" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                assert_eq!(body.kind(), "fun");
+                assert_eq!(
+                    &source[body.child_by_field_name("body").unwrap().byte_range()],
+                    "n"
+                );
+            }
+            "obtainBranches" | "obtainTupleBranch" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                let binding = body.named_child(0).unwrap();
+                assert_eq!(binding.kind(), "tactic_have");
+                assert_eq!(
+                    binding.child_by_field_name("name").unwrap().kind(),
+                    "rcases_alternative_pattern"
+                );
+                assert_eq!(body.named_child_count(), 3, "{}", body.to_sexp());
+            }
+            "afterBranchSyntax" => {}
+            _ => continue,
+        }
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 4);
+    let (_directory, index) = common::workspace(&[("Library.lean", source)]);
+    for name in checked {
+        assert_eq!(
+            index
+                .symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+                .count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn subscript_names_and_conversions_keep_their_full_tokens_and_operands() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();

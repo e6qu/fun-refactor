@@ -23,6 +23,13 @@ license = "MIT"
 generated_with = "tree-sitter-cli 0.27.0"
 
 [[patch]]
+subject = "Unicode lambda arrows and branching obtain patterns"
+rule = "fun, tactic_have"
+change = "accept the mapsto spelling of a lambda arrow and alternatives in obtain bindings, including tuple branches"
+accepts = ["fun n ↦ n", "obtain hp | hq := h", "obtain ⟨hp, hq⟩ | hr := h"]
+why = "these forms occur before division theorems in the pinned integer library; their syntax errors hid later declarations from library search"
+
+[[patch]]
 subject = "subscript names and explicit conversions"
 rule = "identifier, synthetic_hole, coercion"
 change = "allow Lean's numeric and alphabetic subscript continuations in names and named goals; retain explicit value, function and type conversions as nodes with atomic/postfix operands"

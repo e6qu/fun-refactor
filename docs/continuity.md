@@ -36,23 +36,24 @@ The supplied regex command now checks actual text, byte counts, allocations and 
 Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
 Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
 
-PR #587 merged the M3 implementation before its full CI gate finished.
-Complete its remaining checks, repairs and new comparison on `milestone/finish-agent-proofs`.
-The [task guide](../tests/agent-eval/proof-writing/README.md)
-lists the access-rule lesson, eight language examples, two numeric tasks and exact validation steps.
-Early-return guards, truncating integer division, dependency-sensitive proof receipts and preservation
-of handwritten theorems are implemented on that branch. The latter fixes a defect found by the new controls.
-All ten source/proof controls, six native exchanges and eighteen isolated patch controls passed before the first complete comparison.
-Two interrupted packets preserve [seven initial attempts](../tests/agent-eval/proof-writing/interrupted-results/README.md)
-and [seven after the parser repairs](../tests/agent-eval/proof-writing/proof-guide-interrupted-results/README.md).
-The [first complete comparison](../tests/agent-eval/proof-writing/first-results/README.md) independently accepted 26 of 36 attempts.
-Eight page-count attempts timed out; two Luna fr attempts delivered rejected or empty page proofs.
-The three agents still need accepted fr page-count proofs. Keep all fifty earlier outcomes.
-The rebuilt implementation passes the inline-proof API and generated-model checks.
-Finish qualifying the direct proof instructions and library lookup example before a complete new comparison.
-Use the same model selections and limits. Each attempt now gives fr its own cache under `.fr/cache`.
-Keep its implementation, examples, real attempts and results in one milestone PR.
-Do not feed the model a repair, proof tactic or edit location supplied by the evaluator.
+PR #588 merged the proof, parser, timer and CI repairs after all seven PR workflows passed.
+Its main CI run passed all 90 jobs. The [latest complete comparison](../tests/agent-eval/proof-writing/local-results/README.md)
+retains 25 accepted proofs and 11 timeouts. Keep all 173 outcomes across the earlier comparisons and interrupted packets.
+Luna delivered an accepted fr-assisted page-count proof; GLM and Kimi did not. M3 remains open.
+The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
+
+Continue on `milestone/complete-proof-authoring` from the merged main commit.
+Failed page-count attempts spent their time searching integer-division facts without checking a first draft.
+The next reproduction found that fr misses those library theorems after Unicode lambda arrows and branching `obtain` bindings.
+Fix both forms and check that subsequent declarations remain discoverable.
+Check the actual pinned library and runnable guide before freezing another complete comparison.
+Do not supply evaluator proof steps, a preselected proof or a weaker claim to the agents.
+Keep each attempt's separate cache under `.fr/cache`, the original deadline and every failed outcome.
+Only patches and summaries may be published; raw CLI records remain local.
+
+The merged commit's deep conformance job also found a missing TypeScript checker.
+Install the locked checker, keep the original conformance checks and deadline, and rerun the audit on this branch.
+Complete these repairs, required live attempts, independent grading and tracking in the same milestone PR.
 
 ## Keep the other milestones concrete
 

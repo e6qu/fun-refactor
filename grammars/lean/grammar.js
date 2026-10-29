@@ -711,7 +711,7 @@ module.exports = grammar({
         seq(
           field('binders', repeat1(choice($._pattern, $._bracketed_binder))),
           optional($._type_spec),
-          '=>',
+          choice('=>', '↦'),
           $._layout_start,
           field('body', $._expression),
           optional($._layout_end),
@@ -917,7 +917,7 @@ module.exports = grammar({
     tactic_have: $ => prec.right(1, seq(
       $._binding_start,
       choice('have', 'obtain', 'suffices'),
-      optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
+      optional(field('name', choice($._pattern, $.rcases_tuple_pattern, $.rcases_alternative_pattern))),
       optional($._type_spec),
       ':=',
       field('value', $._expression),

@@ -131,6 +131,24 @@ def check(binary, diagnostics):
             if converted != {'castArgument', 'castSum', 'functionCoercion', 'typeCoercion',
                              'indexedClaim₁', 'afterLibrarySyntax'}:
                 failures.append(fixture + ': missing subscript or conversion declarations')
+            branches = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'unicodeLambda', 'obtainBranches', 'obtainTupleBranch', 'afterBranchSyntax'}:
+                    continue
+                branches.add(text)
+                if text == 'unicodeLambda' and definition.find('fun') is None:
+                    failures.append(text + ': lambda escaped its declaration')
+                if text in {'obtainBranches', 'obtainTupleBranch'}:
+                    body = definition.find('by')
+                    pattern = body.find('tactic_have/rcases_alternative_pattern') if body is not None else None
+                    if pattern is None or len(body) != 3:
+                        failures.append(text + ': alternatives or following proof branches escaped their binding')
+            if branches != {'unicodeLambda', 'obtainBranches', 'obtainTupleBranch', 'afterBranchSyntax'}:
+                failures.append(fixture + ': missing declarations after library branch syntax')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -152,6 +170,8 @@ def check(binary, diagnostics):
         ('proof-type', 'theorem bad : True := by exact (by trivial : )'),
         ('conversion', 'def bad : Int := ↑'),
         ('subscript-name', 'def ₁bad : Nat := 0'),
+        ('lambda-body', 'def bad : Nat → Nat := fun n ↦'),
+        ('obtain-branch', 'theorem bad (h : True) : True := by obtain hp | := h'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')
