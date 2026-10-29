@@ -1,0 +1,1234 @@
+{
+  "benchmark": false,
+  "binary_sha256": "b6a5a6c247642933788c42c16787c95fb72d2b22dcfdffef7ba21caf6cdb8d4a",
+  "cases": [
+    {
+      "directory": "convert-lower-original",
+      "files": {
+        "convert-lower-original/analysis.json": "fbc2298770a2210f1e916be21df7b2c0f85a2f9d5de544261a0c5a7f25c3e658",
+        "convert-lower-original/commands.json": "27f14ec1d263c86f01d338b014a9a766dbd44e1d854c8c8ac1096d3401016bd4",
+        "convert-lower-original/runtime.json": "11aaf6e18864672099e2dfcd0cdf7c57ba649cb2826d167fc48b7900c574e734",
+        "convert-lower-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "convert-lower-original/workspace/subject.py": "05f03ac048f14da817ae3749a16b6115bd5863e17f2ba9521c668fa2401af5f2"
+      },
+      "id": "convert-lower",
+      "renamed": false
+    },
+    {
+      "directory": "convert-lower-renamed",
+      "files": {
+        "convert-lower-renamed/analysis.json": "dc8d118a73d8034687e425fc27894fd68e8f9a81db1cb5269545f71d30f3a2fa",
+        "convert-lower-renamed/commands.json": "f4d02ab3f51afc98796026fa7a3dd260d1dd1abad91b88c17dab8bec6ecfe908",
+        "convert-lower-renamed/runtime.json": "11aaf6e18864672099e2dfcd0cdf7c57ba649cb2826d167fc48b7900c574e734",
+        "convert-lower-renamed/workspace/moved/customer.py": "67ae9640adee7117e2e0c0aa03025a251fc45e9af24366f765f5f39ccb9d00e2",
+        "convert-lower-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "convert-lower",
+      "renamed": true
+    },
+    {
+      "directory": "local-chain-original",
+      "files": {
+        "local-chain-original/analysis.json": "a48744e28925b8ba0b4a3386c7409278afa5db6f7e5a0edc9ec5abb9b29e7df1",
+        "local-chain-original/commands.json": "256719e9542f8872617df5a82cecf908e5f08a34678830ef55ca4ced43856f92",
+        "local-chain-original/runtime.json": "1ecc068781301c09120f64bfdbe4b4883c39c6286b0f27aea4f9090b3cd6b7d9",
+        "local-chain-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "local-chain-original/workspace/subject.py": "d34b2da27ef5082e51315763fdadd5d1ad5b0601995012f4dd499eadeb148fce"
+      },
+      "id": "local-chain",
+      "renamed": false
+    },
+    {
+      "directory": "local-chain-renamed",
+      "files": {
+        "local-chain-renamed/analysis.json": "7af3e457a956ac79425ba940cf284115e961bfc5db8149da50a905fa88dbf0ce",
+        "local-chain-renamed/commands.json": "9c3b8f3eca743d8500efe1edf57d4da10bb234d21ffbb1ec85920d07122ef907",
+        "local-chain-renamed/runtime.json": "1ecc068781301c09120f64bfdbe4b4883c39c6286b0f27aea4f9090b3cd6b7d9",
+        "local-chain-renamed/workspace/moved/customer.py": "87cb762b4b6204230b70f1074065bf568983ffd5032a202f09dc03ea973fdef9",
+        "local-chain-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "local-chain",
+      "renamed": true
+    },
+    {
+      "directory": "overwritten-original",
+      "files": {
+        "overwritten-original/analysis.json": "7e1c48738a12223736fd01049e667a96ad4cd2bf51bdb007655209af53d529bb",
+        "overwritten-original/commands.json": "c55269e022318aa7d05010ad4b727760cdc4dac844b2d4b43a0c953ff3ddc6d9",
+        "overwritten-original/runtime.json": "7f71020a707abddd7de0090413c1d7a81138f2ea08f74b816b66b8bac3d79a40",
+        "overwritten-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "overwritten-original/workspace/subject.py": "599a330cc5f06cd63a70a6b99c5ae6daa9d4bb2c960cbd5b57d1a8c316877ba7"
+      },
+      "id": "overwritten",
+      "renamed": false
+    },
+    {
+      "directory": "overwritten-renamed",
+      "files": {
+        "overwritten-renamed/analysis.json": "9021fd0546153c878f80c8620f11d1f6ad16da41a6ac5e90473f030515d656e7",
+        "overwritten-renamed/commands.json": "4318221a191401f14dd736062da3e0f38516d30eb4d435e39b46649fe805547b",
+        "overwritten-renamed/runtime.json": "7f71020a707abddd7de0090413c1d7a81138f2ea08f74b816b66b8bac3d79a40",
+        "overwritten-renamed/workspace/moved/customer.py": "11a564b72d8529d935c03237ea9109fbc6115115e976592ceaf5dbf18dca5b2b",
+        "overwritten-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "overwritten",
+      "renamed": true
+    },
+    {
+      "directory": "replacement-input-original",
+      "files": {
+        "replacement-input-original/analysis.json": "2d0960c25f7072d5acedbf4836e360cf0397958cc470c0c60e2ee3590e8a8de1",
+        "replacement-input-original/commands.json": "e8574c5eb543e53f4c56cb5f06e2d3055b6d0b4d7f6633b127b98fd4cd701085",
+        "replacement-input-original/runtime.json": "847a4b55b9622f78d18358fc745aa3277468221709f76b277802f3e3d8712abd",
+        "replacement-input-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "replacement-input-original/workspace/subject.py": "654be78e8a59f17213a9a43c091fabb7f27399758b4ac7e5530e733c23be8282"
+      },
+      "id": "replacement-input",
+      "renamed": false
+    },
+    {
+      "directory": "replacement-input-renamed",
+      "files": {
+        "replacement-input-renamed/analysis.json": "c68aa4221e91ee1dc2f68dbccc21f0165265d2a143a7c1d0b09c3adf2135f11f",
+        "replacement-input-renamed/commands.json": "11d2f3ae893ae48443c76ca54f9b4347c0d792e75b3f3dbde9952f61e28246af",
+        "replacement-input-renamed/runtime.json": "847a4b55b9622f78d18358fc745aa3277468221709f76b277802f3e3d8712abd",
+        "replacement-input-renamed/workspace/moved/customer.py": "9c3381a5706f1708d033c4118df9e63f6167b9089fa9b101865b983f54e34ec9",
+        "replacement-input-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "replacement-input",
+      "renamed": true
+    },
+    {
+      "directory": "helper-return-original",
+      "files": {
+        "helper-return-original/analysis.json": "21d03f4e5588ca3357b875a31fc13525f1a3d0575cab1b0f9bc332ce82abecc2",
+        "helper-return-original/commands.json": "ea5bd86bd40911549b2ac512e3c37128f66459760d4c5d5f280d3ce84b86a6ad",
+        "helper-return-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-return-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "helper-return-original/workspace/subject.py": "be0a4e6c93b37572c719482e7e3b292be00fd64b6fc36247a1f04375b5de53a4"
+      },
+      "id": "helper-return",
+      "renamed": false
+    },
+    {
+      "directory": "helper-return-renamed",
+      "files": {
+        "helper-return-renamed/analysis.json": "1189436e3949f06dcf05d017951a01f2dcf676bdd1ba2dbcadfb0714fc30de8b",
+        "helper-return-renamed/commands.json": "e450454ac4dd1d7634dae7c4528b3296a4e14355697b015f077827d9df64411e",
+        "helper-return-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-return-renamed/workspace/moved/customer.py": "77533c62f0c134d549e9add6f23454a70ee214e48815e801d9d6bb32355003b5",
+        "helper-return-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "helper-return",
+      "renamed": true
+    },
+    {
+      "directory": "parallel-assignment-original",
+      "files": {
+        "parallel-assignment-original/analysis.json": "c65737d9cdb97d593bcf369b40823b4c2883c3d26e244d906659fbd7fdbf5afd",
+        "parallel-assignment-original/commands.json": "98fc5b37e1c97a9c03420a727c32eeb331d35f9d5792e80e9043d0b45524963b",
+        "parallel-assignment-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "parallel-assignment-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "parallel-assignment-original/workspace/subject.py": "f11ea48dafe18b40d9bd3acca3e40c1f2c4082d0de4514112f4a10dd363d1fa2"
+      },
+      "id": "parallel-assignment",
+      "renamed": false
+    },
+    {
+      "directory": "parallel-assignment-renamed",
+      "files": {
+        "parallel-assignment-renamed/analysis.json": "49c9df670b06ed8f621885cd539b94809dd23080d5352d08acd94c821d95f01e",
+        "parallel-assignment-renamed/commands.json": "2428857480eaffa76b20d5feb40c0f59d990b4554950d6f8c8cb0c9f80b305d8",
+        "parallel-assignment-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "parallel-assignment-renamed/workspace/moved/customer.py": "763beaea345750918029064a851eb018de5a31982a84c17bc9bf4c7d2a390fd8",
+        "parallel-assignment-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "parallel-assignment",
+      "renamed": true
+    },
+    {
+      "directory": "both-branches-text-original",
+      "files": {
+        "both-branches-text-original/analysis.json": "d999c6d71091c11e9dfc6e860018af840eb6ef4b5f71c7ca8be10da288de7afd",
+        "both-branches-text-original/commands.json": "d51d47f94660b82dbb3ce8d51096949d7329771e08c25f1b6b94468657120ae6",
+        "both-branches-text-original/runtime.json": "671d96bfe352eafd14fe297f36248df9ea5c2f498e4f63271b7170ec4bf7ef2e",
+        "both-branches-text-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "both-branches-text-original/workspace/subject.py": "84f178d03051af944768f97f47a1746a18f5ccc454d2d263a8455d83580c7a08"
+      },
+      "id": "both-branches-text",
+      "renamed": false
+    },
+    {
+      "directory": "both-branches-text-renamed",
+      "files": {
+        "both-branches-text-renamed/analysis.json": "3cf6450a979de0a6fd9563e171cd02205659b82c969cce43a420a05c3ff55cf0",
+        "both-branches-text-renamed/commands.json": "1c2d48a9115f289ce7f0c340c774cb2b4cabf4fe5d313e1c00f1c7cb6d4c5651",
+        "both-branches-text-renamed/runtime.json": "671d96bfe352eafd14fe297f36248df9ea5c2f498e4f63271b7170ec4bf7ef2e",
+        "both-branches-text-renamed/workspace/moved/customer.py": "eef5e8120727d2dcc09cd4b77e7f1757d1d929afa5487b34b298b2373caaf7c9",
+        "both-branches-text-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "both-branches-text",
+      "renamed": true
+    },
+    {
+      "directory": "mixed-branch-original",
+      "files": {
+        "mixed-branch-original/analysis.json": "90e41e37556b9d33216a75b2bcc69e9022b322982560f4563649ce8d7747721c",
+        "mixed-branch-original/commands.json": "a53ee62783b2bb26aae1e6178cfea26df33a3d2d9b0e14f2d6d921458b6ea0b3",
+        "mixed-branch-original/runtime.json": "dddf7ba5ed8d784834adf897d9ba3fa09e0274fbee702bec6718062caa73e067",
+        "mixed-branch-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "mixed-branch-original/workspace/subject.py": "a16ee532cdd49d2a8281ad5f288126d14b14a4074fbeaac0b2e2a0017bc74137"
+      },
+      "id": "mixed-branch",
+      "renamed": false
+    },
+    {
+      "directory": "mixed-branch-renamed",
+      "files": {
+        "mixed-branch-renamed/analysis.json": "5dcbb580c05b0370715ecf439a787aefa077e56bd110fd9339a6dbfe37e76c91",
+        "mixed-branch-renamed/commands.json": "e8fba0c3d70505c9cab145d47ca9bdec620e5dcd52da77db4e355e2350e1099a",
+        "mixed-branch-renamed/runtime.json": "dddf7ba5ed8d784834adf897d9ba3fa09e0274fbee702bec6718062caa73e067",
+        "mixed-branch-renamed/workspace/moved/customer.py": "dda4c59c85c3d3405c9b385abac44afb0df673d58b5078e465596f95d11b3484",
+        "mixed-branch-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "mixed-branch",
+      "renamed": true
+    },
+    {
+      "directory": "object-reassignment-original",
+      "files": {
+        "object-reassignment-original/analysis.json": "1f8c26ffc798fb2ea5cdcef974cfbbc2c2f853c7cf27a6aa5f78ec56c38bb907",
+        "object-reassignment-original/commands.json": "51739e569a6132d73a8fa31f3f96058f0ecbb874706e80d578f0fb0afed787de",
+        "object-reassignment-original/runtime.json": "3ba8ae782c9110e41833370f939a6efb1414bd94340b8770af8ec30a96d93cbe",
+        "object-reassignment-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "object-reassignment-original/workspace/subject.py": "d5e445db9069be6e945c7a40ca87fbc28aaaac4d5d6fa0435e286f07b3cb4c2a"
+      },
+      "id": "object-reassignment",
+      "renamed": false
+    },
+    {
+      "directory": "object-reassignment-renamed",
+      "files": {
+        "object-reassignment-renamed/analysis.json": "e45eb2c1155a024692012bc60f49909ca5e481f99a75c3cbb3a8754a73921cef",
+        "object-reassignment-renamed/commands.json": "691b305ada545e2acb5659de5588344186199aa05f632869f4eb676ed663f9e7",
+        "object-reassignment-renamed/runtime.json": "3ba8ae782c9110e41833370f939a6efb1414bd94340b8770af8ec30a96d93cbe",
+        "object-reassignment-renamed/workspace/moved/customer.py": "5f5a6610ace368a4cb185d751e45effc8f03b34c52de9a37130f71593432d061",
+        "object-reassignment-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "object-reassignment",
+      "renamed": true
+    },
+    {
+      "directory": "shadowed-constructor-original",
+      "files": {
+        "shadowed-constructor-original/analysis.json": "85879e9cf38721ff10a70b6ca370432c2693b00b6ebd5b18b114ae474912a56d",
+        "shadowed-constructor-original/commands.json": "62b78be3317bfcc4fafcf5b908fea04350771138a7d4d0f9e083a7978aaeed31",
+        "shadowed-constructor-original/runtime.json": "3ba8ae782c9110e41833370f939a6efb1414bd94340b8770af8ec30a96d93cbe",
+        "shadowed-constructor-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "shadowed-constructor-original/workspace/subject.py": "27e222509a0b5ef63dd75a43d6b2a0f375fc2821330b90ebf338df3e9706e5cc"
+      },
+      "id": "shadowed-constructor",
+      "renamed": false
+    },
+    {
+      "directory": "shadowed-constructor-renamed",
+      "files": {
+        "shadowed-constructor-renamed/analysis.json": "04df0c002c3187eb6dd4864af570bc347c76672c024efcc6964d664d92ebeb7c",
+        "shadowed-constructor-renamed/commands.json": "edadee0450fda4d4a948a29a73ee681368c18632d78d085d22a14c99a411b88a",
+        "shadowed-constructor-renamed/runtime.json": "3ba8ae782c9110e41833370f939a6efb1414bd94340b8770af8ec30a96d93cbe",
+        "shadowed-constructor-renamed/workspace/moved/customer.py": "e6718135f5cae4056dcd3a2705bf7a3cab327fdba757304e87afa15d52d88b87",
+        "shadowed-constructor-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "shadowed-constructor",
+      "renamed": true
+    },
+    {
+      "directory": "expanded-arguments-original",
+      "files": {
+        "expanded-arguments-original/analysis.json": "bc99a0fe1b7404565fcda007b610d4f8835d0d9c240be4fa72f8ea7e423e7990",
+        "expanded-arguments-original/commands.json": "901d2432736feb6f3f31d588b22a026575571fa6b8cf4d9be121d510f0f4ba30",
+        "expanded-arguments-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "expanded-arguments-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "expanded-arguments-original/workspace/subject.py": "fd49b96d32a8878ab6e009777e5b48223a4ddb958100ba3cfe38416dff86b5ec"
+      },
+      "id": "expanded-arguments",
+      "renamed": false
+    },
+    {
+      "directory": "expanded-arguments-renamed",
+      "files": {
+        "expanded-arguments-renamed/analysis.json": "65942c7ca39f5609d044bab69d944c321e8e8013cda58e4e3357272a09fe4f0f",
+        "expanded-arguments-renamed/commands.json": "44c94805a631e5cd7884e26a223b25b1a29f0feb7576ed7d1f186392ae839dc5",
+        "expanded-arguments-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "expanded-arguments-renamed/workspace/moved/customer.py": "75d2ff7f4a57700b7b47f01e0cf70c5f0be64a9b511d42c368ef27673a1e9411",
+        "expanded-arguments-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "expanded-arguments",
+      "renamed": true
+    },
+    {
+      "directory": "wrong-text-argument-original",
+      "files": {
+        "wrong-text-argument-original/analysis.json": "ade0e7757ddaa1757ffd50e196467323dc0a5f8e081fe7e2faffc8ebff35f5a3",
+        "wrong-text-argument-original/commands.json": "96cdd599e8cc3d9bdac324c74dcf5477c89c574f6f41e8d0a880b5c0bcf31783",
+        "wrong-text-argument-original/runtime.json": "a2f98e4ccae77888558d6ecd8bd8d10e75a3329b2799f88e327d14963b8d3053",
+        "wrong-text-argument-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "wrong-text-argument-original/workspace/subject.py": "dd7a363b56cbf1d1a9505c0b22e212f3a8a1d2584bf8373b49ae56752795d918"
+      },
+      "id": "wrong-text-argument",
+      "renamed": false
+    },
+    {
+      "directory": "wrong-text-argument-renamed",
+      "files": {
+        "wrong-text-argument-renamed/analysis.json": "b20c478b3f09ac2049d35f5cd14218a44004879da9540aece1fb1b0c153c09fc",
+        "wrong-text-argument-renamed/commands.json": "29a5f8d0125e4046de661e6d5c7815eff72212c96d68e305e72ba1dc9755a3e7",
+        "wrong-text-argument-renamed/runtime.json": "a2f98e4ccae77888558d6ecd8bd8d10e75a3329b2799f88e327d14963b8d3053",
+        "wrong-text-argument-renamed/workspace/moved/customer.py": "119bb0f16934de0cdbba9986b7e0061f750e31b92c54de2f58eee5e938facfe5",
+        "wrong-text-argument-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "wrong-text-argument",
+      "renamed": true
+    },
+    {
+      "directory": "stripping-argument-original",
+      "files": {
+        "stripping-argument-original/analysis.json": "7d531b921c3da554a254b12c79ce1bc7e0220a73fb7653edec6620dcbb1b6782",
+        "stripping-argument-original/commands.json": "0c75d701c2eea90f86fde129472fb8fbf29e698b433250f9c3f8ad91d4c91bea",
+        "stripping-argument-original/runtime.json": "20c84c3bcea8b61db98282977c8a26a069c914e6523a417f4431f5b90f76c283",
+        "stripping-argument-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "stripping-argument-original/workspace/subject.py": "d9e33c0346f6bab56951acb61bcc07461bb34dd60fa9c5cd94ef05b41cf82101"
+      },
+      "id": "stripping-argument",
+      "renamed": false
+    },
+    {
+      "directory": "stripping-argument-renamed",
+      "files": {
+        "stripping-argument-renamed/analysis.json": "e73736302e058d8d515d0c8f05bf3ad16e43e94fa2671bf81f57bfad3bf8969b",
+        "stripping-argument-renamed/commands.json": "fd30240ae37ed0349b809c187370f967d83cb4f2f4399f24d849e21746fee0aa",
+        "stripping-argument-renamed/runtime.json": "20c84c3bcea8b61db98282977c8a26a069c914e6523a417f4431f5b90f76c283",
+        "stripping-argument-renamed/workspace/moved/customer.py": "f2c21e603a13a42e839fe95352f0e438c650b6bdf5a290bb8dd01d54de989965",
+        "stripping-argument-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "stripping-argument",
+      "renamed": true
+    },
+    {
+      "directory": "no-implicit-model-original",
+      "files": {
+        "no-implicit-model-original/analysis.json": "0639d2297b49e0d2e5f29ca6bc00b460c30c683c0d683c9127dd7b7e9122dcc8",
+        "no-implicit-model-original/commands.json": "04bf400eb322f24436bc2a2222abb58a7a2ee070850c33742b3829bbe0aac3ad",
+        "no-implicit-model-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "no-implicit-model-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "no-implicit-model-original/workspace/subject.py": "05f03ac048f14da817ae3749a16b6115bd5863e17f2ba9521c668fa2401af5f2"
+      },
+      "id": "no-implicit-model",
+      "renamed": false
+    },
+    {
+      "directory": "no-implicit-model-renamed",
+      "files": {
+        "no-implicit-model-renamed/analysis.json": "46d5743d1c0014b59bf40b45ad4c4e919b1a6aaa6c4c0bcbc60d92461097f5d9",
+        "no-implicit-model-renamed/commands.json": "6816a29ba393f84a40538da56cc1d203de436fb3bf319dcfc38209165c1f330a",
+        "no-implicit-model-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "no-implicit-model-renamed/workspace/moved/customer.py": "67ae9640adee7117e2e0c0aa03025a251fc45e9af24366f765f5f39ccb9d00e2",
+        "no-implicit-model-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "no-implicit-model",
+      "renamed": true
+    },
+    {
+      "directory": "casefold-unicode-original",
+      "files": {
+        "casefold-unicode-original/analysis.json": "0d2bae43631efa23d7feb3e8ba0dc2c658d2a23a56fed2c5fccf4ede0e099875",
+        "casefold-unicode-original/commands.json": "fb36b4516c42cc8a95228961dfb429d5a195b1c59df4153d8f1d1480b341dd48",
+        "casefold-unicode-original/runtime.json": "0560e1bc2c0d6cc1113740545c1b1923cf512d754457333fe45fb1fe02e8bb3b",
+        "casefold-unicode-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "casefold-unicode-original/workspace/subject.py": "2734414ee5a3b6be88e959a122faf1da0b0576712209c48ecd01bf26771c4104"
+      },
+      "id": "casefold-unicode",
+      "renamed": false
+    },
+    {
+      "directory": "casefold-unicode-renamed",
+      "files": {
+        "casefold-unicode-renamed/analysis.json": "dd322353955fea98c4b110dce8105a7e8f3baf6a9fac04fd87cf9db086e61711",
+        "casefold-unicode-renamed/commands.json": "fe02f72fce8580a4833e50149ffcf52f13936ad823fce98cc0c94e619c553b07",
+        "casefold-unicode-renamed/runtime.json": "0560e1bc2c0d6cc1113740545c1b1923cf512d754457333fe45fb1fe02e8bb3b",
+        "casefold-unicode-renamed/workspace/moved/customer.py": "922d64011580e7d0c046cab5e5099642218121e473ac19ab83c7bb74f1995fc6",
+        "casefold-unicode-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "casefold-unicode",
+      "renamed": true
+    },
+    {
+      "directory": "capitalize-original",
+      "files": {
+        "capitalize-original/analysis.json": "e901e4861e23ade68a1baad62a07fe89849c1c8f03ee5e1d3cd9b75d114ecf03",
+        "capitalize-original/commands.json": "ee6351bf46fba8c62ea5bec772faaba915f83de084f725b9d52a8f2cff5f9c28",
+        "capitalize-original/runtime.json": "fc0d44f12b311a77ca1fb570fba11c1ac3a754c5f1123075870106e22fe51cc8",
+        "capitalize-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "capitalize-original/workspace/subject.py": "54b77d8d19ec9a543e6e84aa652c5d517303557d0a0a535c0a5dba4f44f526d9"
+      },
+      "id": "capitalize",
+      "renamed": false
+    },
+    {
+      "directory": "capitalize-renamed",
+      "files": {
+        "capitalize-renamed/analysis.json": "2b8919534fdc44fa537f2a594bee010d8889b4f488902b22a9b520d4086b6d1e",
+        "capitalize-renamed/commands.json": "cfef54c56a37f2f9ac28c6a2913a4ea605c2edb1281ee84dc1014d693d1485ea",
+        "capitalize-renamed/runtime.json": "fc0d44f12b311a77ca1fb570fba11c1ac3a754c5f1123075870106e22fe51cc8",
+        "capitalize-renamed/workspace/moved/customer.py": "20c717a3a1750e526bc7fee9cd6ad02a1546a7676aebfa308d0c9d0648c6f0c8",
+        "capitalize-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "capitalize",
+      "renamed": true
+    },
+    {
+      "directory": "swapcase-original",
+      "files": {
+        "swapcase-original/analysis.json": "555d38d7e8e8ebd4779117affc02f171a63fe8b3868772418cab1af1d0f80832",
+        "swapcase-original/commands.json": "3fdc911ce66a0a11f35e5a2a28ff128cc9278764c5e8df10b25f0b48c8c01cc2",
+        "swapcase-original/runtime.json": "101a57dc631526b44c3ae4bc735924410d941b6a4aaf61ecc9f8e075e41ee207",
+        "swapcase-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "swapcase-original/workspace/subject.py": "800b869ccf6a35af6ec875bd3b302e9ff5e269af83e8cd95d078eefa09369948"
+      },
+      "id": "swapcase",
+      "renamed": false
+    },
+    {
+      "directory": "swapcase-renamed",
+      "files": {
+        "swapcase-renamed/analysis.json": "f40eef217c5cd0ac3d550c99c5ecfa953ea10124d3f251633d041f1917bcac5e",
+        "swapcase-renamed/commands.json": "83f03ec2cdb981de75d045ee899340aa7933dca68b16e00e6c69807b12850316",
+        "swapcase-renamed/runtime.json": "101a57dc631526b44c3ae4bc735924410d941b6a4aaf61ecc9f8e075e41ee207",
+        "swapcase-renamed/workspace/moved/customer.py": "5bb76cbd0c973507c555a85fe5deda1954db5d09302362879685d7c4e7c0708d",
+        "swapcase-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "swapcase",
+      "renamed": true
+    },
+    {
+      "directory": "title-original",
+      "files": {
+        "title-original/analysis.json": "c477f96f5cb04c6068747b91056e11f17cc2ead00378779c2261719ae1b1f699",
+        "title-original/commands.json": "d1f9e3ce6084aa1806b7502b4dfa4c153f2b6f499ba3f37365c5bb7ca1954b0a",
+        "title-original/runtime.json": "a4b92dfbc26caff7705ea595d829cbaac62c89cc7157169f44add715e8d67292",
+        "title-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "title-original/workspace/subject.py": "282c484e9a2ad07801c8656afd0bb769699a6877a2b24d0cb404a6c03aa774ac"
+      },
+      "id": "title",
+      "renamed": false
+    },
+    {
+      "directory": "title-renamed",
+      "files": {
+        "title-renamed/analysis.json": "aeedabc7e7246a375e8e799e8cd0f7f86fd65e374991ce7bc2c1de92dfc60187",
+        "title-renamed/commands.json": "95d21eccff61792602487a90fe6751f5a11a84bce24fa0a41b451921603e359b",
+        "title-renamed/runtime.json": "a4b92dfbc26caff7705ea595d829cbaac62c89cc7157169f44add715e8d67292",
+        "title-renamed/workspace/moved/customer.py": "a5ecbca1022ff87296480031c53735cda56e1b2df51c2ef752a0b49b08da87f1",
+        "title-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "title",
+      "renamed": true
+    },
+    {
+      "directory": "lstrip-none-original",
+      "files": {
+        "lstrip-none-original/analysis.json": "9dc408ae86ee3953be6fffadd296cf0b234a60419ed16154466379c34dc84ee5",
+        "lstrip-none-original/commands.json": "4ef4573ae95c60d69e264600957cd1c1fa3999a61a8c59aceb6a627ea8fb9a46",
+        "lstrip-none-original/runtime.json": "e2dd147feb0f0fbf8d03ba9b145934202ba536b687f4a7baf6c48189c0b21768",
+        "lstrip-none-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "lstrip-none-original/workspace/subject.py": "4b83758a593bcafa5c7e1c01b413aa1f80d3a69c45dc97aa9720541791b07640"
+      },
+      "id": "lstrip-none",
+      "renamed": false
+    },
+    {
+      "directory": "lstrip-none-renamed",
+      "files": {
+        "lstrip-none-renamed/analysis.json": "60e99170a85620316178ddad935c23a9e9bdc174c3e68fbbdf41066cb1c5eccf",
+        "lstrip-none-renamed/commands.json": "7ff3999fa6c3ccbc470d58710d8d9506889f373d9565a8be4a2094dd30595db4",
+        "lstrip-none-renamed/runtime.json": "e2dd147feb0f0fbf8d03ba9b145934202ba536b687f4a7baf6c48189c0b21768",
+        "lstrip-none-renamed/workspace/moved/customer.py": "ce4adce5e1db83e1ac71013e76e8446b150f9752cf8408bd32998cb78d079356",
+        "lstrip-none-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "lstrip-none",
+      "renamed": true
+    },
+    {
+      "directory": "rstrip-text-original",
+      "files": {
+        "rstrip-text-original/analysis.json": "97104ad66e43516435fae94d96e2f2c93e6f1b1720a0b83d0f1fd6418e06b445",
+        "rstrip-text-original/commands.json": "d9297bcd4082a67d32adf821e60a5932c5a3925261771fd1b5e2170f3bd188b9",
+        "rstrip-text-original/runtime.json": "a3c87381979bd24d97006d1ce2f0ce8bf325407cfa6a2333d2e42264db2dd9be",
+        "rstrip-text-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "rstrip-text-original/workspace/subject.py": "22c33b9012deca52a9f12f0bba883a256fed434b02a4d3afb5c9837babb8931c"
+      },
+      "id": "rstrip-text",
+      "renamed": false
+    },
+    {
+      "directory": "rstrip-text-renamed",
+      "files": {
+        "rstrip-text-renamed/analysis.json": "46177df8464a797b1eab4cb16b16eed3652a75ce4dd2ad80c06201709bc663ec",
+        "rstrip-text-renamed/commands.json": "17f8ba5b51addc99e19ab231a728f81110b5be6400632492c7412a8b05d74574",
+        "rstrip-text-renamed/runtime.json": "a3c87381979bd24d97006d1ce2f0ce8bf325407cfa6a2333d2e42264db2dd9be",
+        "rstrip-text-renamed/workspace/moved/customer.py": "4500974d7d6103015a020449b9c78b855bb8ca98467035fd7c3adf9d5e3b9450",
+        "rstrip-text-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "rstrip-text",
+      "renamed": true
+    },
+    {
+      "directory": "remove-prefix-original",
+      "files": {
+        "remove-prefix-original/analysis.json": "3b508322ce2733e4625390375dc9880976a822fd5ceaebaf9082a07002a8340d",
+        "remove-prefix-original/commands.json": "8ddb5f83ec1f8f4bace22757a6190854c09411e6d9b3895a9c20bf4bbf524942",
+        "remove-prefix-original/runtime.json": "847a4b55b9622f78d18358fc745aa3277468221709f76b277802f3e3d8712abd",
+        "remove-prefix-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "remove-prefix-original/workspace/subject.py": "b8e7737efe78c3605d1b767c13dfdcc5bdd4bfbd3a7b950442da8aec55f3d607"
+      },
+      "id": "remove-prefix",
+      "renamed": false
+    },
+    {
+      "directory": "remove-prefix-renamed",
+      "files": {
+        "remove-prefix-renamed/analysis.json": "99b7cd8afef1da9e33bd07ccff1376c960d166b09491e58b6776b826821fdadd",
+        "remove-prefix-renamed/commands.json": "a997477ab286cc0401958199ab53476e702aa5d83b3ddb73c60f36f1d1dca7d3",
+        "remove-prefix-renamed/runtime.json": "847a4b55b9622f78d18358fc745aa3277468221709f76b277802f3e3d8712abd",
+        "remove-prefix-renamed/workspace/moved/customer.py": "3b0394e16f531193e51b16bb440073fb593c73179d0b1ff0f237da1b04a5c36c",
+        "remove-prefix-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "remove-prefix",
+      "renamed": true
+    },
+    {
+      "directory": "remove-suffix-original",
+      "files": {
+        "remove-suffix-original/analysis.json": "527f74ea5f5feb5e6fed56608316c1da29c76da3d3e86271163d5b2a07266dd2",
+        "remove-suffix-original/commands.json": "208c2d93b7a211402bdad4d1867bfb195256cab907bcc08010497c20ba662d12",
+        "remove-suffix-original/runtime.json": "de44a65c15c9d61ffe6d72a56de9387d965f24cf1f41c925e1fe2258f39eec31",
+        "remove-suffix-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "remove-suffix-original/workspace/subject.py": "e99aff30550b6e3bbf8d204be06fc180efa615f97747819bb5b19e9d15f3cb43"
+      },
+      "id": "remove-suffix",
+      "renamed": false
+    },
+    {
+      "directory": "remove-suffix-renamed",
+      "files": {
+        "remove-suffix-renamed/analysis.json": "bea3a5e948878e7eb6a29e731564e5926f02e05577323796b0eba5d7b93df52c",
+        "remove-suffix-renamed/commands.json": "9cc6cb32e7ab928956acf9fafc43d1f00a108b9aa076656ebb68d6d39659a1b6",
+        "remove-suffix-renamed/runtime.json": "de44a65c15c9d61ffe6d72a56de9387d965f24cf1f41c925e1fe2258f39eec31",
+        "remove-suffix-renamed/workspace/moved/customer.py": "1017ff7b188c05a46ddb1cfff464dd92340d8ac9593f005c87f7726f65387104",
+        "remove-suffix-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "remove-suffix",
+      "renamed": true
+    },
+    {
+      "directory": "replace-count-original",
+      "files": {
+        "replace-count-original/analysis.json": "b6a16c4de6906e46fe4eef7f4605fdd9ea549cb17507d104b6d914cc5074689e",
+        "replace-count-original/commands.json": "0371cdfe091332be328b36c68b4050d0c38646243e03ebc029704d5096235639",
+        "replace-count-original/runtime.json": "d908b7a54921e47ae844e6d7e15121bba4d02eec1b410fbf07c091420e391d87",
+        "replace-count-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "replace-count-original/workspace/subject.py": "9ddb21f1b33ceec25e0cd49dcd676f8fcdc4dc072a9ebb85ded74c37bb32e75e"
+      },
+      "id": "replace-count",
+      "renamed": false
+    },
+    {
+      "directory": "replace-count-renamed",
+      "files": {
+        "replace-count-renamed/analysis.json": "9d28a7965b4e91576a75a064e294715755da0c80440656df4661825b21736015",
+        "replace-count-renamed/commands.json": "a7978b7f911c15ac82553f1a9c0cd3f56c3f2663602f210e5737ec17fe903a32",
+        "replace-count-renamed/runtime.json": "d908b7a54921e47ae844e6d7e15121bba4d02eec1b410fbf07c091420e391d87",
+        "replace-count-renamed/workspace/moved/customer.py": "8172c2afb462f7202fe0b424f7f53f3df1003e055fcdf185a36f81340bc80029",
+        "replace-count-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "replace-count",
+      "renamed": true
+    },
+    {
+      "directory": "helper-fallthrough-original",
+      "files": {
+        "helper-fallthrough-original/analysis.json": "b357bdd5c02f88b1a03382984f8364cb9253de009d2fac1259c4c32f77dbafd2",
+        "helper-fallthrough-original/commands.json": "b3567e547f7c9b782ebb4381d46517be3cebf28dc89a20faf1a4b055c9ea78dd",
+        "helper-fallthrough-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-fallthrough-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "helper-fallthrough-original/workspace/subject.py": "f7235b1a7f4b68b985b052a3207c7115bbee3d5e035d41fa422d24efc16b62a6"
+      },
+      "id": "helper-fallthrough",
+      "renamed": false
+    },
+    {
+      "directory": "helper-fallthrough-renamed",
+      "files": {
+        "helper-fallthrough-renamed/analysis.json": "da5329b4ebf1e5d841bd5f690c8db3ebd3dba762673593a3a8d25061ae0fda5d",
+        "helper-fallthrough-renamed/commands.json": "90d9c1ff4889255333de426b05b3db61be8b37179c825345aa408309ee5a0c86",
+        "helper-fallthrough-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-fallthrough-renamed/workspace/moved/customer.py": "2fe6c0971f4d0e2f93a63ef83077fbce6972ccba07648570a16f278a06aaec83",
+        "helper-fallthrough-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "helper-fallthrough",
+      "renamed": true
+    },
+    {
+      "directory": "helper-mixed-return-original",
+      "files": {
+        "helper-mixed-return-original/analysis.json": "bfb3dfd7b76f5a4615da7132f03cb43403f3af639a1373696bcc0fb4dcbc4b32",
+        "helper-mixed-return-original/commands.json": "e5d3ad778a1b03223e10e22213cde4626360dad325c4f3eb54a375aab8144866",
+        "helper-mixed-return-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-mixed-return-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "helper-mixed-return-original/workspace/subject.py": "8322d005e72d7b93492c69904d0e893f739852b6da905ff3f8278da0ab2d598b"
+      },
+      "id": "helper-mixed-return",
+      "renamed": false
+    },
+    {
+      "directory": "helper-mixed-return-renamed",
+      "files": {
+        "helper-mixed-return-renamed/analysis.json": "564f9959d901129dcad5b3dce920814f39b582310820f48902e730099fe6e21b",
+        "helper-mixed-return-renamed/commands.json": "651ffba1a017eaab0cf6638bf7763b5375f7cd3372cb1040fa6625dcbe77e124",
+        "helper-mixed-return-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "helper-mixed-return-renamed/workspace/moved/customer.py": "2f9a40c10710418352c7ecbf2d3797bb7e1f4c20b9eef8205a24afc1c4f11f92",
+        "helper-mixed-return-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "helper-mixed-return",
+      "renamed": true
+    },
+    {
+      "directory": "recursive-helper-original",
+      "files": {
+        "recursive-helper-original/analysis.json": "f5f64b68967478f1450e7f16875a799c9e90e3bba6ee7d26c72f0c57320c47a8",
+        "recursive-helper-original/commands.json": "ce6942fa30c613f14cf055fe65ba408f7704656c485568918e1bbc0f1fa66c7f",
+        "recursive-helper-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "recursive-helper-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "recursive-helper-original/workspace/subject.py": "f21d0c919392b09dc8bc05d9e71c6235df5bdb4973a5efee08edcfaf2a46f873"
+      },
+      "id": "recursive-helper",
+      "renamed": false
+    },
+    {
+      "directory": "recursive-helper-renamed",
+      "files": {
+        "recursive-helper-renamed/analysis.json": "3d05e2e74e29a5515670ce947d865c65ae2009f0586315de3b5e519e104e6527",
+        "recursive-helper-renamed/commands.json": "1209b8dcf89ac0b6d88ffd3c053fe3cbe314527cfed91acf86646b3c4d8a2430",
+        "recursive-helper-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "recursive-helper-renamed/workspace/moved/customer.py": "933860c7f3aade2c04e29d90a49b1e3155cf8e475dfd9a23c54c2f1ea9c3c1f5",
+        "recursive-helper-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "recursive-helper",
+      "renamed": true
+    },
+    {
+      "directory": "builtin-alias-original",
+      "files": {
+        "builtin-alias-original/analysis.json": "b049e5766dcad4122a6472bf2ce5974c066753d24daf62cdc5c59c9b2ee21656",
+        "builtin-alias-original/commands.json": "df51848014a3e456ef6644528bf1d9abf91bb90504749283e6ce2869ec2c2b7c",
+        "builtin-alias-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "builtin-alias-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "builtin-alias-original/workspace/subject.py": "97301136cb0e6b73d61ce0275f4ed59c6733bd758cb0f5ed876efc1d38f7abfa"
+      },
+      "id": "builtin-alias",
+      "renamed": false
+    },
+    {
+      "directory": "builtin-alias-renamed",
+      "files": {
+        "builtin-alias-renamed/analysis.json": "ff6d71672c9fa362756a8aead76429e2f8252daae87a9c04b81c61c119c29a84",
+        "builtin-alias-renamed/commands.json": "66e4c77084c905c2f34c233a36bcf99bd0ad27af463509dc5c63dfc318a7800c",
+        "builtin-alias-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "builtin-alias-renamed/workspace/moved/customer.py": "dbef666c6b69eb2945f43a0d6ab47a5bd9220bf18e2457e7953501bc45cc9e07",
+        "builtin-alias-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "builtin-alias",
+      "renamed": true
+    },
+    {
+      "directory": "literal-join-original",
+      "files": {
+        "literal-join-original/analysis.json": "f2835cdf888b80e4969147aa200134996468c445e2e7d5afae4a28250517663b",
+        "literal-join-original/commands.json": "9e390f14712cccbf45b22de4cba07f50664712379041812827b5fe2119b8fe82",
+        "literal-join-original/runtime.json": "dbc5a36f87ec8fe001097ff882beec6c113aab17dde54d894b1cd282722a873a",
+        "literal-join-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "literal-join-original/workspace/subject.py": "da0d3818332f824c53e9529d7f8d4ffd8894a50efe80ecaa48e1f02b71ef1e41"
+      },
+      "id": "literal-join",
+      "renamed": false
+    },
+    {
+      "directory": "literal-join-renamed",
+      "files": {
+        "literal-join-renamed/analysis.json": "a593679af81094fdf914bf9974441b8c7c546bca44fd543c0d740c5af247245b",
+        "literal-join-renamed/commands.json": "5214295257442f9017a5020769383ddf560d43c5e59fd243d9192b86bcf90b52",
+        "literal-join-renamed/runtime.json": "dbc5a36f87ec8fe001097ff882beec6c113aab17dde54d894b1cd282722a873a",
+        "literal-join-renamed/workspace/moved/customer.py": "e4998ebc3cab698d5e4152d0315bba2d30dc6acf4cd8960f3efd9d6cbd3a100f",
+        "literal-join-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "literal-join",
+      "renamed": true
+    },
+    {
+      "directory": "loop-overwrite-original",
+      "files": {
+        "loop-overwrite-original/analysis.json": "3c2c906597e34fd3cb5e31a386bae7558543756cb59b6b88471b22870ff71c76",
+        "loop-overwrite-original/commands.json": "6d86b99a3649a466b091f04210b97c8ca122616bedf70f2b95df7163902073a8",
+        "loop-overwrite-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "loop-overwrite-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "loop-overwrite-original/workspace/subject.py": "029a30218b919184135dfef6dad70185906cc28339a5c5032a80e38e261a4d3c"
+      },
+      "id": "loop-overwrite",
+      "renamed": false
+    },
+    {
+      "directory": "loop-overwrite-renamed",
+      "files": {
+        "loop-overwrite-renamed/analysis.json": "9c2f12074bea39f1c8070581b6d5dea823114dee4be2b8a8633c51efefb3fda7",
+        "loop-overwrite-renamed/commands.json": "4a892adf4f988d5ba3beb05e31f288a02559de1948a1910c7716b6bf80ed6349",
+        "loop-overwrite-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "loop-overwrite-renamed/workspace/moved/customer.py": "2e2422bc6abb4f305dacdef2a7964a04dc93166503ef6ecb1ea55aa0f525c2f8",
+        "loop-overwrite-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "loop-overwrite",
+      "renamed": true
+    },
+    {
+      "directory": "keyword-argument-original",
+      "files": {
+        "keyword-argument-original/analysis.json": "c9ebb0aa064790c076f6f0b397f1e042c6bb2ac8ff44b8beebb787145cfa3c80",
+        "keyword-argument-original/commands.json": "ab40e7b800efe027df667b522ce14e6d6294e54fdf18a35b4e3d1dbec2074b42",
+        "keyword-argument-original/runtime.json": "a2f98e4ccae77888558d6ecd8bd8d10e75a3329b2799f88e327d14963b8d3053",
+        "keyword-argument-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "keyword-argument-original/workspace/subject.py": "bc0148c407d02a71952c8ecb08dfe5d3936cecf1e1b5efb29eff2d91c2b357f2"
+      },
+      "id": "keyword-argument",
+      "renamed": false
+    },
+    {
+      "directory": "keyword-argument-renamed",
+      "files": {
+        "keyword-argument-renamed/analysis.json": "db1cde5fea98fd749299f0cc3ff7c352a0f86934243b9285bac296b34f2c7350",
+        "keyword-argument-renamed/commands.json": "1e916e190dc2569bd2bcde4fc737c1775e88388ccc93089b35d9de58c4fbd8b9",
+        "keyword-argument-renamed/runtime.json": "a2f98e4ccae77888558d6ecd8bd8d10e75a3329b2799f88e327d14963b8d3053",
+        "keyword-argument-renamed/workspace/moved/customer.py": "7cee9bf111c7db4415bb74b05a7d1ece671a0611a1551fa10f0acbfbf3856ba8",
+        "keyword-argument-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "keyword-argument",
+      "renamed": true
+    },
+    {
+      "directory": "conditional-text-original",
+      "files": {
+        "conditional-text-original/analysis.json": "de4cd64392f6ee9138b06842a478fd7315a1cd93b512b63020e316ad6b4ce5e3",
+        "conditional-text-original/commands.json": "22d754205dcd4f49f2f1313ef27302d17514db6d21f17ed1bf74e320a89e3563",
+        "conditional-text-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "conditional-text-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "conditional-text-original/workspace/subject.py": "f994a51d22ae2726cc7c1af0ceecddffa82c9749fceef96f7d72a6d3d897b0b8"
+      },
+      "id": "conditional-text",
+      "renamed": false
+    },
+    {
+      "directory": "conditional-text-renamed",
+      "files": {
+        "conditional-text-renamed/analysis.json": "d8dfd2655b3bb4dbf39ce11ca6d3eaabb68a8745b9df4b9a08cc58e4b99fad13",
+        "conditional-text-renamed/commands.json": "3a219a6d1b0e3db20503ada2a6cd7450326d8301878dfffdd98ef88e8383a98a",
+        "conditional-text-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "conditional-text-renamed/workspace/moved/customer.py": "30efbf8efe707a62183d2f990d5e72e44c81d156f65d707d739c7c8c821b79bf",
+        "conditional-text-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "conditional-text",
+      "renamed": true
+    },
+    {
+      "directory": "byte-receiver-original",
+      "files": {
+        "byte-receiver-original/analysis.json": "1b2f19949b100f6c98abf6bbc82e1e2f8241719efddaedaa9b8b2af7f0d999b2",
+        "byte-receiver-original/commands.json": "cb6e9db4d19f3bdfe8ac5d37d62787398c6f2a773c0dd44abb33e84aea8db544",
+        "byte-receiver-original/runtime.json": "9a1cccac8c2bfa8ba5639c5a26fcb2afc28c56f340582e31ca4fd57653ade97e",
+        "byte-receiver-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "byte-receiver-original/workspace/subject.py": "2263eff38ad297f4a20163155db0c882fef06e71729f1a0eefe89b6b56c8dd0b"
+      },
+      "id": "byte-receiver",
+      "renamed": false
+    },
+    {
+      "directory": "byte-receiver-renamed",
+      "files": {
+        "byte-receiver-renamed/analysis.json": "640845186fc64494e1e8a887d671097ef13965cb2b030c907887006aeefbc190",
+        "byte-receiver-renamed/commands.json": "8d89d1f8a376845a9b7ad86e3da67b0ad80121f6a39e6287e8b522a544eb1f1c",
+        "byte-receiver-renamed/runtime.json": "9a1cccac8c2bfa8ba5639c5a26fcb2afc28c56f340582e31ca4fd57653ade97e",
+        "byte-receiver-renamed/workspace/moved/customer.py": "8ea5734adf29cd7b8cfb6f50200694d51737ae4effc8322460c2c95b0073bfa1",
+        "byte-receiver-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "byte-receiver",
+      "renamed": true
+    },
+    {
+      "directory": "annotation-only-original",
+      "files": {
+        "annotation-only-original/analysis.json": "57855f33ccaac1f5e69f25f7b2b202b3b0292d20026efc5874f0aabc88d4ec15",
+        "annotation-only-original/commands.json": "cc1f9496dc90882edf0a96cc680d21ec0a23b9e8fbd166bf05e666512b10b1fd",
+        "annotation-only-original/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "annotation-only-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "annotation-only-original/workspace/subject.py": "a56165ed44023d568e6dc211b3ee702802a53714df8beeae1b937f541383a473"
+      },
+      "id": "annotation-only",
+      "renamed": false
+    },
+    {
+      "directory": "annotation-only-renamed",
+      "files": {
+        "annotation-only-renamed/analysis.json": "4b9c8761920f85cc0b47e593dac6b0187f0cfd761c5d38b0895fa38ed1d48fb8",
+        "annotation-only-renamed/commands.json": "d5c980b59961bf4c1d891442cc4cc0d20f4cec85c13cca56daced60241d6efd6",
+        "annotation-only-renamed/runtime.json": "b71ecdf7fe274f147385a117852953fd69ccc08ecb91d99e838eea36eade7e42",
+        "annotation-only-renamed/workspace/moved/customer.py": "ba6ce52fc310cebe4e106246af1e5ba1c656bf778f2ef02cd9def2a84197b183",
+        "annotation-only-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "annotation-only",
+      "renamed": true
+    },
+    {
+      "directory": "regular-expression-call-original",
+      "files": {
+        "regular-expression-call-original/analysis.json": "25c91e96849389035f6503edb6b7c552ea3ba476558ee2e4115cbca1720f0cc9",
+        "regular-expression-call-original/commands.json": "a574399650197d3349eaebba68f21d470c8ca6876f4b444e5b06d90e3a1ec5ef",
+        "regular-expression-call-original/runtime.json": "da537c137c5ed37403d4bce3d8171dc567d467cdaa77b4f84d26afd471ddcc1f",
+        "regular-expression-call-original/workspace/rules.json": "24a8f410c9a569169c9465a9058edc4b647646af82f1bc70e52d35c71c0c9eff",
+        "regular-expression-call-original/workspace/subject.py": "d5334e9bbc4d576db7777d885065130607cb0498e6ff7a49b07db93fb2257719"
+      },
+      "id": "regular-expression-call",
+      "renamed": false
+    },
+    {
+      "directory": "regular-expression-call-renamed",
+      "files": {
+        "regular-expression-call-renamed/analysis.json": "84c9717ca27fe918e8d86245f002a5fa5141ca235c2658e54926ff2f75317ef7",
+        "regular-expression-call-renamed/commands.json": "3788787820ccefc8960a8b0e7fc22d2fb6d6e7683057131ee981c7800d10990d",
+        "regular-expression-call-renamed/runtime.json": "da537c137c5ed37403d4bce3d8171dc567d467cdaa77b4f84d26afd471ddcc1f",
+        "regular-expression-call-renamed/workspace/moved/customer.py": "825df38558b0dc477a1000c638d8b84dad2778c79d5e3e6c4ec0befea9f03fea",
+        "regular-expression-call-renamed/workspace/rules.json": "486e178d2be632721cfadb72b7554b989c75fd6602204dffc3362823f570d651"
+      },
+      "id": "regular-expression-call",
+      "renamed": true
+    }
+  ],
+  "live_model_calls": 0,
+  "passed": true,
+  "python": "3.14.8 (main, Oct  1 2026, 02:39:56) [GCC 15.2.0]",
+  "schema": "fr-python-text-flow",
+  "source_bindings": {
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c",
+    "Cargo.toml": "78818ef230ff5bc97730adb4989d337a61ec845cf68829b73ac47b6aae5a25b0",
+    "build.rs": "fbc7532ae16feb25a29a5e2d15402d25e648271a1863b5b1191d127955599547",
+    "catalogs/bash.yaml": "a97b84882bbf395767f1fc293ed65939aa671045d947f0a11cf78dd17824b30e",
+    "catalogs/docs.yaml": "5b76ecae7f729633c2416a67a68dc7edd4b8ee9f59f81f7ce497f56ef5e49836",
+    "catalogs/go.yaml": "040797dd89a58ee8b76d1abf57e9a458b247066f24d06275cec59310295ed722",
+    "catalogs/infra.yaml": "c34459674643199d61bc475b4a665bd831e800066e3bbfbeb663423dc15d10b6",
+    "catalogs/java.yaml": "0774d5ae6a3aa7ea3126f798073d6dc1235b9cadbba5f4a3f42cc6b32d788cc1",
+    "catalogs/markup.yaml": "cde16dd818bf88118194862ee90e102401096c4f31bf28e78dff4efd1725e18f",
+    "catalogs/python.yaml": "0aad6f64c686cf1598c93094d8eb9fb2325c4b2499467d718c02b4b8866b334d",
+    "catalogs/rust.yaml": "aa1bdf93a145c03ffcc997e88cbcc360d593f466a7769325d07198b4ea2b6509",
+    "catalogs/typescript.yaml": "1681f576c42910d5f57cc8836ca4032205230c9afffca66d7f2b9271489b8c9b",
+    "catalogs/zig.yaml": "56b0c1e1648c8db6d31a60daf7fc3106ef2826f32ca63973fc4bb5529f81494c",
+    "crates/tree-sitter-language/Cargo.toml": "d12216aff8d6538699bc2d841474f9da86009b07fee6351acd88ff41e1781909",
+    "crates/tree-sitter-language/LICENSE": "c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78",
+    "crates/tree-sitter-language/README.md": "388361bda25f07df1c5eedde7c23027f972189510fd5ad8d1230a9820207e3de",
+    "crates/tree-sitter-language/build.rs": "ea55107a4ccda455612de8f025bb910b8cc1f5bf09bcfd8ae59e86d2b497a421",
+    "crates/tree-sitter-language/src/language.rs": "31f9bf0eda7aaaace237d859e6fe01efd12934e41601abe0de2bb6e8307951c5",
+    "crates/tree-sitter-language/wasm/compat/stdio.c": "4b92ad8e060982ead7e57a9253d73e7035e58586f9d9c18b72d0bc772a72dc5f",
+    "crates/tree-sitter-language/wasm/compat/stdlib.c": "4b92ad8e060982ead7e57a9253d73e7035e58586f9d9c18b72d0bc772a72dc5f",
+    "crates/tree-sitter-language/wasm/compat/string.c": "4b92ad8e060982ead7e57a9253d73e7035e58586f9d9c18b72d0bc772a72dc5f",
+    "crates/tree-sitter-language/wasm/include/assert.h": "4df5e9b34df394ea131ae5ad246aa1703090477ff1a9c67084339214cabe5bfe",
+    "crates/tree-sitter-language/wasm/include/ctype.h": "8109d886e1dc98450a897c9911962382a29207d9fdf4e72c8b825ca216642ba5",
+    "crates/tree-sitter-language/wasm/include/endian.h": "52cc59248a872db52986b1047f89eecccfc966f9efd9c202b5139d6bb507b35a",
+    "crates/tree-sitter-language/wasm/include/inttypes.h": "b40be70f423069f4268d062d3e74ac2f9095afb175f09116bf6ecb360d52ba55",
+    "crates/tree-sitter-language/wasm/include/stdint.h": "307a58c354ddd4f7a3c4818fa3102ca96d0892965458457c9974bc5ab0769c65",
+    "crates/tree-sitter-language/wasm/include/stdio.h": "aabed2e01d5c17934c57fddc4717d462c609edb9054a0d818c6241c3f6f55477",
+    "crates/tree-sitter-language/wasm/include/stdlib.h": "7301c6e6528393e0089b9ffa59c65bc59c066f5eee94971a87afe640c6bcd6a6",
+    "crates/tree-sitter-language/wasm/include/string.h": "a4869445bb2ec1dc667022e1a61df6264ff07ea0498fc1676a7a67ad927aeeca",
+    "crates/tree-sitter-language/wasm/include/wchar.h": "812383781e5219f4e0b9b09a68c74bd7ff2662f00e8a8b4e0f5d64a3d6b551e6",
+    "crates/tree-sitter-language/wasm/include/wctype.h": "14e2bf21e0ec6b76764618adbefdd5f0d0330ed9a1a64c27f2733690c46105b6",
+    "crates/wasm-libc/Cargo.toml": "35d537a6dea7fc524ce4bfb9bea471e84e6604cb77c83232e80d3985a0b72502",
+    "crates/wasm-libc/src/lib.rs": "cd5cb20eb0153eefc1c42d6381f0d97a64049a5f0dfc0eebd608d6d87bc17e7d",
+    "docs/check-language-behavior.md": "bd8356e1f3fd6e1874125a65d64e68924713e04807fa4f1ac43ef33038423fb9",
+    "grammars/README.md": "9ce885bb6d495b78717d1e1f82e59e6e3f01133d63a3aa83127702957a571d03",
+    "grammars/go/Cargo.toml": "dbbf8e888efd62ba1f69ebb92168df7f11307bbd706c53487d953f66c0a7d9d4",
+    "grammars/go/LICENSE": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1",
+    "grammars/go/PROVENANCE.toml": "541b304a2327bd8f713b47b8d37f1bd62b106952897e2fa9c4aeedf4435b5f7d",
+    "grammars/go/build.rs": "90657878e45b5ffd30ff83e06db8c3989f1d75013151a27cf076bc021aab50fa",
+    "grammars/go/grammar.js": "52e5517b89c238723ce24b75dab97f6ed553bfdb18872c584f86de31bc491444",
+    "grammars/go/queries/highlights.scm": "81182c986547eba7fa6316e82dfd621fb13b8fc89efac85432aee51a48ed0896",
+    "grammars/go/queries/tags.scm": "d1a9b1f678fe0278b85054e2dc56a28ef26aa478b8c88fb2b0dd83cdcdb9db35",
+    "grammars/go/src/lib.rs": "9965e1847feb22fe1816ac7d954aae95d65d0d3754f6af4b2dbca3a348e48e0c",
+    "grammars/go/src/parser.c": "d429e41fb0504b2d27c295761e99396d7bd0a99096285443a5606e219a221984",
+    "grammars/go/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/go/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/go/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/go/user-defined-new.patch": "d9d61312256ed58d226660153ea5d295f3557b2565fe542171df40d578cdc3bc",
+    "grammars/lean/Cargo.toml": "299304c5d49349f15c2379163baf60c45e92544b3a479183639c72b445379781",
+    "grammars/lean/PROVENANCE.toml": "b450b9a450727085c8c4a444e88802d4c7282febe7a5e446fe499b295cf3ed79",
+    "grammars/lean/build.rs": "757e3d76f59aac4662856f85d5b6136bde225a9c8c1bd3843dd6c6032af91cb0",
+    "grammars/lean/grammar.js": "fd79a3468eae7629248429e2376ba1156a9125aa62f9de7868640140feb9009b",
+    "grammars/lean/src/grammar.json": "ab2c5d5c8b2b2d9daf8ab7cfdeb4ec7d74a219b1165f606f84942ae89a2a8c95",
+    "grammars/lean/src/lib.rs": "78f8f57baf30ec43867612f050205e68c4c889007616aad4bd6a9c68d0b751e5",
+    "grammars/lean/src/node-types.json": "6db21ad2e25c23edb910887f82c20df5348f36177360963dc1ae29adf013a321",
+    "grammars/lean/src/parser.c": "2eaeec4c960ef5005b1a08ba7b93580bd72474c5d58ad716243bb7e6867c5570",
+    "grammars/lean/src/scanner.c": "9c6c5d687655a45575a929855b3fa025a2aeceb1212a3968e5a63f5c807a98a7",
+    "grammars/lean/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/lean/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/lean/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/lean/tests/layout.c": "7e2564d6bb599ccc69a8f63114713780075855914d74fd6d6ff18bfeacb960ac",
+    "grammars/lean/tree-sitter.json": "9b8c65524ff36a6ccb70ee4b33df9205bab5b66e8f282d370fa0ce5454c58ae8",
+    "grammars/python/Cargo.toml": "3ac25dbbe080c8b25290e94c9d4e276237b37eacaab25d326bd902e01d88e23b",
+    "grammars/python/LICENSE": "d724405ce238a22c0d35769c5a36b386ad5958192efe8bbb304fb2896254575f",
+    "grammars/python/PROVENANCE.toml": "7c33e23f842dc7b099c2cc2c25a9b797126c6576b756d64672590b07756cc0ec",
+    "grammars/python/build.rs": "f5143b13e1b07009ecc6e00e5d25d2ad7f3dae09e4e1ba8a55940e0672b1c6fd",
+    "grammars/python/grammar.js": "7e16c91d49b8d37e20007db989f53aaf4d2e02f4bb76e4794efb3e9c40d5ecc5",
+    "grammars/python/queries/highlights.scm": "a6708f209381618e2b398972c8f1ccd892f0c064eab35a2a3f911c3e22e79a7e",
+    "grammars/python/queries/tags.scm": "d0f3e577878167bfabc30e526e497bce58d1699b9bcabf8ab3a50698efb5ca3e",
+    "grammars/python/src/lib.rs": "0345b0afccdad2eccb1f8fc48e2a0552c403bcdf6f05d40a41414a7addd4b015",
+    "grammars/python/src/parser.c": "cb82da843bda663553d64c21d468bb8fc1a348935a9b09ad40519a9d9ec579d4",
+    "grammars/python/src/scanner.c": "8668a0650df6dce5ee7a47f8d7dac4f5c30ed9176fe1704880f9cc488bf76268",
+    "grammars/python/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/python/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/python/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/python/star-expressions-and-type-defaults.patch": "cfb4aae98cb9431f7d85883905d6a730053506633925072e935fd1bc79f41dd9",
+    "grammars/sass/Cargo.toml": "2011a5cd73149718f20814d172fca66464678d85538eb969ff82569ac5726b0f",
+    "grammars/sass/LICENSE": "3956cf70c8f81282cd20a39910149eef2cbeb0c5204822540312c271661a7215",
+    "grammars/sass/PROVENANCE.toml": "c1eb19730caf585962eed1b182685f63ce950c344ad84302bfefaf80d28183d3",
+    "grammars/sass/build.rs": "93386272d0fd40d6ef1b7353751daea2bfb38f4742c4110e02a529f9ab662e38",
+    "grammars/sass/grammar.js": "f07745e3cd851c42e3dff51aa1a7c09ed9248b5a24ecf2b48c6eddc200eca6d6",
+    "grammars/sass/queries/highlights.scm": "25678b68d0e5eb32fc2c9e6ba01802ac732b025dd3e17148bfdb258c9d70a032",
+    "grammars/sass/queries/indents.scm": "0339e779dd81a2c9ef2fca4bf7cc9fa3b8bb4e4afb3f165235582625b94f4395",
+    "grammars/sass/queries/injections.scm": "8c4ec73b170df550f1dcf98b3eebbd57b54ec80901fb1a13551ae2a932fa8ec9",
+    "grammars/sass/queries/locals.scm": "67dd80f251cab18e3f0c8c091dbe943bf28ef81537ab434dd83786fe9bfc9524",
+    "grammars/sass/sass-the-grammar-could-not-read.patch": "b6241ca94f103e7fb2b0d4cbea981f4b2e2d02ebd2663b2a401e68ec1d4e337b",
+    "grammars/sass/src/lib.rs": "038a87c7727db810fa07943cc31fcdc2bc8c01581b46137cc584ccbc15476475",
+    "grammars/sass/src/parser.c": "ab8820afee3da0c831a47adfcefd452b0a40721d8b605041ff34fb596017ee20",
+    "grammars/sass/src/scanner.c": "9135f0a8727c15133ea2c4709b94b5c21b730bf9dfc9f479d39c4bd56331cc36",
+    "grammars/sass/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/sass/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/sass/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/scss/Cargo.toml": "ae40c76de3a3134c3cacb7ed4252068dbd0bcc02ef35f01a1d08aacf9c93c434",
+    "grammars/scss/LICENSE": "0eea8dc45e89deeb03c7799bbbc7b4688f365fb274562f4540ecfebdea82e727",
+    "grammars/scss/PROVENANCE.toml": "9e3f264b315afa14a1f764efbb1da5b0772e4db2dd120435c417311fa4751677",
+    "grammars/scss/build.rs": "4867dde553e84e5ab1bd254b236cefd5022404cc3e15b5e230c0702ce9470c1a",
+    "grammars/scss/grammar.js": "9f6fb8b12bfaa1783e02ac96335b88574a5c63f6a3b234f0a9ae04337f1889c3",
+    "grammars/scss/queries/highlights.scm": "62cbbbbac283ccbb259144f2f44a0c1cebaa6726ba84751aa3a071a7acb1c644",
+    "grammars/scss/sass-the-grammar-could-not-read.patch": "d526f5b6d5a7efd00d89ebefcd8c0a50aeec5b784f46d7ed4fa401c2238a18f9",
+    "grammars/scss/src/lib.rs": "fe4be4023ed58888ec734a35b8ea5b22deaa889fc8076c84f0bb374bbf207647",
+    "grammars/scss/src/parser.c": "ecc36fb9b922c81bf8b46d6087f41e6a393072a185aa67daf38d6dd0ccb3b01d",
+    "grammars/scss/src/scanner.c": "148c358f5eabca98283ea5e8f0312999471393ee71c14e7c7c527f5927b16215",
+    "grammars/scss/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/scss/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/scss/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/typescript/Cargo.toml": "a9cc0e5a434e72a5445b14a3b2e30326e6ca319da3afe51f48171c76184d10f6",
+    "grammars/typescript/LICENSE": "49bf33cf78ef5897e4e161ce1517df7de1ae5042a65b6bcfd44401e0fc606559",
+    "grammars/typescript/PROVENANCE.toml": "6f360b0ab6a541d792ed06ac79a6d20381b3e773c6a2467151ae1b6b9787a5ac",
+    "grammars/typescript/build.rs": "16d8601b6fdb6b884085a3d1293b2d629a600c9be822c720bc7d816fb9bbab4e",
+    "grammars/typescript/common/define-grammar.js": "5ef161377d48850b6f6342ad8d1ea7e75435ce7b19926a65c2fa121152d4371d",
+    "grammars/typescript/common/scanner.h": "78b959ab92c694c33499f0acbdc341174756347cd594df7d75287e58cc3661c0",
+    "grammars/typescript/import-types-and-a-property-called-in.patch": "959e6c03cf80c353ef7dd0b41e1864ab46894ebd778c71221905491bfe98334b",
+    "grammars/typescript/queries/highlights.scm": "e0c35adb819127bfd4f853fac5419e7d8ba44760246201d04a4a5ce0228a10c5",
+    "grammars/typescript/queries/locals.scm": "c3680f9b56276fb2ccc9f1d5f4d03dbca5d64bdf3e6d52ce5a4ad342cec162d5",
+    "grammars/typescript/queries/tags.scm": "b391288bcc71b513a5df7c9bb232d8bc7418d7e274b125aa0aa4bdd6121a0338",
+    "grammars/typescript/src/lib.rs": "6ba803a76953edcd952c3939d560edc75052f48b6c450a8be6274b8ecceba671",
+    "grammars/typescript/tsx/grammar.js": "19b7bc89bac1dfbb64e01ca15ca52345056028c2582d71762efd675af947a0f6",
+    "grammars/typescript/tsx/src/parser.c": "f0f7f8506d794409bf39a608f4c7e6b91042263018916b7c681d7af9e5e458fb",
+    "grammars/typescript/tsx/src/scanner.c": "d563cd30b2f39718c9ae4292795c5ce03a2ad01954ba3a86ef84c2781a736673",
+    "grammars/typescript/tsx/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/typescript/tsx/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/typescript/tsx/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/typescript/typescript/grammar.js": "7e4109889b2ce2731dde89f82f545a12f1e54a286f72bc874f1aed9965c5d5ae",
+    "grammars/typescript/typescript/src/parser.c": "262c934975cfc1d838d8b1f99a1e229a789642cfb1377cf4ff5db5d22de69e9e",
+    "grammars/typescript/typescript/src/scanner.c": "9125013b42cb888379d9be909f1d73dfb75a37626c2cdbf4122718a2b431a6d3",
+    "grammars/typescript/typescript/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/typescript/typescript/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/typescript/typescript/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "grammars/zig/Cargo.toml": "b77f4e9eb91f552209ff3aaa3e4bfcd4eeda7abdf9eb56ce56501ac86aedd7ab",
+    "grammars/zig/LICENSE": "0eea8dc45e89deeb03c7799bbbc7b4688f365fb274562f4540ecfebdea82e727",
+    "grammars/zig/PROVENANCE.toml": "8b73d3ed44d52ae7a1b6a4ff7002057c36863a9ce12e22039ce9a056f991a3dc",
+    "grammars/zig/build.rs": "4762fcaf51a2a30b4993e95634acc9067830ba52c497dde9ecf4c9a418b4f413",
+    "grammars/zig/empty-containers.patch": "c82b120709ebc3961505a7f69d18a5ae8509feb83ac1977845b72a7230430ce9",
+    "grammars/zig/grammar.js": "925893baab54f4a7d75d458fb4db82135718fd75cb0bd899e4c681e76c969345",
+    "grammars/zig/queries/folds.scm": "e27dc66370e7f2dc344fff86e5e85b9a01694703bfbbdb663ad3e13afdf91c3f",
+    "grammars/zig/queries/highlights.scm": "27a7ffc77086ec6394c04e59b42f0da4c9d3c294a0225bc155c80305ee54ca86",
+    "grammars/zig/queries/indents.scm": "e97fa8bd0cefb0bc1fafe4cacf3a4e715304067d4765c5995c2742b71840a755",
+    "grammars/zig/queries/injections.scm": "6c68bd360ae39e7e04e64ca647d925a0eae1dc9ce98de6088b8af34956f5c6a0",
+    "grammars/zig/src/lib.rs": "f085a9de76ebf3ac35b7a8641572a447ec23c20102705fd1406f7f0965e6d7d9",
+    "grammars/zig/src/parser.c": "e22773f3c2bb5eb95e0e5befa0b3d855e1ecef56da3e6f3a6473a7c42ebc4076",
+    "grammars/zig/src/tree_sitter/alloc.h": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea",
+    "grammars/zig/src/tree_sitter/array.h": "20e6ba85abb9d5b7e2e6dedf675c9424a057a06feee03aa3e2dd48a1cb4bf8a2",
+    "grammars/zig/src/tree_sitter/parser.h": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2",
+    "kernels/FrKernels/PureKernel.lean": "fcda61e4e0e22473960fe471f721f71194718944fa9dcf529b0cb4c5a3f6e952",
+    "native-source-inputs.txt": "69b6d8d7cc202746af2a35d3c43646d1db62c4f83532c5b8b81b2e4188333912",
+    "queries/README.md": "23b71491d3506273e39df2112cde7799b3cc3782f6fcb793a15f08f5166ccba9",
+    "queries/bash/facts.scm": "6f66d9cb90350d74722a8951a2465e08ca75a675f619a994dc8c78513d0eddfe",
+    "queries/css/facts.scm": "84d3d348f05443e582987bb19c0ec5833409f42d122ea8a3db9a71580f332c1b",
+    "queries/go/facts.scm": "f375d2ef40ad9a042bb72fa0b25860b13dec9b5c6ebdcc1a90e64a3cbf6064c8",
+    "queries/hcl/facts.scm": "aa585c284b7b4bf6beff22d8a630bb2cb63b2278de057c17b691823dff9490f3",
+    "queries/html/facts.scm": "7ca51758745bfc2c51f6d50c99a279fe31b3238ade58457b6057d165e575a5c5",
+    "queries/java/facts.scm": "b3db7b7f89a1e58adbfc4bf21977e16d83d56cf3a47f8429e0f9587134caf723",
+    "queries/json/facts.scm": "542d7f98abba5b734b61402ac6611a8bc132f599b9fc39e856b06dfa88bfafbc",
+    "queries/lean/facts.scm": "73d5c3a8d8fdac18f4a4c16382f9d0319bc59c1465692d24827f0ebd9d1481e8",
+    "queries/markdown/facts.scm": "0fbbae0622c85c66ee2e8475893f7760a2404696fe1e79a19b18ee4dafa961c3",
+    "queries/python/facts.scm": "60be9a38827c54e7933862c7a481b381d2e8c15cf23fb51cc8b9647e42547b58",
+    "queries/rust/facts.scm": "12f110e6283a3100127005ac187701b145199e9221d4206b17ed86f13100fcde",
+    "queries/sass/facts.scm": "db6c827cffae8fec85f1633124c375824c6f4f9e06ed06944a151333399ed833",
+    "queries/scss/facts.scm": "5196faccad75b98ee1565b47b442b7f3d2d152791bcb2bbe529309eded1fdb03",
+    "queries/typescript/facts.scm": "956952fef77f17886835058bfab5dd693904c08577b699b809531f23728f32b4",
+    "queries/xml/facts.scm": "1bdc4543a20ee3771efb936356c4e6c7758482341a99f5a65f0523000857700b",
+    "queries/yaml/facts.scm": "1ee133006ab6f882c12fd3785b4b45f93fd3a241532b739e5c377eb622a10686",
+    "queries/zig/facts.scm": "c41f6a7b09f398aa855312e8e3ea1178d2359dbfd42de574bad0999150475a1c",
+    "sdk/python/src/fr_ir/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sdk/python/src/fr_ir/_version.py": "ae32c7e3e5b7767747f81c02558e7bee9ffbf0a8bccce41ef8808d5d06ca42d1",
+    "sdk/python/src/fr_ir/application.py": "4643306ef6933c66dfc65f4bbb7b311f7c80163fba8d207ae4a6f7b0e52b63e1",
+    "sdk/python/src/fr_ir/change_scope.py": "b371ed95c715e184b5e9c567efa2b7255dd3e798cd8e9ee2a149346be2057fa2",
+    "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
+    "sdk/python/src/fr_ir/context.py": "8ab57704750885ebe673e96a9bc758000211e358b7f38a6fcb5e411f1804093a",
+    "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
+    "sdk/python/src/fr_ir/flow.py": "942721a3c7beb5cb97bf39c33e94f4637f9a7d44dcb9a4fd04b86fbaca82c9c5",
+    "sdk/python/src/fr_ir/flow_completion.py": "8e9a52d132e1037629179d19d879fe50c671f625a3dbaf9581de34f12a6817a5",
+    "sdk/python/src/fr_ir/flow_dependencies.py": "16bf1efc218fbd5546136e6224dc8591b4ddcd5f375fe0a7607a12e4ffd41663",
+    "sdk/python/src/fr_ir/flow_effects.py": "8e12a801ba5419d4658d5cde64f49a406701c8fb668173fa7f5627ba3f871c48",
+    "sdk/python/src/fr_ir/flow_facts.py": "894bb6c8820947fe6414868101902d145c710e923c6c1ea102d93f6b80399356",
+    "sdk/python/src/fr_ir/flow_import_explanation.py": "c12709ebbe219a33fbf7c04ea913235c3aa79489916a0bd763af1036cb31e649",
+    "sdk/python/src/fr_ir/flow_initialization.py": "05e82eb35a7131dcbe1acea587a3911f5dbda210d76c263cca8d803ef62d8d98",
+    "sdk/python/src/fr_ir/flow_standard_library.py": "4ae79670c2331ff0dd942c5aecaa48e05ebe38b7a758439b22978b0febba2b62",
+    "sdk/python/src/fr_ir/flow_startup.py": "1af41271e368f8094fd2db2704ddbd24116aab92502fde205a20342359f6a4ca",
+    "sdk/python/src/fr_ir/flow_storage.py": "26f30da34b1c4ec080d5a11b5ce56ac5afd068a2264c76752b61e43ba10e2317",
+    "sdk/python/src/fr_ir/flow_summaries.py": "ff0ae1dbadb4394581fe8aa1d5b6cecab588ac519e2d49ef2f36dbe9aac935f6",
+    "sdk/python/src/fr_ir/flow_together.py": "4dac68932b2d2b83dea802f5f1e9dc88f2c7389bfd2a7edb26a4c55679771df4",
+    "sdk/python/src/fr_ir/formal_kernel.py": "2e1fd2c35c304e68b215cb8ca9fb9801b7a560566d3b7bab332758717d6ff15b",
+    "sdk/python/src/fr_ir/guide.py": "6d7e5944b06b183fbceae2f2c356f26f06191f28203ae1576ed58371ebc002aa",
+    "sdk/python/src/fr_ir/http_store.py": "8762b2f4047cacc69ed3eb7f2df67b15b4c23251581a42b09c2b2e223f5f8334",
+    "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
+    "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c",
+    "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+    "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+    "sdk/python/src/fr_ir/investigation_delivery.py": "f1de9b084313cd842bf46e4695e7c82aa7cef257f0d533ab3a32bfa48bea6c7c",
+    "sdk/python/src/fr_ir/investigation_proofs.py": "9a18fbb5a66f8be86ffec294371ea479467363069643bcf272e344a2cbfff2c4",
+    "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
+    "sdk/python/src/fr_ir/ir.py": "0324e799a7380b33567a37a6f6fe917e523d8a4358e84eec7abac7378656d43a",
+    "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
+    "sdk/python/src/fr_ir/refinement.py": "9df833d3929935d9382ddf69f777416a14fcb7506f77e0c8365451a41c5bf183",
+    "sdk/python/src/fr_ir/runtime.py": "44d6a13fdbf499cd743608d894543199a4e0dd8c2762d3b11677428ee87a3ee4",
+    "sdk/python/src/fr_ir/structural_change.py": "524340ec95b6fdd81ccb307ea41d769cc18d27f36596ed7baed175f73e1abe1e",
+    "sdk/python/tests/test_text_flow.py": "9aa05e4c558383921feb8699aef4b2e21a71664ffb4b3a90812facde84378129",
+    "src/analysis/call_graph.rs": "ded29ca9cc26f3a45061d4805a9ff3389b52fc890efea5d57be5a97902ea9a10",
+    "src/analysis/duplicates.rs": "c5aabe1993c83d20ae0e7414de24b8adb1afe2cac002d72f1546bd05badcb27f",
+    "src/analysis/entrypoints.rs": "1c3eece9411f069ca006314ae1609f3780441656baf03753bbd3b5820123e95b",
+    "src/analysis/flags.rs": "a54a471d432a9d4d94e73e52f8f1755a88adfeb243f93984ce748d614d9f3e60",
+    "src/analysis/flow.rs": "e8c1a91beafcf15bebf3abcc233b1328107c467986d4ab70f21896ec12bf4103",
+    "src/analysis/impact.rs": "147858b0dfb0f283fa4180fe9303d4831d547ec745a3f26b987112dd50f9c156",
+    "src/analysis/mod.rs": "51ff4ce74e2168df5259e198d68795373080217f23f213b76592a9fb9506307a",
+    "src/analysis/paths.rs": "cb2ae3de9cac83d2be537aeaf00a4fca24933805e00e7696c400241d449c46db",
+    "src/analysis/provenance.rs": "ca9ce7c5e35931c963d6cf040812be10c33d61ef6a20fba3c47bd057449891a2",
+    "src/analysis/stitch.rs": "88936f3dc3238fd00d1e8ff51e97f2e324228eb7d555e52e119be08811703229",
+    "src/analysis/types.rs": "a7fc0679c7941e59c97a94f34b662c13d5a660b7aed3653df475b23074206d39",
+    "src/application_ir.rs": "049a5cbcba0570fe161762e4a50908e84e567e1dda6c2ad03d3d5ba22fa6a199",
+    "src/application_ir/write.rs": "75cb829c2b4f78ecbe43989e7028b2b03763dbaf0525e468f2dad8a3aa5f2438",
+    "src/audit.rs": "49df8961be99d17ef62838de0f77dbe93ae3f6eac6bcb6c676cc2ff15e76f47b",
+    "src/cache.rs": "4a215ba6fb32f42e5235de16d1fa9f7b8e9549fa67a81b472a3ebb57c6eea4c5",
+    "src/capabilities.rs": "9b6a8d242da97517aa6d82755cb70c5ff92916f2db31015edf543104c9f0ab9e",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "src/checks/evidence.rs": "956f995a0a5f22a6441090fb39db7eb5d8f5863a6185f71036ec80c34e9705c4",
+    "src/cli.rs": "f0b81ee53486bdd91ea8c78cdb399c85c5f261fbae9340408459e641abe5e1ae",
+    "src/edit.rs": "8eff86284767243c591725d857f421901e4242578cbe1003319e766e641d78fb",
+    "src/edit/commit.rs": "300c2b0458e62e18b9e7bb65da7d2cfca4fd5bd1dd03d73acff5fbf8ae34960f",
+    "src/extract.rs": "46bb2629f6746eb3b864223009ca293a269d23bb93f33ee644a1de464fbd688c",
+    "src/extract/rust_cfg.rs": "3265cb124f9690bb12d2cf7a5e3701648298ae973ff59f1344c775071009fed7",
+    "src/formal_kernel.rs": "fffdd51aad515f6d88d94c04bf07888af7173401a6d37353d5e45a1a412d7032",
+    "src/git.rs": "da69da54dd6cc300b12bb989fe836fc31297200db5f7b8d501dca81ecedefe89",
+    "src/git/changes.rs": "17b5b8322ce4a2c1c4c04f847b58f860d0b36e3690cbcce2eb7835c8a837aeba",
+    "src/git/changes/records.rs": "a08896e5c7357ed4e31ade8efcab91f491167f59abf584f83b9b91eee57219c2",
+    "src/git/changes/records/tests.rs": "557239617f66699a321f2ee9f942c3909e1c0f93841e71673f948f3e3dea0bac",
+    "src/git/commit.rs": "874e403ce49d381261b631065dba56077d8b8c187a390fb657ecd33657e41e8b",
+    "src/git/commit/host.rs": "7dbf7df50e9829b1e95eb9ac7c5ceea7cc2e583076863cfa4b24a5fa93d42316",
+    "src/git/commit/publish.rs": "9ed6ac2aeb499f51c3766bd6cc7bc5dd1d5cae53cdbbc958f2b4df2f38c2868f",
+    "src/git/diff.rs": "e7f8985cb6cef48ec8a9c5403287b7c532061a16dea6485b429ed881c4273c1e",
+    "src/git/diff/patch.rs": "198aab1db8e6dcfde38aa56f0d3f266d6c2257b88534e98caacf67fc058f62b4",
+    "src/git/diff/patch/tests.rs": "65f04f2de3bd8ea9dd4055a5c14d61b3ffa68ab52dde85774007ac52ff45a906",
+    "src/git/diff/symbols.rs": "9ea4076222681e0d1549fd8dd3a83968773135b346deb2062ffb9b6eba90b0cc",
+    "src/git/diff/symbols/calls.rs": "273887a29c55168eda301b4f0d6e325d05ccae709c62929eb57bf7722c83c77d",
+    "src/git/diff/symbols/context.rs": "1e0c2c937dc38932206b499926f8ec695d69f5084e6bd72ba41f50564a1e22b6",
+    "src/git/process.rs": "cb896747625628e1ce1e3cf89654c48960443e57f889bbda94dfd4615ba4a45a",
+    "src/git/snapshot.rs": "c8b6553d7563c055839dd7829367fd39b465c1ff2a2d0c326c3c16df944811a0",
+    "src/git/stage.rs": "c3546684596896271b155cc5620ce310593781889cbbe9484e95dffc53dc839c",
+    "src/git/stage/apply.rs": "88c38f09a31dfa63ab63b9427355974f8caa2cfeb217589e4133825360c38225",
+    "src/git/stage/journal.rs": "5a7b458286f6178182be9b0307a15ee3d6119d37a20ce5d86d7863d03f2ac23d",
+    "src/git/status.rs": "382fa4aadfc02a8ef3a8646d9c422b31ae39482c17e6e8954573de6a2fec4ff1",
+    "src/git/status/tests.rs": "7ade77ed3a59b9c01c663c05c8d81a61f1e696f28e2738c80d3705f165e9478f",
+    "src/git/worktree.rs": "5e5874dda357352eda1c1cceb9286fb764a07d980165d99ec39abb076e05d971",
+    "src/git/worktree/create.rs": "8f93b6ac0072bd1cc0c81e28a73a06d955a5a6ff073dfd08fc0ab469e2c3ddff",
+    "src/git/worktree/create/branch.rs": "abbddaca11f72947f646098776f136606c1ba842e6f670dcd6dafb09568cb663",
+    "src/git/worktree/create/checkout.rs": "b5b0b4b1a143b4780042b6369b58b040f40e80098adf82d3bb6fd13db4e84350",
+    "src/git/worktree/create/ownership.rs": "d63e6d2731362afe4407ca15fc3a256b50638163c21cb7eaad145a7e99a9bd40",
+    "src/git/worktree/create/preparation.rs": "d2bd1bb6f15078c14102aeb8931ad2ada83d8a3e007cf4aeaa7af9b7326906ac",
+    "src/git/worktree/create/recovery.rs": "687272b626b6de39bd5e1c3417b4e446ed5d744a6c4c67413a8dc114a6426807",
+    "src/git/worktree/create/removal.rs": "cafb1fdd18a88199f09a8aa00c04bf91eacb01d5170fd874b8927c83c43fc868",
+    "src/git/worktree/create/removal/compact.rs": "e8fbe128078bdc9018a6f2f70b037c5d31f21e5f36fb13b6df69ffaba0a2718e",
+    "src/git/worktree/create/removal/compact/bulk.rs": "ba9bb2c9657299345717e105ba4ce34eb13ad79f96822048c084dc75bb366dc5",
+    "src/git/worktree/create/removal/compact/summary.rs": "e89e5ca6e2b916fc4ea9f86871458c3bf5822be33b7e63090fcdf24e36a8c559",
+    "src/git/worktree/create/removal/resume.rs": "aefa4a66c378000f1f49c0a763af71c8b7ed555bb9280834ba6a5f9213382cf8",
+    "src/git/worktree/create/removal/resume/inspect.rs": "1380f9e08150c13fe4f9e76ea534d75b1ec48aed4dbfeada1300e7c778204021",
+    "src/git/worktree/create/removal/resume/record.rs": "4dc19669df8a5041e14f0493ca986b213c746c5f6f695263f8f238c465135bc9",
+    "src/git/worktree/create/removal/reversal.rs": "622b53aa1fbf01fe5b4d00ccdce78463892640a956fb3aa06afea2103a57e5ee",
+    "src/git/worktree/records.rs": "607e2498d8011d91d994e0a49afb000989d17136468255682824f01f438bd87c",
+    "src/git/worktree/records/tests.rs": "89d41697e4c7eb59fcb6efe0d375ae84968587682a61f5bb4715609fd1204884",
+    "src/git_patch.rs": "f5ddec5b9c7ee8e9b92aaf9aa8ce413a97c5820cf72501ab686518a5e4747835",
+    "src/helm.rs": "b32696d491bdaec2db855aeafec15930a8be8b6dcf842c108e34047d07ffb715",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/history/failure.rs": "cff93ca07a547c2c1120ef1ba165048210e8a18f024e67aa1221f7d36195f8ba",
+    "src/history/files.rs": "3c57a31a5c8f657e49c8e65e295cc8a42754d823ae20056e270499a0b4d1657e",
+    "src/history/host.rs": "531271f88fee6251671ac472a44815967a2625036b0e39843fc838114c9d89a9",
+    "src/history/host/tests.rs": "34d885ad96ad601db38a1a09bc0d79b8c744d3dfbe2ff5c0e4d47026f45f05a5",
+    "src/history/patch.rs": "985a9ad10e1823e37052c13e479b593784c9e7adcadd7c009d126cd1bd038ac1",
+    "src/history/patch/check.rs": "9119c3f6218f5502c586c786487ca2d5671d036e02dd44396ea750087740f72b",
+    "src/history/patch/git.rs": "4d11c56dbc74624792b413ecfd6e36adbd2d5d15d537dce5b13008c50bbaef2f",
+    "src/history/patch/tests.rs": "13ce5cdfb7a81ef262992711844a11514ccda1ffb4002db198f50b512c0ab7c5",
+    "src/index.rs": "95ad0bce362d91cf4b383086c6c37efca9735d3b7470026dbd6a71f2761231fa",
+    "src/index/references.rs": "c1fbb6754a0744eb8b57673b36f03a1c71fadd384bb1e45c739242fad044c038",
+    "src/lang.rs": "20b277b85274d049a50b0a58484d4581b9a4ebaebd5fff2b5266ba9ef7d532a2",
+    "src/lib.rs": "fdece301b16d8e9f5a05f76fe91d8c4cd1902befe6a85e4f88d0363834baee96",
+    "src/main.rs": "46f8cde4200e6e8c9a86f45dc953d27e8cc717631d16dbf405194ca03624b0af",
+    "src/memory_history.rs": "b593bc3fd56cd8456208ac6711e23cc008040a28aeeb45ab86fcb7502bfb3030",
+    "src/mentions.rs": "aaf62bff1667c6b6e6d101a7b0b1acae1a7151d2ea85686c1f8c73fea6f67f79",
+    "src/model.rs": "15b15b46e5b9145e096ff230cf3e9be8f183189c39143daecbba115d9a166f76",
+    "src/native_fingerprint.rs": "5a0d7bd6a5e330c462ed44349f96575657ae78aa463824a5fd102ca93eee3fab",
+    "src/navigate.rs": "429aa63892a7ab1b7da9baa581cf957a0419c2fdf4a85ad742e82becbe31e25b",
+    "src/openapi.rs": "838ea1d994160a5c5aad06dc6b66583610198cccf7d44b529b7bbd7a7239a9c3",
+    "src/parse.rs": "0350455e231b482f63f56569d930f8f7004ed5a5411ae56861df53db68cc9a7b",
+    "src/project.rs": "dcd8e0df9f6a9d661e6c5221b6f28b712fbb48c4c191fd2878e542e5c9c0067d",
+    "src/project/agent_actions.rs": "db15568a1fbd14c9cb037334e7d742df27e93db857c6980ff5e72f32c6e73996",
+    "src/project/agent_guide.rs": "fd2fcf87fa924bdd082942f527c186724b980fa1b9e25b3545992b2ca3de496f",
+    "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
+    "src/project/application.rs": "51f197d8e54ab91e5a1a6677a7185d45676f85341aadfd704bae4ae2c3c2424e",
+    "src/project/application/normalize.rs": "00210ebd84314f73e99fb4ccc077c5b5e98b3e65058a94eb688c2cb0bdcd976b",
+    "src/project/author.rs": "14dc59a1ec5c1836e504b68653ca5a963911c4f62f4f98db0b9a3550ce1040b2",
+    "src/project/batch.rs": "ac2004157090f314b78ec23daba63b7612968b661a5c157ad9a8e369fadad4ff",
+    "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
+    "src/project/change_scope.rs": "c0ec5d8d8532cb3785ef78873ba9f34b4a3fd3687002959adda3be33356521e6",
+    "src/project/compiler_diagnostics.rs": "ab42190bcd826b719b0826acbd545b5cd9a53f2f357f21313fc5ad3aa65fe690",
+    "src/project/compiler_evidence.rs": "9be19cb405aae7d789b5af71991e09a4ffe67340e5b3aeebb7b263255295a34d",
+    "src/project/components.rs": "a2eeff6d15d02a18ffc1af4767286ae2cb47eb5c1e3ada5575f3f098d3430a26",
+    "src/project/configuration.rs": "a456af693510b386edc03e9c9be395c044ac1e88b074feb59c0894ddbeb5cabd",
+    "src/project/context.rs": "a6241a80fb3fc9345e8c7bb4f002803bf75eab8241ee97f6200b098a0f14e824",
+    "src/project/contracts.rs": "fadff617fcc437b92ca8bf930312491427c60fd84b54b08a2823d3274fd728e5",
+    "src/project/control_flow.rs": "54ced7b96d22258d11bf35a5bcf47fe7f0e71b50985804bc91cbde9eb188ca4d",
+    "src/project/correspondence.rs": "737711b97ba57035126fea8b37284c1d9f8cc0294a106ac95773c6490a31bad3",
+    "src/project/dataflow.rs": "76045a2ef25b8d3b9b0e91ab6f741bbdd0ff52aa61453e9ca928fe11a3c656a0",
+    "src/project/diagrams.rs": "8b8b7ac65d345a8a3734d2871cef7c846c57d346dc66b4a3c76a542c727a4aa1",
+    "src/project/digest.rs": "48f779a38612b41c03113aaf014730efb861da82a832834231b3bd21e7408a2e",
+    "src/project/digest_tests.rs": "8dbd709bfe5ab89b69155172a1a6715940ea95237c0b6e09280ff52cb6ff20ba",
+    "src/project/disclose.rs": "f25455412ee9d13654a05f091941ff75b4bb993428fd769287ea4ff15e6b076e",
+    "src/project/evidence.rs": "b249b215cdcf80698e5d7b31a47014745fe7fa25db8f719917b99560058399df",
+    "src/project/explore.rs": "3d8606d1a1db3ff57aa372d66424668e85f68ab2650d762bff47104c19422468",
+    "src/project/fast_routes.rs": "a3f7eb49b4dc0f6c8dc4623fea3ce36ae8adc122ba9b7c26612a0c96b4640773",
+    "src/project/features.rs": "6e0574599de5d3cf2aeae17f612ee2f23ba1f4bc61891efdef7482564e9d510c",
+    "src/project/features/boundaries.rs": "a0d78ee361e68072f26e63162bd2fbe307efdc65044379232f22c0ef602bea10",
+    "src/project/features/component_facts.rs": "9d0a30552fe5007395671faa88c98545c2716efeb26013e326f3b7ee64555c1a",
+    "src/project/find.rs": "af15fbf5dcaba69164a4551419266244a83ea7e0020b8ad6dc6f5f36db12ff5a",
+    "src/project/flow_assignments.rs": "e44cbf87b3da1b14bbda78c62eab142a095253ad51de373c5b2968e86b7cab4e",
+    "src/project/flow_cache.rs": "186a193584ff134e04cbd41b957963528a4839d1555327077fa6bdbf344c62ea",
+    "src/project/flow_calls.rs": "f2788cb024dede61a00b4021c71fc6a96281d120b2c6ac5d9f22e8a9f1676c5e",
+    "src/project/flow_completion.rs": "e31b1bb8f30ad386d6278a6c3f45e0fcf1b73d23f09efdec01214db76300b357",
+    "src/project/flow_effects.rs": "5788fe5f8133f5405dbffa3286bed8e0e6fe8bde7427e05e12af79ffcea79d13",
+    "src/project/flow_exceptions.rs": "7fd07fc0aafa1cc39f2d28aa2a86640e371f8b12451e73d643a94c10e295167e",
+    "src/project/flow_expressions.rs": "bc9cbbfcfa8d70264b7e1956efc600f134d8caaad1c1939bf60d2db68546db74",
+    "src/project/flow_fact_origins.rs": "e58c1814c1c31d0d56f97e3818ce0d9da27feecf761b211f0410f3439a2e326d",
+    "src/project/flow_facts.rs": "34e9169c5598b1ffef47b1032c7d48ac99cbcf46c144390e503f03df43757011",
+    "src/project/flow_import_order.rs": "e2b36a8ae3d0a8f4b2158c4e9b15d479363e866e2e53b6efebea26029b71348a",
+    "src/project/flow_initializers.rs": "b4ce3009a1c7285c063290181cc401975aea21d2a7db026d40595199d93dbd09",
+    "src/project/flow_modules.rs": "e787c58617972550221a8e0428c6254b4076cbc1aaa12635fb6508b46a2bdba9",
+    "src/project/flow_standard_library.rs": "05f0affd9f56ca6b8ea3d6a601defafc87985efc5308ea527051b50e8357f5ec",
+    "src/project/flow_startup.rs": "2760e183be63854be8f0621caf1e2a70ad2e8dca23d8c160f01e00ad5837a28a",
+    "src/project/flow_summaries.rs": "19ac97223d21b3d0c0f13d2fc8f4ace25bcd91bc8d3589336374fcd315a19b59",
+    "src/project/flow_text.rs": "ab911bbbb1d472ff8fa6416cd7450c09e8bac66261747892311ed690097f7ef9",
+    "src/project/framework_kernel.rs": "ede78ffd9f3158380a84d6e5e1c147749eadedcd4db24430838395a36f9dcb35",
+    "src/project/investigation.rs": "c8b394c758636a8a738ce55813fa2499ce234dc18f8e7c8a82243ba39f557117",
+    "src/project/links.rs": "cacee905ffb0814443214618334817cb9cbe96afd3893fcbb30858d3caf66484",
+    "src/project/links/patterns.rs": "e2dca5e731fd281a8804add375b04c3e19a75f8325b347f532a2cfd47c94ffa3",
+    "src/project/links/workspaces.rs": "d133bbdbede5112f2430a098f9c8865e00d4b723516e5cd8d9478d27848c0360",
+    "src/project/lockfiles.rs": "de81ae3b8c1c0089ea9a7cffa8af2f24c52b3b74108d267cbfb21489dbda648b",
+    "src/project/manifests.rs": "9ae628c3c499442f758a877fa0951ff1f50b51f687123a033436c18cde18e012",
+    "src/project/migration.rs": "d4e408c0eb95b7f4bd6d8d4939bcbe2a4e225222eb67b6a117a501d39128c6b4",
+    "src/project/next_routes.rs": "0640c4975b85cb865136fb50b36ce28aff85a74161a5fe95c7330e4d8f39a948",
+    "src/project/occurrence.rs": "82abfedebd940f7a2267cc2f15f37aa0276f175dc44cc1eed5a50cd4798bce43",
+    "src/project/package_features.rs": "57e7b0cdf75c5e74e17acd207b32709bc9bb687db97b436c035e403c82ba3022",
+    "src/project/python_standard_modules.txt": "d566d3f7ccca2afddbade52d5b5afb71254a383076b78a995dcbc9430b422eb7",
+    "src/project/relationships.rs": "af19c0256a4c269d9bded817f3803ac032e9b9eab1354f5f08a0ee2049976d25",
+    "src/project/routes.rs": "87601ab21322193b94ca2a966558c99c3359f9a3fd6300248720ff00e4fd7822",
+    "src/project/schemas.rs": "cf18b0ff294133d81e162bc6ebef349c6a4cbcb6c1726e3354f5b879a2a110ab",
+    "src/project/semantic.rs": "e188645dbc03a39451a74c15b7b312a3bc5f8ea78c87a6ddbc73d927cf5a47f0",
+    "src/project/semantic_change.rs": "e8bd3f2d720cb658e0c512d6385d082b4bf45709c40cc86ce225ef5e3f69c834",
+    "src/project/semantic_intent.rs": "18b1aaa8c914067f1b6fdef84aa15a6b13019c44f406f2d6e37ec1957f648efd",
+    "src/project/semantic_ir.rs": "eb904b923b03e90259e70deb55d387c6b24a9357e6797ac3310b66f380295b47",
+    "src/project/semantic_origins.rs": "b01cd4f816246352bf99b773b0d704ff13b1f9f7fef67bd2e56dd57d0afc324b",
+    "src/project/service_calls.rs": "768d3baecd0efa027b385512a8f757b8627755b969a3b9b39b2e7647ce9d46ff",
+    "src/project/structural_change.rs": "a80e3aa8aa49be76976413ed35cb008f0ef9ea4cde85e34ff5cf36c831b59e72",
+    "src/project/styles.rs": "0edbb426def84f88602158f49d7619374ad9c6d7c6a893aebb96b0ebf43f663e",
+    "src/project/surface_edit.rs": "04f05953960d7b00f0378d96dc66a3955887d2f063d81fb1dbd95d04bbbf97b0",
+    "src/project/surface_kernel.rs": "649f27043ee779f31df39225a12a191bd8cd2fcd9d72179ff231a49b9d51fac0",
+    "src/project/task.rs": "3e7189a9de020bc0983e6ee28a1d94f77b5e4cc256d6c62f100f66a8aa59c0d1",
+    "src/project/task_change.rs": "228f37e0df863d61d99dd11ee54ded9b0add4fb4dcef760d8202470f8717ff02",
+    "src/project/technologies.rs": "09961b19df2619dd8c31223fa9f8be5eb86428fcec81fdd23f5b5995124ae33e",
+    "src/project/tests.rs": "0b29b70566c7a282a5140fb0e4ab167fe9bc333af455a6a49192dcac0a4b30ce",
+    "src/recipe/format.rs": "84bff30e4ade4fc75337e4731a84c059f7c44cf11a4d1df62c9930b2340e5810",
+    "src/recipe/lex.rs": "d7cff6f45d7a47bc72620bfaaa40f390752861fd22435565247037dfe63f1933",
+    "src/recipe/mod.rs": "fb1977cfbab2ead79db5d24cacc08ec78c0f650a801e4ecfc3b28cb7a266869d",
+    "src/recipe/parse.rs": "9c27806e4f042757eda988ba7acc1be147c999955cab23e24fdb1a4ba1ccef85",
+    "src/recipe/run.rs": "2854ce833159747b3cd335ae55af16980dde0aadec542886bf8cb48c64b3f628",
+    "src/recipe/run_tests.rs": "2195a55422a6326885b13ac83e9efa8b47f484ca562c418deaee923567b45fbd",
+    "src/recipe/vocabulary.rs": "f0e3bd7de56a739bd7ed8234e9114f337b0eb6f2ac40961dee48a89675e2a96f",
+    "src/refactor/cascade.rs": "6bb58f627983ca9762d5a465d3d38014a9032aa21e931ec93aa2182d9ae0b023",
+    "src/refactor/delete.rs": "75629c5974ba2b590b487adf3e04c6dff82c9dd8f27f713f2428082128bfb62b",
+    "src/refactor/extract.rs": "895683b95f4da26a8e642b7ad60c284bbc054fcfc38137ad9ba1c6f637fa6acf",
+    "src/refactor/imports.rs": "9651005b9d793c5e87535b389ee79cc94b3acbdf765e23976d2ea653a3e6413d",
+    "src/refactor/inline.rs": "afd34f99ed0ce1b8684ee864e6673d149aa74fe84d6707ea6729b884bd142cbc",
+    "src/refactor/mod.rs": "8877fedf79997c07d1c5220ac32d2105786b81f751c8e5133714052f48fdfe87",
+    "src/refactor/move_symbol.rs": "4e12b8c4acba1ea6a53260101c7301497f840513d4b744a639af608902851138",
+    "src/refactor/rename.rs": "8f6c8c609489d7a28cb5a43c8f6c5ce7964e4b55ceeaf88b0d8a737c28b3da5b",
+    "src/refactor/restructure.rs": "1d991f0d6bb8ff29e8a204080ab4b624e7bb8e9d1300a1f6fcaa8b09b775224e",
+    "src/refactor/rewrite.rs": "06ce8dd37b0eda361d45587c17cc565e38943e9583c2c21984498eba4fa27ddf",
+    "src/refactor/signature.rs": "f42c3055038765f23b9dac4bc673a0c72fe803ca192e0fc3dda4695bbc3c7d0a",
+    "src/scan.rs": "329ff1a680ddb56fa0694ff0feb7e6f4835ae9a4c5cd0cf63f194f75d493b32d",
+    "src/span.rs": "b12451598b58f7e003a7aa136f397f22dc576d195de6fb230ca39423dbd6cd42",
+    "src/spec.rs": "2e411056c5ca7f71cea1ef06b13aa5248e0968959b78770fdc0142cbd4aae24f",
+    "src/spec/refinement.rs": "608e1d27a5dbd15ba1a656ee9166ccdf095ccfd777639047713abf96eb184e29",
+    "src/spec/retained.rs": "4b83be59812333f5186939fcfdc530d224afe070fe7b7bb759a0df0a877626ba",
+    "src/testing.rs": "2f92e26c410e29ffdff2fb09bfa23c2a32ba013ece00df4c0058daec61d1f6f3",
+    "src/transaction_kernel.rs": "594f9c99dbfe3bc75e803e12f96e59d74042cf4bb33a978e759a894342d58e67",
+    "src/translate.rs": "ab1f36ff436c3292190576d9752bc7bd5e691577597dbe4c8c330cf686484d74",
+    "src/transpile/fastapi.rs": "0d731dbabe6a2e334188ae4070ccbfebb124ae9eb90e32c2220cd1ca6c95fc82",
+    "src/transpile/ir.rs": "423e2912f312ff5ab387160d847e2443d54bf842ab97312832db1d9b92af83d7",
+    "src/transpile/mod.rs": "161c93152746fdfe93537dd1e481bc08e7d37b9e71f1d242915788ee7ee71265",
+    "src/transpile/nextjs.rs": "4fbf852f96e8bfb826e14a4d07e22392efc70b7b8b89cfed28897ee2be4dc3a3",
+    "src/transpile/normalize.rs": "423919c79c2ae1d28996c797edbb7fcc311326bcbca6fdacf0b07c84328ba948",
+    "src/transpile/read.rs": "844a3b8efe1fdd15641d07ae7805e338b7dbc79a28d4b8a3aedc31b28b485344",
+    "src/transpile/read/lean.rs": "d045c0ae8212935c7d751edeb2b1083e496fdedea97d3385f488421d598c99fe",
+    "src/transpile/routes.rs": "e9d3d6a8943691176586eb025fc516694641fe262b877aea633890018691176d",
+    "src/transpile/scaffold.rs": "c45ba184fdf66fb4d0eb03bda8446fb2f1b20414c95f41186957e4a5df6fc55f",
+    "src/transpile/tfjson.rs": "49d8c13dce1234420e13b4e4484b350b762b0c5a6ebbd51270c49bfbc12cee54",
+    "src/transpile/write.rs": "dc8d424d222ecc714c37d90d4f008b75f2ddad2519604bdfaeee89e6a2e0fe11",
+    "src/transpile/write/lean.rs": "5f41da887251f51e4bfc45851564d518ecfd70bb44bfc1792da1eb0d1f0800a3",
+    "src/vfs.rs": "ef6d70a78512c44275e15a022bc0a7475fa889b5693a8e8112f688db514a43f5",
+    "src/wasm.rs": "a1ec55e99176a5d0dc82cdee9f25d4d5784e769033bbfc970f0dd15f591458e9",
+    "src/workflow.rs": "c82050b9b6ffc50dd72cb13ce11163a9b3cac8238b7a1252456e30d113443957",
+    "tests/agent-eval/python-text-flow/cases.json": "68be8445f7c37173b164a228b16723b19719dca26ef0fb38584cc1cd55af9fd3",
+    "tests/agent-eval/python-text-flow/contract.json": "bf5e7f455b6b984ba364d08de0aa9d4c3f3ce4ea6f261f2eec830918e5f47502",
+    "tests/agent-eval/python-text-flow/selection.json": "7c3787684fb35571a687457aba04e06699855de0d3ada54529f44577fb39d870",
+    "tests/language_behavior.rs": "693f3bac9afc220c4b800599dd04ebe815be2579b9d90dfeff29db7f7e9e3d84",
+    "tools/evidence_basis.py": "dee41604bec803893589af6cee868f43504890603f5f4e2b0896dfca2a1443ff",
+    "tools/python-text-flow.py": "01a9b141959faa81a03e1ad40ad7328805538912dc0e25e6c49e3252aa3f1a16",
+    "tools/test-python-text-flow.py": "6fee5114c022a6fe8eed27ba180dcf4178e510690d5d69854e7b24ba8d310523"
+  },
+  "source_commit": "2344f0e78c43573510a3afdcce1449fab313c15a"
+}
