@@ -23,6 +23,13 @@ license = "MIT"
 generated_with = "tree-sitter-cli 0.27.0"
 
 [[patch]]
+subject = "named arguments in declaration attributes"
+rule = "attribute_entry"
+change = "retain parenthesized named arguments such as the since date of a deprecated declaration"
+accepts = ["@[deprecated replacement (since := \"2025-09-01\")] def oldName := replacement"]
+why = "the pinned division library uses dated deprecation attributes between its theorems; rejecting the metadata hid subsequent declarations"
+
+[[patch]]
 subject = "Unicode lambda arrows and branching obtain patterns"
 rule = "fun, tactic_have"
 change = "accept the mapsto spelling of a lambda arrow and alternatives in obtain bindings, including tuple branches"

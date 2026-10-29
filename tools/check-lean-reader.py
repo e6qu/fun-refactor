@@ -149,6 +149,18 @@ def check(binary, diagnostics):
                         failures.append(text + ': alternatives or following proof branches escaped their binding')
             if branches != {'unicodeLambda', 'obtainBranches', 'obtainTupleBranch', 'afterBranchSyntax'}:
                 failures.append(fixture + ': missing declarations after library branch syntax')
+            aliases = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is not None:
+                    text = ''.join(''.join(name.itertext()).split())
+                    if text in {'libraryReplacement', 'libraryAlias', 'afterAttributeSyntax'}:
+                        aliases.add(text)
+            if aliases != {'libraryReplacement', 'libraryAlias', 'afterAttributeSyntax'}:
+                failures.append(fixture + ': missing declarations after dated attributes')
+            if not any('since' in ''.join(node.itertext()) and '2025-09-01' in ''.join(node.itertext())
+                       for node in tree.findall('.//attribute_entry/named_argument')):
+                failures.append(fixture + ': missing named attribute argument')
         if fixture == 'lean-source-declarations.lean':
             expected = set(re.findall(r'(?m)^(?:def|theorem)\s+(\w+)', (ROOT / 'tests/fixtures' / fixture).read_text()))
             names = set()
@@ -172,6 +184,7 @@ def check(binary, diagnostics):
         ('subscript-name', 'def ₁bad : Nat := 0'),
         ('lambda-body', 'def bad : Nat → Nat := fun n ↦'),
         ('obtain-branch', 'theorem bad (h : True) : True := by obtain hp | := h'),
+        ('attribute-value', '@[deprecated replacement (since := )] def bad : Nat := 0'),
     ]:
         path = diagnostics / ('invalid-' + name + '.lean')
         path.write_text(source + '\n')

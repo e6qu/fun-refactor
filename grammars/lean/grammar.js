@@ -324,7 +324,7 @@ module.exports = grammar({
 
     attribute_entry: $ => seq(
       field('name', $._name),
-      repeat(field('arg', choice($.identifier, $.escaped_identifier, $.string, $.number))),
+      repeat(field('arg', choice($.identifier, $.escaped_identifier, $.string, $.number, $.named_argument))),
     ),
 
     // def/theorem/lemma/abbrev — name is required, no ambiguity with binders.

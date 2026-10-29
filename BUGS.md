@@ -8,7 +8,8 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 Fr misses integer-division theorems when reading Lean's installed library.
 For example, searching for `tdiv` finds its definition but misses later facts about nonnegative division.
 The reader rejects Unicode lambda arrows such as `fun n ↦ n` and branching bindings such as `obtain hp | hq := h`.
-A rejected lambda can also hide declarations that follow it. The next repair covers both forms and checks later declarations.
+A rejected lambda can also hide declarations that follow it. Dated deprecation attributes also interrupt library lookup.
+The repair covers all three forms and checks later declarations against the actual installed library.
 The regression examples must pass pinned Lean as well as fr's syntax and lookup checks.
 
 The deep conformance job also failed after PR #588 merged because `tsc` was missing from its path.
