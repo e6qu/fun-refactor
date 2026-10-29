@@ -23,6 +23,9 @@ Column lookup also rescanned the line prefix for every position, repeating work 
 The repair keeps one source and line map per file within each report and indexes UTF-8 character boundaries once.
 Unicode columns and fresh reads between reports must remain correct. The complete audit keeps its inputs, samples and deadline.
 For example, `名` occupies three UTF-8 bytes but still advances a reported character column by one.
+Two previously timed-out report groups passed after that repair. The third completed its assertions at the deadline and still lost the job.
+Its tests rebuilt the same immutable call graph three times, taking about five extra minutes.
+They now share that graph while retaining every sample and assertion.
 
 [PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
 Its final seven workflows passed, including all 90 main CI jobs.
