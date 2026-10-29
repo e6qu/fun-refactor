@@ -1,0 +1,1520 @@
+{
+  "study": "M3 interrupted introduction-pattern run",
+  "complete": false,
+  "interruption": "Fr rejected a valid rintro discard pattern before Lean could check the agent draft. Pinned Lean accepted an independent reproduction. Stop after the in-flight slot; preserve every outcome and the eighteen unstarted slots before repairing the grammar.",
+  "plan_sha256": "1759ba7ba6491ff094cd4bea38834ade9d300dfd998b7747ada438b48bdac68b",
+  "source_commit": "0bda511bea6b4b8c149d767addc5ea99c638bf97",
+  "controls_run": "40850791274",
+  "native_inputs": {
+    "src": "cf3fe89b0c7085c2d73ff012c800397f77a5bb96",
+    "grammars": "08178dcb352e11b89dc0ae2166c54959c8d7b378",
+    "crates": "165e755d2b301d72c6fcbdec5b10970d139fd1a2",
+    "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+    "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+    "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+    "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+    "Cargo.toml": "3a67ee76df4c110dc798f2265c13848962cd18a5",
+    "Cargo.lock": "82a814a0398aa223cb833ebca2e9b3b23d743170",
+    "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+  },
+  "profiles": {
+    "codex-luna-fast": {
+      "client": "codex",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "request_service_tier": "priority"
+    },
+    "opencode2-glm-flash": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "zai-coding-plan",
+        "id": "glm-5.3-flash",
+        "variant": "high"
+      }
+    },
+    "opencode2-kimi-k3": {
+      "client": "opencode2",
+      "model": {
+        "providerID": "kimi-code-plan-global",
+        "id": "k3",
+        "variant": "high"
+      }
+    }
+  },
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576
+  },
+  "versions": {
+    "fr": "fr 0.86.0",
+    "codex": "codex-cli 0.164.0",
+    "opencode2": "opencode v2.0.32"
+  },
+  "fr_build": {
+    "source_commit": "4419142b3d343d280b2b1eec6397762c69f9507b",
+    "source_tree": "a8590917b2398f49671ade5d05bff35b18f19afe",
+    "executable_sha256": "45831b612b4242a5bbc2b05903074cba5403c4c3215dff8eff3c2eed6adc68ee"
+  },
+  "planned_attempts": 36,
+  "recorded_attempts": 18,
+  "unstarted_attempts": [
+    "codex-luna-fast-access-rust-fr-2",
+    "codex-luna-fast-access-rust-files-2",
+    "codex-luna-fast-page-count-files-2",
+    "codex-luna-fast-page-count-fr-2",
+    "codex-luna-fast-fits-window-fr-2",
+    "codex-luna-fast-fits-window-files-2",
+    "opencode2-glm-flash-access-rust-files-2",
+    "opencode2-glm-flash-access-rust-fr-2",
+    "opencode2-glm-flash-page-count-fr-2",
+    "opencode2-glm-flash-page-count-files-2",
+    "opencode2-glm-flash-fits-window-files-2",
+    "opencode2-glm-flash-fits-window-fr-2",
+    "opencode2-kimi-k3-access-rust-fr-2",
+    "opencode2-kimi-k3-access-rust-files-2",
+    "opencode2-kimi-k3-page-count-files-2",
+    "opencode2-kimi-k3-page-count-fr-2",
+    "opencode2-kimi-k3-fits-window-fr-2",
+    "opencode2-kimi-k3-fits-window-files-2"
+  ],
+  "total_recorded_seconds": 1749.8144326687325,
+  "publication": "Submitted patches and summaries only. Full CLI records, prompts, source archives, application exports, local paths and account data remain local.",
+  "checking": "Native completion is not independent acceptance. These patches have not been independently graded. Reviewed fr steps describe observed use and receive no acceptance or benefit credit.",
+  "attempts": [
+    {
+      "id": "codex-luna-fast-access-rust-files-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "54c4282978fca1b983521a84110129b30d43591414fa4d96d40a99ac3baf03bd",
+      "elapsed_seconds": 26.922793250065297,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 130203648,
+      "sampled_cpu_seconds": 0.47685675,
+      "reported_usage": [
+        {
+          "input_tokens": 87968,
+          "cached_input_tokens": 68736,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1580,
+          "reasoning_output_tokens": 787
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-files-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-access-rust-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "aba1e837d984af5486f70cbd39db793de5a796a4ea3ace930a60eb35852cc26f",
+      "elapsed_seconds": 24.090375541942194,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 126976000,
+      "sampled_cpu_seconds": 0.5010145833333333,
+      "reported_usage": [
+        {
+          "input_tokens": 92517,
+          "cached_input_tokens": 76544,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1522,
+          "reasoning_output_tokens": 580
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-access-rust-fr-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "reviewed_fr_steps": [
+        "Found the fixed theorem with fr and obtained a passing check for the tactics before inserting them and building the Lean package."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-page-count-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "cd01d4848ebb58ec37da180da1bd81cc1b0b89f74c1ac6508701d3fa1bb7fb1c",
+      "elapsed_seconds": 145.82164079206996,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 127352832,
+      "sampled_cpu_seconds": 0.712744,
+      "reported_usage": [
+        {
+          "input_tokens": 472816,
+          "cached_input_tokens": 391680,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7508,
+          "reasoning_output_tokens": 3846
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-fr-1.patch",
+      "patch_sha256": "ba2017f403fa245b95fb254a1777283ef41f304dc4c716c9f08392b4ba01f7d5",
+      "reviewed_fr_steps": [
+        "Found the fixed goal and used fr diagnostics to revise rejected arithmetic drafts; no passing draft check was observed."
+      ],
+      "fr_contribution": null,
+      "failure_summary": "Lean rejected the last checked arithmetic draft. The agent then edited the theorem directly and delivered a patch without a final check."
+    },
+    {
+      "id": "codex-luna-fast-page-count-files-1",
+      "profile": "codex-luna-fast",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "6a4b198cd8b2e9e40590768524f7a548e46a281e86a8791b68e8f23fdacf0608",
+      "elapsed_seconds": 86.92982408311218,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 130269184,
+      "sampled_cpu_seconds": 0.5792153333333334,
+      "reported_usage": [
+        {
+          "input_tokens": 344499,
+          "cached_input_tokens": 286336,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6657,
+          "reasoning_output_tokens": 4240
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-page-count-files-1.patch",
+      "patch_sha256": "53e01dea87421d810481d4e41fbaaae8b4d6a4b046a29c8bd9e842351e9daecb",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-files-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "28da4f96d892d937e8e81b3b20464594f8e7c58a483af7597ae50379d9c2ccc1",
+      "elapsed_seconds": 47.76570950006135,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 129171456,
+      "sampled_cpu_seconds": 0.5039455416666667,
+      "reported_usage": [
+        {
+          "input_tokens": 158573,
+          "cached_input_tokens": 119168,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2510,
+          "reasoning_output_tokens": 965
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-files-1.patch",
+      "patch_sha256": "d11122905cbdca7887c4def53eba7dcdf24e3af71adfdc9ce3d62f7bae1ae674",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-fr-1",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "19799042674ef8fdca2c904aad6e5b8a241e723ffd3190f45f2d73326aacb8c2",
+      "elapsed_seconds": 30.086806500097737,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 129384448,
+      "sampled_cpu_seconds": 0.4503785416666667,
+      "reported_usage": [
+        {
+          "input_tokens": 133686,
+          "cached_input_tokens": 114944,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2008,
+          "reasoning_output_tokens": 1102
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/codex-luna-fast-fits-window-fr-1.patch",
+      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "reviewed_fr_steps": [
+        "Found the fixed goal, checked the tactics and saved the passing proof with fr before building the Lean package."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "fce8a096acd9e1affb10a68ef2fd8e8bedd5903f2bb1526efdae847fc091aff6",
+      "elapsed_seconds": 117.0966767910868,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85573632,
+      "sampled_cpu_seconds": 1.7716139166666667,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6425,
+            "output": 47,
+            "reasoning": 96,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 5978,
+            "output": 103,
+            "reasoning": 0,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 644,
+            "output": 80,
+            "reasoning": 131,
+            "cache": {
+              "read": 6976,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 229,
+            "output": 119,
+            "reasoning": 0,
+            "cache": {
+              "read": 7616,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 296,
+            "output": 99,
+            "reasoning": 25,
+            "cache": {
+              "read": 7808,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 551,
+            "output": 90,
+            "reasoning": 0,
+            "cache": {
+              "read": 8064,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 644,
+            "output": 194,
+            "reasoning": 29,
+            "cache": {
+              "read": 8576,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 237,
+            "output": 67,
+            "reasoning": 0,
+            "cache": {
+              "read": 9216,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 428,
+            "output": 131,
+            "reasoning": 167,
+            "cache": {
+              "read": 9408,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 446,
+            "output": 99,
+            "reasoning": 132,
+            "cache": {
+              "read": 9792,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-access-rust-fr-1.patch",
+      "patch_sha256": "0a67609992ac62e8f7929805603bfe181d785de5de2a7056e08a49a842603879",
+      "reviewed_fr_steps": [
+        "Corrected the theorem target using fr's goal listing, checked and saved the tactics, and verified the edited Lean package with fr."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-access-rust-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "6f70b50db1759439e7af74e1e95db41c2abdd72e3871e3621e8f63fce68bacb2",
+      "elapsed_seconds": 134.73949670791626,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86196224,
+      "sampled_cpu_seconds": 2.0289607083333334,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6352,
+            "output": 32,
+            "reasoning": 16,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 5450,
+            "output": 34,
+            "reasoning": 0,
+            "cache": {
+              "read": 1024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 482,
+            "output": 106,
+            "reasoning": 128,
+            "cache": {
+              "read": 6464,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 289,
+            "output": 61,
+            "reasoning": 0,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 42,
+            "output": 39,
+            "reasoning": 100,
+            "cache": {
+              "read": 7296,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-access-rust-files-1.patch",
+      "patch_sha256": "706092c6ef8f33a96457731acc5da13ed138922989828f8508d2f2a09752bf43",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "The provider connection reset after a proof patch was written. The CLI exited with an error; this attempt remains failed even if its patch passes."
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "35a07d9e87cc665e5f87a22a0cabb0413fae916d5bda6a1a0970236eafe79b58",
+      "elapsed_seconds": 150.05964683415368,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85950464,
+      "sampled_cpu_seconds": 2.55258175,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6467,
+            "output": 39,
+            "reasoning": 16,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1353,
+            "output": 50,
+            "reasoning": 13,
+            "cache": {
+              "read": 5440,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 861,
+            "output": 166,
+            "reasoning": 2438,
+            "cache": {
+              "read": 6784,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "Reached the 150-second limit after reading the task and searching the Lean division library. No checked draft or submitted patch was observed."
+    },
+    {
+      "id": "opencode2-glm-flash-page-count-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "19c616802d5239f44ab520aca743b05a604cca9a9a7b1c8b65cf56ee706e136c",
+      "elapsed_seconds": 150.04471512511373,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85983232,
+      "sampled_cpu_seconds": 2.514854625,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6542,
+            "output": 44,
+            "reasoning": 93,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 6387,
+            "output": 52,
+            "reasoning": 0,
+            "cache": {
+              "read": 768,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "Reached the 150-second limit after inspecting the project and instructions. No fr draft check or submitted patch was observed."
+    },
+    {
+      "id": "opencode2-glm-flash-fits-window-fr-1",
+      "profile": "opencode2-glm-flash",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "6f167f8f521b279fa0bc7a2f71c8db2d1c6768ce0c45281f6fc80b48b564778a",
+      "elapsed_seconds": 131.81089308392256,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 86016000,
+      "sampled_cpu_seconds": 2.1216993333333334,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6526,
+            "output": 48,
+            "reasoning": 15,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 6300,
+            "output": 68,
+            "reasoning": 0,
+            "cache": {
+              "read": 768,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 712,
+            "output": 133,
+            "reasoning": 577,
+            "cache": {
+              "read": 7040,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 855,
+            "output": 27,
+            "reasoning": 0,
+            "cache": {
+              "read": 7744,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 468,
+            "output": 55,
+            "reasoning": 0,
+            "cache": {
+              "read": 8576,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 811,
+            "output": 102,
+            "reasoning": 1530,
+            "cache": {
+              "read": 9024,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1690,
+            "output": 55,
+            "reasoning": 0,
+            "cache": {
+              "read": 9792,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 608,
+            "output": 71,
+            "reasoning": 23,
+            "cache": {
+              "read": 11456,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 188,
+            "output": 49,
+            "reasoning": 0,
+            "cache": {
+              "read": 12032,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 644,
+            "output": 54,
+            "reasoning": 30,
+            "cache": {
+              "read": 12160,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 140,
+            "output": 36,
+            "reasoning": 0,
+            "cache": {
+              "read": 12800,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-glm-flash-fits-window-fr-1.patch",
+      "patch_sha256": "f603e662cc6ba075aba7350edc8b88a063f6913fbfeb963011c6b0b99a44261d",
+      "reviewed_fr_steps": [
+        "Used fr diagnostics to repair a rejected arithmetic draft, obtained a passing check and saved the proof with fr."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-glm-flash-fits-window-files-1",
+      "profile": "opencode2-glm-flash",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "247c774a39a8d2ea3bed1187e7b9507712dae458456b8e6d1df40568f5101772",
+      "elapsed_seconds": 150.0312933330424,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85917696,
+      "sampled_cpu_seconds": 2.4736972083333333,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6451,
+            "output": 43,
+            "reasoning": 77,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 6035,
+            "output": 49,
+            "reasoning": 0,
+            "cache": {
+              "read": 768,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 544,
+            "output": 21,
+            "reasoning": 714,
+            "cache": {
+              "read": 6784,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 914,
+            "output": 155,
+            "reasoning": 0,
+            "cache": {
+              "read": 7296,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 196,
+            "output": 54,
+            "reasoning": 0,
+            "cache": {
+              "read": 8192,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 213,
+            "output": 182,
+            "reasoning": 343,
+            "cache": {
+              "read": 8384,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 569,
+            "output": 59,
+            "reasoning": 0,
+            "cache": {
+              "read": 8576,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "Reached the 150-second limit after Lean rejected two range-check drafts. No submitted patch was delivered."
+    },
+    {
+      "id": "opencode2-kimi-k3-access-rust-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-rust",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "26ba4a8f5ecdbe5681129ac7e481ead1ea4f089960c4936ead98ae4bdcdc219b",
+      "elapsed_seconds": 33.76850158395246,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85311488,
+      "sampled_cpu_seconds": 0.562737125,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 6176,
+            "output": 63,
+            "reasoning": 12,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 209,
+            "output": 84,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 762,
+            "output": 97,
+            "reasoning": 34,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 430,
+            "output": 91,
+            "reasoning": 3,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 349,
+            "output": 73,
+            "reasoning": 3,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-access-rust-files-1.patch",
+      "patch_sha256": "fadbdf9a3e26b014cc78d422566d143e7871050779ecd889e25c793951291719",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-access-rust-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "25c35234481346e944d00f2132dc711b631ff38ad1c207da07dd5b157aea68f9",
+      "elapsed_seconds": 52.94752008304931,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85868544,
+      "sampled_cpu_seconds": 0.7586315833333334,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 2922,
+            "output": 82,
+            "reasoning": 9,
+            "cache": {
+              "read": 3328,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 614,
+            "output": 88,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 333,
+            "output": 92,
+            "reasoning": 3,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 644,
+            "output": 85,
+            "reasoning": 58,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 678,
+            "output": 127,
+            "reasoning": 3,
+            "cache": {
+              "read": 7424,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 810,
+            "output": 139,
+            "reasoning": 16,
+            "cache": {
+              "read": 7936,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 289,
+            "output": 123,
+            "reasoning": 3,
+            "cache": {
+              "read": 8704,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 673,
+            "output": 106,
+            "reasoning": 3,
+            "cache": {
+              "read": 8960,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 348,
+            "output": 98,
+            "reasoning": 3,
+            "cache": {
+              "read": 9472,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 246,
+            "output": 82,
+            "reasoning": 3,
+            "cache": {
+              "read": 9728,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 584,
+            "output": 256,
+            "reasoning": 3,
+            "cache": {
+              "read": 9728,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-access-rust-fr-1.patch",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "reviewed_fr_steps": [
+        "Found the fixed goal, checked and saved the tactics with fr, then built the Lean package before delivering the patch."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "f432595468f9a173017519bc0def5d109c64606cdba39cffc4c815aa282bf2d8",
+      "elapsed_seconds": 150.0358496250119,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85983232,
+      "sampled_cpu_seconds": 2.2018927083333333,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 1233,
+            "output": 106,
+            "reasoning": 13,
+            "cache": {
+              "read": 5120,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 976,
+            "output": 91,
+            "reasoning": 0,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1008,
+            "output": 129,
+            "reasoning": 1332,
+            "cache": {
+              "read": 6912,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1931,
+            "output": 129,
+            "reasoning": 0,
+            "cache": {
+              "read": 7680,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 818,
+            "output": 111,
+            "reasoning": 1596,
+            "cache": {
+              "read": 9472,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 2014,
+            "output": 63,
+            "reasoning": 44,
+            "cache": {
+              "read": 10240,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 729,
+            "output": 335,
+            "reasoning": 0,
+            "cache": {
+              "read": 12032,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 591,
+            "output": 104,
+            "reasoning": 0,
+            "cache": {
+              "read": 12544,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "Fr rejected a valid introduction form in the draft before Lean ran. The attempt later reached the 150-second limit without a submitted patch."
+    },
+    {
+      "id": "opencode2-kimi-k3-page-count-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "page-count",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "failed",
+      "independent_outcome": null,
+      "record_sha256": "87892fc15eb76b34bd2484068ff976e978f56048f64e8be89be860e1876650ec",
+      "elapsed_seconds": 150.0302035419736,
+      "stop_reason": "wall_seconds",
+      "complete_attempt_deadline_missed": true,
+      "sampled_rss_bytes": 85245952,
+      "sampled_cpu_seconds": 2.3191592083333337,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 1159,
+            "output": 73,
+            "reasoning": 9,
+            "cache": {
+              "read": 5120,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 439,
+            "output": 63,
+            "reasoning": 0,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 822,
+            "output": 123,
+            "reasoning": 2214,
+            "cache": {
+              "read": 6400,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 3503,
+            "output": 153,
+            "reasoning": 0,
+            "cache": {
+              "read": 7168,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": null,
+      "patch_sha256": null,
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": "Reached the 150-second limit after reading the task and searching integer-division facts. No checked draft or submitted patch was observed."
+    },
+    {
+      "id": "opencode2-kimi-k3-fits-window-files-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "fits-window",
+      "setup": "files",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "ecb0d7682b410f099b6531907e9831eee393ea51198229990ba67f2da20ff423",
+      "elapsed_seconds": 64.52299108309671,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85852160,
+      "sampled_cpu_seconds": 0.906063125,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 1147,
+            "output": 87,
+            "reasoning": 10,
+            "cache": {
+              "read": 5120,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 525,
+            "output": 86,
+            "reasoning": 3,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 651,
+            "output": 202,
+            "reasoning": 462,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 854,
+            "output": 91,
+            "reasoning": 3,
+            "cache": {
+              "read": 7168,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 786,
+            "output": 197,
+            "reasoning": 17,
+            "cache": {
+              "read": 7936,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 320,
+            "output": 91,
+            "reasoning": 3,
+            "cache": {
+              "read": 8704,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 225,
+            "output": 92,
+            "reasoning": 3,
+            "cache": {
+              "read": 8960,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-fits-window-files-1.patch",
+      "patch_sha256": "15b85d81bf85a22dcb91e88c695a49252ab7890ab546bc5b325df518048a87dd",
+      "reviewed_fr_steps": [],
+      "fr_contribution": null,
+      "failure_summary": null
+    },
+    {
+      "id": "opencode2-kimi-k3-fits-window-fr-1",
+      "profile": "opencode2-kimi-k3",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 1,
+      "native_status": "completed",
+      "independent_outcome": null,
+      "record_sha256": "7ba27470aa07e143c2ed27d7032e3d62ab7b47547ba68eb94d46fc07f2b4503e",
+      "elapsed_seconds": 103.10949520906433,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "sampled_rss_bytes": 85983232,
+      "sampled_cpu_seconds": 1.65681275,
+      "reported_usage": [
+        {
+          "tokens": {
+            "input": 1221,
+            "output": 103,
+            "reasoning": 8,
+            "cache": {
+              "read": 5120,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 705,
+            "output": 61,
+            "reasoning": 0,
+            "cache": {
+              "read": 6144,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 726,
+            "output": 154,
+            "reasoning": 297,
+            "cache": {
+              "read": 6656,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 1082,
+            "output": 91,
+            "reasoning": 0,
+            "cache": {
+              "read": 7168,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 680,
+            "output": 97,
+            "reasoning": 17,
+            "cache": {
+              "read": 8192,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 837,
+            "output": 85,
+            "reasoning": 0,
+            "cache": {
+              "read": 8704,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        },
+        {
+          "tokens": {
+            "input": 225,
+            "output": 82,
+            "reasoning": 0,
+            "cache": {
+              "read": 9472,
+              "write": 0
+            }
+          },
+          "catalog_cost": 0
+        }
+      ],
+      "actual_cost": null,
+      "patch_file": "patches/opencode2-kimi-k3-fits-window-fr-1.patch",
+      "patch_sha256": "5cd8d1ec1d92efe5c400d442651c7fd9cb010055710b1430fde0aed39a3f723e",
+      "reviewed_fr_steps": [
+        "Discovered the fixed goal, checked and saved the passing tactics with fr, then built the Lean package and delivered the patch."
+      ],
+      "fr_contribution": null,
+      "failure_summary": null
+    }
+  ]
+}
