@@ -1,0 +1,69 @@
+{
+  "purpose": "Preserve the recorded benchmark answers while repairing Lean library lookup and repeated report-position work.",
+  "before_source": "98922044bd34ce29c967e93d0ee911a5bc3ac71d",
+  "after_source": "4419142b3d343d280b2b1eec6397762c69f9507b",
+  "original_inventory_sha256": "34e17e749996aea3ebd9a3774216c577f5ab16725d022fcab5adb2616303e601",
+  "retained_question_sites_sha256": "e10733ec517ccde8e19b0ac45a0e16667399fdf822be96a4ca7195bc38a9458a",
+  "timing_baselines_changed": false,
+  "scope": "These two fixed source copies retain identical answers. The installed Lean library still reports syntax gaps.",
+  "corpora": {
+    "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40850799144",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "fa43e2237aca3296e3b301d16fb718f4948c1820ed94e7d62052a683d8b48cd1",
+      "before_snapshot_sha256": "9674594cb6707c6c574be4de85bc2e8fb5f3c58cd5bcacf85b001fb92ab41ff0",
+      "after_snapshot_sha256": "9674594cb6707c6c574be4de85bc2e8fb5f3c58cd5bcacf85b001fb92ab41ff0",
+      "before": {
+        "files": 1255,
+        "references": 592648,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "after": {
+        "files": 1255,
+        "references": 592648,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "all_source_bytes_facts_syntax_and_question_sites_unchanged": true,
+      "driver_sampled_questions": 512,
+      "changes": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "removed_references": 0,
+        "added_references": 0,
+        "changed_references": 0
+      }
+    },
+    "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/40852003641",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "01204da6d7f533ed9620bcb2f901935855e148a676b5930349e0a54d4487a08a",
+      "before_snapshot_sha256": "4413cd0636bc7e3be9cc10ab4dd805b17623518252f812cf33d918fd59899427",
+      "after_snapshot_sha256": "4413cd0636bc7e3be9cc10ab4dd805b17623518252f812cf33d918fd59899427",
+      "before": {
+        "files": 1262,
+        "references": 593974,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "after": {
+        "files": 1262,
+        "references": 593974,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "all_source_bytes_facts_syntax_and_question_sites_unchanged": true,
+      "driver_sampled_questions": 511,
+      "changes": {
+        "added_symbols": 0,
+        "removed_symbols": 0,
+        "changed_symbols": 0,
+        "removed_references": 0,
+        "added_references": 0,
+        "changed_references": 0
+      }
+    }
+  }
+}

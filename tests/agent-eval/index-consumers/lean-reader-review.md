@@ -28,6 +28,11 @@ Its driver sampled 512 questions in the first copy and 511 in the second.
 These samples are separate from the unchanged 512 recorded consumer questions linked below.
 The original correction inventory and timing baselines remain unchanged.
 
+The repairs to reading division facts and building reports also preserve both fixed source copies.
+The [2026-10-29 review](reader-recheck-2026-10-29.json) retains the two successful checks and exact file hashes.
+All source bytes, code facts, syntax results and sampled questions remain identical before and after.
+The original correction inventory, recorded consumer questions and timing baselines stay unchanged.
+
 | Fixed source copy | Before this reader repair | After this reader repair |
 | --- | ---: | ---: |
 | Consumer benchmark declarations and parameters | 98,147 | 98,231 |
