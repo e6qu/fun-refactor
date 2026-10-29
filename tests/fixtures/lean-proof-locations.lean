@@ -314,3 +314,21 @@ def libraryReplacement : Nat := 1
 def libraryAlias := libraryReplacement
 
 def afterAttributeSyntax : Nat := 3
+
+theorem introduceAndDiscard (a b c d : Prop) : (a ∧ b ∧ c ∧ d) → a := by
+  rintro ⟨ha, -, -, -⟩
+  exact ha
+
+theorem introduceTyped : ∀ n : Nat, n = n := by
+  rintro (n : Nat)
+  rfl
+
+theorem introduceAlternatives (a b : Prop) : (a ∨ b) → (b ∨ a) := by
+  rintro (ha | hb)
+  · exact Or.inr ha
+  · exact Or.inl hb
+
+theorem simplifyBeforeArguments : (if True then (1 : Nat) else 0) = 1 := by
+  simp only [↓reduceIte]
+
+def afterIntroductionSyntax : Nat := 4

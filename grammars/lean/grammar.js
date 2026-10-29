@@ -799,6 +799,7 @@ module.exports = grammar({
       $.tactic_by_cases,
       $.tactic_cases,
       $.tactic_rcases,
+      $.tactic_rintro,
       $.tactic_have,
       $.tactic_let,
       $.tactic_show,
@@ -856,6 +857,13 @@ module.exports = grammar({
       field('pattern', $._rcases_pattern),
     )),
 
+    // `rintro` introduces hypotheses through the same destructuring patterns.
+    // A dash discards a hypothesis; it is not a negative expression.
+    tactic_rintro: $ => prec.right(3, seq(
+      'rintro',
+      repeat1(field('pattern', choice($._rcases_pattern, $.parenthesized))),
+    )),
+
     _rcases_pattern: $ => choice(
       $._rcases_atom,
       $.rcases_tuple_pattern,
@@ -882,8 +890,12 @@ module.exports = grammar({
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.
     tactic_config: $ => prec(1, seq(
-      '[', commaSep(choice($._expression, '*')), ']',
+      '[', commaSep(choice($._expression, '*', $.simp_phase)), ']',
     )),
+
+    // Simplification can run a lemma before descending into its arguments.
+    // This prefix belongs to the tactic list, not ordinary term syntax.
+    simp_phase: $ => seq('↓', field('lemma', $._expression)),
 
     // Focus: `· tactic1; tactic2`
     tactic_focus: $ => prec.right(seq(

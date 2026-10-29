@@ -6,6 +6,55 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn introductions_keep_discarded_hypotheses_and_simplifier_phases() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        match name {
+            "introduceAndDiscard" | "introduceTyped" | "introduceAlternatives" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                let introduction = body.named_child(0).unwrap();
+                assert_eq!(introduction.kind(), "tactic_rintro");
+                let pattern = introduction.child_by_field_name("pattern").unwrap();
+                let expected = match name {
+                    "introduceAndDiscard" => "rcases_tuple_pattern",
+                    "introduceTyped" => "parenthesized",
+                    _ => "rcases_alternative_pattern",
+                };
+                assert_eq!(pattern.kind(), expected);
+                if name == "introduceAndDiscard" {
+                    assert_eq!(&source[pattern.byte_range()], "⟨ha, -, -, -⟩");
+                    assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+                }
+            }
+            "simplifyBeforeArguments" => {
+                let body = definition.child_by_field_name("body").unwrap();
+                assert!(body.to_sexp().contains("(simp_phase"));
+            }
+            "afterIntroductionSyntax" => {}
+            _ => continue,
+        }
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 5);
+    let (_directory, index) = common::workspace(&[("Introductions.lean", source)]);
+    for name in checked {
+        assert_eq!(
+            index.symbols.iter().filter(|s| s.name == name).count(),
+            1,
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn dated_attributes_preserve_their_arguments_and_following_declarations() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -207,7 +256,7 @@ fn simplifier_locations_and_equality_transport_parse() {
             .to_sexp()
             .matches("(rcases_tuple_pattern ")
             .count(),
-        2
+        3
     );
 }
 

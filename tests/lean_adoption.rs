@@ -91,6 +91,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
         "refine ?_\nrfl\n",
+        "have unpack : (keepModel x = x ∧ True ∧ True ∧ True) → keepModel x = x := by\n  rintro ⟨result, -, -, -⟩\n  exact result\nexact unpack ⟨rfl, True.intro, True.intro, True.intro⟩\n",
+        "have h : (if True then keepModel x else !x) = x := by\n  simp only [↓reduceIte]\nexact h\n",
         "have h : keepModel x = x ∧ keepModel x = x := by\n  refine ⟨?_, ?_⟩\n  · rfl\n  · rfl\nexact h.1\n",
         "exact (show keepModel x = x by rfl)\n",
         "exact (show keepModel x = x from rfl)\n",
