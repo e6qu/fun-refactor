@@ -47,26 +47,32 @@ Client setup or scripted checks alone are progress within that PR, not separate 
 Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
 PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
-Finish the remaining proof-library work and complete agent comparison together on `milestone/complete-proof-authoring`.
+Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
 The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-The tool used for the latest comparison passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
-These check ten examples, Codex and OpenCode2 behavior, Python proof records and rejection of bad submitted patches.
-The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-retains 25 independently accepted proofs and 11 failed attempts, all timeouts.
-Its timer includes system sleep; no sleep was detected, and the 150-second limit stayed unchanged.
+The repaired tool passed [all 29 proof-preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40869061136)
+and [all 17 deep-audit jobs](https://github.com/e6qu/fun-refactor/actions/runs/40868681103).
+These check ten examples, the native clients, rejected patches and the repository audits.
+The audits retain every sample, assertion and original deadline.
 
-GLM and Kimi delivered no page-count proof with fr in this run. M3 remains open.
-The library reader now passes checks for Unicode lambda arrows, branching `obtain` bindings and dated attributes.
-The exact installed division library exposes all six required facts. All 29 proof-preparation jobs and 17 deep-audit jobs passed.
-The audit keeps every sample, reference and report field under its original deadline.
-Its slowest repaired report group finished in 9 minutes 34 seconds under the 15-minute limit.
-The next comparison stopped after eighteen recorded attempts when fr rejected a valid `rintro` pattern in an agent's draft.
-Fix introductions that discard hypotheses and the same draft's simplifier phase marker. Check pinned Lean, fr parsing and proof insertion.
-Retain every recorded attempt and leave its frozen inputs unchanged. Requalify changed code before more live calls.
-Keep the requested claims and limits unchanged.
+The reader now accepts the library forms that hid integer-division facts and valid proof introductions
+that discard unused hypotheses. It also accepts the simplifier's phase marker.
+For example, `rintro ⟨h, -, -⟩` keeps one hypothesis and discards two others.
+Fr previously rejected that pattern before Lean could check the proof.
+
+The [new 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
+retains 27 submitted patches and nine timeouts. Independent grading is pending.
+A submitted patch is not an accepted proof: one draft still failed its final local check.
+GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
+Their difficult trials spent the window reading and planning without checking a first draft.
+Fr's recorded goal and library lookups took roughly half a second to two seconds.
+
+Next, independently grade every submitted patch and review the full results.
+Then address the delay before the agents check a first draft, using measured client behavior.
+Keep the fixed models, claims and 150-second limit. Do not retry a recorded slot.
 Run another comparison only after a concrete repair or capability has passed its checks.
-Keep all 191 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The latest interrupted packet has eighteen recorded attempts and eighteen unstarted slots; its patches have not been independently graded.
+Keep all 227 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The [previous complete comparison](tests/agent-eval/proof-writing/clocked-results/README.md)
+retains its original 25 accepted proofs and 11 timeouts, with every published file unchanged.
 
 ### M1. Run the selected agents on three complete tasks
 

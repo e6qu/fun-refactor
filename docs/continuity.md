@@ -36,28 +36,34 @@ The supplied regex command now checks actual text, byte counts, allocations and 
 Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
 Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
 
-PR #588 merged the proof, parser, timer and CI repairs after all seven PR workflows passed.
-Its main CI run passed all 90 jobs. The [latest complete comparison](../tests/agent-eval/proof-writing/local-results/README.md)
-retains 25 accepted proofs and 11 timeouts. Keep all 191 recorded outcomes across the earlier comparisons and interrupted packets.
-Luna delivered an accepted fr-assisted page-count proof; GLM and Kimi did not. M3 remains open.
+PR #588 merged the earlier proof, parser, timer and CI repairs after all seven PR workflows passed.
+Continue on `milestone/complete-proof-authoring`; PR #590's 0.86.1 release update is now integrated.
+The release build passed. Main's deep audit failed because its runner lacked the TypeScript compiler.
+This branch installs the locked checker, and its corresponding 17-job deep audit passed.
+
+The library and introduction-pattern repairs passed all 29 proof-preparation jobs.
+They expose the required integer-division facts and let Lean check valid drafts that discard hypotheses.
+The new [36-attempt comparison](../tests/agent-eval/proof-writing/local-results/README.md)
+retains 27 submitted patches and nine timeouts. Independent grading is pending.
+One delivered patch still failed its last local check; delivery alone is not acceptance.
+GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
+
+All 227 recorded outcomes are retained. The [previous complete comparison](../tests/agent-eval/proof-writing/clocked-results/README.md)
+keeps its original 25 accepted proofs and 11 timeouts, with all 27 published files unchanged.
 The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
+The frozen checking source also has a stable `evidence/m3-introductions-c375ed815` branch.
 
-Continue on `milestone/complete-proof-authoring` from the merged main commit.
-The integer-library forms now pass their checks. All 29 proof-preparation jobs and 17 deep-audit jobs passed.
-The next comparison stopped after eighteen recorded attempts: fr rejected `rintro ⟨ha, -, -, -⟩`, which pinned Lean accepts.
-The same draft uses the simplifier's `↓` phase marker. Fix these forms and check proof insertion before more live calls.
-Keep the eighteen original records, submitted patches and unstarted slots; never rewrite their frozen inputs or retry a closed slot.
-Earlier page-count attempts spent their time searching integer-division facts without checking a first draft.
-The repair covers Unicode lambda arrows, branching `obtain` bindings and dated attributes, including actual division-fact lookup.
-Keep those checks while repairing the new introduction and simplifier forms before another complete comparison.
-Do not supply evaluator proof steps, a preselected proof or a weaker claim to the agents.
-Keep each attempt's separate cache under `.fr/cache`, the original deadline and every failed outcome.
-Only patches and summaries may be published; raw CLI records remain local.
+Independently grade the new submissions before choosing the next repair.
+The remaining problem is getting the OpenCode2 agents to check a page-count draft before time runs out.
+Recorded fr lookups took roughly half a second to two seconds; the affected trials did not reach a draft check.
+Inspect the clients' effective reasoning controls before changing any setting.
+Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
+Only submitted patches and summaries may be published; full client records stay local.
 
-The deep conformance repair installs its locked TypeScript checker. All original audit checks passed.
-Usages and impact reports now avoid repeated file reads, line-map construction and line-prefix scans.
-Their tests retain Unicode positions, fresh reads between reports, every audit sample and the 15-minute deadline.
-Complete the new reader repair, required live attempts, independent grading and tracking in the same milestone PR.
+The report repairs also avoid repeated file reads and line scans while keeping Unicode positions and fresh reads between reports.
+The slowest repaired audit group passed in 9 minutes 34 seconds under its original 15-minute limit.
+All three report-publishing groups and five additional report refreshes passed.
+Complete the remaining proof-writing work, independent grading and tracking in this same milestone PR.
 
 ## Keep the other milestones concrete
 

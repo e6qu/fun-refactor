@@ -1,20 +1,14 @@
 diff --git a/specs/FrSpecs/SrcWindowRsFitsWindow.lean b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
-index a5e6f92..8415a1a 100644
+index a5e6f92..bfdcab6 100644
 --- a/specs/FrSpecs/SrcWindowRsFitsWindow.lean
 +++ b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
-@@ -11,8 +11,13 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
+@@ -11,8 +11,7 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
  -- fr:property agent unproved
  theorem fits_windowModel_fits_exactly (offset : Nat) (count : Nat) (total : Nat) : (((fits_windowModel (offset) (count) (total)) = true) → ((((offset) + (count))) ≤ (total))) ∧ (((((offset) + (count))) ≤ (total)) → ((fits_windowModel (offset) (count) (total)) = true)) := by
    -- fr:proof-begin fits_windowModel_fits_exactly
 -  -- fr:debt fits_windowModel_fits_exactly
 -  sorry
-+  constructor
-+  · intro h
-+    simp [fits_windowModel] at h
-+    omega
-+  · intro h
-+    simp [fits_windowModel]
-+    omega
++  simp [fits_windowModel] <;> omega
    -- fr:proof-end fits_windowModel_fits_exactly
  -- fr:generated-end formal-kernel
  

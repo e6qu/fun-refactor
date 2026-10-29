@@ -5,18 +5,18 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) records all 36 attempts: independent grading accepted 25 proofs.
-Eleven attempts timed out and remain failed. All 25 delivered patches passed their independent checks.
-The timer now includes system sleep; no sleep was detected. The deadline remains 150 seconds.
-The rebuilt tool passed [all 29 preparation checks](https://github.com/e6qu/fun-refactor/actions/runs/40657422574).
-Goal discovery supplies an exact `target`, valid proofs may use temporary goals that later tactics solve,
-and both setups can read the explicitly named Lean library directory.
+The [latest comparison](local-results/README.md) records all 36 attempts: 27 submitted patches and nine timeouts.
+Independent grading is pending. A delivered patch is not necessarily a valid proof.
+The rebuilt tool passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40869061136).
+These cover the runnable cases, native clients and independent rejection controls.
+Goal discovery supplies an exact `target`, and both setups can read the named Lean library directory.
+The repaired reader accepts the integer-library syntax and proof introductions that previously blocked drafts.
 
-GLM and Kimi delivered no page-count proof with fr in this run, so M3 remains open.
-Keep all 191 recorded outcomes, including the [eighteen interrupted introduction-pattern attempts](introduction-interrupted-results/README.md).
-The other eighteen slots in that packet never started. No submitted patch from it has been independently accepted.
-The [earlier attempts](#earlier-attempts) retain their original results;
-a repair never erases an earlier failed attempt.
+GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
+The 150-second complete-attempt limit stayed unchanged, including system sleep.
+Disk pauses occurred between trials; no recorded slot was retried.
+Keep all 227 recorded outcomes, including the [earlier attempts](#earlier-attempts).
+The previous complete comparison is preserved unchanged in [clocked-results](clocked-results/README.md).
 
 This milestone is in progress. Scripted controls and the real agent comparison are separate.
 The complete implementation, examples, checked attempts and tracking belong in one PR.
@@ -158,9 +158,8 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These packets retain all 137 outcomes that preceded the latest 36 attempts.
-The later [introduction-pattern run](introduction-interrupted-results/README.md) adds eighteen recorded attempts;
-it stopped when fr rejected valid syntax in a draft. The remaining eighteen slots never started.
+These packets retain all 191 outcomes that preceded the latest 36 attempts.
+The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
 | Packet | Recorded attempts | Original result or interruption |
@@ -171,6 +170,9 @@ An accepted result passed independent checking and came from a completed client 
 | [Second complete comparison](second-results/README.md) | 36 | 25 accepted; GLM and Kimi still lacked accepted fr page-count proofs |
 | [Library access run](library-access-interrupted-results/README.md) | 15 | OpenCode2 denied a permitted library directory; 21 slots never started |
 | [Run affected by sleep](clock-interrupted-results/README.md) | 36 | 18 client completions and 18 failures; ten failed attempts have unreliable elapsed times |
+| [Third complete comparison](clocked-results/README.md) | 36 | 25 accepted proofs and 11 timeouts under the timer that includes sleep |
+| [Introduction-pattern run](introduction-interrupted-results/README.md) | 18 | Valid proof syntax was rejected before Lean checking; 18 slots never started |
 
-All submitted patches and original failures remain available. The last two packets have no
-independent acceptance result. The sleep-affected packet cannot establish speed or cost differences.
+All submitted patches and original failures remain available. The library-access, sleep-affected
+and introduction-pattern packets have no independent acceptance result. The sleep-affected packet
+cannot establish speed or cost differences.
