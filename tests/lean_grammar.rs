@@ -6,6 +6,41 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn installed_integer_library_exposes_division_facts() {
+    let prefix = std::process::Command::new("lean")
+        .arg("--print-prefix")
+        .output()
+        .expect("the Lean grammar gate requires the pinned Lean installation");
+    assert!(prefix.status.success());
+    let source_path = std::path::PathBuf::from(String::from_utf8(prefix.stdout).unwrap().trim())
+        .join("src/lean/Init/Data/Int/DivMod/Lemmas.lean");
+    let source = std::fs::read_to_string(source_path).unwrap();
+    let (_directory, index) = common::workspace(&[("Lemmas.lean", &source)]);
+    for name in [
+        "tdiv_eq_ediv_of_nonneg",
+        "mul_tdiv_add_tmod",
+        "tdiv_mul_add_tmod",
+        "tdiv_nonneg",
+        "tmod_nonneg",
+        "tmod_lt_of_pos",
+    ] {
+        let found: Vec<_> = index
+            .symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Function && s.name == name)
+            .collect();
+        assert_eq!(found.len(), 1, "missing or repeated division fact: {name}");
+        let declaration = &source[found[0].full_span.start..found[0].full_span.end];
+        assert!(declaration.starts_with("theorem "), "{declaration}");
+        assert!(declaration.contains(name));
+        assert!(
+            !declaration.contains("\ntheorem "),
+            "{name} consumed another theorem"
+        );
+    }
+}
+
+#[test]
 fn library_lambda_and_obtain_branches_preserve_following_declarations() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
