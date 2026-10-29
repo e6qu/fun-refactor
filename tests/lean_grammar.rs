@@ -129,7 +129,7 @@ fn simplifier_locations_and_equality_transport_parse() {
             .to_sexp()
             .matches("(rcases_tuple_pattern ")
             .count(),
-        1
+        2
     );
 }
 
