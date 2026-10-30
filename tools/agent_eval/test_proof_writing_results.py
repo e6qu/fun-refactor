@@ -14,6 +14,36 @@ from agent_eval import selected_plan
 
 
 class ProofOutcomeChecks(unittest.TestCase):
+    def test_checker_identity_ignores_reports_but_tracks_actual_checking_inputs(self):
+        public = results.public
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            task = root / public.CASE_DIRECTORIES['M3']
+            inputs = [root / name for name in public.CORE_FILES]
+            inputs += [root / 'sdk/python/src/fr_ir/checker.py',
+                       root / 'tests/agent-eval/selected-agents/Grader.Dockerfile',
+                       task / 'tasks.json', task / 'checkers.json', task / 'cases.json', task / 'profiles.json',
+                       task / 'fixtures/src/program.rs', task / 'controls/reference.lean']
+            modules = [root / 'tools/agent_eval' / path.name
+                       for path in (public.ROOT / 'tools/agent_eval').glob('*.py')]
+            for path in inputs + modules:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('original checking input\n')
+            with mock.patch.object(public, 'ROOT', root):
+                original = public.core_digest('M3')
+                for name in ('local-results/summary.json', 'low-reasoning-results/summary.json',
+                             'low-reasoning-results/patches/submission.patch', 'low-reasoning-results.sha256',
+                             'behavior-review.md'):
+                    path = task / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('retained outcome\n')
+                self.assertEqual(public.core_digest('M3'), original)
+                for path in inputs:
+                    with self.subTest(input=str(path.relative_to(root))):
+                        path.write_text('changed checking input\n')
+                        self.assertNotEqual(public.core_digest('M3'), original)
+                        path.write_text('original checking input\n')
+
     def test_report_keeps_failures_visible_after_a_contributing_proof_step_and_discloses_sleep(self):
         supplied, _, rows = self.packet()
         for row in rows:

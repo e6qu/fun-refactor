@@ -13,9 +13,12 @@ Copy `target` as `<LEAN_TARGET>`:
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 Read `claim.parts`: assumptions and conclusions.
-Draft `.fr/proof-tactics` without `by`. Check before library searches.
-[Proofs](references/lean.md): check, repair, save, deliver.
-Keep `.fr/checks.json`.
+Write `.fr/proof-tactics` without `by`. Check before library searches:
+```sh
+fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
+```
+Repair until `passed` is true. Save with `fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write`.
+Keep `.fr/checks.json`. [Proofs](references/lean.md): diagnostics, arithmetic, delivery.
 
 [Author](references/author.md); [Explore](references/explore.md).
 Copy IDs; read omissions.

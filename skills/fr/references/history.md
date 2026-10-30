@@ -1,6 +1,6 @@
 # Apply or reverse source history
 
-To reverse an edit, inspect its transaction, the saved before/after files identified by `<TX>`. Preview undo before writing.
+Inspect edit `<TX>` and its before/after files. Preview undo first.
 
 ```sh
 fr history show '<TX>'
@@ -9,8 +9,13 @@ fr history undo '<TX>' --write --no-diff
 fr history redo '<TX>'
 fr history redo '<TX>' --write --no-diff
 ```
-Preview transitions. `--no-diff` retains outcomes and metadata. A complete author plan's `transaction_context_basis` is `context_basis` in detailed history. Forward apply/redo may reuse it to omit reviewed diffs; undo needs full review.
+`--no-diff` keeps outcomes and metadata. An author plan's `transaction_context_basis` becomes history's `context_basis`.
+Apply/redo can reuse it to omit reviewed diffs; undo needs full review.
 
-Transitions verify affected content, links, kinds, existence, and regular-file modes while preserving unrelated files and the Git index. Undo must be latest; redo must be next; a new applied transaction abandons redo. Preserve conflicting edits.
+Check content, links, kinds, existence and modes; keep unrelated files and the Git index.
+Undo the latest edit; redo the next. A new applied edit abandons redo. Keep conflicting edits.
 
-Attach a receipt with `fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'`. For a pending write or lock, read [Recovery](recovery.md). History lacks filesystem-wide atomicity, timestamps, ownership, extended attributes, and empty directories. Git has [separate journals](git.md).
+Record checks with `fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'`.
+Pending writes and locks: [Recovery](recovery.md).
+History omits timestamps, ownership, extended attributes and empty directories. Multi-file writes are not atomic.
+Git has [its own journal](git.md).

@@ -1,11 +1,10 @@
 # Reviewed intents
 
-Describe the change you want, such as replacing a retry limit, then inspect the returned preview. Apply only the unchanged reviewed operation.
+Request a change, such as a new retry limit. Review its preview before execution.
 
-An intent describes a task and requested action. A packet holds selected report fields; a basis ties execution to the preview you reviewed.
+An intent names the task and action; a packet holds fields. Its basis binds execution to the reviewed preview.
 
-Import intents from `fr_ir.intent`, operations from `fr_ir.intent_actions`. Compile a bounded
-packet, inspect `/action/review`, then execute its unchanged identity.
+Import from `fr_ir.intent` and `fr_ir.intent_actions`. Compile a packet, inspect `/action/review`, then execute its unchanged identity.
 
 | Operation | Purpose | Input |
 |---|---|---|
@@ -33,18 +32,17 @@ review = compiled.at("/action/review")
 result = client.execute_intent(compiled)
 ```
 
-When starting from a navigator, use `client.review_guide(guide, action)`; native `fr`
-revalidates the original goal and guide basis inside the evidence snapshot. Authored operation,
-checks, proof expectation and delivery must agree with that goal. Retain the returned review;
-changed source, input, evidence or package configuration invalidates its `fraa2:` identity.
+From a navigator, use `client.review_guide(guide, action)`. Fr rechecks the original goal and basis in the evidence snapshot.
+Operation, checks, proof expectation and delivery must match that goal. Keep the review.
+Changes to source, input, evidence or package settings invalidate its `fraa2:` identity.
 
-`additional_evidence` binds every target and exact declaration location in one snapshot. The SDK
-stores selected Merkle roots. File and directory maps provide bounded continuations. Keep
-projections small; raise the packet ceiling only for a complete review.
+`additional_evidence` binds targets and declaration locations to one snapshot's hashes.
+File and directory maps have bounded continuations. Select only needed fields;
+raise the packet ceiling only for a complete review.
 
-Capabilities preserve original scope; restructuring, entry points and stitching can cover the
-workspace. Declaration recipes must resolve exactly the target; ambiguous paths/names require
-task/capability handles. Byte spans stay inside the selected source. Calls and rewrites use the start.
+Capabilities keep their scope; restructuring, entry points and stitching can cover the workspace.
+Declaration recipes require an exact target; ambiguous names need task/capability handles.
+Byte spans stay in selected source. Calls and rewrites use their start.
 
 The agent authors every property and tactic. `FormalPlanOperation(..., package=..., checks=...,
 delivery=...)` stages a scaffold; without those writing fields it is read-only. Scaffolds and proofs

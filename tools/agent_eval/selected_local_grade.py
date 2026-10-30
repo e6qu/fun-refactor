@@ -44,8 +44,10 @@ def core_digest(milestone):
             'proof_writing_collect.py', 'proof_writing_results.py', 'selected_grade_probe.py',
             'selected_grading.py', 'selected_local_grade.py', 'container_resources.py',
             'bounded_host.py', 'selected_plan.py', 'isolated_grade.py', 'selected_native.py')]
-        paths += [path for path in (ROOT / CASE_DIRECTORIES['M3']).rglob('*') if path.is_file()
-                  and 'local-results' not in path.parts and path.name != 'README.md']
+        directory = ROOT / CASE_DIRECTORIES['M3']
+        paths += [directory / name for name in ('tasks.json', 'checkers.json', 'cases.json', 'profiles.json')]
+        paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
+        paths += list((directory / 'controls').glob('*.lean'))
         paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile']
     bindings = {str(path.relative_to(ROOT)): local.hash_file(path) for path in sorted(paths)}
     return hashlib.sha256(encoded(bindings)).hexdigest()

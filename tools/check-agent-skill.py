@@ -35,6 +35,7 @@ ROUTES = {
     "semantic-intent": ["SKILL.md", "references/semantic-intent.md", "references/author.md"],
     "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
+    "lean-arithmetic": ["SKILL.md", "references/lean.md", "references/lean-arithmetic.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
     "verified-workflow": ["SKILL.md", "references/workflow.md"],
 }
@@ -529,6 +530,13 @@ def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
     (root / ".fr").mkdir()
+    example = root / "arithmetic-example.lean"
+    for source in blocks(SKILL / "references/lean-arithmetic.md", "lean"):
+        example.write_text(source)
+        checked = subprocess.run(["lean", "-j", "1", str(example)], cwd=root,
+                                 capture_output=True, text=True, timeout=30)
+        assert checked.returncode == 0, checked.stdout + checked.stderr
+    example.unlink()
     source = root / "src/lib.rs"
     source.write_text("pub fn allowed(value: bool) -> bool { value }\n")
     exercise.run(root, ["spec", "init", "specs", "--write"])

@@ -116,6 +116,10 @@ For example, a page-count claim lists “items is nonnegative” and “page siz
 An alternative such as “items is negative or page size is nonpositive” stays together; it does not assert both.
 This view supplies no proof steps and does not change the theorem. Lean still checks the proof's meaning.
 
+For numeric proofs, the [arithmetic examples](../skills/fr/references/lean-arithmetic.md)
+introduce Boolean comparisons, assumptions joined by “and” or “or”, and library facts
+whose arguments are proofs. Each example is checked with the pinned Lean release.
+
 For these exact names, the theorem target is
 `specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule`.
 The text before `::` names the file; the text after it names the theorem.

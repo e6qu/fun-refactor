@@ -28,6 +28,7 @@ fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limi
 Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
 proof. Repair the tactics in that file. If diagnostics require a library definition,
 search its type's folder rather than indexing the whole installation.
+For Boolean comparisons and division arguments, read [Arithmetic](lean-arithmetic.md).
 `draft_location` names your tactics file, line, column and source excerpt.
 `checked_location` identifies Lean's checked file; it may have extra generated lines.
 `context` retains the goal (`⊢`); `context_omitted_lines` counts omitted lines.
@@ -76,6 +77,6 @@ Generated `Int` and `Nat` models use Lean arithmetic. Review source widths, over
 coercions before claiming correspondence. `spec verify specs` checks the owning package;
 Lean and Lake must be installed. Hash renewal alone repairs no model or proof.
 
-State the proved claim, domain, assumptions, axioms and trusted tools. A source hash
-identifies bytes; a signature map identifies declared types; runtime examples check their
-particular inputs. A checked model theorem leaves general implementation equivalence open.
+State the claim, domain, assumptions, axioms and trusted tools. Hashes identify bytes;
+signatures identify types; runtime examples cover tested inputs. A model proof leaves
+source/model equivalence open.
