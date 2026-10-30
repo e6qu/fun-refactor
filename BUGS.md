@@ -33,6 +33,11 @@ The latest investigation also found two reporting defects:
   Shared receiver fixtures, including Boltons, remain present. The corrected collector finished in 22 seconds.
   The deadlines, proof checks and original agent outcomes stay unchanged.
 
+The proof gate also searched the whole project for a function whose file it already knew.
+That read 2,933 files and began resolving 871,433 references before its three-minute limit.
+The query now selects `src/spec.rs` explicitly and checks the returned name, signature and one-file coverage.
+The proof checks and repository audits retain their original limits and coverage.
+
 The preceding comparison's nine checking groups accepted all 27 submitted patches; nine attempts timed out without one.
 The new complete comparison retained eight timeouts and 28 independently accepted patches.
 Its accepted access and range proofs use actual fr checks and writes. M3 still lacks GLM and Kimi page-count proofs.

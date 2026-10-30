@@ -65,8 +65,9 @@ The earlier low-setting comparison keeps its disclosed sleep pause and deleted-c
 Every closed slot is immutable. No recorded attempt was retried.
 Only submitted patches and summaries may be published; full CLI records, prompts, drafts and account data stay local.
 New studies retain verified copies of their pinned CLI executables so application cleanup cannot remove them.
-The workstation guard stopped a whole-repository fr search at 1 GiB aggregate RSS. Its limits stay unchanged;
-that search is now a bounded step in the hosted proof workflow. Do not repeat it locally.
+The workstation guard stopped a whole-repository fr search at 1 GiB aggregate RSS. Do not repeat it locally.
+The hosted attempt also timed out while building the whole project graph for a function in a known file.
+The proof workflow now selects `src/spec.rs` explicitly and checks the function and one-file coverage under the same three-minute limit.
 
 ## Keep the other milestones concrete
 

@@ -422,9 +422,21 @@ jobs:
           python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
       - run: chmod +x target/debug/fr
-      - name: Find the proof checker in the complete project with fr
+      - name: Find the proof checker in its source file with fr
         timeout-minutes: 3
-        run: target/debug/fr --no-cache --json project find check_prepared_proof --contains --signature --limit 1
+        run: |
+          target/debug/fr --no-cache --json -C src/spec.rs project find check_prepared_proof \
+            --in spec.rs --contains --signature --limit 1 > "$RUNNER_TEMP/m3-proof-checker-location.json"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'm3-proof-checker-location.json').read_text())
+          row, = [dict(zip(report['columns'], values)) for values in report['rows']]
+          assert row['name'] == 'check_prepared_proof' and row['path'] == 'spec.rs'
+          assert row['signature']['basis'] == 'syntax-header'
+          assert report['coverage']['indexed_files'] == 1
+          print('Found check_prepared_proof in spec.rs; indexed exactly one source file.')
+          PY
       - name: Execute the current skill examples and supplied-theorem proof route
         run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
       - run: |
