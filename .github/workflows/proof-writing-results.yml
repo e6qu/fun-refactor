@@ -71,6 +71,7 @@ jobs:
             tests/agent-eval/proof-writing
             tests/agent-eval/project-changes
             tests/agent-eval/unknown-target
+            tests/agent-eval/python-repositories
             tests/agent-eval/project-edits
             tests/agent-eval/regex
       - uses: actions/setup-python@v7
@@ -191,6 +192,7 @@ jobs:
             tests/agent-eval/proof-writing
             tests/agent-eval/project-changes
             tests/agent-eval/unknown-target
+            tests/agent-eval/python-repositories
             tests/agent-eval/project-edits
             tests/agent-eval/regex
       - uses: actions/setup-python@v7
