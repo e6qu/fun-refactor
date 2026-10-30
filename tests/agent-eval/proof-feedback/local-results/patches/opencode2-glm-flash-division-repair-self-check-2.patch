@@ -1,0 +1,17 @@
+diff --git a/specs/FrSpecs/SrcQuotientRsQuotient.lean b/specs/FrSpecs/SrcQuotientRsQuotient.lean
+index 2c1e290..717b96f 100644
+--- a/specs/FrSpecs/SrcQuotientRsQuotient.lean
++++ b/specs/FrSpecs/SrcQuotientRsQuotient.lean
+@@ -11,8 +11,10 @@ def quotientModel (a : Int) (b : Int) : Int :=
+ -- fr:property agent unproved
+ theorem quotientModel_nonnegative (a : Int) (b : Int) : ((((0 : Int)) ≤ (a)) ∧ (((1 : Int)) ≤ (b))) → (((0 : Int)) ≤ (quotientModel (a) (b))) := by
+   -- fr:proof-begin quotientModel_nonnegative
+-  -- fr:debt quotientModel_nonnegative
+-  sorry
++  intro h
++  rcases h with ⟨ha, hb⟩
++  have hb0 : 0 ≤ b := by omega
++  exact Int.tdiv_nonneg ha hb0
+   -- fr:proof-end quotientModel_nonnegative
+ -- fr:generated-end formal-kernel
+ 
