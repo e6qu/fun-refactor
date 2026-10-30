@@ -1,5 +1,4 @@
-//! Lean 4. A `def` and a `theorem` are one node told apart by a field. A rename reaches
-//! into a proof, because a tactic names the lemmas it rewrites with.
+//! Lean def and theorem nodes differ by field; renames follow lemma names in proofs.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -186,7 +185,6 @@ fn the_capability_matrix_says_what_lean_does_and_does_not() {
             "{capability:?} works for Lean"
         );
     }
-    // A reason has to be about Lean and not about another language.
     for capability in Capability::ALL {
         if let Support::NotApplicable { because } = support(*capability, Language::Lean) {
             assert!(

@@ -59,15 +59,14 @@ The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) 
 accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
 GLM and Kimi submitted no page-count proof in either setup.
 
-**M3 remains open.** The remaining live task is concrete: help GLM and Kimi finish the fixed page-count proof
-using a useful fr step within 150 seconds, while retaining complete comparisons for every task and agent.
+**M3 remains open.** Help GLM and Kimi finish the fixed page-count proof with a useful fr step within 150 seconds.
+Keep complete comparisons for every task and agent.
 For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
 Kimi reached its only fr page-count check at 136 seconds. None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
 
-The investigation also reproduced two tool defects: valid local Lean lemmas with parameters were rejected,
-and draft warnings were hidden until package verification failed. Their repairs and regression tests are implemented;
-hosted parser generation and native validation must pass before another comparison.
+Fr rejected valid local Lean lemmas with parameters. It also hid draft warnings until package verification failed.
+The syntax reader now passes its fixture checks. The native gate must pass before another comparison.
 
 The next work stays inside this milestone PR:
 
@@ -76,7 +75,7 @@ The next work stays inside this milestone PR:
 2. Qualify the smaller root skill, direct arithmetic link and unfinished-draft example.
    The arithmetic lesson now demonstrates Lean's search for a specific missing fact; all four examples compile.
    Then freeze a complete comparison with the same models, claims, two repetitions and 150-second limit.
-   Measure an early useful draft check and the delivered result. No task's reference proof is supplied.
+   Measure an early useful draft check and the delivered result. Agents write each task's proof themselves.
 3. Independently grade the new submissions and retain every failure alongside the 335 recorded outcomes.
    Never rerun a closed slot or combine selected winners into a fictional complete comparison.
 

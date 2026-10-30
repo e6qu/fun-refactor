@@ -1,0 +1,5 @@
+have bound (a b : Int) (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ b * a := by
+  have h : 1 * a ≤ b * a := by
+    exact?
+  simpa using h
+rfl
