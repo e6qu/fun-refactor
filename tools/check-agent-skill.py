@@ -571,7 +571,9 @@ def lean_workflow(exercise, root):
             assert any("⊢" in line for item in unfinished["diagnostics"] for line in item["context"])
             assert model.read_bytes() == original
             tactics.write_text("rfl\n")
-        value = exercise.example(root, example_path, command)
+            value, _ = exercise.run(root, command[1:])
+        else:
+            value = exercise.example(root, example_path, command)
         if "goals" in command:
             goal, = value["catalog"]
             assert goal["target"] == exercise.values["<LEAN_TARGET>"]

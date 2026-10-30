@@ -120,6 +120,9 @@ The previous CodeGraph comparison, broad repeated-task study and stopped studies
 5. Run the full static gate and changed runnable lessons before the final PR gate.
 6. Check the full PR commit. Fix failures and timeout causes without raising limits or dropping coverage.
 
+Start report publishers after code qualification passes. Run them one at a time and keep the branch free of other pushes until publication finishes.
+A failed fast-forward push preserves the checked artifact; integrate the source change before publishing those same measurements again.
+
 Builds, full tests and large collections run on GitHub.
 Follow the [workstation rules](development.md#working-on-a-shared-desktop); do not bypass a guard refusal.
 Dogfood fr on suitable changes and retain the reviewed edit and check results.
