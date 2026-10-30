@@ -166,36 +166,36 @@
       "sha256": "4faaaaab8d3d464ddf3e9467f9614ecea9b70e057c825b6b7740c0b090ea9e31"
     },
     {
+      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-checked-translation",
       "id": "checked-translation",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-30-m3-claim-parts-final-checked-translation/result.json",
-      "sha256": "1359930ad8366d87615b5830c3e92b8a08cd9cee290a7ad368a324ada4d0072e",
       "scope": "Both Rust/Python directions, each repeated after renaming and moving; 9,030 exhaustive input pairs and eleven signed-64-bit boundary pairs per translation. A finite behavior check, not a general proof.",
-      "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-checked-translation"
+      "sha256": "1359930ad8366d87615b5830c3e92b8a08cd9cee290a7ad368a324ada4d0072e"
     },
     {
+      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-effects",
       "id": "python-effects",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-effects/result.json",
-      "sha256": "e09a15b4a6b1149c2a22184bc3590584cb02effe26b3d0230e6fac6cdd16dcdc",
       "scope": "Nine Python examples of actions beyond returned values, repeated after renaming and moving, with two executed inputs each. They show source locations and model/runtime differences. Implicit errors, caught error objects and shared objects need separate checks.",
-      "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-effects"
+      "sha256": "e09a15b4a6b1149c2a22184bc3590584cb02effe26b3d0230e6fac6cdd16dcdc"
     },
     {
+      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-text-flow",
       "id": "python-text-flow",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-text-flow/result.json",
-      "sha256": "bdc3977217a0c8c7d90c5a2113011e43947c687553c5465320406bbf600707be",
       "scope": "Plain string conversions and twelve read-only string methods, repeated after renaming and moving. Independent Python outcomes, conservative receiver checks and saved-answer controls. No runtime exception-safety claim.",
-      "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-text-flow"
+      "sha256": "bdc3977217a0c8c7d90c5a2113011e43947c687553c5465320406bbf600707be"
     },
     {
-      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-29-m3-proof-introductions-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
+      "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "id": "current-project-changes",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-29-m3-proof-introductions-project-changes-recheck/result.json",
+      "path": "tests/agent-eval/results/2026-10-30-m3-claim-parts-final-project-changes-recheck/result.json",
       "scope": "Current replay of all 21 change controls and both renames. All projects are familiar; the original first Humanize result remains separate.",
-      "sha256": "0ffddcd992cf200d17c3fd32c95aa4ff58b9e7c7c93d90268b46b7324e45eef1"
+      "sha256": "19780c0f0c19f1d79823895cb9c19f3dc92c1a7ae7b136d075254efc783f1850"
     }
   ],
   "obligations": [
@@ -415,29 +415,29 @@
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
       "requires": [
         {
-          "evidence": "python-effects",
           "assertions": [
             {
-              "pointer": "/passed",
-              "equals": true
+              "equals": true,
+              "pointer": "/passed"
             },
             {
-              "pointer": "/coverage/examples",
-              "equals": 9
+              "equals": 9,
+              "pointer": "/coverage/examples"
             },
             {
-              "pointer": "/coverage/renamed_and_moved_cases",
-              "equals": 18
+              "equals": 18,
+              "pointer": "/coverage/renamed_and_moved_cases"
             },
             {
-              "pointer": "/coverage/runtime_executions",
-              "equals": 36
+              "equals": 36,
+              "pointer": "/coverage/runtime_executions"
             },
             {
-              "pointer": "/coverage/preserves_model_runtime_difference",
-              "equals": true
+              "equals": true,
+              "pointer": "/coverage/preserves_model_runtime_difference"
             }
-          ]
+          ],
+          "evidence": "python-effects"
         }
       ],
       "title": "Handle exceptions and shared mutable values honestly"
@@ -613,29 +613,29 @@
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
       "requires": [
         {
-          "evidence": "checked-translation",
           "assertions": [
             {
-              "pointer": "/passed",
-              "equals": true
+              "equals": true,
+              "pointer": "/passed"
             },
             {
-              "pointer": "/coverage/exhaustive_pairs",
-              "equals": 9030
+              "equals": 9030,
+              "pointer": "/coverage/exhaustive_pairs"
             },
             {
-              "pointer": "/coverage/boundary_pairs",
-              "equals": 11
+              "equals": 11,
+              "pointer": "/coverage/boundary_pairs"
             },
             {
-              "pointer": "/coverage/directions",
-              "equals": 2
+              "equals": 2,
+              "pointer": "/coverage/directions"
             },
             {
-              "pointer": "/coverage/renamed_and_moved",
-              "equals": true
+              "equals": true,
+              "pointer": "/coverage/renamed_and_moved"
             }
-          ]
+          ],
+          "evidence": "checked-translation"
         }
       ],
       "title": "Translate a function without changing its promised behavior"
