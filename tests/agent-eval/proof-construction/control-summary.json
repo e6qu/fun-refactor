@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "scope": "Zero-model development control, not an agent attempt or complete isolated qualification",
+  "source_sha256": "f87b0466c7d2e950e426ef5d23244049fb70e4746eee411d110584ca5a162b89",
+  "model_sha256": "8b3b039d5d725e5f3ab2777c390301c0f6637dd353667a1cf1ae07d68f92a2a1",
+  "claim": "a <= scaled_total(a,b) under 0 <= a and 1 <= b",
+  "arithmetic": "Lean unbounded Int; signed64 overflow and source/model connection remain unproved",
+  "target": "specs/FrSpecs/SrcScaledRsScaledTotal.lean::scaled_totalModel_at_least_input",
+  "unfinished_rejected": true,
+  "external_reference_accepted": true,
+  "write_applied": true,
+  "package_check_passed": true,
+  "check_settings_preserved": true,
+  "fr_sha256": "fe1c05e9e305e4109f6443b51884f67282856c57f3508914d05a76714a4dd93d",
+  "reference_sha256": "0ac5245a2cb2e2d4d02af2e73e5faafce2b6ac5018e724a947cc46dffd1f37ac",
+  "fr_source_commit": "01e1add012e681a18dd72394e70e1da3a0ffa179",
+  "controller_source_commit": "b426c87ec688a8e912634f169b21df4b25860a96",
+  "agent_seed_created": false,
+  "hosted_isolation_qualified": false
+}

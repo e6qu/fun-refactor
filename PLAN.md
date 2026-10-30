@@ -73,10 +73,11 @@ The next tasks stay inside this milestone PR:
 1. Finish hosted M3 verification of proof-reader repairs, warning rejection, dependency controls and original submissions.
    Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
    Qualify the restored shared instructions before another paid call.
-2. Prepare a fresh Rust multiplication case, `scaled_total(a, b) = a * b`, with an empty proof region.
+2. Finish preparing the [fresh multiplication case](tests/agent-eval/proof-construction/README.md), `scaled_total(a, b) = a * b`, with an empty proof region.
    Its fixed Lean claim is `a ≤ scaled_total(a, b)` when `0 ≤ a` and `1 ≤ b`.
    State that Lean uses unbounded integers; source overflow and the source/model connection remain unproved.
-   Check an external reference and wrong proofs before calls. Keep that reference outside agent projects.
+   The local reference control passes and rejects an unfinished proof. Complete hosted isolation and rejection controls before calls.
+   Keep the reference outside agent projects.
 3. Freeze four fresh construction attempts: two each for the pinned GLM and Kimi profiles, all with fr and the corrected instructions.
    Record the first passing proof, package check, delivered patch and session finish separately.
    Each attempt must preserve check settings and finish within 150 seconds. Inspect any failure before another change or paid batch.
