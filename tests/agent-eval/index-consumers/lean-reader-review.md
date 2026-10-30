@@ -49,6 +49,15 @@ The original timing baselines remain unchanged. Current timings must use newly c
 The driver still samples 512 questions in the consumer copy and 511 in the indexing copy.
 The separate saved set of 512 consumer questions also stays unchanged.
 
+The [2026-10-30 comparison](reader-recheck-2026-10-30.json) checks the claim view,
+library signatures and Lean expression grouping against both fixed source copies.
+Their declarations, references and resolved-reference counts match the current inventory.
+Source bytes, syntax error locations and sampled questions stay unchanged.
+Two files' recorded parser trees change only in how binary expressions are grouped:
+Lean reads `a ∧ b ∧ c` as `a ∧ (b ∧ c)`. The comparison checks that every other
+part of those trees stays the same. It retains the exact artifact hashes and leaves
+the original timing baselines unchanged.
+
 | Fixed source copy | Before the original reader repair | After the original reader repair |
 | --- | ---: | ---: |
 | Consumer benchmark declarations and parameters | 98,147 | 98,231 |

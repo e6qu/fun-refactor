@@ -1,0 +1,15 @@
+diff --git a/specs/FrSpecs/SrcAllowedRsAllowed.lean b/specs/FrSpecs/SrcAllowedRsAllowed.lean
+index 78174be..60a3b4a 100644
+--- a/specs/FrSpecs/SrcAllowedRsAllowed.lean
++++ b/specs/FrSpecs/SrcAllowedRsAllowed.lean
+@@ -14,8 +14,8 @@ def allowedModel (staff : Bool) (owner : Bool) : Bool :=
+ -- fr:property agent unproved
+ theorem allowedModel_access_rule (staff : Bool) (owner : Bool) : (allowedModel (staff) (owner)) = (((staff) || (owner))) := by
+   -- fr:proof-begin allowedModel_access_rule
+-  -- fr:debt allowedModel_access_rule
+-  sorry
++  simp only [allowedModel]
++  cases staff <;> cases owner <;> simp
+   -- fr:proof-end allowedModel_access_rule
+ -- fr:generated-end formal-kernel
+ 

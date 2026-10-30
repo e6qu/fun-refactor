@@ -165,7 +165,8 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These packets retain all 227 outcomes that preceded the latest 36 attempts.
+These archives retain all 263 recorded outcomes.
+The latest completed comparison also appears in `local-results` until a new comparison finishes.
 The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
@@ -180,6 +181,7 @@ An accepted result passed independent checking and came from a completed client 
 | [Third complete comparison](clocked-results/README.md) | 36 | 25 accepted proofs and 11 timeouts under the timer that includes sleep |
 | [Introduction-pattern run](introduction-interrupted-results/README.md) | 18 | Valid proof syntax was rejected before Lean checking; 18 slots never started |
 | [High-setting comparison after the reader repair](introduction-results/README.md) | 36 | 26 accepted proofs, nine timeouts and one rejected proof |
+| [Low-setting comparison before the claim view](low-reasoning-results/README.md) | 36 | 26 accepted attempts, eight timeouts, one deleted check file and one rejected proof |
 
 All submitted patches and original failures remain available. The library-access, sleep-affected
 and introduction-pattern packets have no independent acceptance result. The sleep-affected packet

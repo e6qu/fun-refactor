@@ -1,0 +1,150 @@
+{
+  "purpose": "Check that the claim view, library signatures and Lean grouping changes preserve the reviewed benchmark answers.",
+  "before_source": "98922044bd34ce29c967e93d0ee911a5bc3ac71d",
+  "after_source": "48c70ee3b859e752c4874de7504ec6da20028694",
+  "current_inventory_sha256": "7b68cf530912936428570018bc6323e03e13b8e6047ac8b7e521c543ea69f4db",
+  "original_inventory_sha256": "34e17e749996aea3ebd9a3774216c577f5ab16725d022fcab5adb2616303e601",
+  "retained_question_sites_sha256": "e10733ec517ccde8e19b0ac45a0e16667399fdf822be96a4ca7195bc38a9458a",
+  "timing_baselines_changed": false,
+  "scope": "Both fixed source copies match the current reviewed counts. Only the two previously recorded false rintro references differ from the older reader. This does not establish complete Lean support or an agent speedup.",
+  "corpora": {
+    "e423fd2d03e5d74f2efea40b6ccd20812ac1178a": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/41033465495",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "058b64c7c91415aaee2c301d9a05fc7fdc471169b776fec3ce94254971f6b8d4",
+      "before_snapshot_sha256": "9674594cb6707c6c574be4de85bc2e8fb5f3c58cd5bcacf85b001fb92ab41ff0",
+      "after_snapshot_sha256": "cdbb874ad14c69bd8a5a1f30c447269dc622bc9f654f7fe3250ce7ef8f82edca",
+      "before": {
+        "files": 1255,
+        "references": 592648,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "after": {
+        "files": 1255,
+        "references": 592646,
+        "resolved": 306705,
+        "symbols": 98231
+      },
+      "source_bytes_syntax_error_locations_and_question_sites_unchanged": true,
+      "syntax_tree_regrouping": {
+        "kernels/FrKernels/AgentSession.lean": {
+          "before_sha256": "9ae1a076eff58e4051fc46bce5d7fabf1439261a2d2220a620bfdd803437bf16",
+          "after_sha256": "1b217754006b36292130f6e7ebb7db04f2e49a7503168b2139439ba6ccdeaf19",
+          "change": "Binary expressions regroup; all other syntax and error locations remain unchanged."
+        },
+        "kernels/FrKernels/SemanticIntent.lean": {
+          "before_sha256": "7c9f2a1eb036fda59355fac2ccfd980fbe89aeb10f82fff247519e14eb0afb99",
+          "after_sha256": "e99e94dec1f47890ed7e525e576e89172c26e192b1d20b1cce9e311cfeca636a",
+          "change": "Binary expressions regroup; all other syntax and error locations remain unchanged."
+        }
+      },
+      "matches_current_reviewed_counts": true,
+      "driver_sampled_questions": 512,
+      "previously_reviewed_false_references_removed": [
+        {
+          "confidence": "name-only",
+          "expects": null,
+          "file": "kernels/FrKernels/ProjectIdentity.lean",
+          "kind": "identifier",
+          "member_in_macro": false,
+          "name": "rintro",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 2737,
+            "start": 2731
+          },
+          "target": null,
+          "twin": false
+        },
+        {
+          "confidence": "name-only",
+          "expects": null,
+          "file": "kernels/FrKernels/ProjectIdentity.lean",
+          "kind": "identifier",
+          "member_in_macro": false,
+          "name": "rintro",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 2933,
+            "start": 2927
+          },
+          "target": null,
+          "twin": false
+        }
+      ],
+      "additional_changes": 0
+    },
+    "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf": {
+      "audit_run": "https://github.com/e6qu/fun-refactor/actions/runs/41036143214",
+      "driver_sha256": "4f8eb3c860e9475c0d13d463552eb2fcc05906e76ff1b1c2e86c8f4c03c808bf",
+      "comparison_sha256": "aea0d3d6cd9267ef7a30f4acb4b6fb665961c853b935814cd80abf7b49423417",
+      "before_snapshot_sha256": "4413cd0636bc7e3be9cc10ab4dd805b17623518252f812cf33d918fd59899427",
+      "after_snapshot_sha256": "f5f6d642ee31aa2da5179ed5e306436850e4f6cca7f94f76572642c69aa71919",
+      "before": {
+        "files": 1262,
+        "references": 593974,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "after": {
+        "files": 1262,
+        "references": 593972,
+        "resolved": 308629,
+        "symbols": 98439
+      },
+      "source_bytes_syntax_error_locations_and_question_sites_unchanged": true,
+      "syntax_tree_regrouping": {
+        "kernels/FrKernels/AgentSession.lean": {
+          "before_sha256": "9ae1a076eff58e4051fc46bce5d7fabf1439261a2d2220a620bfdd803437bf16",
+          "after_sha256": "1b217754006b36292130f6e7ebb7db04f2e49a7503168b2139439ba6ccdeaf19",
+          "change": "Binary expressions regroup; all other syntax and error locations remain unchanged."
+        },
+        "kernels/FrKernels/SemanticIntent.lean": {
+          "before_sha256": "7c9f2a1eb036fda59355fac2ccfd980fbe89aeb10f82fff247519e14eb0afb99",
+          "after_sha256": "e99e94dec1f47890ed7e525e576e89172c26e192b1d20b1cce9e311cfeca636a",
+          "change": "Binary expressions regroup; all other syntax and error locations remain unchanged."
+        }
+      },
+      "matches_current_reviewed_counts": true,
+      "driver_sampled_questions": 511,
+      "previously_reviewed_false_references_removed": [
+        {
+          "confidence": "name-only",
+          "expects": null,
+          "file": "kernels/FrKernels/ProjectIdentity.lean",
+          "kind": "identifier",
+          "member_in_macro": false,
+          "name": "rintro",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 2737,
+            "start": 2731
+          },
+          "target": null,
+          "twin": false
+        },
+        {
+          "confidence": "name-only",
+          "expects": null,
+          "file": "kernels/FrKernels/ProjectIdentity.lean",
+          "kind": "identifier",
+          "member_in_macro": false,
+          "name": "rintro",
+          "receiver": null,
+          "receiver_is_path": false,
+          "span": {
+            "end": 2933,
+            "start": 2927
+          },
+          "target": null,
+          "twin": false
+        }
+      ],
+      "additional_changes": 0
+    }
+  }
+}

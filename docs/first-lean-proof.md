@@ -110,7 +110,7 @@ one claim. `proof-task` reveals its context, parameters and the claim's parts. A
 `sorry`, a visible proof gap; it is not an accepted proof.
 
 Each `claim.parts` entry lists `assumptions` and `conclusions` copied from the theorem's syntax.
-Within one part, all assumptions apply and all conclusions must be proved.
+Assumptions are facts you may use while proving that part. Conclusions are statements you must prove.
 An empty assumptions list means that part needs no extra assumption beyond the theorem's parameters.
 For example, a page-count claim lists “items is nonnegative” and “page size is at least one” separately.
 An alternative such as “items is negative or page size is nonpositive” stays together; it does not assert both.
