@@ -1,0 +1,480 @@
+{
+  "executed": true,
+  "manifest_sha256": "c94f3941d3dcb176df378358efbb0c40e28d9def2ac5c0141b5efe3df3371c60",
+  "passed": true,
+  "reused_transaction": false,
+  "reviewed_context_omitted": [
+    "revision",
+    "task_basis",
+    "task_resolution_basis",
+    "coverage",
+    "requests",
+    "targets",
+    "checks",
+    "delivery",
+    "author",
+    "stages",
+    "ready"
+  ],
+  "saved": true,
+  "schema": "fr-task-change-1",
+  "task_change_basis": "frtc1:af61ba2a0833c5a9a2aa891a4749ca091b2d2778e63b3ac83ddf8bbb645a9a1d",
+  "transaction": 1,
+  "workflow": {
+    "acceptance_checks": {
+      "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+      "names": [
+        "truth-table"
+      ],
+      "toolchain-digest": "b4f6420150ca79363135321aa8950d74cb9eed74f85cb1a92479ed2aef19458d"
+    },
+    "executed": true,
+    "manifest_sha256": "bf2449d2018f8f31e92c32be94db9f311132e0136a586ed0105db5d04370b031",
+    "passed": true,
+    "reviewed_context_omitted": [
+      "manifest_sha256",
+      "record_basis",
+      "transaction_context_basis",
+      "checks",
+      "exercise_reversal",
+      "check_original",
+      "compact_success",
+      "patch",
+      "ready"
+    ],
+    "schema": "fr-workflow-1",
+    "stages": [
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "8a73ea6c808e68ceac8b11a06e35bfd69784c80769774f9fb711666832a1462e",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "apply",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 1128,
+              "path": "main.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 172,
+              "path": "subject.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 206,
+              "path": "translation.py"
+            }
+          ],
+          "context_basis": "frtb2:8021685e43b8e6deef82de144e0b1aab8dd19bd086d1fd9648afd0a11eb969e1",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "passed": true,
+          "recorded_evidence": {
+            "created": true,
+            "receipt": "frce1:490e91effd2517bcaeffad4c4d3c83cdbc72e1686345dcb182d694e516b2aa23",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "6f500ac99db4fcd44e6fa0acf5d3af1de4daabdb39f31d3c5b5b688b994ffdad",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "checks": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "All eight Boolean assignments in Rust and Python"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "truth-table",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "All eight Boolean assignments in Rust and Python"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 101,
+              "error": null,
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 67,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/tmp/fr-refinement-eval-m56vy0pw/native",
+          "schema": "fr-checks-1",
+          "source_revision": "6f500ac99db4fcd44e6fa0acf5d3af1de4daabdb39f31d3c5b5b688b994ffdad",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+            "programs": [
+              {
+                "check": "truth-table",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 1001,
+                    "declared": ".fr/oracle.py",
+                    "path": "/tmp/fr-refinement-eval-m56vy0pw/native/.fr/oracle.py",
+                    "sha256": "278dca2ffd0e6d9df03004465dd6109dbd63868860984474235fae974dbe57d8"
+                  }
+                ],
+                "path": "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3.14",
+                "sha256": "60cb36c21a842dc0490bc3bc16f334431aecaa0857e0ff0b8a5b478fd2d74e26"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "undo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "main.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "subject.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "translation.py"
+            }
+          ],
+          "diffs_omitted": true,
+          "transaction": 1
+        },
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "8a73ea6c808e68ceac8b11a06e35bfd69784c80769774f9fb711666832a1462e",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "redo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 1128,
+              "path": "main.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 172,
+              "path": "subject.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 206,
+              "path": "translation.py"
+            }
+          ],
+          "context_basis": "frtb2:8021685e43b8e6deef82de144e0b1aab8dd19bd086d1fd9648afd0a11eb969e1",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "passed": true,
+          "recorded_evidence": {
+            "created": false,
+            "receipt": "frce1:490e91effd2517bcaeffad4c4d3c83cdbc72e1686345dcb182d694e516b2aa23",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "6f500ac99db4fcd44e6fa0acf5d3af1de4daabdb39f31d3c5b5b688b994ffdad",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "c44f62d6c958e0ae165d615d6e527e70c87c17a76a9a9aa85c09e53ea3699220",
+          "checks": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "All eight Boolean assignments in Rust and Python"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "truth-table",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "All eight Boolean assignments in Rust and Python"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 100,
+              "error": null,
+              "exit_code": 0,
+              "name": "truth-table",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 67,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/tmp/fr-refinement-eval-m56vy0pw/native",
+          "schema": "fr-checks-1",
+          "source_revision": "6f500ac99db4fcd44e6fa0acf5d3af1de4daabdb39f31d3c5b5b688b994ffdad",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+            "programs": [
+              {
+                "check": "truth-table",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 1001,
+                    "declared": ".fr/oracle.py",
+                    "path": "/tmp/fr-refinement-eval-m56vy0pw/native/.fr/oracle.py",
+                    "sha256": "278dca2ffd0e6d9df03004465dd6109dbd63868860984474235fae974dbe57d8"
+                  }
+                ],
+                "path": "/opt/hostedtoolcache/Python/3.14.9/x64/bin/python3.14",
+                "sha256": "60cb36c21a842dc0490bc3bc16f334431aecaa0857e0ff0b8a5b478fd2d74e26"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "bytes": 1639,
+          "output": "artifacts/migration.patch",
+          "sha256": "b8b8a409200689f55b5d287664f0034b1e34267e4348754c92eaa2379be78f0a"
+        },
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "transaction": 1,
+    "transaction_status": "applied",
+    "workflow_basis": "frwb1:691189db87d01610ad745dca50b1ac4c390eed0dda9521979533011f86319d91"
+  }
+}
