@@ -22,7 +22,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: tests/agent-eval/proof-writing/local-results
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /tests/agent-eval/proof-writing/local-results/summary.json
       - name: Select the checking source recorded before the model calls
         run: |
           python3 -B - <<'PY'
@@ -45,6 +46,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
+      - name: Require the original auditor inputs before building
+        run: >-
+          python3 -B -c 'from agent_eval import proof_writing_results;
+          from agent_eval.selected_plan import ROOT, prepare; prepare(ROOT, "M3")'
       - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: ./.github/actions/lean-toolchain
       - uses: Swatinem/rust-cache@v2
@@ -56,6 +61,7 @@ jobs:
           python3 -B -m agent_eval.proof_writing_results prepare-audit
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-audit-inputs"
       - name: Recheck all eighteen isolated positive and negative deliveries
+        id: controls
         run: >-
           python3 -B -m agent_eval.proof_writing_results controls
           --inputs "$RUNNER_TEMP/m3-audit-inputs" --fr "$GITHUB_WORKSPACE/target/debug/fr"
@@ -83,7 +89,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && (steps.controls.outcome == 'success' || steps.controls.outcome == 'failure')
         with:
           name: m3-audit-private-controls
           path: |

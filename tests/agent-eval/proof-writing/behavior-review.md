@@ -14,6 +14,13 @@ Kimi has four accepted attempts out of six in each comparison. Neither agent has
 The first and latest total success counts therefore match; tool use has changed without a sustained overall increase.
 The next complete comparison is paused for the [improvement method](../../../docs/agent-improvement.md).
 
+The later [small division diagnostic](../proof-feedback/README.md#what-the-first-run-established) kept its eight attempts separate.
+All eight submitted proofs passed independent checks; six complete attempts passed.
+GLM's failed attempt already had a passing proof at 66 seconds and package at 86 seconds, then repeated commands until timeout.
+Kimi's failed attempt wrote proof-check JSON over the supplied check settings. These are delivery failures on an assisted repair.
+Review found omitted shared execution instructions in that diagnostic; the correction is tested but has no later live measurement.
+The mixed results establish no benefit from supplying the initial error report and no solution to page counting.
+
 Page counting remains the difficult case: all eight GLM/Kimi attempts timed out, including ordinary-tool attempts.
 These four fr-available attempts received a root skill containing the exact checking and saving commands:
 

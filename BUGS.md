@@ -17,6 +17,8 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | A valid local Lean lemma with parameters was rejected | Generated reader checks and focused native examples pass for named and anonymous parameterized lemmas; full workflow qualification continues |
 | A draft passed fr but its warnings later failed package verification | Rejects draft warnings before saving; a clean proof remains checkable while another theorem is unfinished; focused native checks pass |
 | A report calculator accepted late successes or invalid times | Checks elapsed time against the recorded deadline and rejects invalid times; twelve retained complete reports keep their original statistics |
+| The small proof diagnostic skipped shared execution instructions | Uses the common instructions for check-file preservation, serial work and finishing; a regression rejects the measured omission |
+| Rebuilding the original proof auditor omitted required task files | Keeps both checkouts in the same explicit sparse mode and imports the original auditor before building; hosted validation is pending |
 | An application update deleted a frozen CLI executable | New studies keep verified executable and companion copies inside the study directory |
 | Deep conformance omitted TypeScript's compiler | Installs the locked checker before running the unchanged checks |
 | Repository reports repeated file reads and line scans until timeout | Reuses source/line maps within a report and the immutable test graph within a test; preserves Unicode positions, fresh later reads and every original sample |
@@ -46,7 +48,10 @@ The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) records
 The root skill now links arithmetic directly and starts by checking an unfinished draft.
 The lesson explains Boolean comparisons, proof-valued arguments and a search for a missing fact.
 All four examples compile with pinned Lean; the complete skill passes hosted M2 checks.
-New live comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides the next diagnostic.
+The [small diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) retained eight valid proof patches and six completed attempts.
+GLM timed out after passing checks; Kimi replaced the check settings with a report. Both remain failed.
+The restored shared instructions and clarified skill have no later live measurement yet.
+Full comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides the next construction check.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

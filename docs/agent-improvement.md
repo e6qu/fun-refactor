@@ -38,6 +38,7 @@ A timeout tells us where observation stopped. It cannot tell us when, or whether
    Separate observations from explanations. An unfinished response does not establish a provider outage or continuous model computation.
 3. **Check the measurement.** Give the evaluator deliberately wrong inputs and check that it rejects them.
    Reproduce suspected tool defects without a model call before testing another instruction.
+   Check every study mode's execution instructions too: protected files, serial work, required checks and finishing rules must stay present.
 4. **Write one explanation and its prediction.** Name the proposed change, the comparison, the expected result and what would contradict it.
    Freeze these choices before starting. Keep the model, task and unrelated settings identical between the compared conditions.
 5. **Run the smallest useful diagnostic.** Test the suspected obstacle on a tiny example before another complete comparison.
@@ -91,18 +92,18 @@ Check unfinished proofs, changed claims, stale dependencies, draft warnings and 
 For a timing collector, check overlapping tool calls, missing timestamps and unfinished responses.
 Missing evidence stays unknown. A guessed zero can create a false speedup.
 
-## Next M3 diagnostic
+## First controlled M3 diagnostic
 
 The next complete 36-attempt comparison is paused. Native and CI regression checks can continue.
 The [roadmap](../PLAN.md#next-work) owns the remaining milestone work.
 
-The next question is whether the agents can repair a specific arithmetic error once they have useful feedback.
+The first question was whether the agents could repair a specific arithmetic error once they had useful feedback.
 This separates interpreting feedback from discovering a complete page-count argument.
 Use an unrelated small integer-division claim and a draft with the observed wrong-argument-type mistake.
 Check that Lean rejects the original draft and accepts a repair before making a paid call.
 Keep supplied reference tactics outside both agent projects.
 
-Prepare this diagnostic before running it:
+The following choices were fixed before its eight attempts:
 
 | Choice | Fixed requirement |
 | --- | --- |
@@ -123,7 +124,24 @@ Keep such failures in the record, clarify their cause and suspend conclusions ab
 This is an assisted diagnostic on a development example. It cannot close the page-count milestone or replace its failures.
 The [diagnostic guide](../tests/agent-eval/proof-feedback/README.md) records its separate eight-slot schedule and independent patch controls.
 The shared runner now has an explicit diagnostic mode; the full study keeps its separate thirty-six slots.
-Pass the hosted controls before freezing the diagnostic or starting its eight calls.
+Its hosted controls passed before inputs were frozen and the eight attempts ran once.
+
+### Result and correction to the method
+
+The [result and observed failures](../tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) retain all eight attempts.
+Independent checking accepted all eight proof patches; six complete attempts passed.
+GLM timed out after a passing proof and package check. Kimi replaced the supplied checking configuration with proof-check output.
+Both remain failures. GLM's feedback comparison is inconclusive; Kimi's altered checking input blocks interpretation.
+This supports no claim that showing the initial report improves task success.
+
+Review found an evaluator defect: the diagnostic's shorter prompt skipped the shared execution instructions.
+The repair now adds those instructions to both conditions. A regression rejects the exact measured implementation and passes the correction.
+The skill also explains that `.fr/checks.json` holds settings and that proof writes report `applied`.
+These are confirmed instruction omissions and clarifications; their effect on later agent behavior remains unmeasured.
+
+The method therefore adds an instruction audit before paid calls. Checker rejection controls alone missed this problem.
+Keep a passing proof separate from finishing the whole task, and read the actual output fields before inferring another required action.
+The next small case should start with an empty proof region and a different claim, so it asks for construction rather than another repair of this supplied draft.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.

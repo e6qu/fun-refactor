@@ -2,7 +2,7 @@
 
 This small diagnostic follows the [improvement method](../../../docs/agent-improvement.md).
 It tests GLM Flash and Kimi K3 on one assisted repair before another full proof comparison.
-It has no live results yet and cannot complete M3.
+The [eight-attempt result](local-results/README.md) is independently checked. It cannot complete M3.
 
 The [source function](fixtures/quotient.rs) divides `a` by `b` using signed-64 integers.
 The fixed Lean claim says its model returns a nonnegative quotient when `a` is nonnegative and `b` is positive.
@@ -71,3 +71,34 @@ Every other result remains inconclusive. Two repetitions establish no general su
 
 Publish only submitted patches and summaries. Keep initial error reports, native logs, prompts, source snapshots and account data local.
 Preserve all earlier M3 failures; this assisted example cannot replace them.
+
+## What the first run established
+
+[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41140841504) accepted all eight proof patches.
+Six attempts finished correctly. Two remain failed despite valid proofs:
+
+| Attempt | Observed failure | Correction after the run |
+| --- | --- | --- |
+| GLM, self-check, second run | Proof passed at 66 seconds and the package passed at 86 seconds. Guessed check commands and repeated writes continued until the 150-second stop. | Restore the shared instruction to run required checks once and finish delivery; explain the write result's `applied` field |
+| Kimi, supplied feedback, second run | `tee .fr/checks.json` replaced the supplied command configuration with a proof-check report. | Restore the explicit rule that changing this file fails the attempt; explain where reports belong |
+
+The diagnostic's prompt returned before the shared execution instructions were added.
+That omission affected both conditions. The corrected runner now uses the common instructions and has a regression that rejects the measured implementation.
+These repairs were made after the eight attempts; their effect on agents is unmeasured.
+
+GLM completed 1/2 self-check and 2/2 supplied-feedback attempts. Its prewritten rule says the result is inconclusive.
+Kimi completed 2/2 and 1/2 respectively. Its altered checking input blocks a conclusion about feedback exposure.
+No attempt was retried or promoted. The original checker, source identities and all patches remain recorded in the [summary](local-results/summary.json).
+
+Every attempt reached a passing proof check within 20–71 seconds. The six completed deliveries took 35–103 seconds.
+All eight attempts together took 602.9 seconds, including the two failures. This compares two conditions that both use fr;
+it measures no overhead against ordinary tools, program execution speed or general benefit from earlier feedback.
+Account charges remain unknown. Both conditions had the same existing arithmetic lesson, including proof-valued arguments.
+This assisted repair establishes no ability to construct the complete page-count proof.
+
+`first_correct_repair_seconds` records when a tool returned the first visible passing proof check, rather than when tactics were first written.
+Repeated argument errors count visible rejections after the first such report was available.
+Clipped output leaves GLM's second self-check error count unknown. Missing observations are not zero.
+
+The next question is constructing a small arithmetic proof from an empty proof region under the corrected execution instructions.
+Qualify a different multiplication claim before new calls; keep the full comparison paused.

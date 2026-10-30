@@ -54,7 +54,7 @@ The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) 
 accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
 GLM and Kimi submitted no page-count proof in either setup.
 
-M3 remains open. New agent calls stay paused while we improve the experiment process.
+M3 remains open. The complete comparison stays paused while we improve the experiment process.
 Follow the [improvement method](docs/agent-improvement.md): observe, explain, test a prediction, decide and review the method itself.
 GLM and Kimi each completed four of six fr-available attempts in the first and latest complete comparisons.
 Neither delivered a page-count proof in fourteen fr-available attempts across seven complete comparisons.
@@ -62,21 +62,30 @@ Using fr more consistently has not established a sustained rise in total success
 For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
 
+The [first controlled diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) ran all eight attempts once.
+All eight submitted proofs passed independent checking. Six complete attempts passed; GLM timed out after passing checks,
+and Kimi overwrote the supplied check settings. The stated rules give no demonstrated benefit from supplying the initial error report.
+Review found that this diagnostic skipped the shared execution instructions. That defect is fixed and has a regression.
+The later instruction correction has no live measurement yet. The 150-second limit stays unchanged.
+
 The next tasks stay inside this milestone PR:
 
-1. Validate the evaluator with deliberately late successes, stopped attempts and invalid timing values.
-   Preserve the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts.
-   Their original statistics stay unchanged. Finish hosted checks of the native repairs and dependency controls.
-2. Qualify the [eight-attempt diagnostic](tests/agent-eval/proof-feedback/README.md) before any new model call.
-   Use an unrelated small division claim and a draft with a wrong argument type.
-   Compare repairing it with and without the actual initial diagnostic, keeping the task, model, fr and instructions fixed.
-   Check scheduling, balanced order, complete timing and independent grading before freezing these inputs.
-3. Run that diagnostic once, retain every outcome and apply its stated decision rule.
-   Correct completed repairs decide whether to inspect feedback exposure, diagnostic comprehension or full-proof construction next.
-   Earlier feedback alone cannot count as a better result. A mixed result remains inconclusive.
-4. Test the supported change on another example, then resume the complete comparison after relevant CI passes.
+1. Finish hosted M3 verification of proof-reader repairs, warning rejection, dependency controls and original submissions.
+   Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
+   Qualify the restored shared instructions before another paid call.
+2. Prepare a fresh Rust multiplication case, `scaled_total(a, b) = a * b`, with an empty proof region.
+   Its fixed Lean claim is `a ≤ scaled_total(a, b)` when `0 ≤ a` and `1 ≤ b`.
+   State that Lean uses unbounded integers; source overflow and the source/model connection remain unproved.
+   Check an external reference and wrong proofs before calls. Keep that reference outside agent projects.
+3. Freeze four fresh construction attempts: two each for the pinned GLM and Kimi profiles, all with fr and the corrected instructions.
+   Record the first passing proof, package check, delivered patch and session finish separately.
+   Each attempt must preserve check settings and finish within 150 seconds. Inspect any failure before another change or paid batch.
+   Treat this as a workflow and construction check; it cannot establish that the instruction change caused an improvement.
+   If agents still repeat checks or alter settings, inspect that first failure before choosing another instruction change.
+4. Return to the first unresolved page-count proof step once that workflow check passes.
+   Resume the complete comparison only after a concrete change has supporting evidence and relevant CI passes.
    Keep the same models, claims, two repetitions and 150-second benchmark.
-   Independently grade submissions and preserve every failure alongside the 335 existing M3 outcomes.
+   Independently grade submissions and preserve every failure alongside the 335 existing M3 outcomes and this separate diagnostic.
 
 Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
 Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.

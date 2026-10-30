@@ -110,6 +110,9 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 
 ## Run and measure the selected local CLIs
 
+The [separate arithmetic diagnostic](../proof-feedback/README.md#what-the-first-run-established) retains eight assisted repairs and their two failed deliveries.
+It does not add successful page-count attempts or close this milestone. The [roadmap](../../../PLAN.md#next-work) names the next construction check.
+
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.
 M3 uses its own [profile settings](profiles.json): Luna Fast with high reasoning,
