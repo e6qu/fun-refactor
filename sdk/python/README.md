@@ -202,6 +202,10 @@ python3 -m pytest -q sdk/python/tests
 independently recomputes its Merkle content address. Agents can inspect and store a plan without
 handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
 `ProofTask.from_json(...)` validates a bounded `fr-proof-task-1` context and its Merkle address.
+Its `claim.parameters` retain the theorem's parameter groups, and `claim.parts` list the assumptions
+and conclusions for each part. For a bounded page count, the item-count upper bound and page-size
+lower bound appear in separate entries. Alternatives and bound variables retain their scope.
+The view describes syntax; it supplies no proof steps. The content address also binds this claim view.
 `ProofAttempt.from_json(...)` verifies that an accepted attempt's receipt binds the goal, normalized
 agent-written tactics and pinned checker. Neither class generates proof tactics.
 Rejected attempts distinguish `draft_location` in the supplied tactics from `checked_location`

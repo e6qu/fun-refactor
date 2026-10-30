@@ -71,6 +71,11 @@ Later read-only session inspection finds 6,047 and 10,022 reasoning characters i
 These are character lengths, not token totals; the text stays private and the timeouts remain failed.
 Kimi generated analysis during the gaps without reaching another check. GLM's first final delay remains unexplained.
 Next work must help an agent try the claim's parts with actual library signatures, not merely improve later error messages.
+The branch now replaces empty proof templates with `claim.parameters` and `claim.parts` in `proof-task`.
+Each part lists its assumptions and conclusions; alternatives and bound variables retain their scope.
+The root skill now explicitly calls `proof-task` before drafting. Its existing size limits still apply.
+The syntax reader also needs its new right-grouping and disjunction-precedence rules generated on GitHub.
+Run the actual Rust, Lean, SDK and ten-case controls after generation before freezing a new comparison.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

@@ -54,6 +54,11 @@ The controller refused before another model call; exact-byte restoration preserv
 New freezes now copy and verify the executable and its companion inside the study directory.
 The local regression confirms that deleting the application's original files leaves those copies usable.
 
+Lean's proposition operators group to the right: `p ∧ q ∧ r` means `p ∧ (q ∧ r)`.
+Fr's syntax reader grouped them to the left and gave disjunction the same precedence as implication.
+The branch corrects those rules and adds a claim view that separates assumptions from conclusions.
+Python contract tests and the Lean examples pass locally. Generated-parser and Rust checks are next on GitHub.
+
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

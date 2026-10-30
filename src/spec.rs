@@ -1,3 +1,4 @@
+mod proof_claim;
 pub mod refinement;
 pub mod retained;
 
@@ -488,7 +489,7 @@ pub struct ProofTask {
     pub schema: &'static str,
     pub goal: FormalGoalDetail,
     pub contract: ProofInputContract,
-    pub templates: Vec<ProofTemplate>,
+    pub claim: ProofClaim,
     pub object_digest: String,
     pub actions: ProofTaskActions,
     pub token_budget: FormalGoalBudget,
@@ -505,9 +506,15 @@ pub struct ProofInputContract {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ProofTemplate {
-    pub kind: &'static str,
-    pub lines: Vec<&'static str>,
+pub struct ProofClaim {
+    pub parameters: Vec<String>,
+    pub parts: Vec<ProofClaimPart>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofClaimPart {
+    pub assumptions: Vec<String>,
+    pub conclusions: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1578,25 +1585,12 @@ pub fn proof_task(
         ],
         checker: LEAN_TOOLCHAIN,
     };
-    let templates = vec![
-        ProofTemplate {
-            kind: "direct",
-            lines: vec!["<agent-written-tactics>"],
-        },
-        ProofTemplate {
-            kind: "structured-calculation",
-            lines: vec![
-                "calc",
-                "  <expression> = <expression> := by",
-                "    <agent-written-tactics>",
-            ],
-        },
-    ];
+    let claim = proof_claim::outline(&revealed.theorem)?;
     let core = serde_json::json!({
         "schema": PROOF_TASK_SCHEMA,
         "goal": &revealed,
         "contract": &contract,
-        "templates": &templates,
+        "claim": &claim,
     });
     let object_digest = crate::project::object_merkle(&core)?;
     let actions = ProofTaskActions {
@@ -1621,7 +1615,7 @@ pub fn proof_task(
         "schema": PROOF_TASK_SCHEMA,
         "goal": &revealed,
         "contract": &contract,
-        "templates": &templates,
+        "claim": &claim,
         "object_digest": &object_digest,
         "actions": &actions,
         "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
@@ -1634,7 +1628,7 @@ pub fn proof_task(
         schema: PROOF_TASK_SCHEMA,
         goal: revealed,
         contract,
-        templates,
+        claim,
         object_digest,
         actions,
         token_budget: FormalGoalBudget {

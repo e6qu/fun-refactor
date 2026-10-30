@@ -78,7 +78,11 @@ The current repairs address concrete problems from these attempts; hosted valida
 
 The [GLM and Kimi review](tests/agent-eval/proof-writing/behavior-review.md) identifies a separate gap before checking begins.
 Neither agent checks a draft in any of eight fr page-count attempts across the two latest comparisons.
-Next, make the claim's parts and library argument types easier to inspect and try in a small checked draft.
+The branch now makes `proof-task` list each part's assumptions and conclusions, replacing empty proof templates.
+For page counting, it separates the four valid-input bounds and keeps invalid-input alternatives together.
+The skill asks the agent to inspect that view before drafting. Hosted validation remains required.
+The same work fixes Lean conjunction and disjunction grouping before interpreting those claim parts.
+Next, validate this change and make actual library argument types easier to inspect and try in a small checked draft.
 Measure whether that produces an earlier useful check and a correct patch; extra searches or fr calls are not success.
 
 Independently grade every submitted patch. Keep the fixed models, claims and 150-second limit.

@@ -106,8 +106,15 @@ fr -C . --json spec proof-task specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_
 
 The plan describes the selected source, generated definition, claim and assumptions. Review it before
 scaffolding, which creates the Lean definition and an unfinished theorem. The goals report lists the
-one claim. `proof-task` reveals its context and empty proof templates. An unfinished theorem contains
+one claim. `proof-task` reveals its context, parameters and the claim's parts. An unfinished theorem contains
 `sorry`, a visible proof gap; it is not an accepted proof.
+
+Each `claim.parts` entry lists `assumptions` and `conclusions` copied from the theorem's syntax.
+Within one part, all assumptions apply and all conclusions must be proved.
+An empty assumptions list means that part needs no extra assumption beyond the theorem's parameters.
+For example, a page-count claim lists “items is nonnegative” and “page size is at least one” separately.
+An alternative such as “items is negative or page size is nonpositive” stays together; it does not assert both.
+This view supplies no proof steps and does not change the theorem. Lean still checks the proof's meaning.
 
 For these exact names, the theorem target is
 `specs/FrSpecs/SrcLibRsAllowed.lean::allowedModel_access_rule`.

@@ -1,0 +1,3 @@
+theorem scopes {p q r : Prop} (h : p ∧ q) :
+  ((p → q) → r) ∧ (p → q → r) ∧
+  (∀ x : Nat, x = x ∧ x ≤ x) ∧ (¬ (p ∧ q))

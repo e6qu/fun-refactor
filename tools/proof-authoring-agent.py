@@ -226,7 +226,7 @@ FRJSON
 
 Allowed requests, in order:
 1. {{"tool":"guide"}} selects the source-free proof route.
-2. {{"tool":"task"}} reveals the exact theorem, proof contract and templates.
+2. {{"tool":"task"}} reveals the exact theorem, proof contract and claim parts.
 3. {{"tool":"check","tactics":"<agent-authored Lean tactics without leading by>"}} checks one authored proof attempt.
 4. {{"tool":"preview"}} previews the unchanged accepted tactics.
 5. {{"tool":"review"}} binds those tactics, the declared Lean check and patch delivery to one immutable review.

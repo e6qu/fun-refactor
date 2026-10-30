@@ -178,13 +178,14 @@ class TestIr:
             "normalization": "trim-outer-newlines-indent-two-spaces", "forbidden": ["sorry"],
             "checker": "leanprover/lean4:v4.28.0",
         }
-        templates = [{"kind": "direct", "lines": ["<agent-written-tactics>"]}]
+        claim = {"parameters": ["(x : Bool)"],
+                 "parts": [{"assumptions": [], "conclusions": ["keep x = x"]}]}
         task = {
             "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
-            "templates": templates,
+            "claim": claim,
             "object_digest": merkle_object_digest({
                 "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
-                "templates": templates,
+                "claim": claim,
             }),
             "actions": {
                 "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
@@ -204,17 +205,33 @@ class TestIr:
         bound["goal"]["model_context_digest"] = merkle_object_digest("current model module")
         addressed = {key: bound["goal"][key] for key in ("name", "spec", "target", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
         bound["goal"]["id"] = bound["goal"]["object_digest"] = merkle_object_digest(addressed)
-        core = {key: bound[key] for key in ("schema", "goal", "contract", "templates")}
+        core = {key: bound[key] for key in ("schema", "goal", "contract", "claim")}
         bound["object_digest"] = merkle_object_digest(core)
         assert ProofTask.from_data(bound).to_data() == bound
         bound["goal"]["model_context_digest"] = merkle_object_digest("changed model module")
-        bound["object_digest"] = merkle_object_digest({key: bound[key] for key in ("schema", "goal", "contract", "templates")})
+        bound["object_digest"] = merkle_object_digest({key: bound[key] for key in ("schema", "goal", "contract", "claim")})
         with pytest.raises(IrError, match="model context identity"):
             ProofTask.from_data(bound)
         changed_task = json.loads(json.dumps(task))
         changed_task["goal"]["theorem"] = "changed"
         with pytest.raises(IrError, match="model context identity"):
             ProofTask.from_data(changed_task)
+
+        changed_claim = json.loads(json.dumps(task))
+        changed_claim["claim"]["parts"][0]["conclusions"] = ["False"]
+        with pytest.raises(IrError, match="content address"):
+            ProofTask.from_data(changed_claim)
+        for claim in (
+            {"parameters": [], "parts": []},
+            {"parameters": [""], "parts": [{"assumptions": [], "conclusions": ["True"]}]},
+            {"parameters": [], "parts": [{"assumptions": [""], "conclusions": ["True"]}]},
+            {"parameters": [], "parts": [{"assumptions": [], "conclusions": []}]},
+            {"parameters": [], "parts": [{"assumptions": ["True"] * 64, "conclusions": ["True"]}]},
+        ):
+            malformed = json.loads(json.dumps(task))
+            malformed["claim"] = claim
+            with pytest.raises(IrError, match="proof claim"):
+                ProofTask.from_data(malformed)
 
         proof_digest = merkle_object_digest("rfl")
         checker_context = merkle_object_digest("checked module and exact package inputs")

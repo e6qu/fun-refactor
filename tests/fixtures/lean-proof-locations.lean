@@ -1,5 +1,14 @@
 import Std
 
+theorem conjunctionGrouping (p q r : Prop) : p ∧ q ∧ r → p := by
+  intro h
+  exact h.1
+
+theorem disjunctionGrouping (p q r : Prop) : p ∨ q ∨ r → r ∨ q ∨ p := by
+  intro h
+  exact h.elim (fun hp => Or.inr (Or.inr hp))
+    (fun hqr => hqr.elim (fun hq => Or.inr (Or.inl hq)) (fun hr => Or.inl hr))
+
 theorem simplify_hypothesis (n : Nat) (h : n + 0 = 0) : n = 0 := by
   simp only [Nat.add_zero] at h
   exact h

@@ -5,18 +5,19 @@ Keep the supplied claim, model, assumptions and program unchanged.
 
 ## When the theorem already exists
 
-A target names the file and theorem. Run `spec goals specs` and copy its `target`
-as `<LEAN_TARGET>`.
+A target names the file and theorem. Copy `spec goals specs`'s `target` as `<LEAN_TARGET>`.
 
 ```sh
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 
-Read the claim and model. Write your proof steps early in `.fr/proof-tactics`, without `by`.
-Check and repair that draft. Keep relative indentation; fr adds two spaces to each line.
+Read `claim.parameters` and `claim.parts`: each part lists assumptions and conclusions.
+All assumptions apply to that part; all its conclusions need proofs. Alternatives stay together.
+Write proof steps early in `.fr/proof-tactics`, without `by`.
+Keep relative indentation; fr adds two spaces to each line.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
 
-`refine ?_` opens a temporary goal. Later tactics must solve it; an unfinished goal fails.
+`refine ?_` opens a temporary goal. Solve it before delivery.
 
 Check before searching the library; this leaves source unchanged:
 
@@ -31,10 +32,9 @@ search its type's folder rather than indexing the whole installation.
 `checked_location` identifies Lean's checked file; it may have extra generated lines.
 `context` retains the goal (`⊢`); `context_omitted_lines` counts omitted lines.
 
-For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
-Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
-A namespace groups definitions: `List.length` belongs to `List`. Search for `length`,
-the part after the dot.
+For library lookup, `lean --print-prefix` locates the installation.
+Under `src/lean/Init/Data`, choose the type's folder.
+A namespace groups names: search for `length` from `List.length`.
 Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
 
 ```sh

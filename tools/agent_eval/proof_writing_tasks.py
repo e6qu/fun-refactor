@@ -130,7 +130,15 @@ def prepare(case, binary, project, output):
     require(len(catalog['catalog']) == 1 and catalog['omitted'] == 0, 'disclose exactly the one fixed proof goal')
     goal = catalog['catalog'][0]
     common.fr(binary, project, ['spec', 'goals', 'specs', '--goal', goal['id']], output / 'goal.json')
-    common.fr(binary, project, ['spec', 'proof-task', spec + '::' + obligation], output / 'proof-task.json')
+    proof_task = common.fr(binary, project, ['spec', 'proof-task', spec + '::' + obligation], output / 'proof-task.json')
+    if case == 'page-count':
+        parts = proof_task['claim']['parts']
+        require(len(parts) == 3 and len(parts[0]['assumptions']) == 1 and
+                '∨' in parts[0]['assumptions'][0] and len(parts[1]['assumptions']) == 4 and
+                'items' in parts[1]['assumptions'][1] and 'size' not in parts[1]['assumptions'][1] and
+                'size' in parts[1]['assumptions'][2] and 'items' not in parts[1]['assumptions'][2] and
+                len(parts[1]['conclusions']) == 2 and not parts[2]['assumptions'],
+                'page-count task must distinguish each input bound, its conclusions and invalid alternatives')
     for name in common.sources(project):
         (project / name).chmod(0o644)
     common.comparison_grade.BASE.git(project, 'init', '-q', '-b', 'main')

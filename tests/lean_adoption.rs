@@ -595,10 +595,18 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     let proof_task: serde_json::Value = serde_json::from_slice(&proof_task.stdout).unwrap();
     assert_eq!(proof_task["schema"], "fr-proof-task-1");
     assert_eq!(proof_task["contract"]["author"], "agent");
-    assert!(proof_task["templates"][0]["lines"][0]
-        .as_str()
-        .unwrap()
-        .contains("agent-written"));
+    assert_eq!(
+        proof_task["claim"]["parameters"],
+        serde_json::json!(["(x : Bool)"])
+    );
+    assert_eq!(
+        proof_task["claim"]["parts"][0]["assumptions"],
+        serde_json::json!([])
+    );
+    assert_eq!(
+        proof_task["claim"]["parts"][0]["conclusions"],
+        serde_json::json!(["keepModel x = x"])
+    );
     assert!(!proof_task.to_string().contains("rfl"));
     let source_path = workspace.path().join("src/lib.rs");
     let current_source = std::fs::read_to_string(&source_path).unwrap();

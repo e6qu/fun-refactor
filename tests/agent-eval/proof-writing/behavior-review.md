@@ -170,6 +170,11 @@ For example, an agent should be able to inspect an inequality fact's required ar
 try it in a small draft, and receive the exact remaining goal before another broad search.
 The success measure is an earlier useful check and a correct delivered proof, not more fr invocations.
 
+The current branch implements the first part: `proof-task` exposes each claim part's assumptions and conclusions.
+It replaces empty proof templates, and the skill explicitly asks the agent to inspect this view before drafting.
+The work also corrects the syntax reader's grouping of proposition operators.
+These changes still need hosted validation and a new comparison; the recorded failures above remain unchanged.
+
 Before claiming a fix, distinguish these questions:
 
 1. Did the agent check a draft early enough to repair it and deliver a patch?

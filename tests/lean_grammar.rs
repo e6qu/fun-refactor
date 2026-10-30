@@ -6,6 +6,43 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn proposition_connectives_group_like_lean_without_changing_boolean_operators() {
+    for (operator, field) in [
+        ("∧", "right"),
+        ("∨", "right"),
+        ("&&", "left"),
+        ("||", "left"),
+    ] {
+        let lean_type = if operator.is_ascii() { "Bool" } else { "Prop" };
+        let source = format!("def grouped (p q r : {lean_type}) := p {operator} q {operator} r\n");
+        let parsed = Parsers::new().parse(Language::Lean, &source).unwrap();
+        assert!(!parsed.has_errors(), "{}", parsed.root().to_sexp());
+        let definition = parsed.root().named_child(0).unwrap();
+        let expression = definition.child_by_field_name("body").unwrap();
+        assert_eq!(expression.kind(), "binary_expression");
+        assert_eq!(
+            expression.child_by_field_name(field).unwrap().kind(),
+            "binary_expression",
+            "{operator} must group to the {field}"
+        );
+    }
+    let source = "theorem precedence (p q r : Prop) : p ∨ q → r := by sorry\n";
+    let parsed = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!parsed.has_errors());
+    let proposition = parsed
+        .root()
+        .named_child(0)
+        .unwrap()
+        .child_by_field_name("type")
+        .unwrap();
+    assert_eq!(proposition.kind(), "arrow");
+    assert_eq!(
+        proposition.child_by_field_name("domain").unwrap().kind(),
+        "binary_expression"
+    );
+}
+
+#[test]
 fn introductions_keep_discarded_hypotheses_and_simplifier_phases() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();

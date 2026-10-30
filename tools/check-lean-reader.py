@@ -28,6 +28,21 @@ def check(binary, diagnostics, integer_library):
         if fixture == 'lean-proof-locations.lean' and len(list(tree.iter('for_in'))) != 2:
             failures.append(fixture + ': expected two nested for loops')
         if fixture == 'lean-proof-locations.lean':
+            grouping = set()
+            for definition in tree.iter('definition'):
+                name = definition.find('qualified_name')
+                if name is None:
+                    continue
+                text = ''.join(''.join(name.itertext()).split())
+                if text not in {'conjunctionGrouping', 'disjunctionGrouping'}:
+                    continue
+                grouping.add(text)
+                proposition = definition.find("arrow[@field='type']")
+                premise = proposition.find("binary_expression[@field='domain']") if proposition is not None else None
+                if premise is None or premise.find("binary_expression[@field='right']") is None:
+                    failures.append(text + ': proposition connectives must group to the right before implication')
+            if grouping != {'conjunctionGrouping', 'disjunctionGrouping'}:
+                failures.append(fixture + ': missing proposition grouping examples')
             for kind, count in [('do_while', 2), ('do_unless', 1), ('let_bind', 2),
                                 ('tactic_rcases', 2), ('rcases_tuple_pattern', 3),
                                 ('tactic_rintro', 3), ('simp_phase', 1)]:

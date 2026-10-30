@@ -559,6 +559,12 @@ def lean_workflow(exercise, root):
         if "goals" in command:
             goal, = value["catalog"]
             assert goal["target"] == exercise.values["<LEAN_TARGET>"]
+        if "proof-task" in command:
+            assert value["claim"]["parameters"] == ["(value : Bool)"]
+            part, = value["claim"]["parts"]
+            assert part["assumptions"] == [] and len(part["conclusions"]) == 1
+            assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
+            assert value["token_budget"]["used_upper_bound"] <= 4096
         if "<LIBRARY_QUERY>" in command:
             assert value["rows"] and value["page"]["returned"] <= 12
             assert value["source_budget"]["returned_bytes"] <= 1536

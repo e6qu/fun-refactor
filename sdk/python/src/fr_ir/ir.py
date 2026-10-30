@@ -1728,11 +1728,11 @@ def _byte_budget(value: Any, description: str) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class ProofTask:
-    """A proof context and empty templates whose tactics an agent must author."""
+    """The fixed claim's parts; an agent must author its proof steps."""
 
     goal: Mapping[str, Any]
     contract: Mapping[str, Any]
-    templates: Sequence[Mapping[str, Any]]
+    claim: Mapping[str, Any]
     object_digest: str
     actions: Mapping[str, Sequence[str]]
     token_budget: Mapping[str, Any]
@@ -1740,7 +1740,7 @@ class ProofTask:
     @classmethod
     def from_data(cls, value: Any) -> ProofTask:
         value = _exact_mapping(value, {
-            "schema", "goal", "contract", "templates", "object_digest", "actions", "token_budget",
+            "schema", "goal", "contract", "claim", "object_digest", "actions", "token_budget",
         }, "proof task")
         if value["schema"] != PROOF_TASK_SCHEMA:
             raise IrError(f"proof task schema must be {PROOF_TASK_SCHEMA}")
@@ -1778,25 +1778,30 @@ class ProofTask:
                    for key in ("format", "insertion_point", "normalization", "checker")):
             raise IrError("proof input contract fields must be non-empty strings")
         _string_vector(contract["forbidden"], "proof input forbidden list")
-        if not isinstance(value["templates"], list):
-            raise IrError("proof templates must be a list")
-        templates = []
-        for template in value["templates"]:
-            template = _exact_mapping(template, {"kind", "lines"}, "proof template")
-            if not isinstance(template["kind"], str) or not template["kind"]:
-                raise IrError("proof template kind must be a non-empty string")
-            lines = _string_vector(template["lines"], "proof template lines")
-            if not any("agent-written" in line for line in lines):
-                raise IrError("proof template must reserve agent-written tactics")
-            templates.append({"kind": template["kind"], "lines": list(lines)})
+        claim = _exact_mapping(value["claim"], {"parameters", "parts"}, "proof claim")
+        parameters = _string_vector(claim["parameters"], "proof claim parameters")
+        if len(parameters) > 64 or any(not text.strip() for text in parameters):
+            raise IrError("proof claim needs at most 64 nonempty parameter groups")
+        if not isinstance(claim["parts"], list) or not 1 <= len(claim["parts"]) <= 64:
+            raise IrError("proof claim needs between 1 and 64 parts")
+        fields = 0
+        for part in claim["parts"]:
+            part = _exact_mapping(part, {"assumptions", "conclusions"}, "proof claim part")
+            assumptions = _string_vector(part["assumptions"], "proof claim assumptions")
+            conclusions = _string_vector(part["conclusions"], "proof claim conclusions")
+            if not conclusions or any(not text.strip() for text in (*assumptions, *conclusions)):
+                raise IrError("proof claim parts need nonempty conclusions and no empty fields")
+            fields += len(assumptions) + len(conclusions)
+        if fields > 64:
+            raise IrError("proof claim exceeds 64 assumption and conclusion fields")
         checked_actions = {key: _string_vector(actions[key], f"proof task {key}") for key in actions}
         core = {
             "schema": value["schema"], "goal": value["goal"], "contract": value["contract"],
-            "templates": value["templates"],
+            "claim": value["claim"],
         }
         if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
             raise IrError("proof task fails its Merkle content address")
-        return cls(dict(goal), dict(contract), tuple(templates), value["object_digest"],
+        return cls(dict(goal), dict(contract), dict(claim), value["object_digest"],
                    checked_actions, dict(budget))
 
     @classmethod
@@ -1806,7 +1811,7 @@ class ProofTask:
     def to_data(self) -> dict[str, Any]:
         return {
             "schema": PROOF_TASK_SCHEMA, "goal": dict(self.goal), "contract": dict(self.contract),
-            "templates": [dict(item) for item in self.templates], "object_digest": self.object_digest,
+            "claim": dict(self.claim), "object_digest": self.object_digest,
             "actions": {key: list(value) for key, value in self.actions.items()},
             "token_budget": dict(self.token_budget),
         }

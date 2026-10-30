@@ -11,8 +11,9 @@
 // Centralized precedence levels (higher = binds tighter)
 // Based on Lean 4's actual precedence: https://leanprover.github.io/lean4/doc/operators.html
 const PREC = {
-  // Expression precedences (6 binary levels + unary/app/proj/atom)
-  low: 25,          // $ || ∨ (merged: or + $)
+  // Expression precedences (7 binary levels + unary/app/proj/atom)
+  low: 25,          // arrows and low-precedence application
+  or: 30,
   and: 35,          // &&
   compare: 40,      // == != < > <= >=
   add: 55,          // + - ++ :: × (merged: cons + add + product)
@@ -648,8 +649,9 @@ module.exports = grammar({
       // 6 levels (reduced from 9) to minimize parser states.
       // Merged: or+$ → low, cons+add+product → add.
       const leftAssoc = [
-        [PREC.low, choice('||', '∨', '|||', '<|>', '<$>', '<*>', '*>', '<*')],
-        [PREC.and, choice('&&', '∧', '&&&')],
+        [PREC.or, '||'],
+        [PREC.low, choice('|||', '<|>', '<$>', '<*>', '*>', '<*')],
+        [PREC.and, choice('&&', '&&&')],
         [PREC.compare, choice('==', '!=', '=', '<', '>', '<=', '>=', '≤', '≥', '≠',
                                '∈', '∉', '⊆', '⊂', '∣', '↔')],
         [PREC.add, choice('+', '-', '++', '∪', '∩', '×', '\\')],
@@ -657,8 +659,10 @@ module.exports = grammar({
         [PREC.app + 1, choice('|>', '|>.')],
       ];
 
-      // Right-associative: $, <|, ::, ^, ∘
+      // Propositions group to the right; Bool operators above group to the left.
       const rightAssoc = [
+        [PREC.or, '∨'],
+        [PREC.and, '∧'],
         [PREC.low, choice('$', '▸')],
         [PREC.add, '::'],
         [PREC.mul, choice('^', '∘')],
