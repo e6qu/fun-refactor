@@ -6,6 +6,51 @@ use std::collections::BTreeSet;
 mod common;
 
 #[test]
+fn local_lemmas_retain_parameters_and_following_declarations() {
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if name == "afterLocalLemmaParameters" {
+            checked.insert(name);
+            continue;
+        }
+        if !matches!(
+            name,
+            "localLemmaParameters" | "anonymousLemmaParameters" | "termLemmaParameters"
+        ) {
+            continue;
+        }
+        let body = definition.child_by_field_name("body").unwrap();
+        let lemma = if name == "termLemmaParameters" {
+            assert_eq!(body.kind(), "have");
+            body
+        } else {
+            let lemma = body.named_child(0).unwrap();
+            assert_eq!(lemma.kind(), "tactic_have");
+            assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+            lemma
+        };
+        let parameters = lemma.child_by_field_name("parameters").unwrap();
+        assert_eq!(parameters.kind(), "parameters");
+        assert_eq!(parameters.named_child_count(), 3);
+        assert_eq!(
+            &source[parameters.byte_range()],
+            "(a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b)"
+        );
+        assert_eq!(lemma.child_by_field_name("value").unwrap().kind(), "by");
+        checked.insert(name);
+    }
+    assert_eq!(checked.len(), 4);
+}
+
+#[test]
 fn proposition_connectives_group_like_lean_without_changing_boolean_operators() {
     for (operator, field) in [
         ("∧", "right"),

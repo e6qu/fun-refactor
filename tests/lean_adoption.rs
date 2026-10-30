@@ -91,6 +91,8 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     let before_show = std::fs::read(&model).unwrap();
     for tactics in [
         "refine ?_\nrfl\n",
+        "have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by\n  exact?\nrfl\n",
+        "have _ (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by\n  exact Int.mul_nonneg ha hb\nrfl\n",
         include_str!("fixtures/lean-discard-proof.tactics"),
         "have h : (if True then keepModel x else !x) = x := by\n  simp only [↓reduceIte]\n  rfl\nexact h\n",
         "have h : keepModel x = x ∧ keepModel x = x := by\n  refine ⟨?_, ?_⟩\n  · rfl\n  · rfl\nexact h.1\n",
@@ -113,6 +115,42 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         assert_eq!(std::fs::read(&model).unwrap(), before_show);
     }
     let proof = workspace.path().join("proof.lean");
+    std::fs::write(&proof, "simp only [keepModel, Bool.not_not]\n").unwrap();
+    let warned = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(
+        !warned.passed,
+        "unused simp arguments must fail before saving"
+    );
+    assert!(warned.receipt.is_none());
+    let warning = warned
+        .diagnostics
+        .iter()
+        .find(|item| item.message.contains("simp argument is unused"))
+        .unwrap();
+    assert_eq!(warning.severity, "warning");
+    let location = warning.draft_location.as_ref().unwrap();
+    assert_eq!(location.line, 1);
+    assert!(location
+        .source_excerpt
+        .as_ref()
+        .unwrap()
+        .contains("Bool.not_not"));
+    assert!(fun_refactor::spec::prove(workspace.path(), target, &proof).is_err());
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
+
+    // Other disclosed proof debt must not prevent checking this theorem.
+    let with_other_debt = format!(
+        "{}\nexample : True := by sorry\n",
+        std::str::from_utf8(&before_show).unwrap()
+    );
+    std::fs::write(&model, &with_other_debt).unwrap();
+    std::fs::write(&proof, "rfl\n").unwrap();
+    let clean = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(clean.passed, "{}", serde_json::to_string(&clean).unwrap());
+    assert!(clean.diagnostics.is_empty());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), with_other_debt);
+    std::fs::write(&model, &before_show).unwrap();
+
     std::fs::write(&proof, "refine ?_\n").unwrap();
     let unfinished =
         fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();

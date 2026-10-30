@@ -341,3 +341,20 @@ theorem simplifyBeforeArguments : (if True then (1 : Nat) else 0) = 1 := by
   simp only [↓reduceIte]
 
 def afterIntroductionSyntax : Nat := 4
+
+theorem localLemmaParameters : (0 : Int) ≤ 2 * 3 := by
+  have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  exact nonnegative 2 3 (by decide) (by decide)
+
+theorem anonymousLemmaParameters (value : Bool) : value = value := by
+  have _ (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  rfl
+
+def termLemmaParameters : (0 : Int) ≤ 2 * 3 :=
+  have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by
+    exact Int.mul_nonneg ha hb
+  nonnegative 2 3 (by decide) (by decide)
+
+def afterLocalLemmaParameters : Nat := 5

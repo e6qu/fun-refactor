@@ -1824,22 +1824,31 @@ fn check_prepared_proof(
     {
         bail!("proof package inputs changed during checking; no receipt was issued.");
     }
-    let passed =
-        proof_submission_admitted(true, true, true, true, true, true, output.status.success());
     let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
     raw.push_str(&String::from_utf8_lossy(&output.stderr));
-    let mut diagnostics = if passed {
-        Vec::new()
-    } else {
-        lean_diagnostics(
-            &raw,
-            scratch.path(),
-            root,
-            &checker_source,
-            prepared,
-            proof_path,
-        )?
-    };
+    let mut diagnostics = lean_diagnostics(
+        &raw,
+        scratch.path(),
+        root,
+        &checker_source,
+        prepared,
+        proof_path,
+        output.status.success(),
+    )?;
+    if output.status.success() {
+        // Other proof regions may still contain disclosed debt. Reject warnings
+        // in this draft without making every other theorem a prerequisite.
+        diagnostics.retain(|diagnostic| diagnostic.draft_location.is_some());
+    }
+    let passed = proof_submission_admitted(
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        output.status.success() && diagnostics.is_empty(),
+    );
     let all_diagnostics = diagnostics.len();
     let checker_context_digest = crate::project::object_merkle(&serde_json::json!({
         "package_inputs": package_inputs,
@@ -2153,6 +2162,7 @@ fn lean_diagnostics(
     checked_source: &str,
     prepared: &ProofPlan,
     proof_path: &Path,
+    output_succeeded: bool,
 ) -> Result<Vec<ProofDiagnostic>> {
     let (_, checked_start) = proof_region_span(checked_source, &prepared.obligation)?;
     let normalized = output
@@ -2210,7 +2220,7 @@ fn lean_diagnostics(
             }
         }
     }
-    if diagnostics.is_empty() {
+    if diagnostics.is_empty() && !output_succeeded {
         diagnostics.push(ProofDiagnostic {
             severity: "error".into(),
             draft_location: None,
@@ -4922,6 +4932,7 @@ mod tests {
             &checked,
             &prepared,
             Path::new("draft.tactics"),
+            false,
         )
         .unwrap();
         let location = diagnostics[0].draft_location.as_ref().unwrap();
@@ -4960,6 +4971,7 @@ mod tests {
             source,
             &prepared,
             Path::new("draft.tactics"),
+            false,
         )
         .unwrap();
         assert!(diagnostics.iter().all(|item| item.draft_location.is_none()));
@@ -4980,6 +4992,7 @@ mod tests {
             source,
             &prepared,
             Path::new("draft.tactics"),
+            false,
         )
         .unwrap();
         assert!(raw[0].checked_location.is_none());

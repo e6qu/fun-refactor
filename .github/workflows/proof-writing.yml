@@ -421,6 +421,9 @@ jobs:
           python3 -B -m agent_eval.proof_writing_artifact --run "$M3_TOOL_RUN"
           --fr "$GITHUB_WORKSPACE/target/debug/fr" --output "$RUNNER_TEMP/m3-sdk-build.json"
       - run: chmod +x target/debug/fr
+      - name: Find the proof checker in the complete project with fr
+        timeout-minutes: 3
+        run: target/debug/fr --no-cache --json project find check_prepared_proof --contains --signature --limit 1
       - name: Execute the current skill examples and supplied-theorem proof route
         run: python3 -B tools/check-agent-skill.py --fr target/debug/fr
       - run: |
