@@ -64,6 +64,11 @@ The recovery script verified both frozen hashes before restoring the original ex
 The branch now maps Lean errors to the author's draft, includes a source excerpt and retains the actual goal.
 It counts omitted context, freezes verified CLI copies inside the study and tells agents to keep supplied checks.
 Focused local tests pass. Validate the Rust and actual Lean checks on GitHub before freezing another comparison.
+The [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) covers all 48 OpenCode2 attempts in the two latest comparisons.
+Neither agent reaches a draft check in their eight fr page-count slots.
+GLM also corrupts one search result with replacement flags and misapplies a declaration it read.
+Kimi has long gaps with no completed tool or final response; the records cannot assign those gaps to a single cause.
+Next work must help an agent try the claim's parts with actual library signatures, not merely improve later error messages.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

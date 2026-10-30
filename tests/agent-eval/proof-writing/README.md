@@ -11,6 +11,7 @@ The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/
 including the native clients with the exact selected reasoning settings.
 
 GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
+The [command and timing review](behavior-review.md) explains what they tried and where progress stopped.
 The 150-second complete-attempt limit stayed unchanged. One attempt's 142.9-second total
 includes 42.9 seconds of detected system sleep. The summary keeps that time; it is not isolated tool overhead.
 No recorded slot was retried. Keep all 263 recorded outcomes, including the [earlier attempts](#earlier-attempts).

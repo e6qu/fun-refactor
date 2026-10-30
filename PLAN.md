@@ -76,6 +76,11 @@ The current repairs address concrete problems from these attempts; hosted valida
    An application update must not remove a study's pinned executable.
 4. Clarify cleanup instructions: keep supplied check files and remove only the draft the agent created.
 
+The [GLM and Kimi review](tests/agent-eval/proof-writing/behavior-review.md) identifies a separate gap before checking begins.
+Neither agent checks a draft in any of eight fr page-count attempts across the two latest comparisons.
+Next, make the claim's parts and library argument types easier to inspect and try in a small checked draft.
+Measure whether that produces an earlier useful check and a correct patch; extra searches or fr calls are not success.
+
 Independently grade every submitted patch. Keep the fixed models, claims and 150-second limit.
 Do not retry a recorded slot. Run another comparison only after a concrete repair passes its checks.
 Keep all 263 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
