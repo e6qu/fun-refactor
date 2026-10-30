@@ -237,7 +237,7 @@ jobs:
           for name in ('first-results', 'second-results', 'interrupted-results',
                        'proof-guide-interrupted-results', 'library-access-interrupted-results',
                        'clock-interrupted-results', 'introduction-interrupted-results', 'clocked-results', 'introduction-results',
-                       'low-reasoning-results', 'claim-view-results'):
+                       'low-reasoning-results', 'claim-view-results', 'direct-proof-results'):
               directory = Path('tests/agent-eval/proof-writing') / name
               manifest = directory.with_suffix('.sha256')
               expected = {line.split('  ', 1)[1] for line in manifest.read_text().splitlines()}
