@@ -134,7 +134,7 @@ class ProofFeedbackTests(unittest.TestCase):
                           'formal_inputs': {feedback.TASK: {'spec': 'specs/Fixed.lean', 'obligation': 'fixed'}},
                           'prompts': {r['id']: 'Fixed repair request.' for r in schedule['attempts']}}
                 packet['sha256'] = feedback.hashlib.sha256(plan.encoded(packet)).hexdigest()
-                self.addCleanup(shutil.rmtree, Path('/private/tmp') / ('fr-m3-feedback-' + packet['sha256'][:12]), ignore_errors=True)
+                self.addCleanup(shutil.rmtree, root / 'workspaces' / ('fr-m3-feedback-' + packet['sha256'][:12]), ignore_errors=True)
                 path = root / 'plan.json'; path.write_text(json.dumps(packet))
                 clock = [0.0]
                 initial = json.dumps({'passed': False, 'receipt': None, 'diagnostics': [{'message': 'argument type mismatch'}]})
@@ -155,7 +155,11 @@ class ProofFeedbackTests(unittest.TestCase):
                     clock[0] += 5
                     return {'exit_code': 0, 'stop_reason': None}
 
+                def controller_path(value):
+                    return root / 'workspaces' if value == '/private/tmp' else Path(value)
+
                 with mock.patch.object(local, 'sys', mock.Mock(platform='darwin')), \
+                     mock.patch.object(local, 'Path', side_effect=controller_path), \
                      mock.patch.object(local, 'identity', return_value={'native_inputs': {}}), \
                      mock.patch.object(local, 'prepare', return_value=schedule), \
                      mock.patch.object(local, 'implementation_bindings', return_value={}), \
