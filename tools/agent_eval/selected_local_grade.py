@@ -52,6 +52,7 @@ def core_digest(milestone):
         if milestone == 'M3-feedback':
             paths += [ROOT / 'tools/agent_eval/proof_feedback.py']
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
+            paths += [ROOT / '.github/workflows/refinement-evidence.yml']
             feedback = ROOT / CASE_DIRECTORIES[milestone]
             paths += [feedback / name for name in ('tasks.json', 'checkers.json', 'profiles.json')]
             paths += [path for path in (feedback / 'fixtures').rglob('*') if path.is_file()]

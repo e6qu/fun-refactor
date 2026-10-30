@@ -67,6 +67,8 @@ on:
           - package-questions-held-out
           - retain-package-questions
           - docs-review
+          - proof-feedback-prepare
+          - proof-feedback-grade
           - freeze-repository-flow
           - retain-scalar
           - retain-ci-reports
@@ -121,6 +123,15 @@ concurrency:
   group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
+  proof-feedback:
+    if: inputs.group == 'proof-feedback-prepare' || inputs.group == 'proof-feedback-grade'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/proof-feedback.yml
+    with:
+      operation: ${{ inputs.group == 'proof-feedback-prepare' && 'prepare' || 'grade' }}
+      artifact_run: ${{ inputs.collection_run }}
   lean-reader-review:
     if: inputs.group == 'lean-reader-review'
     runs-on: ubuntu-24.04

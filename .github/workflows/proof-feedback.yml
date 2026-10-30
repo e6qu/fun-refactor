@@ -1,12 +1,11 @@
 name: Check the small arithmetic-feedback diagnostic
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       operation:
         description: Prepare controls without model calls, or independently grade submitted patches
         required: true
-        type: choice
-        options: [prepare, grade]
+        type: string
       artifact_run:
         description: Prepare uses an exact M3 native build run; grade uses an exact successful diagnostic-controls run
         required: true
@@ -44,7 +43,8 @@ jobs:
       - name: Require an explicit numeric artifact run
         env:
           ARTIFACT_RUN: ${{ inputs.artifact_run }}
-        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit()'
+          OPERATION: ${{ inputs.operation }}
+        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit() and os.environ["OPERATION"] in {"prepare", "grade"}'
       - name: Check diagnostic scheduling, decisions and existing collector behavior
         run: |
           python3 -B -m unittest agent_eval.test_proof_feedback agent_eval.test_selected_plan \

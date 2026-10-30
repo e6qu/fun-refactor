@@ -35,6 +35,8 @@ Before model calls, the [hosted workflow](../../../.github/workflows/proof-feedb
 Those controls accept the reference and reject missing or malformed patches, unfinished or wrong tactics, changed claims and source edits.
 It also checks that the exact initial draft produces the actual type error.
 The execution packet freezes those successful controls, native inputs, binaries, settings, initial source and checker image.
+Dispatch the existing refinement workflow with group `proof-feedback-prepare`, an explicit prefix and the M3 build ID in `collection_run`.
+After the eight attempts, group `proof-feedback-grade` takes the successful diagnostic preparation run ID in that field.
 The existing serial runner uses the explicit `M3-feedback` study, which schedules these eight diagnostic slots.
 It keeps the full M3 study and its thirty-six slots separate.
 

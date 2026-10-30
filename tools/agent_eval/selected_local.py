@@ -58,6 +58,7 @@ def implementation_bindings(milestone):
             paths += [directory / 'profiles.json']
             paths += list((directory / 'controls').glob('*.lean'))
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
+            paths += [ROOT / '.github/workflows/refinement-evidence.yml']
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
 
