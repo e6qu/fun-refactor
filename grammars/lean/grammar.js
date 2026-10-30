@@ -752,8 +752,10 @@ module.exports = grammar({
     have: $ => prec.right(seq(
       $._binding_start,
       'have',
-      optional(field('name', $.identifier)),
-      optional(field('parameters', $.parameters)),
+      optional(seq(
+        field('name', $.identifier),
+        optional(field('parameters', $.parameters)),
+      )),
       optional($._type_spec),
       $._binding_body,
     )),
@@ -943,14 +945,16 @@ module.exports = grammar({
       choice(
         seq(
           choice('have', 'suffices'),
-          optional(field('name', choice($._pattern, $.rcases_tuple_pattern))),
+          optional(seq(
+            field('name', choice($._pattern, $.rcases_tuple_pattern)),
+            optional(field('parameters', $.parameters)),
+          )),
         ),
         seq(
           'obtain',
           optional(field('name', choice($._pattern, $.rcases_tuple_pattern, $.rcases_alternative_pattern))),
         ),
       ),
-      optional(field('parameters', $.parameters)),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
