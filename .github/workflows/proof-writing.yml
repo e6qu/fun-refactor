@@ -360,7 +360,7 @@ jobs:
           cargo test --locked --test cli capability_filters_apply_to_json_markdown_and_text_totals -- --exact --test-threads=1
           cargo test --locked --test lean_adoption -- --test-threads=1
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces --test formal_kernel -- --test-threads=1
-          cargo test --locked --lib spec::tests::proof_package_sources -- --test-threads=1
+          cargo test --locked --lib spec::tests::proof_ -- --test-threads=1
           cargo test --locked --lib span::tests -- --test-threads=1
           cargo test --locked --lib navigate::tests -- --test-threads=1
           cargo test --locked --lib analysis::impact::tests -- --test-threads=1
