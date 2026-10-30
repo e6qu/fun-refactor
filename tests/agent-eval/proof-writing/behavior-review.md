@@ -35,14 +35,49 @@ Neither response produces another tool call or final answer before the deadline.
 In the earlier high-setting Kimi repetition 1, the last tool completes at 11.9 seconds.
 A response starts at 15.5 seconds and produces no further observable action before termination.
 
-There are no recorded client errors or collection errors in the four recent attempts.
+No client or collection error appears in the four recent command records before termination.
 They report no system sleep and use about two to three sampled CPU seconds each.
 Their sampled memory peaks are far below the 768 MiB attempt limit.
 They stop on the wall-clock limit, not a CPU, memory, disk or transcript limit.
 Most elapsed time lies outside completed tool calls.
-The records cannot split that remainder into model generation, provider waiting, client overhead or unfinished calls.
-Calling it all “thinking time” or all “slow fr” would overstate the evidence.
+Command timestamps alone cannot split that remainder into model generation, provider waiting, client overhead or unfinished calls.
+The saved session metadata below narrows the explanation for Kimi.
 Reported token counts cover finished responses; they omit any unfinished response at termination.
+
+## Saved sessions show long unfinished analysis
+
+After the attempts closed, a read-only export through the pinned client recovered their saved response metadata.
+No model was called. Original attempt records and timeout results remain unchanged.
+The export is a later diagnostic inspection, not session accounting completed within the attempt's deadline.
+The twelve inspected sessions retain the requested model, reasoning variant and build agent.
+That verifies the saved client selection, not the provider's internal computation policy.
+
+Kimi's final responses contain substantial text in the client's reasoning field:
+
+| Setting and repetition | Recorded reasoning interval | Characters in unfinished reasoning |
+| --- | --- | ---: |
+| High 1 | 15.5–150.1 s | 13,358 |
+| High 2 | 73.1–150.1 s | 18,978 |
+| Low 1 | 90.4–150.1 s | 6,047 |
+| Low 2 | 61.1–150.1 s | 10,022 |
+
+The text itself stays private and was not inspected for this review; these are lengths and timestamps only.
+Each final response is marked aborted at the deadline.
+This rules out interpreting the whole gap as a response that produced nothing:
+Kimi generated substantial analysis without reaching another command or delivering a proof.
+The intervals still include any waiting inside the response; they are not isolated model-compute measurements.
+Character counts are not token counts, usage totals or charges.
+The low setting did not prevent this behavior in either repetition.
+
+The earlier high-setting GLM sessions also retain long analysis parts, including one with over 12,000 characters before a late goal lookup.
+The latest GLM repetition 1 has no saved final response after its last tool result, so its final delay remains unexplained.
+The latest GLM repetition 2 ends with an aborted response after the late goal lookup.
+There is no evidence here that either aborted response is a separate error that caused the timeout.
+
+Four inspected low-setting simple-task sessions provide a useful contrast.
+They complete their responses, reach proof checks and deliver patches.
+Their longest saved reasoning parts range from zero to about 1,300 characters.
+This is a small descriptive comparison, not a general limit on how much analysis a successful proof needs.
 
 ## Fr's lookup still adds friction
 
