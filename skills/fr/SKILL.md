@@ -18,7 +18,7 @@ Start `.fr/proof-tactics` with `refine ?_` (no `by`) and check it now:
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```
 `passed` must be true to save: `fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write`.
-Keep `.fr/checks.json`. [Proofs](references/lean.md); [Arithmetic](references/lean-arithmetic.md).
+Do not overwrite `.fr/checks.json`. [Proofs](references/lean.md); [Arithmetic](references/lean-arithmetic.md).
 
 [Author](references/author.md); [Explore](references/explore.md).
 Read omissions.

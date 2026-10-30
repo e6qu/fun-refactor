@@ -45,6 +45,14 @@ class ProofFeedbackTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertNotIn('Int.tdiv_nonneg ha', first)
         self.assertIn('initial-tactics.txt', first)
+        self.assertIn('Preserve provided .fr/checks.json', first)
+        self.assertIn('changing or deleting them makes the attempt fail', first)
+        self.assertIn('Run the supplied checks once', first)
+        self.assertIn('do not repeat checks already passed', first)
+        self.assertIn('Do not start a nested guard', first)
+        self.assertIn('call another model', first)
+        self.assertIn('Fr and its project skill are installed', first)
+        self.assertNotIn('Fr is not provided', first)
 
     def test_all_decisions_include_harm_and_keep_mixed_results_inconclusive(self):
         expected = {(2, 0): 'clearer feedback exposure', (2, 2): 'full-proof construction',

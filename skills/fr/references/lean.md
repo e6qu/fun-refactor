@@ -13,8 +13,8 @@ fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 
 Read `claim.parameters` and `claim.parts`: each part lists assumptions and conclusions.
 All assumptions apply to that part; all its conclusions need proofs. Alternatives stay together.
-Draft tactics without `by`; fr adds two spaces per line. Keep relative indentation.
-The `--token-limit` value bounds serialized UTF-8 response bytes.
+Draft tactics without `by`. Keep relative indentation.
+`--token-limit` bounds UTF-8 response bytes.
 
 `refine ?_` opens a temporary goal. Solve it before delivery.
 
@@ -45,16 +45,17 @@ the command returns at most four declarations without proof bodies.
 Check coverage and remaining results; refine the fragment or follow the cursor.
 Syntax gaps mean unread code. An empty result with gaps cannot establish absence.
 
-To check and write the tactics into the proof region:
+Write accepted tactics into the proof region:
 
 ```sh
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-Review the saved diff. If asked for `git diff --binary HEAD`, write it to `change.patch`.
+For `--write`, `applied: true` means the file changed; `saved` refers to `--save-plan`.
 
-Keep proof-region markers and `.fr/checks.json`. Run supplied package checks,
-retain failed-check diagnostics and deliver the requested patch.
+Preserve proof markers and `.fr/checks.json`, which configures checks.
+Run the supplied package check once. After it passes, review the diff, write the requested
+`git diff --binary HEAD` to `change.patch` and finish. Retain failed-check diagnostics.
 
 ## When a model or claim still needs to be created
 

@@ -89,8 +89,9 @@ def prompt(task, setup, checkers, milestone):
         from . import proof_feedback
         require(task == proof_feedback.TASK and setup in {'self-check', 'supplied-feedback'},
                 'select the explicit proof-feedback task and condition')
-        return proof_feedback.prompt(checkers)
-    if milestone == 'M1':
+        request = proof_feedback.prompt(checkers)
+        checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]
+    elif milestone == 'M1':
         python, cargo, lake = [shlex.quote(checkers[name]['path']) for name in ('python', 'cargo', 'lake')]
         checks = {'boltons-rename': [python + ' -B -m pytest -q -p no:cacheprovider tests/test_mathutils.py',
                                     python + ' -B -m doctest boltons/mathutils.py'],
@@ -125,7 +126,7 @@ def prompt(task, setup, checkers, milestone):
         request = ('Complete every requirement:\n' + '\n'.join(
             '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
     checking_files = ''
-    if milestone in {'M2', 'M3'}:
+    if milestone in {'M2', 'M3', 'M3-feedback'}:
         checking_files = 'Preserve provided .fr/checks.json'
         if milestone == 'M2' and task == 'regex-escape-len':
             checking_files += ' and .fr/check-escape'
@@ -149,7 +150,7 @@ def prompt(task, setup, checkers, milestone):
         + ('Fr and its project skill are installed. Read .agents/skills/fr/SKILL.md. '
            'Use fr for a contributing discovery, preview, edit or check step in the delivered change. '
            'Ordinary tools remain available for the rest.\n'
-           if setup == 'fr' else 'Fr is not provided in this setup. Use the ordinary tools.\n')
+           if setup == 'fr' or milestone == 'M3-feedback' else 'Fr is not provided in this setup. Use the ordinary tools.\n')
         + 'Available project checking commands:\n' + '\n'.join(checks) + '\n'
         'Finish by writing change.patch with git diff --binary HEAD, and report what changed and which checks passed. '
         'An unfinished check does not count as passing. Do not claim a model proof proves the original program.\n')
