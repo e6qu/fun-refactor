@@ -43,13 +43,16 @@ The latest low-setting comparison retains all 36 attempts; independent grading i
 Lower reasoning did not produce an fr-assisted page-count patch for either OpenCode2 model.
 
 Fr temporarily inserts submitted tactics into a Lean file before checking them.
-Its diagnostics currently report that generated file's line numbers, without mapping them to the author's draft.
-They also keep only the first eight context lines, which can omit the actual goal below many assumptions.
-The next repair must show the draft location and offending source line, retain the goal and count omitted context.
+Its diagnostics previously reported only that generated file's line numbers.
+They could also omit the actual goal below many assumptions.
+The branch now maps errors to the draft, shows a source excerpt, retains the goal and counts omitted context.
+The Python contract and local tests pass; actual Lean regression checks are next on GitHub.
 
 Frozen studies also need their own verified CLI copies.
 An application update removed the pinned Codex release directory between trials.
 The controller refused before another model call; exact-byte restoration preserved the existing comparison.
+New freezes now copy and verify the executable and its companion inside the study directory.
+The local regression confirms that deleting the application's original files leaves those copies usable.
 
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.

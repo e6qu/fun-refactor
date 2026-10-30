@@ -477,6 +477,7 @@ pub struct ProofPlan {
     pub obligation: String,
     pub original: String,
     pub updated: String,
+    pub proof_source: String,
     pub goal_id: String,
     pub proof_digest: String,
     pub receipt: String,
@@ -534,10 +535,19 @@ pub struct ProofAttempt {
 #[derive(Debug, Serialize)]
 pub struct ProofDiagnostic {
     pub severity: String,
-    pub line: Option<usize>,
-    pub column: Option<usize>,
+    pub draft_location: Option<ProofDiagnosticLocation>,
+    pub checked_location: Option<ProofDiagnosticLocation>,
     pub message: String,
     pub context: Vec<String>,
+    pub context_omitted_lines: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofDiagnosticLocation {
+    pub path: PathBuf,
+    pub line: usize,
+    pub column: usize,
+    pub source_excerpt: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1710,10 +1720,9 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
     let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
     let original = crate::vfs::read_to_string(&path)?;
-    let proof = crate::vfs::read_to_string(proof_path)?;
-    // Removing the first line's spaces changes its indentation relative to every
-    // following line. Keep that relationship when pasting tactics into `by`.
-    let proof = proof.trim_matches(['\r', '\n']);
+    let proof_source = crate::vfs::read_to_string(proof_path)?;
+    // Preserve each line's relative indentation when inserting tactics into `by`.
+    let proof = proof_source.trim_matches(['\r', '\n']);
     if proof.trim().is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
@@ -1743,6 +1752,23 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
             .next()
             .context("fr parser reported no location for the rejected proof")?;
         let position = crate::span::LineIndex::new(&updated).line_col(span.start, &updated);
+        let (_, checked_start) = proof_region_span(&updated, &obligation)?;
+        if let Some(location) = proof_draft_location(
+            proof_path,
+            &proof_source,
+            position.line,
+            position.col,
+            checked_start,
+        ) {
+            let excerpt = location
+                .source_excerpt
+                .context("mapped proof location is outside the submitted source")?;
+            bail!(
+                "fr could not parse candidate proof at {}:{}:{}: {excerpt}; checked Lean source {}:{position}; no files changed.",
+                location.path.display(), location.line, location.column,
+                spec.display()
+            );
+        }
         bail!(
             "fr could not parse candidate proof at {}:{position}; no files changed.",
             spec.display()
@@ -1755,6 +1781,7 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
         obligation,
         original,
         updated,
+        proof_source,
         goal_id: task.goal.id,
         proof_digest,
         receipt: String::new(),
@@ -1810,7 +1837,14 @@ fn check_prepared_proof(
     let mut diagnostics = if passed {
         Vec::new()
     } else {
-        lean_diagnostics(&raw, scratch.path(), root)
+        lean_diagnostics(
+            &raw,
+            scratch.path(),
+            root,
+            &checker_source,
+            prepared,
+            proof_path,
+        )?
     };
     let all_diagnostics = diagnostics.len();
     let checker_context_digest = crate::project::object_merkle(&serde_json::json!({
@@ -1885,6 +1919,22 @@ fn check_prepared_proof(
                     measurement: "serialized_utf8_bytes",
                 },
             });
+        }
+        let mut shortened = false;
+        for diagnostic in diagnostics.iter_mut().rev() {
+            if let Some(index) = diagnostic
+                .context
+                .iter()
+                .position(|line| !line.trim_start().starts_with('⊢'))
+            {
+                diagnostic.context.remove(index);
+                diagnostic.context_omitted_lines += 1;
+                shortened = true;
+                break;
+            }
+        }
+        if shortened {
+            continue;
         }
         if diagnostics.pop().is_none() {
             bail!("proof check report cannot fit the selected response ceiling.");
@@ -2031,7 +2081,86 @@ fn proof_package_inputs(
     Ok(inputs)
 }
 
-fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagnostic> {
+fn proof_source_excerpt(source: &str, line: usize, column: usize) -> Option<String> {
+    let text = source.lines().nth(line.checked_sub(1)?)?;
+    let characters = text.chars().collect::<Vec<_>>();
+    let start = column
+        .saturating_sub(1)
+        .min(characters.len())
+        .saturating_sub(40);
+    let end = (start + 80).min(characters.len());
+    let excerpt = characters[start..end].iter().collect::<String>();
+    Some(format!(
+        "{}{}{}",
+        if start > 0 { "…" } else { "" },
+        excerpt,
+        if end < characters.len() { "…" } else { "" }
+    ))
+}
+
+fn proof_draft_location(
+    proof_path: &Path,
+    proof_source: &str,
+    checked_line: usize,
+    checked_column: usize,
+    checked_start: usize,
+) -> Option<ProofDiagnosticLocation> {
+    let trimmed = proof_source.trim_matches(['\r', '\n']);
+    let offset = checked_line.checked_sub(checked_start)?;
+    if offset >= trimmed.lines().count() {
+        return None;
+    }
+    let leading =
+        &proof_source[..proof_source.len() - proof_source.trim_start_matches(['\r', '\n']).len()];
+    let line = leading.bytes().filter(|byte| *byte == b'\n').count() + offset + 1;
+    let column = checked_column.saturating_sub(2).max(1);
+    Some(ProofDiagnosticLocation {
+        path: proof_path.into(),
+        line,
+        column,
+        source_excerpt: proof_source_excerpt(proof_source, line, column),
+    })
+}
+
+fn bound_proof_context(diagnostic: &mut ProofDiagnostic) {
+    let lines = std::mem::take(&mut diagnostic.context);
+    let mut selected = BTreeSet::new();
+    // Keep the goal before filling the remaining space with assumptions.
+    for (index, line) in lines.iter().enumerate() {
+        if !line.trim_start().starts_with('⊢') {
+            continue;
+        }
+        for (next, continuation) in lines.iter().enumerate().skip(index) {
+            if selected.len() == 8
+                || (next > index && !continuation.starts_with(char::is_whitespace))
+            {
+                break;
+            }
+            selected.insert(next);
+        }
+    }
+    for index in 0..lines.len() {
+        if selected.len() == 8 {
+            break;
+        }
+        selected.insert(index);
+    }
+    diagnostic.context_omitted_lines = lines.len() - selected.len();
+    diagnostic.context = selected
+        .into_iter()
+        .map(|index| bounded_text(&lines[index], 512))
+        .collect();
+}
+
+fn lean_diagnostics(
+    output: &str,
+    scratch: &Path,
+    root: &Path,
+    checked_source: &str,
+    prepared: &ProofPlan,
+    proof_path: &Path,
+) -> Result<Vec<ProofDiagnostic>> {
+    let (_, checked_start) = proof_region_span(checked_source, &prepared.obligation)?;
     let normalized = output
         .replace(&scratch.display().to_string(), "<PROOF_CHECK>")
         .replace(&root.display().to_string(), ".");
@@ -2043,38 +2172,68 @@ fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagn
                 line.find(needle).map(|index| (index, needle, severity))
             });
         if let Some((index, needle, severity)) = marker {
-            let location = &line[..index];
-            let mut parts = location.rsplitn(3, ':');
-            let column = parts.next().and_then(|part| part.parse().ok());
-            let line_number = parts.next().and_then(|part| part.parse().ok());
+            let mut parts = line[..index].rsplitn(3, ':');
+            let column = parts.next().and_then(|part| part.parse::<usize>().ok());
+            let line_number = parts.next().and_then(|part| part.parse::<usize>().ok());
+            let path = parts.next();
+            let checked_location = path
+                .zip(line_number)
+                .zip(column)
+                .filter(|((_, line), column)| *line > 0 && *column > 0)
+                .map(|((path, line), column)| ProofDiagnosticLocation {
+                    path: path.into(),
+                    line,
+                    column,
+                    source_excerpt: if path == "<PROOF_CHECK>" {
+                        proof_source_excerpt(checked_source, line, column)
+                    } else {
+                        None
+                    },
+                });
+            let draft_location = checked_location
+                .as_ref()
+                .filter(|location| location.path == Path::new("<PROOF_CHECK>"))
+                .and_then(|location| {
+                    proof_draft_location(
+                        proof_path,
+                        &prepared.proof_source,
+                        location.line,
+                        location.column,
+                        checked_start,
+                    )
+                });
             diagnostics.push(ProofDiagnostic {
                 severity: severity.into(),
-                line: line_number,
-                column,
+                draft_location,
+                checked_location,
                 message: bounded_text(&line[index + needle.len()..], 512),
                 context: Vec::new(),
+                context_omitted_lines: 0,
             });
         } else if let Some(diagnostic) = diagnostics.last_mut() {
-            if !line.trim().is_empty() && diagnostic.context.len() < 8 {
-                diagnostic.context.push(bounded_text(line, 512));
+            if !line.trim().is_empty() {
+                diagnostic.context.push(line.into());
             }
         }
     }
     if diagnostics.is_empty() {
         diagnostics.push(ProofDiagnostic {
             severity: "error".into(),
-            line: None,
-            column: None,
+            draft_location: None,
+            checked_location: None,
             message: "Lean rejected the submitted tactics".into(),
             context: normalized
                 .lines()
                 .filter(|line| !line.trim().is_empty())
-                .take(8)
-                .map(|line| bounded_text(line, 512))
+                .map(String::from)
                 .collect(),
+            context_omitted_lines: 0,
         });
     }
-    diagnostics
+    for diagnostic in &mut diagnostics {
+        bound_proof_context(diagnostic);
+    }
+    Ok(diagnostics)
 }
 
 fn bounded_text(text: &str, limit: usize) -> String {
@@ -4742,6 +4901,96 @@ mod tests {
     use std::collections::BTreeMap;
     use std::fs;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn proof_diagnostics_locate_the_draft_and_retain_goals_after_many_assumptions() {
+        let proof = "\r\n\r\n  have 名 : True := by trivial\r\n  unknown_step\r\n";
+        let model = "theorem claim : True := by\n  -- fr:proof-begin claim\n    have 名 : True := by trivial\n    unknown_step\n  -- fr:proof-end claim\n";
+        let checked = format!("{}{}", "-- checked prelude\n".repeat(30), model);
+        let prepared = super::ProofPlan {
+            spec: PathBuf::from("specs/Claim.lean"),
+            obligation: "claim".into(),
+            original: model.into(),
+            updated: model.into(),
+            proof_source: proof.into(),
+            goal_id: String::new(),
+            proof_digest: String::new(),
+            receipt: String::new(),
+        };
+        let assumptions = (0..12)
+            .map(|i| format!("h{i} : True\n"))
+            .collect::<String>();
+        let output = format!("/tmp/check.lean:34:5: error: unknown tactic\n/tmp/check.lean:33:3: error: unsolved goals\n{assumptions}⊢ True\n  ∧ True\n");
+        let diagnostics = super::lean_diagnostics(
+            &output,
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            &checked,
+            &prepared,
+            Path::new("draft.tactics"),
+        )
+        .unwrap();
+        let location = diagnostics[0].draft_location.as_ref().unwrap();
+        assert_eq!(location.path, Path::new("draft.tactics"));
+        assert_eq!((location.line, location.column), (4, 3));
+        assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
+        assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 34);
+        let context = &diagnostics[1];
+        assert!(context.context.iter().any(|line| line == "⊢ True"));
+        assert!(context.context.iter().any(|line| line == "  ∧ True"));
+        assert_eq!(context.context.len(), 8);
+        assert_eq!(context.context_omitted_lines, 6);
+        let unicode = context.draft_location.as_ref().unwrap();
+        assert_eq!((unicode.line, unicode.column), (3, 1));
+        assert!(unicode.source_excerpt.as_ref().unwrap().contains('名'));
+    }
+
+    #[test]
+    fn proof_locations_do_not_assign_other_files_or_theorem_errors_to_the_draft() {
+        let source = "theorem claim : True := by\n  -- fr:proof-begin claim\n  unknown_step\n  -- fr:proof-end claim\n";
+        let prepared = super::ProofPlan {
+            spec: PathBuf::from("specs/Claim.lean"),
+            obligation: "claim".into(),
+            original: source.into(),
+            updated: source.into(),
+            proof_source: "unknown_step\n".into(),
+            goal_id: String::new(),
+            proof_digest: String::new(),
+            receipt: String::new(),
+        };
+        let output = "/tmp/check.lean:1:10: error: unsolved goals\n⊢ True\nDependency.lean:3:2: error: unknown identifier\n";
+        let diagnostics = super::lean_diagnostics(
+            output,
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            source,
+            &prepared,
+            Path::new("draft.tactics"),
+        )
+        .unwrap();
+        assert!(diagnostics.iter().all(|item| item.draft_location.is_none()));
+        assert_eq!(
+            diagnostics[1].checked_location.as_ref().unwrap().path,
+            Path::new("Dependency.lean")
+        );
+        assert!(diagnostics[1]
+            .checked_location
+            .as_ref()
+            .unwrap()
+            .source_excerpt
+            .is_none());
+        let raw = super::lean_diagnostics(
+            "compiler stopped\n",
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            source,
+            &prepared,
+            Path::new("draft.tactics"),
+        )
+        .unwrap();
+        assert!(raw[0].checked_location.is_none());
+        assert_eq!(raw[0].context, ["compiler stopped"]);
+    }
 
     #[test]
     fn proof_package_sources_distinguish_region_names_with_shared_prefix() {

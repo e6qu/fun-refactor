@@ -13,7 +13,8 @@ Check before library searches:
 ```sh
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```
-Read `passed` and diagnostics. [Proofs](references/lean.md): repair, save, deliver.
+Read `passed`. [Proofs](references/lean.md): repair, save, deliver.
+Keep `.fr/checks.json`.
 
 [Author](references/author.md); [Explore](references/explore.md).
-Copy IDs/bases; read omissions.
+Copy IDs; read omissions.

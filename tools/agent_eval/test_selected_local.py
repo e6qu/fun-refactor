@@ -5,6 +5,7 @@ import json
 from fnmatch import fnmatchcase
 import shlex
 import subprocess
+import shutil
 from pathlib import Path
 import sys
 import tarfile
@@ -18,6 +19,45 @@ from agent_eval.selected_cli import verify_export
 
 
 class SelectedLocalTests(unittest.TestCase):
+    def test_frozen_clients_survive_removal_of_application_release_storage(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            installed = root / 'application-release'
+            installed.mkdir()
+            assets = {
+                'codex': '#!/bin/sh\nprintf "codex-cli 0.164.0\\n"\n',
+                'codex-code-mode-host': '#!/bin/sh\nexit 0\n',
+                'opencode2': '#!/bin/sh\nexec "$(dirname "$0")/opencode" "$@"\n',
+                'opencode': '#!/bin/sh\nprintf "opencode v2.0.32\\n"\n',
+                'fr': '#!/bin/sh\nprintf "fr fixture\\n"\n',
+            }
+            for name, content in assets.items():
+                path = installed / name
+                path.write_text(content)
+                path.chmod(0o755)
+            paths, components = local.freeze_binaries(
+                {name: installed / name for name in ('fr', 'codex', 'opencode2')}, root / 'study')
+            shutil.rmtree(installed)
+            for name, entry in {**paths, **components}.items():
+                self.assertEqual(Path(entry['path']).read_text(), assets[name])
+                self.assertEqual(local.hash_file(Path(entry['path'])), entry['sha256'])
+                self.assertTrue(Path(entry['path']).is_relative_to(root / 'study'))
+            result = subprocess.run([paths['opencode2']['path'], '--version'], capture_output=True, check=True)
+            self.assertEqual(result.stdout, b'opencode v2.0.32\n')
+
+    def test_corrupted_frozen_executable_copy_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in ('fr', 'codex', 'codex-code-mode-host', 'opencode2', 'opencode'):
+                (root / name).write_bytes(name.encode())
+            copyfile = shutil.copyfile
+            def corrupt(source, target):
+                copyfile(source, target)
+                target.write_bytes(b'changed bytes')
+            with mock.patch.object(local.shutil, 'copyfile', side_effect=corrupt), \
+                    self.assertRaisesRegex(ValueError, 'changed while capturing'):
+                local.freeze_binaries({name: root / name for name in ('fr', 'codex', 'opencode2')}, root / 'study')
+
     def test_reference_access_is_explicit_narrow_and_shared_by_both_setups(self):
         profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'high'}}
         with tempfile.TemporaryDirectory() as temporary:

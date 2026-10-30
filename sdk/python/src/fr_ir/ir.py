@@ -1835,17 +1835,30 @@ class ProofAttempt:
             raise IrError("proof attempt diagnostics must be a list")
         for diagnostic in value["diagnostics"]:
             diagnostic = _exact_mapping(
-                diagnostic, {"severity", "line", "column", "message", "context"}, "proof diagnostic"
+                diagnostic, {"severity", "draft_location", "checked_location", "message", "context",
+                             "context_omitted_lines"}, "proof diagnostic"
             )
             if diagnostic["severity"] not in ("error", "warning"):
                 raise IrError("proof diagnostic severity is invalid")
             if not isinstance(diagnostic["message"], str):
                 raise IrError("proof diagnostic message must be a string")
             _string_vector(diagnostic["context"], "proof diagnostic context")
-            for location in ("line", "column"):
-                item = diagnostic[location]
-                if item is not None and (not isinstance(item, int) or isinstance(item, bool) or item < 0):
-                    raise IrError("proof diagnostic locations must be non-negative integers or null")
+            for key in ("draft_location", "checked_location"):
+                if diagnostic[key] is None:
+                    continue
+                location = _exact_mapping(diagnostic[key], {"path", "line", "column", "source_excerpt"},
+                                          "proof diagnostic location")
+                if not isinstance(location["path"], str) or not location["path"]:
+                    raise IrError("proof diagnostic path must be a nonempty string")
+                for coordinate in ("line", "column"):
+                    item = location[coordinate]
+                    if not isinstance(item, int) or isinstance(item, bool) or item < 1:
+                        raise IrError("proof diagnostic coordinates must be positive integers")
+                if location["source_excerpt"] is not None and not isinstance(location["source_excerpt"], str):
+                    raise IrError("proof diagnostic source excerpt must be a string or null")
+            omitted_lines = diagnostic["context_omitted_lines"]
+            if not isinstance(omitted_lines, int) or isinstance(omitted_lines, bool) or omitted_lines < 0:
+                raise IrError("proof diagnostic omitted context must be a non-negative integer")
         omitted = value["diagnostics_omitted"]
         if not isinstance(omitted, int) or isinstance(omitted, bool) or omitted < 0:
             raise IrError("proof diagnostics omitted count must be a non-negative integer")

@@ -119,6 +119,24 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert!(!unfinished.passed);
     assert!(!unfinished.diagnostics.is_empty());
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    std::fs::write(
+        &proof,
+        "\n\n  have h : True := by trivial\n  unknown_step\n",
+    )
+    .unwrap();
+    let unknown = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096).unwrap();
+    assert!(!unknown.passed);
+    let diagnostic = unknown
+        .diagnostics
+        .iter()
+        .find(|item| item.message == "unknown tactic")
+        .unwrap();
+    let location = diagnostic.draft_location.as_ref().unwrap();
+    assert_eq!(location.path, proof);
+    assert_eq!((location.line, location.column), (4, 3));
+    assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
+    assert!(diagnostic.checked_location.as_ref().unwrap().line > location.line);
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
     let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
         .unwrap_err()
@@ -134,6 +152,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "{syntax_error}"
     );
     assert!(syntax_error.ends_with("; no files changed."));
+    assert!(syntax_error.contains(&format!("{}:1:", proof.display())));
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
     let manually_edited = std::str::from_utf8(&before_show).unwrap().replace(
         "  -- fr:debt keepModel_identity\n  sorry\n",

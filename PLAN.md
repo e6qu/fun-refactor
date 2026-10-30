@@ -66,7 +66,7 @@ GLM and Kimi still delivered no fr-assisted page-count patch, so M3 remains open
 One attempt's 142.9-second total includes 42.9 seconds of detected system sleep.
 Keep that time in the results and disclose it when discussing timing.
 
-The next repairs address concrete problems from these attempts:
+The current repairs address concrete problems from these attempts; hosted validation is next:
 
 1. Map Lean errors to the submitted tactics file and show the offending source line.
    A ten-line draft must not leave its author looking for line 31 in that draft.

@@ -12,9 +12,8 @@ as `<LEAN_TARGET>`.
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 
-Read the fixed claim, model and empty templates. Write a draft early, without a leading
-`by`, in the extensionless file `.fr/proof-tactics`. Check it and use the diagnostics to
-repair it. Keep relative indentation; fr adds two spaces to each line. You supply the proof steps.
+Read the claim and model. Write your proof steps early in `.fr/proof-tactics`, without `by`.
+Check and repair that draft. Keep relative indentation; fr adds two spaces to each line.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
 
 `refine ?_` opens a temporary goal. Later tactics must solve it; an unfinished goal fails.
@@ -28,6 +27,9 @@ fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limi
 Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
 proof. Repair the tactics in that file. If diagnostics require a library definition,
 search its type's folder rather than indexing the whole installation.
+`draft_location` names your tactics file, line, column and source excerpt.
+`checked_location` identifies Lean's checked file; it may have extra generated lines.
+`context` retains the goal (`⊢`); `context_omitted_lines` counts omitted lines.
 
 For library lookup, the pinned Lean binary's `--print-prefix` locates its installation.
 Under `src/lean/Init/Data`, choose the folder named by a type in your goal.
@@ -51,13 +53,12 @@ To check and write the tactics into the proof region:
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-This command checks the proof and records its source change. Review the diff and deliver
-the requested patch. If the request specifies `git diff --binary HEAD`, write that output
-to `change.patch`. The separate source-edit workflow needs a saved edit plan; use actual
-returned IDs when working with such a plan.
+This command checks and saves the proof. Review the diff and deliver the requested patch.
+If asked for `git diff --binary HEAD`, write that output to `change.patch`.
+The separate source-edit workflow needs a saved edit plan; use returned IDs.
 
 These commands also work after a direct edit removed the unfinished-proof marker.
-Keep the named proof-region markers. Run supplied package checks once, retain failed-check
+Keep the named proof-region markers and `.fr/checks.json`. Run supplied package checks once, retain failed-check
 diagnostics and deliver the requested patch.
 
 ## When a model or claim still needs to be created

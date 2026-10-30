@@ -131,6 +131,12 @@ The report should say `passed: false` and include Lean's explanation: a Boolean 
 of the requested equality. A successful process exit means a report was produced; inspect `passed`
 to find out whether the proof worked. A rejected attempt has no checked receipt and changes no source.
 
+Each diagnostic's `draft_location` points into your tactics file and includes a short source excerpt.
+For example, an unknown tactic on line 2 of `bad-proof.lean` points to that file's line 2.
+`checked_location` identifies Lean's checked file, whose generated lines can shift the error's position.
+A location is `null` when the error cannot be assigned to that file, such as an error in an imported module.
+`context` includes the goal marked by `⊢`; `context_omitted_lines` counts lines left out of the bounded report.
+
 Save the corrected tactics as `proof.lean`:
 
 ```lean

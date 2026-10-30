@@ -204,6 +204,11 @@ handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
 `ProofTask.from_json(...)` validates a bounded `fr-proof-task-1` context and its Merkle address.
 `ProofAttempt.from_json(...)` verifies that an accepted attempt's receipt binds the goal, normalized
 agent-written tactics and pinned checker. Neither class generates proof tactics.
+Rejected attempts distinguish `draft_location` in the supplied tactics from `checked_location`
+in Lean's generated file. Each location has `path`, one-based `line` and `column`, and
+`source_excerpt`; unavailable locations or excerpts are `null`.
+For example, an unknown tactic on draft line 2 stays line 2 even when Lean checks it on generated line 31.
+Diagnostics retain the goal in `context` and count omitted context lines in `context_omitted_lines`.
 
 `PropertyTask.from_data(...)` validates `fr-property-task-1` and independently recomputes its Merkle
 address. `PropertyTerm` and `PropertyProposition` mirror the Rust proposition IR. The task's

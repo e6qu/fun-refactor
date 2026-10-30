@@ -61,10 +61,9 @@ The supplied check-file deletion remains a failed attempt even if its submitted 
 An application update removed the pinned Codex path before trial 23 started.
 The recovery script verified both frozen hashes before restoring the original executable paths.
 
-After independent grading, repair the confirmed diagnostic problems.
-Lean's generated-file line numbers need mapping to the author's draft, with the offending source line visible.
-The first eight assumptions currently hide the actual goal; retain the goal and count omitted context explicitly.
-Also keep frozen CLI files in study-owned storage and clarify safe draft cleanup within the existing guide budget.
+The branch now maps Lean errors to the author's draft, includes a source excerpt and retains the actual goal.
+It counts omitted context, freezes verified CLI copies inside the study and tells agents to keep supplied checks.
+Focused local tests pass. Validate the Rust and actual Lean checks on GitHub before freezing another comparison.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

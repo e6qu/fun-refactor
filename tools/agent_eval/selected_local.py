@@ -194,6 +194,25 @@ def verified_fr_build(source, executable_sha256, build):
             'executable_sha256': executable_sha256}
 
 
+def freeze_binaries(binaries, output):
+    require(set(binaries) == {'fr', 'codex', 'opencode2'}, 'supply all three native executables explicitly')
+    companions = {'codex-code-mode-host': binaries['codex'].resolve().parent / 'codex-code-mode-host',
+                  'opencode': binaries['opencode2'].resolve().parent / 'opencode'}
+    directory = output / 'bin'
+    directory.mkdir(parents=True, exist_ok=False)
+    captured = {}
+    for name, source in {**binaries, **companions}.items():
+        source = source.resolve()
+        expected = hash_file(source)
+        target = directory / name
+        shutil.copyfile(source, target)
+        target.chmod(source.stat().st_mode & 0o777)
+        require(hash_file(target) == expected and hash_file(source) == expected,
+                'native executable changed while capturing the frozen copy: ' + name)
+        captured[name] = {'path': str(target.resolve()), 'sha256': expected}
+    return ({name: captured[name] for name in binaries}, {name: captured[name] for name in companions})
+
+
 def freeze(inputs, binaries, runtime, output, milestone):
     require(sys.platform == 'darwin', 'this execution plan is for the requested local macOS CLIs')
     output.mkdir(parents=True, exist_ok=False)
@@ -205,10 +224,7 @@ def freeze(inputs, binaries, runtime, output, milestone):
     if milestone == 'M3':
         expected_runtime |= {'fr_build', 'controls'}
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
-    paths = {name: {'path': str(path.resolve()), 'sha256': hash_file(path.resolve())} for name, path in binaries.items()}
-    companions = {'codex-code-mode-host': binaries['codex'].resolve().parent / 'codex-code-mode-host',
-                  'opencode': binaries['opencode2'].resolve().parent / 'opencode'}
-    components = {name: {'path': str(path), 'sha256': hash_file(path)} for name, path in companions.items()}
+    paths, components = freeze_binaries(binaries, output)
     versions = {}
     for name, entry in paths.items():
         result = subprocess.run([entry['path'], '--version'], capture_output=True, text=True, timeout=10)
