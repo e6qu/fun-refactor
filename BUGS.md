@@ -14,6 +14,8 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
 | Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
 | A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |
+| A valid local Lean lemma with parameters was rejected | Adds parameters to local-lemma syntax, with named, anonymous and expression examples; hosted reader validation is pending |
+| A draft passed fr but its warnings later failed package verification | Rejects warnings in the submitted draft and reports their locations before saving; preserves checking of one theorem while another remains unfinished; hosted native tests are pending |
 | An application update deleted a frozen CLI executable | New studies keep verified executable and companion copies inside the study directory |
 | Deep conformance omitted TypeScript's compiler | Installs the locked checker before running the unchanged checks |
 | Repository reports repeated file reads and line scans until timeout | Reuses source/line maps within a report and the immutable test graph within a test; preserves Unicode positions, fresh later reads and every original sample |
@@ -31,12 +33,13 @@ The latest investigation also found two reporting defects:
   Shared receiver fixtures, including Boltons, remain present. The corrected collector finished in 22 seconds.
   The deadlines, proof checks and original agent outcomes stay unchanged.
 
-The nine individual checking groups accepted all 27 submitted patches. Nine other attempts timed out without a patch.
-M3 still lacks GLM and Kimi page-count proofs. Some simpler GLM deliveries also used no useful fr step.
-Those are open agent-workflow conditions, rather than evidence that the theorem has been proved using fr.
+The preceding comparison's nine checking groups accepted all 27 submitted patches; nine attempts timed out without one.
+The new complete comparison retained eight timeouts and 28 independently accepted patches.
+Its accepted access and range proofs use actual fr checks and writes. M3 still lacks GLM and Kimi page-count proofs.
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) records the exact mistakes and timing.
-The root skill now shows proof-check and saving commands, and a small lesson explains Boolean comparisons and proof-valued arguments.
-Its three examples pass pinned Lean. The changed instructions also pass hosted proof/client checks and M1/M2 workflows.
+The root skill now links arithmetic directly and starts by checking an unfinished draft.
+The lesson explains Boolean comparisons, proof-valued arguments and a search for a missing fact.
+All four examples compile with pinned Lean; the updated complete skill still needs hosted qualification.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

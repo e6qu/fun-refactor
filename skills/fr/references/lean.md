@@ -5,7 +5,7 @@ Keep the supplied claim, model, assumptions and program unchanged.
 
 ## When the theorem already exists
 
-A target names the file and theorem. Copy `spec goals specs`'s `target` as `<LEAN_TARGET>`.
+Copy `spec goals specs`'s Lean `target` as `<LEAN_TARGET>`.
 
 ```sh
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
@@ -13,8 +13,7 @@ fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 
 Read `claim.parameters` and `claim.parts`: each part lists assumptions and conclusions.
 All assumptions apply to that part; all its conclusions need proofs. Alternatives stay together.
-Write proof steps early in `.fr/proof-tactics`, without `by`.
-Keep relative indentation; fr adds two spaces to each line.
+Draft tactics without `by`; fr adds two spaces per line. Keep relative indentation.
 The `--token-limit` value bounds serialized UTF-8 response bytes.
 
 `refine ?_` opens a temporary goal. Solve it before delivery.
@@ -26,27 +25,25 @@ fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limi
 ```
 
 Read `passed` and Lean's diagnostics; a successful command exit can still report a failed
-proof. Repair the tactics in that file. If diagnostics require a library definition,
+proof. Repair errors and warnings in that file. If diagnostics require a library definition,
 search its type's folder rather than indexing the whole installation.
 For Boolean comparisons and division arguments, read [Arithmetic](lean-arithmetic.md).
 `draft_location` names your tactics file, line, column and source excerpt.
 `checked_location` identifies Lean's checked file; it may have extra generated lines.
 `context` retains the goal (`⊢`); `context_omitted_lines` counts omitted lines.
 
-For library lookup, `lean --print-prefix` locates the installation.
-Under `src/lean/Init/Data`, choose the type's folder.
-A namespace groups names: search for `length` from `List.length`.
-Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
+Run `lean --print-prefix`; under `src/lean/Init/Data`, choose the type's folder.
+A namespace groups names: search `length` for `List.length`.
+`<LEAN_LIBRARY_DIR>` is that folder; `<LIBRARY_QUERY>` is the name fragment:
 
 ```sh
 fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
 ```
 
-`--contains` matches a literal name fragment. Read headers for argument types and order.
-This returns at most four declarations without proof bodies. Try the actual argument types in your draft.
+Read the returned argument types and order. `--contains` matches a literal name fragment;
+the command returns at most four declarations without proof bodies.
 Check coverage and remaining results; refine the fragment or follow the cursor.
-Syntax gaps mean the reader missed some code. An empty result with gaps does not show
-that a library fact is absent. Keep the gap visible when reporting the search.
+Syntax gaps mean unread code. An empty result with gaps cannot establish absence.
 
 To check and write the tactics into the proof region:
 
@@ -54,13 +51,10 @@ To check and write the tactics into the proof region:
 fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write
 ```
 
-This command checks and saves the proof. Review the diff and deliver the requested patch.
-If asked for `git diff --binary HEAD`, write that output to `change.patch`.
-The separate source-edit workflow needs a saved edit plan; use returned IDs.
+Review the saved diff. If asked for `git diff --binary HEAD`, write it to `change.patch`.
 
-`prove` also accepts a directly edited proof.
-Keep the named proof-region markers and `.fr/checks.json`. Run supplied package checks once, retain failed-check
-diagnostics and deliver the requested patch.
+Keep proof-region markers and `.fr/checks.json`. Run supplied package checks,
+retain failed-check diagnostics and deliver the requested patch.
 
 ## When a model or claim still needs to be created
 

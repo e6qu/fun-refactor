@@ -57,3 +57,19 @@ example (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ Int.tdiv a b := by
 `ha` and `hb` prove inequalities; `a` and `b` are integers. Their types determine
 the argument order. `omega` handles addition, subtraction, order and multiplication by fixed numbers.
 Products of two changing values can need extra facts. Check each step before another search.
+
+## Ask Lean for a missing fact
+
+`exact?` searches available theorems for the current goal. `Std` includes this tactic:
+
+```lean
+import Std
+example (a b : Int) (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ b * a := by
+  have h : 1 * a ≤ b * a := by
+    exact?
+  simpa using h
+```
+
+Lean suggests `exact Int.mul_le_mul_of_nonneg_right hb ha` for `h`.
+`simpa using h` reduces `1 * a` to `a`. Replace the search with the suggested step.
+Search a specific missing fact; `exact?` does not solve every goal.

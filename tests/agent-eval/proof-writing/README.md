@@ -5,21 +5,20 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) retains all 36 attempts and 27 submitted patches.
-Independent checks accepted all 27 patches; the other nine attempts timed out without one.
-Some completed attempts used no useful fr step, so they do not close the fr milestone cases.
-The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032806456),
-including the native clients with the exact selected settings, before its first model call.
+The [latest comparison](local-results/README.md) retains all 36 attempts and 28 submitted patches.
+Eight attempts timed out without a patch. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
+accepted all 28 submitted patches. Before its first call, the instructions passed [hosted proof and client checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811)
+and the existing M1/M2 workflows, using the exact previously checked native build.
 
-GLM and Kimi delivered no page-count patch in either setup. GLM's successful access and range patches
-in this comparison also lack a contributing fr step. M3 remains open.
-The [command and timing review](behavior-review.md) explains the late checks, wrong targets and proof mistakes.
-After this comparison, the root skill gained the exact checking command and a linked arithmetic lesson.
-Those instructions passed [hosted proof and client checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811)
-and the existing M1/M2 workflows. A fresh comparison must measure whether the agents use them successfully.
+All three agents used actual fr checks and writes in access and range submissions.
+GLM and Kimi delivered no page-count patch in either setup, so M3 remains open.
+The [command and timing review](behavior-review.md) distinguishes searching, checking a draft and delivering a proof.
+None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
+The next root skill links it directly and starts by checking a small unfinished draft.
+New parser and warning-reporting repairs require a native rebuild and hosted checks before another comparison.
 
 The 150-second complete-attempt limit stayed unchanged. No recorded slot was retried.
-Keep all 299 outcomes, including the [263 earlier outcomes](#earlier-attempts).
+Keep all 335 outcomes, including the [299 earlier outcomes](#earlier-attempts).
 The previous [low-setting](low-reasoning-results/README.md) and [high-setting](introduction-results/README.md)
 comparisons remain unchanged, including the earlier sleep-affected timing and deleted-check failure.
 
@@ -169,8 +168,7 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These archives retain all 299 recorded outcomes.
-The latest completed comparison also appears in `local-results` until a new comparison finishes.
+These archives retain all 335 recorded outcomes. The latest checked comparison also appears unchanged in `local-results`.
 The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
@@ -187,6 +185,7 @@ An accepted result passed independent checking and came from a completed client 
 | [High-setting comparison after the reader repair](introduction-results/README.md) | 36 | 26 accepted proofs, nine timeouts and one rejected proof |
 | [Low-setting comparison before the claim view](low-reasoning-results/README.md) | 36 | 26 accepted attempts, eight timeouts, one deleted check file and one rejected proof |
 | [Claim-view comparison](claim-view-results/README.md) | 36 | 27 accepted proofs and nine timeouts; four agent/task cases still lack an accepted useful fr step |
+| [Direct checking commands and arithmetic lesson](direct-proof-results/README.md) | 36 | 28 accepted proofs and eight timeouts; only GLM and Kimi page counting still lack accepted fr proofs |
 
 All submitted patches and original failures remain available. The library-access, sleep-affected
 and introduction-pattern packets have no independent acceptance result. The sleep-affected packet

@@ -1,13 +1,81 @@
 # What GLM and Kimi actually did
 
-In the latest comparison, GLM and Kimi each reached one fr page-count proof check.
+## Direct commands helped access and ranges, but page counting is still open
+
+The [new complete comparison](local-results/summary.json) retains 36 attempts: 28 submitted patches and eight timeouts without one.
+Independent grading accepted all 28 patches. This review now covers 96 OpenCode2 attempts across four complete comparisons.
+Every outcome and raw-record hash remains recorded. Only patches and summaries are public.
+
+Both GLM and Kimi checked and saved access and range proofs with fr in both repetitions.
+That fixes a concrete workflow omission in the preceding comparison, where several successful patches never used fr.
+All these proofs passed independent checking. The comparison does not isolate the effect of one instruction change.
+
+Page counting remains the difficult case: all eight GLM/Kimi attempts timed out, including ordinary-tool attempts.
+These four fr-available attempts received a root skill containing the exact checking and saving commands:
+
+| Agent and repetition | Completed tool time | First proof check | Observed work |
+| --- | ---: | --- | --- |
+| GLM 1 | 12.3 s | None | Reads the goal and claim, then makes eight library-search calls; no checked draft |
+| GLM 2 | 32.3 s | Lake at 88.0 s | Reads the model, searches, then makes two failed builds; no fr invocation |
+| Kimi 1 | 11.7 s | None | Reads the goal and makes three library-search calls; no checked draft |
+| Kimi 2 | 4.2 s | fr at 136.3 s | Reads the claim, searches, then checks two rejected drafts near the deadline |
+
+Times begin when the complete attempt starts. Completed tool time includes reads and writes, counting overlaps once.
+The remaining time includes replies, client overhead, waiting and unfinished calls; these records alone cannot separate them.
+It is not isolated fr overhead or CPU time.
+
+All four read the root skill; none opened the Lean reference or arithmetic lesson.
+GLM again uses `rg -rn`, which replaces matching names, and sometimes supplies no replacement argument at all.
+Its second attempt reaches real proof errors: `omega` cannot settle the supplied constraints,
+and later tactics continue after a goal has already been solved.
+Kimi's last attempt reaches fr only with about fourteen seconds left; its first checked draft applies facts with the wrong argument types.
+The exact command alone therefore did not produce early feedback on this harder task.
+
+The simpler tasks also expose recoverable mistakes. GLM's first range attempt guesses a namespaced target,
+then a Rust target, then supplies a whole Lean module where tactics are required. It eventually copies the Lean target,
+checks the tactics, saves the proof and verifies the package. Kimi also recovers from a Rust target in its first range attempt.
+Both agents occasionally add the unsupported `--token-limit` flag to a write or package-verification command and then correct it.
+The instructions keep the actual supported commands explicit; no compatibility form is added.
+
+Luna's first page-count attempt reads the arithmetic lesson and repairs drafts using fr.
+One draft passes fr but later fails the required package check because unused simplification arguments produce warnings.
+Luna removes them and delivers its patch. A tiny unrelated identity example reproduces that mismatch:
+`simp only [keepModel, Bool.not_not]` proves the identity, but the unused `Bool.not_not` fails package verification.
+The new checker repair rejects warnings in the submitted draft before saving; hosted validation is pending.
+
+Another unrelated probe confirms that Lean accepts a local lemma such as
+`have nonnegative (a b : Int) ... := by ...`, while the measured fr reader rejects its parameters.
+The parser repair adds named, anonymous and expression examples, plus checks that the next declaration remains separate.
+It must pass hosted generation and native tests before use in a new comparison.
+
+The next root skill links arithmetic directly and starts by checking `refine ?_`, an unfinished first draft.
+The lesson adds `exact?`, Lean's search for a fact that proves the current goal, using a generic multiplication example.
+All four lesson blocks compile with Lean 4.28.0. The root is 816 bytes and the largest reading path is 7,145 bytes,
+within the unchanged ceilings. These later changes have not yet been measured by agents.
+No evaluated task's reference proof is supplied, and the 150-second limit stays fixed.
+
+For pairs accepted in both tool setups, complete proof-writing time compares as follows:
+
+| Agent | Matching pairs | Ordinary tools | With fr | Change |
+| --- | ---: | ---: | ---: | ---: |
+| Luna Fast | 6 | 45.6 s | 45.1 s | -1.1% |
+| GLM Flash | 4 | 42.3 s | 60.8 s | +43.8% |
+| Kimi K3 | 4 | 55.1 s | 70.6 s | +28.2% |
+
+The baseline is the same agent doing the same task with ordinary tools. Times include replies, tools, checking and delivery.
+These are not program-runtime measurements or isolated fr overhead. Failed attempts remain in the full report's totals;
+the small matched samples establish no general savings, and actual account charges remain unknown.
+
+## Previous comparison: showing assumptions and conclusions
+
+In the preceding [claim-view comparison](claim-view-results/summary.json), GLM and Kimi each reached one fr page-count proof check.
 Their other two fr-available attempts used ordinary Lean builds instead.
 All four timed out without a patch. Reaching the checker is progress within an attempt;
 it does not establish that either agent can finish this proof.
 
-This review covers 72 OpenCode2 attempts: the current comparison and the two preceding comparisons.
+The earlier investigation below covers 72 OpenCode2 attempts: the claim-view comparison and its two predecessors.
 It compares recorded commands, returned tool results, timestamps and reported token counts.
-The [latest summary](local-results/summary.json), [earlier low-setting summary](low-reasoning-results/summary.json)
+The [claim-view summary](claim-view-results/summary.json), [earlier low-setting summary](low-reasoning-results/summary.json)
 and [high-setting summary](introduction-results/summary.json) retain attempt identifiers and record hashes.
 Raw transcripts, private drafts, source archives and account data remain local.
 No attempt was rerun or reclassified for this review.

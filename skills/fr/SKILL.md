@@ -4,7 +4,7 @@ description: Find code, refactor, check edits, and write Lean proofs.
 ---
 # Work with fr
 
-Tactics are proof steps. Find a claim to prove:
+Tactics are proof steps. Find a claim:
 ```sh
 fr --json spec goals specs --limit 8 --token-limit 4096
 ```
@@ -13,12 +13,12 @@ Copy `target` as `<LEAN_TARGET>`:
 fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
 ```
 Read `claim.parts`: assumptions and conclusions.
-Write `.fr/proof-tactics` without `by`. Check before library searches:
+Start `.fr/proof-tactics` with `refine ?_` (no `by`) and check it now:
 ```sh
 fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
 ```
-Repair until `passed` is true. Save with `fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write`.
-Keep `.fr/checks.json`. [Proofs](references/lean.md): diagnostics, arithmetic, delivery.
+`passed` must be true to save: `fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write`.
+Keep `.fr/checks.json`. [Proofs](references/lean.md); [Arithmetic](references/lean-arithmetic.md).
 
 [Author](references/author.md); [Explore](references/explore.md).
-Copy IDs; read omissions.
+Read omissions.

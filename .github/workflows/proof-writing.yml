@@ -230,7 +230,8 @@ jobs:
             tests/agent-eval/proof-writing/clocked-results.sha256 \
             tests/agent-eval/proof-writing/introduction-results.sha256 \
             tests/agent-eval/proof-writing/low-reasoning-results.sha256 \
-            tests/agent-eval/proof-writing/claim-view-results.sha256
+            tests/agent-eval/proof-writing/claim-view-results.sha256 \
+            tests/agent-eval/proof-writing/direct-proof-results.sha256
           python3 -B - <<'PY'
           from pathlib import Path
           for name in ('first-results', 'second-results', 'interrupted-results',

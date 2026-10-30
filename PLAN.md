@@ -55,36 +55,34 @@ These include ten language/numeric examples, actual client controls and rejected
 The fresh measurements and eight report updates also passed under their original deadlines.
 
 The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
-27 delivered valid proofs and nine timed out without a patch. Every submitted patch passed independent checking.
-The first CI collection timed out while expanding its checkout. The corrected collector finished in 22 seconds
-with every required checker input and the same verdicts. Its five-minute deadline and proof checks stay unchanged.
+28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
+accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
+GLM and Kimi submitted no page-count proof in either setup.
 
-**M3 remains open.** GLM and Kimi still delivered no page-count proof in either tool setup.
-GLM's accepted access and range patches in this comparison also lack a useful fr step.
-A valid proof written with ordinary tools does not demonstrate that fr helped.
-The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates these cases and preserves earlier results.
+**M3 remains open.** The remaining live task is concrete: help GLM and Kimi finish the fixed page-count proof
+using a useful fr step within 150 seconds, while retaining complete comparisons for every task and agent.
+For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
+The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
+Kimi reached its only fr page-count check at 136 seconds. None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
 
-| Agent | Still needed in a complete comparison |
-| --- | --- |
-| GLM Flash | An accepted proof with a useful fr step for access, page count and range checking |
-| Kimi K3 | An accepted page-count proof with a useful fr step |
-| Luna Fast | All three fr cases are accepted in this comparison |
-
-The tool now shows each claim part's assumptions and conclusions, preserves actual library types,
-maps errors to the draft and keeps the goal in bounded diagnostics.
-For example, Lean can identify draft line 11 rather than sending the author to line 31 of a generated file.
-The new view alone did not make either OpenCode2 agent finish page counting.
+The investigation also reproduced two tool defects: valid local Lean lemmas with parameters were rejected,
+and draft warnings were hidden until package verification failed. Their repairs and regression tests are implemented;
+hosted parser generation and native validation must pass before another comparison.
 
 The next work stays inside this milestone PR:
 
-1. Freeze the validated direct proof commands and arithmetic lesson for a fresh comparison.
-   The [proof checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811), M1 and M2 checks pass.
-   The lesson introduces Boolean comparisons, “and” versus “or”, and facts whose arguments are proofs;
-   it supplies no evaluated task's reference proof.
-2. Run the same models, claims, two repetitions, both tool setups and 150-second limit.
-   Measure the first useful draft check and the delivered result; command counts alone are insufficient.
-3. Independently grade every submitted patch, retain every failure and reconcile the tracking.
-   Keep all 299 recorded outcomes. Never rerun a recorded slot or combine selected winners into a fictional complete comparison.
+1. Validate the local-lemma parser and draft-warning repairs on GitHub, rebuild the native tool and refresh affected reports.
+   A clean proof must remain checkable while another theorem is unfinished.
+2. Qualify the smaller root skill, direct arithmetic link and unfinished-draft example.
+   The arithmetic lesson now demonstrates Lean's search for a specific missing fact; all four examples compile.
+   Then freeze a complete comparison with the same models, claims, two repetitions and 150-second limit.
+   Measure an early useful draft check and the delivered result. No task's reference proof is supplied.
+3. Independently grade the new submissions and retain every failure alongside the 335 recorded outcomes.
+   Never rerun a closed slot or combine selected winners into a fictional complete comparison.
+
+The preceding [claim-view comparison](tests/agent-eval/proof-writing/claim-view-results/README.md) keeps its 27 accepted proofs
+and nine timeouts unchanged. Its CI collector originally timed out expanding the checkout; the repaired collector
+finished in 22 seconds with the same verdicts and five-minute deadline.
 
 The previous [low-setting comparison](tests/agent-eval/proof-writing/low-reasoning-results/README.md)
 keeps its 26 accepted attempts, eight timeouts, deleted check file and rejected proof unchanged.

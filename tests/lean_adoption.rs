@@ -92,6 +92,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     for tactics in [
         "refine ?_\nrfl\n",
         "have nonnegative (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by\n  exact?\nrfl\n",
+        "have bound (a b : Int) (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ b * a := by\n  have h : 1 * a ≤ b * a := by\n    exact?\n  simpa using h\nrfl\n",
         "have _ (a b : Int) (ha : 0 ≤ a) (hb : 0 ≤ b) : 0 ≤ a * b := by\n  exact Int.mul_nonneg ha hb\nrfl\n",
         include_str!("fixtures/lean-discard-proof.tactics"),
         "have h : (if True then keepModel x else !x) = x := by\n  simp only [↓reduceIte]\n  rfl\nexact h\n",

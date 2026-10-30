@@ -23,45 +23,50 @@ Luna kept its high/fast selection; GLM and Kimi kept explicit low reasoning.
 All 29 preparation jobs, the deep audit and the unchanged M1/M2 checks passed before the first model call.
 The fresh measurement collections and all eight report publishers also passed.
 
-All 27 submitted patches passed the nine independent checking groups. Nine attempts timed out without a patch.
-The final collection job then timed out while expanding its checkout into the entire repository.
-The fix keeps the original checker inputs checked out and preserves the five-minute deadline.
-The corrected [grading run](https://github.com/e6qu/fun-refactor/actions/runs/41050239510) passed all twelve jobs.
-Its collector finished in 22 seconds, including a three-second original-source checkout.
-Its combined verdicts exactly match the nine preserved groups. The public report now contains those final verdicts.
-
-M3 remains open. GLM has no accepted contributing fr case in this comparison:
-its successful access/range patches used no useful fr step, and its page-count attempts timed out.
-Kimi has accepted contributing access/range cases, but no page-count patch.
-Luna has accepted contributing proofs for all three tasks.
+The latest complete comparison adds explicit checking commands and an arithmetic lesson.
+It retains 28 submitted patches and eight page-count timeouts without patches.
+All three agents used actual fr checks and writes in their access and range submissions.
+[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970) accepted all 28 patches and retained all eight failures.
+GLM and Kimi still submitted no page-count proof in either setup. M3 remains open.
 Read the [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) before choosing another change.
+
+The preceding [claim-view report](../tests/agent-eval/proof-writing/claim-view-results/README.md)
+keeps all 27 independently accepted patches and nine timeouts unchanged.
+Its corrected [grading run](https://github.com/e6qu/fun-refactor/actions/runs/41050239510) passed all twelve jobs.
+The collector finished in 22 seconds under its original five-minute deadline by retaining a limited checkout
+with every required checker input. Its combined verdicts match the nine preserved checking groups.
 
 The measured tool and checker are identified in the public summary's `fr_build` and `controls` fields.
 The controller source is in `collection_receipts`. Audit those exact inputs; do not rewrite historical source IDs.
-The latest export was checked against the original checker, keeping its archive inventory exact.
-The forward fix makes future checker identities independent of archived reports.
+The new export used its unchanged frozen collector. Checker identities now exclude archived reports.
 
-The next instructions were changed after that comparison:
+The next fixes and instructions were prepared after the new comparison:
 
-- The root skill now includes the real proof-check command and how to save a passing proof.
-- A [small arithmetic lesson](../skills/fr/references/lean-arithmetic.md) introduces Boolean comparisons,
-  assumptions joined by “and” or “or”, and library arguments that are proofs. All three examples pass Lean 4.28.0.
-- The complete skill stays within the original context ceilings. The root is 835 bytes; the largest route is 7,164 bytes.
+- Valid parameterized local Lean lemmas now have reader rules and regression examples.
+- Draft checking now reports and rejects warnings in the submitted tactics. Other unfinished theorems remain separate.
+- The root skill links arithmetic directly and starts with a checked `refine ?_` draft, so feedback comes before a complete proof.
+- The [arithmetic lesson](../skills/fr/references/lean-arithmetic.md) also demonstrates `exact?` on a specific missing fact.
+  All four exact lesson blocks compile with Lean 4.28.0. A separate native test must confirm the new local-lemma syntax through fr.
+- The root is 816 bytes; the largest route is 7,145 bytes. All original context ceilings are unchanged.
 
-The changed instructions pass the [proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/41047411811),
-[M1 tasks and clients](https://github.com/e6qu/fun-refactor/actions/runs/41047510059)
-and [M2 delivery](https://github.com/e6qu/fun-refactor/actions/runs/41047513202).
-Native source is unchanged, so preparation reuses the previous passing build.
-After qualification, freeze a fresh comparison with the same models, claims, two repetitions and 150-second limit.
-Measure an early useful draft check and a delivered proof; reading a skill or invoking fr is insufficient.
+The earlier instructions passed the [proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/41047411811),
+[M1](https://github.com/e6qu/fun-refactor/actions/runs/41047510059) and [M2](https://github.com/e6qu/fun-refactor/actions/runs/41047513202)
+before all 36 new calls. The latest repairs change native source and require a new build and hosted qualification.
+Parser generation exposed an ambiguity between a local lemma's name, its parameters and constructor patterns.
+The grammar now gives the local declaration priority; generation and fixture checks must pass before a native rebuild.
+Validate the repairs and refresh affected records before freezing another complete comparison.
+Keep the same models, claims, two repetitions and 150-second limit.
 
-All 299 outcomes remain: the latest 36 plus the 263 in [earlier packets](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
+All 335 outcomes remain: the latest 36 plus the 299 in [earlier packets](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
 The previous low-setting publication is archived byte-for-byte in `low-reasoning-results`.
-The latest checked publication is also archived unchanged in `claim-view-results`.
-Its sleep-affected timing and deleted-check failure stay failed or disclosed exactly as recorded.
+The preceding checked publication is archived unchanged in `claim-view-results`.
+The new checked publication is archived unchanged in `direct-proof-results`.
+The earlier low-setting comparison keeps its disclosed sleep pause and deleted-check failure.
 Every closed slot is immutable. No recorded attempt was retried.
 Only submitted patches and summaries may be published; full CLI records, prompts, drafts and account data stay local.
 New studies retain verified copies of their pinned CLI executables so application cleanup cannot remove them.
+The workstation guard stopped a whole-repository fr search at 1 GiB aggregate RSS. Its limits stay unchanged;
+that search is now a bounded step in the hosted proof workflow. Do not repeat it locally.
 
 ## Keep the other milestones concrete
 

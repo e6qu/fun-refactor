@@ -1,0 +1,45 @@
+diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
+index cfd7989..4802c86 100644
+--- a/specs/FrSpecs/SrcPagesRsPageCount.lean
++++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
+@@ -18,8 +18,38 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
+ theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
+   -- fr:proof-begin page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
+-  sorry
++  constructor
++  · intro h
++    unfold page_countModel
++    simp [h]
++  constructor
++  · intro h
++    rcases h with ⟨hitems, _, hsize, _⟩
++    have hq : 0 ≤ items / size := Int.ediv_nonneg hitems (by omega)
++    have hrlo : 0 ≤ items % size := Int.emod_nonneg _ (by omega)
++    have hrhi : items % size < size := Int.emod_lt_of_pos _ (by omega)
++    have hid : items % size + size * (items / size) = items := Int.emod_add_mul_ediv items size
++    have hdiv : items / size ≤ items := Int.ediv_le_self size hitems
++    have hrempos : items % size ≠ 0 → 1 ≤ items % size := by
++      intro hn
++      have : 0 < items % size := by omega
++      omega
++    unfold page_countModel
++    have hguard : ((items < 0) || (size <= 0)) = false := by
++      simp [show ¬ items < 0 by omega, show ¬ size ≤ 0 by omega]
++    simp only [hguard]
++    rw [Int.tdiv_eq_ediv_of_nonneg hitems, Int.tmod_eq_emod_of_nonneg hitems]
++    by_cases hr : items % size = 0
++    · simp [hr]
++      constructor <;> omega
++    · simp [hr]
++      constructor
++      · omega
++      · have := hrempos hr
++        have hmul : items / size ≤ size * (items / size) := by
++          simpa using Int.mul_le_mul_of_nonneg_right hsize hq
++        omega
++  · decide
+   -- fr:proof-end page_countModel_page_bounds
+ -- fr:generated-end formal-kernel
+ 
