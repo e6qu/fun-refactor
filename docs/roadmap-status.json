@@ -235,6 +235,7 @@
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-text-package-recheck",
       "changed_sources": [
+        ".github/workflows/refinement-evidence.yml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
@@ -447,6 +448,7 @@
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
       "changed_sources": [
+        ".github/workflows/refinement-evidence.yml",
         "grammars/lean/grammar.js",
         "grammars/lean/src/grammar.json",
         "grammars/lean/src/node-types.json",
