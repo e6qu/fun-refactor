@@ -36,7 +36,7 @@ class SelectedLocalTests(unittest.TestCase):
                 path.write_text(content)
                 path.chmod(0o755)
             paths, components = local.freeze_binaries(
-                {name: installed / name for name in ('fr', 'codex', 'opencode2')}, root / 'study')
+                {name: installed / name for name in ('fr', 'codex', 'opencode2')}, root / 'study', {'codex', 'opencode2'})
             shutil.rmtree(installed)
             for name, entry in {**paths, **components}.items():
                 self.assertEqual(Path(entry['path']).read_text(), assets[name])
@@ -56,7 +56,8 @@ class SelectedLocalTests(unittest.TestCase):
                 target.write_bytes(b'changed bytes')
             with mock.patch.object(local.shutil, 'copyfile', side_effect=corrupt), \
                     self.assertRaisesRegex(ValueError, 'changed while capturing'):
-                local.freeze_binaries({name: root / name for name in ('fr', 'codex', 'opencode2')}, root / 'study')
+                local.freeze_binaries({name: root / name for name in ('fr', 'codex', 'opencode2')}, root / 'study',
+                                      {'codex', 'opencode2'})
 
     def test_reference_access_is_explicit_narrow_and_shared_by_both_setups(self):
         profile = {'model': {'providerID': 'zai-coding-plan', 'id': 'glm-5.3-flash', 'variant': 'high'}}

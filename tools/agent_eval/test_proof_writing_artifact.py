@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import subprocess
 import unittest
 from unittest import mock
 
@@ -11,6 +12,13 @@ from agent_eval import proof_writing_artifact as artifact
 
 
 class ArtifactIdentity(unittest.TestCase):
+    def test_failed_identity_requests_expose_the_actual_error_without_a_retry(self):
+        failed = subprocess.CompletedProcess(['gh', 'api'], 1, '', 'HTTP 502: upstream response unavailable')
+        with mock.patch.object(artifact.subprocess, 'run', return_value=failed) as run, \
+                self.assertRaisesRegex(ValueError, 'HTTP 502'):
+            artifact.command(['gh', 'api', 'repos/example/project/actions/runs/123'])
+        self.assertEqual(run.call_count, 1)
+
     def run_verification(self, *, changed, conclusion):
         def command(argv):
             if argv[0] == 'gh':

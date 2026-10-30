@@ -62,7 +62,7 @@ def build(output):
 
 
 def command(image, name, mounts, task, milestone):
-    require(milestone in {'M1', 'M2', 'M3'}, 'choose an explicit private-grading milestone')
+    require(milestone in {'M1', 'M2', 'M3', 'M3-feedback'}, 'choose an explicit private-grading study')
     arguments = ['create', '--name', name, '--pull=never', '--init', '--network=none', '--read-only',
         '--cap-drop=ALL', '--security-opt=no-new-privileges', '--user=65534:65534',
         '--cpus=0.5', '--memory=512m', '--memory-swap=512m', '--pids-limit=64', '--log-driver=none',
@@ -70,7 +70,7 @@ def command(image, name, mounts, task, milestone):
         '--tmpfs=/workspace:rw,exec,nosuid,nodev,size=256m,uid=65534,gid=65534,mode=0700',
         '--tmpfs=/tmp:rw,exec,nosuid,nodev,size=128m,mode=1777',
         '--tmpfs=/review/target:rw,exec,nosuid,nodev,size=64m,uid=65534,gid=65534,mode=0700']
-    if milestone == 'M3':
+    if milestone in {'M3', 'M3-feedback'}:
         arguments += ['--env=LEAN_NUM_THREADS=1', '--env=FR_LEAN_JOBS=1']
     for source, destination in mounts:
         require(',' not in str(source) and source.exists(), 'grader mount needs an existing path without commas')
@@ -112,11 +112,13 @@ def grade(image, task, original, prepared, binary, rust, patch, output, *, miles
             (ROOT / 'tests/agent-eval/project-changes', '/review/tests/agent-eval/project-changes'),
             (ROOT / 'tests/agent-eval/python-repositories/boltons.tar.gz',
              '/review/tests/agent-eval/python-repositories/boltons.tar.gz')]
-        if milestone in {'M1', 'M3'}:
+        if milestone in {'M1', 'M3', 'M3-feedback'}:
             require(not tools and binary is not None, 'proof grading requires its explicit fr and Lean tool paths')
             mounts += [(binary, '/opt/tool/bin/fr'), (Path('/opt/lean'), '/opt/lean')]
-            if milestone == 'M3':
+            if milestone in {'M3', 'M3-feedback'}:
                 mounts += [(ROOT / 'tests/agent-eval/proof-writing', '/review/tests/agent-eval/proof-writing')]
+            if milestone == 'M3-feedback':
+                mounts += [(ROOT / 'tests/agent-eval/proof-feedback', '/review/tests/agent-eval/proof-feedback')]
         else:
             require(milestone == 'M2' and binary is None and set(tools) == {'node', 'typescript_root', 'registry', 'target_cache'},
                     'supply the explicit M2 checker and baseline-cache settings')

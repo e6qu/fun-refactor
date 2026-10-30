@@ -12,9 +12,10 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-**New agent calls and automatic report publishers are paused.**
+**The full comparison remains paused. The small diagnostic may run after its hosted controls pass.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
-Keep local continuation controllers stopped. Do not restart an old full-comparison plan.
+Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
+Publish required evidence updates serially before freezing the new diagnostic inputs.
 Native and hosted regression checks can continue.
 
 The latest complete M3 comparison has 28 accepted patches and eight page-count timeouts.
@@ -30,7 +31,8 @@ Prepare the eight-attempt diagnostic in the method before any new paid call.
 It compares repairing a small unrelated division proof with and without the actual initial error report.
 Keep the task, bad draft, model, fr and instructions identical between conditions.
 Count complete work and independently accepted repairs. Earlier feedback alone cannot justify another full run.
-The current runner schedules complete studies; diagnostic scheduling and grading still need preparation and checks.
+The explicit eight-slot diagnostic mode now has scheduling, frozen inputs and independent grading.
+Its [guide](../tests/agent-eval/proof-feedback/README.md) owns the inputs and controls. Hosted qualification must pass before calls.
 
 Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
 Generation and focused native checks pass; a clean proof remains checkable while another theorem is unfinished.

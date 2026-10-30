@@ -67,7 +67,7 @@ The next tasks stay inside this milestone PR:
 1. Validate the evaluator with deliberately late successes, stopped attempts and invalid timing values.
    Preserve the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts.
    Their original statistics stay unchanged. Finish hosted checks of the native repairs and dependency controls.
-2. Prepare the [eight-attempt diagnostic](docs/agent-improvement.md#next-m3-diagnostic) before any new model call.
+2. Qualify the [eight-attempt diagnostic](tests/agent-eval/proof-feedback/README.md) before any new model call.
    Use an unrelated small division claim and a draft with a wrong argument type.
    Compare repairing it with and without the actual initial diagnostic, keeping the task, model, fr and instructions fixed.
    Check scheduling, balanced order, complete timing and independent grading before freezing these inputs.

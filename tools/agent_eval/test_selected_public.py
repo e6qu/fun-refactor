@@ -58,6 +58,9 @@ class SelectedPublicTests(unittest.TestCase):
     def test_m3_export_keeps_raw_proof_prompts_and_records_private(self):
         self.assert_private_export('M3', 36)
 
+    def test_feedback_export_keeps_initial_reports_and_native_records_private(self):
+        self.assert_private_export('M3-feedback', 8)
+
     def assert_private_export(self, milestone, count):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -86,8 +89,17 @@ class SelectedPublicTests(unittest.TestCase):
                 (directory / 'result.json').write_text(json.dumps(record))
                 (directory / 'prompt.txt').write_text(canary)
                 (directory / 'native.stdout').write_text('incomplete-json-' + canary)
+                if milestone == 'M3-feedback':
+                    record.update(initial_check_seconds=0.2, initial_check_bytes=100,
+                                  initial_check_sha256='a' * 64, initial_feedback_supplied=row['setup'] == 'supplied-feedback',
+                                  native_stdout_sha256=public.common.digest(directory / 'native.stdout'))
+                    (directory / 'result.json').write_text(json.dumps(record))
                 review[row['id']] = {'record_sha256': public.common.digest(directory / 'result.json'),
                                     'contributing_actions': [], 'failure_summary': 'Native command timed out before delivery.'}
+                if milestone == 'M3-feedback':
+                    review[row['id']]['feedback_observations'] = {
+                        'first_correct_repair_seconds': None, 'repeated_argument_type_errors': None,
+                        'execution_validity': 'collection-failed'}
             destination = root / 'approved'
             with patch.object(public.local, 'implementation_bindings', return_value={}), \
                     patch.object(public.grading, 'core_digest', return_value='checker'):

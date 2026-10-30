@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import shlex
 import shutil
@@ -104,7 +105,7 @@ def completed_tool_time(events):
 def export(plan_path, review, destination):
     plan = json.loads(plan_path.read_text())
     milestone = plan['schedule']['milestone']
-    require(milestone in {'M2', 'M3'} and
+    require(milestone in {'M2', 'M3', 'M3-feedback'} and
             hashlib.sha256(encoded({key: value for key, value in plan.items() if key != 'sha256'})).hexdigest() == plan['sha256'],
             'export the unchanged execution plan')
     require(plan['implementation'] == local.implementation_bindings(milestone), 'collection code changed after freezing')
@@ -127,7 +128,10 @@ def export(plan_path, review, destination):
                 'retain the observed complete-attempt clock and detected system sleep')
         require(review[identity]['record_sha256'] == common.digest(directory / 'result.json'),
                 'contribution review refers to another local record')
-        require(set(review[identity]) == {'record_sha256', 'contributing_actions', 'failure_summary'},
+        fields = {'record_sha256', 'contributing_actions', 'failure_summary'}
+        if milestone == 'M3-feedback':
+            fields.add('feedback_observations')
+        require(set(review[identity]) == fields,
                 'review the fr contribution and failure summary explicitly')
         failure_summary = review[identity]['failure_summary']
         require(failure_summary is None or (isinstance(failure_summary, str) and
@@ -137,9 +141,12 @@ def export(plan_path, review, destination):
         require(isinstance(actions, list) and len(actions) <= 8 and
                 all(isinstance(action, str) and 0 < len(action) <= 240 and '\n' not in action for action in actions),
                 'publish concise reviewed contributions, not native transcript excerpts')
-        require(planned['setup'] == 'fr' or not actions, 'ordinary-tool attempts cannot claim fr contributions')
+        require(planned['setup'] == 'fr' or milestone == 'M3-feedback' or not actions,
+                'ordinary-tool attempts cannot claim fr contributions')
         events = []
         stream = directory / 'native.stdout'
+        if milestone == 'M3-feedback' and stream.exists():
+            require(common.digest(stream) == record['native_stdout_sha256'], 'diagnostic native stream changed after collection')
         if stream.exists():
             for line in stream.read_bytes().splitlines():
                 try:
@@ -184,7 +191,24 @@ def export(plan_path, review, destination):
             'completed_tools': completed_tool_time(events), 'independent_outcome': None,
             'collection_error_recorded': bool(record['error'] or record['collection_errors']),
             'failure_summary': failure_summary})
-    summary = {'study': milestone, 'comparison': 'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.',
+        if milestone == 'M3-feedback':
+            observation = review[identity]['feedback_observations']
+            require(set(observation) == {'first_correct_repair_seconds', 'repeated_argument_type_errors', 'execution_validity'},
+                    'review the declared feedback observations explicitly')
+            seconds = observation['first_correct_repair_seconds']
+            errors = observation['repeated_argument_type_errors']
+            require(seconds is None or (type(seconds) in {int, float} and math.isfinite(seconds) and
+                                       0 <= seconds <= record['elapsed_seconds']), 'invalid observed repair time')
+            require(errors is None or (type(errors) is int and errors >= 0), 'invalid observed repeated error count')
+            require(observation['execution_validity'] in {'valid', 'service-failed', 'collection-failed', 'unknown'},
+                    'review diagnostic execution validity explicitly')
+            rows[-1]['feedback_observations'] = observation
+            rows[-1]['initial_check'] = {key: record[key] for key in
+                ('initial_check_seconds', 'initial_check_bytes', 'initial_check_sha256', 'initial_feedback_supplied')}
+    comparison = ('Assisted repair with the same fr, task, draft and instructions; initial feedback visibility differs.'
+                  if milestone == 'M3-feedback' else
+                  'The same native app/model using ordinary tools and ordinary tools plus fr, twice per task.')
+    summary = {'study': milestone, 'comparison': comparison,
         'publication': 'User approved patches and summary only. Full logs, prompts, exports, source archives and execution packets stay local.',
         'profiles': plan['schedule']['profiles'], 'task_bindings': plan['schedule']['bindings'],
         'native_inputs': plan['source']['native_inputs'], 'core_checker_sha256': grading.core_digest(milestone),
@@ -209,9 +233,11 @@ def export(plan_path, review, destination):
             'interpretation': 'Complete elapsed time includes detected system sleep. Notes list pauses of at least one second; per-attempt fields retain all observations. Do not subtract pauses or describe these numbers as isolated tool overhead.'}}
     if milestone == 'M2':
         summary['shared_setup'] = plan['shared_setup']
-    elif milestone == 'M3':
+    elif milestone in {'M3', 'M3-feedback'}:
         summary['formal_inputs'] = plan['formal_inputs']
-        summary['proof_trust'] = json.loads((local.ROOT / 'tests/agent-eval/proof-writing/checkers.json').read_text())
+        summary['proof_trust'] = json.loads((local.ROOT / local.CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
+    if milestone == 'M3-feedback':
+        summary['scope'] = 'Eight assisted development-example repairs. No full M3 completion or general success-rate claim.'
     (destination / 'summary.json').write_bytes(encoded_summary(summary))
     return summary
 
@@ -222,8 +248,8 @@ def accept_checks(data, checked_path, run):
     summary = json.loads((data / 'summary.json').read_text())
     checked = json.loads(checked_path.read_text())
     milestone = summary['study']
-    require(milestone in {'M2', 'M3'}, 'choose the explicit public study')
-    count = 48 if milestone == 'M2' else 36
+    require(milestone in {'M2', 'M3', 'M3-feedback'}, 'choose the explicit public study')
+    count = {'M2': 48, 'M3': 36, 'M3-feedback': 8}[milestone]
     require(checked['passed'] is True and checked[f'all_{count}_checked'] is True and checked['checked_attempts'] == count and
             checked['core_checker_sha256'] == summary['core_checker_sha256'] and
             set(checked['attempts']) == {row['id'] for row in summary['attempts']}, 'check every original submission')
@@ -247,14 +273,18 @@ if __name__ == '__main__':
     exporting_m3 = commands.add_parser('export-m3')
     for name in ('plan', 'review', 'output'):
         exporting_m3.add_argument('--' + name, type=Path, required=True)
+    exporting_feedback = commands.add_parser('export-feedback')
+    for name in ('plan', 'review', 'output'):
+        exporting_feedback.add_argument('--' + name, type=Path, required=True)
     checking = commands.add_parser('accept-checks')
     for name in ('data', 'checks'):
         checking.add_argument('--' + name, type=Path, required=True)
     checking.add_argument('--run', required=True)
     args = parser.parse_args()
-    if args.operation in {'export-m2', 'export-m3'}:
+    if args.operation in {'export-m2', 'export-m3', 'export-feedback'}:
         require(json.loads(args.plan.read_text())['schedule']['milestone'] ==
-                ('M2' if args.operation == 'export-m2' else 'M3'), 'export operation differs from the frozen milestone')
+                {'export-m2': 'M2', 'export-m3': 'M3', 'export-feedback': 'M3-feedback'}[args.operation],
+                'export operation differs from the frozen study')
         summary = export(args.plan.resolve(), json.loads(args.review.read_text()), args.output.resolve())
         print(json.dumps({'study': summary['study'], 'attempts': len(summary['attempts']), 'publication': 'patches and summary only'}))
     else:

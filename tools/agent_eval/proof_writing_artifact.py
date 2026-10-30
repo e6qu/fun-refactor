@@ -10,7 +10,9 @@ from .selected_plan import ROOT, require
 
 
 def command(argv):
-    return subprocess.run(argv, cwd=ROOT, check=True, capture_output=True, text=True, timeout=60).stdout.strip()
+    result = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, timeout=60)
+    require(result.returncode == 0, 'hosted build identity command failed: ' + result.stderr[:2048])
+    return result.stdout.strip()
 
 
 def verify(run, binary):

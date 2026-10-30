@@ -115,11 +115,15 @@ Prepare this diagnostic before running it:
 | Additional observations | First correct repair, repeated type errors, complete elapsed time and available usage |
 | Decision per agent | If supplied feedback gives 2/2 accepted repairs and the other condition gives 0/2, test clearer feedback exposure next |
 | Alternative decisions per agent | If both give 2/2, inspect full-proof construction next; if both give 0/2, inspect diagnostic comprehension; every mixed result remains inconclusive |
+| Potential harm | If supplied feedback gives 0/2 and self-checking gives 2/2, investigate whether supplying the report obstructs repair |
 
 Two repetitions can expose a repeatable obstacle; they cannot establish a general success rate or a definitive cause.
+First check execution validity. A service, collection or resource failure cannot establish that an agent misunderstood feedback.
+Keep such failures in the record, clarify their cause and suspend conclusions about the proposed change.
 This is an assisted diagnostic on a development example. It cannot close the page-count milestone or replace its failures.
-The existing full-study runner only schedules the 36-attempt comparison.
-Prepare and verify explicit diagnostic scheduling and grading before these eight calls; do not disguise them as full-study slots.
+The [diagnostic guide](../tests/agent-eval/proof-feedback/README.md) records its separate eight-slot schedule and independent patch controls.
+The shared runner now has an explicit diagnostic mode; the full study keeps its separate thirty-six slots.
+Pass the hosted controls before freezing the diagnostic or starting its eight calls.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.

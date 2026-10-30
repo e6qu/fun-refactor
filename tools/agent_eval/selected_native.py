@@ -127,7 +127,8 @@ def run(binary, output, profiles_path):
         name + '-' + setup: {'status': 'unstarted'} for name in profiles for setup in ('files', 'fr')}}
     try:
         images = {}
-        for name, client in clients.items():
+        for name in sorted({profile['client'] for profile in profiles.values()}):
+            client = clients[name]
             executable = packages.install(client, output / ('package-' + name))
             for setup in ('files', 'fr'):
                 directory = output / ('image-' + name + '-' + setup)

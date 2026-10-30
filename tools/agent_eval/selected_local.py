@@ -48,12 +48,16 @@ def implementation_bindings(milestone):
     paths += [path for path in (ROOT / 'skills/fr').rglob('*') if path.is_file()]
     paths += [path for path in (ROOT / DIRECTORY).iterdir() if path.is_file() and path.name != 'README.md']
     paths += [ROOT / '.github/actions/lean-toolchain/action.yml', ROOT / '.github/actions/native-tools/python-wheels.txt']
-    if milestone in {'M2', 'M3'}:
+    if milestone in {'M2', 'M3', 'M3-feedback'}:
         directory = ROOT / CASE_DIRECTORIES[milestone]
         paths += [directory / 'tasks.json', directory / 'checkers.json']
         if milestone == 'M3':
             paths += [directory / 'cases.json', directory / 'profiles.json']
             paths += list((directory / 'controls').glob('*.lean'))
+        elif milestone == 'M3-feedback':
+            paths += [directory / 'profiles.json']
+            paths += list((directory / 'controls').glob('*.lean'))
+            paths += [ROOT / '.github/workflows/proof-feedback.yml']
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
     return {str(path.relative_to(ROOT)): hash_file(path) for path in sorted(paths)}
 
@@ -80,6 +84,11 @@ def checking_input_changes(project, expected):
 
 
 def prompt(task, setup, checkers, milestone):
+    if milestone == 'M3-feedback':
+        from . import proof_feedback
+        require(task == proof_feedback.TASK and setup in {'self-check', 'supplied-feedback'},
+                'select the explicit proof-feedback task and condition')
+        return proof_feedback.prompt(checkers)
     if milestone == 'M1':
         python, cargo, lake = [shlex.quote(checkers[name]['path']) for name in ('python', 'cargo', 'lake')]
         checks = {'boltons-rename': [python + ' -B -m pytest -q -p no:cacheprovider tests/test_mathutils.py',
@@ -194,10 +203,14 @@ def verified_fr_build(source, executable_sha256, build):
             'executable_sha256': executable_sha256}
 
 
-def freeze_binaries(binaries, output):
-    require(set(binaries) == {'fr', 'codex', 'opencode2'}, 'supply all three native executables explicitly')
-    companions = {'codex-code-mode-host': binaries['codex'].resolve().parent / 'codex-code-mode-host',
-                  'opencode': binaries['opencode2'].resolve().parent / 'opencode'}
+def freeze_binaries(binaries, output, clients):
+    require(clients and set(clients) <= {'codex', 'opencode2'} and set(binaries) == {'fr'} | set(clients),
+            'supply exactly the explicitly selected client executables and fr')
+    companions = {}
+    if 'codex' in clients:
+        companions['codex-code-mode-host'] = binaries['codex'].resolve().parent / 'codex-code-mode-host'
+    if 'opencode2' in clients:
+        companions['opencode'] = binaries['opencode2'].resolve().parent / 'opencode'
     directory = output / 'bin'
     directory.mkdir(parents=True, exist_ok=False)
     captured = {}
@@ -219,30 +232,32 @@ def freeze(inputs, binaries, runtime, output, milestone):
     proposed = prepare(ROOT, milestone)
     require(LIMITS == {name: proposed['requirements']['limits'][name] for name in LIMITS},
             'execution limits differ from the frozen task requirements')
-    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in {'M1', 'M3'} else
+    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in {'M1', 'M3', 'M3-feedback'} else
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
-    if milestone == 'M3':
+    if milestone in {'M3', 'M3-feedback'}:
         expected_runtime |= {'fr_build', 'controls'}
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
-    paths, components = freeze_binaries(binaries, output)
+    clients = {profile['client'] for profile in proposed['profiles'].values()}
+    paths, components = freeze_binaries(binaries, output, clients)
     versions = {}
     for name, entry in paths.items():
         result = subprocess.run([entry['path'], '--version'], capture_output=True, text=True, timeout=10)
         require(result.returncode == 0, 'selected CLI version probe failed')
         versions[name] = result.stdout.strip()
     source_version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
-    require(versions == {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr ' + source_version},
+    expected_versions = {'codex': 'codex-cli 0.164.0', 'opencode2': 'opencode v2.0.32', 'fr': 'fr ' + source_version}
+    require(versions == {name: expected_versions[name] for name in paths},
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],
         **{name: runtime['rust_root'] / 'bin' / name for name in ('rustc', 'cargo', 'rustdoc')}}
-    if milestone in {'M1', 'M3'}:
+    if milestone in {'M1', 'M3', 'M3-feedback'}:
         checker_paths.update({name: runtime['lean_root'] / 'bin' / name for name in ('lean', 'lake', 'leanc')})
     else:
         checker_paths.update({name: runtime[name] for name in ('node', 'typescript')})
         checker_paths['objcopy'] = runtime['rust_root'] / 'lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy'
     checkers = {name: {'path': str(path.absolute()), 'sha256': hash_file(path)} for name, path in checker_paths.items()}
     checker_versions = {}
-    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in {'M1', 'M3'} else ['node', 'typescript', 'objcopy'])
+    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in {'M1', 'M3', 'M3-feedback'} else ['node', 'typescript', 'objcopy'])
     for name in names:
         argv = [checkers[name]['path'], '--version']
         if name == 'typescript':
@@ -251,14 +266,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require(result.returncode == 0, 'local checker version probe failed: ' + name)
         checker_versions[name] = result.stdout.strip()
     require(checker_versions['rustc'].startswith('rustc 1.98.1 '), 'choose the inspected local Rust 1.98.1 toolchain')
-    if milestone in {'M1', 'M3'}:
+    if milestone in {'M1', 'M3', 'M3-feedback'}:
         require('4.28.0' in checker_versions['lean'], 'choose the inspected Lean 4.28.0 toolchain')
     else:
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(source_version == settings['fr'] and checker_versions['node'] == 'v' + settings['node'] and
                 checker_versions['typescript'] == 'Version ' + settings['typescript']['version'] and
                 checker_versions['python'] == 'Python ' + settings['local_python'], 'M2 checkers differ from their pins')
-    if milestone == 'M3':
+    if milestone in {'M3', 'M3-feedback'}:
         python_packages = {}
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(checker_versions['python'] == 'Python ' + settings['local_python'], 'M3 Python differs from its pin')
@@ -325,11 +340,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 all(len(private[name]) == 64 for name in ('cache_archive_sha256', 'registry_archive_sha256')),
                 'freeze all private rejection controls, the immutable image and compiler archives')
         value.update(controls=receipts['controls'], shared_setup=receipts['shared_setup'])
-    elif milestone == 'M3':
-        from .proof_writing_tasks import validate_controls
+    elif milestone in {'M3', 'M3-feedback'}:
+        if milestone == 'M3':
+            from .proof_writing_tasks import validate_controls
+        else:
+            from .proof_feedback import validate_controls
         value['fr_build'] = verified_fr_build(value['source'], paths['fr']['sha256'], runtime['fr_build'])
         receipt = validate_controls(json.loads(runtime['controls'].read_text()))
-        require(receipt['bindings'] == implementation_bindings('M3'), 'M3 control receipt must bind every checker and task input')
+        require(receipt['bindings'] == implementation_bindings(milestone), 'proof controls must bind every checker and task input')
         require(all(hash_file(ROOT / path) == digest for path, digest in receipt['bindings'].items()),
                 'proof controls changed after their successful hosted checks')
         require(all(hashlib.sha256(tasks.comparison_grade.BASE.git(ROOT, 'show',
@@ -434,6 +452,7 @@ def attempt(plan_path, attempt_id):
     rows = [row for row in value['schedule']['attempts'] if row['id'] == attempt_id]
     require(len(rows) == 1, 'attempt is not in the frozen milestone schedule')
     row = rows[0]
+    with_fr = row['setup'] == 'fr' or milestone == 'M3-feedback'
     output = plan_path.parent / 'attempts' / attempt_id
     output.mkdir(parents=True, exist_ok=False)
     report = {'id': attempt_id, 'status': 'started', 'plan_sha256': value['sha256'], 'profile': row['profile'],
@@ -445,6 +464,9 @@ def attempt(plan_path, attempt_id):
               'checking_input_changes': [],
               'patch_delivered': False, 'patch_sha256': None, 'complete_attempt_deadline_missed': False,
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
+    if milestone == 'M3-feedback':
+        report.update(initial_check_seconds=None, initial_check_bytes=None, initial_check_sha256=None,
+                      initial_feedback_supplied=False, native_stdout_sha256=None)
     tasks.save(output / 'result.json', report)
     started = entered
     project = None
@@ -457,14 +479,14 @@ def attempt(plan_path, attempt_id):
         (project / '.git/info/exclude').write_text('\n'.join(sorted((tasks.IGNORED - {'.git'}) | {'change.patch'})) + '\n')
         binary_directory = project.parent / 'bin'
         binary_directory.mkdir()
-        if row['setup'] == 'fr':
+        if with_fr:
             (binary_directory / 'fr').symlink_to(value['binaries']['fr']['path'])
             shutil.copytree(ROOT / 'skills/fr', project / '.agents/skills/fr')
         env = {key: os.environ[key] for key in ('HOME', 'PATH', 'LANG', 'CODEX_HOME', 'XDG_CONFIG_HOME',
             'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'SSL_CERT_FILE', 'CODEX_CA_CERTIFICATE') if key in os.environ}
         checkers = value['checkers']
         tool_path = [binary_directory, Path(checkers['python']['path']).parent, Path(checkers['rustc']['path']).parent]
-        tool_path.append(Path(checkers['lean' if milestone in {'M1', 'M3'} else 'node']['path']).parent)
+        tool_path.append(Path(checkers['lean' if milestone in {'M1', 'M3', 'M3-feedback'} else 'node']['path']).parent)
         env.update(PATH=os.pathsep.join(map(str, tool_path)) + os.pathsep + env['PATH'], PYTHONDONTWRITEBYTECODE='1',
             FUN_REFACTOR_CACHE=str(project / '.fr/cache'),
             CARGO_NET_OFFLINE='true', RUSTUP_TOOLCHAIN='1.98.1', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1', RAYON_NUM_THREADS='1',
@@ -490,7 +512,7 @@ def attempt(plan_path, attempt_id):
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
             checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
             report['provided_checking_inputs'] = checking_inputs
-        elif milestone == 'M3':
+        elif milestone in {'M3', 'M3-feedback'}:
             directory = project / '.fr'
             directory.mkdir(exist_ok=True)
             declared = [{'name': 'lean', 'argv': [checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'],
@@ -498,15 +520,32 @@ def attempt(plan_path, attempt_id):
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
             checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
             report['provided_checking_inputs'] = checking_inputs
-        require((shutil.which('fr', path=env['PATH']) is not None) == (row['setup'] == 'fr'), 'wrong fr availability')
+        require((shutil.which('fr', path=env['PATH']) is not None) == with_fr, 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
-            references = [checkers['lean']['source_root']] if milestone == 'M3' else []
-            config = configuration(profile, row['setup'], project, read_only_directories=references)
+            references = [checkers['lean']['source_root']] if milestone in {'M3', 'M3-feedback'} else []
+            config = configuration(profile, 'fr' if with_fr else 'files', project, read_only_directories=references)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
         prompt_text = execution_prompt(value['prompts'][attempt_id], started_at=entered_at,
                                        wall_seconds=LIMITS['wall_seconds'], finish_seconds=value['client_finish_seconds'])
+        initial_bytes = 0
+        if milestone == 'M3-feedback':
+            from . import proof_feedback
+            remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
+            require(remaining > 0, 'diagnostic deadline expired before its initial check')
+            before = elapsed_time()
+            initial, initial_bytes = proof_feedback.initial_check(value['binaries']['fr']['path'], project,
+                {'target': value['formal_inputs'][row['task']]['spec'] + '::' +
+                           value['formal_inputs'][row['task']]['obligation']}, env, output / 'initial-check.json', remaining)
+            require(tasks.sources(project) == seed['receipt']['original'], 'initial diagnostic check changed source')
+            report['initial_check_seconds'] = elapsed_time() - before
+            report['initial_check_bytes'] = initial_bytes
+            report['initial_check_sha256'] = hash_file(output / 'initial-check.json')
+            report['initial_feedback_supplied'] = row['setup'] == 'supplied-feedback'
+            if report['initial_feedback_supplied']:
+                prompt_text += '\n\nInitial fr rejection report for the unchanged draft:\n' + initial
+        require(initial_bytes < LIMITS['transcript_bytes'], 'initial check exceeded the combined transcript budget')
         (output / 'prompt.txt').write_text(prompt_text)
         argv, stdin = invocation(profile, value['binaries'], project, output, prompt_text, 'workspace-write')
         tasks.save(output / 'command.json', argv)
@@ -516,7 +555,8 @@ def attempt(plan_path, attempt_id):
             remaining = LIMITS['wall_seconds'] - (elapsed_time() - started)
             require(remaining > 0, 'attempt deadline expired during preparation')
             process = bounded_run(argv, stdin, stdout, stderr, project, env=env, cwd=project,
-                                  **{**LIMITS, 'wall_seconds': remaining})
+                                  **{**LIMITS, 'wall_seconds': remaining,
+                                     'transcript_bytes': LIMITS['transcript_bytes'] - initial_bytes})
         report['process'] = process
         events = []
         for line in (output / 'native.stdout').read_bytes().splitlines():
@@ -549,6 +589,8 @@ def attempt(plan_path, attempt_id):
                 report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = elapsed_time() - started
+        if milestone == 'M3-feedback' and (output / 'native.stdout').exists():
+            report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))
         report['complete_attempt_deadline_missed'] = report['elapsed_seconds'] > LIMITS['wall_seconds']
@@ -562,10 +604,8 @@ if __name__ == '__main__':
     commands = parser.add_subparsers(dest='operation', required=True)
     freezing = commands.add_parser('freeze')
     freezing.add_argument('--inputs', type=Path, required=True)
-    freezing.add_argument('--milestone', choices=('M1', 'M2', 'M3'), required=True)
-    freezing.add_argument('--fr', type=Path, required=True)
-    freezing.add_argument('--codex', type=Path, required=True)
-    freezing.add_argument('--opencode2', type=Path, required=True)
+    freezing.add_argument('--milestone', choices=('M1', 'M2', 'M3', 'M3-feedback'), required=True)
+    freezing.add_argument('--binaries', type=Path, required=True)
     freezing.add_argument('--runtime', type=Path, required=True)
     freezing.add_argument('--output', type=Path, required=True)
     running = commands.add_parser('attempt')
@@ -573,7 +613,7 @@ if __name__ == '__main__':
     running.add_argument('--id', required=True)
     args = parser.parse_args()
     if args.operation == 'freeze':
-        result = freeze(args.inputs.resolve(), {name: getattr(args, name).resolve() for name in ('fr', 'codex', 'opencode2')},
+        result = freeze(args.inputs.resolve(), {name: Path(path).resolve() for name, path in json.loads(args.binaries.read_text()).items()},
                         {name: Path(path).absolute() for name, path in json.loads(args.runtime.read_text()).items()},
                         args.output.resolve(), args.milestone)
         print(json.dumps({'plan_sha256': result['sha256'], 'attempts': len(result['schedule']['attempts'])}))

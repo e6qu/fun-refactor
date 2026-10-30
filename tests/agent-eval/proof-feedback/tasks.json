@@ -1,0 +1,25 @@
+{
+  "purpose": "Assisted diagnostic of initial error visibility, not an M3 completion comparison",
+  "repetitions": 2,
+  "setups": ["self-check", "supplied-feedback"],
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "tasks": {
+    "division-repair": {
+      "request": "Repair the initial tactics in initial-tactics.txt for the one supplied Lean theorem. Keep that initial file unchanged: copy it to .fr/proof-tactics and repair the copy. Keep the source, model, property, assumptions, package settings and proof markers unchanged. Use fr to check the repaired tactics and save an accepted proof into the declared proof region. Review the saved diff, run the supplied checks and deliver a nonempty git diff --binary HEAD in change.patch. A correct proof establishes this model theorem, not source-to-model equivalence."
+    }
+  },
+  "decisions": {
+    "2,0": "Investigate clearer feedback exposure",
+    "2,2": "Investigate full-proof construction",
+    "0,0": "Investigate diagnostic comprehension",
+    "0,2": "Investigate whether supplied feedback obstructs repair",
+    "mixed": "Inconclusive; retain all outcomes and review the explanation"
+  }
+}
