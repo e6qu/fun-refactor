@@ -57,7 +57,7 @@
     "Cargo.lock": "2800d1ca4f6646df51efaf876bcc5ef9d98492d1",
     "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
   },
-  "core_checker_sha256": "8677588703aa9c06e0085ad0ba9324cf0f20643d150051b428777a4539036adb",
+  "core_checker_sha256": "34f484f18ed323d1cddfe0d7e7e4b69c7c6c098bc9ead37b26361395623ee41a",
   "task_source_sha256": {
     "access-rust": "1db23f8ebd88f905821197cf226a75bb81171a5651992c0d8eedfece01679fcc",
     "page-count": "c4092c83a866fde7751d57b77ae503dda3e0e3c6f3aaf6d945945854b3fe25fc",
@@ -116,8 +116,8 @@
   "controls": {
     "passed": true,
     "live_model_calls": 0,
-    "source_commit": "48c70ee3b859e752c4874de7504ec6da20028694",
-    "run": "41032806456",
+    "source_commit": "06b4bc53b35f3ffc5cdcc022d2d1ca5d63d28180",
+    "run": "41047411811",
     "bindings": {
       ".github/actions/lean-toolchain/action.yml": "f3d130024715f06b5f5a2c0cb988dd22bc3dc03ac6ea1362e52c89c05a8ac0f0",
       ".github/actions/native-tools/python-wheels.txt": "29c5ecd29ae0e8de35859ad3c9d527ebae9ff3c7aae2b4878f5d57a46336b651",
@@ -155,9 +155,9 @@
       "sdk/python/src/fr_ir/refinement.py": "9df833d3929935d9382ddf69f777416a14fcb7506f77e0c8365451a41c5bf183",
       "sdk/python/src/fr_ir/runtime.py": "44d6a13fdbf499cd743608d894543199a4e0dd8c2762d3b11677428ee87a3ee4",
       "sdk/python/src/fr_ir/structural_change.py": "524340ec95b6fdd81ccb307ea41d769cc18d27f36596ed7baed175f73e1abe1e",
-      "skills/fr/SKILL.md": "b45fba847d38a59559b136e3c2d101c35376246e62876850e46d87512c4fff86",
+      "skills/fr/SKILL.md": "426781cd97ec659b654e87ca28dafa3e9edc543a1579c61e6ac4038ed43585d5",
       "skills/fr/references/application.md": "94ee5ddc0e0b588a5179afc36e68f5fd6703d931c43b593e2ad364ca49eb4f5a",
-      "skills/fr/references/author.md": "5f49391bf06ddc37b8b6c54ff81d836481d337902139cef1c0987abc381208c7",
+      "skills/fr/references/author.md": "2410315103b7157880e5d0e0c73990de9b051db1569612c1549cc39942a15bc1",
       "skills/fr/references/batch.md": "1e936dd3ec34a848930f61915dd05cb8c5d9002750226222f87dec89f56b9cbd",
       "skills/fr/references/change.md": "49552967ce8c93b633335eab927242a48baa041a65a7de581ec6f8ba5dc417da",
       "skills/fr/references/checks.md": "9cb446d79027558cda89b5e73366a3f94026042c7033b803e9bce8df926af614",
@@ -168,10 +168,11 @@
       "skills/fr/references/git-admin.md": "dd27974d70c440573d8faa1cd7b70b9bd2e2fe3f1cb40cce7918631488f2d156",
       "skills/fr/references/git.md": "3dcd80e15cb60e457166230056e59ca6280eb31e72f073d004760e5a130e0ff2",
       "skills/fr/references/guide.md": "b1b025ca42167281c4fdecc5fd5c7d8bf3e137c3b784ccea0b6133046cb8f006",
-      "skills/fr/references/history.md": "4d71dba0971c561612d1008d991f22b44be6b2af724dd8fdd4e7eff82da6583e",
-      "skills/fr/references/intents.md": "dade51e16d9efb28d366ff0ca06994520d4ac8dd4bcc850ced33560694c73fef",
+      "skills/fr/references/history.md": "93e5fe6b4c6710b13ba80a44b1dcf5c72de42fd66e04beca59996c1fadecd2ea",
+      "skills/fr/references/intents.md": "9d972ab6a200e81f90eba0a2158cdb152befd6e4f2ab0385ccbbfe2647e64f55",
       "skills/fr/references/investigations.md": "da9e7eb01df05325867bbbb3bf07abb5a51113aaeaf89f9a2ad9968798d74984",
-      "skills/fr/references/lean.md": "a665b149b1ae43cdd62f3e25ddafb68af0dc747522a8aa6d7890f53362262e1e",
+      "skills/fr/references/lean-arithmetic.md": "bac51c201e5edf66b6870a705e54811753b57d9c27ff14457113aa3c1e177bb9",
+      "skills/fr/references/lean.md": "2624ce0707d7d9f5501be8905392f292e8bb71f32bf957c6cfcf45f068c94b2c",
       "skills/fr/references/recipes.md": "f20a38279377f50e828a189412816f8ca74d8a995b4184f132c6d023bf6d80e8",
       "skills/fr/references/recovery.md": "c37b6cd4a186c4d0edd279fb7715a29eda1eaf0cd1748c0ab70f4d8cb41d0abf",
       "skills/fr/references/runtime.md": "4741be4f2321b9cd764e7fdedd6140f452bbb65f0b7965e63e4e0223c972dffa",
@@ -285,7 +286,7 @@
       "tools/agent_eval/selected_grade_probe.py": "5782877d7130bf99c43457f0871a88c6b79b4e62237b795ce232dd837eb5cdc4",
       "tools/agent_eval/selected_grading.py": "30bf7b623562a99c96f7e44bb0fd89524572788f5ce0771792e06b56f5105ef5",
       "tools/agent_eval/selected_local.py": "665887159fc8d25c0254acae1c683614c8219a2ed677776b77d585baf6ff4f84",
-      "tools/agent_eval/selected_local_grade.py": "e007b767c8bbfab9afa343708b9f5124c2ead26cd11528ab24431af5889c89c0",
+      "tools/agent_eval/selected_local_grade.py": "e4a84901de98204890c0e2e93ebf8bebaad9bf3e6e4200256de5cd9f72c621c3",
       "tools/agent_eval/selected_native.py": "7cbb0e5136d007469b80562e93b3be5934b1560fa889cdeb167e9630101ca1df",
       "tools/agent_eval/selected_native_probe.py": "8d8c20f2200a4e6c77598a1f85ac79d56b428263cefaf2279415959b60f57826",
       "tools/agent_eval/selected_plan.py": "a25e24eae616bcbd23bede93e8c455d0460b6e411eb1bdedeb11143b424f6a03",
@@ -327,7 +328,7 @@
       "tools/agent_eval/test_darwin_sampling.py": "1b6c4b08145a469bab8e806eeea120390b281b4d44d371dec6da3de74fcec737",
       "tools/agent_eval/test_external_environment.py": "af927d1b946c9bfa7a40e24f4c0b40d6a214d2ffd40d0e45853df7067b7a422d",
       "tools/agent_eval/test_gateway.py": "6ccb3be76918d54e947b194a4378d59f4ad2de5ef32e6d2c3f2af54e4aa0e119",
-      "tools/agent_eval/test_harness.py": "cc6958b440d6255d1eeb635830f6ab5e1287735674111cf96ba40e9b6c720a40",
+      "tools/agent_eval/test_harness.py": "04c4f37e766630aef7d8713633e2cbc619815dcfa22470e19457af0e921e464e",
       "tools/agent_eval/test_host.py": "dd8931f19cbd33dfe5389d47b980e5d0e170daea019c0828028694bf8d13f5c7",
       "tools/agent_eval/test_investigation.py": "da2a3c61529eeacd98507ef4e2efa3f78312f1c3017be29633a02ed729c8ce27",
       "tools/agent_eval/test_isolated_grade.py": "995d3731963f6778adc6a9a0ad23b8ce9af434106257bf0b0816630089cd3467",
@@ -348,7 +349,7 @@
       "tools/agent_eval/test_project_edits_tasks.py": "27c55d000593f671fc1f236992548855f186bf9cccaff5e951be176d44fce8f7",
       "tools/agent_eval/test_proof_writing_artifact.py": "ae6029e4093edf03c8572c10fdad4750450748d66a540352d80c60070347e27a",
       "tools/agent_eval/test_proof_writing_collect.py": "641d874a8baeec66e44dc567f4e4c0890f3ae7ad788ec225d9a60a364fd3d1cd",
-      "tools/agent_eval/test_proof_writing_results.py": "6980a0bea556f1ef4b160b3f645be86759fe7600a74dbb2ccbdbed4d779f5bb8",
+      "tools/agent_eval/test_proof_writing_results.py": "67e661d516384fa522cf7a225df14e4d623176b828e29c426d5f23f4bf34ef29",
       "tools/agent_eval/test_proof_writing_tasks.py": "c732ad441eec5bcfd7a527a079154c0ea6f26ba4ffb367b9718541daab3627d9",
       "tools/agent_eval/test_rehearsal_evidence.py": "f63555f9a55a84aaf42eac50fef9d83f397407997a5f19a5d75abcac732ac29a",
       "tools/agent_eval/test_review_coverage.py": "a48545fcd67a759ad3279c9d42152fa22ef8895bcc543785e2ed2ac8e7ff56c1",
@@ -387,7 +388,7 @@
       "tools/capability-report.py": "81cd74b7f276dc31cd8f7a6092520fc8c943c503b8fa491117c9d96cf01e18c1",
       "tools/change-scope-acceptance.py": "566b81a9b9352914ad4875193095288db52b4c314a0a6825dd5bede664ee9f3e",
       "tools/check-agent-discovery.py": "9e68fe0923a5432d820eef485464d0e534cfb68319e89d9672adab6ae530d109",
-      "tools/check-agent-skill.py": "ce05659be818ec8444c337b8ff327160d8fbe1d2d4562c36c60b1fffaef5f07a",
+      "tools/check-agent-skill.py": "40cfa561cd017086852429f1587372c191357625b7a45096a82d9bea4f47261a",
       "tools/check-change-streaming.py": "91d22cbf5f316b5348c1df869c30f2376600a69dd77e49096c71677dcba0d6dc",
       "tools/check-change-workstation.py": "488db2ec915a0f3217be3db9f0489cdbb3a2c9fde64318e2237a76018c9b4ee4",
       "tools/check-client-catalog.py": "23a69e65fe78b90665f9e224b8a84e28ccd00b3f0ed4ff75ec9b84b51cd939a6",
@@ -563,14 +564,14 @@
       "tools/test-ci-shards.py": "ba4db32ca1097f5e1d13a743e30dc3513858dfeae97fa8acd7f342407c45ea89",
       "tools/test-client-memory-profile.py": "9a41de3fd832425fbbd6823edce81b197fc412dec9d11b174ae81e0c6ec7bfd8",
       "tools/test-client-memory.py": "724c831b139de4fb19a326529ada36f2b3cee1e7842fb517db53128c03ca2d51",
-      "tools/test-compiler-profile.py": "d24828438f542e8634f9cbc9482cbf1c298f9fb02371154f3bfe5a7d713ec98c",
+      "tools/test-compiler-profile.py": "6afb9069c8e1afab82a68341d1bc373178975103d74e946d9dd5a0669809f6cd",
       "tools/test-configured-changes.py": "4fff649c42d94bbb51130efef5f4d4265627edd0e6cec06987363de9be383f75",
       "tools/test-deep-audit.py": "fd900abe195d343bd3c32dfd409c66b264550d2ef94d4ea940d12b9c8d647887",
       "tools/test-docker-grader-diagnostics.py": "01bec04746987435084c0c0538b54a46e02eb116752088e43be099c32fb84434",
       "tools/test-frozen-analyzer.py": "73467d74dede8cc9ce14f97b9b50d25c8870283ec3e0b480b5f0211aa03ba9dc",
       "tools/test-frozen-python-cost.py": "0e9de206de27c568aad72e48ae554003edc1e40b8736b860d6c4a3f60d040df0",
       "tools/test-frozen-repository-flow.py": "8f77268c8654afce67b1a0e891dd58d3c64167ed40be273d711317a8382fe391",
-      "tools/test-guide-body-context.py": "8bcedd497bf187e3237efee8d74f5fd638835d0e774cdd5b074cdb9b81e36d90",
+      "tools/test-guide-body-context.py": "3a91d78a57fe2d05a7cd3c78d39c4212231ba58eed6647a1eca15d0e475f2e98",
       "tools/test-guide-body-native.py": "23690c2a0516891062204d4a21818da77f76763ffdc04a25e8856d64f65f598c",
       "tools/test-index-consumers-acceptance.py": "c9b0f59e114a282f8effa3abd7614de3520d213efde40d6793ee483d5d2f6518",
       "tools/test-index-resolution-acceptance.py": "4c488499a99a8f79848a7cff4b673f019cbb49de197ed204891da3ea297b3b5d",
@@ -584,7 +585,7 @@
       "tools/test-project-session-cost.py": "37aa881cd0d3db3a0a5468304dd49cfa1ca4c990623fadcf393555097c6ebe83",
       "tools/test-python-contract-runner.py": "44b97af9b2c6b7d50146f0457ad7923b168ec1f61c55cae4b554bc630dc5221e",
       "tools/test-python-contract-writer.py": "b66e29b1a14556edc91fc941ed0473d6db242d4560a7b27d45fe7221ff18f8cf",
-      "tools/test-python-contract.py": "deff574a9b265fec6c6b21b00eb263d95babdd6fc2d4070e1c9e8df047c7f554",
+      "tools/test-python-contract.py": "547718de64a03ac84ea8a97d35ae2ac0afb0615f97e5cefc3521a4ec36d6738f",
       "tools/test-python-effects.py": "9d7cf47aa35c1c2ef103c6eac0b66b0641dd93b6530b7e8dda760f773f228e12",
       "tools/test-python-process-cost.py": "598c9f5946835cb05976124efda4d0a1b26bc3d155c6556879c2a2bcf41b4bfd",
       "tools/test-python-repository-flow.py": "5bb50dde547ef3519ea067be99d25c715e9899bd49c2549287314b371fd813c6",
@@ -595,7 +596,7 @@
       "tools/test-python-text-package.py": "cdaedf29e278879fb9fb8adcf76c7e53d1707db94cca2c5cd1b0c83452ac764a",
       "tools/test-python-together-cost.py": "3565dfca3fd930e3a28298d6e2acb0f4802097a389ffc32644dccb99d050d66d",
       "tools/test-recheck-text-package.py": "a12569a2d290425dd9b5486c13d1d24a847ad230d36b617262aa0fc84aaff655",
-      "tools/test-recovery-delivery-context.py": "b68e3b2d2713cc7fd3dc762001ec861d603f20863de5ad95b5a866a475340e27",
+      "tools/test-recovery-delivery-context.py": "d21a422cb6e66d75ebe614efeb7a3d920786b9495aa0b31fe75792aba2472160",
       "tools/test-release-request.py": "4be36f0ae69e73235b1649f64f7e946eddb5f9a896ce0636f01bb98c6df983d3",
       "tools/test-repository-declarations.py": "d016c3c21c7bfe114da2b40d019ebdfad46c9dfa53f04d9d4027d84fa9bd551e",
       "tools/test-retain-ci-reports.py": "7f8ab77e916b02c47484b00ff839f3e89482cfa170dcd6b867b736732ace2e51",
@@ -611,10 +612,10 @@
       "tools/test-saved-answer-comparison.py": "0924fccfd5fe4b6468e769ebfd99c4e2d99041f366e745c8706fb0ed30a21cf5",
       "tools/test-saved-work-cost.py": "2ec96d9cb9f9f8ba0e3167c2cd47f68cdb9778101588f7aa061a95f6050af069",
       "tools/test-scoped-reviews.py": "ca957f64a9066c3790109bf86c8037737537944b06fb8e92d0b8966114ff962e",
-      "tools/test-source-repair-context.py": "9d5790df412853ed29a850b783d3222608a888eb28e1a60f89c878a2885a1c40",
+      "tools/test-source-repair-context.py": "194d3574e8c25922dd207d0bbc45995f8a064733c5034762471b0356c9e7c6d4",
       "tools/test-streaming-delivery.py": "30d11dac1cea448402002a3e223a5425889b40004b120bf1b7664424d92d4106",
       "tools/test-workflow-evidence-basis.py": "517ba5aec4bc1dcd1508714a35271b2b9dc014abbe9a3e4849e642305b2bc252",
-      "tools/test-workflow-route-context.py": "300baadc467a574cbc6816418cb3a51169d3c5ab22e8fe0032a12748431c07a4",
+      "tools/test-workflow-route-context.py": "48bf0e725957984b245b0b4f3b8b1163cd1f01639455282b72a51baba1d6d1fb",
       "tools/test_evidence_archive.py": "6e8d06cc495d5c1bafb542468a61c71c1f3143dfdc1fe0c260f1428afee5b041",
       "tools/test_fetch_verified_ranges.py": "0d476a1dbd9b7a6ab1c3ed0c803741d6f6c913745667f4a51dbe66404872811b",
       "tools/test_flow_cache_basis.py": "f69f0d8437e20dbc260ba0d8a32cf434e4b41ee842d07a7acb7c377b095e2138",
@@ -633,101 +634,101 @@
     },
     "cases": {
       "access-rust": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-python": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-go": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-java": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-typescript": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-tsx": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-zig": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "access-lean": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "page-count": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
       },
       "fits-window": {
-        "protected_inputs_checked": true,
-        "negative_tactics_rejected": true,
-        "receiver_checked": true,
-        "stale_records_checked": true,
         "model_proof_checked": true,
+        "protected_inputs_checked": true,
+        "receiver_checked": true,
+        "negative_tactics_rejected": true,
+        "stale_records_checked": true,
         "handwritten_preserved": true,
         "runtime_checked": true,
         "source_implementation_proved": false
@@ -742,12 +743,12 @@
       "passed": true,
       "live_model_calls": 0,
       "checked_controls": 18,
-      "image": "sha256:b04665598cbcc0320f67de2a5f0b3805d995d9d29646b25e4e1596ff051cbfd6",
-      "image_archive_sha256": "c726b35d7d4426b3cdfacd96a1ae1039f279cb2a04e7f1133859de7e4e45d50c"
+      "image": "sha256:4ebde0a1fec626b7b76cf03742e17c250fa7b337e5d62a0490e9719dbeaee646",
+      "image_archive_sha256": "34d0be3f2a4132be581853dc906c338efa57c8ed052e4c34048fa8500e86f3db"
     }
   },
   "collection_receipts": {
-    "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9": "671f037bcee3ea57dd7bed5a1ff7e13310343cc8"
+    "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736": "cbf7531424b58dcecec2a1e747c04ea1fdf34b6e"
   },
   "attempts": [
     {
@@ -758,23 +759,23 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "ab4c61ebcac60a0e3388e778e393752a52b9475731c30903c6540fee2ed61572",
-      "total_seconds": 20.936396582983434,
-      "native_seconds": 20.563595624873415,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "058ed56a5768d5f767589cc23e685cc4abdcdad0b8661eae9d5bb70dfc64e56f",
+      "total_seconds": 22.116416458040476,
+      "native_seconds": 21.72921329201199,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.3290129581000656,
+      "verification_seconds": 0.3467180000152439,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 118915072,
+      "sampled_rss_bytes": 121700352,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 60160,
-        "input_tokens": 74806,
-        "output_tokens": 1359,
-        "reasoning_output_tokens": 654
+        "cached_input_tokens": 59008,
+        "input_tokens": 85560,
+        "output_tokens": 1143,
+        "reasoning_output_tokens": 501
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -793,16 +794,9 @@
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-access-rust-fr-1",
@@ -812,29 +806,29 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "52d93858ac22ace4ed70c3cf7707031a5ed420b0c08103bdf0486e56e81ef27b",
-      "total_seconds": 31.81839087489061,
-      "native_seconds": 31.337024833075702,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "90b4f0e4f814b6f31410cdb02319f296c37fecd2939b450f23cd56d19f819937",
+      "total_seconds": 26.036126375198364,
+      "native_seconds": 25.55713054188527,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4365097498521209,
+      "verification_seconds": 0.4351205830462277,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 127975424,
+      "sampled_rss_bytes": 128925696,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 142848,
-        "input_tokens": 166182,
-        "output_tokens": 2136,
-        "reasoning_output_tokens": 1100
+        "cached_input_tokens": 66688,
+        "input_tokens": 95023,
+        "output_tokens": 1370,
+        "reasoning_output_tokens": 520
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 4,
+        "commands_observed": 3,
         "operations_observed": [
           "spec",
           "spec proof-check",
@@ -842,7 +836,7 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the fixed claim, checked the draft and saved its proof with fr."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
@@ -853,16 +847,9 @@
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-page-count-fr-1",
@@ -872,29 +859,29 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "f36d2bfb4a86281ebcac7db3e0cb5fe488dc7e4af77709eaafbd61931c1d483b",
-      "total_seconds": 64.0785051251296,
-      "native_seconds": 63.587551624979824,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "0d3e5f2ca95202f4d653036bd3252ce56588bdff010704fc32ee539007bf6222",
+      "total_seconds": 72.60554675012827,
+      "native_seconds": 72.15507275005803,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.32200058409944177,
+      "verification_seconds": 0.40640833298675716,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 131186688,
+      "sampled_rss_bytes": 128434176,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 309504,
-        "input_tokens": 359769,
-        "output_tokens": 5798,
-        "reasoning_output_tokens": 3387
+        "cached_input_tokens": 369792,
+        "input_tokens": 425428,
+        "output_tokens": 4608,
+        "reasoning_output_tokens": 1926
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 6,
+        "commands_observed": 9,
         "operations_observed": [
           "spec",
           "spec proof-check",
@@ -902,27 +889,20 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the claim parts and used repeated fr proof checks to repair the draft before saving it."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-page-count-fr-1.patch",
-      "patch_sha256": "e63d4d3303a47eada2a68b2c1a6da071398b08d66e6a33811a80368768ba7a64",
+      "patch_sha256": "2a80889149968beda91c63d5da4a2f2e92e0a9f4ee5c233137592f71f4ecd60e",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-page-count-files-1",
@@ -932,23 +912,23 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "68a507de1b0fea396d439bf7329771350e4516084257d89d4c3b8216136285a5",
-      "total_seconds": 85.40004766685888,
-      "native_seconds": 84.9204246669542,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "ed8e4a7ed3930ee0bd4576b8b9947e5593bd63cc49a90430c91f0e225edf868e",
+      "total_seconds": 92.18713516695425,
+      "native_seconds": 91.74414950003847,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.3208036250434816,
+      "suspended_seconds": 2.50060111284256e-07,
+      "verification_seconds": 0.4038394170347601,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 131497984,
+      "sampled_rss_bytes": 133709824,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 296064,
-        "input_tokens": 351881,
-        "output_tokens": 6473,
-        "reasoning_output_tokens": 3498
+        "cached_input_tokens": 355968,
+        "input_tokens": 417426,
+        "output_tokens": 7839,
+        "reasoning_output_tokens": 4298
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -961,22 +941,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-page-count-files-1.patch",
-      "patch_sha256": "5dc835545be6537244a02cf5a992976dce3c506e8548a3bae37d50902156f4db",
+      "patch_sha256": "b71469a3f82f4451225e03bf1b1f0e3290614ec48817f49f85c6cdb79f680f4b",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-fits-window-files-1",
@@ -986,23 +959,23 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "c413aa49dc3092a5f85f6ef17afd24590c7c93cb22c9e3cdf447170c3942d294",
-      "total_seconds": 23.03296845802106,
-      "native_seconds": 22.65093187522143,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "a024b0f1d8c69b4b9fa8a9bf96431f5d8126e9f60f633df56959e474cb780898",
+      "total_seconds": 25.880329082952812,
+      "native_seconds": 25.428081833058968,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.34084470802918077,
+      "verification_seconds": 0.4115072910208255,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 124862464,
+      "sampled_rss_bytes": 128712704,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 90112,
-        "input_tokens": 99600,
-        "output_tokens": 1614,
-        "reasoning_output_tokens": 741
+        "cached_input_tokens": 90496,
+        "input_tokens": 103636,
+        "output_tokens": 1433,
+        "reasoning_output_tokens": 524
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -1015,22 +988,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-fits-window-files-1.patch",
-      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "patch_sha256": "ccc1bc6accd09a33e1f290eae4485774c3192f1d27480294b75963945ca06140",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-fits-window-fr-1",
@@ -1040,23 +1006,23 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "08907d8ad197ceb03bdcdb11e4a56bad53c3318e119c8dd8b0fbf7f3fabbbbf0",
-      "total_seconds": 44.099185459082946,
-      "native_seconds": 43.60425358405337,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "2a4c106a1632839c6a35470d5a4d557940c9a943f15e75137efb967aa701de2b",
+      "total_seconds": 36.72420054208487,
+      "native_seconds": 36.269654792035,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.44796912488527596,
+      "verification_seconds": 0.40854045818559825,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 125992960,
+      "sampled_rss_bytes": 130482176,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 145536,
-        "input_tokens": 171146,
-        "output_tokens": 2270,
-        "reasoning_output_tokens": 999
+        "cached_input_tokens": 120064,
+        "input_tokens": 130687,
+        "output_tokens": 1812,
+        "reasoning_output_tokens": 931
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -1070,7 +1036,7 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the claim, checked the draft and saved its proof with fr."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
@@ -1081,16 +1047,9 @@
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-access-rust-fr-1",
@@ -1100,56 +1059,52 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "28f7bb60e94bd206c65bf623686d85f15dd97763862293e2a285131beb5ef38f",
-      "total_seconds": 44.50813391711563,
-      "native_seconds": 43.72249729093164,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "67ba434e7c37c73f6d6225f4a0971dba7db7e4172dc32129313bef9298aef2c7",
+      "total_seconds": 47.789596874965355,
+      "native_seconds": 47.143767290981486,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.41238895896822214,
+      "suspended_seconds": 4.190951585769653e-08,
+      "verification_seconds": 0.4028560828883201,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86294528,
+      "sampled_rss_bytes": 85557248,
       "reported_tokens": {
         "cache": {
-          "read": 41792,
+          "read": 35648,
           "write": 0
         },
-        "input": 7649,
-        "output": 282,
-        "reasoning": 31
+        "input": 8472,
+        "output": 320,
+        "reasoning": 0
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 2,
+        "commands_observed": 3,
         "operations_observed": [
-          "check",
-          "spec"
+          "spec",
+          "spec proof-check",
+          "spec prove"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [],
+        "contributing_actions": [
+          "Located the goal, checked its draft successfully and saved the proof with fr."
+        ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-access-rust-fr-1.patch",
-      "patch_sha256": "e424115e7afbea366d23033782ec43eba6c30362402b2cfe249ecc332c219522",
+      "patch_sha256": "706092c6ef8f33a96457731acc5da13ed138922989828f8508d2f2a09752bf43",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 5.134,
+        "completed_tool_calls_with_timing": 6,
+        "completed_tool_wall_seconds": 7.883,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "No useful fr step observed; its check pipeline returned no output.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-access-rust-files-1",
@@ -1159,24 +1114,24 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "44a62b58856948931feb7d6f34c3f20c16ec408964750f1e7a4c6f77b5a8dbf0",
-      "total_seconds": 35.77454479201697,
-      "native_seconds": 35.10241500008851,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "77300e043a29cb8a3e9bc80832e24c4d134bdf5d45445648239b4e63a91680cc",
+      "total_seconds": 38.04135291604325,
+      "native_seconds": 37.4006126250606,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.430946292122826,
+      "verification_seconds": 0.4174615000374615,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85901312,
+      "sampled_rss_bytes": 85721088,
       "reported_tokens": {
         "cache": {
-          "read": 19584,
+          "read": 26240,
           "write": 0
         },
-        "input": 7002,
-        "output": 195,
+        "input": 7096,
+        "output": 190,
         "reasoning": 0
       },
       "reported_usage_complete": false,
@@ -1190,22 +1145,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-access-rust-files-1.patch",
-      "patch_sha256": "e424115e7afbea366d23033782ec43eba6c30362402b2cfe249ecc332c219522",
+      "patch_sha256": "0a67609992ac62e8f7929805603bfe181d785de5de2a7056e08a49a842603879",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 4,
-        "completed_tool_wall_seconds": 5.431,
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 4.805,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-page-count-files-1",
@@ -1215,25 +1163,25 @@
       "repetition": 1,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "31efbccb820a4fcbcecdb0ec8e15ca4a8bc514d63a30ca6551ef33847d96607b",
-      "total_seconds": 150.01594616705552,
-      "native_seconds": 149.54956854204647,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "1ae92a7cea3a9f9e4cba5450912037e19a4417109d475d362f9e535c38f41866",
+      "total_seconds": 150.05884712492116,
+      "native_seconds": 149.58937541604973,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4253192918840796,
+      "verification_seconds": 0.42441774997860193,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86196224,
+      "sampled_rss_bytes": 85852160,
       "reported_tokens": {
         "cache": {
-          "read": 110848,
+          "read": 168128,
           "write": 0
         },
-        "input": 13917,
-        "output": 2667,
-        "reasoning": 872
+        "input": 18593,
+        "output": 1919,
+        "reasoning": 636
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -1248,20 +1196,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 13,
-        "completed_tool_wall_seconds": 45.807,
+        "completed_tool_calls_with_timing": 18,
+        "completed_tool_wall_seconds": 36.043,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after failed Lean builds and library searches.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after repeated failed builds, syntax errors and library searches."
     },
     {
       "id": "opencode2-glm-flash-page-count-fr-1",
@@ -1271,25 +1212,25 @@
       "repetition": 1,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "d85df6d731e74bd9c947ae9163bad8b22a98d35a3838f41268dddebe856e0f4e",
-      "total_seconds": 150.04293983313255,
-      "native_seconds": 149.55997433396988,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "4cb97fb142bd340e3eb26ea8855c8d5ebccc2997555a1252d0000bdc11a7933a",
+      "total_seconds": 150.02301916712895,
+      "native_seconds": 149.5442556659691,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4374355829786509,
+      "verification_seconds": 0.4329477089922875,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85737472,
+      "sampled_rss_bytes": 85950464,
       "reported_tokens": {
         "cache": {
-          "read": 56064,
+          "read": 89792,
           "write": 0
         },
-        "input": 11635,
-        "output": 1109,
-        "reasoning": 3150
+        "input": 11648,
+        "output": 715,
+        "reasoning": 1709
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -1297,32 +1238,22 @@
       "fr_use": {
         "commands_observed": 2,
         "operations_observed": [
-          "spec",
-          "spec proof-check"
+          "spec"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [
-          "Used fr to locate the goal and check a draft; diagnostics identified an incorrect assumption split."
-        ],
+        "contributing_actions": [],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 8,
-        "completed_tool_wall_seconds": 17.523,
+        "completed_tool_calls_with_timing": 10,
+        "completed_tool_wall_seconds": 12.3,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after a rejected draft check at about 121 seconds.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after reading the claim and repeated library searches; no draft check observed."
     },
     {
       "id": "opencode2-glm-flash-fits-window-fr-1",
@@ -1332,53 +1263,52 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "eabe06a71e3d9df61f94f764b3636ad528b98578a516ae752d32c2d2694deb5b",
-      "total_seconds": 41.24283991707489,
-      "native_seconds": 40.57955899997614,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "ca86e9101d83a504ebb5de2a135f9a90cae9b305e3fe7cffe1b7960135e0b600",
+      "total_seconds": 97.79397687502205,
+      "native_seconds": 97.1347426250577,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.412632959196344,
+      "verification_seconds": 0.41525483410805464,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85835776,
+      "sampled_rss_bytes": 86589440,
       "reported_tokens": {
         "cache": {
-          "read": 34176,
+          "read": 114816,
           "write": 0
         },
-        "input": 8858,
-        "output": 266,
-        "reasoning": 96
+        "input": 10810,
+        "output": 909,
+        "reasoning": 128
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": [],
+        "commands_observed": 9,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [],
+        "contributing_actions": [
+          "Used fr to check the draft successfully, save its proof and verify the Lean package."
+        ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-fits-window-fr-1.patch",
-      "patch_sha256": "23a9747c125cfb9a41849fc4180458fe0e51b427533c6c163e1434f8f443498b",
+      "patch_sha256": "f1ae00e8c42065c18cc39a188a4dbe9f5650fc6d726a19933f2ce9afed8c2a55",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 6,
-        "completed_tool_wall_seconds": 4.235,
+        "completed_tool_calls_with_timing": 15,
+        "completed_tool_wall_seconds": 18.342,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "No fr command observed; the proof was written and built with ordinary tools.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-fits-window-files-1",
@@ -1388,25 +1318,25 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "cb4cb8247a65ff8aa5aca7d305fb072180ededb26f97edfcf7180d6bed5620f5",
-      "total_seconds": 46.511104207951576,
-      "native_seconds": 45.79798745806329,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "147c4f3fbf65f823faae92e05c1a390e170e3ea96f86985f5082a389059fb1f2",
+      "total_seconds": 53.06545912497677,
+      "native_seconds": 52.386614084010944,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.47785474988631904,
+      "verification_seconds": 0.4479388331528753,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85770240,
+      "sampled_rss_bytes": 85688320,
       "reported_tokens": {
         "cache": {
-          "read": 26944,
+          "read": 40960,
           "write": 0
         },
-        "input": 7414,
-        "output": 243,
-        "reasoning": 0
+        "input": 11214,
+        "output": 371,
+        "reasoning": 143
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -1419,22 +1349,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-fits-window-files-1.patch",
-      "patch_sha256": "472b8d4ed48541b0e03bb5de442e415febf3c1da2aaafd002d657afa11dab4d9",
+      "patch_sha256": "50e1587671688d009ffbfac1c8ada8846f7f42e0d53805cb9de9384ea9584bc7",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 5,
-        "completed_tool_wall_seconds": 7.606,
+        "completed_tool_calls_with_timing": 7,
+        "completed_tool_wall_seconds": 7.653,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-access-rust-files-1",
@@ -1444,25 +1367,25 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "bfb08012df64cf2610b13419c6ee1c7dc9bab7d1e1946d8d6cb728bbe4f0d085",
-      "total_seconds": 29.75433033402078,
-      "native_seconds": 29.08229883410968,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "b0b1183ea8b8186d8687c25df94831085045664fa2ca0938de09fb647c8549a7",
+      "total_seconds": 41.48779966705479,
+      "native_seconds": 40.83804445783608,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.430621667066589,
+      "suspended_seconds": 1.1641532182693481e-09,
+      "verification_seconds": 0.4184598340652883,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85770240,
+      "sampled_rss_bytes": 85573632,
       "reported_tokens": {
         "cache": {
-          "read": 25856,
+          "read": 26112,
           "write": 0
         },
-        "input": 7474,
-        "output": 410,
-        "reasoning": 5
+        "input": 7776,
+        "output": 369,
+        "reasoning": 116
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -1477,20 +1400,13 @@
       "patch_file": "patches/opencode2-kimi-k3-access-rust-files-1.patch",
       "patch_sha256": "707d19934e63f156847b5cc575814146a9ff305471c3d4007d50885a4af95453",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 5,
-        "completed_tool_wall_seconds": 7.722,
+        "completed_tool_calls_with_timing": 6,
+        "completed_tool_wall_seconds": 3.682,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-access-rust-fr-1",
@@ -1500,31 +1416,31 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "03c9daeb7d64a4296f14654df6620bc0196fcebb2635e082adfd6d7bbce75228",
-      "total_seconds": 54.4629321671091,
-      "native_seconds": 53.7785425002221,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "a7811d6bfadfacf7260d40c27c99888156fbcf71a9246ae3d03b8edbb47a45e3",
+      "total_seconds": 66.51789562497288,
+      "native_seconds": 65.86767412512563,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4266504170373082,
+      "verification_seconds": 0.41836841590702534,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86081536,
+      "sampled_rss_bytes": 85573632,
       "reported_tokens": {
         "cache": {
-          "read": 47872,
+          "read": 30720,
           "write": 0
         },
-        "input": 7053,
-        "output": 495,
-        "reasoning": 138
+        "input": 5617,
+        "output": 455,
+        "reasoning": 29
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 5,
+        "commands_observed": 4,
         "operations_observed": [
           "spec",
           "spec proof-check",
@@ -1532,27 +1448,20 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the claim, checked and saved the proof, then verified its Lean package with fr."
+          "Located the goal, checked its draft successfully and saved the proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-access-rust-fr-1.patch",
-      "patch_sha256": "004f8cbce6be7386a23c64b42fa2376049e6a872d1db859b9ad97e473d656d96",
+      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 5.777,
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 7.653,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-page-count-fr-1",
@@ -1562,32 +1471,34 @@
       "repetition": 1,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "1091db1182299e91b51b92d0594c69144052e5c2335f6f6947902f3b664ba3bb",
-      "total_seconds": 150.04384483303875,
-      "native_seconds": 149.54058716702275,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "85d79f0de6c95c0d316df488528219ea023160b509d496bb78e0343bb173edf3",
+      "total_seconds": 150.033811833011,
+      "native_seconds": 149.56330770789646,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.45668137492612004,
+      "verification_seconds": 0.42230354179628193,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86228992,
+      "sampled_rss_bytes": 85901312,
       "reported_tokens": {
         "cache": {
-          "read": 35072,
+          "read": 53504,
           "write": 0
         },
-        "input": 9321,
-        "output": 892,
-        "reasoning": 3398
+        "input": 10152,
+        "output": 1071,
+        "reasoning": 3853
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": [],
+        "commands_observed": 1,
+        "operations_observed": [
+          "spec"
+        ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
@@ -1595,20 +1506,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 5,
-        "completed_tool_wall_seconds": 8.433,
+        "completed_tool_calls_with_timing": 7,
+        "completed_tool_wall_seconds": 11.742,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch; no fr command observed, and its first Lean build began at about 128 seconds.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after goal discovery and library searches; no draft check observed."
     },
     {
       "id": "opencode2-kimi-k3-page-count-files-1",
@@ -1618,25 +1522,25 @@
       "repetition": 1,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "63676cf00c2f65baac242769794a79007df433961f5ca7954528885a9590f8fb",
-      "total_seconds": 150.06324312486686,
-      "native_seconds": 149.57832116703503,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "61cb1185f532a5bd1c83dfa57568f32f07f1d8937018bb468436dc39e7a61d6d",
+      "total_seconds": 150.03110412484966,
+      "native_seconds": 149.5982889169827,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4401549999602139,
+      "verification_seconds": 0.3936547089833766,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85999616,
+      "sampled_rss_bytes": 85868544,
       "reported_tokens": {
         "cache": {
-          "read": 92160,
+          "read": 82944,
           "write": 0
         },
-        "input": 9585,
-        "output": 1565,
-        "reasoning": 2803
+        "input": 10795,
+        "output": 1393,
+        "reasoning": 3335
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -1651,20 +1555,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 11,
-        "completed_tool_wall_seconds": 20.599,
+        "completed_tool_calls_with_timing": 9,
+        "completed_tool_wall_seconds": 6.121,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after two failed Lean builds.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after failed builds using unresolved inequality names."
     },
     {
       "id": "opencode2-kimi-k3-fits-window-files-1",
@@ -1674,25 +1571,25 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "c03c382d988948a0b96cab027768e0a39dd84e4280426d068b436f15c555338f",
-      "total_seconds": 54.29357874998823,
-      "native_seconds": 53.616176957963035,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "6aa1b4d36cf0e463ef710d9332e89797ce3e61f920a4974fe3a9df61baf84078",
+      "total_seconds": 56.38205141713843,
+      "native_seconds": 55.71014954196289,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.43721604091115296,
+      "suspended_seconds": 3.341119736433029e-07,
+      "verification_seconds": 0.4468735419213772,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85917696,
+      "sampled_rss_bytes": 85590016,
       "reported_tokens": {
         "cache": {
           "read": 32000,
           "write": 0
         },
-        "input": 2980,
-        "output": 617,
-        "reasoning": 261
+        "input": 3334,
+        "output": 409,
+        "reasoning": 285
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -1705,22 +1602,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-fits-window-files-1.patch",
-      "patch_sha256": "a15ee117db3b2df209eb2789c4a8c5e30ab6e506602bda1e1ff65abd41a2fee1",
+      "patch_sha256": "2b2ba7707afb2122f32318fe19cad01881015c200bff39c084095fb4f7904bb2",
       "completed_tools": {
         "completed_tool_calls_with_timing": 5,
-        "completed_tool_wall_seconds": 7.211,
+        "completed_tool_wall_seconds": 3.939,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-fits-window-fr-1",
@@ -1730,87 +1620,28 @@
       "repetition": 1,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "a594df2d9638765e7a0d6386639a51485dd167a4d8bc9cf57f51b6575f3a4053",
-      "total_seconds": 68.54905108292587,
-      "native_seconds": 67.86853270884603,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "3688ceebebe0d0dddbb43973938988c2b77df657579992748f700014e9f75129",
+      "total_seconds": 69.73869183310308,
+      "native_seconds": 69.10729987500235,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.44625283288769424,
+      "verification_seconds": 0.4048259579576552,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85835776,
+      "sampled_rss_bytes": 85884928,
       "reported_tokens": {
         "cache": {
-          "read": 77312,
+          "read": 83456,
           "write": 0
         },
-        "input": 6159,
-        "output": 802,
-        "reasoning": 201
+        "input": 5397,
+        "output": 923,
+        "reasoning": 431
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
-      "provider_response_model_observed": false,
-      "fr_use": {
-        "commands_observed": 4,
-        "operations_observed": [
-          "spec",
-          "spec prove"
-        ],
-        "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [
-          "Inspected the claim parts and used fr to check and save the proof."
-        ],
-        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
-      },
-      "patch_file": "patches/opencode2-kimi-k3-fits-window-fr-1.patch",
-      "patch_sha256": "408849930fd3a0a9182b368def064ecf36b12205ee1d5f04d37204995e4f811a",
-      "completed_tools": {
-        "completed_tool_calls_with_timing": 10,
-        "completed_tool_wall_seconds": 7.992,
-        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
-      },
-      "independent_outcome": "passed",
-      "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
-    },
-    {
-      "id": "codex-luna-fast-access-rust-fr-2",
-      "profile": "codex-luna-fast",
-      "task": "access-rust",
-      "setup": "fr",
-      "repetition": 2,
-      "native_status": "completed",
-      "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "31002bf00f1ae36c04465ff7cb8e5bb6d4abcff338d537bcec822d1adf10df9b",
-      "total_seconds": 29.598655374953523,
-      "native_seconds": 29.132909999927506,
-      "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.42017699987627566,
-      "stop_reason": null,
-      "complete_attempt_deadline_missed": false,
-      "checking_input_changes": [],
-      "sampled_rss_bytes": 128679936,
-      "reported_tokens": {
-        "cache_write_input_tokens": 0,
-        "cached_input_tokens": 94976,
-        "input_tokens": 130056,
-        "output_tokens": 1868,
-        "reasoning_output_tokens": 770
-      },
-      "reported_usage_complete": true,
-      "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
         "commands_observed": 5,
@@ -1821,7 +1652,60 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the fixed claim, checked the draft and saved its proof with fr."
+          "Checked a draft successfully and saved its proof with fr."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/opencode2-kimi-k3-fits-window-fr-1.patch",
+      "patch_sha256": "c3c2ad0738766c966f5407bc5c7f080c5dacc81f7493fcf0e51bd9ab8c8c0dc6",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 11,
+        "completed_tool_wall_seconds": 14.287,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": null,
+      "collection_error_recorded": false,
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-access-rust-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "access-rust",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "3f1193cc9512ba2dc9d71643fae5161ed5176a30fd441dba5196a1e95597e57c",
+      "total_seconds": 31.110396875068545,
+      "native_seconds": 30.652276624925435,
+      "timing_clock": "includes-system-sleep",
+      "suspended_seconds": 0,
+      "verification_seconds": 0.4122597079258412,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "checking_input_changes": [],
+      "sampled_rss_bytes": 129417216,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 98176,
+        "input_tokens": 133527,
+        "output_tokens": 1680,
+        "reasoning_output_tokens": 709
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 4,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ],
+        "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
@@ -1832,16 +1716,9 @@
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-access-rust-files-2",
@@ -1851,23 +1728,23 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "2f316d0b95cd20b5f209dc2246274dbfb5d4ffbde925df6712ae712d3867ae3e",
-      "total_seconds": 19.331785625079647,
-      "native_seconds": 18.87445529201068,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "90abd41fdcff05390d87b434ff36a61a6f096976f5f738c40812fa6949628c85",
+      "total_seconds": 22.556413375074044,
+      "native_seconds": 22.101604625117034,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4135702920611948,
+      "verification_seconds": 0.41082933312281966,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 128434176,
+      "sampled_rss_bytes": 126648320,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 64640,
-        "input_tokens": 74556,
-        "output_tokens": 1118,
-        "reasoning_output_tokens": 472
+        "cached_input_tokens": 59520,
+        "input_tokens": 86523,
+        "output_tokens": 1124,
+        "reasoning_output_tokens": 439
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -1880,22 +1757,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-access-rust-files-2.patch",
-      "patch_sha256": "6ecb849f0663c5bcc564573d3116e10b7d5812499053ef54b63cbf64d6d83805",
+      "patch_sha256": "707d19934e63f156847b5cc575814146a9ff305471c3d4007d50885a4af95453",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-page-count-files-2",
@@ -1905,23 +1775,23 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "af2a45f8db93fa67e2202e878a5ff1764c50775863579bd00b41a3ac20920971",
-      "total_seconds": 56.47166962502524,
-      "native_seconds": 56.126237167045474,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "16c732379e12aebc459c2f1c68d062615bc5011a24ca441d6d182315ef6af786",
+      "total_seconds": 86.13939899997786,
+      "native_seconds": 85.70613991701975,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.30661587486974895,
+      "verification_seconds": 0.39487737510353327,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 128204800,
+      "sampled_rss_bytes": 130105344,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 265344,
-        "input_tokens": 292719,
-        "output_tokens": 5366,
-        "reasoning_output_tokens": 2526
+        "cached_input_tokens": 384128,
+        "input_tokens": 433403,
+        "output_tokens": 6447,
+        "reasoning_output_tokens": 3299
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -1934,22 +1804,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-page-count-files-2.patch",
-      "patch_sha256": "8f5a347e4a9118c6662ab0831c1a04b7199083cf4351dfabf77079e4279c5842",
+      "patch_sha256": "5e655690c4055c47affc8a71ac8d87fc22529f74f87664213261438c39c3a6c3",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-page-count-fr-2",
@@ -1959,82 +1822,23 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "da0689c7e9c3c07b0d85baee9ef5d38335332bbbe73f2abe8e82854bbcd1a07b",
-      "total_seconds": 85.910154042067,
-      "native_seconds": 85.55706666712649,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "eb30c7bda7ca8e914098997deb700e465eec2f9ab45c0232ebc023ffb3241185",
+      "total_seconds": 72.50085833389312,
+      "native_seconds": 72.0550998330582,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.3086855420842767,
+      "verification_seconds": 0.39528295886702836,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 130351104,
+      "sampled_rss_bytes": 129122304,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 402048,
-        "input_tokens": 455605,
-        "output_tokens": 5989,
-        "reasoning_output_tokens": 3183
-      },
-      "reported_usage_complete": true,
-      "client_model_recorded": false,
-      "provider_response_model_observed": false,
-      "fr_use": {
-        "commands_observed": 6,
-        "operations_observed": [
-          "spec",
-          "spec proof-check"
-        ],
-        "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [
-          "Inspected the claim parts and used repeated fr proof checks to repair the delivered proof."
-        ],
-        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
-      },
-      "patch_file": "patches/codex-luna-fast-page-count-fr-2.patch",
-      "patch_sha256": "3a5264f81039463f6fdd11ad20e02cff8771f4caa165d13a1b9bcedd96d1929f",
-      "completed_tools": {
-        "completed_tool_calls_with_timing": 0,
-        "completed_tool_wall_seconds": null,
-        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
-      },
-      "independent_outcome": "passed",
-      "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
-    },
-    {
-      "id": "codex-luna-fast-fits-window-fr-2",
-      "profile": "codex-luna-fast",
-      "task": "fits-window",
-      "setup": "fr",
-      "repetition": 2,
-      "native_status": "completed",
-      "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "2f8fb75f752474a5b5e41293f11cf9220fe8ac1293929116de9231ab5eef9308",
-      "total_seconds": 63.3749494580552,
-      "native_seconds": 62.88854895811528,
-      "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.3149757080245763,
-      "stop_reason": null,
-      "complete_attempt_deadline_missed": false,
-      "checking_input_changes": [],
-      "sampled_rss_bytes": 130449408,
-      "reported_tokens": {
-        "cache_write_input_tokens": 0,
-        "cached_input_tokens": 247552,
-        "input_tokens": 266680,
-        "output_tokens": 5074,
-        "reasoning_output_tokens": 3204
+        "cached_input_tokens": 309376,
+        "input_tokens": 346037,
+        "output_tokens": 5160,
+        "reasoning_output_tokens": 2877
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -2048,27 +1852,73 @@
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Used fr diagnostics to repair rejected drafts, then checked and saved the proof."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
-      "patch_file": "patches/codex-luna-fast-fits-window-fr-2.patch",
-      "patch_sha256": "c874d729ceebcd8b10567621d8c8112d7c004f491d13c014588fe5699fad7803",
+      "patch_file": "patches/codex-luna-fast-page-count-fr-2.patch",
+      "patch_sha256": "f89f1ab815b2cf1d2a4198012b09e4b19d6b25b516b5a871e34787b1ef85b64d",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
+    },
+    {
+      "id": "codex-luna-fast-fits-window-fr-2",
+      "profile": "codex-luna-fast",
+      "task": "fits-window",
+      "setup": "fr",
+      "repetition": 2,
+      "native_status": "completed",
+      "actual_cost": null,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "57c049245dacaf0738009eea358238016707b4027c7346cf2c8441bb6ca8225c",
+      "total_seconds": 31.88446750002913,
+      "native_seconds": 31.438580417074263,
+      "timing_clock": "includes-system-sleep",
+      "suspended_seconds": 0,
+      "verification_seconds": 0.40086650010198355,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
+      "checking_input_changes": [],
+      "sampled_rss_bytes": 128991232,
+      "reported_tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 81920,
+        "input_tokens": 117071,
+        "output_tokens": 1660,
+        "reasoning_output_tokens": 746
+      },
+      "reported_usage_complete": true,
+      "client_model_recorded": false,
+      "provider_response_model_observed": false,
+      "fr_use": {
+        "commands_observed": 4,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ],
+        "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
+        "contributing_actions": [
+          "Checked a draft successfully and saved its proof with fr."
+        ],
+        "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
+      },
+      "patch_file": "patches/codex-luna-fast-fits-window-fr-2.patch",
+      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "completed_tools": {
+        "completed_tool_calls_with_timing": 0,
+        "completed_tool_wall_seconds": null,
+        "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
+      },
+      "independent_outcome": null,
+      "collection_error_recorded": false,
+      "failure_summary": null
     },
     {
       "id": "codex-luna-fast-fits-window-files-2",
@@ -2078,23 +1928,23 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "7348410efb528f6bedf4250086a630628a271b89826b4b159d01a07110da3250",
-      "total_seconds": 35.579369582934305,
-      "native_seconds": 35.105977333150804,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "ea09a2785cfd110545ec759b12aa2a8e84509b8b1efe2f72233366656f8bcf8f",
+      "total_seconds": 24.84994599991478,
+      "native_seconds": 24.408227832987905,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.43256199988536537,
+      "verification_seconds": 0.40122645907104015,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 126877696,
+      "sampled_rss_bytes": 125616128,
       "reported_tokens": {
         "cache_write_input_tokens": 0,
-        "cached_input_tokens": 115456,
-        "input_tokens": 139010,
-        "output_tokens": 2343,
-        "reasoning_output_tokens": 917
+        "cached_input_tokens": 106240,
+        "input_tokens": 116382,
+        "output_tokens": 1604,
+        "reasoning_output_tokens": 591
       },
       "reported_usage_complete": true,
       "client_model_recorded": false,
@@ -2107,22 +1957,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/codex-luna-fast-fits-window-files-2.patch",
-      "patch_sha256": "976bda1d56fe03e03a0e0e963cb9122c8ca28646979968ef1f01088616823665",
+      "patch_sha256": "91673ad8750713066a2b0ff495995479a0f2f0ec5f652514c5edbba7f3ca4dc0",
       "completed_tools": {
         "completed_tool_calls_with_timing": 0,
         "completed_tool_wall_seconds": null,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-access-rust-files-2",
@@ -2132,24 +1975,24 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "fed0018852bc8c19aa8606392098405014b206d6c265b99a899f5ec03751be5a",
-      "total_seconds": 44.77101504104212,
-      "native_seconds": 44.14741395809688,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "cb8970fccb3bd70942b095d7e2e771282c2bcf36d748c7fc3a97b616c29b8ac8",
+      "total_seconds": 37.572531417012215,
+      "native_seconds": 36.91917937481776,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.39904083288274705,
+      "verification_seconds": 0.4272226251196116,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86065152,
+      "sampled_rss_bytes": 86032384,
       "reported_tokens": {
         "cache": {
-          "read": 26240,
+          "read": 26752,
           "write": 0
         },
-        "input": 7117,
-        "output": 262,
+        "input": 7228,
+        "output": 237,
         "reasoning": 0
       },
       "reported_usage_complete": false,
@@ -2165,20 +2008,13 @@
       "patch_file": "patches/opencode2-glm-flash-access-rust-files-2.patch",
       "patch_sha256": "706092c6ef8f33a96457731acc5da13ed138922989828f8508d2f2a09752bf43",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 5,
-        "completed_tool_wall_seconds": 7.566,
+        "completed_tool_calls_with_timing": 6,
+        "completed_tool_wall_seconds": 4.559,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-access-rust-fr-2",
@@ -2188,53 +2024,52 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "c2ce2c368d9e5e61a6b3e0fdc8ded8e14c33769784b9c1b8014d77e3b7c34e3d",
-      "total_seconds": 40.41722654202022,
-      "native_seconds": 39.77339845802635,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "915d2b824f1c8c0a1ebf44ced2f5c7d834811b6e6e45d072b53a373a646e0383",
+      "total_seconds": 48.279212708817795,
+      "native_seconds": 47.63995474996045,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.41564583289436996,
+      "verification_seconds": 0.40997579181566834,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85524480,
+      "sampled_rss_bytes": 86409216,
       "reported_tokens": {
         "cache": {
-          "read": 34432,
+          "read": 35840,
           "write": 0
         },
-        "input": 7626,
-        "output": 267,
-        "reasoning": 0
+        "input": 8820,
+        "output": 296,
+        "reasoning": 16
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": [],
+        "commands_observed": 3,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [],
+        "contributing_actions": [
+          "Checked a draft successfully and saved its proof with fr."
+        ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-access-rust-fr-2.patch",
       "patch_sha256": "706092c6ef8f33a96457731acc5da13ed138922989828f8508d2f2a09752bf43",
       "completed_tools": {
         "completed_tool_calls_with_timing": 6,
-        "completed_tool_wall_seconds": 4.64,
+        "completed_tool_wall_seconds": 9.107,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "No fr command observed; the proof was written and built with ordinary tools.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-page-count-fr-2",
@@ -2244,25 +2079,25 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "f29dccfb6ed52291d3f994974aa114ef7f51ebd3bd3f7e8284e17c72b7bc9766",
-      "total_seconds": 150.029926457908,
-      "native_seconds": 149.5723326250445,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "517d638df82497cb346a79bd29cc59234ccde5cfc8b1745e8f93dc235d8271c9",
+      "total_seconds": 150.03923579188995,
+      "native_seconds": 149.57103112502955,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4139260828960687,
+      "verification_seconds": 0.4235376249998808,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86179840,
+      "sampled_rss_bytes": 86114304,
       "reported_tokens": {
         "cache": {
-          "read": 46272,
+          "read": 129408,
           "write": 0
         },
-        "input": 13200,
-        "output": 1291,
-        "reasoning": 2677
+        "input": 17041,
+        "output": 1825,
+        "reasoning": 1701
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -2277,20 +2112,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 23.749,
+        "completed_tool_calls_with_timing": 13,
+        "completed_tool_wall_seconds": 32.324,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after a failed Lean build; no fr command observed.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after library searches and two failed builds; no fr command observed."
     },
     {
       "id": "opencode2-glm-flash-page-count-files-2",
@@ -2300,25 +2128,25 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "da294ab7d6ffc1d3350065d06a3097490fd0b998cdefb502fc93a3f9cf37a914",
-      "total_seconds": 150.026692958083,
-      "native_seconds": 149.59032237506472,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "9e9fc163e1e348f6d16281052a695e704d551aff2619ad2999c4db6f8a3da394",
+      "total_seconds": 150.02086045895703,
+      "native_seconds": 149.57345870812424,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.3983794581145048,
+      "verification_seconds": 0.4049627501517534,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86228992,
+      "sampled_rss_bytes": 85295104,
       "reported_tokens": {
         "cache": {
-          "read": 98496,
+          "read": 20096,
           "write": 0
         },
-        "input": 19104,
-        "output": 2318,
-        "reasoning": 1441
+        "input": 9501,
+        "output": 199,
+        "reasoning": 1272
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -2333,20 +2161,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 11,
-        "completed_tool_wall_seconds": 37.309,
+        "completed_tool_calls_with_timing": 4,
+        "completed_tool_wall_seconds": 18.471,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after attempting the fixed page-count proof.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after reading the model and searching integer-division facts; no completed build observed."
     },
     {
       "id": "opencode2-glm-flash-fits-window-files-2",
@@ -2356,25 +2177,25 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "49f82a1710cf82210fd2990ef5d8050ee8fc216d9a668ea3ad2774660530885b",
-      "total_seconds": 45.77510704193264,
-      "native_seconds": 45.123925167135894,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "bcbd36de9036d88c08f29de80e14be7c42e37bec0f8dcfe7ce92bcbee5db9613",
+      "total_seconds": 40.36006512492895,
+      "native_seconds": 39.68316474999301,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 0,
-      "verification_seconds": 0.40764583414420485,
+      "suspended_seconds": 1.2479722499847412e-07,
+      "verification_seconds": 0.4423563750460744,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85786624,
+      "sampled_rss_bytes": 86228992,
       "reported_tokens": {
         "cache": {
-          "read": 40384,
+          "read": 27520,
           "write": 0
         },
-        "input": 11098,
-        "output": 442,
-        "reasoning": 34
+        "input": 7618,
+        "output": 253,
+        "reasoning": 89
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -2387,22 +2208,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-glm-flash-fits-window-files-2.patch",
-      "patch_sha256": "db16c19e31d99d260c0c2c910ef80489f595986aebe4b2bcd57b708f05f18368",
+      "patch_sha256": "2a249b874d6f2ae7e48449945c24e90109bafc2b8cc99ea99f143e7f7ac0ffa6",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 8.235,
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 5.352,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-glm-flash-fits-window-fr-2",
@@ -2410,59 +2224,54 @@
       "task": "fits-window",
       "setup": "fr",
       "repetition": 2,
-      "native_status": "failed",
+      "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "26da9073a3b7a7eee5bf052e66b2a9ba2428485818eba3c48ff9d030d6504bf5",
-      "total_seconds": 150.02056162501685,
-      "native_seconds": 149.51994725014083,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "f3862f5e0a304e754248c3c29f51ebc45ce5d336ff7ac15b0c21c343753f070f",
+      "total_seconds": 49.17441637488082,
+      "native_seconds": 48.51071883318946,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.45626524998806417,
-      "stop_reason": "wall_seconds",
-      "complete_attempt_deadline_missed": true,
+      "verification_seconds": 0.428343917010352,
+      "stop_reason": null,
+      "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86392832,
+      "sampled_rss_bytes": 85901312,
       "reported_tokens": {
         "cache": {
-          "read": 126528,
+          "read": 44928,
           "write": 0
         },
-        "input": 13593,
-        "output": 1480,
-        "reasoning": 1162
+        "input": 8825,
+        "output": 390,
+        "reasoning": 0
       },
       "reported_usage_complete": false,
-      "client_model_recorded": false,
+      "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 5,
+        "commands_observed": 3,
         "operations_observed": [
-          "spec proof-check"
+          "spec",
+          "spec proof-check",
+          "spec prove"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Used fr to check rejected drafts; diagnostics exposed Boolean comparisons that had not become arithmetic assumptions."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
-      "patch_file": null,
-      "patch_sha256": null,
+      "patch_file": "patches/opencode2-glm-flash-fits-window-fr-2.patch",
+      "patch_sha256": "e2057784d7de3315c5e5b4b235272c115fdc361218ef5d273cb1f405986cac81",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 15,
-        "completed_tool_wall_seconds": 26.184,
+        "completed_tool_calls_with_timing": 7,
+        "completed_tool_wall_seconds": 7.936,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after wrong target guesses, rejected drafts and failed Boolean-to-arithmetic conversions.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-access-rust-fr-2",
@@ -2472,53 +2281,52 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "84963a12667595dae0ef97e8c9ae3d9d928b39092e0fad82061d8bca4e175aa8",
-      "total_seconds": 113.6798962499015,
-      "native_seconds": 112.99993904214352,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "0ac4177586f849140362f8a124855c901f1e8c050b4fb45ba153ad9986a55522",
+      "total_seconds": 64.20176291582175,
+      "native_seconds": 63.539175250101835,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.4430907089263201,
+      "verification_seconds": 0.42363866581581533,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86048768,
+      "sampled_rss_bytes": 86376448,
       "reported_tokens": {
         "cache": {
-          "read": 52992,
+          "read": 55808,
           "write": 0
         },
-        "input": 3502,
-        "output": 640,
-        "reasoning": 56
+        "input": 4297,
+        "output": 824,
+        "reasoning": 62
       },
-      "reported_usage_complete": false,
+      "reported_usage_complete": true,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 0,
-        "operations_observed": [],
+        "commands_observed": 4,
+        "operations_observed": [
+          "spec",
+          "spec proof-check",
+          "spec prove"
+        ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
-        "contributing_actions": [],
+        "contributing_actions": [
+          "Checked a draft successfully and saved its proof with fr."
+        ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-access-rust-fr-2.patch",
-      "patch_sha256": "0a67609992ac62e8f7929805603bfe181d785de5de2a7056e08a49a842603879",
+      "patch_sha256": "e8ce8ad8fc34193ef3097d838efe6c2a9a8f2bcdf43cfdc80693fb795acc2b84",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 8,
-        "completed_tool_wall_seconds": 7.705,
+        "completed_tool_calls_with_timing": 7,
+        "completed_tool_wall_seconds": 8.205,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "No fr command observed; the proof was written and built with ordinary tools.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-access-rust-files-2",
@@ -2528,25 +2336,25 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "709a575955630dfacb7be8e1fbaf5ccfb3c25ab0848373776ea245ffd88082ac",
-      "total_seconds": 66.72610675008036,
-      "native_seconds": 65.93967616604641,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "b7d826d3e9cb77b9281d80c7c78667312ebf3bc35a3c9654b49dad7b87b9149a",
+      "total_seconds": 42.855908582918346,
+      "native_seconds": 42.19744433299638,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 2.922024577856064e-07,
-      "verification_seconds": 0.42379024997353554,
+      "suspended_seconds": 0,
+      "verification_seconds": 0.4269612499047071,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85966848,
+      "sampled_rss_bytes": 86048768,
       "reported_tokens": {
         "cache": {
-          "read": 38144,
+          "read": 31744,
           "write": 0
         },
-        "input": 2622,
-        "output": 530,
-        "reasoning": 11
+        "input": 2443,
+        "output": 482,
+        "reasoning": 163
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -2559,22 +2367,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-access-rust-files-2.patch",
-      "patch_sha256": "eacd280cbf163ae967eb7e6ab19325a2616d55498b59db12177fc790419c4cba",
+      "patch_sha256": "58874c316d4b36d9c71f27a7ee0673c404b59c0916519c9e2d2d2c3efb689ae8",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 6,
-        "completed_tool_wall_seconds": 7.249,
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 4.134,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-page-count-files-2",
@@ -2584,25 +2385,25 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "a752f6ff2d50f6262f7c38464004d4a6b894bf6691fcca7e275f53050cfc0c05",
-      "total_seconds": 150.05478845909238,
-      "native_seconds": 149.624565416947,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "5734a484ad221ddc3afd6a1647f9dd0d73fe9494a90b87946d9203d70a5cd404",
+      "total_seconds": 150.04713445808738,
+      "native_seconds": 149.5808144172188,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.38846787507645786,
+      "verification_seconds": 0.4254627500195056,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86261760,
+      "sampled_rss_bytes": 85884928,
       "reported_tokens": {
         "cache": {
-          "read": 47360,
+          "read": 66816,
           "write": 0
         },
-        "input": 8528,
-        "output": 971,
-        "reasoning": 4224
+        "input": 11039,
+        "output": 973,
+        "reasoning": 3256
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
@@ -2617,20 +2418,13 @@
       "patch_file": null,
       "patch_sha256": null,
       "completed_tools": {
-        "completed_tool_calls_with_timing": 6,
-        "completed_tool_wall_seconds": 4.79,
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 6.688,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after attempting the fixed page-count proof.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after library searches; no completed build observed."
     },
     {
       "id": "opencode2-kimi-k3-page-count-fr-2",
@@ -2640,38 +2434,38 @@
       "repetition": 2,
       "native_status": "failed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "c89e2fc45db446eaf257477399e0a261864ca56d95c535bf542b807d433d7ab9",
-      "total_seconds": 150.04294683411717,
-      "native_seconds": 149.56056966702454,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "c51585880e2c01a09e36ae763e6c0a5765c4bb5b22e104d2e4326c4e5005d3a2",
+      "total_seconds": 150.06073379213922,
+      "native_seconds": 149.60431595798582,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.43809279217384756,
+      "verification_seconds": 0.41027862508781254,
       "stop_reason": "wall_seconds",
       "complete_attempt_deadline_missed": true,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86884352,
+      "sampled_rss_bytes": 86081536,
       "reported_tokens": {
         "cache": {
-          "read": 57600,
+          "read": 54016,
           "write": 0
         },
-        "input": 11835,
-        "output": 1341,
-        "reasoning": 4005
+        "input": 10318,
+        "output": 1299,
+        "reasoning": 3318
       },
       "reported_usage_complete": false,
       "client_model_recorded": false,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 3,
+        "commands_observed": 4,
         "operations_observed": [
           "spec",
           "spec proof-check"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Inspected the claim parts and used fr to check a draft, which Lean rejected."
+          "Inspected the claim and checked two drafts; Lean rejected both."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
@@ -2679,19 +2473,12 @@
       "patch_sha256": null,
       "completed_tools": {
         "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 12.855,
+        "completed_tool_wall_seconds": 4.171,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "failed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": "Timed out without a patch after a rejected draft check.",
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": false,
-        "check_stage": "delivery",
-        "undo_exact": false,
-        "redo_exact": false
-      }
+      "failure_summary": "Timed out without a patch after reading the claim and two rejected draft checks."
     },
     {
       "id": "opencode2-kimi-k3-fits-window-fr-2",
@@ -2701,57 +2488,52 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "dcc06282e516e5cdfbca3b47d533b94ad656e71adb8a80c9235efd4033a39608",
-      "total_seconds": 48.68077933299355,
-      "native_seconds": 48.03391820797697,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "f26147517fa4cc88305c1d5d2575b336dcecbbb637b1d21369fef99167a0aad7",
+      "total_seconds": 81.86981837498024,
+      "native_seconds": 81.20152633404359,
       "timing_clock": "includes-system-sleep",
       "suspended_seconds": 0,
-      "verification_seconds": 0.40248024999164045,
+      "verification_seconds": 0.42689062491990626,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 85770240,
+      "sampled_rss_bytes": 86376448,
       "reported_tokens": {
         "cache": {
-          "read": 40704,
+          "read": 60928,
           "write": 0
         },
-        "input": 3775,
-        "output": 581,
-        "reasoning": 482
+        "input": 5832,
+        "output": 712,
+        "reasoning": 106
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
       "provider_response_model_observed": false,
       "fr_use": {
-        "commands_observed": 1,
+        "commands_observed": 5,
         "operations_observed": [
-          "spec"
+          "spec",
+          "spec proof-check",
+          "spec prove"
         ],
         "method": "Observed shell fr invocations, including shell -c wrappers and newline-separated commands. Commands constructed inside another program may be unobserved. A count is not a benefit.",
         "contributing_actions": [
-          "Used fr to verify the Lean package containing the delivered proof."
+          "Checked a draft successfully and saved its proof with fr."
         ],
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-fits-window-fr-2.patch",
-      "patch_sha256": "51d1a9388bee57c0674268f5e5ea4138aff0bd39fa0bd1eb598a848ccd88bf41",
+      "patch_sha256": "12d8ff9bff94caa1bc2e94acd35a2dccfc4bf0e3d89b790632f186a6701cc09b",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 7,
-        "completed_tool_wall_seconds": 6.135,
+        "completed_tool_calls_with_timing": 8,
+        "completed_tool_wall_seconds": 7.924,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     },
     {
       "id": "opencode2-kimi-k3-fits-window-files-2",
@@ -2761,25 +2543,25 @@
       "repetition": 2,
       "native_status": "completed",
       "actual_cost": null,
-      "collection_receipt": "c77f701bc45a5a33c61a71edbcec5a10e83b329589279497b0d56e9212d798e9",
-      "record_sha256": "7da9845f9b46ba4d84c55117e9f72442895e73029fe9028e72b5ff91e1ea0259",
-      "total_seconds": 112.0113780000247,
-      "native_seconds": 111.33839641604573,
+      "collection_receipt": "4d6e36c7d0aefd4a3c3ad6019f54bae3d4061f9e9f5b810b430e5b48240a2736",
+      "record_sha256": "185d71d278f817a0157aa3d72a35b093f2d1acf416736086d9d1d680b5a9f485",
+      "total_seconds": 79.5536286670249,
+      "native_seconds": 78.89533454109915,
       "timing_clock": "includes-system-sleep",
-      "suspended_seconds": 4.0978193283081055e-08,
-      "verification_seconds": 0.43452524999156594,
+      "suspended_seconds": 0,
+      "verification_seconds": 0.4189680421259254,
       "stop_reason": null,
       "complete_attempt_deadline_missed": false,
       "checking_input_changes": [],
-      "sampled_rss_bytes": 86245376,
+      "sampled_rss_bytes": 85753856,
       "reported_tokens": {
         "cache": {
-          "read": 73216,
+          "read": 32768,
           "write": 0
         },
-        "input": 5236,
-        "output": 1475,
-        "reasoning": 316
+        "input": 3316,
+        "output": 454,
+        "reasoning": 396
       },
       "reported_usage_complete": false,
       "client_model_recorded": true,
@@ -2792,22 +2574,15 @@
         "contribution_review": "Recorded review of observed commands, results and submitted patch; command counts alone are not credited."
       },
       "patch_file": "patches/opencode2-kimi-k3-fits-window-files-2.patch",
-      "patch_sha256": "665a1104f38daace557e26418f4bf745eaf4fe0eaad78d06d6253e4d0a1ae24c",
+      "patch_sha256": "a8d384ed9a9578fafcb50f5359c25915605d449d102ae2ee97278af6c0bb35ae",
       "completed_tools": {
-        "completed_tool_calls_with_timing": 10,
-        "completed_tool_wall_seconds": 8.796,
+        "completed_tool_calls_with_timing": 5,
+        "completed_tool_wall_seconds": 4.306,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": "passed",
+      "independent_outcome": null,
       "collection_error_recorded": false,
-      "failure_summary": null,
-      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41050239510",
-      "independent_check": {
-        "patch_accepted": true,
-        "check_stage": "complete",
-        "undo_exact": true,
-        "redo_exact": true
-      }
+      "failure_summary": null
     }
   ],
   "collection_notes": {

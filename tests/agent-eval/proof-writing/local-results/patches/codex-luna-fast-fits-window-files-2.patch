@@ -1,23 +1,13 @@
 diff --git a/specs/FrSpecs/SrcWindowRsFitsWindow.lean b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
-index a5e6f92..f573da4 100644
+index a5e6f92..2523502 100644
 --- a/specs/FrSpecs/SrcWindowRsFitsWindow.lean
 +++ b/specs/FrSpecs/SrcWindowRsFitsWindow.lean
-@@ -11,8 +11,16 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
- -- fr:property agent unproved
+@@ -12,7 +12,7 @@ def fits_windowModel (offset : Nat) (count : Nat) (total : Nat) : Bool :=
  theorem fits_windowModel_fits_exactly (offset : Nat) (count : Nat) (total : Nat) : (((fits_windowModel (offset) (count) (total)) = true) → ((((offset) + (count))) ≤ (total))) ∧ (((((offset) + (count))) ≤ (total)) → ((fits_windowModel (offset) (count) (total)) = true)) := by
    -- fr:proof-begin fits_windowModel_fits_exactly
--  -- fr:debt fits_windowModel_fits_exactly
+   -- fr:debt fits_windowModel_fits_exactly
 -  sorry
-+  constructor
-+  · intro h
-+    have h' : offset ≤ total ∧ count ≤ total - offset := by
-+      simpa [fits_windowModel] using h
-+    simpa [Nat.add_comm] using (Nat.le_sub_iff_add_le h'.1).1 h'.2
-+  · intro h
-+    have ho : offset ≤ total := Nat.le_trans (Nat.le_add_right offset count) h
-+    have hc : count ≤ total - offset :=
-+      (Nat.le_sub_iff_add_le ho).2 (by simpa [Nat.add_comm] using h)
-+    simp [fits_windowModel, ho, hc]
++  constructor <;> simp [fits_windowModel] <;> omega
    -- fr:proof-end fits_windowModel_fits_exactly
  -- fr:generated-end formal-kernel
  
