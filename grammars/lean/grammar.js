@@ -945,9 +945,14 @@ module.exports = grammar({
       choice(
         seq(
           choice('have', 'suffices'),
-          optional(seq(
+          optional(choice(
+            // Lean tries a local function declaration before a pattern. A
+            // constructor pattern must not consume its first typed parameter.
+            prec(PREC.app + 1, seq(
+              field('name', choice($.identifier, $.hole)),
+              field('parameters', $.parameters),
+            )),
             field('name', choice($._pattern, $.rcases_tuple_pattern)),
-            optional(field('parameters', $.parameters)),
           )),
         ),
         seq(
