@@ -1,0 +1,1093 @@
+{
+  "before_calculator_source": "fe9db98cb1d605efa5aba7f7401e7696575db49f",
+  "after_calculator_sha256": "c7d1fd4afd5096c8b5cf5b1b4017b4f2091efb5d8f81a29a4ca509d673331238",
+  "scope": "Local guarded comparison of twelve previously independently checked public reports. Original source reports and verdicts unchanged. This checks the report calculator, not native transcript collection or provider accounting.",
+  "reports": [
+    {
+      "summary": "tests/agent-eval/selected-agents/local-results/summary.json",
+      "sha256": "9448bf6914b235db7eca9374a06d842b3a611fbd2ef1938d0a256edc224767fa",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "boltons-rename",
+        "unicode-dice",
+        "access-proof"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 31.731959118391387,
+          "total_seconds": 190.39175471034832,
+          "seconds_per_success": 31.731959118391387
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 39.14123207641145,
+          "total_seconds": 234.84739245846868,
+          "seconds_per_success": 39.14123207641145
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 120.6747827079768,
+          "total_seconds": 814.8157777066808,
+          "seconds_per_success": 271.60525923556025
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 1,
+          "attempted": 6,
+          "successful_mean_seconds": 113.75501037505455,
+          "total_seconds": 868.3535628758837,
+          "seconds_per_success": 868.3535628758837
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 92.32681154168677,
+          "total_seconds": 553.9608692501206,
+          "seconds_per_success": 92.32681154168677
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 5,
+          "attempted": 6,
+          "successful_mean_seconds": 97.84899844173341,
+          "total_seconds": 640.0552032927517,
+          "seconds_per_success": 128.01104065855034
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 6,
+          "ordinary_mean_seconds": 31.731959118391387,
+          "fr_mean_seconds": 39.14123207641145,
+          "fr_change_percent": 23.349560392335658
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 1,
+          "ordinary_mean_seconds": 111.3239408750087,
+          "fr_mean_seconds": 113.75501037505455,
+          "fr_change_percent": 2.183779590389623
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 5,
+          "ordinary_mean_seconds": 83.43072100002318,
+          "fr_mean_seconds": 97.84899844173341,
+          "fr_change_percent": 17.281736594013406
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/project-edits/first-results/summary.json",
+      "sha256": "b60a077cd1c5fcfae83d73b1d27d643fda2831147ec069c77bccea0ded7e19cf",
+      "attempts": 48,
+      "statistics_unchanged": true,
+      "tasks": [
+        "rust-parameter",
+        "typescript-alias",
+        "regex-escape-len",
+        "python-invoice"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 29.889096010563662,
+          "total_seconds": 239.1127680845093,
+          "seconds_per_success": 29.889096010563662
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 39.84715166175738,
+          "total_seconds": 318.77721329405904,
+          "seconds_per_success": 39.84715166175738
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 5,
+          "attempted": 8,
+          "successful_mean_seconds": 84.87719735819846,
+          "total_seconds": 875.3839535820298,
+          "seconds_per_success": 175.07679071640595
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 0,
+          "attempted": 8,
+          "successful_mean_seconds": null,
+          "total_seconds": 1201.2882607930806,
+          "seconds_per_success": null
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 55.56322815269232,
+          "total_seconds": 634.4196819579229,
+          "seconds_per_success": 105.73661365965381
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 96.64111161096177,
+          "total_seconds": 880.8530576655176,
+          "seconds_per_success": 146.80884294425292
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 8,
+          "ordinary_mean_seconds": 29.889096010563662,
+          "fr_mean_seconds": 39.84715166175738,
+          "fr_change_percent": 33.31668394278052
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 0,
+          "ordinary_mean_seconds": null,
+          "fr_mean_seconds": null,
+          "fr_change_percent": null
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 6,
+          "ordinary_mean_seconds": 55.56322815269232,
+          "fr_mean_seconds": 96.64111161096177,
+          "fr_change_percent": 73.92997999573396
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/project-edits/guided-results/summary.json",
+      "sha256": "1836aeb2678c4351b85fdcce485e903144f26fd8c0d5fc48ce7ceddb96027df2",
+      "attempts": 48,
+      "statistics_unchanged": true,
+      "tasks": [
+        "rust-parameter",
+        "typescript-alias",
+        "regex-escape-len",
+        "python-invoice"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 26.08660198445432,
+          "total_seconds": 208.69281587563455,
+          "seconds_per_success": 26.08660198445432
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 32.9185787710303,
+          "total_seconds": 263.3486301682424,
+          "seconds_per_success": 32.9185787710303
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 66.52261393086519,
+          "total_seconds": 700.1788259590976,
+          "seconds_per_success": 116.69647099318293
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 110.92798247890703,
+          "total_seconds": 966.4926301653031,
+          "seconds_per_success": 161.0821050275505
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 73.39834786839008,
+          "total_seconds": 580.4491903772578,
+          "seconds_per_success": 96.74153172954296
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 90.47262030533359,
+          "total_seconds": 814.8666679579765,
+          "seconds_per_success": 135.8111113263294
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 8,
+          "ordinary_mean_seconds": 26.08660198445432,
+          "fr_mean_seconds": 32.9185787710303,
+          "fr_change_percent": 26.189600280815917
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 6,
+          "ordinary_mean_seconds": 66.52261393086519,
+          "fr_mean_seconds": 110.92798247890703,
+          "fr_change_percent": 66.75229057323409
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 6,
+          "ordinary_mean_seconds": 73.39834786839008,
+          "fr_mean_seconds": 90.47262030533359,
+          "fr_change_percent": 23.262475154834892
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/project-edits/clocked-results/summary.json",
+      "sha256": "9e03f807c9ad71c98ec43616709557a215f2db6a98b0f9c847384e789782bb0e",
+      "attempts": 48,
+      "statistics_unchanged": true,
+      "tasks": [
+        "rust-parameter",
+        "typescript-alias",
+        "regex-escape-len",
+        "python-invoice"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 32.90475425537443,
+          "total_seconds": 263.2380340429954,
+          "seconds_per_success": 32.90475425537443
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 53.355467749992386,
+          "total_seconds": 426.8437419999391,
+          "seconds_per_success": 53.355467749992386
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 7,
+          "attempted": 8,
+          "successful_mean_seconds": 65.80670779175125,
+          "total_seconds": 597.6739738751203,
+          "seconds_per_success": 85.38199626787433
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 70.97309691699532,
+          "total_seconds": 726.9371492948849,
+          "seconds_per_success": 121.15619154914748
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 38.503249347481564,
+          "total_seconds": 494.23525100084953,
+          "seconds_per_success": 82.37254183347493
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 73.66754943070312,
+          "total_seconds": 728.6064168342855,
+          "seconds_per_success": 121.43440280571424
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 8,
+          "ordinary_mean_seconds": 32.90475425537443,
+          "fr_mean_seconds": 53.355467749992386,
+          "fr_change_percent": 62.1512421454346
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 6,
+          "ordinary_mean_seconds": 53.902588222369864,
+          "fr_mean_seconds": 70.97309691699532,
+          "fr_change_percent": 31.669181866003804
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 6,
+          "ordinary_mean_seconds": 38.503249347481564,
+          "fr_mean_seconds": 73.66754943070312,
+          "fr_change_percent": 91.32813640187382
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/project-edits/local-results/summary.json",
+      "sha256": "f91dafe1d12cc6cfdf8d994c1d4f3d8653e5c4afe8d0ef36ed9e5de363ed0e7b",
+      "attempts": 48,
+      "statistics_unchanged": true,
+      "tasks": [
+        "rust-parameter",
+        "typescript-alias",
+        "regex-escape-len",
+        "python-invoice"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 29.35154561488889,
+          "total_seconds": 234.81236491911113,
+          "seconds_per_success": 29.35154561488889
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 39.02297814580379,
+          "total_seconds": 312.1838251664303,
+          "seconds_per_success": 39.02297814580379
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 7,
+          "attempted": 8,
+          "successful_mean_seconds": 55.32925489285429,
+          "total_seconds": 537.7787047079764,
+          "seconds_per_success": 76.82552924399663
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 80.87975720843922,
+          "total_seconds": 785.8448779997416,
+          "seconds_per_success": 130.97414633329026
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 8,
+          "attempted": 8,
+          "successful_mean_seconds": 73.31387179697049,
+          "total_seconds": 586.5109743757639,
+          "seconds_per_success": 73.31387179697049
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 8,
+          "successful_mean_seconds": 81.38109415959723,
+          "total_seconds": 788.8218883743975,
+          "seconds_per_success": 131.47031472906625
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 8,
+          "ordinary_mean_seconds": 29.35154561488889,
+          "fr_mean_seconds": 39.02297814580379,
+          "fr_change_percent": 32.95033473810987
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 5,
+          "ordinary_mean_seconds": 50.709167475020514,
+          "fr_mean_seconds": 75.82950511677191,
+          "fr_change_percent": 49.538059669636155
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 6,
+          "ordinary_mean_seconds": 69.7037484863152,
+          "fr_mean_seconds": 81.38109415959723,
+          "fr_change_percent": 16.752823093258172
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/first-results/summary.json",
+      "sha256": "13ca40a754744e71b386747722cc5a34a9e47473d80f27d7010b42b18c9fb161",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 63.18263124298149,
+          "total_seconds": 379.09578745788895,
+          "seconds_per_success": 63.18263124298149
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 46.42432008346077,
+          "total_seconds": 456.86915704305284,
+          "seconds_per_success": 114.21728926076321
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 78.16963504173327,
+          "total_seconds": 612.7482874169946,
+          "seconds_per_success": 153.18707185424864
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 88.79826524981763,
+          "total_seconds": 655.2965192494448,
+          "seconds_per_success": 163.8241298123612
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 60.65058013552334,
+          "total_seconds": 542.6826319580432,
+          "seconds_per_success": 135.6706579895108
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 78.91525044775335,
+          "total_seconds": 615.7331923330203,
+          "seconds_per_success": 153.93329808325507
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 4,
+          "ordinary_mean_seconds": 33.060611437482294,
+          "fr_mean_seconds": 46.42432008346077,
+          "fr_change_percent": 40.42184359248554
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 4,
+          "ordinary_mean_seconds": 78.16963504173327,
+          "fr_mean_seconds": 88.79826524981763,
+          "fr_change_percent": 13.596878381752632
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 60.65058013552334,
+          "fr_mean_seconds": 78.91525044775335,
+          "fr_change_percent": 30.11458467737278
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/second-results/summary.json",
+      "sha256": "e12ff18e148bcd4e9d551869d5e4327c2d96da1729235d83c3e52fb01e6483bb",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 56.97006786121832,
+          "total_seconds": 341.8204071673099,
+          "seconds_per_success": 56.97006786121832
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 5,
+          "attempted": 6,
+          "successful_mean_seconds": 48.75392156676389,
+          "total_seconds": 393.80427049985155,
+          "seconds_per_success": 78.76085409997032
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 61.67549609404523,
+          "total_seconds": 546.790471667191,
+          "seconds_per_success": 136.69761791679775
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 2,
+          "attempted": 6,
+          "successful_mean_seconds": 77.8392181461677,
+          "total_seconds": 755.8126948343124,
+          "seconds_per_success": 377.9063474171562
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 60.98798898991663,
+          "total_seconds": 544.0516653754748,
+          "seconds_per_success": 136.0129163438687
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 109.48777258314658,
+          "total_seconds": 738.0644862495828,
+          "seconds_per_success": 184.5161215623957
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 5,
+          "ordinary_mean_seconds": 49.022226500231774,
+          "fr_mean_seconds": 48.75392156676389,
+          "fr_change_percent": -0.5473128264923083
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 2,
+          "ordinary_mean_seconds": 48.75523302156944,
+          "fr_mean_seconds": 77.8392181461677,
+          "fr_change_percent": 59.653053266572286
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 60.98798898991663,
+          "fr_mean_seconds": 109.48777258314658,
+          "fr_change_percent": 79.52350027683089
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/clocked-results/summary.json",
+      "sha256": "4eb2ad752ad8aedb3647cf8a4f67a2d2101fe8e379a424be8ad00dd7b42a5519",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 53.53399346508862,
+          "total_seconds": 321.2039607905317,
+          "seconds_per_success": 53.53399346508862
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 5,
+          "attempted": 6,
+          "successful_mean_seconds": 50.41957297497429,
+          "total_seconds": 402.1257932088338,
+          "seconds_per_success": 80.42515864176676
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 59.98406910424819,
+          "total_seconds": 540.024626417784,
+          "seconds_per_success": 135.006156604446
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 95.128564069358,
+          "total_seconds": 735.5144404580351,
+          "seconds_per_success": 245.17148015267836
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 68.23419468058273,
+          "total_seconds": 654.8372140417341,
+          "seconds_per_success": 218.2790713472447
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 86.38816274970304,
+          "total_seconds": 645.5960967489518,
+          "seconds_per_success": 161.39902418723796
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 5,
+          "ordinary_mean_seconds": 48.49795864154585,
+          "fr_mean_seconds": 50.41957297497429,
+          "fr_change_percent": 3.9622581800428374
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 3,
+          "ordinary_mean_seconds": 59.1322514306133,
+          "fr_mean_seconds": 95.128564069358,
+          "fr_change_percent": 60.874246739925574
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 3,
+          "ordinary_mean_seconds": 68.23419468058273,
+          "fr_mean_seconds": 74.26092868026656,
+          "fr_change_percent": 8.832424897657432
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/introduction-results/summary.json",
+      "sha256": "21ed4519f06872ac6ef24bdf04be82a0048b17626cccf751a5a789bd7d434ab1",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 54.76016606929867,
+          "total_seconds": 328.56099641579203,
+          "seconds_per_success": 54.76016606929867
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 5,
+          "attempted": 6,
+          "successful_mean_seconds": 51.171383641613644,
+          "total_seconds": 399.98811408295296,
+          "seconds_per_success": 79.99762281659059
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 63.088075680735834,
+          "total_seconds": 639.3957048330922,
+          "seconds_per_success": 213.1319016110307
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 71.94548346847296,
+          "total_seconds": 587.8740147897042,
+          "seconds_per_success": 146.96850369742606
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 64.42369013547432,
+          "total_seconds": 557.786961917067,
+          "seconds_per_success": 139.44674047926674
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 64.33689778123517,
+          "total_seconds": 557.4585524997674,
+          "seconds_per_success": 139.36463812494185
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 5,
+          "ordinary_mean_seconds": 41.729624883132054,
+          "fr_mean_seconds": 51.171383641613644,
+          "fr_change_percent": 22.62603314773179
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 3,
+          "ordinary_mean_seconds": 63.088075680735834,
+          "fr_mean_seconds": 69.0069246943264,
+          "fr_change_percent": 9.381882312504748
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 64.42369013547432,
+          "fr_mean_seconds": 64.33689778123517,
+          "fr_change_percent": -0.13472117796518376
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/low-reasoning-results/summary.json",
+      "sha256": "19e0955092de475498368e3ebdafe582256619a2f11d28c7b2f961f7862f1111",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 43.68519545835443,
+          "total_seconds": 262.11117275012657,
+          "seconds_per_success": 43.68519545835443
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 5,
+          "attempted": 6,
+          "successful_mean_seconds": 36.45764979142696,
+          "total_seconds": 325.14887087326497,
+          "seconds_per_success": 65.029774174653
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 53.51573467667913,
+          "total_seconds": 514.1138498745859,
+          "seconds_per_success": 128.52846246864647
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 49.57198966667056,
+          "total_seconds": 503.8825298740994,
+          "seconds_per_success": 167.96084329136647
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 53.38682235399028,
+          "total_seconds": 513.6014952079859,
+          "seconds_per_success": 128.40037380199647
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 56.161459614289925,
+          "total_seconds": 524.7601585823577,
+          "seconds_per_success": 131.19003964558942
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 5,
+          "ordinary_mean_seconds": 34.672773983422665,
+          "fr_mean_seconds": 36.45764979142696,
+          "fr_change_percent": 5.147773318793742
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 3,
+          "ordinary_mean_seconds": 54.26106622194251,
+          "fr_mean_seconds": 49.57198966667056,
+          "fr_change_percent": -8.641696305952312
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 53.38682235399028,
+          "fr_mean_seconds": 56.161459614289925,
+          "fr_change_percent": 5.19723245916744
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/claim-view-results/summary.json",
+      "sha256": "590a33a37fefb37410a5f81dc7c3762a3077761214362a7a037de933c8f2f622",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 40.12537292348376,
+          "total_seconds": 240.75223754090257,
+          "seconds_per_success": 40.12537292348376
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 53.14664005569648,
+          "total_seconds": 318.8798403341789,
+          "seconds_per_success": 53.14664005569648
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 43.207942770735826,
+          "total_seconds": 472.8744102080818,
+          "seconds_per_success": 118.21860255202046
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 3,
+          "attempted": 6,
+          "successful_mean_seconds": 42.05606679207025,
+          "total_seconds": 576.2616282922681,
+          "seconds_per_success": 192.08720943075605
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 65.69634845852852,
+          "total_seconds": 562.9034254180733,
+          "seconds_per_success": 140.72585635451833
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 71.34316470823251,
+          "total_seconds": 585.459450500086,
+          "seconds_per_success": 146.3648626250215
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 6,
+          "ordinary_mean_seconds": 40.12537292348376,
+          "fr_mean_seconds": 53.14664005569648,
+          "fr_change_percent": 32.45145448752177
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 3,
+          "ordinary_mean_seconds": 42.35222134700356,
+          "fr_mean_seconds": 42.05606679207025,
+          "fr_change_percent": -0.6992656949604431
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 65.69634845852852,
+          "fr_mean_seconds": 71.34316470823251,
+          "fr_change_percent": 8.595327414991106
+        }
+      ]
+    },
+    {
+      "summary": "tests/agent-eval/proof-writing/direct-proof-results/summary.json",
+      "sha256": "a89f1a9b6eae979432d0108ad98c49e944fb553cdbaaf3aec53ce503e223d0d8",
+      "attempts": 36,
+      "statistics_unchanged": true,
+      "tasks": [
+        "access-rust",
+        "page-count",
+        "fits-window"
+      ],
+      "groups": [
+        {
+          "profile": "codex-luna-fast",
+          "setup": "files",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 45.62160651381904,
+          "total_seconds": 273.7296390829142,
+          "seconds_per_success": 45.62160651381904
+        },
+        {
+          "profile": "codex-luna-fast",
+          "setup": "fr",
+          "accepted": 6,
+          "attempted": 6,
+          "successful_mean_seconds": 45.14359939606705,
+          "total_seconds": 270.8615963764023,
+          "seconds_per_success": 45.14359939606705
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 42.2598521457403,
+          "total_seconds": 469.1191161668394,
+          "seconds_per_success": 117.27977904170984
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 60.759300708421506,
+          "total_seconds": 543.0994577927049,
+          "seconds_per_success": 135.77486444817623
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "files",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 55.069847083534114,
+          "total_seconds": 520.3576269170735,
+          "seconds_per_success": 130.08940672926838
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "setup": "fr",
+          "accepted": 4,
+          "attempted": 6,
+          "successful_mean_seconds": 70.58204218721949,
+          "total_seconds": 582.4227143740281,
+          "seconds_per_success": 145.60567859350704
+        }
+      ],
+      "matched": [
+        {
+          "profile": "codex-luna-fast",
+          "pairs": 6,
+          "ordinary_mean_seconds": 45.62160651381904,
+          "fr_mean_seconds": 45.14359939606705,
+          "fr_change_percent": -1.0477647638453829
+        },
+        {
+          "profile": "opencode2-glm-flash",
+          "pairs": 4,
+          "ordinary_mean_seconds": 42.2598521457403,
+          "fr_mean_seconds": 60.759300708421506,
+          "fr_change_percent": 43.775469206287596
+        },
+        {
+          "profile": "opencode2-kimi-k3",
+          "pairs": 4,
+          "ordinary_mean_seconds": 55.069847083534114,
+          "fr_mean_seconds": 70.58204218721949,
+          "fr_change_percent": 28.168218953205553
+        }
+      ]
+    }
+  ],
+  "original_reports_modified": false,
+  "statistics_unchanged": true
+}

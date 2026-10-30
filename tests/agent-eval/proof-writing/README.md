@@ -14,8 +14,12 @@ All three agents used actual fr checks and writes in access and range submission
 GLM and Kimi delivered no page-count patch in either setup, so M3 remains open.
 The [command and timing review](behavior-review.md) distinguishes searching, checking a draft and delivering a proof.
 None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
-The next root skill links it directly and starts by checking a small unfinished draft.
-New parser and warning-reporting repairs require a native rebuild and hosted checks before another comparison.
+The updated root skill links it directly and starts by checking a small unfinished draft.
+Its effect on live proofs remains unmeasured.
+The next full comparison is paused under the [improvement method](../../../docs/agent-improvement.md).
+First check the evaluator and prepare a small diagnostic that separates finding feedback from using it to repair a proof.
+Earlier feedback alone cannot establish better final results.
+Native and hosted regression checks can continue while new agent calls stay paused.
 
 The 150-second complete-attempt limit stayed unchanged. No recorded slot was retried.
 Keep all 335 outcomes, including the [299 earlier outcomes](#earlier-attempts).

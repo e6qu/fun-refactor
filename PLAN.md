@@ -49,44 +49,37 @@ M1 and M2 now have their complete comparisons.
 PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
 Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
 The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
-Before the latest model calls, the tool passed [all 29 proof-preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032806456)
-and [all 17 deep-audit jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032815050), plus the existing M1 and M2 checks.
-These include ten language/numeric examples, actual client controls and rejected-patch checks.
-The fresh measurements and eight report updates also passed under their original deadlines.
-
 The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
 28 submitted a patch and eight timed out without one. [Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970)
 accepted all 28 patches. All three agents checked and saved accepted access and range proofs with fr.
 GLM and Kimi submitted no page-count proof in either setup.
 
-**M3 remains open.** Help GLM and Kimi finish the fixed page-count proof with a useful fr step within 150 seconds.
-Keep complete comparisons for every task and agent.
+M3 remains open. New agent calls stay paused while we improve the experiment process.
+Follow the [improvement method](docs/agent-improvement.md): observe, explain, test a prediction, decide and review the method itself.
+GLM and Kimi each completed four of six fr-available attempts in the first and latest complete comparisons.
+Neither delivered a page-count proof in fourteen fr-available attempts across seven complete comparisons.
+Using fr more consistently has not established a sustained rise in total success.
 For example, eleven items at five per page need three pages; valid inputs must never produce more pages than items.
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates searches, actual checks and delivered patches.
-Kimi reached its only fr page-count check at 136 seconds. None of the four OpenCode2 fr page-count attempts opened the arithmetic lesson.
 
-Fr rejected valid local Lean lemmas with parameters. It also hid draft warnings until package verification failed.
-The syntax reader now passes its fixture checks. The native gate must pass before another comparison.
+The next tasks stay inside this milestone PR:
 
-The next work stays inside this milestone PR:
+1. Validate the evaluator with deliberately late successes, stopped attempts and invalid timing values.
+   Preserve the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts.
+   Their original statistics stay unchanged. Finish hosted checks of the native repairs and dependency controls.
+2. Prepare the [eight-attempt diagnostic](docs/agent-improvement.md#next-m3-diagnostic) before any new model call.
+   Use an unrelated small division claim and a draft with a wrong argument type.
+   Compare repairing it with and without the actual initial diagnostic, keeping the task, model, fr and instructions fixed.
+   Check scheduling, balanced order, complete timing and independent grading before freezing these inputs.
+3. Run that diagnostic once, retain every outcome and apply its stated decision rule.
+   Correct completed repairs decide whether to inspect feedback exposure, diagnostic comprehension or full-proof construction next.
+   Earlier feedback alone cannot count as a better result. A mixed result remains inconclusive.
+4. Test the supported change on another example, then resume the complete comparison after relevant CI passes.
+   Keep the same models, claims, two repetitions and 150-second benchmark.
+   Independently grade submissions and preserve every failure alongside the 335 existing M3 outcomes.
 
-1. Validate the local-lemma parser and draft-warning repairs on GitHub, rebuild the native tool and refresh affected reports.
-   A clean proof must remain checkable while another theorem is unfinished.
-2. Qualify the smaller root skill, direct arithmetic link and unfinished-draft example.
-   The arithmetic lesson now demonstrates Lean's search for a specific missing fact; all four examples compile.
-   Then freeze a complete comparison with the same models, claims, two repetitions and 150-second limit.
-   Measure an early useful draft check and the delivered result. Agents write each task's proof themselves.
-3. Independently grade the new submissions and retain every failure alongside the 335 recorded outcomes.
-   Never rerun a closed slot or combine selected winners into a fictional complete comparison.
-
-The preceding [claim-view comparison](tests/agent-eval/proof-writing/claim-view-results/README.md) keeps its 27 accepted proofs
-and nine timeouts unchanged. Its CI collector originally timed out expanding the checkout; the repaired collector
-finished in 22 seconds with the same verdicts and five-minute deadline.
-
-The previous [low-setting comparison](tests/agent-eval/proof-writing/low-reasoning-results/README.md)
-keeps its 26 accepted attempts, eight timeouts, deleted check file and rejected proof unchanged.
-Its sleep-affected timing remains disclosed there. The [high-setting comparison](tests/agent-eval/proof-writing/introduction-results/README.md)
-and all earlier packets also retain their original bytes.
+Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
+Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.
 
 ### M1. Run the selected agents on three complete tasks
 

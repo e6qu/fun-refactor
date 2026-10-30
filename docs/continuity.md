@@ -9,65 +9,41 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 
 ## Current milestone
 
-M1's [36-attempt report](../tests/agent-eval/selected-agents/local-results/README.md) retains the Boltons rename,
-Unicode repair and Rust access-rule proof. M2's [48-attempt report](../tests/agent-eval/project-edits/local-results/README.md)
-retains 43 accepted attempts and five timeouts; all 48 submitted patches passed.
-Both milestones were merged. Their original reports and failures remain intact.
+Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
+M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-Finish M3 on `milestone/complete-proof-authoring`, including the merged release update.
-The [task guide](../tests/agent-eval/proof-writing/README.md) owns the exact claims and limits.
-Keep the complete milestone in one PR. M3 remains in progress.
+**New agent calls and automatic report publishers are paused.**
+Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
+Keep local continuation controllers stopped. Do not restart an old full-comparison plan.
+Native and hosted regression checks can continue.
 
-The latest comparison ran 36 local attempts with the requested native Codex and OpenCode2 releases.
-Luna kept its high/fast selection; GLM and Kimi kept explicit low reasoning.
-All 29 preparation jobs, the deep audit and the unchanged M1/M2 checks passed before the first model call.
-The fresh measurement collections and all eight report publishers also passed.
+The latest complete M3 comparison has 28 accepted patches and eight page-count timeouts.
+Both GLM and Kimi still lack accepted page-count proofs.
+Each finished four of six fr-available attempts in the first and latest complete comparisons.
+The [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) distinguishes changed tool use from unchanged total success.
 
-The latest complete comparison adds explicit checking commands and an arithmetic lesson.
-It retains 28 submitted patches and eight page-count timeouts without patches.
-All three agents used actual fr checks and writes in their access and range submissions.
-[Independent grading](https://github.com/e6qu/fun-refactor/actions/runs/41062241970) accepted all 28 patches and retained all eight failures.
-GLM and Kimi still submitted no page-count proof in either setup. M3 remains open.
-Read the [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) before choosing another change.
+The evaluator now rejects stopped successes, successes beyond their recorded deadline and invalid timing values.
+Its [audit](../tests/agent-eval/proof-writing/report-audit.json) retains hashes and expected statistics for twelve complete reports and 480 attempts.
+Focused regression checks preserve all those statistics. Original reports and verdicts stay unchanged.
 
-The preceding [claim-view report](../tests/agent-eval/proof-writing/claim-view-results/README.md)
-keeps all 27 independently accepted patches and nine timeouts unchanged.
-Its corrected [grading run](https://github.com/e6qu/fun-refactor/actions/runs/41050239510) passed all twelve jobs.
-The collector finished in 22 seconds under its original five-minute deadline by retaining a limited checkout
-with every required checker input. Its combined verdicts match the nine preserved checking groups.
+Prepare the eight-attempt diagnostic in the method before any new paid call.
+It compares repairing a small unrelated division proof with and without the actual initial error report.
+Keep the task, bad draft, model, fr and instructions identical between conditions.
+Count complete work and independently accepted repairs. Earlier feedback alone cannot justify another full run.
+The current runner schedules complete studies; diagnostic scheduling and grading still need preparation and checks.
 
-The measured tool and checker are identified in the public summary's `fr_build` and `controls` fields.
-The controller source is in `collection_receipts`. Audit those exact inputs; do not rewrite historical source IDs.
-The new export used its unchanged frozen collector. Checker identities now exclude archived reports.
+Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
+Generation and focused native checks pass; a clean proof remains checkable while another theorem is unfinished.
+The complete skill passes hosted M2 checks. Its latest instructions have no live measurement yet.
+Dependency controls needed a repair because they unfolded the model twice and triggered the new unused-argument warning check.
+Focused checks now accept the clean reference and reject the changed dependency. Keep the strict warning rule.
+The known-file fr lookup also passes locally by indexing exactly one file; its CI deadline remains three minutes.
 
-The next fixes and instructions were prepared after the new comparison:
-
-- Valid parameterized local Lean lemmas now have reader rules and regression examples.
-- Draft checking now reports and rejects warnings in the submitted tactics. Other unfinished theorems remain separate.
-- The root skill links arithmetic directly and starts with a checked `refine ?_` draft, so feedback comes before a complete proof.
-- The [arithmetic lesson](../skills/fr/references/lean-arithmetic.md) also demonstrates `exact?` on a specific missing fact.
-  All four exact lesson blocks compile with Lean 4.28.0. A separate native test must confirm the new local-lemma syntax through fr.
-- The root is 816 bytes; the largest route is 7,145 bytes. All original context ceilings are unchanged.
-
-The earlier instructions passed the [proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/41047411811),
-[M1](https://github.com/e6qu/fun-refactor/actions/runs/41047510059) and [M2](https://github.com/e6qu/fun-refactor/actions/runs/41047513202)
-before all 36 new calls. The latest repairs change native source and require a new build and hosted qualification.
-Parser generation exposed an ambiguity between a local lemma's name, its parameters and constructor patterns.
-The grammar now gives the local declaration priority; generation and fixture checks must pass before a native rebuild.
-Validate the repairs and refresh affected records before freezing another complete comparison.
-Keep the same models, claims, two repetitions and 150-second limit.
-
-All 335 outcomes remain: the latest 36 plus the 299 in [earlier packets](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The previous low-setting publication is archived byte-for-byte in `low-reasoning-results`.
-The preceding checked publication is archived unchanged in `claim-view-results`.
-The new checked publication is archived unchanged in `direct-proof-results`.
-The earlier low-setting comparison keeps its disclosed sleep pause and deleted-check failure.
-Every closed slot is immutable. No recorded attempt was retried.
-Only submitted patches and summaries may be published; full CLI records, prompts, drafts and account data stay local.
-New studies retain verified copies of their pinned CLI executables so application cleanup cannot remove them.
-The workstation guard stopped a whole-repository fr search at 1 GiB aggregate RSS. Do not repeat it locally.
-The hosted attempt also timed out while building the whole project graph for a function in a known file.
-The proof workflow now selects `src/spec.rs` explicitly and checks the function and one-file coverage under the same three-minute limit.
+All 335 M3 outcomes remain in the [complete and interrupted archives](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
+Retain original input identities, failures, sleep limitations and record hashes.
+Only submitted patches and summaries may leave the workstation.
+Keep logs, drafts, source archives, session exports and account data local.
+Old diagnostic copies and executables may have verified compressed copies; preserve their private integrity records when restoring them.
 
 ## Keep the other milestones concrete
 

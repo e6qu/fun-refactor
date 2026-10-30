@@ -37,6 +37,7 @@ Prefer preserving surrounding source. Keep refactoring behavior checks and delib
 | Check whether an explanation agrees with the compiler | [Compiler comparisons and limits](compiler-profile.md) |
 | Use fr from an agent program | [Short agent guide](agent-skill.md) or [Python client](agent-runtime-sdk.md) |
 | Decide whether fr saves work | [Product review](product-review.md) and [recorded results](evaluations.md) |
+| Learn from an agent experiment | [Questions, small tests and decisions](agent-improvement.md) |
 | Understand a performance number | [Comparisons, baselines and overhead](benchmarks.md) |
 | Decide whether checking conditions would help Python analysis | [Numeric investigation and its comparisons](python-symbolic-investigation.md) |
 | Contribute to fr | [Development](development.md) and [current handoff](continuity.md) |

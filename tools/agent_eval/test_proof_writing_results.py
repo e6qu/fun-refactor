@@ -84,7 +84,7 @@ class ProofOutcomeChecks(unittest.TestCase):
         schedule = selected_plan.prepare(selected_plan.ROOT, 'M3')
         rows = [{**row, 'native_status': 'failed' if index == 0 else 'completed', 'patch_sha256': 'd' * 64}
                 for index, row in enumerate(schedule['attempts'])]
-        supplied = {'attempts': rows, 'core_checker_sha256': 'b' * 64,
+        supplied = {'attempts': rows, 'core_checker_sha256': 'b' * 64, 'limits': {'wall_seconds': 150},
                     'controls': {'source_commit': 'a' * 40, 'run': '123', 'private': {'image': 'sha256:' + 'c' * 64}}}
         cells = []
         digest = hashlib.sha256(results.encoded_summary(supplied)).hexdigest()

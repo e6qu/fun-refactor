@@ -1,6 +1,6 @@
 # What GLM and Kimi actually did
 
-## Direct commands helped access and ranges, but page counting is still open
+## Latest access and range deliveries use fr; page counting is still open
 
 The [new complete comparison](local-results/summary.json) retains 36 attempts: 28 submitted patches and eight timeouts without one.
 Independent grading accepted all 28 patches. This review now covers 96 OpenCode2 attempts across four complete comparisons.
@@ -9,6 +9,10 @@ Every outcome and raw-record hash remains recorded. Only patches and summaries a
 Both GLM and Kimi checked and saved access and range proofs with fr in both repetitions.
 That fixes a concrete workflow omission in the preceding comparison, where several successful patches never used fr.
 All these proofs passed independent checking. The comparison does not isolate the effect of one instruction change.
+Across seven complete comparisons, GLM's accepted fr-available attempts number 4, 2, 3, 4, 3, 3 and 4 out of six.
+Kimi has four accepted attempts out of six in each comparison. Neither agent has an accepted fr page-count proof in fourteen attempts.
+The first and latest total success counts therefore match; tool use has changed without a sustained overall increase.
+The next complete comparison is paused for the [improvement method](../../../docs/agent-improvement.md).
 
 Page counting remains the difficult case: all eight GLM/Kimi attempts timed out, including ordinary-tool attempts.
 These four fr-available attempts received a root skill containing the exact checking and saving commands:

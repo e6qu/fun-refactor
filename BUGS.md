@@ -14,8 +14,9 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
 | Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
 | A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |
-| A valid local Lean lemma with parameters was rejected | Adds parameters to local-lemma syntax, with named, anonymous and expression examples; hosted reader validation is pending |
-| A draft passed fr but its warnings later failed package verification | Rejects warnings in the submitted draft and reports their locations before saving; preserves checking of one theorem while another remains unfinished; hosted native tests are pending |
+| A valid local Lean lemma with parameters was rejected | Generated reader checks and focused native examples pass for named and anonymous parameterized lemmas; full workflow qualification continues |
+| A draft passed fr but its warnings later failed package verification | Rejects draft warnings before saving; a clean proof remains checkable while another theorem is unfinished; focused native checks pass |
+| A report calculator accepted late successes or invalid times | Checks elapsed time against the recorded deadline and rejects invalid times; twelve retained complete reports keep their original statistics |
 | An application update deleted a frozen CLI executable | New studies keep verified executable and companion copies inside the study directory |
 | Deep conformance omitted TypeScript's compiler | Installs the locked checker before running the unchanged checks |
 | Repository reports repeated file reads and line scans until timeout | Reuses source/line maps within a report and the immutable test graph within a test; preserves Unicode positions, fresh later reads and every original sample |
@@ -44,7 +45,8 @@ Its accepted access and range proofs use actual fr checks and writes. M3 still l
 The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) records the exact mistakes and timing.
 The root skill now links arithmetic directly and starts by checking an unfinished draft.
 The lesson explains Boolean comparisons, proof-valued arguments and a search for a missing fact.
-All four examples compile with pinned Lean; the updated complete skill still needs hosted qualification.
+All four examples compile with pinned Lean; the complete skill passes hosted M2 checks.
+New live comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides the next diagnostic.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

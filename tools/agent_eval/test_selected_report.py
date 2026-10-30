@@ -1,5 +1,7 @@
 """Keep failed work in cost comparisons and refuse incomplete completion reports."""
 import copy
+import hashlib
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -12,12 +14,13 @@ class SelectedReportTests(unittest.TestCase):
     def setUp(self):
         self.rows = [{'id': f'{profile}-{task}-{setup}-{repeat}', 'profile': profile, 'task': task,
                       'setup': setup, 'repetition': repeat, 'native_status': 'completed',
-                      'independent_outcome': 'passed', 'total_seconds': 10.0}
+                      'independent_outcome': 'passed', 'total_seconds': 10.0,
+                      'stop_reason': None, 'complete_attempt_deadline_missed': False}
                      for profile in AGENTS for task in TASKS for setup in ('files', 'fr') for repeat in (1, 2)]
 
     def test_failed_work_counts_per_success_and_cannot_enter_matching_successes(self):
         self.rows[0].update(native_status='failed', independent_outcome='failed', total_seconds=150.0)
-        groups, matched = comparisons({'attempts': self.rows}, TASKS)
+        groups, matched = comparisons({'attempts': self.rows, 'limits': {'wall_seconds': 150}}, TASKS)
         self.assertEqual(groups[0]['accepted'], 5)
         self.assertEqual(groups[0]['successful_mean_seconds'], 10.0)
         self.assertEqual(groups[0]['total_seconds'], 200.0)
@@ -29,11 +32,50 @@ class SelectedReportTests(unittest.TestCase):
         for row in self.rows:
             if row['profile'] == 'opencode2-glm-flash' and row['setup'] == 'fr':
                 row.update(native_status='failed', independent_outcome='failed')
-        groups, matched = comparisons({'attempts': self.rows}, TASKS)
+        groups, matched = comparisons({'attempts': self.rows, 'limits': {'wall_seconds': 150}}, TASKS)
         self.assertIsNone(groups[3]['seconds_per_success'])
         self.assertIsNone(groups[3]['successful_mean_seconds'])
         self.assertEqual(matched[1]['pairs'], 0)
         self.assertIsNone(matched[1]['fr_change_percent'])
+
+    def test_late_or_stopped_attempt_cannot_enter_success_counts(self):
+        for mutation in ({'total_seconds': 150.1, 'complete_attempt_deadline_missed': True},
+                         {'stop_reason': 'wall_seconds'}):
+            with self.subTest(mutation=mutation):
+                rows = copy.deepcopy(self.rows)
+                rows[0].update(mutation)
+                with self.assertRaisesRegex(ValueError, 'within its recorded limits'):
+                    comparisons({'attempts': rows, 'limits': {'wall_seconds': 150}}, TASKS)
+
+    def test_invalid_time_cannot_create_a_speedup(self):
+        for value in (float('nan'), float('inf'), -1, True, '10'):
+            with self.subTest(seconds=value):
+                rows = copy.deepcopy(self.rows)
+                rows[0]['total_seconds'] = value
+                with self.assertRaisesRegex(ValueError, 'finite nonnegative seconds'):
+                    comparisons({'attempts': rows, 'limits': {'wall_seconds': 150}}, TASKS)
+
+    def test_report_deadline_is_explicit_and_finite(self):
+        for value in (0, -1, float('nan'), float('inf'), True):
+            with self.subTest(deadline=value), self.assertRaisesRegex(ValueError, 'finite positive seconds'):
+                comparisons({'attempts': self.rows, 'limits': {'wall_seconds': value}}, TASKS)
+
+    def test_stricter_checks_preserve_statistics_for_all_twelve_retained_comparisons(self):
+        root = Path(__file__).resolve().parents[2]
+        audit = json.loads((root / 'tests/agent-eval/proof-writing/report-audit.json').read_text())
+        self.assertEqual(len(audit['reports']), 12)
+        attempts = 0
+        for retained in audit['reports']:
+            with self.subTest(summary=retained['summary']):
+                data = (root / retained['summary']).read_bytes()
+                self.assertEqual(hashlib.sha256(data).hexdigest(), retained['sha256'])
+                summary = json.loads(data)
+                self.assertEqual(set(retained['tasks']), {row['task'] for row in summary['attempts']})
+                groups, matched = comparisons(summary, retained['tasks'])
+                self.assertEqual(groups, retained['groups'])
+                self.assertEqual(matched, retained['matched'])
+                attempts += len(summary['attempts'])
+        self.assertEqual(attempts, 480)
 
     def test_missing_checks_duplicates_and_timeout_success_claims_refuse(self):
         for mutation, error in (({'independent_outcome': None}, 'independently check'),
@@ -42,7 +84,7 @@ class SelectedReportTests(unittest.TestCase):
             rows = [dict(row) for row in self.rows]
             rows[0].update(mutation)
             with self.assertRaisesRegex(ValueError, error):
-                comparisons({'attempts': rows}, TASKS)
+                comparisons({'attempts': rows, 'limits': {'wall_seconds': 150}}, TASKS)
 
     def test_token_means_match_successful_pairs_and_keep_missing_usage_unknown(self):
         for row in self.rows:
@@ -84,11 +126,11 @@ class SelectedReportTests(unittest.TestCase):
                  'task': task, 'setup': setup, 'repetition': repeat}
                 for row in self.rows[:1] for profile in AGENTS for task in tasks
                 for setup in ('files', 'fr') for repeat in (1, 2)]
-        groups, matched = comparisons({'attempts': rows}, tasks)
+        groups, matched = comparisons({'attempts': rows, 'limits': {'wall_seconds': 150}}, tasks)
         self.assertEqual([group['attempted'] for group in groups], [8] * 6)
         self.assertEqual([group['pairs'] for group in matched], [8] * 3)
         with self.assertRaisesRegex(ValueError, '48 distinct'):
-            comparisons({'attempts': rows[:-1]}, tasks)
+            comparisons({'attempts': rows[:-1], 'limits': {'wall_seconds': 150}}, tasks)
 
 
 if __name__ == '__main__':
