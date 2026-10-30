@@ -4,7 +4,7 @@ use anyhow::{bail, Context, Result};
 use tree_sitter::Node;
 
 fn ungroup(mut node: Node<'_>) -> Result<Node<'_>> {
-    for _ in 0..64 {
+    for _ in 0..=64 {
         if node.kind() != "parenthesized"
             || node.named_child_count() != 1
             || node.child_by_field_name("type").is_some()
@@ -147,6 +147,8 @@ mod tests {
     #[test]
     fn claims_refuse_invalid_and_excessive_syntax() {
         assert!(outline("theorem broken :").is_err());
+        let at_limit = format!("theorem nested : {}True{}", "(".repeat(64), ")".repeat(64));
+        assert_eq!(outline(&at_limit).unwrap().parts[0].conclusions, ["True"]);
         let nested = format!("theorem nested : {}True{}", "(".repeat(70), ")".repeat(70));
         assert!(outline(&nested).unwrap_err().to_string().contains("64"));
         let many = format!("theorem many : {}True", "True ∧ ".repeat(65));
