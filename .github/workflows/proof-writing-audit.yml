@@ -38,6 +38,10 @@ jobs:
         with:
           ref: ${{ env.M3_AUDITOR_SOURCE }}
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
