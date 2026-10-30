@@ -39,9 +39,18 @@ They now share that graph while retaining every sample and assertion.
 [PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
 Its final seven workflows passed, including all 90 main CI jobs.
 M3 still needs accepted fr-assisted page-count proofs from GLM and Kimi; that is an open milestone condition.
-The latest 36-attempt comparison retains 26 accepted proofs, nine timeouts and one rejected proof.
-Both OpenCode2 models used high reasoning and reached no draft check in their fr-assisted page-count trials.
-The next setup selects their supported low settings; native controls and a new complete comparison must test the result.
+The latest low-setting comparison retains all 36 attempts; independent grading is pending.
+Lower reasoning did not produce an fr-assisted page-count patch for either OpenCode2 model.
+
+Fr temporarily inserts submitted tactics into a Lean file before checking them.
+Its diagnostics currently report that generated file's line numbers, without mapping them to the author's draft.
+They also keep only the first eight context lines, which can omit the actual goal below many assumptions.
+The next repair must show the draft location and offending source line, retain the goal and count omitted context.
+
+Frozen studies also need their own verified CLI copies.
+An application update removed the pinned Codex release directory between trials.
+The controller refused before another model call; exact-byte restoration preserved the existing comparison.
+
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

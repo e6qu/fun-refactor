@@ -5,18 +5,16 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) records all 36 independently checked attempts:
-26 accepted proofs, nine timeouts and one rejected proof.
-The rebuilt tool passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40869061136).
-These cover the runnable cases, native clients and independent rejection controls.
-Goal discovery supplies an exact `target`, and both setups can read the named Lean library directory.
-The repaired reader accepts the integer-library syntax and proof introductions that previously blocked drafts.
+The [latest comparison](local-results/README.md) records all 36 low-setting attempts and 28 submitted patches.
+Eight attempts timed out; another failed after deleting its supplied check file. Independent grading is pending.
+The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40907616089),
+including the native clients with the exact selected reasoning settings.
 
 GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
-The 150-second complete-attempt limit stayed unchanged, including system sleep.
-Disk pauses occurred between trials; no recorded slot was retried.
-Keep all 227 recorded outcomes, including the [earlier attempts](#earlier-attempts).
-The previous complete comparison is preserved unchanged in [clocked-results](clocked-results/README.md).
+The 150-second complete-attempt limit stayed unchanged. One attempt's 142.9-second total
+includes 42.9 seconds of detected system sleep. The summary keeps that time; it is not isolated tool overhead.
+No recorded slot was retried. Keep all 263 recorded outcomes, including the [earlier attempts](#earlier-attempts).
+The previous high-setting comparison is preserved unchanged in [introduction-results](introduction-results/README.md).
 
 This milestone is in progress. Scripted controls and the real agent comparison are separate.
 The complete implementation, examples, checked attempts and tracking belong in one PR.
@@ -165,7 +163,7 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These packets retain all 191 outcomes that preceded the latest 36 attempts.
+These packets retain all 227 outcomes that preceded the latest 36 attempts.
 The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
 
@@ -179,6 +177,7 @@ An accepted result passed independent checking and came from a completed client 
 | [Run affected by sleep](clock-interrupted-results/README.md) | 36 | 18 client completions and 18 failures; ten failed attempts have unreliable elapsed times |
 | [Third complete comparison](clocked-results/README.md) | 36 | 25 accepted proofs and 11 timeouts under the timer that includes sleep |
 | [Introduction-pattern run](introduction-interrupted-results/README.md) | 18 | Valid proof syntax was rejected before Lean checking; 18 slots never started |
+| [High-setting comparison after the reader repair](introduction-results/README.md) | 36 | 26 accepted proofs, nine timeouts and one rejected proof |
 
 All submitted patches and original failures remain available. The library-access, sleep-affected
 and introduction-pattern packets have no independent acceptance result. The sleep-affected packet

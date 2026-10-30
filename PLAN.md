@@ -59,24 +59,28 @@ that discard unused hypotheses. It also accepts the simplifier's phase marker.
 For example, `rintro ⟨h, -, -⟩` keeps one hypothesis and discards two others.
 Fr previously rejected that pattern before Lean could check the proof.
 
-The [new 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-retains 26 independently accepted proofs, nine timeouts and one rejected proof.
-The frozen independent checker examined all 36 outcomes.
-GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
-Their difficult trials spent the window reading and planning without checking a first draft.
-Fr's recorded goal and library lookups took roughly half a second to two seconds.
+The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
+uses low reasoning for the two OpenCode2 models. It retains 28 submitted patches and eight timeouts.
+Another attempt failed after deleting its supplied check file. Independent grading is pending.
+GLM and Kimi still delivered no fr-assisted page-count patch, so M3 remains open.
+One attempt's 142.9-second total includes 42.9 seconds of detected system sleep.
+Keep that time in the results and disclose it when discussing timing.
 
-Independently grade every submitted patch and review the full results.
-The next M3 setup selects the installed OpenCode2 models' low reasoning variants.
-The installed client exposes these variants; this does not yet show that they solve the tasks.
-First require the native controls to confirm the exact settings sent to the scripted provider.
-Then freeze another complete comparison, with identical settings in both tool setups.
-M1/M2 settings and all earlier results remain unchanged. Luna keeps its existing high setting.
-Keep the fixed models, claims and 150-second limit. Do not retry a recorded slot.
-Run another comparison only after a concrete repair or capability has passed its checks.
-Keep all 227 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The [previous complete comparison](tests/agent-eval/proof-writing/clocked-results/README.md)
-retains its original 25 accepted proofs and 11 timeouts, with every published file unchanged.
+The next repairs address concrete problems from these attempts:
+
+1. Map Lean errors to the submitted tactics file and show the offending source line.
+   A ten-line draft must not leave its author looking for line 31 in that draft.
+2. Keep the actual goal in bounded diagnostics, even when many assumptions precede it.
+   State how many context lines the report omits.
+3. Store verified client executables with a frozen study, outside application-managed release folders.
+   An application update must not remove a study's pinned executable.
+4. Clarify cleanup instructions: keep supplied check files and remove only the draft the agent created.
+
+Independently grade every submitted patch. Keep the fixed models, claims and 150-second limit.
+Do not retry a recorded slot. Run another comparison only after a concrete repair passes its checks.
+Keep all 263 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The [previous high-setting comparison](tests/agent-eval/proof-writing/introduction-results/README.md)
+keeps its original 26 accepted proofs, nine timeouts and one rejected proof, with every published file unchanged.
 
 ### M1. Run the selected agents on three complete tasks
 

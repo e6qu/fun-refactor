@@ -43,23 +43,28 @@ This branch installs the locked checker, and its corresponding 17-job deep audit
 
 The library and introduction-pattern repairs passed all 29 proof-preparation jobs.
 They expose the required integer-division facts and let Lean check valid drafts that discard hypotheses.
-The new [36-attempt comparison](../tests/agent-eval/proof-writing/local-results/README.md)
-retains 26 independently accepted proofs, nine timeouts and one rejected proof.
-All 36 outcomes passed through independent grading run 40905976334.
-GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
+The latest [36-attempt comparison](../tests/agent-eval/proof-writing/local-results/README.md)
+uses explicit low reasoning for GLM and Kimi, with Luna's existing high setting.
+All 29 preparation jobs and the unchanged M1/M2 workflows passed before its first call.
+It retains 28 submitted patches and eight timeouts. Another attempt failed after deleting its supplied check file.
+Independent grading is pending. GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
 
-All 227 recorded outcomes are retained. The [previous complete comparison](../tests/agent-eval/proof-writing/clocked-results/README.md)
-keeps its original 25 accepted proofs and 11 timeouts, with all 27 published files unchanged.
+Keep all 263 recorded outcomes. The [previous high-setting comparison](../tests/agent-eval/proof-writing/introduction-results/README.md)
+retains its 26 accepted proofs, nine timeouts and one rejected proof, with all 29 published files unchanged.
 The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
-The frozen checking source also has a stable `evidence/m3-introductions-c375ed815` branch.
+The latest frozen controller is `afaf79cc666f8a8e18c94d59ebf57567aad0ed76`; its controls come from run 40907616089.
+The earlier checking source retains its stable `evidence/m3-introductions-c375ed815` branch.
 
-Keep those independent verdicts and all failed outcomes unchanged.
-The remaining problem is getting the OpenCode2 agents to check a page-count draft before time runs out.
-Recorded fr lookups took roughly half a second to two seconds; the affected trials did not reach a draft check.
-The installed OpenCode2 2.0.32 catalog exposes low reasoning for both selected models.
-The next M3 setup selects those variants in its own profile file; M1/M2 keep high reasoning.
-Luna retains its existing high setting. Forty-three focused setup and provenance tests passed.
-Require the real scripted native controls to verify the selected settings before another frozen comparison.
+One completed trial includes 42.9 seconds of detected system sleep in its 142.9-second total.
+Do not subtract it or call the measured time isolated tool overhead.
+The supplied check-file deletion remains a failed attempt even if its submitted proof passes.
+An application update removed the pinned Codex path before trial 23 started.
+The recovery script verified both frozen hashes before restoring the original executable paths.
+
+After independent grading, repair the confirmed diagnostic problems.
+Lean's generated-file line numbers need mapping to the author's draft, with the offending source line visible.
+The first eight assumptions currently hide the actual goal; retain the goal and count omitted context explicitly.
+Also keep frozen CLI files in study-owned storage and clarify safe draft cleanup within the existing guide budget.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

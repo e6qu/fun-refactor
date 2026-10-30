@@ -1,47 +1,45 @@
 diff --git a/specs/FrSpecs/SrcPagesRsPageCount.lean b/specs/FrSpecs/SrcPagesRsPageCount.lean
-index cfd7989..ca34115 100644
+index cfd7989..dc6b38c 100644
 --- a/specs/FrSpecs/SrcPagesRsPageCount.lean
 +++ b/specs/FrSpecs/SrcPagesRsPageCount.lean
-@@ -19,7 +19,41 @@ def page_countModel (items : Int) (size : Int) : Int :=
+@@ -18,8 +18,38 @@ def page_countModel (items : Int) (size : Int) : Int :=
+ -- fr:property agent unproved
  theorem page_countModel_page_bounds (items : Int) (size : Int) : ((((items) < ((0 : Int))) ∨ ((size) ≤ ((0 : Int)))) → ((page_countModel (items) (size)) = ((-1 : Int)))) ∧ (((((0 : Int)) ≤ (items)) ∧ ((items) ≤ ((9223372036854775807 : Int))) ∧ (((1 : Int)) ≤ (size)) ∧ ((size) ≤ ((9223372036854775807 : Int)))) → ((((0 : Int)) ≤ (page_countModel (items) (size))) ∧ ((page_countModel (items) (size)) ≤ (items)))) ∧ ((page_countModel ((11 : Int)) ((5 : Int))) = ((3 : Int))) := by
    -- fr:proof-begin page_countModel_page_bounds
-   -- fr:debt page_countModel_page_bounds
+-  -- fr:debt page_countModel_page_bounds
 -  sorry
 +  constructor
-+  · intro hbad
-+    simp [page_countModel, hbad]
++  · intro h
++    rcases h with h | h
++    · simp [page_countModel, h]
++    · simp [page_countModel, h]
 +  constructor
 +  · intro h
-+    rcases h with ⟨hi0, hiMax, hs1, hsMax⟩
-+    have hpos : 0 < size := by omega
-+    have hq : Int.tdiv items size = items / size :=
-+      Int.tdiv_eq_ediv_of_nonneg hi0
-+    have hr : Int.tmod items size = items % size :=
-+      Int.tmod_eq_emod_of_nonneg hi0
-+    have hq0 : 0 ≤ items / size := Int.ediv_nonneg hi0 (by omega)
-+    have hqle : items / size ≤ items := Int.ediv_le_self size hi0
-+    have hmod0 : 0 ≤ items % size := Int.emod_nonneg items (by omega)
-+    simp [page_countModel, show ¬ items < 0 by omega,
-+      show ¬ size ≤ 0 by omega]
-+    by_cases hrem : items % size = 0
-+    · simp [hq, hr, hrem]
-+      exact ⟨hq0, hqle⟩
-+    · have hsize : size ≠ 1 := by
-+        intro heq
-+        subst size
-+        simp at hrem
-+      have hiPos : 0 < items := by
-+        have hne : items ≠ 0 := by
-+          intro hz
-+          subst items
-+          simp at hrem
-+        omega
-+      have hq_lt : items / size < items :=
-+        Int.ediv_lt_self_of_pos_of_ne_one hiPos hsize
-+      have hrempos : 0 < items % size := by omega
-+      simp [hq, hr, hrem]
-+      exact ⟨by omega, by omega⟩
-+  · rfl
++    rcases h with ⟨hitems, hmax, hsize, hsmax⟩
++    have hsizepos : 0 < size := by omega
++    have hitemnonneg : 0 ≤ items := by omega
++    have hdiv : Int.tdiv items size = items / size :=
++      Int.tdiv_eq_ediv_of_nonneg hitemnonneg
++    have hmod : Int.tmod items size = items % size :=
++      Int.tmod_eq_emod_of_nonneg hitemnonneg
++    have hqnonneg : 0 ≤ items / size :=
++      Int.ediv_nonneg hitemnonneg (by omega)
++    have hrnonneg : 0 ≤ items % size :=
++      Int.emod_nonneg items (by omega)
++    have hrlt : items % size < size := Int.emod_lt_of_pos items hsizepos
++    have hqle : items / size ≤ items := Int.ediv_le_self size hitemnonneg
++    have hdecomp : items % size + size * (items / size) = items :=
++      Int.emod_add_mul_ediv items size
++    by_cases hrzero : items % size = 0
++    · simp [page_countModel, hdiv, hmod, hrzero] <;> omega
++    · have hrpos : 0 < items % size := by omega
++      have hmul : items / size ≤ size * (items / size) := by
++        calc
++          items / size = 1 * (items / size) := by omega
++          _ ≤ size * (items / size) := Int.mul_le_mul_of_nonneg_right (by omega) hqnonneg
++      have hu : items / size + 1 ≤ items := by omega
++      simp [page_countModel, hdiv, hmod, hrzero] <;> omega
++  · decide
    -- fr:proof-end page_countModel_page_bounds
  -- fr:generated-end formal-kernel
  
