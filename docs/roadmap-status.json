@@ -13,8 +13,14 @@
   "evidence": [
     {
       "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-30-distinct-answers-41034104200",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "current-answer-storage-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -23,8 +29,14 @@
     },
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-flow-facts/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
@@ -33,8 +45,14 @@
     },
     {
       "audit": "python3 -B tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-ci-package-flow/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "package-flow",
       "integrity": "checked",
       "kind": "deterministic",
@@ -43,8 +61,14 @@
     },
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-repositories",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
@@ -53,8 +77,14 @@
     },
     {
       "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-flow-cache/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "cache-measurements",
       "integrity": "checked",
       "kind": "measurement",
@@ -73,8 +103,14 @@
     },
     {
       "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-ci-structural-change",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "structural",
       "integrity": "checked",
       "kind": "deterministic",
@@ -103,8 +139,14 @@
     },
     {
       "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-compiler-profile/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "compiler-profile",
       "integrity": "checked",
       "kind": "compiler",
@@ -112,19 +154,25 @@
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-30-m3-draft-feedback-python-contract/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-30-m3-draft-feedback-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-30-m3-claim-parts-final-index-resolution/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "index-resolution",
       "integrity": "checked",
       "kind": "measurement",
@@ -186,8 +234,14 @@
     },
     {
       "audit": "python3 tools/recheck-text-package.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-text-package-recheck",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "original-package-questions",
       "integrity": "checked",
       "kind": "deterministic",
@@ -328,8 +382,14 @@
     },
     {
       "audit": "python3 -B tools/project-session-cost.py --audit --output tests/agent-eval/results/2026-10-22-project-sessions-41041231036",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "current-saved-work-cost",
       "integrity": "checked",
       "kind": "measurement",
@@ -338,8 +398,14 @@
     },
     {
       "audit": "python3 tools/checked-translation.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-checked-translation",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "checked-translation",
       "integrity": "checked",
       "kind": "deterministic",
@@ -348,8 +414,14 @@
     },
     {
       "audit": "python3 tools/python-effects.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-effects",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "python-effects",
       "integrity": "checked",
       "kind": "deterministic",
@@ -358,8 +430,14 @@
     },
     {
       "audit": "python3 tools/python-text-flow.py audit --directory tests/agent-eval/results/2026-10-30-m3-claim-parts-final-python-text-flow",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "python-text-flow",
       "integrity": "checked",
       "kind": "deterministic",
@@ -368,8 +446,14 @@
     },
     {
       "audit": "python3 tools/recheck-project-changes.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-project-changes-recheck --fr target/project-change-checkers/production-fr --alternate target/project-change-checkers/alternate-fr",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "grammars/lean/grammar.js",
+        "grammars/lean/src/grammar.json",
+        "grammars/lean/src/node-types.json",
+        "grammars/lean/src/parser.c",
+        "src/spec.rs"
+      ],
+      "freshness": "stale",
       "id": "current-project-changes",
       "integrity": "checked",
       "kind": "deterministic",
@@ -379,48 +463,63 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 3,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.live-repeat"
+        "A.exact",
+        "A.repositories",
+        "A.live-repeat",
+        "A.compiler-profile"
       ],
       "state": "open",
       "total": 4
     },
     "B": {
-      "demonstrated": 4,
+      "demonstrated": 1,
       "engineering": {
         "done": 4,
         "total": 5
       },
       "engineering_remaining": 1,
-      "remaining": [],
+      "remaining": [
+        "B.scalar",
+        "B.repository-flow",
+        "B.effects"
+      ],
       "state": "open",
       "total": 4
     },
     "C": {
-      "demonstrated": 4,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
-      "remaining": [],
-      "state": "complete",
+      "remaining": [
+        "C.resume",
+        "C.clean",
+        "C.repository-mutations",
+        "C.performance"
+      ],
+      "state": "open",
       "total": 4
     },
     "D": {
-      "demonstrated": 4,
+      "demonstrated": 1,
       "engineering": {
         "done": 3,
         "total": 6
       },
       "engineering_remaining": 3,
       "remaining": [
+        "D.checked",
+        "D.structural",
+        "D.translation",
         "D.existing-proof",
         "D.new-proof"
       ],
@@ -428,11 +527,13 @@
       "total": 6
     }
   },
-  "milestones_complete": 1,
+  "milestones_complete": 0,
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
-      "blockers": [],
+      "blockers": [
+        "exact-facts: stale source binding"
+      ],
       "id": "A.exact",
       "kind": "deterministic",
       "next": "Keep these location tests passing as discovery changes.",
@@ -451,12 +552,14 @@
           "evidence": "exact-facts"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Point to the exact code behind an answer"
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -475,7 +578,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -492,7 +595,9 @@
     },
     {
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "blockers": [],
+      "blockers": [
+        "compiler-profile: stale source binding"
+      ],
       "id": "A.compiler-profile",
       "kind": "compiler",
       "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
@@ -527,12 +632,14 @@
           "evidence": "compiler-profile"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "B.scalar",
       "kind": "deterministic",
       "next": "Keep the small examples as regression tests while testing more varied programs.",
@@ -555,7 +662,7 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace simple values through package helpers"
     },
     {
@@ -608,7 +715,9 @@
     },
     {
       "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
-      "blockers": [],
+      "blockers": [
+        "original-package-questions: stale source binding"
+      ],
       "id": "B.repository-flow",
       "kind": "deterministic",
       "next": "R2 rechecks Toolz return_none, Funcy inc and dec, and Pydash add through their original imports. Record each remaining startup obstacle. Reserve a new independent project before reading its implementation, freeze the checking procedure and preserve its first attempt.",
@@ -652,12 +761,14 @@
           "evidence": "original-package-questions"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Trace values in unfamiliar projects"
     },
     {
       "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
-      "blockers": [],
+      "blockers": [
+        "python-effects: stale source binding"
+      ],
       "id": "B.effects",
       "kind": "deterministic",
       "next": "Keep the original-import error-handler repair and exact unchecked-effect locations passing. Choose a concrete project change that needs implicit errors or shared mutable values, then add reusable rules and independent behavior checks.",
@@ -688,12 +799,14 @@
           "evidence": "python-effects"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Handle exceptions and shared mutable values honestly"
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -712,12 +825,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
       "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
-      "blockers": [],
+      "blockers": [
+        "package-flow: stale source binding"
+      ],
       "id": "C.clean",
       "kind": "deterministic",
       "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
@@ -740,12 +855,14 @@
           "evidence": "package-flow"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Make cached answers agree with a fresh analysis"
     },
     {
       "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "C.repository-mutations",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -764,12 +881,14 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Keep answers correct through common project changes"
     },
     {
       "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, text delivered to the agent, work repeated and agreement with a fresh analysis.",
-      "blockers": [],
+      "blockers": [
+        "current-saved-work-cost: stale source binding"
+      ],
       "id": "C.performance",
       "kind": "measurement",
       "next": "Use the complete CLI and Python measurements to choose improvements; measure live-agent work separately.",
@@ -812,12 +931,14 @@
           "evidence": "current-saved-work-cost"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Measure useful work, memory and disk at project scale"
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -836,12 +957,14 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {
       "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
-      "blockers": [],
+      "blockers": [
+        "current-project-changes: stale source binding"
+      ],
       "id": "D.structural",
       "kind": "deterministic",
       "next": "Keep the original project checks, undo and patch replay passing.",
@@ -860,12 +983,14 @@
           "evidence": "current-project-changes"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Change a declaration and update its callers"
     },
     {
       "acceptance": "Translate one pure function between Rust and Python with integer arithmetic and branches. Specify input ranges, overflow, errors and evaluation order. Independently compare every input in a bounded range and the declared boundary cases.",
-      "blockers": [],
+      "blockers": [
+        "checked-translation: stale source binding"
+      ],
       "id": "D.translation",
       "kind": "deterministic",
       "next": "Keep exact integer division, operand evaluation order and the independent bounded checks passing. Other functions and input domains need their own contracts and checks.",
@@ -896,7 +1021,7 @@
           "evidence": "checked-translation"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Translate a function without changing its promised behavior"
     },
     {
