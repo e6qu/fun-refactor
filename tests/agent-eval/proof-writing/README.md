@@ -5,22 +5,26 @@ can write and check proofs for fixed program models. A model describes selected 
 in Lean; a theorem states a claim about that model. The agent supplies the proof steps,
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
-The [latest comparison](local-results/README.md) records all 36 low-setting attempts and 28 submitted patches.
-Independent checks accepted 26 attempts. Eight timed out, one deleted its supplied check file and one submitted a rejected proof.
-The deleted-check attempt remains failed even though its submitted proof passed.
-The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40907616089),
-including the native clients with the exact selected reasoning settings.
+The [latest comparison](local-results/README.md) retains all 36 attempts and 27 submitted patches.
+Independent checks accepted all 27 patches; the other nine attempts timed out without one.
+Some completed attempts used no useful fr step, so they do not close the fr milestone cases.
+The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032806456),
+including the native clients with the exact selected settings, before its first model call.
 
-GLM and Kimi delivered no page-count patch with fr, so M3 remains open.
-The [command and timing review](behavior-review.md) explains what they tried and where progress stopped.
-The 150-second complete-attempt limit stayed unchanged. One attempt's 142.9-second total
-includes 42.9 seconds of detected system sleep. The summary keeps that time; it is not isolated tool overhead.
-No recorded slot was retried. Keep all 263 recorded outcomes, including the [earlier attempts](#earlier-attempts).
-The previous high-setting comparison is preserved unchanged in [introduction-results](introduction-results/README.md).
+GLM and Kimi delivered no page-count patch in either setup. GLM's successful access and range patches
+in this comparison also lack a contributing fr step. M3 remains open.
+The [command and timing review](behavior-review.md) explains the late checks, wrong targets and proof mistakes.
+After this comparison, the root skill gained the exact checking command and a linked arithmetic lesson.
+Those instructions passed [hosted proof and client checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811)
+and the existing M1/M2 workflows. A fresh comparison must measure whether the agents use them successfully.
 
-This milestone is in progress. Scripted controls and the real agent comparison are separate.
-The complete implementation, examples, checked attempts and tracking belong in one PR.
-The [roadmap](../../../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs)
+The 150-second complete-attempt limit stayed unchanged. No recorded slot was retried.
+Keep all 299 outcomes, including the [263 earlier outcomes](#earlier-attempts).
+The previous [low-setting](low-reasoning-results/README.md) and [high-setting](introduction-results/README.md)
+comparisons remain unchanged, including the earlier sleep-affected timing and deleted-check failure.
+
+Scripted controls and real agent results are separate. Complete implementation, examples, checked attempts
+and tracking belong in one milestone PR. The [roadmap](../../../PLAN.md#m3-help-the-agents-write-repair-and-maintain-lean-proofs)
 owns its completion conditions.
 
 ## The three requests
@@ -165,7 +169,7 @@ remain trusted. See [proof receipts and limits](../../../docs/agent-formalizatio
 
 ## Earlier attempts
 
-These archives retain all 263 recorded outcomes.
+These archives retain all 299 recorded outcomes.
 The latest completed comparison also appears in `local-results` until a new comparison finishes.
 The introduction-pattern run stopped when fr rejected valid syntax in a draft; its remaining eighteen slots never started.
 An accepted result passed independent checking and came from a completed client attempt.
@@ -182,6 +186,7 @@ An accepted result passed independent checking and came from a completed client 
 | [Introduction-pattern run](introduction-interrupted-results/README.md) | 18 | Valid proof syntax was rejected before Lean checking; 18 slots never started |
 | [High-setting comparison after the reader repair](introduction-results/README.md) | 36 | 26 accepted proofs, nine timeouts and one rejected proof |
 | [Low-setting comparison before the claim view](low-reasoning-results/README.md) | 36 | 26 accepted attempts, eight timeouts, one deleted check file and one rejected proof |
+| [Claim-view comparison](claim-view-results/README.md) | 36 | 27 accepted proofs and nine timeouts; four agent/task cases still lack an accepted useful fr step |
 
 All submitted patches and original failures remain available. The library-access, sleep-affected
 and introduction-pattern packets have no independent acceptance result. The sleep-affected packet

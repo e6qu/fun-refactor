@@ -7,85 +7,61 @@ The three jobs are refactoring, targeted code changes and Lean proof writing.
 [BUGS.md](../BUGS.md) owns actionable defects.
 The [retained-results report](roadmap-status.md) audits earlier claims; its A–D counts are not completion counts for the new roadmap.
 
-## M1 results and the next change
+## Current milestone
 
-Use the [three selected profiles](../PLAN.md#target-agents): Codex with Luna Fast, and OpenCode2 with GLM-5.3-Flash or non-Pro Kimi K3.
-The [M1 report](../tests/agent-eval/selected-agents/local-results/README.md) retains all thirty-six local CLI attempts.
-Read the successful outcomes, timeouts and measured overhead before changing the next task route.
-The [client and task guide](../tests/agent-eval/selected-agents/README.md) explains the pinned versions and scripted controls.
-Those controls use supplied answers; they stay separate from the agents' actual patches.
-The requests were:
+M1's [36-attempt report](../tests/agent-eval/selected-agents/local-results/README.md) retains the Boltons rename,
+Unicode repair and Rust access-rule proof. M2's [48-attempt report](../tests/agent-eval/project-edits/local-results/README.md)
+retains 43 accepted attempts and five timeouts; all 48 submitted patches passed.
+Both milestones were merged. Their original reports and failures remain intact.
 
-- Rename Boltons' `clamp` to `clamp_value` through its declared consumers; preserve the result of limiting 70 to 0 through 50.
-- Repair the recorded Unicode Dice comparison and pass its independent regression set.
-- Have the agent write a Lean proof of the Rust access model's exact `staff || owner` rule.
+Finish M3 on `milestone/complete-proof-authoring`, including the merged release update.
+The [task guide](../tests/agent-eval/proof-writing/README.md) owns the exact claims and limits.
+Keep the complete milestone in one PR. M3 remains in progress.
 
-The user chose the installed native CLIs with their existing accounts. Credentials and full run records stay local.
-Only submitted patches and summaries are public. GitHub independently checks each patch in an isolated container.
-Every timed-out slot remains failed and was not retried. The interrupted-session recording fix continued only unstarted slots
-under a second immutable packet; the public summary keeps both packet hashes and each original record hash.
-There is no shared enforceable token/request cap, and actual billing is unknown.
+The latest comparison ran 36 local attempts with the requested native Codex and OpenCode2 releases.
+Luna kept its high/fast selection; GLM and Kimi kept explicit low reasoning.
+All 29 preparation jobs, the deep audit and the unchanged M1/M2 checks passed before the first model call.
+The fresh measurement collections and all eight report publishers also passed.
 
-M2's [latest comparison](../tests/agent-eval/project-edits/local-results/README.md) has 43 accepted attempts and five retained timeouts.
-All 48 patches passed independent checks. Every agent has an accepted result per task using a contributing fr step.
-The implementation, runnable examples, private controls and all four complete comparisons belong in one M2 PR.
-The M2 PR passed its full CI gate and was merged.
+All 27 submitted patches passed the nine independent checking groups. Nine attempts timed out without a patch.
+The final collection job then timed out while expanding its checkout into the entire repository.
+The fix keeps the original checker inputs checked out and preserves the five-minute deadline.
+The corrected [grading run](https://github.com/e6qu/fun-refactor/actions/runs/41050239510) passed all twelve jobs.
+Its collector finished in 22 seconds, including a three-second original-source checkout.
+Its combined verdicts exactly match the nine preserved groups. The public report now contains those final verdicts.
 
-The [task guide](../tests/agent-eval/project-edits/README.md) links all 192 M2 attempts and explains the fixes.
-The supplied regex command now checks actual text, byte counts, allocations and append behavior with an explicitly unoptimized build.
-Checking files are protected during cleanup. Private compiler checks keep the same resource limits and broader coverage.
-Later guidance clarifies fragment files, the exact workflow preview value and Git diff delivery; it does not rewrite the measured attempts.
+M3 remains open. GLM has no accepted contributing fr case in this comparison:
+its successful access/range patches used no useful fr step, and its page-count attempts timed out.
+Kimi has accepted contributing access/range cases, but no page-count patch.
+Luna has accepted contributing proofs for all three tasks.
+Read the [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) before choosing another change.
 
-PR #588 merged the earlier proof, parser, timer and CI repairs after all seven PR workflows passed.
-Continue on `milestone/complete-proof-authoring`; PR #590's 0.86.1 release update is now integrated.
-The release build passed. Main's deep audit failed because its runner lacked the TypeScript compiler.
-This branch installs the locked checker, and its corresponding 17-job deep audit passed.
+The measured tool and checker are identified in the public summary's `fr_build` and `controls` fields.
+The controller source is in `collection_receipts`. Audit those exact inputs; do not rewrite historical source IDs.
+The latest export was checked against the original checker, keeping its archive inventory exact.
+The forward fix makes future checker identities independent of archived reports.
 
-The library and introduction-pattern repairs passed all 29 proof-preparation jobs.
-They expose the required integer-division facts and let Lean check valid drafts that discard hypotheses.
-The latest [36-attempt comparison](../tests/agent-eval/proof-writing/local-results/README.md)
-uses explicit low reasoning for GLM and Kimi, with Luna's existing high setting.
-All 29 preparation jobs and the unchanged M1/M2 workflows passed before its first call.
-It retains 28 submitted patches and eight timeouts. Another attempt failed after deleting its supplied check file.
-Independent grading in run 41021159425 accepted 26 attempts; eight timed out, one deleted its check file and one submitted a rejected proof.
-The deleted-check attempt stays failed even though its patch passed. GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
+The next instructions were changed after that comparison:
 
-Keep all 263 recorded outcomes. The [previous high-setting comparison](../tests/agent-eval/proof-writing/introduction-results/README.md)
-retains its 26 accepted proofs, nine timeouts and one rejected proof, with all 29 published files unchanged.
-The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed claims, repetitions and limits.
-The latest frozen controller is `afaf79cc666f8a8e18c94d59ebf57567aad0ed76`; its controls come from run 40907616089.
-The earlier checking source retains its stable `evidence/m3-introductions-c375ed815` branch.
+- The root skill now includes the real proof-check command and how to save a passing proof.
+- A [small arithmetic lesson](../skills/fr/references/lean-arithmetic.md) introduces Boolean comparisons,
+  assumptions joined by “and” or “or”, and library arguments that are proofs. All three examples pass Lean 4.28.0.
+- The complete skill stays within the original context ceilings. The root is 835 bytes; the largest route is 7,164 bytes.
 
-One completed trial includes 42.9 seconds of detected system sleep in its 142.9-second total.
-Do not subtract it or call the measured time isolated tool overhead.
-The supplied check-file deletion remains a failed attempt even if its submitted proof passes.
-An application update removed the pinned Codex path before trial 23 started.
-The recovery script verified both frozen hashes before restoring the original executable paths.
+The changed instructions pass the [proof workflow](https://github.com/e6qu/fun-refactor/actions/runs/41047411811),
+[M1 tasks and clients](https://github.com/e6qu/fun-refactor/actions/runs/41047510059)
+and [M2 delivery](https://github.com/e6qu/fun-refactor/actions/runs/41047513202).
+Native source is unchanged, so preparation reuses the previous passing build.
+After qualification, freeze a fresh comparison with the same models, claims, two repetitions and 150-second limit.
+Measure an early useful draft check and a delivered proof; reading a skill or invoking fr is insufficient.
 
-The branch now maps Lean errors to the author's draft, includes a source excerpt and retains the actual goal.
-It counts omitted context, freezes verified CLI copies inside the study and tells agents to keep supplied checks.
-Focused local tests pass. Validate the Rust and actual Lean checks on GitHub before freezing another comparison.
-The [behavior review](../tests/agent-eval/proof-writing/behavior-review.md) covers all 48 OpenCode2 attempts in the two latest comparisons.
-Neither agent reaches a draft check in their eight fr page-count slots.
-GLM also corrupts one search result with replacement flags and misapplies a declaration it read.
-Later read-only session inspection finds 6,047 and 10,022 reasoning characters in Kimi's unfinished low-setting responses.
-These are character lengths, not token totals; the text stays private and the timeouts remain failed.
-Kimi generated analysis during the gaps without reaching another check. GLM's first final delay remains unexplained.
-Next work must help an agent try the claim's parts with actual library signatures, not merely improve later error messages.
-The branch now replaces empty proof templates with `claim.parameters` and `claim.parts` in `proof-task`.
-Each part lists its assumptions and conclusions; alternatives and bound variables retain their scope.
-The root skill now explicitly calls `proof-task` before drafting. Its existing size limits still apply.
-The syntax reader also needs its new right-grouping and disjunction-precedence rules generated on GitHub.
-Run the actual Rust, Lean, SDK and ten-case controls after generation before freezing a new comparison.
-Library lookup also retains declared types for Lean equation-style definitions and proofs.
-The skill now requests at most four signatures without source bodies; its executable example checks the returned header types.
-Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
-Only submitted patches and summaries may be published; full client records stay local.
-
-The report repairs also avoid repeated file reads and line scans while keeping Unicode positions and fresh reads between reports.
-The slowest repaired audit group passed in 9 minutes 34 seconds under its original 15-minute limit.
-All three report-publishing groups and five additional report refreshes passed.
-Complete the remaining proof-writing work, independent grading and tracking in this same milestone PR.
+All 299 outcomes remain: the latest 36 plus the 263 in [earlier packets](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The previous low-setting publication is archived byte-for-byte in `low-reasoning-results`.
+The latest checked publication is also archived unchanged in `claim-view-results`.
+Its sleep-affected timing and deleted-check failure stay failed or disclosed exactly as recorded.
+Every closed slot is immutable. No recorded attempt was retried.
+Only submitted patches and summaries may be published; full CLI records, prompts, drafts and account data stay local.
+New studies retain verified copies of their pinned CLI executables so application cleanup cannot remove them.
 
 ## Keep the other milestones concrete
 

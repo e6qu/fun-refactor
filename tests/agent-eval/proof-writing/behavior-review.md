@@ -1,18 +1,96 @@
 # What GLM and Kimi actually did
 
-Neither agent reached a proof check in any of the eight page-count attempts with fr
-across the latest low-setting comparison and the preceding high-setting comparison.
-These attempts cannot show whether improved proof-error messages help either agent:
-neither got far enough to receive those messages.
+In the latest comparison, GLM and Kimi each reached one fr page-count proof check.
+Their other two fr-available attempts used ordinary Lean builds instead.
+All four timed out without a patch. Reaching the checker is progress within an attempt;
+it does not establish that either agent can finish this proof.
 
-This review covers the 48 OpenCode2 attempts in those two comparisons.
+This review covers 72 OpenCode2 attempts: the current comparison and the two preceding comparisons.
 It compares recorded commands, returned tool results, timestamps and reported token counts.
-The [latest summary](local-results/summary.json) and
-[preceding summary](introduction-results/summary.json) retain the attempt identifiers and record hashes.
+The [latest summary](local-results/summary.json), [earlier low-setting summary](low-reasoning-results/summary.json)
+and [high-setting summary](introduction-results/summary.json) retain attempt identifiers and record hashes.
 Raw transcripts, private drafts, source archives and account data remain local.
 No attempt was rerun or reclassified for this review.
 
-## The four recent page-count attempts with fr
+## After adding the claim view and mapped errors
+
+All four page-count attempts below had fr available. The limit remained 150 seconds.
+Completed tool time is the union of recorded tool intervals, including reads and edits.
+It is not isolated CPU time or fr overhead.
+
+| Agent and repetition | Completed tool time | First proof-check command | What happened |
+| --- | ---: | --- | --- |
+| GLM 1 | 17.5 s | fr at 121.3 s | Wrote an early draft, searched, then checked a replacement; Lean rejected an incorrect assumption split |
+| GLM 2 | 23.7 s | Lake at 128.2 s | Edited the theorem and searched the library; no fr command was observed |
+| Kimi 1 | 8.4 s | Lake at 127.8 s | First edit began at 116.2 s; no fr command was observed |
+| Kimi 2 | 12.9 s | fr at 143.8 s | Requested the claim view at 40.0 s, searched, then checked a draft near the deadline |
+
+All four read the root skill. GLM 1 also read its Lean reference.
+Only Kimi 2 requested the new claim view; it clipped the response with `head`.
+None used fr's library-signature lookup in these four attempts.
+The new view and lookup therefore cannot be credited with a successful delivered proof.
+
+GLM 1's error is concrete: it treats an assumption joined by “and” as an “or”.
+Lean expects the conjunction constructor `mk`, but the draft selects alternatives `inl` and `inr`.
+The repaired diagnostic points to line 11 of the draft, rather than line 31 of the generated checking file.
+GLM also repeats `rg -rn`, which replaces matched text and damages the names it is searching for.
+
+Kimi 1 reads real division facts early but waits until 116.2 seconds to edit.
+Its build reports ineffective simplification and two unresolved multiplication-lemma names.
+Kimi 2 does inspect the claim view, but its first fr check starts with about six seconds left.
+These are different failures; a shared claim that the library was inaccessible would be wrong.
+
+Read-only exports of all eight current OpenCode2 page-count sessions confirm the selected model and low setting.
+Their saved responses contain substantial reasoning output before some late checks.
+For example, the largest recorded reasoning parts in the two fr repetitions contain 8,899 and 5,093 characters
+for GLM, and 10,341 and 7,869 for Kimi. The text stays private.
+Character counts are not token totals or charges. Saved response timing can overlap tool timing;
+it does not establish continuous computation or isolate provider waiting.
+The original timeouts and incomplete per-attempt accounting remain unchanged.
+
+## The simpler tasks also expose workflow mistakes
+
+GLM's first fr-available access attempt runs `fr check --json` through a pipeline that returns no output.
+Its fallback never runs because `head` supplies the pipeline's successful exit status.
+The delivered patch receives no fr contribution credit.
+Its second access attempt and first range attempt use no fr command either.
+
+GLM's second range attempt does use fr, but guesses two wrong targets before reaching the correct checker.
+It rewrites Boolean comparisons without converting them into propositions that `omega` can use.
+It then tries scratch examples and runs out of time without a patch.
+For example, `decide (offset ≤ total) = true` needs conversion before it supplies the arithmetic fact `offset ≤ total`.
+
+Kimi's second access attempt also delivers a patch without an observed fr command.
+Its first access attempt and both range attempts have useful fr checks or writes.
+Available tools, observed commands and a useful contribution are separate facts in the summary.
+
+The timing baseline is the same agent using ordinary tools on the same task.
+Across pairs accepted in both setups, complete proof-delivery time changes as follows:
+
+| Agent | Matching pairs | Ordinary mean | fr-available mean | Change |
+| --- | ---: | ---: | ---: | ---: |
+| Luna Fast | 6 | 40.1 s | 53.1 s | +32.5% |
+| GLM Flash | 3 | 42.4 s | 42.1 s | -0.7% |
+| Kimi K3 | 4 | 65.7 s | 71.3 s | +8.6% |
+
+The three matching GLM fr-available attempts made no useful fr step; their small timing difference
+does not establish a fr speedup. The table retains them rather than selecting only helpful uses.
+Times include startup, replies, tools, checks and delivery. They measure proof-authoring time,
+not execution speed of the Rust programs or isolated fr overhead. These small samples do not
+establish general savings; account charges remain unknown.
+
+After this comparison, the root skill gained the exact proof-check command and saving instructions.
+A new [arithmetic guide](../../../skills/fr/references/lean-arithmetic.md) teaches Boolean comparisons,
+“and” versus “or”, and library arguments that are proofs. Its three examples pass pinned Lean 4.28.0.
+The changed instructions pass the hosted proof/client checks and M1/M2 workflows.
+The recorded comparison does not measure these later changes.
+
+## Earlier comparisons before the claim view
+
+Neither agent reached a proof check in any of the eight fr page-count attempts across the earlier
+low-setting and high-setting comparisons. The following sections retain that earlier investigation.
+
+## The earlier low-setting page-count attempts with fr
 
 Times below are seconds since the complete attempt started. Each attempt stopped at 150 seconds.
 The tool column adds completed tool-call intervals, including reads and writes, counting overlapping time once.
@@ -158,22 +236,19 @@ One of four recent fr attempts reads the longer Lean reference.
 The two repetitions per setup cannot establish that this extra context causes the different behavior.
 Both ordinary-tool and fr page-count attempts fail, and model/provider timing is not isolated.
 
-## What the next change must address
+## What these earlier failures required
 
-The current draft-location and retained-goal fixes address real failures after proof checking begins.
-They do not explain the absence of checks here.
-Repeating the same comparison or increasing its deadline would leave that problem unresolved.
+The draft-location and retained-goal fixes address failures after proof checking begins.
+These earlier attempts needed help reaching that first check too.
+Repeating their setup or increasing the deadline would have left that problem unresolved.
 
-The next proof-assistance work should make the transition from a claim to a first checked draft concrete.
-It should expose the claim's parts and available declaration signatures without supplying an evaluator's proof.
-For example, an agent should be able to inspect an inequality fact's required arguments,
-try it in a small draft, and receive the exact remaining goal before another broad search.
-The success measure is an earlier useful check and a correct delivered proof, not more fr invocations.
+The resulting work exposes claim parts and declared library types without supplying an evaluator's proof.
+An agent can inspect a fact's required arguments, try a draft and read the remaining goal before another broad search.
+The success measure remains an early useful check and a correct delivered proof.
 
-The current branch implements the first part: `proof-task` exposes each claim part's assumptions and conclusions.
-It replaces empty proof templates, and the skill explicitly asks the agent to inspect this view before drafting.
-The work also corrects the syntax reader's grouping of proposition operators.
-These changes still need hosted validation and a new comparison; the recorded failures above remain unchanged.
+`proof-task` now exposes each claim part's assumptions and conclusions, replacing empty proof templates.
+The proposition-grouping, mapped-error and library-signature changes passed the hosted controls before the current comparison.
+The results at the top of this review show the remaining gap: late checks, proof mistakes and skipped fr steps.
 
 Before claiming a fix, distinguish these questions:
 

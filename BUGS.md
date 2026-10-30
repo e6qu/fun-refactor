@@ -5,64 +5,38 @@ The [roadmap](PLAN.md#next-work) lists planned features. A missing feature and a
 
 ## Repairs under review
 
-An agent's page-count draft exposed another valid Lean form that fr rejected before checking it.
-`rintro ⟨ha, -, -, -⟩` introduces proof assumptions and discards the unused ones.
-Pinned Lean accepts this form; fr treated its dash as a negative expression.
-The same draft used `↓reduceIte`, a simplifier instruction that runs before simplifying arguments.
-The repair gives both forms explicit syntax rules and checks typed introductions, alternatives and following declarations.
-The comparison stopped after eighteen recorded attempts. Keep them unchanged while checking the repair.
-Replaying the captured draft with the repaired tool now reaches Lean and returns five proof errors.
-The draft remains rejected; the original timeout and source files stay unchanged.
+These repairs are on `milestone/complete-proof-authoring`; the complete M3 PR is still in progress.
+The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit before its latest agent comparison.
 
-Fr misses integer-division theorems when reading Lean's installed library.
-For example, searching for `tdiv` finds its definition but misses later facts about nonnegative division.
-The reader rejects Unicode lambda arrows such as `fun n ↦ n` and branching bindings such as `obtain hp | hq := h`.
-A rejected lambda can also hide declarations that follow it. Dated deprecation attributes also interrupt library lookup.
-The repair covers all three forms and checks later declarations against the actual installed library.
-The regression examples must pass pinned Lean as well as fr's syntax and lookup checks.
+| Earlier problem | Current branch behavior |
+| --- | --- |
+| Valid Lean proof forms were rejected before checking | Accepts discarded assumptions such as `rintro ⟨h, -, -⟩`, simplifier phase markers, Unicode lambda arrows, branching bindings and dated attributes; checks later declarations too |
+| Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
+| Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
+| A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |
+| An application update deleted a frozen CLI executable | New studies keep verified executable and companion copies inside the study directory |
+| Deep conformance omitted TypeScript's compiler | Installs the locked checker before running the unchanged checks |
+| Repository reports repeated file reads and line scans until timeout | Reuses source/line maps within a report and the immutable test graph within a test; preserves Unicode positions, fresh later reads and every original sample |
 
-The deep conformance job also failed after PR #588 merged because `tsc` was missing from its path.
-That job installed Node but omitted the declared TypeScript checker.
-Its repair installs the locked checker and exposes its executable before running the unchanged conformance tests.
-The job keeps its original deadline and rejects missing compilers.
+For example, `名` occupies three UTF-8 bytes but advances a reported character column by one.
+Both frozen repository reviews retain the current reviewed declarations and references.
+Installed Lean-library lookup still reports syntax gaps; an empty search in that state cannot establish that a fact is absent.
 
-Three repository-audit jobs also reached their original 15-minute limits while building reports.
-Usages reread the same file for each occurrence. Impact rebuilt its line map for each occurrence.
-Column lookup also rescanned the line prefix for every position, repeating work on long lines.
-The repair keeps one source and line map per file within each report and indexes UTF-8 character boundaries once.
-Unicode columns and fresh reads between reports must remain correct. The complete audit keeps its inputs, samples and deadline.
-For example, `名` occupies three UTF-8 bytes but still advances a reported character column by one.
-Two previously timed-out report groups passed after that repair. The third completed its assertions at the deadline and still lost the job.
-Its tests rebuilt the same immutable call graph three times, taking about five extra minutes.
-They now share that graph while retaining every sample and assertion.
+The latest investigation also found two reporting defects:
 
-[PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
-Its final seven workflows passed, including all 90 main CI jobs.
-M3 still needs accepted fr-assisted page-count proofs from GLM and Kimi; that is an open milestone condition.
-The latest low-setting comparison retains all 36 attempts; independent checks accepted 26 and retained ten failures.
-Lower reasoning did not produce an fr-assisted page-count patch for either OpenCode2 model.
+- Adding an archived result changed the identity of an otherwise unchanged proof checker.
+  The identity now covers checker code, settings, fixtures and control proofs, with a regression for archives.
+- The final independent-result job exhausted five minutes while disabling its limited checkout and fetching the whole repository.
+  It now keeps only the original checker and required inputs. Rebuilding the original auditor also excludes the large report archive.
+  Shared receiver fixtures, including Boltons, remain present. The corrected collector finished in 22 seconds.
+  The deadlines, proof checks and original agent outcomes stay unchanged.
 
-Fr temporarily inserts submitted tactics into a Lean file before checking them.
-Its diagnostics previously reported only that generated file's line numbers.
-They could also omit the actual goal below many assumptions.
-The branch now maps errors to the draft, shows a source excerpt, retains the goal and counts omitted context.
-The Python contract and local tests pass; actual Lean regression checks are next on GitHub.
-
-Frozen studies also need their own verified CLI copies.
-An application update removed the pinned Codex release directory between trials.
-The controller refused before another model call; exact-byte restoration preserved the existing comparison.
-New freezes now copy and verify the executable and its companion inside the study directory.
-The local regression confirms that deleting the application's original files leaves those copies usable.
-
-Lean's proposition operators group to the right: `p ∧ q ∧ r` means `p ∧ (q ∧ r)`.
-Fr's syntax reader grouped them to the left and gave disjunction the same precedence as implication.
-The branch corrects those rules and adds a claim view that separates assumptions from conclusions.
-Python contract tests and the Lean examples pass locally. Generated-parser and Rust checks are next on GitHub.
-
-Library lookup previously lost signatures for Lean declarations whose proofs use pattern cases instead of a named body.
-It returned only a name even when a declared type was present.
-The branch now reads that declared type directly. Its hosted regression checks equation cases and ordinary proofs.
-
+The nine individual checking groups accepted all 27 submitted patches. Nine other attempts timed out without a patch.
+M3 still lacks GLM and Kimi page-count proofs. Some simpler GLM deliveries also used no useful fr step.
+Those are open agent-workflow conditions, rather than evidence that the theorem has been proved using fr.
+The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) records the exact mistakes and timing.
+The root skill now shows proof-check and saving commands, and a small lesson explains Boolean comparisons and proof-valued arguments.
+Its three examples pass pinned Lean. The changed instructions also pass hosted proof/client checks and M1/M2 workflows.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

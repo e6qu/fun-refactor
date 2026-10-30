@@ -24,8 +24,8 @@ Reports must distinguish those claims.
 | Application | Exact model selection | Required setting |
 | --- | --- | --- |
 | Codex | `gpt-6-luna` | Fast mode; check and record the effective client service tier |
-| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; explicit low reasoning for the next M3 comparison |
-| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and explicit low reasoning for the next M3 comparison |
+| OpenCode2 | `zai-coding-plan/glm-5.3-flash` | High reasoning in M1/M2; low reasoning in M3 |
+| OpenCode2 | `kimi-code-plan-global/k3` | Non-Pro Kimi K3; high reasoning in M1/M2 and low reasoning in M3 |
 
 The installed catalogs checked on 2026-10-25 contain these selections and also list Kimi K3.1 Pro.
 Catalog entries and configured credentials do not establish that a live attempt will be admitted.
@@ -48,51 +48,48 @@ Keep a milestone open until its completion conditions are met and its CI passes.
 M1 and M2 now have their complete comparisons.
 PR #588 repaired the merged M3 implementation and passed all seven PR workflows.
 Finish M3 on `milestone/complete-proof-authoring`, including the merged 0.86.1 release update.
-The [task guide](tests/agent-eval/proof-writing/README.md) names the exact inputs, checks and publication limits.
-The repaired tool passed [all 29 proof-preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40869061136)
-and [all 17 deep-audit jobs](https://github.com/e6qu/fun-refactor/actions/runs/40868681103).
-These check ten examples, the native clients, rejected patches and the repository audits.
-The audits retain every sample, assertion and original deadline.
+The [task guide](tests/agent-eval/proof-writing/README.md) owns the fixed claims, checks and publication limits.
+Before the latest model calls, the tool passed [all 29 proof-preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032806456)
+and [all 17 deep-audit jobs](https://github.com/e6qu/fun-refactor/actions/runs/41032815050), plus the existing M1 and M2 checks.
+These include ten language/numeric examples, actual client controls and rejected-patch checks.
+The fresh measurements and eight report updates also passed under their original deadlines.
 
-The reader now accepts the library forms that hid integer-division facts and valid proof introductions
-that discard unused hypotheses. It also accepts the simplifier's phase marker.
-For example, `rintro ⟨h, -, -⟩` keeps one hypothesis and discards two others.
-Fr previously rejected that pattern before Lean could check the proof.
+The [latest comparison](tests/agent-eval/proof-writing/local-results/README.md) retains all 36 attempts:
+27 delivered valid proofs and nine timed out without a patch. Every submitted patch passed independent checking.
+The first CI collection timed out while expanding its checkout. The corrected collector finished in 22 seconds
+with every required checker input and the same verdicts. Its five-minute deadline and proof checks stay unchanged.
 
-The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
-uses low reasoning for the two OpenCode2 models. It retains 28 submitted patches and eight timeouts.
-Independent checks accepted 26 attempts. The other failures are a deleted check file and a rejected proof.
-The check-file failure stays failed even though its submitted proof passes.
-GLM and Kimi still delivered no fr-assisted page-count patch, so M3 remains open.
-One attempt's 142.9-second total includes 42.9 seconds of detected system sleep.
-Keep that time in the results and disclose it when discussing timing.
+**M3 remains open.** GLM and Kimi still delivered no page-count proof in either tool setup.
+GLM's accepted access and range patches in this comparison also lack a useful fr step.
+A valid proof written with ordinary tools does not demonstrate that fr helped.
+The [behavior review](tests/agent-eval/proof-writing/behavior-review.md) separates these cases and preserves earlier results.
 
-The current repairs address concrete problems from these attempts; hosted validation is next:
+| Agent | Still needed in a complete comparison |
+| --- | --- |
+| GLM Flash | An accepted proof with a useful fr step for access, page count and range checking |
+| Kimi K3 | An accepted page-count proof with a useful fr step |
+| Luna Fast | All three fr cases are accepted in this comparison |
 
-1. Map Lean errors to the submitted tactics file and show the offending source line.
-   A ten-line draft must not leave its author looking for line 31 in that draft.
-2. Keep the actual goal in bounded diagnostics, even when many assumptions precede it.
-   State how many context lines the report omits.
-3. Store verified client executables with a frozen study, outside application-managed release folders.
-   An application update must not remove a study's pinned executable.
-4. Clarify cleanup instructions: keep supplied check files and remove only the draft the agent created.
+The tool now shows each claim part's assumptions and conclusions, preserves actual library types,
+maps errors to the draft and keeps the goal in bounded diagnostics.
+For example, Lean can identify draft line 11 rather than sending the author to line 31 of a generated file.
+The new view alone did not make either OpenCode2 agent finish page counting.
 
-The [GLM and Kimi review](tests/agent-eval/proof-writing/behavior-review.md) identifies a separate gap before checking begins.
-Neither agent checks a draft in any of eight fr page-count attempts across the two latest comparisons.
-The branch now makes `proof-task` list each part's assumptions and conclusions, replacing empty proof templates.
-For page counting, it separates the four valid-input bounds and keeps invalid-input alternatives together.
-The skill asks the agent to inspect that view before drafting. Hosted validation remains required.
-The same work fixes Lean conjunction and disjunction grouping before interpreting those claim parts.
-Library lookup now also retains declared Lean types for definitions and theorems written as pattern cases.
-The skill requests four headers without proof bodies, so the agent can inspect argument types before trying a fact.
-Validate these changes before freezing another comparison.
-Measure whether that produces an earlier useful check and a correct patch; extra searches or fr calls are not success.
+The next work stays inside this milestone PR:
 
-Independently grade every submitted patch. Keep the fixed models, claims and 150-second limit.
-Do not retry a recorded slot. Run another comparison only after a concrete repair passes its checks.
-Keep all 263 recorded outcomes, including the [earlier comparisons and interrupted runs](tests/agent-eval/proof-writing/README.md#earlier-attempts).
-The [previous high-setting comparison](tests/agent-eval/proof-writing/introduction-results/README.md)
-keeps its original 26 accepted proofs, nine timeouts and one rejected proof, with every published file unchanged.
+1. Freeze the validated direct proof commands and arithmetic lesson for a fresh comparison.
+   The [proof checks](https://github.com/e6qu/fun-refactor/actions/runs/41047411811), M1 and M2 checks pass.
+   The lesson introduces Boolean comparisons, “and” versus “or”, and facts whose arguments are proofs;
+   it supplies no evaluated task's reference proof.
+2. Run the same models, claims, two repetitions, both tool setups and 150-second limit.
+   Measure the first useful draft check and the delivered result; command counts alone are insufficient.
+3. Independently grade every submitted patch, retain every failure and reconcile the tracking.
+   Keep all 299 recorded outcomes. Never rerun a recorded slot or combine selected winners into a fictional complete comparison.
+
+The previous [low-setting comparison](tests/agent-eval/proof-writing/low-reasoning-results/README.md)
+keeps its 26 accepted attempts, eight timeouts, deleted check file and rejected proof unchanged.
+Its sleep-affected timing remains disclosed there. The [high-setting comparison](tests/agent-eval/proof-writing/introduction-results/README.md)
+and all earlier packets also retain their original bytes.
 
 ### M1. Run the selected agents on three complete tasks
 
