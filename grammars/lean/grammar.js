@@ -946,13 +946,13 @@ module.exports = grammar({
         seq(
           choice('have', 'suffices'),
           optional(choice(
-            // Lean tries a local function declaration before a pattern. A
-            // constructor pattern must not consume its first typed parameter.
-            prec(PREC.app + 1, seq(
+            // As in Lean's letIdDecl, a name introduces a declaration with
+            // optional parameters. It is not a constructor-pattern head.
+            seq(
               field('name', choice($.identifier, $.hole)),
-              field('parameters', $.parameters),
-            )),
-            field('name', choice($._pattern, $.rcases_tuple_pattern)),
+              optional(field('parameters', $.parameters)),
+            ),
+            field('name', choice($.tuple_pattern, $.rcases_tuple_pattern, $.syntax_quotation)),
           )),
         ),
         seq(
