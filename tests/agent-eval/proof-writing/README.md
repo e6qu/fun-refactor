@@ -6,7 +6,8 @@ in Lean; a theorem states a claim about that model. The agent supplies the proof
 called tactics. It must keep the program, model, theorem and assumptions unchanged.
 
 The [latest comparison](local-results/README.md) records all 36 low-setting attempts and 28 submitted patches.
-Eight attempts timed out; another failed after deleting its supplied check file. Independent grading is pending.
+Independent checks accepted 26 attempts. Eight timed out, one deleted its supplied check file and one submitted a rejected proof.
+The deleted-check attempt remains failed even though its submitted proof passed.
 The setup passed [all 29 preparation jobs](https://github.com/e6qu/fun-refactor/actions/runs/40907616089),
 including the native clients with the exact selected reasoning settings.
 
@@ -104,11 +105,11 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.
-The next M3 comparison uses its own [profile settings](profiles.json): Luna Fast with high reasoning,
+M3 uses its own [profile settings](profiles.json): Luna Fast with high reasoning,
 GLM Flash with low reasoning, and non-Pro Kimi K3 with low reasoning.
 Both OpenCode2 models expose the low setting in the installed 2.0.32 client's model catalog.
 The preceding high-setting trials spent their page-count window reading and planning without checking a draft.
-Its effect on proof-writing success still needs a complete live comparison.
+The complete low-setting comparison still lacks accepted fr page-count proofs from both OpenCode2 models.
 Both tool setups receive the same setting. M1/M2 retain their separate high settings.
 Native controls must check the exact selected settings before live calls.
 Build the macOS fr executable on GitHub. Freeze the downloaded source archives, successful

@@ -76,7 +76,9 @@ class SelectedPublicTests(unittest.TestCase):
                 directory = root / 'attempts' / row['id']
                 directory.mkdir(parents=True)
                 record = {key: row[key] for key in ('id', 'profile', 'task', 'setup')}
-                record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=1,
+                record.update(status='failed', plan_sha256=plan['sha256'], elapsed_seconds=3,
+                              timing_clock='includes-system-sleep',
+                              suspended_seconds=1.25 if row == schedule['attempts'][0] else 0,
                               verification_seconds=0.1, patch_delivered=False,
                               process=None, usage=None, collection_errors=[], complete_attempt_deadline_missed=False,
                               checking_input_changes=['.fr/checks.json'],
@@ -93,6 +95,11 @@ class SelectedPublicTests(unittest.TestCase):
             self.assertEqual(len(result['attempts']), count)
             self.assertEqual(result['public_check_environment']['CARGO_PROFILE_DEV_OPT_LEVEL'], '0')
             self.assertEqual(result['client_finish_seconds'], 10)
+            self.assertEqual(result['attempts'][0]['timing_clock'], 'includes-system-sleep')
+            self.assertEqual(result['attempts'][0]['suspended_seconds'], 1.25)
+            self.assertEqual(result['collection_notes']['system_sleep'], [{
+                'attempt': schedule['attempts'][0]['id'], 'suspended_seconds': 1.25,
+                'included_in_total_seconds': True}])
             self.assertTrue(all(row['checking_input_changes'] == ['.fr/checks.json'] for row in result['attempts']))
             self.assertTrue(all(row['native_status'] == 'failed' and row['collection_error_recorded']
                                 for row in result['attempts']))

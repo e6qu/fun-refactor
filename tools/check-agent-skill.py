@@ -566,8 +566,10 @@ def lean_workflow(exercise, root):
             assert "allowedModel" in part["conclusions"][0] and "value" in part["conclusions"][0]
             assert value["token_budget"]["used_upper_bound"] <= 4096
         if "<LIBRARY_QUERY>" in command:
-            assert value["rows"] and value["page"]["returned"] <= 12
-            assert value["source_budget"]["returned_bytes"] <= 1536
+            assert value["rows"] and value["page"]["returned"] <= 4
+            assert "source" not in value["columns"]
+            signature = value["columns"].index("signature")
+            assert all(row[signature]["basis"] == "syntax-header" for row in value["rows"])
             assert "coverage" in value and "omitted" in value
         if "proof-check" in command:
             assert value["passed"] and model.read_bytes() == original

@@ -121,6 +121,10 @@ def export(plan_path, review, destination):
         require(record['status'] in {'completed', 'failed'} and record['plan_sha256'] == plan['sha256'] and
                 all(record[key] == planned[key] for key in ('id', 'profile', 'task', 'setup')),
                 'retain every completed or failed attempt from the original packet')
+        require(record['timing_clock'] == 'includes-system-sleep' and
+                type(record['suspended_seconds']) in {int, float} and
+                0 <= record['suspended_seconds'] <= record['elapsed_seconds'],
+                'retain the observed complete-attempt clock and detected system sleep')
         require(review[identity]['record_sha256'] == common.digest(directory / 'result.json'),
                 'contribution review refers to another local record')
         require(set(review[identity]) == {'record_sha256', 'contributing_actions', 'failure_summary'},
@@ -169,6 +173,7 @@ def export(plan_path, review, destination):
         rows.append({**row, 'native_status': record['status'], 'actual_cost': None,
             'collection_receipt': plan['sha256'], 'record_sha256': common.digest(directory / 'result.json'),
             'total_seconds': record['elapsed_seconds'], 'native_seconds': process['elapsed_seconds'] if process else None,
+            'timing_clock': record['timing_clock'], 'suspended_seconds': record['suspended_seconds'],
             'verification_seconds': record['verification_seconds'], 'stop_reason': process['stop_reason'] if process else None,
             'complete_attempt_deadline_missed': record['complete_attempt_deadline_missed'],
             'checking_input_changes': record['checking_input_changes'],
@@ -197,7 +202,11 @@ def export(plan_path, review, destination):
         'resource_scope': 'Elapsed time covers the complete controller attempt. CPU and RSS samples describe the native CLI process group. The outer workstation guard also covers controller preparation and capture.',
         'unmeasured_per_attempt': {'controller_python_startup_seconds': None, 'outer_guard_startup_seconds': None},
         'controls': plan['controls'],
-        'collection_receipts': {plan['sha256']: plan['source']['commit']}, 'attempts': rows}
+        'collection_receipts': {plan['sha256']: plan['source']['commit']}, 'attempts': rows,
+        'collection_notes': {
+            'system_sleep': [{'attempt': row['id'], 'suspended_seconds': row['suspended_seconds'],
+                              'included_in_total_seconds': True} for row in rows if row['suspended_seconds'] >= 1],
+            'interpretation': 'Complete elapsed time includes detected system sleep. Notes list pauses of at least one second; per-attempt fields retain all observations. Do not subtract pauses or describe these numbers as isolated tool overhead.'}}
     if milestone == 'M2':
         summary['shared_setup'] = plan['shared_setup']
     elif milestone == 'M3':

@@ -39,7 +39,7 @@ They now share that graph while retaining every sample and assertion.
 [PR #588](https://github.com/e6qu/fun-refactor/pull/588) contains the earlier proof, timer and CI repairs.
 Its final seven workflows passed, including all 90 main CI jobs.
 M3 still needs accepted fr-assisted page-count proofs from GLM and Kimi; that is an open milestone condition.
-The latest low-setting comparison retains all 36 attempts; independent grading is pending.
+The latest low-setting comparison retains all 36 attempts; independent checks accepted 26 and retained ten failures.
 Lower reasoning did not produce an fr-assisted page-count patch for either OpenCode2 model.
 
 Fr temporarily inserts submitted tactics into a Lean file before checking them.
@@ -58,6 +58,10 @@ Lean's proposition operators group to the right: `p ∧ q ∧ r` means `p ∧ (q
 Fr's syntax reader grouped them to the left and gave disjunction the same precedence as implication.
 The branch corrects those rules and adds a claim view that separates assumptions from conclusions.
 Python contract tests and the Lean examples pass locally. Generated-parser and Rust checks are next on GitHub.
+
+Library lookup previously lost signatures for Lean declarations whose proofs use pattern cases instead of a named body.
+It returned only a name even when a declared type was present.
+The branch now reads that declared type directly. Its hosted regression checks equation cases and ordinary proofs.
 
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.

@@ -47,7 +47,8 @@ The latest [36-attempt comparison](../tests/agent-eval/proof-writing/local-resul
 uses explicit low reasoning for GLM and Kimi, with Luna's existing high setting.
 All 29 preparation jobs and the unchanged M1/M2 workflows passed before its first call.
 It retains 28 submitted patches and eight timeouts. Another attempt failed after deleting its supplied check file.
-Independent grading is pending. GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
+Independent grading in run 41021159425 accepted 26 attempts; eight timed out, one deleted its check file and one submitted a rejected proof.
+The deleted-check attempt stays failed even though its patch passed. GLM and Kimi supplied no fr-assisted page-count patch. M3 remains open.
 
 Keep all 263 recorded outcomes. The [previous high-setting comparison](../tests/agent-eval/proof-writing/introduction-results/README.md)
 retains its 26 accepted proofs, nine timeouts and one rejected proof, with all 29 published files unchanged.
@@ -76,6 +77,8 @@ Each part lists its assumptions and conclusions; alternatives and bound variable
 The root skill now explicitly calls `proof-task` before drafting. Its existing size limits still apply.
 The syntax reader also needs its new right-grouping and disjunction-precedence rules generated on GitHub.
 Run the actual Rust, Lean, SDK and ten-case controls after generation before freezing a new comparison.
+Library lookup also retains declared types for Lean equation-style definitions and proofs.
+The skill now requests at most four signatures without source bodies; its executable example checks the returned header types.
 Keep the selected models, unchanged claims and original deadline. Do not retry closed slots or copy evaluator proof steps.
 Only submitted patches and summaries may be published; full client records stay local.
 

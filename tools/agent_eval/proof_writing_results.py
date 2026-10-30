@@ -244,8 +244,13 @@ def completion(summary):
 def markdown(summary):
     groups, matched = report.comparisons(summary, TASKS)
     accepted = sum(row['independent_outcome'] == 'passed' for row in summary['attempts'])
+    missing = completion(summary)['missing_accepted_fr_cases']
+    progress = ['Still missing accepted proofs using fr:', '', *[
+        f'- {report.AGENTS[row["profile"]]}: {TASKS[row["task"]]}.' for row in missing], ''] if missing else [
+        'Every selected agent has an accepted proof using fr for each task.', '']
     lines = ['# M3: writing three fixed Lean proofs', '',
         f'All 36 scheduled local CLI attempts were independently checked: {accepted} passed and {36 - accepted} failed.',
+        '', *progress,
         'Each app and model used ordinary tools, then ordinary tools plus fr, twice per task. The source, generated model,',
         'theorem and limits were the same. Agents supplied only proof steps. Controller reference proofs were not supplied.', '',
         '- Access: the model allows staff or the owner.',
@@ -259,8 +264,13 @@ def markdown(summary):
         lines.append(f'| {report.AGENTS[group["profile"]]} | {group["setup"]} | {group["accepted"]} / {group["attempted"]} | '
                      f'{report.number(group["successful_mean_seconds"])} s | {report.number(group["seconds_per_success"])} s |')
     lines += ['', 'Time includes the complete local attempt: CLI startup, model replies, tool calls, checks and patch capture.',
-              'Failed attempts stay in the totals. A valid patch delivered after the deadline still counts as a failed attempt.', '',
-              '| Agent | Pairs accepted in both setups | Ordinary mean | fr mean | Change with fr |',
+              'Failed attempts stay in the totals. A valid patch delivered after the deadline still counts as a failed attempt.']
+    by_id = {row['id']: row for row in summary['attempts']}
+    for pause in summary['collection_notes']['system_sleep']:
+        row = by_id[pause['attempt']]
+        lines += ['', f'`{row["id"]}` includes {report.number(pause["suspended_seconds"])} seconds of detected system sleep '
+                  f'in its {report.number(row["total_seconds"])}-second total.']
+    lines += ['', '| Agent | Pairs accepted in both setups | Ordinary mean | fr mean | Change with fr |',
               '| --- | --- | --- | --- | --- |']
     for pair in matched:
         lines.append(f'| {report.AGENTS[pair["profile"]]} | {pair["pairs"]} | {report.number(pair["ordinary_mean_seconds"])} s | '
@@ -271,13 +281,17 @@ def markdown(summary):
               '| Attempt | Result | Elapsed seconds | Reported tokens | fr contribution or failure |',
               '| --- | --- | --- | --- | --- |']
     for row in summary['attempts']:
-        explanation = '; '.join(row['fr_use']['contributing_actions']) or row['failure_summary'] or 'No fr contribution credited.'
+        details = list(row['fr_use']['contributing_actions'])
+        if row['failure_summary'] is not None:
+            details.append(row['failure_summary'])
+        explanation = '; '.join(details) or 'No fr contribution credited.'
         tokens = json.dumps(row['reported_tokens'], sort_keys=True) if row['reported_usage_complete'] else 'Unknown or incomplete'
         lines.append(f'| {row["id"]} | {row["independent_outcome"]} | {report.number(row["total_seconds"])} | '
                      f'{tokens.replace("|", "&#124;")} | {explanation.replace("|", "&#124;")} |')
     lines += ['', 'The published files contain submitted patches and this summary. Raw prompts, CLI transcripts, source archives',
               'and account data stay local. The summary records the selected model settings, tool versions, checker identity,',
-              'source hashes, collection limits and approved axioms; failures and timeouts are retained.', '']
+              'source hashes, collection limits and approved axioms; failures and timeouts are retained.', '',
+              'The [behavior review](../behavior-review.md) examines GLM and Kimi commands and timing.', '']
     return '\n'.join(lines)
 
 

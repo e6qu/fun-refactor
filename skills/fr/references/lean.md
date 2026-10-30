@@ -38,11 +38,11 @@ A namespace groups names: search for `length` from `List.length`.
 Use that path as `<LEAN_LIBRARY_DIR>` and a name fragment from the model as `<LIBRARY_QUERY>`:
 
 ```sh
-fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --source --bytes 1536 --limit 12
+fr -C '<LEAN_LIBRARY_DIR>' project find '<LIBRARY_QUERY>' --contains --signature --limit 4
 ```
 
-`--contains` matches a literal name fragment. Read the returned headers for argument types
-and order. `--bytes` limits source text across the page; metadata adds output.
+`--contains` matches a literal name fragment. Read headers for argument types and order.
+This returns at most four declarations without proof bodies. Try the actual argument types in your draft.
 Check coverage and remaining results; refine the fragment or follow the cursor.
 Syntax gaps mean the reader missed some code. An empty result with gaps does not show
 that a library fact is absent. Keep the gap visible when reporting the search.
@@ -57,7 +57,7 @@ This command checks and saves the proof. Review the diff and deliver the request
 If asked for `git diff --binary HEAD`, write that output to `change.patch`.
 The separate source-edit workflow needs a saved edit plan; use returned IDs.
 
-These commands also work after a direct edit removed the unfinished-proof marker.
+`prove` also accepts a directly edited proof.
 Keep the named proof-region markers and `.fr/checks.json`. Run supplied package checks once, retain failed-check
 diagnostics and deliver the requested patch.
 

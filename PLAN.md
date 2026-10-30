@@ -61,7 +61,8 @@ Fr previously rejected that pattern before Lean could check the proof.
 
 The [latest 36-attempt comparison](tests/agent-eval/proof-writing/local-results/README.md)
 uses low reasoning for the two OpenCode2 models. It retains 28 submitted patches and eight timeouts.
-Another attempt failed after deleting its supplied check file. Independent grading is pending.
+Independent checks accepted 26 attempts. The other failures are a deleted check file and a rejected proof.
+The check-file failure stays failed even though its submitted proof passes.
 GLM and Kimi still delivered no fr-assisted page-count patch, so M3 remains open.
 One attempt's 142.9-second total includes 42.9 seconds of detected system sleep.
 Keep that time in the results and disclose it when discussing timing.
@@ -82,7 +83,9 @@ The branch now makes `proof-task` list each part's assumptions and conclusions, 
 For page counting, it separates the four valid-input bounds and keeps invalid-input alternatives together.
 The skill asks the agent to inspect that view before drafting. Hosted validation remains required.
 The same work fixes Lean conjunction and disjunction grouping before interpreting those claim parts.
-Next, validate this change and make actual library argument types easier to inspect and try in a small checked draft.
+Library lookup now also retains declared Lean types for definitions and theorems written as pattern cases.
+The skill requests four headers without proof bodies, so the agent can inspect argument types before trying a fact.
+Validate these changes before freezing another comparison.
 Measure whether that produces an earlier useful check and a correct patch; extra searches or fr calls are not success.
 
 Independently grade every submitted patch. Keep the fixed models, claims and 150-second limit.
