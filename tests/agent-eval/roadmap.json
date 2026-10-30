@@ -30,12 +30,12 @@
   },
   "evidence": [
     {
-      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-29-distinct-answers-40883755875",
+      "audit": "python3 -B tools/saved-answer-comparison.py --audit tests/agent-eval/results/2026-10-30-distinct-answers-41034104200",
       "id": "current-answer-storage-cost",
       "kind": "measurement",
-      "path": "tests/agent-eval/results/2026-10-29-distinct-answers-40883755875/result.json",
+      "path": "tests/agent-eval/results/2026-10-30-distinct-answers-41034104200/result.json",
       "scope": "Matched previous and current SDK storage sessions on three familiar projects, with fresh baselines and full answer agreement. The direct CLI/Python comparison has its own current record.",
-      "sha256": "60099bff21126fa6592bd70c90bf32af227efc58da11bdc4ef2280030ed74d2c"
+      "sha256": "63cb89c8f77b6acf0ccb11dca71b2e3076fccc946a43572108829cb4a6be01fa"
     },
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-30-m3-claim-parts-final-flow-facts/result.json",
