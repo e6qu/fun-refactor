@@ -4283,12 +4283,33 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "name",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "identifier"
-                }
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "name",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "identifier"
+                    }
+                  },
+                  {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "FIELD",
+                        "name": "parameters",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "parameters"
+                        }
+                      },
+                      {
+                        "type": "BLANK"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "type": "BLANK"
@@ -5404,21 +5425,68 @@
                     "type": "CHOICE",
                     "members": [
                       {
-                        "type": "FIELD",
-                        "name": "name",
-                        "content": {
-                          "type": "CHOICE",
-                          "members": [
-                            {
-                              "type": "SYMBOL",
-                              "name": "_pattern"
-                            },
-                            {
-                              "type": "SYMBOL",
-                              "name": "rcases_tuple_pattern"
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "SEQ",
+                            "members": [
+                              {
+                                "type": "FIELD",
+                                "name": "name",
+                                "content": {
+                                  "type": "CHOICE",
+                                  "members": [
+                                    {
+                                      "type": "SYMBOL",
+                                      "name": "identifier"
+                                    },
+                                    {
+                                      "type": "SYMBOL",
+                                      "name": "hole"
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "type": "CHOICE",
+                                "members": [
+                                  {
+                                    "type": "FIELD",
+                                    "name": "parameters",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "parameters"
+                                    }
+                                  },
+                                  {
+                                    "type": "BLANK"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "FIELD",
+                            "name": "name",
+                            "content": {
+                              "type": "CHOICE",
+                              "members": [
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "tuple_pattern"
+                                },
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "rcases_tuple_pattern"
+                                },
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "syntax_quotation"
+                                }
+                              ]
                             }
-                          ]
-                        }
+                          }
+                        ]
                       },
                       {
                         "type": "BLANK"

@@ -2752,6 +2752,16 @@
           }
         ]
       },
+      "parameters": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "parameters",
+            "named": true
+          }
+        ]
+      },
       "type": {
         "multiple": false,
         "required": false,
@@ -5541,6 +5551,16 @@
           },
           {
             "type": "tuple_pattern",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "parameters",
             "named": true
           }
         ]
