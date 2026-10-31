@@ -20,6 +20,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -38,6 +39,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -56,6 +58,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -74,6 +77,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -92,6 +96,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -120,6 +125,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -168,13 +174,13 @@
       "scope": "Eighteen examples cover eleven declared Rust/Python features, including compiler checks, program execution and refusal of unsupported cases."
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-31-inline-calc-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-31-lean-column-fix-python-contract/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "python-contract",
       "integrity": "checked",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-31-inline-calc-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-31-lean-column-fix-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results."
     },
     {
@@ -258,6 +264,8 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
+        "sdk/python/tests/test_ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -408,6 +416,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -462,6 +471,7 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
@@ -481,6 +491,8 @@
         "grammars/lean/src/parser.c",
         "grammars/lean/src/scanner.c",
         "grammars/lean/tests/layout.c",
+        "sdk/python/src/fr_ir/ir.py",
+        "sdk/python/tests/test_ir.py",
         "src/spec.rs"
       ],
       "freshness": "stale",
