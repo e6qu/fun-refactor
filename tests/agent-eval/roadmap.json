@@ -110,12 +110,12 @@
       "sha256": "2d0ec1fa8941962ab3a70e2d30934d93793adf39c695ed10420df4e520c6e8d3"
     },
     {
-      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-30-m3-draft-feedback-python-contract/result.json",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-31-inline-calc-python-contract/result.json",
       "id": "python-contract",
       "kind": "semantic-contract",
-      "path": "tests/agent-eval/results/2026-10-30-m3-draft-feedback-python-contract/result.json",
+      "path": "tests/agent-eval/results/2026-10-31-inline-calc-python-contract/result.json",
       "scope": "16 declared Python rules; 495 authored programs and 990 original/renamed cases, including 18 CLI refusals. Checks this declared set of Python examples; broader real-project requirements need separate results.",
-      "sha256": "a2367c204bbe0d9853c5e1ffcbd40962befdd3a889d9e7181915e1a1dbd1f72e"
+      "sha256": "d740cc79d686e54eb8694de8489dd43d7d6bfbb7ac7ee191bc6b8bc0a6286872"
     },
     {
       "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-30-m3-claim-parts-final-index-resolution/result.json",

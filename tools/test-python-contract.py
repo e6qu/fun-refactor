@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('contract', ROOT / 'tools/python-c
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
 retention = contract.profile.load('retain-python-contract')
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-30-m3-draft-feedback-python-contract/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-31-inline-calc-python-contract/result.json'
 
 
 class RegistryAllocations(unittest.TestCase):
