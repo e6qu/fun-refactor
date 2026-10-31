@@ -62,6 +62,20 @@ jobs:
           if operation == 'verify':
               assert tool == 'build' and report == 'check'
           PY
+      - uses: actions/checkout@v7
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/tests/agent-eval/results/
+      - name: Install the pinned formatter before starting build jobs
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - name: Reject formatting errors before compiler and language jobs start
+        if: inputs.operation != 'grade' && inputs.tool_run == 'build'
+        run: cargo +1.99.1 fmt --all --check
   audit:
     name: Recheck original proof submissions with a rebuilt auditor
     needs: configuration
@@ -333,7 +347,7 @@ jobs:
           sparse-checkout: |
             /*
             !/tests/agent-eval/results/
-      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - run: rustup toolchain install 1.99.1 --profile minimal
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
@@ -354,7 +368,6 @@ jobs:
         with:
           key: m3-proof-writing
           cache-on-failure: true
-      - run: cargo fmt --all --check
       - name: Check generated Lean models and unsafe-input refusals
         run: |
           cc -std=c11 -Wall -Wextra -Werror -I grammars/lean/src grammars/lean/tests/layout.c -o "$RUNNER_TEMP/lean-layout"
