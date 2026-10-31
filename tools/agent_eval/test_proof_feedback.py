@@ -82,6 +82,64 @@ class ProofFeedbackTests(unittest.TestCase):
         self.assertEqual([item['left']['value'] for item in claim['proposition']['premise']['propositions']], [0, 1])
         self.assertIsNone(feedback.case_details('M3-construction')['draft'])
 
+    def test_page_count_has_a_separate_four_slot_plan_and_the_original_claim(self):
+        schedule = plan.prepare(plan.ROOT, 'M3-page-count')
+        self.assertEqual(len(schedule['attempts']), 4)
+        self.assertFalse(schedule['live_calls_enabled'])
+        self.assertEqual([row['profile'] for row in schedule['attempts']],
+                         ['opencode2-glm-flash', 'opencode2-kimi-k3'] * 2)
+        self.assertEqual({row['task'] for row in schedule['attempts']}, {'page-count'})
+        self.assertEqual({row['setup'] for row in schedule['attempts']}, {'fr'})
+        self.assertEqual(schedule['requirements']['limits'], {**local.LIMITS, 'parallel_attempts': 1})
+        self.assertEqual(schedule['requirements']['client_finish_seconds'], 10)
+        self.assertTrue(all(profile['model']['variant'] == 'low' for profile in schedule['profiles'].values()))
+        self.assertEqual(feedback.property_for({'object_digest': 'fixed'}, 'M3-page-count'),
+                         feedback.proof.property_for('page-count', {'object_digest': 'fixed'}))
+        self.assertIn('tests/agent-eval/proof-writing/fixtures/src/pages.rs', schedule['bindings'])
+        self.assertIn('tests/agent-eval/proof-writing/controls/page-count.lean', schedule['bindings'])
+        with mock.patch.object(feedback.proof, 'prepare', return_value='canonical') as preparing:
+            self.assertEqual(feedback.prepare_inputs('fr', 'project', 'output', 'M3-page-count'), 'canonical')
+        preparing.assert_called_once_with('page-count', 'fr', 'project', 'output')
+        prompt = local.prompt('page-count', 'fr',
+                              {'lean': {'source_root': '/pinned/lean'}, 'lake': {'path': '/pinned/lake'}},
+                              'M3-page-count')
+        for required in ('eleven items', 'invalid-input', 'Preserve provided .fr/checks.json',
+                         'Run the supplied checks once', 'Do not start a nested guard', 'call another model'):
+            self.assertIn(required, prompt)
+        self.assertNotIn('controls/page-count.lean', prompt)
+        self.assertNotIn('initial-tactics.txt', prompt)
+
+    def test_page_count_prediction_requires_each_agent_and_all_four_honest_outcomes(self):
+        rows = [{**row, 'native_status': 'completed', 'stop_reason': None, 'total_seconds': 30.0,
+                 'complete_attempt_deadline_missed': False, 'independent_check': {'patch_accepted': True},
+                 'proof_observations': {'execution_validity': 'valid', 'proof_check_passed': True,
+                                        'proof_written_with_fr': True, 'package_check_passed': True},
+                 'collection_error_recorded': False, 'checking_input_changes': [], 'suspended_seconds': 0,
+                 'independent_outcome': 'passed' if row['repetition'] == 1 else 'failed'}
+                for row in plan.prepare(plan.ROOT, 'M3-page-count')['attempts']]
+        self.assertTrue(feedback.page_count_decision(rows)['prediction_met'])
+        no_kimi = copy.deepcopy(rows)
+        for row in no_kimi:
+            row['independent_outcome'] = 'passed' if row['profile'] == 'opencode2-glm-flash' else 'failed'
+        self.assertFalse(feedback.page_count_decision(no_kimi)['prediction_met'])
+        for alteration in ({'checking_input_changes': ['.fr/checks.json']},
+                           {'collection_error_recorded': True}, {'suspended_seconds': 2}):
+            changed = copy.deepcopy(rows)
+            changed[-1].update(alteration)
+            self.assertFalse(feedback.page_count_decision(changed)['prediction_met'])
+        late = copy.deepcopy(rows)
+        late[0].update(total_seconds=150.01, native_status='failed', stop_reason='wall_seconds')
+        with self.assertRaisesRegex(ValueError, 'remains failed'):
+            feedback.page_count_decision(late)
+        unobserved = copy.deepcopy(rows)
+        unobserved[0]['proof_observations']['package_check_passed'] = None
+        with self.assertRaisesRegex(ValueError, 'unobserved construction checks'):
+            feedback.page_count_decision(unobserved)
+        with self.assertRaises(ValueError):
+            feedback.page_count_decision(rows[:-1])
+        with self.assertRaises(ValueError):
+            feedback.page_count_decision(list(reversed(rows)))
+
     def test_construction_requires_all_four_complete_outcomes(self):
         rows = [{**row, 'native_status': 'completed', 'stop_reason': None, 'total_seconds': 30.0,
                  'complete_attempt_deadline_missed': False, 'independent_check': {'patch_accepted': True},
@@ -177,7 +235,7 @@ class ProofFeedbackTests(unittest.TestCase):
     def test_controller_charges_initial_check_to_both_conditions_and_changes_only_visibility(self):
         prompts = {}
         for milestone, condition in (('M3-feedback', 'self-check'), ('M3-feedback', 'supplied-feedback'),
-                                     ('M3-construction', 'fr')):
+                                     ('M3-construction', 'fr'), ('M3-page-count', 'fr')):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve(); original = root / 'original'; original.mkdir()
                 (original / 'source.rs').write_text('pub fn quotient(a:i64,b:i64)->i64 { a / b }\n')

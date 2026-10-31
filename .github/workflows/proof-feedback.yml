@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       study:
-        description: Explicitly select M3-feedback or M3-construction
+        description: Explicitly select M3-feedback, M3-construction or M3-page-count
         required: true
         type: string
       operation:
@@ -49,7 +49,7 @@ jobs:
         env:
           ARTIFACT_RUN: ${{ inputs.artifact_run }}
           OPERATION: ${{ inputs.operation }}
-        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit() and os.environ["OPERATION"] in {"prepare", "grade"} and os.environ["STUDY"] in {"M3-feedback", "M3-construction"}'
+        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit() and os.environ["OPERATION"] in {"prepare", "grade"} and os.environ["STUDY"] in {"M3-feedback", "M3-construction", "M3-page-count"}'
       - name: Check diagnostic scheduling, decisions and existing collector behavior
         run: |
           python3 -B -m unittest agent_eval.test_proof_feedback agent_eval.test_selected_plan \
@@ -155,7 +155,7 @@ jobs:
         run: >-
           python3 -B -m agent_eval.proof_feedback grade --fr "$RUNNER_TEMP/feedback-tool/fr"
           --artifacts "$RUNNER_TEMP/feedback-original"
-          --data ${{ inputs.study == 'M3-construction' && 'tests/agent-eval/proof-construction/local-results' || 'tests/agent-eval/proof-feedback/local-results' }}
+          --data ${{ inputs.study == 'M3-page-count' && 'tests/agent-eval/proof-page-count/local-results' || inputs.study == 'M3-construction' && 'tests/agent-eval/proof-construction/local-results' || 'tests/agent-eval/proof-feedback/local-results' }}
           --output "$RUNNER_TEMP/feedback-checked" --control-run "$CONTROL_RUN" --study "$STUDY"
       - uses: actions/upload-artifact@v7
         if: inputs.operation == 'grade' && always() && (steps.grade.outcome == 'success' || steps.grade.outcome == 'failure')

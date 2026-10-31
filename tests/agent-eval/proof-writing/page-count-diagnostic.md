@@ -1,7 +1,8 @@
 # Next diagnostic: finish the page-count proof
 
 This is a planned four-attempt diagnostic, not a completed result.
-Prepare its separate execution plan and checker controls before making calls.
+The `M3-page-count` study has a separate four-slot schedule and shares M3's original task preparation.
+Pass its checker controls and freeze its execution plan before making calls.
 Keep the full thirty-six-attempt comparison paused until this diagnostic supports restarting it.
 
 ## Question and prediction
@@ -49,6 +50,14 @@ An accepted model proof leaves the connection to Rust execution unproved.
 
 Do not reuse a closed plan, overwrite an earlier record or substitute a different model.
 If the local guard refuses, stop local work. Do not raise its limits.
+
+The executable requirements live in [requirements.json](../proof-page-count/requirements.json).
+The `proof-page-count-prepare` workflow group checks scripted client replies and seven patch controls on GitHub.
+It takes the passing M3 native build run as `collection_run`.
+The later `proof-page-count-grade` group takes that preparation run and checks all four submitted patches independently.
+Neither workflow makes model calls. Local calls use the explicit `M3-page-count` selection in `selected_local`.
+The plan records the original page-count source, claim generator and isolated reference proof as checking inputs.
+The reference proof stays outside the projects supplied to agents.
 
 ## Count complete results
 

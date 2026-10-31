@@ -19,7 +19,13 @@ check = proof.check
 
 
 def case_details(milestone):
-    require(milestone in {'M3-feedback', 'M3-construction'}, 'select the explicit small proof study')
+    require(milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'}, 'select the explicit small proof study')
+    if milestone == 'M3-page-count':
+        entry = proof.CASES['page-count']
+        return {'directory': CASE_DIRECTORIES[milestone], 'task': 'page-count', 'source': entry['path'],
+                'fixture': None, 'property': entry['property'], 'draft': None,
+                'arithmetic': {'source': 'signed-64', 'model': 'Lean mathematical Int with truncating division',
+                               'source_implementation_proved': False}}
     if milestone == 'M3-feedback':
         return {'directory': DIRECTORY, 'task': TASK, 'source': 'src/quotient.rs',
                 'fixture': 'fixtures/quotient.rs', 'property': 'nonnegative', 'draft': 'initial-tactics.txt',
@@ -39,6 +45,8 @@ def case_details(milestone):
 
 
 def property_for(task, milestone):
+    if milestone == 'M3-page-count':
+        return proof.property_for('page-count', task)
     details = case_details(milestone)
     a, b = proof.variable('a'), proof.variable('b')
     zero, one = proof.integer(0, 'Int'), proof.integer(1, 'Int')
@@ -50,6 +58,8 @@ def property_for(task, milestone):
 
 
 def prepare_inputs(binary, project, output, milestone):
+    if milestone == 'M3-page-count':
+        return proof.prepare('page-count', binary, project, output)
     details = case_details(milestone)
     require(not project.exists(), 'prepare the diagnostic in a new project')
     project.mkdir(parents=True)
@@ -92,6 +102,12 @@ def prepare_inputs(binary, project, output, milestone):
 
 
 def prompt(checkers, milestone):
+    if milestone == 'M3-page-count':
+        request = prepare(ROOT, milestone)['requirements']['tasks']['page-count']['request']
+        return (request + '\n\nTactics are proof steps. Read all parts of the fixed claim before writing a draft. '
+                'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
+                str(checkers['lean']['source_root']) + '. A successful fr command can report passed=false; read the report. '
+                'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
     if milestone == 'M3-construction':
         request = prepare(ROOT, milestone)['requirements']['tasks']['scaled-total']['request']
         return (request + '\n\nTactics are proof steps. Read the fixed claim before writing a draft. '
@@ -177,12 +193,13 @@ def controls(binary, output, native, milestone):
         candidate = output / ('candidate-' + variant)
         common.checkout(original, candidate)
         if variant in {'reference', 'changed-source', 'missing-patch', 'wrong-patch'}:
-            tactics = ROOT / details['directory'] / 'controls/reference.lean'
+            tactics = (ROOT / proof.DIRECTORY / 'controls/page-count.lean' if milestone == 'M3-page-count' else
+                       ROOT / details['directory'] / 'controls/reference.lean')
             common.fr(binary, candidate, ['spec', 'prove', prepared['target'], '--from', str(tactics), '--write'],
                       output / (variant + '-write.json'))
         if variant == 'changed-source':
             source = candidate / prepared['source']
-            operator = ' / ' if milestone == 'M3-feedback' else ' * '
+            operator = ' / ' if milestone in {'M3-feedback', 'M3-page-count'} else ' * '
             require(source.read_text().count(operator) == 1, 'change exactly the source arithmetic operator')
             source.write_text(source.read_text().replace(operator, ' + ', 1))
         if variant == 'changed-claim':
@@ -244,7 +261,7 @@ def outcomes(rows, milestone):
                             not row['checking_input_changes'] and not row['collection_error_recorded'] and
                             row['independent_check']['patch_accepted'] is True,
                             'a timed-out diagnostic remains failed even if its patch passes')
-                    if milestone == 'M3-construction':
+                    if milestone in {'M3-construction', 'M3-page-count'}:
                         require(construction_checks_passed(row), 'unobserved construction checks remain failed')
             counts[condition] = sum(row['independent_outcome'] == 'passed' for row in selected)
         result[profile] = {'accepted': counts, 'execution_usable': usable}
@@ -276,6 +293,14 @@ def construction_decision(rows):
     requirements = prepare(ROOT, 'M3-construction')['requirements']
     return {'profiles': result, 'all_four_completed': ready,
             'decision': requirements['decision_if_all_four_pass' if ready else 'decision_if_any_fail']}
+
+
+def page_count_decision(rows):
+    result = outcomes(rows, 'M3-page-count')
+    ready = all(row['execution_usable'] and row['accepted']['fr'] >= 1 for row in result.values())
+    requirements = prepare(ROOT, 'M3-page-count')['requirements']
+    return {'profiles': result, 'prediction_met': ready,
+            'decision': requirements['decision_if_prediction_met' if ready else 'decision_if_prediction_fails']}
 
 
 def grade_public(data, artifacts, binary, output, control_run, milestone):
@@ -319,7 +344,7 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
                 verdict = grading.grade(image, task, original, prepared, binary, rust, patch,
                                         output / row['id'], milestone=milestone, tools={})
                 accepted = row['native_status'] == 'completed' and verdict['passed']
-                if milestone == 'M3-construction':
+                if milestone in {'M3-construction', 'M3-page-count'}:
                     accepted = accepted and construction_checks_passed(row)
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],
@@ -335,17 +360,24 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
 
 
 def markdown(summary):
-    if summary['study'] == 'M3-construction':
-        result = construction_decision(summary['attempts'])
-        lines = ['# Can the agents construct the multiplication proof and finish?', '',
-                 'Four fresh development attempts start with an unfinished theorem and the same corrected instructions.',
+    if summary['study'] in {'M3-construction', 'M3-page-count'}:
+        if summary['study'] == 'M3-page-count':
+            result = page_count_decision(summary['attempts'])
+            title = '# Can both agents finish the page-count proof?'
+            introduction = ('Four attempts use fr and the unchanged M3 page-count claim. '
+                            'The prediction requires at least one complete accepted attempt from each agent.')
+        else:
+            result = construction_decision(summary['attempts'])
+            title = '# Can the agents construct the multiplication proof and finish?'
+            introduction = 'Four fresh development attempts start with an unfinished theorem and the same corrected instructions.'
+        lines = [title, '', introduction,
                  'Each complete attempt keeps its 150-second limit and unchanged check settings.',
                  'This single-condition check has no timing baseline or causal improvement claim.', '',
                  result['decision'], '', '| Agent | Complete accepted attempts / 2 |', '| --- | ---: |']
         for profile, row in result['profiles'].items():
             lines.append(f'| {profile} | {row["accepted"]["fr"]} |')
-        lines += ['', 'Only the fixed mathematical model is proved; source overflow and equivalence remain open.',
-                  'Only submitted patches and summaries are public. Actual charges and unavailable usage stay unknown.', '',
+        lines += ['', 'Only the fixed mathematical model is proved; the connection to source execution remains unproved.',
+                  'Only patches and reviewed summaries are public. Raw agent records stay local.', '',
                   '| Attempt | Outcome | Complete seconds | Patch |', '| --- | --- | ---: | --- |']
         for row in summary['attempts']:
             patch = '[patch](' + row['patch_file'] + ')' if row['patch_file'] else 'none'
@@ -386,7 +418,7 @@ if __name__ == '__main__':
     reporting = commands.add_parser('report')
     reporting.add_argument('--data', type=Path, required=True)
     for command in (preparing, grading, reporting):
-        command.add_argument('--study', choices=('M3-feedback', 'M3-construction'), required=True)
+        command.add_argument('--study', choices=('M3-feedback', 'M3-construction', 'M3-page-count'), required=True)
     args = parser.parse_args()
     if args.operation == 'controls':
         print(json.dumps(controls(args.fr.resolve(), args.output.resolve(), json.loads(args.native.read_text()), args.study)))
