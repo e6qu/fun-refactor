@@ -211,6 +211,7 @@ agent-written tactics and pinned checker. Neither class generates proof tactics.
 Rejected attempts distinguish `draft_location` in the supplied tactics from `checked_location`
 in Lean's generated file. Each location has `path`, one-based `line` and `column`, and
 `source_excerpt`; unavailable locations or excerpts are `null`.
+fr converts Lean's zero-based columns to these one-based locations.
 For example, an unknown tactic on draft line 2 stays line 2 even when Lean checks it on generated line 31.
 Each diagnostic also has `code`, Lean's error category, or `null` for an untagged message.
 For example, `exact missingLemma` reports `lean.unknownIdentifier` and points to that name in the draft.

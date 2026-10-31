@@ -2175,13 +2175,17 @@ fn lean_diagnostics(
         if let Some(capture) = header.captures(line) {
             let marker = capture.get(0).unwrap();
             let mut parts = line[..marker.start()].rsplitn(3, ':');
-            let column = parts.next().and_then(|part| part.parse::<usize>().ok());
+            // Lean prints zero-based columns; public locations are one-based.
+            let column = parts
+                .next()
+                .and_then(|part| part.parse::<usize>().ok())
+                .and_then(|column| column.checked_add(1));
             let line_number = parts.next().and_then(|part| part.parse::<usize>().ok());
             let path = parts.next();
             let checked_location = path
                 .zip(line_number)
                 .zip(column)
-                .filter(|((_, line), column)| *line > 0 && *column > 0)
+                .filter(|((_, line), _)| *line > 0)
                 .map(|((path, line), column)| ProofDiagnosticLocation {
                     path: path.into(),
                     line,
@@ -4924,7 +4928,7 @@ mod tests {
         let assumptions = (0..12)
             .map(|i| format!("h{i} : True\n"))
             .collect::<String>();
-        let output = format!("/tmp/check.lean:34:5: error: unknown tactic\n/tmp/check.lean:33:3: error: unsolved goals\n{assumptions}⊢ True\n  ∧ True\n");
+        let output = format!("/tmp/check.lean:34:4: error: unknown tactic\n/tmp/check.lean:33:2: error: unsolved goals\n{assumptions}⊢ True\n  ∧ True\n");
         let diagnostics = super::lean_diagnostics(
             &output,
             Path::new("/tmp/check.lean"),
@@ -4964,7 +4968,7 @@ mod tests {
             proof_digest: String::new(),
             receipt: String::new(),
         };
-        let output = "/tmp/check.lean:3:11: error(lean.unknownIdentifier): Unknown identifier `missingLemma`\nmore detail\nDependency.lean:8:2: warning(linter.unusedVariables): unused variable\n/tmp/check.lean:1:1: error: unsolved goals\n⊢ True\n";
+        let output = "/tmp/check.lean:3:10: error(lean.unknownIdentifier): Unknown identifier `missingLemma`\nmore detail\nDependency.lean:8:0: warning(linter.unusedVariables): unused variable\n/tmp/check.lean:1:0: error: unsolved goals\n⊢ True\n";
         let diagnostics = super::lean_diagnostics(
             output,
             Path::new("/tmp/check.lean"),
@@ -4991,18 +4995,21 @@ mod tests {
             Some("  exact missingLemma")
         );
         assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 3);
+        assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().column, 11);
         assert_eq!(diagnostics[1].severity, "warning");
         assert_eq!(
             diagnostics[1].code.as_deref(),
             Some("linter.unusedVariables")
         );
         assert!(diagnostics[1].draft_location.is_none());
+        assert_eq!(diagnostics[1].checked_location.as_ref().unwrap().column, 1);
         assert_eq!(
             diagnostics[1].checked_location.as_ref().unwrap().path,
             Path::new("Dependency.lean")
         );
         assert!(diagnostics[2].code.is_none());
         assert!(diagnostics[2].draft_location.is_none());
+        assert_eq!(diagnostics[2].checked_location.as_ref().unwrap().column, 1);
         assert_eq!(diagnostics[2].context, ["⊢ True"]);
     }
 

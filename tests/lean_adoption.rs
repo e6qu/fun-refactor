@@ -174,7 +174,7 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         .unwrap();
     let location = diagnostic.draft_location.as_ref().unwrap();
     assert_eq!(location.path, proof);
-    assert_eq!((location.line, location.column), (4, 3));
+    assert_eq!((location.line, location.column), (4, 4));
     assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
     assert!(diagnostic.checked_location.as_ref().unwrap().line > location.line);
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
