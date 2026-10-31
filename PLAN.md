@@ -88,11 +88,12 @@ The next tasks stay inside this milestone PR:
    Check coded errors and warnings, plain messages, dependency locations and a real CLI proof rejection.
    Update the strict Python reader with the same required fields. Rebuild and validate on GitHub.
    Keep all four original construction outcomes unchanged; the timeout cannot become a later success.
-3. Review the next experiment before new calls. Name the obstacle, prediction, fixed inputs and decision rule.
-   The syntax controls and exact rebuilt-command replay passed. Finish checking the newly exposed diagnostics before another wording change.
-   Keep each agent's first passing proof, package check, delivered patch and session finish separate.
-4. Return to the first unresolved page-count proof step after the reader repair and workflow evidence pass review.
-   Resume the complete comparison only after a concrete change has supporting evidence and relevant CI passes.
+3. Prepare the [four-attempt page-count diagnostic](tests/agent-eval/proof-writing/page-count-diagnostic.md) after the diagnostic repair qualifies.
+   Reuse the unchanged M3 page-count source, model and claim. Keep the reference outside fresh agent projects.
+   Freeze two attempts each for GLM and Kimi, all with fr, with the same model settings and 150-second limit.
+   Each agent needs at least one complete accepted proof before restarting the full comparison.
+   If either has none, inspect the first unresolved step and keep the broad comparison paused.
+4. Restart the complete comparison only after that page-count result and relevant CI pass.
    Keep the same models, claims, two repetitions and 150-second benchmark.
    Independently grade submissions and preserve every failure alongside the 335 M3 outcomes and twelve separate diagnostic outcomes.
 
