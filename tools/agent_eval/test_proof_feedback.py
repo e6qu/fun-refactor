@@ -54,6 +54,61 @@ class ProofFeedbackTests(unittest.TestCase):
         self.assertIn('Fr and its project skill are installed', first)
         self.assertNotIn('Fr is not provided', first)
 
+    def test_construction_keeps_four_fresh_slots_and_the_shared_execution_rules(self):
+        schedule = plan.prepare(plan.ROOT, 'M3-construction')
+        self.assertEqual(len(schedule['attempts']), 4)
+        self.assertFalse(schedule['live_calls_enabled'])
+        self.assertEqual({row['setup'] for row in schedule['attempts']}, {'fr'})
+        self.assertEqual({row['task'] for row in schedule['attempts']}, {'scaled-total'})
+        for profile in schedule['profiles']:
+            self.assertEqual([row['repetition'] for row in schedule['attempts'] if row['profile'] == profile], [1, 2])
+            self.assertEqual(schedule['profiles'][profile]['model']['variant'], 'low')
+        checkers = {'lean': {'source_root': '/pinned/lean'}, 'lake': {'path': '/pinned/lake'}}
+        prompt = local.prompt('scaled-total', 'fr', checkers, 'M3-construction')
+        for required in ('theorem starts without a proof', 'Preserve provided .fr/checks.json',
+                         'Run the supplied checks once', 'Do not start a nested guard', 'call another model'):
+            self.assertIn(required, prompt)
+        self.assertNotIn('Int.mul_le_mul_of_nonneg_left', prompt)
+        self.assertNotIn('initial-tactics.txt', prompt)
+
+    def test_construction_claim_matches_the_fixed_model_claim(self):
+        claim = feedback.property_for({'object_digest': 'fixed'}, 'M3-construction')
+        self.assertEqual(claim['name'], 'at_least_input')
+        self.assertEqual(claim['parameters'], [{'name': name, 'lean_type': 'Int'} for name in ('a', 'b')])
+        self.assertEqual(claim['proposition']['conclusion'], {'kind': 'less-or-equal',
+            'left': {'kind': 'variable', 'name': 'a'}, 'right': {'kind': 'model', 'arguments': [
+                {'kind': 'variable', 'name': 'a'}, {'kind': 'variable', 'name': 'b'}]}})
+        self.assertEqual(claim['proposition']['premise']['kind'], 'and')
+        self.assertEqual([item['left']['value'] for item in claim['proposition']['premise']['propositions']], [0, 1])
+        self.assertIsNone(feedback.case_details('M3-construction')['draft'])
+
+    def test_construction_requires_all_four_complete_outcomes(self):
+        rows = [{**row, 'native_status': 'completed', 'stop_reason': None, 'total_seconds': 30.0,
+                 'complete_attempt_deadline_missed': False, 'independent_check': {'patch_accepted': True},
+                 'proof_observations': {'execution_validity': 'valid', 'proof_check_passed': True,
+                                        'proof_written_with_fr': True, 'package_check_passed': True},
+                 'collection_error_recorded': False,
+                 'checking_input_changes': [], 'suspended_seconds': 0, 'independent_outcome': 'passed'}
+                for row in plan.prepare(plan.ROOT, 'M3-construction')['attempts']]
+        self.assertTrue(feedback.construction_decision(rows)['all_four_completed'])
+        failed = copy.deepcopy(rows)
+        failed[0].update(native_status='failed', stop_reason='wall_seconds', total_seconds=150.1,
+                         complete_attempt_deadline_missed=True, independent_outcome='failed')
+        self.assertFalse(feedback.construction_decision(failed)['all_four_completed'])
+        changed = copy.deepcopy(rows); changed[0].update(checking_input_changes=['.fr/checks.json'],
+                                                         native_status='failed', independent_outcome='failed')
+        self.assertFalse(feedback.construction_decision(changed)['all_four_completed'])
+        changed[0]['independent_outcome'] = 'passed'
+        with self.assertRaisesRegex(ValueError, 'remains failed'):
+            feedback.construction_decision(changed)
+        unobserved = copy.deepcopy(rows); unobserved[0]['proof_observations']['package_check_passed'] = None
+        with self.assertRaisesRegex(ValueError, 'unobserved construction checks'):
+            feedback.construction_decision(unobserved)
+        unobserved[0]['independent_outcome'] = 'failed'
+        self.assertFalse(feedback.construction_decision(unobserved)['all_four_completed'])
+        with self.assertRaises(ValueError):
+            feedback.construction_decision(rows[:-1])
+
     def test_all_decisions_include_harm_and_keep_mixed_results_inconclusive(self):
         expected = {(2, 0): 'clearer feedback exposure', (2, 2): 'full-proof construction',
                     (0, 0): 'diagnostic comprehension', (0, 2): 'supplied feedback obstructs'}
@@ -121,41 +176,44 @@ class ProofFeedbackTests(unittest.TestCase):
 
     def test_controller_charges_initial_check_to_both_conditions_and_changes_only_visibility(self):
         prompts = {}
-        for condition in ('self-check', 'supplied-feedback'):
+        for milestone, condition in (('M3-feedback', 'self-check'), ('M3-feedback', 'supplied-feedback'),
+                                     ('M3-construction', 'fr')):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve(); original = root / 'original'; original.mkdir()
                 (original / 'source.rs').write_text('pub fn quotient(a:i64,b:i64)->i64 { a / b }\n')
                 inputs = root / 'inputs'; inputs.mkdir()
-                receipt = local.tasks.retain_seed(original, {'task': feedback.TASK, 'original': local.tasks.sources(original)}, inputs)
+                schedule = plan.prepare(plan.ROOT, milestone)
+                row = next(r for r in schedule['attempts'] if r['setup'] == condition)
+                receipt = local.tasks.retain_seed(original, {'task': row['task'], 'original': local.tasks.sources(original)}, inputs)
                 executable = root / 'executable'; executable.write_text('#!/bin/sh\nexit 0\n'); executable.chmod(0o755)
                 binary = {'path': str(executable), 'sha256': local.hash_file(executable)}
                 library = root / 'library'; library.mkdir()
                 checkers = {name: dict(binary) for name in ('python', 'rustc', 'cargo', 'rustdoc', 'lean', 'lake', 'leanc')}
                 checkers['lean']['source_root'] = str(library)
-                schedule = plan.prepare(plan.ROOT, 'M3-feedback')
-                row = next(r for r in schedule['attempts'] if r['setup'] == condition)
                 packet = {'source': {'native_inputs': {}}, 'schedule': schedule, 'implementation': {},
                           'limits': dict(local.LIMITS), 'client_finish_seconds': local.CLIENT_FINISH_SECONDS,
                           'public_check_environment': dict(local.PUBLIC_CHECK_ENVIRONMENT),
                           'binaries': {'fr': dict(binary), 'opencode2': dict(binary)}, 'components': {},
-                          'checkers': checkers, 'seeds': {feedback.TASK: {'archive': str(inputs / 'original.tar.gz'), 'receipt': receipt}},
-                          'formal_inputs': {feedback.TASK: {'spec': 'specs/Fixed.lean', 'obligation': 'fixed'}},
+                          'checkers': checkers, 'seeds': {row['task']: {'archive': str(inputs / 'original.tar.gz'), 'receipt': receipt}},
+                          'formal_inputs': {row['task']: {'spec': 'specs/Fixed.lean', 'obligation': 'fixed'}},
                           'prompts': {r['id']: 'Fixed repair request.' for r in schedule['attempts']}}
                 packet['sha256'] = feedback.hashlib.sha256(plan.encoded(packet)).hexdigest()
-                self.addCleanup(shutil.rmtree, root / 'workspaces' / ('fr-m3-feedback-' + packet['sha256'][:12]), ignore_errors=True)
+                self.addCleanup(shutil.rmtree, root / 'workspaces' / ('fr-' + milestone.lower() + '-' + packet['sha256'][:12]), ignore_errors=True)
                 path = root / 'plan.json'; path.write_text(json.dumps(packet))
                 clock = [0.0]
                 initial = json.dumps({'passed': False, 'receipt': None, 'diagnostics': [{'message': 'argument type mismatch'}]})
 
                 def initial_check(binary, project, prepared, env, output, seconds):
+                    self.assertEqual(milestone, 'M3-feedback')
                     self.assertEqual(seconds, 150)
                     clock[0] += 3
                     output.write_text(initial)
                     return initial, len(initial.encode())
 
                 def native(argv, stdin, stdout, stderr, workspace, **kwargs):
-                    self.assertEqual(kwargs['wall_seconds'], 147)
-                    self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] - len(initial.encode()))
+                    self.assertEqual(kwargs['wall_seconds'], 147 if milestone == 'M3-feedback' else 150)
+                    self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] -
+                                     (len(initial.encode()) if milestone == 'M3-feedback' else 0))
                     prompts[condition] = argv[-1]
                     session = argv[argv.index('--session') + 1]
                     stdout.write((json.dumps({'type': 'step_finish', 'sessionID': session,
@@ -178,9 +236,12 @@ class ProofFeedbackTests(unittest.TestCase):
                      mock.patch.object(local, 'bounded_run', side_effect=native), \
                      mock.patch.object(local, 'record_opencode_accounting'):
                     record = local.attempt(path, row['id'])
-                self.assertEqual(record['initial_check_seconds'], 3)
-                self.assertEqual(record['elapsed_seconds'], 8)
-                self.assertEqual(record['initial_feedback_supplied'], condition == 'supplied-feedback')
+                if milestone == 'M3-feedback':
+                    self.assertEqual(record['initial_check_seconds'], 3)
+                    self.assertEqual(record['initial_feedback_supplied'], condition == 'supplied-feedback')
+                else:
+                    self.assertNotIn('initial_check_seconds', record)
+                self.assertEqual(record['elapsed_seconds'], 8 if milestone == 'M3-feedback' else 5)
                 self.assertEqual(record['checking_input_changes'], [])
                 shutil.rmtree(Path(record['project']).parent.parent)
         self.assertEqual(prompts['self-check'], prompts['supplied-feedback'].split('\n\nInitial fr rejection report')[0])

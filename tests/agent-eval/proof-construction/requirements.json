@@ -1,6 +1,11 @@
 {
   "purpose": "Check construction and complete delivery on one fresh development example; no causal improvement or full M3 claim",
   "task": "scaled-total",
+  "tasks": {
+    "scaled-total": {
+      "request": "Write proof steps for the one fixed Lean theorem in the supplied project. The theorem starts without a proof. Keep the source, model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and write the accepted proof into the marked region. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the declared mathematical model, not the Rust program's overflow behavior or its connection to the model."
+    }
+  },
   "source": "fixtures/scaled.rs",
   "project_source": "src/scaled.rs",
   "symbol": "scaled_total",
@@ -9,7 +14,8 @@
   "tactics_file": ".fr/proof-tactics",
   "model_claim": "a <= scaled_total(a,b) under 0 <= a and 1 <= b, using Lean Int arithmetic",
   "source_claim": "Signed-64 overflow and source-to-model equivalence remain unproved",
-  "starting_proof": "Empty proof region; no supplied tactics or initial error report",
+  "starting_proof": "empty",
+  "initial_error_report": false,
   "profiles_file": "../proof-writing/profiles.json",
   "profiles": ["opencode2-glm-flash", "opencode2-kimi-k3"],
   "client_release": "OpenCode2 2.0.32",
@@ -25,13 +31,8 @@
     "parallel_attempts": 1
   },
   "client_finish_seconds": 10,
-  "lean": "4.28.0",
-  "local_python": "3.14.6",
-  "local_rust": "1.98.1",
-  "hosted_rust": "1.99.1",
-  "approved_axioms": ["Classical.choice", "Quot.sound", "propext"],
   "required_observations": ["first passing proof check", "passing supplied package check", "submitted patch", "completed session", "preserved checking inputs"],
-  "success": "Independent patch acceptance, unchanged protected inputs and completed delivery within 150 seconds",
+  "success": "Independent patch acceptance, observed fr proof checking and writing, a passing supplied package check, unchanged protected inputs and completed delivery within 150 seconds",
   "decision_if_all_four_pass": "Inspect the first unresolved page-count construction step; this small case does not close M3",
   "decision_if_any_fail": "Keep every outcome and inspect the first unresolved failure before another instruction change or paid batch",
   "publication": "Submitted patches and summaries only; native records, prompts and execution packets stay local"

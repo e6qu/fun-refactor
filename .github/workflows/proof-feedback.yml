@@ -1,7 +1,11 @@
-name: Check the small arithmetic-feedback diagnostic
+name: Check small proof-writing experiments
 on:
   workflow_call:
     inputs:
+      study:
+        description: Explicitly select M3-feedback or M3-construction
+        required: true
+        type: string
       operation:
         description: Prepare controls without model calls, or independently grade submitted patches
         required: true
@@ -14,7 +18,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: proof-feedback-${{ inputs.operation }}-${{ github.ref }}
+  group: proof-diagnostic-${{ inputs.study }}-${{ inputs.operation }}-${{ github.ref }}
   cancel-in-progress: true
 env:
   PYTHONPATH: tools:sdk/python/src
@@ -23,6 +27,7 @@ env:
   FR_LEAN_JOBS: '1'
   LEAN_NUM_THREADS: '1'
   RAYON_NUM_THREADS: '1'
+  STUDY: ${{ inputs.study }}
 jobs:
   diagnostic:
     runs-on: ubuntu-24.04
@@ -44,7 +49,7 @@ jobs:
         env:
           ARTIFACT_RUN: ${{ inputs.artifact_run }}
           OPERATION: ${{ inputs.operation }}
-        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit() and os.environ["OPERATION"] in {"prepare", "grade"}'
+        run: python3 -c 'import os; assert os.environ["ARTIFACT_RUN"].isdigit() and os.environ["OPERATION"] in {"prepare", "grade"} and os.environ["STUDY"] in {"M3-feedback", "M3-construction"}'
       - name: Check diagnostic scheduling, decisions and existing collector behavior
         run: |
           python3 -B -m unittest agent_eval.test_proof_feedback agent_eval.test_selected_plan \
@@ -52,7 +57,7 @@ jobs:
             agent_eval.test_selected_native agent_eval.test_proof_writing_artifact
       - uses: actions/download-artifact@v8
         with:
-          name: ${{ inputs.operation == 'prepare' && 'm3-linux-tool' || 'feedback-linux-tool' }}
+          name: ${{ inputs.operation == 'prepare' && 'm3-linux-tool' || 'diagnostic-linux-tool' }}
           path: ${{ runner.temp }}/feedback-tool
           run-id: ${{ inputs.artifact_run }}
           github-token: ${{ github.token }}
@@ -67,20 +72,27 @@ jobs:
           --fr "$RUNNER_TEMP/feedback-tool/fr" --output "$RUNNER_TEMP/feedback-build.json"
       - name: Check both native models with scripted replies and no upstream access
         if: inputs.operation == 'prepare'
-        run: >-
-          python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/feedback-tool/fr"
-          --profiles tests/agent-eval/proof-feedback/profiles.json --output "$RUNNER_TEMP/feedback-native"
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          from agent_eval.selected_plan import ROOT, prepare
+          profiles = prepare(ROOT, os.environ['STUDY'])['profiles']
+          (Path(os.environ['RUNNER_TEMP']) / 'diagnostic-profiles.json').write_text(json.dumps(profiles))
+          PY
+          python3 -B -m agent_eval.selected_native --fr "$RUNNER_TEMP/feedback-tool/fr" \
+            --profiles "$RUNNER_TEMP/diagnostic-profiles.json" --output "$RUNNER_TEMP/feedback-native"
       - name: Reject bad drafts and patches in isolated checkouts
         id: controls
         if: inputs.operation == 'prepare'
         run: >-
           python3 -B -m agent_eval.proof_feedback controls --fr "$RUNNER_TEMP/feedback-tool/fr"
-          --native "$RUNNER_TEMP/feedback-native/summary.json" --output "$RUNNER_TEMP/feedback-controls"
+          --native "$RUNNER_TEMP/feedback-native/summary.json" --output "$RUNNER_TEMP/feedback-controls" --study "$STUDY"
       - name: Retain failed scripted-control summaries
         uses: actions/upload-artifact@v7
         if: inputs.operation == 'prepare' && failure()
         with:
-          name: feedback-failed-control-summaries
+          name: diagnostic-failed-control-summaries
           path: |
             ${{ runner.temp }}/feedback-native/summary.json
             ${{ runner.temp }}/feedback-controls/controls.json
@@ -91,7 +103,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: inputs.operation == 'prepare' && success()
         with:
-          name: feedback-qualified-inputs
+          name: diagnostic-qualified-inputs
           path: |
             ${{ runner.temp }}/feedback-controls/controls.json
             ${{ runner.temp }}/feedback-controls/inputs
@@ -100,7 +112,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: inputs.operation == 'prepare' && success()
         with:
-          name: feedback-private-checker
+          name: diagnostic-private-checker
           path: ${{ runner.temp }}/feedback-controls/grader-image.tar.gz
           compression-level: 0
           if-no-files-found: error
@@ -108,7 +120,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: inputs.operation == 'prepare' && success()
         with:
-          name: feedback-linux-tool
+          name: diagnostic-linux-tool
           path: ${{ runner.temp }}/feedback-tool/fr
           if-no-files-found: error
           retention-days: 30
@@ -123,7 +135,7 @@ jobs:
       - uses: actions/download-artifact@v8
         if: inputs.operation == 'grade'
         with:
-          pattern: feedback-qualified-inputs
+          pattern: diagnostic-qualified-inputs
           path: ${{ runner.temp }}/feedback-original
           merge-multiple: true
           run-id: ${{ inputs.artifact_run }}
@@ -131,23 +143,24 @@ jobs:
       - uses: actions/download-artifact@v8
         if: inputs.operation == 'grade'
         with:
-          name: feedback-private-checker
+          name: diagnostic-private-checker
           path: ${{ runner.temp }}/feedback-original
           run-id: ${{ inputs.artifact_run }}
           github-token: ${{ github.token }}
-      - name: Independently check every submitted repair and retain original timeouts
+      - name: Independently check every original patch and retain failed attempts
         id: grade
         if: inputs.operation == 'grade'
         env:
           CONTROL_RUN: ${{ inputs.artifact_run }}
         run: >-
           python3 -B -m agent_eval.proof_feedback grade --fr "$RUNNER_TEMP/feedback-tool/fr"
-          --artifacts "$RUNNER_TEMP/feedback-original" --data tests/agent-eval/proof-feedback/local-results
-          --output "$RUNNER_TEMP/feedback-checked" --control-run "$CONTROL_RUN"
+          --artifacts "$RUNNER_TEMP/feedback-original"
+          --data ${{ inputs.study == 'M3-construction' && 'tests/agent-eval/proof-construction/local-results' || 'tests/agent-eval/proof-feedback/local-results' }}
+          --output "$RUNNER_TEMP/feedback-checked" --control-run "$CONTROL_RUN" --study "$STUDY"
       - uses: actions/upload-artifact@v7
         if: inputs.operation == 'grade' && always() && (steps.grade.outcome == 'success' || steps.grade.outcome == 'failure')
         with:
-          name: feedback-independent-verdicts
+          name: diagnostic-independent-verdicts
           path: ${{ runner.temp }}/feedback-checked/checked.json
           if-no-files-found: error
           retention-days: 30

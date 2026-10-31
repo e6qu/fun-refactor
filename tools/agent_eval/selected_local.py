@@ -16,7 +16,7 @@ from .bounded_host import run as bounded_run
 from .bounded_host import elapsed_time
 from .selected_cli import configuration, invocation, export_session, verify_export
 from . import selected_tasks as tasks
-from .selected_plan import CASE_DIRECTORIES, DIRECTORY, ROOT, encoded, prepare, require
+from .selected_plan import CASE_DIRECTORIES, DIRECTORY, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 LIMITS = {'wall_seconds': 150, 'rss_bytes': 768 * 1024**2, 'disk_bytes': 512 * 1024**2,
           'cpu_limit_seconds': 75, 'transcript_bytes': 1024**2}
@@ -48,14 +48,14 @@ def implementation_bindings(milestone):
     paths += [path for path in (ROOT / 'skills/fr').rglob('*') if path.is_file()]
     paths += [path for path in (ROOT / DIRECTORY).iterdir() if path.is_file() and path.name != 'README.md']
     paths += [ROOT / '.github/actions/lean-toolchain/action.yml', ROOT / '.github/actions/native-tools/python-wheels.txt']
-    if milestone in {'M2', 'M3', 'M3-feedback'}:
+    if milestone in {'M2', 'M3', 'M3-feedback', 'M3-construction'}:
         directory = ROOT / CASE_DIRECTORIES[milestone]
-        paths += [directory / 'tasks.json', directory / 'checkers.json']
+        paths += [ROOT / TASK_PATHS[milestone], directory / 'checkers.json']
         if milestone == 'M3':
             paths += [directory / 'cases.json', directory / 'profiles.json']
             paths += list((directory / 'controls').glob('*.lean'))
-        elif milestone == 'M3-feedback':
-            paths += [directory / 'profiles.json']
+        elif milestone in {'M3-feedback', 'M3-construction'}:
+            paths += [ROOT / PROFILE_PATHS[milestone]]
             paths += list((directory / 'controls').glob('*.lean'))
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
             paths += [ROOT / '.github/workflows/refinement-evidence.yml']
@@ -85,11 +85,12 @@ def checking_input_changes(project, expected):
 
 
 def prompt(task, setup, checkers, milestone):
-    if milestone == 'M3-feedback':
+    if milestone in {'M3-feedback', 'M3-construction'}:
         from . import proof_feedback
-        require(task == proof_feedback.TASK and setup in {'self-check', 'supplied-feedback'},
+        setups = {'self-check', 'supplied-feedback'} if milestone == 'M3-feedback' else {'fr'}
+        require(task == proof_feedback.case_details(milestone)['task'] and setup in setups,
                 'select the explicit proof-feedback task and condition')
-        request = proof_feedback.prompt(checkers)
+        request = proof_feedback.prompt(checkers, milestone)
         checks = [shlex.join([checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'])]
     elif milestone == 'M1':
         python, cargo, lake = [shlex.quote(checkers[name]['path']) for name in ('python', 'cargo', 'lake')]
@@ -126,7 +127,7 @@ def prompt(task, setup, checkers, milestone):
         request = ('Complete every requirement:\n' + '\n'.join(
             '- ' + sentence + '.' for sentence in request.removesuffix('.').split('. ')))
     checking_files = ''
-    if milestone in {'M2', 'M3', 'M3-feedback'}:
+    if milestone in {'M2', 'M3', 'M3-feedback', 'M3-construction'}:
         checking_files = 'Preserve provided .fr/checks.json'
         if milestone == 'M2' and task == 'regex-escape-len':
             checking_files += ' and .fr/check-escape'
@@ -234,9 +235,9 @@ def freeze(inputs, binaries, runtime, output, milestone):
     proposed = prepare(ROOT, milestone)
     require(LIMITS == {name: proposed['requirements']['limits'][name] for name in LIMITS},
             'execution limits differ from the frozen task requirements')
-    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in {'M1', 'M3', 'M3-feedback'} else
+    expected_runtime = {'python', 'rust_root'} | ({'lean_root'} if milestone in {'M1', 'M3', 'M3-feedback', 'M3-construction'} else
                                                 {'node', 'typescript', 'cargo_home', 'fr_build', 'controls'})
-    if milestone in {'M3', 'M3-feedback'}:
+    if milestone in {'M3', 'M3-feedback', 'M3-construction'}:
         expected_runtime |= {'fr_build', 'controls'}
     require(set(runtime) == expected_runtime, 'supply exactly the explicit checkers for ' + milestone)
     clients = {profile['client'] for profile in proposed['profiles'].values()}
@@ -252,14 +253,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
             'installed CLI releases differ from the reviewed local setup: ' + json.dumps(versions))
     checker_paths = {'python': runtime['python'],
         **{name: runtime['rust_root'] / 'bin' / name for name in ('rustc', 'cargo', 'rustdoc')}}
-    if milestone in {'M1', 'M3', 'M3-feedback'}:
+    if milestone in {'M1', 'M3', 'M3-feedback', 'M3-construction'}:
         checker_paths.update({name: runtime['lean_root'] / 'bin' / name for name in ('lean', 'lake', 'leanc')})
     else:
         checker_paths.update({name: runtime[name] for name in ('node', 'typescript')})
         checker_paths['objcopy'] = runtime['rust_root'] / 'lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy'
     checkers = {name: {'path': str(path.absolute()), 'sha256': hash_file(path)} for name, path in checker_paths.items()}
     checker_versions = {}
-    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in {'M1', 'M3', 'M3-feedback'} else ['node', 'typescript', 'objcopy'])
+    names = ['python', 'rustc', 'cargo'] + (['lean', 'lake'] if milestone in {'M1', 'M3', 'M3-feedback', 'M3-construction'} else ['node', 'typescript', 'objcopy'])
     for name in names:
         argv = [checkers[name]['path'], '--version']
         if name == 'typescript':
@@ -268,14 +269,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
         require(result.returncode == 0, 'local checker version probe failed: ' + name)
         checker_versions[name] = result.stdout.strip()
     require(checker_versions['rustc'].startswith('rustc 1.98.1 '), 'choose the inspected local Rust 1.98.1 toolchain')
-    if milestone in {'M1', 'M3', 'M3-feedback'}:
+    if milestone in {'M1', 'M3', 'M3-feedback', 'M3-construction'}:
         require('4.28.0' in checker_versions['lean'], 'choose the inspected Lean 4.28.0 toolchain')
     else:
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(source_version == settings['fr'] and checker_versions['node'] == 'v' + settings['node'] and
                 checker_versions['typescript'] == 'Version ' + settings['typescript']['version'] and
                 checker_versions['python'] == 'Python ' + settings['local_python'], 'M2 checkers differ from their pins')
-    if milestone in {'M3', 'M3-feedback'}:
+    if milestone in {'M3', 'M3-feedback', 'M3-construction'}:
         python_packages = {}
         settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'checkers.json').read_text())
         require(checker_versions['python'] == 'Python ' + settings['local_python'], 'M3 Python differs from its pin')
@@ -342,13 +343,14 @@ def freeze(inputs, binaries, runtime, output, milestone):
                 all(len(private[name]) == 64 for name in ('cache_archive_sha256', 'registry_archive_sha256')),
                 'freeze all private rejection controls, the immutable image and compiler archives')
         value.update(controls=receipts['controls'], shared_setup=receipts['shared_setup'])
-    elif milestone in {'M3', 'M3-feedback'}:
+    elif milestone in {'M3', 'M3-feedback', 'M3-construction'}:
         if milestone == 'M3':
             from .proof_writing_tasks import validate_controls
         else:
             from .proof_feedback import validate_controls
         value['fr_build'] = verified_fr_build(value['source'], paths['fr']['sha256'], runtime['fr_build'])
-        receipt = validate_controls(json.loads(runtime['controls'].read_text()))
+        supplied = json.loads(runtime['controls'].read_text())
+        receipt = validate_controls(supplied) if milestone == 'M3' else validate_controls(supplied, milestone)
         require(receipt['bindings'] == implementation_bindings(milestone), 'proof controls must bind every checker and task input')
         require(all(hash_file(ROOT / path) == digest for path, digest in receipt['bindings'].items()),
                 'proof controls changed after their successful hosted checks')
@@ -468,7 +470,9 @@ def attempt(plan_path, attempt_id):
               'scope': 'Local native CLI attempt; independently grade on GitHub.'}
     if milestone == 'M3-feedback':
         report.update(initial_check_seconds=None, initial_check_bytes=None, initial_check_sha256=None,
-                      initial_feedback_supplied=False, native_stdout_sha256=None)
+                      initial_feedback_supplied=False)
+    if milestone in {'M3-feedback', 'M3-construction'}:
+        report['native_stdout_sha256'] = None
     tasks.save(output / 'result.json', report)
     started = entered
     project = None
@@ -488,7 +492,7 @@ def attempt(plan_path, attempt_id):
             'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'SSL_CERT_FILE', 'CODEX_CA_CERTIFICATE') if key in os.environ}
         checkers = value['checkers']
         tool_path = [binary_directory, Path(checkers['python']['path']).parent, Path(checkers['rustc']['path']).parent]
-        tool_path.append(Path(checkers['lean' if milestone in {'M1', 'M3', 'M3-feedback'} else 'node']['path']).parent)
+        tool_path.append(Path(checkers['lean' if milestone in {'M1', 'M3', 'M3-feedback', 'M3-construction'} else 'node']['path']).parent)
         env.update(PATH=os.pathsep.join(map(str, tool_path)) + os.pathsep + env['PATH'], PYTHONDONTWRITEBYTECODE='1',
             FUN_REFACTOR_CACHE=str(project / '.fr/cache'),
             CARGO_NET_OFFLINE='true', RUSTUP_TOOLCHAIN='1.98.1', FR_LEAN_JOBS='1', LEAN_NUM_THREADS='1', RAYON_NUM_THREADS='1',
@@ -514,7 +518,7 @@ def attempt(plan_path, attempt_id):
             tasks.save(directory / 'checks.json', {'schema': 1, 'checks': declared})
             checking_inputs['.fr/checks.json'] = hash_file(directory / 'checks.json')
             report['provided_checking_inputs'] = checking_inputs
-        elif milestone in {'M3', 'M3-feedback'}:
+        elif milestone in {'M3', 'M3-feedback', 'M3-construction'}:
             directory = project / '.fr'
             directory.mkdir(exist_ok=True)
             declared = [{'name': 'lean', 'argv': [checkers['lake']['path'], '-d', 'specs', 'build', '--wfail'],
@@ -525,7 +529,7 @@ def attempt(plan_path, attempt_id):
         require((shutil.which('fr', path=env['PATH']) is not None) == with_fr, 'wrong fr availability')
         profile = value['schedule']['profiles'][row['profile']]
         if profile['client'] == 'opencode2':
-            references = [checkers['lean']['source_root']] if milestone in {'M3', 'M3-feedback'} else []
+            references = [checkers['lean']['source_root']] if milestone in {'M3', 'M3-feedback', 'M3-construction'} else []
             config = configuration(profile, 'fr' if with_fr else 'files', project, read_only_directories=references)
             env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
             tasks.save(output / 'requested-config.json', config)
@@ -591,7 +595,7 @@ def attempt(plan_path, attempt_id):
                 report['status'] = 'failed'
             retain_result(project, output, report)
         report['elapsed_seconds'] = elapsed_time() - started
-        if milestone == 'M3-feedback' and (output / 'native.stdout').exists():
+        if milestone in {'M3-feedback', 'M3-construction'} and (output / 'native.stdout').exists():
             report['native_stdout_sha256'] = hash_file(output / 'native.stdout')
         report['finished_at'] = time.time()
         report['suspended_seconds'] = max(0, report['elapsed_seconds'] - (time.monotonic() - awake_started))
@@ -606,7 +610,7 @@ if __name__ == '__main__':
     commands = parser.add_subparsers(dest='operation', required=True)
     freezing = commands.add_parser('freeze')
     freezing.add_argument('--inputs', type=Path, required=True)
-    freezing.add_argument('--milestone', choices=('M1', 'M2', 'M3', 'M3-feedback'), required=True)
+    freezing.add_argument('--milestone', choices=('M1', 'M2', 'M3', 'M3-feedback', 'M3-construction'), required=True)
     freezing.add_argument('--binaries', type=Path, required=True)
     freezing.add_argument('--runtime', type=Path, required=True)
     freezing.add_argument('--output', type=Path, required=True)

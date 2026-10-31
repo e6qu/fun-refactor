@@ -69,6 +69,8 @@ on:
           - docs-review
           - proof-feedback-prepare
           - proof-feedback-grade
+          - proof-construction-prepare
+          - proof-construction-grade
           - freeze-repository-flow
           - retain-scalar
           - retain-ci-reports
@@ -124,13 +126,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   proof-feedback:
-    if: inputs.group == 'proof-feedback-prepare' || inputs.group == 'proof-feedback-grade'
+    if: inputs.group == 'proof-feedback-prepare' || inputs.group == 'proof-feedback-grade' || inputs.group == 'proof-construction-prepare' || inputs.group == 'proof-construction-grade'
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/proof-feedback.yml
     with:
-      operation: ${{ inputs.group == 'proof-feedback-prepare' && 'prepare' || 'grade' }}
+      study: ${{ startsWith(inputs.group, 'proof-construction-') && 'M3-construction' || 'M3-feedback' }}
+      operation: ${{ endsWith(inputs.group, '-prepare') && 'prepare' || 'grade' }}
       artifact_run: ${{ inputs.collection_run }}
   lean-reader-review:
     if: inputs.group == 'lean-reader-review'

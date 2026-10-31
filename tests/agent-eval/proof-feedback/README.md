@@ -39,6 +39,8 @@ Dispatch the existing refinement workflow with group `proof-feedback-prepare`, a
 After the eight attempts, group `proof-feedback-grade` takes the successful diagnostic preparation run ID in that field.
 The existing serial runner uses the explicit `M3-feedback` study, which schedules these eight diagnostic slots.
 It keeps the full M3 study and its thirty-six slots separate.
+The shared control and report commands require `--study M3-feedback`; the new construction check uses its separate four-slot study.
+Reproduce the original eight verdicts by rerunning the linked original grading run, which keeps its measured source and inputs.
 
 The runner's `freeze` command takes an explicit `--binaries` JSON file.
 For this diagnostic it contains exactly `fr` and `opencode2`, each naming its absolute executable path.
