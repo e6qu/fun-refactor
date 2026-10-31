@@ -490,12 +490,9 @@ fn inline_calculations_preserve_steps_and_following_declarations() {
         if matches!(node.kind(), "tactic_calc" | "calc") {
             return Some(node);
         }
-        for index in 0..node.named_child_count() {
-            if let Some(found) = calculation(node.named_child(index).unwrap()) {
-                return Some(found);
-            }
-        }
-        None
+        let mut cursor = node.walk();
+        let found = node.named_children(&mut cursor).find_map(calculation);
+        found
     }
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
