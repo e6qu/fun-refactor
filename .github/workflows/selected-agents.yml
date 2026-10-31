@@ -25,6 +25,7 @@ jobs:
             tests/agent-eval/project-edits
             tests/agent-eval/proof-writing
             tests/agent-eval/proof-feedback
+            tests/agent-eval/proof-construction
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14.8'
