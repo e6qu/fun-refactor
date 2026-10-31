@@ -485,6 +485,61 @@ fn fields_and_subscripts_belong_to_the_function_argument() {
 }
 
 #[test]
+fn inline_calculations_preserve_steps_and_following_declarations() {
+    fn calculation(node: tree_sitter::Node<'_>) -> Option<tree_sitter::Node<'_>> {
+        if matches!(node.kind(), "tactic_calc" | "calc") {
+            return Some(node);
+        }
+        for index in 0..node.named_child_count() {
+            if let Some(found) = calculation(node.named_child(index).unwrap()) {
+                return Some(found);
+            }
+        }
+        None
+    }
+    let source = include_str!("fixtures/lean-proof-locations.lean");
+    let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+    assert!(!tree.has_errors(), "{}", tree.root().to_sexp());
+    let mut cursor = tree.root().walk();
+    let mut checked = BTreeSet::new();
+    for definition in tree.root().named_children(&mut cursor) {
+        let Some(name) = definition.child_by_field_name("name") else {
+            continue;
+        };
+        let name = &source[name.byte_range()];
+        if !matches!(
+            name,
+            "calcFirstSameLine"
+                | "calcExact"
+                | "calcTerm"
+                | "calcNestedSameLine"
+                | "afterInlineCalc"
+        ) {
+            continue;
+        }
+        checked.insert(name);
+        if name == "afterInlineCalc" {
+            continue;
+        }
+        let body = definition.child_by_field_name("body").unwrap();
+        let calc = calculation(body).unwrap();
+        let mut steps = calc.walk();
+        assert_eq!(
+            calc.named_children(&mut steps)
+                .filter(|node| node.kind() == "calc_step")
+                .count(),
+            2,
+            "{}",
+            calc.to_sexp()
+        );
+        if name == "calcNestedSameLine" {
+            assert_eq!(body.named_child(1).unwrap().kind(), "tactic_apply");
+        }
+    }
+    assert_eq!(checked.len(), 5);
+}
+
+#[test]
 fn calculation_steps_and_following_tactics_keep_their_boundaries() {
     let source = include_str!("fixtures/lean-proof-locations.lean");
     let tree = Parsers::new().parse(Language::Lean, source).unwrap();
@@ -604,6 +659,8 @@ fn invalid_call_arguments_and_goal_markers_report_syntax_errors() {
         "def bad (p q : Prop) : Prop := p ⊢ q",
         "theorem bad (p : Prop) : p := show p",
         "theorem bad (a : Int) : a = a := by\n  calc\n    a = a :=\n",
+        "theorem bad (a : Int) : a = a := by\n  calc a = a := rfl\n    _ = a :=\n",
+        "theorem bad (a : Int) : a = a := by\n  exact calc a = a :=\n",
         "theorem bad : True := by exact (by trivial : )",
         "def bad : Nat → Nat := fun n ↦",
         "theorem bad (h : True) : True := by obtain hp | := h",

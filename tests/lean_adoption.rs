@@ -103,6 +103,9 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         "  have h : keepModel x = x := by rfl\n  exact h\n",
         "\n  \n    have h : keepModel x = x := by\n      rfl\n    exact h\n  \n\n",
         "let q := x\nhave : q = x := by rfl\ncalc\n  keepModel x = q := by rfl\n  _ = x := this\n",
+        "calc keepModel x = x := rfl\n  _ = x := rfl\n",
+        "exact calc keepModel x = x := rfl\n  _ = x := rfl\n",
+        "have h : keepModel x = x := by\n  calc keepModel x = x := rfl\n    _ = x := rfl\nexact h\n",
     ] {
         let proof = workspace.path().join("proof.lean");
         std::fs::write(&proof, tactics).unwrap();

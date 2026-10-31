@@ -85,19 +85,23 @@ def check(binary, diagnostics, integer_library):
                 if name is None:
                     continue
                 text = ''.join(''.join(name.itertext()).split())
-                if text not in {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+                if text not in {'calcInline', 'calcNested', 'calcNegative', 'afterCalc',
+                                'calcFirstSameLine', 'calcExact', 'calcTerm', 'calcNestedSameLine', 'afterInlineCalc'}:
                     continue
                 calculated.add(text)
-                if text == 'afterCalc':
+                if text in {'afterCalc', 'afterInlineCalc'}:
                     continue
                 calc = next(definition.iter('tactic_calc'), None)
+                if calc is None:
+                    calc = next(definition.iter('calc'), None)
                 if calc is None or len(calc.findall('calc_step')) != 2:
                     failures.append(text + ': expected two separate calculation steps')
-                if text == 'calcNested':
+                if text in {'calcNested', 'calcNestedSameLine'}:
                     body = definition.find('by')
                     if body is None or [child.tag for child in body] != ['tactic_have', 'tactic_apply']:
                         failures.append(text + ': following exact tactic escaped its proof')
-            if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc'}:
+            if calculated != {'calcInline', 'calcNested', 'calcNegative', 'afterCalc',
+                               'calcFirstSameLine', 'calcExact', 'calcTerm', 'calcNestedSameLine', 'afterInlineCalc'}:
                 failures.append(fixture + ': missing calculation proof declarations')
             typed = set()
             for definition in tree.iter('definition'):
@@ -225,6 +229,8 @@ def check(binary, diagnostics, integer_library):
         ('goal-marker', 'def bad (p q : Prop) : Prop := p ⊢ q'),
         ('show', 'theorem bad (p : Prop) : p := show p'),
         ('calc', 'theorem bad (a : Int) : a = a := by\n  calc\n    a = a :='),
+        ('inline-calc', 'theorem bad (a : Int) : a = a := by\n  calc a = a := rfl\n    _ = a :='),
+        ('exact-calc', 'theorem bad (a : Int) : a = a := by\n  exact calc a = a :='),
         ('proof-type', 'theorem bad : True := by exact (by trivial : )'),
         ('conversion', 'def bad : Int := ↑'),
         ('subscript-name', 'def ₁bad : Nat := 0'),

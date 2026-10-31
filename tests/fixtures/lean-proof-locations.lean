@@ -257,6 +257,26 @@ theorem calcNegative (a : Int) : -a = -a := by
 
 theorem afterCalc : True := by trivial
 
+theorem calcFirstSameLine (n : Int) : n = n := by
+  calc n = n := rfl
+    _ = n := rfl
+
+theorem calcExact (n : Int) : n = n := by
+  exact calc n = n := rfl
+    _ = n := rfl
+
+theorem calcTerm (n : Int) : n = n :=
+  calc n = n := rfl
+    _ = n := rfl
+
+theorem calcNestedSameLine (n : Int) : n = n := by
+  have h : n = n := by
+    calc n = n := rfl
+      _ = n := rfl
+  exact h
+
+theorem afterInlineCalc : True := by trivial
+
 theorem typedProof (n : Int) (h : 0 ≤ n) : 0 ≤ n := by
   exact (by exact h : 0 ≤ n)
 

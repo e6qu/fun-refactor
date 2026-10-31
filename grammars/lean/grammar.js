@@ -51,6 +51,7 @@ module.exports = grammar({
     $._binding_start,           // Track a binding value's indentation separately
     $._calc_step_start,         // Close each calculation step before its sibling
     $._tactic_label_colon,      // A case label's colon belongs to the tactic
+    $._calc_body_start,         // Inline steps continue inside the enclosing proof
     $._do_body_start,           // The following `do` opens a statement body
   ],
 
@@ -498,6 +499,7 @@ module.exports = grammar({
       alias($._block_application, $.application),
       $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
       $.if, $.if_let, $.match, $.do, $.by, $.show, $.try, $.return, $.as_pattern,
+      alias($.tactic_calc, $.calc),
     ),
 
     _application_head: $ => choice(
@@ -983,7 +985,7 @@ module.exports = grammar({
     // `calc` block with steps
     tactic_calc: $ => prec.right(seq(
       'calc',
-      $._layout_start,
+      $._calc_body_start,
       repeat1($.calc_step),
       $._layout_end,
     )),
