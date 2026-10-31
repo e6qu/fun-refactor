@@ -18,7 +18,7 @@ The later [small division diagnostic](../proof-feedback/README.md#what-the-first
 All eight submitted proofs passed independent checks; six complete attempts passed.
 GLM's failed attempt already had a passing proof at 66 seconds and package at 86 seconds, then repeated commands until timeout.
 Kimi's failed attempt wrote proof-check JSON over the supplied check settings. These are delivery failures on an assisted repair.
-Review found omitted shared execution instructions in that diagnostic; the correction is tested but has no later live measurement.
+Review found omitted shared execution instructions. The later construction case used their correction.
 The mixed results establish no benefit from supplying the initial error report and no solution to page counting.
 
 Page counting remains the difficult case: all eight GLM/Kimi attempts timed out, including ordinary-tool attempts.
@@ -52,18 +52,23 @@ Luna's first page-count attempt reads the arithmetic lesson and repairs drafts u
 One draft passes fr but later fails the required package check because unused simplification arguments produce warnings.
 Luna removes them and delivers its patch. A tiny unrelated identity example reproduces that mismatch:
 `simp only [keepModel, Bool.not_not]` proves the identity, but the unused `Bool.not_not` fails package verification.
-The new checker repair rejects warnings in the submitted draft before saving; hosted validation is pending.
+The checker repair rejects warnings before saving; hosted validation passed before the small diagnostics.
 
 Another unrelated probe confirms that Lean accepts a local lemma such as
 `have nonnegative (a b : Int) ... := by ...`, while the measured fr reader rejects its parameters.
 The parser repair adds named, anonymous and expression examples, plus checks that the next declaration remains separate.
-It must pass hosted generation and native tests before use in a new comparison.
+Hosted generation and native tests passed before the small diagnostics used this repair.
 
 The next root skill links arithmetic directly and starts by checking `refine ?_`, an unfinished first draft.
 The lesson adds `exact?`, Lean's search for a fact that proves the current goal, using a generic multiplication example.
-All four lesson blocks compile with Lean 4.28.0. The root is 816 bytes and the largest reading path is 7,145 bytes,
-within the unchanged ceilings. These later changes have not yet been measured by agents.
+All four lesson blocks compile with Lean 4.28.0. The current root is 828 bytes and the largest reading path is 7,153 bytes.
+Both stay within the unchanged ceilings. The later diagnostics use these instructions on smaller examples.
 No evaluated task's reference proof is supplied, and the 150-second limit stays fixed.
+
+The [four construction attempts](../proof-construction/README.md#what-the-first-run-established) retained three accepted patches and one Kimi timeout without a patch.
+Both Kimi attempts hit fr parser rejections of valid inline calculations before Lean could check them.
+Separate identity proofs reproduce the syntax mismatch. The reader repair now needs generated and native checks.
+All four preserved check settings. This familiar example has no timing baseline and cannot establish why a later result differs.
 
 For pairs accepted in both tool setups, complete proof-writing time compares as follows:
 

@@ -1,7 +1,7 @@
 # Construct a small multiplication proof and finish delivery
 
 This is the next development check in [PLAN.md](../../../PLAN.md#next-work).
-The runner now has an explicit four-attempt mode. Its hosted qualification must pass before calls. No agent attempts have run.
+All four attempts ran once after hosted qualification passed. [Independent grading](local-results/README.md) accepted three patches; Kimi timed out once without a patch.
 
 The [Rust function](fixtures/scaled.rs) multiplies two signed-64 integers.
 The fixed Lean claim says that multiplying a nonnegative number by a value of at least one cannot reduce it.
@@ -46,6 +46,33 @@ If all four attempts pass, inspect the first unresolved step in constructing the
 If any fail, keep every outcome and inspect the first unresolved failure before another change or paid batch.
 This single-condition check has no timing baseline. It cannot establish that the corrected instructions caused an improvement or saved time.
 Publish only submitted patches and summaries. Account charges and unavailable usage stay unknown.
+
+## What the first run established
+
+GLM completed both attempts in about 108 seconds. Kimi completed one in 133 seconds and timed out once at 150 seconds.
+The three deliveries passed fr proof checks, fr writes, package checks and independent patch grading.
+All four preserved the check settings. No collection, service, sleep or resource failure was observed.
+
+Times below begin when the whole attempt starts. A stage time records the first visible passing result or patch delivery.
+One command both checked the second GLM package and delivered its patch, so those observations share a timestamp.
+
+| Attempt | Passing proof | Package check | Patch delivered | Session finished |
+| --- | ---: | ---: | ---: | ---: |
+| GLM 1 | 88.9 s | 98.8 s | 103.5 s | 108.3 s |
+| Kimi 1 | None | None | None | Timed out at 150.0 s |
+| GLM 2 | 88.3 s | 95.4 s | 95.4 s | 108.2 s |
+| Kimi 2 | 91.3 s | 113.8 s | 120.8 s | 133.0 s |
+
+Both Kimi attempts hit fr parser rejections of `calc`, Lean's way to chain equalities or inequalities.
+The failed attempt changed indentation and searched the library, then reached the deadline without a passing proof or patch.
+The other switched to a different proof form and finished. GLM's first attempt also hit this syntax gap.
+Tiny unrelated identity proofs confirm that Lean accepts the inline form and the measured fr rejects it.
+Moving the first calculation step to a new line makes that control parse with the measured fr.
+This confirms a reader defect; it does not establish that the defect alone caused the timeout.
+
+The original decision rule therefore keeps the workflow check open.
+Repair and check this boundary without new model calls before choosing the next experiment.
+Keep the original four outcomes, the earlier eight-slot repair study and all full comparisons unchanged.
 
 ## Prepare, run and check
 

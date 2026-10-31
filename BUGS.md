@@ -11,6 +11,7 @@ The measured tool passed all 29 proof-preparation jobs and the 17-job deep audit
 | Earlier problem | Current branch behavior |
 | --- | --- |
 | Valid Lean proof forms were rejected before checking | Accepts discarded assumptions such as `rintro ⟨h, -, -⟩`, simplifier phase markers, Unicode lambda arrows, branching bindings and dated attributes; checks later declarations too |
+| A valid inline calculation was rejected before Lean ran | Lean accepts the same-line first step; measured fr rejects it. The local scanner regression and hosted generated-reader checks now pass; native proof checks remain required |
 | Lean propositions were grouped incorrectly | Reads `p ∧ q ∧ r` as `p ∧ (q ∧ r)` and gives disjunction its proper precedence |
 | Library lookup lost a declaration's type | Keeps declared types for equation-style definitions and proofs; returns bounded headers without proof bodies |
 | A draft error pointed only to generated code | Reports the draft line and source excerpt; retains the actual goal and counts omitted context |
@@ -50,8 +51,10 @@ The lesson explains Boolean comparisons, proof-valued arguments and a search for
 All four examples compile with pinned Lean; the complete skill passes hosted M2 checks.
 The [small diagnostic](tests/agent-eval/proof-feedback/README.md#what-the-first-run-established) retained eight valid proof patches and six completed attempts.
 GLM timed out after passing checks; Kimi replaced the check settings with a report. Both remain failed.
-The restored shared instructions and clarified skill have no later live measurement yet.
-Full comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides the next construction check.
+The [later construction check](tests/agent-eval/proof-construction/README.md#what-the-first-run-established) used the restored instructions and kept all four settings files unchanged.
+Three patches passed independent grading; one Kimi attempt timed out without a patch.
+Its repeated inline-calculation rejections led to a reader defect reproduced without model calls.
+Full comparisons stay paused while the [improvement method](docs/agent-improvement.md) guides this repair and the next question.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 

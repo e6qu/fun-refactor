@@ -12,7 +12,7 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-**The full comparison remains paused. The eight-slot diagnostic is closed and independently checked.**
+**The full comparison remains paused. Both small diagnostics are closed and independently checked.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
 Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
 Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.
@@ -34,17 +34,21 @@ Both remain failed. The decision rules give no demonstrated benefit from supplyi
 
 Its shorter prompt omitted the shared execution instructions. The runner now adds those instructions to the diagnostic too.
 A regression rejects the measured prompt and passes the correction. The skill distinguishes check settings from reports and explains proof writes' `applied` field.
-These later changes have no live measurement yet. Finish hosted qualification before new calls.
-The next case in [PLAN.md](../PLAN.md#next-work) asks GLM and Kimi to construct a small multiplication proof from an empty region.
+The [four construction attempts](../tests/agent-eval/proof-construction/README.md#what-the-first-run-established) used these changes after hosted qualification passed.
+Independent grading accepted three patches; Kimi timed out once without a patch. All four kept the check settings unchanged.
+Both Kimi attempts hit a reader defect: Lean accepts inline calculation steps that measured fr rejects before Lean runs.
+The local scanner regression and hosted generated-reader checks pass. Native proof checks remain required.
+Keep all four original outcomes. Check the rejected syntax without model calls before choosing another experiment.
 
 Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
-Generation and focused native checks pass; a clean proof remains checkable while another theorem is unfinished.
-The preceding skill passed hosted M2 checks. The latest instruction correction needs hosted checks and a fresh workflow measurement.
+Hosted M3 checks passed; a clean proof remains checkable while another theorem is unfinished.
+The current skill and restored shared instructions passed M1, M2 and documentation qualification before the four construction attempts.
 Dependency controls needed a repair because they unfolded the model twice and triggered the new unused-argument warning check.
 Focused checks now accept the clean reference and reject the changed dependency. Keep the strict warning rule.
 The known-file fr lookup also passes locally by indexing exactly one file; its CI deadline remains three minutes.
 
 All 335 M3 outcomes remain in the [complete and interrupted archives](../tests/agent-eval/proof-writing/README.md#earlier-attempts).
+The eight repair attempts and four construction attempts are separate; they cannot replace a full-study failure.
 Retain original input identities, failures, sleep limitations and record hashes.
 Only submitted patches and summaries may leave the workstation.
 Keep logs, drafts, source archives, session exports and account data local.

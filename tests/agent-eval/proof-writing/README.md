@@ -111,7 +111,9 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 ## Run and measure the selected local CLIs
 
 The [separate arithmetic diagnostic](../proof-feedback/README.md#what-the-first-run-established) retains eight assisted repairs and their two failed deliveries.
-It does not add successful page-count attempts or close this milestone. The [roadmap](../../../PLAN.md#next-work) names the next construction check.
+The [four construction attempts](../proof-construction/README.md#what-the-first-run-established) retain three accepted patches and one Kimi timeout without a patch.
+They exposed a valid inline calculation that fr rejects before Lean runs; that repair needs hosted validation.
+Neither diagnostic adds a successful page-count attempt or closes this milestone. The [roadmap](../../../PLAN.md#next-work) names the next tasks.
 
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.

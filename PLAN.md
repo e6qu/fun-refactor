@@ -66,27 +66,31 @@ The [first controlled diagnostic](tests/agent-eval/proof-feedback/README.md#what
 All eight submitted proofs passed independent checking. Six complete attempts passed; GLM timed out after passing checks,
 and Kimi overwrote the supplied check settings. The stated rules give no demonstrated benefit from supplying the initial error report.
 Review found that this diagnostic skipped the shared execution instructions. That defect is fixed and has a regression.
-The later instruction correction has no live measurement yet. The 150-second limit stays unchanged.
+The later construction check used the corrected instructions. The 150-second limit stays unchanged.
+
+The [four construction attempts](tests/agent-eval/proof-construction/local-results/README.md) retained three accepted patches and one Kimi timeout without a patch.
+All preserved check settings. Both Kimi attempts hit a reader defect: Lean accepts an inline `calc` chain, but fr rejects it.
+For example, a proof can start `calc n = n := rfl` and continue on the next line with another equality.
+The measured reader mistakes that next step for the end of the calculation.
+Separate controls reproduce the mismatch without model calls. The reader repair is under hosted validation.
+This familiar case has no timing baseline and establishes no causal improvement.
 
 The next tasks stay inside this milestone PR:
 
-1. Finish hosted M3 verification of proof-reader repairs, warning rejection, dependency controls and original submissions.
+1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
+   All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
    Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
-   Qualify the restored shared instructions before another paid call.
-2. Finish preparing the [fresh multiplication case](tests/agent-eval/proof-construction/README.md), `scaled_total(a, b) = a * b`, with an empty proof region.
-   Its fixed Lean claim is `a ≤ scaled_total(a, b)` when `0 ≤ a` and `1 ≤ b`.
-   State that Lean uses unbounded integers; source overflow and the source/model connection remain unproved.
-   The local reference control passes and rejects an unfinished proof. Complete hosted isolation and rejection controls before calls.
-   Keep the reference outside agent projects.
-3. Freeze four fresh construction attempts: two each for the pinned GLM and Kimi profiles, all with fr and the corrected instructions.
-   Record the first passing proof, package check, delivered patch and session finish separately.
-   Each attempt must preserve check settings and finish within 150 seconds. Inspect any failure before another change or paid batch.
-   Treat this as a workflow and construction check; it cannot establish that the instruction change caused an improvement.
-   If agents still repeat checks or alter settings, inspect that first failure before choosing another instruction change.
-4. Return to the first unresolved page-count proof step once that workflow check passes.
+2. Finish the inline calculation repair. Check same-line first steps, nested calculations, `exact calc` and calculation terms.
+   Preserve following tactics and declarations, reject missing proof steps and run the strict native proof checks.
+   Rebuild fr on GitHub. Check the exact rejected syntax with the new executable without model calls.
+   Keep all four original construction outcomes unchanged; the timeout cannot become a later success.
+3. Review the next experiment before new calls. Name the obstacle, prediction, fixed inputs and decision rule.
+   A reader fix must first pass the same valid and invalid syntax controls; another wording change is not the next task.
+   Keep each agent's first passing proof, package check, delivered patch and session finish separate.
+4. Return to the first unresolved page-count proof step after the reader repair and workflow evidence pass review.
    Resume the complete comparison only after a concrete change has supporting evidence and relevant CI passes.
    Keep the same models, claims, two repetitions and 150-second benchmark.
-   Independently grade submissions and preserve every failure alongside the 335 existing M3 outcomes and this separate diagnostic.
+   Independently grade submissions and preserve every failure alongside the 335 M3 outcomes and twelve separate diagnostic outcomes.
 
 Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
 Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.

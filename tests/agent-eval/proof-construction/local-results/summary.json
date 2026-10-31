@@ -696,7 +696,7 @@
         "completed_tool_wall_seconds": 19.459,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "passed",
       "collection_error_recorded": false,
       "failure_summary": null,
       "proof_observations": {
@@ -707,6 +707,13 @@
         "proof_written_with_fr": true,
         "package_check_passed": true,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41212507316",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
       }
     },
     {
@@ -759,7 +766,7 @@
         "completed_tool_wall_seconds": 9.233,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Repeated parser rejections of calc drafts led to indentation changes and searches; the client reached 150 seconds without a passing proof or submitted patch.",
       "proof_observations": {
@@ -770,6 +777,13 @@
         "proof_written_with_fr": null,
         "package_check_passed": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41212507316",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -823,7 +837,7 @@
         "completed_tool_wall_seconds": 15.501,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "passed",
       "collection_error_recorded": false,
       "failure_summary": null,
       "proof_observations": {
@@ -834,6 +848,13 @@
         "proof_written_with_fr": true,
         "package_check_passed": true,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41212507316",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
       }
     },
     {
@@ -887,7 +908,7 @@
         "completed_tool_wall_seconds": 9.77,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "passed",
       "collection_error_recorded": false,
       "failure_summary": null,
       "proof_observations": {
@@ -898,6 +919,13 @@
         "proof_written_with_fr": true,
         "package_check_passed": true,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41212507316",
+      "independent_check": {
+        "patch_accepted": true,
+        "check_stage": "complete",
+        "undo_exact": true,
+        "redo_exact": true
       }
     }
   ],

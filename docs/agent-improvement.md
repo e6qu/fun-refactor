@@ -137,11 +137,28 @@ This supports no claim that showing the initial report improves task success.
 Review found an evaluator defect: the diagnostic's shorter prompt skipped the shared execution instructions.
 The repair now adds those instructions to both conditions. A regression rejects the exact measured implementation and passes the correction.
 The skill also explains that `.fr/checks.json` holds settings and that proof writes report `applied`.
-These are confirmed instruction omissions and clarifications; their effect on later agent behavior remains unmeasured.
+The later construction check used these corrections. Its different task and single condition cannot isolate their effect.
 
 The method therefore adds an instruction audit before paid calls. Checker rejection controls alone missed this problem.
 Keep a passing proof separate from finishing the whole task, and read the actual output fields before inferring another required action.
-The next small case should start with an empty proof region and a different claim, so it asks for construction rather than another repair of this supplied draft.
+The next case started with an empty proof region and a different claim, asking for construction rather than repair of a supplied draft.
+
+### Construction result: check valid syntax as well as the reference
+
+The [four multiplication attempts](../tests/agent-eval/proof-construction/README.md#what-the-first-run-established) ran once after all prerequisite checks passed.
+Independent grading accepted GLM's two patches and Kimi's one patch. The other Kimi attempt timed out without a patch.
+All four kept their checking inputs unchanged. The original decision rule requires inspecting that failure before another paid batch.
+
+Both Kimi attempts wrote inline calculations: proof steps that chain equalities or inequalities.
+Fr rejected the syntax before Lean ran and pointed to the first proof line.
+The failed attempt changed indentation and searched the library. The other changed proof form and finished.
+Separate identity proofs confirm the defect without model calls: Lean accepts the inline chain, while the measured fr rejects it.
+Fr accepts the same chain when its first step starts on a new line.
+
+The method therefore adds valid syntax variants to the controls.
+One accepted reference proof does not establish that every supported way to write that argument reaches Lean.
+Check inline and nested forms, following tactics and malformed steps before testing an instruction change.
+Repair the observed tool defect first. Keep the timeout failed and separate this small example from page-count success.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.
