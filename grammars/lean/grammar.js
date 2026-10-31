@@ -499,7 +499,7 @@ module.exports = grammar({
       alias($._block_application, $.application),
       $.unary_expression, $.binary_expression, $.arrow, $.fun, $.quantifier, $.let, $.have,
       $.if, $.if_let, $.match, $.do, $.by, $.show, $.try, $.return, $.as_pattern,
-      alias($.tactic_calc, $.calc),
+      prec(-1, alias($.tactic_calc, $.calc)),
     ),
 
     _application_head: $ => choice(
@@ -797,8 +797,8 @@ module.exports = grammar({
     )),
 
     // ── Tactic primitives ─────────────────────────────────────
-    // Each rule here lives exclusively inside `by` blocks.
-    // None of these appear in `_expression`.
+    // Calculations also occur as terms, including `exact calc ...`.
+    // Prefer the tactic form when both categories are available.
 
     _tactic: $ => choice(
       $.tactic_apply,
