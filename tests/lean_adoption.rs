@@ -178,6 +178,33 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
     assert!(diagnostic.checked_location.as_ref().unwrap().line > location.line);
     assert_eq!(std::fs::read(&model).unwrap(), before_show);
+    std::fs::write(&proof, "\n\n  exact missingLemma\n").unwrap();
+    let named = run(
+        workspace.path(),
+        &["--json", "spec", "proof-check", target, "--from", "proof.lean"],
+    );
+    assert!(
+        named.status.success(),
+        "{}",
+        String::from_utf8_lossy(&named.stderr)
+    );
+    let named: serde_json::Value = serde_json::from_slice(&named.stdout).unwrap();
+    assert_eq!(named["passed"], false);
+    assert!(named["receipt"].is_null());
+    let diagnostic = named["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["code"] == "lean.unknownIdentifier")
+        .unwrap();
+    assert!(diagnostic["message"].as_str().unwrap().contains("missingLemma"));
+    assert_eq!(diagnostic["draft_location"]["line"], 3);
+    assert_eq!(diagnostic["draft_location"]["column"], 9);
+    assert_eq!(
+        diagnostic["draft_location"]["source_excerpt"],
+        "  exact missingLemma"
+    );
+    assert_eq!(std::fs::read(&model).unwrap(), before_show);
     std::fs::write(&proof, "exact (by rfl : )\n").unwrap();
     let syntax_error = fun_refactor::spec::proof_check(workspace.path(), target, &proof, 4096)
         .unwrap_err()

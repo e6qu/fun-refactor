@@ -160,6 +160,15 @@ One accepted reference proof does not establish that every supported way to writ
 Check inline and nested forms, following tactics and malformed steps before testing an instruction change.
 Repair the observed tool defect first. Keep the timeout failed and separate this small example from page-count success.
 
+The reader repair passed 29 hosted preparation checks.
+A [replay with the rebuilt executable](../tests/agent-eval/proof-construction/reader-control-summary.json) accepts the earlier valid draft and saves a proof that passes the package check.
+The timed-out draft now reaches Lean, which rejects its remaining unknown library names.
+Neither replay is a new agent attempt. Both original outcomes stay unchanged.
+
+The replay also found a reporting defect. Lean marks these errors with a code such as `lean.unknownIdentifier`.
+Fr treated that header as unstructured text, losing the separate draft line and column.
+Fix and check that report before spending calls on another instruction change.
+
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.
 Publish only patches and summaries. Keep native logs, prompts, drafts and account data local.

@@ -212,6 +212,8 @@ Rejected attempts distinguish `draft_location` in the supplied tactics from `che
 in Lean's generated file. Each location has `path`, one-based `line` and `column`, and
 `source_excerpt`; unavailable locations or excerpts are `null`.
 For example, an unknown tactic on draft line 2 stays line 2 even when Lean checks it on generated line 31.
+Each diagnostic also has `code`, Lean's error category, or `null` for an untagged message.
+For example, `exact missingLemma` reports `lean.unknownIdentifier` and points to that name in the draft.
 Diagnostics retain the goal in `context` and count omitted context lines in `context_omitted_lines`.
 
 `PropertyTask.from_data(...)` validates `fr-property-task-1` and independently recomputes its Merkle

@@ -72,7 +72,10 @@ The [four construction attempts](tests/agent-eval/proof-construction/local-resul
 All preserved check settings. Both Kimi attempts hit a reader defect: Lean accepts an inline `calc` chain, but fr rejects it.
 For example, a proof can start `calc n = n := rfl` and continue on the next line with another equality.
 The measured reader mistakes that next step for the end of the calculation.
-Separate controls reproduce the mismatch without model calls. The reader repair is under hosted validation.
+All 29 hosted preparation checks passed after the reader repair.
+The [rebuilt-command replay](tests/agent-eval/proof-construction/reader-control-summary.json) now accepts the earlier valid draft without model calls.
+The timed-out attempt's draft reaches Lean and reports its remaining unknown library names.
+That replay found another defect: tagged Lean errors lose their draft locations in fr's report.
 This familiar case has no timing baseline and establishes no causal improvement.
 
 The next tasks stay inside this milestone PR:
@@ -80,12 +83,13 @@ The next tasks stay inside this milestone PR:
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
    Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
-2. Finish the inline calculation repair. Check same-line first steps, nested calculations, `exact calc` and calculation terms.
-   Preserve following tactics and declarations, reject missing proof steps and run the strict native proof checks.
-   Rebuild fr on GitHub. Check the exact rejected syntax with the new executable without model calls.
+2. Finish the diagnostic repair for messages such as `error(lean.unknownIdentifier)`.
+   Report the unknown name, its error code and the line and column in the submitted tactics.
+   Check coded errors and warnings, plain messages, dependency locations and a real CLI proof rejection.
+   Update the strict Python reader with the same required fields. Rebuild and validate on GitHub.
    Keep all four original construction outcomes unchanged; the timeout cannot become a later success.
 3. Review the next experiment before new calls. Name the obstacle, prediction, fixed inputs and decision rule.
-   A reader fix must first pass the same valid and invalid syntax controls; another wording change is not the next task.
+   The syntax controls and exact rebuilt-command replay passed. Finish checking the newly exposed diagnostics before another wording change.
    Keep each agent's first passing proof, package check, delivered patch and session finish separate.
 4. Return to the first unresolved page-count proof step after the reader repair and workflow evidence pass review.
    Resume the complete comparison only after a concrete change has supporting evidence and relevant CI passes.

@@ -555,6 +555,9 @@ when manually supplying the model boundary. Review the generated source anchor, 
 definition and obligation, then write the proof tactics. Unsupported declarations still require a
 manual model and correspondence statement. Run `fr spec check --strict` afterward.
 Run `fr spec verify` to check correspondence and build the owning package.
+When checking tactics, read each diagnostic's `message` and `draft_location`.
+For example, `exact missingLemma` needs the missing name repaired at the reported draft line and column.
+Its `code`, `lean.unknownIdentifier`, names Lean's error category. Untagged messages have `code: null`.
 Add shared input/output cases when the model mirrors an implementation.
 Generate CI after choosing the current debt ceiling. The workflow pins this `fr`
 release, runs strict correspondence and uses the official

@@ -74,6 +74,18 @@ The original decision rule therefore keeps the workflow check open.
 Repair and check this boundary without new model calls before choosing the next experiment.
 Keep the original four outcomes, the earlier eight-slot repair study and all full comparisons unchanged.
 
+### Recheck with the repaired executable
+
+All 29 hosted preparation checks passed, including inline and nested calculations, strict proof checking and malformed-step rejection.
+The [local replay summary](reader-control-summary.json) records the exact rebuilt executable and the unchanged original inputs.
+It uses no model calls. The earlier valid calculation now passes, saves through fr and passes the package check.
+The timed-out draft now reaches Lean, which rejects its unknown library names. Five syntax variants also parse correctly.
+
+The replay found a separate diagnostic defect: Lean's tagged errors do not receive structured draft locations.
+For example, `error(lean.unknownIdentifier)` becomes part of a generic rejection instead of a message at the submitted name.
+The next repair checks that format, its error code and a real command's line and column.
+Both original agent outcomes stay unchanged; these controls do not establish a higher completion rate.
+
 ## Prepare, run and check
 
 Dispatch the existing refinement workflow with group `proof-construction-prepare`, an explicit prefix and a passing M3 native build ID in `collection_run`.

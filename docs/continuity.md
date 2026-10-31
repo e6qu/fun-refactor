@@ -37,8 +37,11 @@ A regression rejects the measured prompt and passes the correction. The skill di
 The [four construction attempts](../tests/agent-eval/proof-construction/README.md#what-the-first-run-established) used these changes after hosted qualification passed.
 Independent grading accepted three patches; Kimi timed out once without a patch. All four kept the check settings unchanged.
 Both Kimi attempts hit a reader defect: Lean accepts inline calculation steps that measured fr rejects before Lean runs.
-The local scanner regression and hosted generated-reader checks pass. Native proof checks remain required.
-Keep all four original outcomes. Check the rejected syntax without model calls before choosing another experiment.
+All 29 hosted preparation checks passed in run 41214408630. The exact rebuilt-command replay also passed without model calls.
+It accepts the earlier valid calculation and lets Lean reject the timed-out draft's unknown names.
+That replay exposed a second defect: tagged unknown-name errors lose their structured draft locations.
+The next repair keeps the code, message and submitted line and column. Validate the CLI and strict Python reader before more calls.
+Keep all four original outcomes unchanged.
 
 Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.
 Hosted M3 checks passed; a clean proof remains checkable while another theorem is unfinished.

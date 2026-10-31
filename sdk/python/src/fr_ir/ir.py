@@ -1840,11 +1840,14 @@ class ProofAttempt:
             raise IrError("proof attempt diagnostics must be a list")
         for diagnostic in value["diagnostics"]:
             diagnostic = _exact_mapping(
-                diagnostic, {"severity", "draft_location", "checked_location", "message", "context",
+                diagnostic, {"severity", "code", "draft_location", "checked_location", "message", "context",
                              "context_omitted_lines"}, "proof diagnostic"
             )
             if diagnostic["severity"] not in ("error", "warning"):
                 raise IrError("proof diagnostic severity is invalid")
+            code = diagnostic["code"]
+            if code is not None and (not isinstance(code, str) or not code):
+                raise IrError("proof diagnostic code must be a nonempty string or null")
             if not isinstance(diagnostic["message"], str):
                 raise IrError("proof diagnostic message must be a string")
             _string_vector(diagnostic["context"], "proof diagnostic context")

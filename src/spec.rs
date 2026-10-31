@@ -542,6 +542,7 @@ pub struct ProofAttempt {
 #[derive(Debug, Serialize)]
 pub struct ProofDiagnostic {
     pub severity: String,
+    pub code: Option<String>,
     pub draft_location: Option<ProofDiagnosticLocation>,
     pub checked_location: Option<ProofDiagnosticLocation>,
     pub message: String,
@@ -2169,14 +2170,11 @@ fn lean_diagnostics(
         .replace(&scratch.display().to_string(), "<PROOF_CHECK>")
         .replace(&root.display().to_string(), ".");
     let mut diagnostics: Vec<ProofDiagnostic> = Vec::new();
+    let header = regex::Regex::new(r": (error|warning)(?:\(([^()\r\n]+)\))?: ")?;
     for line in normalized.lines() {
-        let marker = [(": error: ", "error"), (": warning: ", "warning")]
-            .into_iter()
-            .find_map(|(needle, severity)| {
-                line.find(needle).map(|index| (index, needle, severity))
-            });
-        if let Some((index, needle, severity)) = marker {
-            let mut parts = line[..index].rsplitn(3, ':');
+        if let Some(capture) = header.captures(line) {
+            let marker = capture.get(0).unwrap();
+            let mut parts = line[..marker.start()].rsplitn(3, ':');
             let column = parts.next().and_then(|part| part.parse::<usize>().ok());
             let line_number = parts.next().and_then(|part| part.parse::<usize>().ok());
             let path = parts.next();
@@ -2207,10 +2205,11 @@ fn lean_diagnostics(
                     )
                 });
             diagnostics.push(ProofDiagnostic {
-                severity: severity.into(),
+                severity: capture[1].into(),
+                code: capture.get(2).map(|code| bounded_text(code.as_str(), 128)),
                 draft_location,
                 checked_location,
-                message: bounded_text(&line[index + needle.len()..], 512),
+                message: bounded_text(&line[marker.end()..], 512),
                 context: Vec::new(),
                 context_omitted_lines: 0,
             });
@@ -2223,6 +2222,7 @@ fn lean_diagnostics(
     if diagnostics.is_empty() && !output_succeeded {
         diagnostics.push(ProofDiagnostic {
             severity: "error".into(),
+            code: None,
             draft_location: None,
             checked_location: None,
             message: "Lean rejected the submitted tactics".into(),
@@ -4940,6 +4940,7 @@ mod tests {
         assert_eq!((location.line, location.column), (4, 3));
         assert_eq!(location.source_excerpt.as_deref(), Some("  unknown_step"));
         assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 34);
+        assert!(diagnostics[0].code.is_none());
         let context = &diagnostics[1];
         assert!(context.context.iter().any(|line| line == "⊢ True"));
         assert!(context.context.iter().any(|line| line == "  ∧ True"));
@@ -4948,6 +4949,52 @@ mod tests {
         let unicode = context.draft_location.as_ref().unwrap();
         assert_eq!((unicode.line, unicode.column), (3, 1));
         assert!(unicode.source_excerpt.as_ref().unwrap().contains('名'));
+    }
+
+    #[test]
+    fn proof_diagnostics_keep_codes_and_map_unknown_names_to_the_draft() {
+        let source = "theorem claim : True := by\n  -- fr:proof-begin claim\n    exact missingLemma\n  -- fr:proof-end claim\n";
+        let prepared = super::ProofPlan {
+            spec: PathBuf::from("specs/Claim.lean"),
+            obligation: "claim".into(),
+            original: source.into(),
+            updated: source.into(),
+            proof_source: "\r\n\r\n  exact missingLemma\r\n".into(),
+            goal_id: String::new(),
+            proof_digest: String::new(),
+            receipt: String::new(),
+        };
+        let output = "/tmp/check.lean:3:11: error(lean.unknownIdentifier): Unknown identifier `missingLemma`\nmore detail\nDependency.lean:8:2: warning(linter.unusedVariables): unused variable\n/tmp/check.lean:1:1: error: unsolved goals\n⊢ True\n";
+        let diagnostics = super::lean_diagnostics(
+            output,
+            Path::new("/tmp/check.lean"),
+            Path::new("/workspace"),
+            source,
+            &prepared,
+            Path::new("draft.tactics"),
+            false,
+        )
+        .unwrap();
+        assert_eq!(diagnostics.len(), 3);
+        assert_eq!(diagnostics[0].severity, "error");
+        assert_eq!(diagnostics[0].code.as_deref(), Some("lean.unknownIdentifier"));
+        assert_eq!(diagnostics[0].message, "Unknown identifier `missingLemma`");
+        assert_eq!(diagnostics[0].context, ["more detail"]);
+        let draft = diagnostics[0].draft_location.as_ref().unwrap();
+        assert_eq!(draft.path, Path::new("draft.tactics"));
+        assert_eq!((draft.line, draft.column), (3, 9));
+        assert_eq!(draft.source_excerpt.as_deref(), Some("  exact missingLemma"));
+        assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 3);
+        assert_eq!(diagnostics[1].severity, "warning");
+        assert_eq!(diagnostics[1].code.as_deref(), Some("linter.unusedVariables"));
+        assert!(diagnostics[1].draft_location.is_none());
+        assert_eq!(
+            diagnostics[1].checked_location.as_ref().unwrap().path,
+            Path::new("Dependency.lean")
+        );
+        assert!(diagnostics[2].code.is_none());
+        assert!(diagnostics[2].draft_location.is_none());
+        assert_eq!(diagnostics[2].context, ["⊢ True"]);
     }
 
     #[test]

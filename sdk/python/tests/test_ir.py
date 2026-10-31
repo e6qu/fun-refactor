@@ -259,14 +259,28 @@ class TestIr:
         rejected.update(passed=False, receipt=None)
         rejected["actions"]["apply"] = None
         rejected["diagnostics"] = [{
-            "severity": "error", "message": "unknown tactic",
-            "draft_location": {"path": "draft.tactics", "line": 2, "column": 3,
-                               "source_excerpt": "  unknown_step"},
-            "checked_location": {"path": "<PROOF_CHECK>", "line": 42, "column": 5,
-                                 "source_excerpt": "    unknown_step"},
+            "severity": "error", "message": "Unknown identifier `missingLemma`",
+            "code": "lean.unknownIdentifier",
+            "draft_location": {"path": "draft.tactics", "line": 2, "column": 9,
+                               "source_excerpt": "  exact missingLemma"},
+            "checked_location": {"path": "<PROOF_CHECK>", "line": 42, "column": 11,
+                                 "source_excerpt": "    exact missingLemma"},
             "context": ["⊢ True"], "context_omitted_lines": 12,
         }]
         assert ProofAttempt.from_data(rejected).to_data() == rejected
+        for code in (None, "lean.unknownIdentifier", "linter.unusedVariables"):
+            changed = json.loads(json.dumps(rejected))
+            changed["diagnostics"][0]["code"] = code
+            assert ProofAttempt.from_data(changed).to_data() == changed
+        for code in ("", False, 17, [], {}):
+            changed = json.loads(json.dumps(rejected))
+            changed["diagnostics"][0]["code"] = code
+            with pytest.raises(IrError, match="diagnostic code"):
+                ProofAttempt.from_data(changed)
+        missing_code = json.loads(json.dumps(rejected))
+        del missing_code["diagnostics"][0]["code"]
+        with pytest.raises(IrError):
+            ProofAttempt.from_data(missing_code)
         for key, value in (("line", 0), ("column", True), ("path", ""), ("source_excerpt", 3)):
             changed = json.loads(json.dumps(rejected))
             changed["diagnostics"][0]["draft_location"][key] = value
