@@ -66,6 +66,10 @@
         "named": true
       },
       {
+        "type": "calc",
+        "named": true
+      },
+      {
         "type": "cdot",
         "named": true
       },
@@ -1129,6 +1133,21 @@
         },
         {
           "type": "tactic_show",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "calc",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "calc_step",
           "named": true
         }
       ]

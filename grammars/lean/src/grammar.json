@@ -2612,6 +2612,19 @@
         {
           "type": "SYMBOL",
           "name": "as_pattern"
+        },
+        {
+          "type": "PREC",
+          "value": -1,
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "tactic_calc"
+            },
+            "named": true,
+            "value": "calc"
+          }
         }
       ]
     },
@@ -5644,7 +5657,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_layout_start"
+            "name": "_calc_body_start"
           },
           {
             "type": "REPEAT1",
@@ -8432,6 +8445,10 @@
     {
       "type": "SYMBOL",
       "name": "_tactic_label_colon"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_calc_body_start"
     },
     {
       "type": "SYMBOL",
