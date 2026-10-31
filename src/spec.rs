@@ -4977,16 +4977,25 @@ mod tests {
         .unwrap();
         assert_eq!(diagnostics.len(), 3);
         assert_eq!(diagnostics[0].severity, "error");
-        assert_eq!(diagnostics[0].code.as_deref(), Some("lean.unknownIdentifier"));
+        assert_eq!(
+            diagnostics[0].code.as_deref(),
+            Some("lean.unknownIdentifier")
+        );
         assert_eq!(diagnostics[0].message, "Unknown identifier `missingLemma`");
         assert_eq!(diagnostics[0].context, ["more detail"]);
         let draft = diagnostics[0].draft_location.as_ref().unwrap();
         assert_eq!(draft.path, Path::new("draft.tactics"));
         assert_eq!((draft.line, draft.column), (3, 9));
-        assert_eq!(draft.source_excerpt.as_deref(), Some("  exact missingLemma"));
+        assert_eq!(
+            draft.source_excerpt.as_deref(),
+            Some("  exact missingLemma")
+        );
         assert_eq!(diagnostics[0].checked_location.as_ref().unwrap().line, 3);
         assert_eq!(diagnostics[1].severity, "warning");
-        assert_eq!(diagnostics[1].code.as_deref(), Some("linter.unusedVariables"));
+        assert_eq!(
+            diagnostics[1].code.as_deref(),
+            Some("linter.unusedVariables")
+        );
         assert!(diagnostics[1].draft_location.is_none());
         assert_eq!(
             diagnostics[1].checked_location.as_ref().unwrap().path,

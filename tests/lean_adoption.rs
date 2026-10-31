@@ -181,7 +181,14 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
     std::fs::write(&proof, "\n\n  exact missingLemma\n").unwrap();
     let named = run(
         workspace.path(),
-        &["--json", "spec", "proof-check", target, "--from", "proof.lean"],
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
     );
     assert!(
         named.status.success(),
@@ -197,7 +204,10 @@ fn dependency_changes_expire_proof_tasks_and_rebuild_cached_imports() {
         .iter()
         .find(|item| item["code"] == "lean.unknownIdentifier")
         .unwrap();
-    assert!(diagnostic["message"].as_str().unwrap().contains("missingLemma"));
+    assert!(diagnostic["message"]
+        .as_str()
+        .unwrap()
+        .contains("missingLemma"));
     assert_eq!(diagnostic["draft_location"]["line"], 3);
     assert_eq!(diagnostic["draft_location"]["column"], 9);
     assert_eq!(
