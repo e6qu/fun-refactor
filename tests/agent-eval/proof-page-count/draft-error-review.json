@@ -1,0 +1,102 @@
+{
+  "new_agent_sessions": 0,
+  "new_provider_requests": 0,
+  "original_agent_outcomes_changed": false,
+  "original_attempt": "opencode2-glm-flash-page-count-fr-2",
+  "original_draft_sha256": "7978bfd37dc37ce43b910b05b9ecf305655cdefe89a7cbb5d887d3e0a3785d0b",
+  "specification_unchanged": true,
+  "timing_comparison": false,
+  "purpose": "Separate proof errors with explicit manual edits; the final manual control passes the unchanged complete claim",
+  "variants": [
+    {
+      "manual_edit": "remove-extra-introduction",
+      "draft_sha256": "c3a8a919b27c035861e43ed55a9be8ce342962faee91f5396daf6c68e4f44585",
+      "proof_passed": false,
+      "diagnostic_count": 3,
+      "messages": [
+        "unknown tactic",
+        "Tactic `cases` failed with a nested error:",
+        "unsolved goals"
+      ],
+      "base_draft_sha256": "7978bfd37dc37ce43b910b05b9ecf305655cdefe89a7cbb5d887d3e0a3785d0b"
+    },
+    {
+      "manual_edit": "remove-extra-introduction-and-unused-unavailable-tactic",
+      "draft_sha256": "97e2b55d8ecb822801b36ee4de960d43918e8ca3ac9cc45f6ff5e27abcb15bc1",
+      "proof_passed": false,
+      "diagnostic_count": 1,
+      "messages": [
+        "Tactic `cases` failed with a nested error:"
+      ],
+      "base_draft_sha256": "c3a8a919b27c035861e43ed55a9be8ce342962faee91f5396daf6c68e4f44585"
+    },
+    {
+      "manual_edit": "correct-assumption-grouping",
+      "draft_sha256": "8d81557a35cb913b7c84d700bf91a879c19c6189d3ae205b8b7a7250841be056",
+      "proof_passed": false,
+      "diagnostic_count": 3,
+      "messages": [
+        "omega could not prove the goal:",
+        "omega could not prove the goal:",
+        "omega could not prove the goal:"
+      ],
+      "base_draft_sha256": "97e2b55d8ecb822801b36ee4de960d43918e8ca3ac9cc45f6ff5e27abcb15bc1"
+    },
+    {
+      "manual_edit": "normalize-boolean-guard",
+      "draft_sha256": "cd442d2179c263c46d7bab3117aaad3d5ffa7982aa5127d5c026124b36322f07",
+      "proof_passed": false,
+      "diagnostic_count": 2,
+      "messages": [
+        "omega could not prove the goal:",
+        "omega could not prove the goal:"
+      ],
+      "base_draft_sha256": "8d81557a35cb913b7c84d700bf91a879c19c6189d3ae205b8b7a7250841be056"
+    },
+    {
+      "manual_edit": "supply-quotient-nonnegativity",
+      "draft_sha256": "ddecd34292aa908711d84b7d4833df1c6dcac2dd86eeb7a4d6c58fb0db2c0d0b",
+      "proof_passed": false,
+      "diagnostic_count": 3,
+      "messages": [
+        "omega could not prove the goal:",
+        "omega could not prove the goal:",
+        "omega could not prove the goal:"
+      ],
+      "base_draft_sha256": "8d81557a35cb913b7c84d700bf91a879c19c6189d3ae205b8b7a7250841be056"
+    },
+    {
+      "manual_edit": "normalize-guard-and-supply-quotient-nonnegativity",
+      "draft_sha256": "6653a9c8a247d30aba131d61dc1c2930cf4e12bdf50f10e745c39260d6e82f80",
+      "proof_passed": false,
+      "diagnostic_count": 2,
+      "messages": [
+        "omega could not prove the goal:",
+        "omega could not prove the goal:"
+      ],
+      "base_draft_sha256": "8d81557a35cb913b7c84d700bf91a879c19c6189d3ae205b8b7a7250841be056"
+    },
+    {
+      "manual_edit": "supply-division-identity-and-remainder-bounds",
+      "draft_sha256": "2c95e97897f5b055eaaf6709a42f637d35abef7f68b62c31c887b12affe2cdee",
+      "base_draft_sha256": "6653a9c8a247d30aba131d61dc1c2930cf4e12bdf50f10e745c39260d6e82f80",
+      "proof_passed": true,
+      "diagnostic_count": 0,
+      "messages": []
+    }
+  ],
+  "observations": [
+    "Removing the redundant introduction exposes an assumption-unpacking failure as well as an unavailable tactic",
+    "Removing that unavailable tactic leaves the assumption-unpacking failure; the unfinished-example diagnostic disappears",
+    "Correcting the assumption grouping removes that failure and exposes three unsolved arithmetic goals",
+    "Converting the Boolean branch condition removes one arithmetic failure",
+    "Supplying quotient nonnegativity removes negative quotient possibilities but leaves upper bounds unproved",
+    "Combining the two arithmetic changes still leaves two upper-bound goals unproved",
+    "Supplying the quotient-remainder identity, remainder nonnegativity and a product bound proves the unchanged complete claim",
+    "The accepted manual control is not an agent outcome and provides no evidence of 150-second agent completion",
+    "A disappearing diagnostic alone does not establish an independently accepted subproof",
+    "A lower diagnostic count cannot establish proof progress or a complete accepted result",
+    "The reader fix is qualified, but the original timed-out attempt and the full comparison remain unchanged"
+  ],
+  "next_question": "Freeze a small diagnostic of whether agents can find and use division facts without receiving the manually completed proof"
+}

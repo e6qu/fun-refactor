@@ -91,11 +91,14 @@ The next tasks stay inside this milestone PR:
    All four timed out without a patch; independent checking confirms all four failures.
    GLM checked drafts but received proof errors. Kimi searched without a draft in one attempt and checked late in the other.
    Some commands cut off feedback. GLM also encountered another valid syntax form that fr rejected.
-4. Finish the reader repair for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
-   Lean accepts the minimal control while the measured fr rejects it.
-   Generate the recursive reader on GitHub. Check malformed patterns, later declarations and native proof submissions.
-   Replay the affected draft with rebuilt fr; preserve its original failed outcome.
-5. Review the first unresolved proof or delivery step before selecting another paid diagnostic.
+4. Keep the repaired reader for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
+   All 29 hosted preparation checks passed.
+   The [exact replay](tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
+   The [error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates earlier failures from the remaining arithmetic goals.
+   The specification and original agent outcomes stay unchanged.
+5. Preserve the passing manual control: division facts close the unchanged claim; this is not an agent success.
+   Freeze a small diagnostic of finding and using these facts, without supplying the completed proof.
+   Freeze its prediction, independent checks and decision rule first.
    The page-count prediction failed, so the full comparison stays paused.
    Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
    Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.

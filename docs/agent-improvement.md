@@ -183,10 +183,32 @@ These are different obstacles; a lower command count or an earlier check does no
 One GLM attempt also hit another reader defect. For example, `⟨⟨a, b⟩, c⟩` unpacks grouped assumptions.
 Lean accepts a minimal program with these nested patterns; the measured fr rejects the same source.
 A [direct Lean check](../tests/agent-eval/proof-page-count/direct-lean-control-summary.json) confirms that this exact draft still has proof errors.
-It tries to introduce an assumption twice, uses an unavailable tactic and leaves the final example unfinished.
+It tries to introduce an assumption twice and uses an unavailable tactic. Lean also reports an unfinished final example.
 The syntax control cannot reclassify its timeout or establish why every attempt failed.
 
-Repair and check the nested-pattern reader before another paid study.
+The repaired reader passed all 29 hosted preparation checks.
+An [exact replay](../tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
+The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates the next obstacles without model calls.
+Removing the redundant introduction exposes a mistake in how the draft unpacks its assumptions.
+Removing the unavailable tactic leaves that mistake; the unfinished-example diagnostic disappears.
+Correcting the grouping exposes arithmetic steps that the draft still cannot prove.
+Separate manual checks then convert the Boolean branch condition and supply a nonnegativity fact for integer division.
+Converting the condition removes one arithmetic failure.
+The nonnegativity fact rules out negative quotients, but the proof still needs upper bounds.
+Combining both changes still leaves two arithmetic goals unproved.
+Adding the division identity, a nonnegative remainder and a product bound closes the unchanged complete claim.
+For example, eleven items equal five times the quotient of two, plus a remainder of one.
+The general proof uses that relationship to bound the page count; it does not depend on that one example.
+This accepted manual control shows that these explicit facts suffice. It is not a timed agent success.
+A solver's possible counterexample can reflect missing facts about an operation.
+Check it against the program and its assumptions before treating it as a program bug.
+
+An error can hide later errors or cause messages about unfinished work elsewhere.
+A disappearing message does not establish an independently accepted subproof.
+The first six manual variants fail; the seventh passes. None changes an original agent outcome or supplies a timing comparison.
+Do not count diagnostics as independent mistakes or treat a lower count as a correct complete proof.
+Before another paid diagnostic, freeze a prediction about agents finding and using the missing division facts.
+Keep the manually completed proof out of their task inputs.
 Then review the first unresolved proof or delivery step and the task requirements.
 Do not assume that another wording change will make the complete page-count proof fit the existing limit.
 The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
