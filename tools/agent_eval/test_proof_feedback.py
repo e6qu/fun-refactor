@@ -139,6 +139,12 @@ class ProofFeedbackTests(unittest.TestCase):
             feedback.page_count_decision(rows[:-1])
         with self.assertRaises(ValueError):
             feedback.page_count_decision(list(reversed(rows)))
+        all_failed = copy.deepcopy(rows)
+        for row in all_failed:
+            row.update(independent_outcome='failed', patch_file=None)
+        report = feedback.markdown({'study': 'M3-page-count', 'attempts': all_failed})
+        self.assertNotIn('model is proved', report)
+        self.assertIn('asks for proofs of the fixed mathematical model', report)
 
     def test_construction_requires_all_four_complete_outcomes(self):
         rows = [{**row, 'native_status': 'completed', 'stop_reason': None, 'total_seconds': 30.0,

@@ -87,14 +87,18 @@ The next tasks stay inside this milestone PR:
    All 29 hosted preparation checks and Python-record checks pass.
    An [exact replay](tests/agent-eval/proof-construction/diagnostic-control-summary.json) now locates both unknown names in the submitted tactics.
    The original construction timeout remains failed.
-3. Qualify and run the [four-attempt page-count diagnostic](tests/agent-eval/proof-writing/page-count-diagnostic.md) after the diagnostic repair qualifies.
-   Reuse the unchanged M3 page-count source, model and claim. Keep the reference outside fresh agent projects.
-   Freeze two attempts each for GLM and Kimi, all with fr, with the same model settings and 150-second limit.
-   Each agent needs at least one complete accepted proof before restarting the full comparison.
-   If either has none, inspect the first unresolved step and keep the broad comparison paused.
-4. Restart the complete comparison only after that page-count result and relevant CI pass.
-   Keep the same models, claims, two repetitions and 150-second benchmark.
-   Independently grade submissions and preserve every failure alongside the 335 M3 outcomes and twelve separate diagnostic outcomes.
+3. Preserve the [four page-count results](tests/agent-eval/proof-page-count/local-results/README.md).
+   All four timed out without a patch; independent checking confirms all four failures.
+   GLM checked drafts but received proof errors. Kimi searched without a draft in one attempt and checked late in the other.
+   Some commands cut off feedback. GLM also encountered another valid syntax form that fr rejected.
+4. Finish the reader repair for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
+   Lean accepts the minimal control while the measured fr rejects it.
+   Generate the recursive reader on GitHub. Check malformed patterns, later declarations and native proof submissions.
+   Replay the affected draft without model calls; preserve its original failed outcome.
+5. Review the first unresolved proof or delivery step before selecting another paid diagnostic.
+   The page-count prediction failed, so the full comparison stays paused.
+   Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
+   Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
 
 Two diagnostic cycles that leave the same obstacle unchanged require a review of the explanation and task requirements.
 Do not repeat full comparisons until one passes. Keep all earlier records and their timing limitations intact.

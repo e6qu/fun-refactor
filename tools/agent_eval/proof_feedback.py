@@ -365,7 +365,8 @@ def markdown(summary):
             result = page_count_decision(summary['attempts'])
             title = '# Can both agents finish the page-count proof?'
             introduction = ('Four attempts use fr and the unchanged M3 page-count claim. '
-                            'The prediction requires at least one complete accepted attempt from each agent.')
+                            'The prediction requires at least one complete accepted attempt from each agent. '
+                            'Read [what the agents actually did](../README.md).')
         else:
             result = construction_decision(summary['attempts'])
             title = '# Can the agents construct the multiplication proof and finish?'
@@ -376,7 +377,7 @@ def markdown(summary):
                  result['decision'], '', '| Agent | Complete accepted attempts / 2 |', '| --- | ---: |']
         for profile, row in result['profiles'].items():
             lines.append(f'| {profile} | {row["accepted"]["fr"]} |')
-        lines += ['', 'Only the fixed mathematical model is proved; the connection to source execution remains unproved.',
+        lines += ['', 'This experiment asks for proofs of the fixed mathematical model; the connection to source execution remains unproved.',
                   'Only patches and reviewed summaries are public. Raw agent records stay local.', '',
                   '| Attempt | Outcome | Complete seconds | Patch |', '| --- | --- | ---: | --- |']
         for row in summary['attempts']:

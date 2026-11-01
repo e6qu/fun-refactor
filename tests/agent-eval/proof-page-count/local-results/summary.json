@@ -698,7 +698,7 @@
         "completed_tool_wall_seconds": 42.506,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Checked several drafts; admitted steps were refused, later drafts had Lean errors, and truncated reports hid some feedback. Timed out without a patch.",
       "proof_observations": {
@@ -710,6 +710,13 @@
         "proof_written_with_fr": null,
         "package_check_passed": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41289141428",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -761,7 +768,7 @@
         "completed_tool_wall_seconds": 4.541,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Read the goal and structured claim, then searched division lemmas without checking a draft. Timed out without a patch.",
       "proof_observations": {
@@ -773,6 +780,13 @@
         "proof_written_with_fr": null,
         "package_check_passed": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41289141428",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -825,7 +839,7 @@
         "completed_tool_wall_seconds": 30.487,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "Checked drafts, encountered reader rejections of nested assumption patterns, then received more Lean errors. Timed out without a patch.",
       "proof_observations": {
@@ -837,6 +851,13 @@
         "proof_written_with_fr": null,
         "package_check_passed": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41289141428",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     },
     {
@@ -889,7 +910,7 @@
         "completed_tool_wall_seconds": 8.514,
         "method": "Union of recorded completed tool intervals. Missing intervals are unknown. Other elapsed time includes replies, CLI overhead and unrecorded unfinished calls."
       },
-      "independent_outcome": null,
+      "independent_outcome": "failed",
       "collection_error_recorded": false,
       "failure_summary": "First checked a draft late, then received unresolved-goal errors and a deprecated-lemma warning. Timed out without a patch.",
       "proof_observations": {
@@ -901,6 +922,13 @@
         "proof_written_with_fr": null,
         "package_check_passed": null,
         "execution_validity": "valid"
+      },
+      "independent_check_run": "https://github.com/e6qu/fun-refactor/actions/runs/41289141428",
+      "independent_check": {
+        "patch_accepted": false,
+        "check_stage": "delivery",
+        "undo_exact": false,
+        "redo_exact": false
       }
     }
   ],

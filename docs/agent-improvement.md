@@ -167,7 +167,27 @@ Neither replay is a new agent attempt. Both original outcomes stay unchanged.
 
 The replay also found a reporting defect. Lean marks these errors with a code such as `lean.unknownIdentifier`.
 Fr treated that header as unstructured text, losing the separate draft line and column.
-Fix and check that report before spending calls on another instruction change.
+That repair passes all 29 hosted preparation checks.
+An [exact replay](../tests/agent-eval/proof-construction/diagnostic-control-summary.json) now locates both unknown names in the submitted draft.
+
+### Page-count result: the prediction failed
+
+The [four page-count attempts](../tests/agent-eval/proof-page-count/local-results/README.md) all reached 150 seconds without a patch.
+Independent checking retained all four failures. Neither agent delivered the predicted complete result.
+The full comparison stays paused.
+
+GLM checked drafts early but did not finish a proof. Kimi searched without checking a draft in one attempt and checked late in the other.
+Several commands cut off the returned JSON with `head` or `tail`, hiding part of the feedback.
+These are different obstacles; a lower command count or an earlier check does not establish task success.
+
+One GLM attempt also hit another reader defect. For example, `⟨⟨a, b⟩, c⟩` unpacks grouped assumptions.
+Lean accepts a minimal program with these nested patterns; the measured fr rejects the same source.
+The complete draft may still have proof errors. The syntax control cannot reclassify its timeout or establish why every attempt failed.
+
+Repair and check the nested-pattern reader before another paid study.
+Then review the first unresolved proof or delivery step and the task requirements.
+Do not assume that another wording change will make the complete page-count proof fit the existing limit.
+The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
 
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.

@@ -1,9 +1,9 @@
 # Next diagnostic: finish the page-count proof
 
-This is a planned four-attempt diagnostic, not a completed result.
-The `M3-page-count` study has a separate four-slot schedule and shares M3's original task preparation.
-Pass its checker controls and freeze its execution plan before making calls.
-Keep the full thirty-six-attempt comparison paused until this diagnostic supports restarting it.
+This diagnostic ran all four frozen slots once after its checker controls passed.
+All four timed out without patches. The [results and observed actions](../proof-page-count/local-results/README.md) retain every failure.
+The prediction below failed, so the full thirty-six-attempt comparison stays paused.
+The following protocol records the choices fixed before the calls; do not reuse its closed plan.
 
 ## Question and prediction
 
@@ -17,7 +17,7 @@ The reader repair now passes hosted checks and an exact replay without model cal
 The tagged-error repair passes all 29 hosted preparation checks.
 An [exact replay](../proof-construction/diagnostic-control-summary.json) now locates both unknown names in the original invalid draft.
 The first page-count evaluator run crashed while reading its settings, before any model calls.
-A regression reproduces that crash; the corrected evaluator is undergoing hosted validation.
+A regression reproduces that crash. The corrected evaluator passed all seven patch controls and four scripted client exchanges before calls.
 
 We predict that both agents can deliver at least one accepted proof in two attempts each.
 This tests complete delivery on the unresolved task. It cannot isolate the effect of one repair.

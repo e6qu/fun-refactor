@@ -112,8 +112,10 @@ verdicts with the published outcomes, retaining original failures and timeouts e
 
 The [separate arithmetic diagnostic](../proof-feedback/README.md#what-the-first-run-established) retains eight assisted repairs and their two failed deliveries.
 The [four construction attempts](../proof-construction/README.md#what-the-first-run-established) retain three accepted patches and one Kimi timeout without a patch.
-They exposed a valid inline calculation that fr rejects before Lean runs; that repair needs hosted validation.
-Neither diagnostic adds a successful page-count attempt or closes this milestone. The [roadmap](../../../PLAN.md#next-work) names the next tasks.
+They exposed a valid inline calculation that fr rejected; its repair passes hosted checks and an exact replay.
+The later [four page-count attempts](../proof-page-count/local-results/README.md) all timed out without patches.
+They exposed another reader defect in nested assumption patterns. Its repair must pass hosted checking before more calls.
+None of these diagnostics closes this milestone. The [roadmap](../../../PLAN.md#next-work) names the next tasks.
 
 Use the [selected client guide](../selected-agents/README.md) for client identities and the
 [local runner](../../../tools/agent_eval/selected_local.py) with the explicit `M3` milestone.
