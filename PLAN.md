@@ -83,11 +83,10 @@ The next tasks stay inside this milestone PR:
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
    Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.
-2. Finish the diagnostic repair for messages such as `error(lean.unknownIdentifier)`.
-   Report the unknown name, its error code and the line and column in the submitted tactics.
-   Check coded errors and warnings, plain messages, dependency locations and a real CLI proof rejection.
-   Update the strict Python reader with the same required fields. Rebuild and validate on GitHub.
-   Keep all four original construction outcomes unchanged; the timeout cannot become a later success.
+2. Preserve the checked diagnostic repair for messages such as `error(lean.unknownIdentifier)`.
+   All 29 hosted preparation checks and Python-record checks pass.
+   An [exact replay](tests/agent-eval/proof-construction/diagnostic-control-summary.json) now locates both unknown names in the submitted tactics.
+   The original construction timeout remains failed.
 3. Qualify and run the [four-attempt page-count diagnostic](tests/agent-eval/proof-writing/page-count-diagnostic.md) after the diagnostic repair qualifies.
    Reuse the unchanged M3 page-count source, model and claim. Keep the reference outside fresh agent projects.
    Freeze two attempts each for GLM and Kimi, all with fr, with the same model settings and 150-second limit.

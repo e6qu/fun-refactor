@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "live_model_calls": 0,
+  "build": {
+    "source_commit": "2282d10df5926aa2206d009f899023d81dd100ec",
+    "source_tree": "135bf9ee1bd4457d3e8477485180fd61fed4ba93",
+    "native_inputs": {
+      "src": "8dc8a8474fce1776c640fd60c200b7fcb7ede5ed",
+      "grammars": "25fbabecb3ddee30ff42e0935875a6807256899a",
+      "crates": "6d9d25a18f856642ead5ab598f583288b2cf7a5e",
+      "queries": "7a2772493ef81348a32356658b3ef95922d4f61c",
+      "catalogs": "7ce1ad40825f8a19b83d803d1c34a7b7d26c4c36",
+      "kernels/FrKernels/PureKernel.lean": "2ce3681e1b327619693a2614644a79f104eff5f2",
+      "build.rs": "f58ae81bfa48f7a5a48950329b941ff0f13ccb51",
+      "Cargo.toml": "e71fcf4fa094507118640f3370cc58ba99e621bf",
+      "Cargo.lock": "2800d1ca4f6646df51efaf876bcc5ef9d98492d1",
+      "native-source-inputs.txt": "bb7ca57f9255b51d4c7a40157437c077a94b88de"
+    },
+    "executable_sha256": "6a2ca9ef95fad33dbb2e6912784331f29e49325141afde341b2945a2436695a5"
+  },
+  "exact_replays": [
+    {
+      "original_attempt": "opencode2-kimi-k3-scaled-total-fr-2",
+      "reader_reached_lean": true,
+      "proof_passed": true,
+      "model_calls": 0,
+      "write_applied": true,
+      "package_check_passed": true
+    },
+    {
+      "original_attempt": "opencode2-kimi-k3-scaled-total-fr-1",
+      "reader_reached_lean": true,
+      "proof_passed": false,
+      "model_calls": 0,
+      "diagnostics_preserved": true,
+      "tagged_error_locations_mapped": true,
+      "diagnostic_codes": [
+        "lean.unknownIdentifier"
+      ],
+      "draft_lines": [
+        4,
+        5
+      ]
+    }
+  ],
+  "syntax_forms": [
+    "inline",
+    "multiline",
+    "nested",
+    "exact",
+    "term"
+  ],
+  "original_agent_outcomes_changed": false,
+  "original_seed_unchanged": true,
+  "scope": "Check earlier valid and invalid drafts with the repaired native executable; no new agent attempt or outcome reclassification",
+  "qualification_run": "https://github.com/e6qu/fun-refactor/actions/runs/41242531896",
+  "guard": {
+    "deadline_seconds": 180,
+    "rss_limit_bytes": 1073741824,
+    "minimum_free_disk_gib": 64,
+    "cpu_seconds": 0.96,
+    "elapsed_seconds": 3.88
+  },
+  "preliminary_setup_error": "The first invocation supplied a file where the build directory was required and stopped before checking a draft; the corrected separate replay passed",
+  "source_model_connection_proved": false,
+  "publication": "Reviewed summary only; no raw drafts, source snapshots, prompts or native records"
+}

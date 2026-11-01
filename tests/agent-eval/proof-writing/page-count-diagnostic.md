@@ -14,7 +14,10 @@ For valid inputs, the number of pages must stay between zero and the number of i
 The earlier attempts reached rejected drafts late, or searched without checking a draft.
 The smaller diagnostics found instruction omissions, rejected valid syntax and lost error locations.
 The reader repair now passes hosted checks and an exact replay without model calls.
-The tagged-error repair still needs that qualification.
+The tagged-error repair passes all 29 hosted preparation checks.
+An [exact replay](../proof-construction/diagnostic-control-summary.json) now locates both unknown names in the original invalid draft.
+The first page-count evaluator run crashed while reading its settings, before any model calls.
+A regression reproduces that crash; the corrected evaluator is undergoing hosted validation.
 
 We predict that both agents can deliver at least one accepted proof in two attempts each.
 This tests complete delivery on the unresolved task. It cannot isolate the effect of one repair.
