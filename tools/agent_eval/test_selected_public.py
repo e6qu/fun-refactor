@@ -67,6 +67,9 @@ class SelectedPublicTests(unittest.TestCase):
     def test_page_count_export_keeps_prompts_and_native_records_private(self):
         self.assert_private_export('M3-page-count', 4)
 
+    def test_division_fact_export_keeps_handouts_and_native_records_private(self):
+        self.assert_private_export('M3-facts', 8)
+
     def assert_private_export(self, milestone, count):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -100,7 +103,7 @@ class SelectedPublicTests(unittest.TestCase):
                                   initial_check_sha256='a' * 64, initial_feedback_supplied=row['setup'] == 'supplied-feedback',
                                   native_stdout_sha256=public.common.digest(directory / 'native.stdout'))
                     (directory / 'result.json').write_text(json.dumps(record))
-                elif milestone in {'M3-construction', 'M3-page-count'}:
+                elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     record['native_stdout_sha256'] = public.common.digest(directory / 'native.stdout')
                     (directory / 'result.json').write_text(json.dumps(record))
                 review[row['id']] = {'record_sha256': public.common.digest(directory / 'result.json'),
@@ -109,14 +112,16 @@ class SelectedPublicTests(unittest.TestCase):
                     review[row['id']]['feedback_observations'] = {
                         'first_correct_repair_seconds': None, 'repeated_argument_type_errors': None,
                         'execution_validity': 'collection-failed'}
-                elif milestone in {'M3-construction', 'M3-page-count'}:
+                elif milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     review[row['id']]['proof_observations'] = {
                         'first_passing_proof_seconds': None, 'package_check_seconds': None,
                         'patch_delivery_seconds': None, 'proof_check_passed': None,
                         'proof_written_with_fr': None, 'package_check_passed': None,
                         'execution_validity': 'collection-failed'}
-                    if milestone == 'M3-page-count':
+                    if milestone in {'M3-page-count', 'M3-facts'}:
                         review[row['id']]['proof_observations']['first_proof_check_seconds'] = None
+                    if milestone == 'M3-facts':
+                        review[row['id']]['proof_observations']['proof_write_seconds'] = None
             destination = root / 'approved'
             with patch.object(public.local, 'implementation_bindings', return_value={}), \
                     patch.object(public.grading, 'core_digest', return_value='checker'):
@@ -134,10 +139,13 @@ class SelectedPublicTests(unittest.TestCase):
                                 for row in result['attempts']))
             self.assertNotIn(canary, (destination / 'summary.json').read_text())
             self.assertEqual([path.name for path in destination.rglob('*') if path.is_file()], ['summary.json'])
-            if milestone in {'M3-construction', 'M3-page-count'}:
+            if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                 self.assertIsNone(result['attempts'][0]['proof_observations']['first_passing_proof_seconds'])
                 self.assertIsNone(result['attempts'][0]['proof_observations']['package_check_seconds'])
                 self.assertIsNone(result['attempts'][0]['proof_observations']['patch_delivery_seconds'])
+            if milestone == 'M3-facts':
+                self.assertIsNone(result['provider_request_count'])
+                self.assertIsNone(result['attempts'][0]['proof_observations']['proof_write_seconds'])
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ import tempfile
 
 from . import proof_writing_tasks as proof
 from . import selected_tasks as common
-from .selected_plan import CASE_DIRECTORIES, ROOT, encoded, prepare, require
+from .selected_plan import PROOF_DIAGNOSTICS, CASE_DIRECTORIES, ROOT, encoded, prepare, require
 
 DIRECTORY = Path('tests/agent-eval/proof-feedback')
 TASK = 'division-repair'
@@ -19,7 +19,7 @@ check = proof.check
 
 
 def case_details(milestone):
-    require(milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'}, 'select the explicit small proof study')
+    require(milestone in PROOF_DIAGNOSTICS, 'select the explicit small proof study')
     if milestone == 'M3-page-count':
         entry = proof.CASES['page-count']
         return {'directory': CASE_DIRECTORIES[milestone], 'task': 'page-count', 'source': entry['path'],
@@ -31,6 +31,11 @@ def case_details(milestone):
                 'fixture': 'fixtures/quotient.rs', 'property': 'nonnegative', 'draft': 'initial-tactics.txt',
                 'arithmetic': {'source': 'signed-64 division with a nonnegative dividend and positive divisor',
                                'model': 'Lean Int.tdiv', 'source_implementation_proved': False}}
+    if milestone == 'M3-facts':
+        return {'directory': CASE_DIRECTORIES[milestone], 'task': 'division-facts', 'source': 'src/parts.rs',
+                'fixture': 'fixtures/parts.rs', 'property': 'at_most_input', 'draft': None,
+                'arithmetic': {'source': 'signed-64 division and remainder; overflow is not established',
+                               'model': 'Lean Int.tdiv and Int.tmod', 'source_implementation_proved': False}}
     settings = json.loads((ROOT / CASE_DIRECTORIES[milestone] / 'requirements.json').read_text())
     require(settings['source'] == 'fixtures/scaled.rs' and settings['project_source'] == 'src/scaled.rs' and
             settings['property_name'] == 'at_least_input' and
@@ -51,7 +56,8 @@ def property_for(task, milestone):
     a, b = proof.variable('a'), proof.variable('b')
     zero, one = proof.integer(0, 'Int'), proof.integer(1, 'Int')
     assumptions = proof.conjunction(proof.relation('less-or-equal', zero, a), proof.relation('less-or-equal', one, b))
-    conclusion = proof.relation('less-or-equal', zero if milestone == 'M3-feedback' else a, proof.model(a, b))
+    conclusion = (proof.relation('less-or-equal', proof.model(a, b), a) if milestone == 'M3-facts' else
+                  proof.relation('less-or-equal', zero if milestone == 'M3-feedback' else a, proof.model(a, b)))
     return {'schema': 'fr-formal-property-1', 'task_digest': task['object_digest'], 'name': details['property'],
             'parameters': [{'name': name, 'lean_type': 'Int'} for name in ('a', 'b')],
             'proposition': proof.implies(assumptions, conclusion)}
@@ -70,7 +76,7 @@ def prepare_inputs(binary, project, output, milestone):
         (project / details['draft']).write_bytes((ROOT / details['directory'] / 'fixtures' / details['draft']).read_bytes())
     (project / 'Cargo.toml').write_text('[workspace]\n')
     common.fr(binary, project, ['spec', 'init', 'specs', '--write'], output / 'init.json')
-    symbol = 'quotient' if milestone == 'M3-feedback' else 'scaled_total'
+    symbol = {'M3-feedback': 'quotient', 'M3-construction': 'scaled_total', 'M3-facts': 'division_parts'}[milestone]
     shape = common.fr(binary, project, ['spec', 'property-task', details['source'] + '::' + symbol], output / 'shape.json')
     claim = property_for(shape, milestone)
     common.save(output / 'property.json', claim)
@@ -108,8 +114,8 @@ def prompt(checkers, milestone):
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
                 str(checkers['lean']['source_root']) + '. A successful fr command can report passed=false; read the report. '
                 'Only the marked proof region may change. Preserve .fr/checks.json; store reports elsewhere.')
-    if milestone == 'M3-construction':
-        request = prepare(ROOT, milestone)['requirements']['tasks']['scaled-total']['request']
+    if milestone in {'M3-construction', 'M3-facts'}:
+        request = prepare(ROOT, milestone)['requirements']['tasks'][case_details(milestone)['task']]['request']
         return (request + '\n\nTactics are proof steps. Read the fixed claim before writing a draft. '
                 'Use the installed Lean standard library; Mathlib is unavailable. Its source is ' +
                 str(checkers['lean']['source_root']) + '. A successful fr command can report passed=false; read the report. '
@@ -124,6 +130,42 @@ def prompt(checkers, milestone):
             str(checkers['lean']['source_root']) + '. Run the supplied package check: ' +
             checkers['lake']['path'] + ' -d specs build --wfail. '
             'Do not alter the initial draft, source, theorem, assumptions, package configuration or proof markers.')
+
+
+def install_declarations(project, condition):
+    require(condition in {'select-facts', 'supplied-declarations'}, 'choose the declaration condition explicitly')
+    path = project / '.fr/declarations.txt'
+    require(not path.exists(), 'do not overwrite a supplied declaration handout')
+    path.parent.mkdir(exist_ok=True)
+    content = ((ROOT / CASE_DIRECTORIES['M3-facts'] / 'fixtures/declarations.txt').read_text()
+               if condition == 'supplied-declarations' else
+               'Select the needed current declarations from the installed Lean standard library.\n')
+    path.write_text(content)
+    return path
+
+
+def qualify_declarations(output):
+    from . import selected_local as local
+    expected = ROOT / CASE_DIRECTORIES['M3-facts'] / 'fixtures/declarations.txt'
+    names = [line.split()[0] for line in expected.read_text().splitlines()]
+    require(names == ['Int.mul_le_mul_of_nonneg_right', 'Int.tdiv_nonneg',
+                      'Int.tmod_add_mul_tdiv', 'Int.tmod_nonneg'], 'keep the four alphabetically listed declarations')
+    probe = output / 'Declarations.lean'
+    probe.write_text('import Init\n' + ''.join('#check ' + name + '\n' for name in names))
+    result = common.command(['lean', str(probe.resolve())], output, output / 'declarations-check.json')
+    require(result['returncode'] == 0 and not result['stderr'].strip() and
+            ' '.join(result['stdout'].split()) == ' '.join(expected.read_text().split()),
+            'supplied types must match the pinned Lean declarations exactly')
+    for condition in ('select-facts', 'supplied-declarations'):
+        project = output / ('handout-' + condition);project.mkdir()
+        handout = install_declarations(project, condition)
+        protected = {'.fr/declarations.txt': common.digest(handout)}
+        require(not local.checking_input_changes(project, protected), 'clean handout was altered')
+        handout.write_text('changed\n')
+        require(local.checking_input_changes(project, protected) == ['.fr/declarations.txt'], 'reject changed handouts')
+        handout.unlink()
+        require(local.checking_input_changes(project, protected) == ['.fr/declarations.txt'], 'reject deleted handouts')
+    return common.digest(expected)
 
 
 def initial_check(binary, project, prepared, env, output, seconds):
@@ -143,9 +185,14 @@ def validate_controls(value, milestone):
     from . import selected_local as local
     from . import selected_local_grade as public
     rejection = 'initial_draft_rejected' if milestone == 'M3-feedback' else 'unfinished_draft_rejected'
-    require(value['study'] == milestone and set(value) == {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings',
-            'study', rejection, 'native_exchanges', 'controls', 'private', 'fr_sha256', 'core_checker_sha256'},
-            'diagnostic controls need their exact declared fields')
+    fields = {'passed', 'live_model_calls', 'source_commit', 'run', 'bindings',
+            'study', rejection, 'native_exchanges', 'controls', 'private', 'fr_sha256', 'core_checker_sha256'}
+    if milestone == 'M3-facts':
+        fields |= {'declarations_sha256', 'handout_changes_rejected'}
+    require(value['study'] == milestone and set(value) == fields, 'diagnostic controls need their exact declared fields')
+    if milestone == 'M3-facts':
+        require(value['declarations_sha256'] == common.digest(ROOT / CASE_DIRECTORIES[milestone] / 'fixtures/declarations.txt')
+                and value['handout_changes_rejected'] is True, 'qualify the exact declarations and protected handout')
     expected = {variant: {'status': 'passed', 'accepted': variant == 'reference'} for variant in VARIANTS}
     require(value['passed'] is True and value['live_model_calls'] == 0 and value['controls'] == expected,
             'all seven independent diagnostic patch controls must pass')
@@ -189,6 +236,9 @@ def controls(binary, output, native, milestone):
               rejection: True, 'native_exchanges': 4, 'controls': {}, 'private': {'image': image},
               'fr_sha256': common.digest(binary), 'core_checker_sha256': public.core_digest(milestone)}
     common.save(output / 'controls.json', result)
+    if milestone == 'M3-facts':
+        result.update(declarations_sha256=qualify_declarations(output), handout_changes_rejected=True)
+        common.save(output / 'controls.json', result)
     for variant in VARIANTS:
         candidate = output / ('candidate-' + variant)
         common.checkout(original, candidate)
@@ -199,7 +249,7 @@ def controls(binary, output, native, milestone):
                       output / (variant + '-write.json'))
         if variant == 'changed-source':
             source = candidate / prepared['source']
-            operator = ' / ' if milestone in {'M3-feedback', 'M3-page-count'} else ' * '
+            operator = ' / ' if milestone in {'M3-feedback', 'M3-page-count', 'M3-facts'} else ' * '
             require(source.read_text().count(operator) == 1, 'change exactly the source arithmetic operator')
             source.write_text(source.read_text().replace(operator, ' + ', 1))
         if variant == 'changed-claim':
@@ -261,19 +311,21 @@ def outcomes(rows, milestone):
                             not row['checking_input_changes'] and not row['collection_error_recorded'] and
                             row['independent_check']['patch_accepted'] is True,
                             'a timed-out diagnostic remains failed even if its patch passes')
-                    if milestone in {'M3-construction', 'M3-page-count'}:
+                    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                         require(construction_checks_passed(row), 'unobserved construction checks remain failed')
             counts[condition] = sum(row['independent_outcome'] == 'passed' for row in selected)
         result[profile] = {'accepted': counts, 'execution_usable': usable}
     return result
 
 
-def decisions(rows):
-    result = outcomes(rows, 'M3-feedback')
-    schedule = prepare(ROOT, 'M3-feedback')
+def decisions(rows, milestone):
+    require(milestone in {'M3-feedback', 'M3-facts'}, 'choose the explicit two-condition diagnostic')
+    result = outcomes(rows, milestone)
+    schedule = prepare(ROOT, milestone)
+    control, supplied = schedule['requirements']['setups']
     for profile, row in result.items():
         counts = row['accepted']
-        key = str(counts['supplied-feedback']) + ',' + str(counts['self-check'])
+        key = str(counts[supplied]) + ',' + str(counts[control])
         rules = schedule['requirements']['decisions']
         decision = rules[key] if key in rules else rules['mixed']
         if not row['execution_usable']:
@@ -344,7 +396,7 @@ def grade_public(data, artifacts, binary, output, control_run, milestone):
                 verdict = grading.grade(image, task, original, prepared, binary, rust, patch,
                                         output / row['id'], milestone=milestone, tools={})
                 accepted = row['native_status'] == 'completed' and verdict['passed']
-                if milestone in {'M3-construction', 'M3-page-count'}:
+                if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
                     accepted = accepted and construction_checks_passed(row)
                 result['attempts'][row['id']] = {'status': 'checked', 'native_status': row['native_status'],
                     'patch_sha256': row['patch_sha256'], 'patch_accepted': verdict['passed'],
@@ -384,17 +436,24 @@ def markdown(summary):
             patch = '[patch](' + row['patch_file'] + ')' if row['patch_file'] else 'none'
             lines.append(f'| {row["id"]} | {row["independent_outcome"]} | {row["total_seconds"]:.3f} | {patch} |')
         return '\n'.join(lines) + '\n'
-    require(summary['study'] == 'M3-feedback', 'choose the explicit diagnostic report')
-    result = decisions(summary['attempts'])
-    lines = ['# Can the agents use an initial arithmetic error report?', '',
+    require(summary['study'] in {'M3-feedback', 'M3-facts'}, 'choose the explicit diagnostic report')
+    result = decisions(summary['attempts'], summary['study'])
+    control, supplied = prepare(ROOT, summary['study'])['requirements']['setups']
+    lines = (['# Can the agents select and apply current division facts?', '',
+             'Eight attempts compare the same small claim, fr, instructions and complete 150-second limit.',
+             'One condition supplies four current library declaration types; neither supplies a proof.',
+             'This development example cannot establish full page-count success or fr overhead against ordinary tools.', '',
+             '| Agent | Select facts: accepted / 2 | Supplied declarations: accepted / 2 | Next question |',
+             '| --- | ---: | ---: | --- |'] if summary['study'] == 'M3-facts' else
+            ['# Can the agents use an initial arithmetic error report?', '',
              'Eight assisted repair attempts compare the same small division claim, bad draft, fr and instructions.',
              'Only initial visibility of the actual rejection report differs. Each complete attempt keeps its 150-second limit.',
              'Both conditions include generating the initial check. Failed attempts remain in the totals.', '',
              '| Agent | Finds feedback: accepted / 2 | Supplied feedback: accepted / 2 | Next question |',
-             '| --- | ---: | ---: | --- |']
+             '| --- | ---: | ---: | --- |'])
     for profile, row in result.items():
-        lines.append(f'| {profile} | {row["accepted"]["self-check"]} | '
-                     f'{row["accepted"]["supplied-feedback"]} | {row["decision"]} |')
+        lines.append(f'| {profile} | {row["accepted"][control]} | '
+                     f'{row["accepted"][supplied]} | {row["decision"]} |')
     lines += ['', 'These two repetitions guide the next diagnostic; they establish no general success rate or definitive cause.',
               'This assisted development example cannot close M3 or replace any page-count failure.',
               'Only submitted patches and summaries are public. Native logs, initial reports, prompts and source snapshots stay local.',
@@ -419,7 +478,7 @@ if __name__ == '__main__':
     reporting = commands.add_parser('report')
     reporting.add_argument('--data', type=Path, required=True)
     for command in (preparing, grading, reporting):
-        command.add_argument('--study', choices=('M3-feedback', 'M3-construction', 'M3-page-count'), required=True)
+        command.add_argument('--study', choices=tuple(sorted(PROOF_DIAGNOSTICS)), required=True)
     args = parser.parse_args()
     if args.operation == 'controls':
         print(json.dumps(controls(args.fr.resolve(), args.output.resolve(), json.loads(args.native.read_text()), args.study)))

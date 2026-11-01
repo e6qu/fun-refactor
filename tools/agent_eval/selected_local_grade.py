@@ -9,7 +9,7 @@ import tempfile
 
 from . import selected_grading as grading
 from . import selected_local as local
-from .selected_plan import CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
+from .selected_plan import PROOF_STUDIES, PROOF_DIAGNOSTICS, CASE_DIRECTORIES, PROFILE_PATHS, ROOT, TASK_PATHS, encoded, prepare, require
 
 CORE_FILES = (
     'tools/agent_eval/selected_tasks.py', 'tools/agent_eval/comparison_grade.py',
@@ -25,7 +25,7 @@ CORE_FILES = (
 
 
 def core_digest(milestone):
-    require(milestone in {'M1', 'M2', 'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'}, 'choose an explicit checker study')
+    require(milestone in CASE_DIRECTORIES, 'choose an explicit checker study')
     paths = [ROOT / name for name in CORE_FILES] + list((ROOT / 'sdk/python/src').rglob('*.py'))
     if milestone == 'M2':
         paths += [ROOT / 'tools/agent_eval' / name for name in (
@@ -38,7 +38,7 @@ def core_digest(milestone):
         paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile',
                   ROOT / 'tests/agent-eval/regex/workspace.tar.gz',
                   ROOT / 'tests/agent-eval/regex/Cargo.lock']
-    elif milestone in {'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'}:
+    elif milestone in PROOF_STUDIES:
         paths += [ROOT / 'tools/agent_eval' / name for name in (
             'proof_writing_tasks.py', 'proof_writing_controls.py', 'proof_writing_runtime.py',
             'proof_writing_collect.py', 'proof_writing_results.py', 'selected_grade_probe.py',
@@ -49,7 +49,7 @@ def core_digest(milestone):
         paths += [path for path in (directory / 'fixtures').rglob('*') if path.is_file()]
         paths += list((directory / 'controls').glob('*.lean'))
         paths += [ROOT / 'tests/agent-eval/selected-agents/Grader.Dockerfile']
-        if milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'}:
+        if milestone in PROOF_DIAGNOSTICS:
             paths += [ROOT / 'tools/agent_eval/proof_feedback.py']
             paths += [ROOT / '.github/workflows/proof-feedback.yml']
             paths += [ROOT / '.github/workflows/refinement-evidence.yml']
@@ -67,7 +67,7 @@ def verify(summary, milestone):
     require(summary['task_bindings'] == expected['bindings'], 'public task requirements differ')
     require(summary['core_checker_sha256'] == core_digest(milestone), 'independent task checks changed after collection')
     require(summary['native_inputs'] == local.identity()['native_inputs'], 'fr source differs from the measured source')
-    if milestone in {'M2', 'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'}:
+    if milestone in PROOF_STUDIES | {'M2'}:
         require(summary['limits'] == local.LIMITS and summary['provider_request_cap_enforced'] is False and
                 summary['token_cap_enforced'] is False, 'retain the actual limits and unavailable token/request caps')
     rows = summary['attempts']
@@ -79,7 +79,7 @@ def verify(summary, milestone):
         if supplied['native_status'] != 'unstarted':
             require(supplied['actual_cost'] is None, 'no observed account charges were collected by this CLI study')
             require(supplied['patch_file'] in {None, 'patches/' + supplied['id'] + '.patch'}, 'unsafe public patch path')
-            if milestone in {'M2', 'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'} and supplied['native_status'] == 'completed':
+            if milestone in PROOF_STUDIES | {'M2'} and supplied['native_status'] == 'completed':
                 require(0 <= supplied['total_seconds'] <= local.LIMITS['wall_seconds'] and
                         supplied['stop_reason'] is None and not supplied['complete_attempt_deadline_missed'],
                         'a stopped or late native attempt must remain failed')

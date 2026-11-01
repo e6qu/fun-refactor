@@ -12,7 +12,7 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
-**The full comparison remains paused. All three small diagnostics are closed and independently checked.**
+**The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
 Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.
 Keep the diagnostic's original source, checker and input identities. Do not rerun its closed slots.
@@ -51,12 +51,16 @@ The [rebuilt-reader replay](../tests/agent-eval/proof-page-count/reader-control-
 The [manual error review](../tests/agent-eval/proof-page-count/draft-error-review.json) separates redundant introductions, wrong assumption grouping and missing division facts.
 Its final manual control proves the unchanged claim. It is neither an agent success nor a timing comparison.
 Before another paid diagnostic, freeze a prediction about finding and using those facts; keep the completed proof out of the agent inputs.
+The [division-fact protocol](../tests/agent-eval/proof-division-facts/README.md) compares selecting declarations with receiving their exact types.
+It has eight balanced slots, unchanged 150-second limits and protected handouts.
+No slots have started. Hosted qualification must pass before inputs are frozen or clients run.
 
 The requested [team workflow](team-solve.md) uses fresh local Luna, GLM and Kimi sessions with explicit file handoffs.
 The [Python pilot](../tests/agent-eval/team-solve/README.md) passed eight cases in 249.9 seconds across five CLI sessions.
 It has no solo baseline, and no role invoked fr. The actual number of provider requests is unknown.
 The runner now supports a single session, an all-Luna team and the mixed team with explicit complete-run budgets.
-Nineteen focused controls pass locally; the latest code still needs its complete hosted CI check.
+Nineteen workflow controls passed the hosted documentation gate.
+Complete hosted CI remains required before readiness.
 No paid comparison of those conditions has run. Team results cannot close the M3 solo requirements.
 
 Existing native repairs include parameterized local Lean lemmas and warning rejection in submitted drafts.

@@ -10,13 +10,17 @@ CASE_DIRECTORIES = {'M1': DIRECTORY, 'M2': Path('tests/agent-eval/project-edits'
                     'M3': Path('tests/agent-eval/proof-writing'),
                     'M3-feedback': Path('tests/agent-eval/proof-feedback'),
                     'M3-construction': Path('tests/agent-eval/proof-construction'),
-                    'M3-page-count': Path('tests/agent-eval/proof-page-count')}
+                    'M3-page-count': Path('tests/agent-eval/proof-page-count'),
+                    'M3-facts': Path('tests/agent-eval/proof-division-facts')}
+PROOF_DIAGNOSTICS = frozenset({'M3-feedback', 'M3-construction', 'M3-page-count', 'M3-facts'})
+PROOF_STUDIES = PROOF_DIAGNOSTICS | {'M3'}
 PROFILE_PATHS = {'M1': DIRECTORY / 'profiles.json', 'M2': DIRECTORY / 'profiles.json',
                  'M3': CASE_DIRECTORIES['M3'] / 'profiles.json',
                  'M3-feedback': CASE_DIRECTORIES['M3-feedback'] / 'profiles.json',
                  'M3-construction': CASE_DIRECTORIES['M3'] / 'profiles.json',
-                 'M3-page-count': CASE_DIRECTORIES['M3'] / 'profiles.json'}
-TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count'} else 'tasks.json')
+                 'M3-page-count': CASE_DIRECTORIES['M3'] / 'profiles.json',
+                 'M3-facts': CASE_DIRECTORIES['M3'] / 'profiles.json'}
+TASK_PATHS = {name: path / ('requirements.json' if name in {'M3-construction', 'M3-page-count', 'M3-facts'} else 'tasks.json')
               for name, path in CASE_DIRECTORIES.items()}
 
 
@@ -37,20 +41,21 @@ def prepare(root, milestone):
     paths['tasks.json'] = TASK_PATHS[milestone]
     documents = {name: json.loads((root / path).read_text()) for name, path in paths.items()}
     profiles, tasks = documents['profiles.json'], documents['tasks.json']
-    if milestone in {'M3-construction', 'M3-page-count'}:
+    if milestone in {'M3-construction', 'M3-page-count', 'M3-facts'}:
         require(tasks['profiles_file'] == '../proof-writing/profiles.json' and
                 tasks['profiles'] == ['opencode2-glm-flash', 'opencode2-kimi-k3'], 'construction profiles changed')
         profiles = {name: profiles[name] for name in tasks['profiles']}
-    expected_profiles = ({'opencode2-glm-flash', 'opencode2-kimi-k3'} if milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'} else
+    expected_profiles = ({'opencode2-glm-flash', 'opencode2-kimi-k3'} if milestone in PROOF_DIAGNOSTICS else
                          {'codex-luna-fast', 'opencode2-glm-flash', 'opencode2-kimi-k3'})
     require(set(profiles) == expected_profiles, 'the experiment requires its exact selected profiles')
     expected_tasks = {'M1': {'boltons-rename', 'unicode-dice', 'access-proof'},
                       'M2': {'rust-parameter', 'typescript-alias', 'regex-escape-len', 'python-invoice'},
                       'M3': {'access-rust', 'page-count', 'fits-window'},
                       'M3-feedback': {'division-repair'}, 'M3-construction': {'scaled-total'},
-                      'M3-page-count': {'page-count'}}[milestone]
+                      'M3-page-count': {'page-count'}, 'M3-facts': {'division-facts'}}[milestone]
     require(set(tasks['tasks']) == expected_tasks, milestone + ' requires its fixed tasks')
     expected_setups = (['self-check', 'supplied-feedback'] if milestone == 'M3-feedback' else
+                       ['select-facts', 'supplied-declarations'] if milestone == 'M3-facts' else
                        ['fr'] if milestone in {'M3-construction', 'M3-page-count'} else ['files', 'fr'])
     require(tasks['repetitions'] == 2 and tasks['setups'] == expected_setups,
             'the study requires its declared repetitions and conditions')
@@ -65,7 +70,7 @@ def prepare(root, milestone):
             provider, model = ({'opencode2-glm-flash': ('zai-coding-plan', 'glm-5.3-flash'),
                                 'opencode2-kimi-k3': ('kimi-code-plan-global', 'k3')})[name]
             variant = {'M1': 'high', 'M2': 'high', 'M3': 'low', 'M3-feedback': 'low',
-                       'M3-construction': 'low', 'M3-page-count': 'low'}[milestone]
+                       'M3-construction': 'low', 'M3-page-count': 'low', 'M3-facts': 'low'}[milestone]
             require(profile == {'client': 'opencode2', 'model': {'providerID': provider, 'id': model, 'variant': variant}},
                     'OpenCode2 provider, model and reasoning must match the selected profile')
     attempts = []
@@ -79,11 +84,11 @@ def prepare(root, milestone):
                         'position': position + 1, 'status': 'unstarted', 'outcome': None,
                         'usage': None, 'cost': None, 'fr_contribution': None})
     bound_paths = list(paths.values())
-    if milestone in {'M2', 'M3', 'M3-feedback', 'M3-construction', 'M3-page-count'}:
+    if milestone in PROOF_STUDIES | {'M2'}:
         bound_paths += [case_directory / 'checkers.json']
         if milestone == 'M3':
             bound_paths += [case_directory / 'cases.json']
-        if milestone in {'M3-feedback', 'M3-construction', 'M3-page-count'}:
+        if milestone in PROOF_DIAGNOSTICS:
             bound_paths += [path.relative_to(root) for path in (root / case_directory / 'controls').glob('*.lean')]
         bound_paths += [path.relative_to(root) for path in sorted((root / case_directory / 'fixtures').rglob('*'))
                         if path.is_file()]
@@ -99,6 +104,9 @@ def prepare(root, milestone):
     if milestone in {'M3-construction', 'M3-page-count'}:
         require(tasks['attempts'] == expected_count == 4 and tasks['client_finish_seconds'] == 10,
                 'construction needs exactly four attempts and the original finishing reserve')
+    if milestone == 'M3-facts':
+        require(tasks['attempts'] == expected_count == 8 and tasks['client_finish_seconds'] == 10,
+                'fact selection needs eight attempts and the original finishing reserve')
     require(len(attempts) == expected_count and len({row['id'] for row in attempts}) == expected_count,
             milestone + ' needs all ' + str(expected_count) + ' distinct attempts')
     return {**result, 'sha256': hashlib.sha256(encoded(result)).hexdigest()}

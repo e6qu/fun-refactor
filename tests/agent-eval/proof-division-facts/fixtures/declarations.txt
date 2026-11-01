@@ -1,0 +1,4 @@
+Int.mul_le_mul_of_nonneg_right {a b c : Int} (h₁ : a ≤ b) (h₂ : 0 ≤ c) : a * c ≤ b * c
+Int.tdiv_nonneg {a b : Int} (Ha : 0 ≤ a) (Hb : 0 ≤ b) : 0 ≤ a.tdiv b
+Int.tmod_add_mul_tdiv (a b : Int) : a.tmod b + b * a.tdiv b = a
+Int.tmod_nonneg {a : Int} (b : Int) : 0 ≤ a → 0 ≤ a.tmod b

@@ -1,0 +1,30 @@
+{
+  "purpose": "Distinguish choosing current facts for truncating division from applying their declarations; this is not an M3 completion comparison",
+  "tasks": {
+    "division-facts": {
+      "request": "Write proof steps for the one fixed Lean theorem. For nonnegative a and positive b, the quotient plus remainder must be at most a. For example, eleven divided by five gives quotient two and remainder one; their sum three is at most eleven. The theorem starts without a proof. Read .fr/declarations.txt: one condition supplies library declarations, the other requires selecting facts from the same installed library. Keep that handout, source, model, theorem, assumptions, package settings and proof markers unchanged. Use fr to check your tactics and save the accepted proof. Review the diff, run the supplied package check, deliver git diff --binary HEAD in change.patch and finish. This proves the mathematical model; the connection to Rust execution remains unproved."
+    }
+  },
+  "profiles_file": "../proof-writing/profiles.json",
+  "profiles": ["opencode2-glm-flash", "opencode2-kimi-k3"],
+  "repetitions": 2,
+  "setups": ["select-facts", "supplied-declarations"],
+  "attempts": 8,
+  "limits": {
+    "wall_seconds": 150,
+    "rss_bytes": 805306368,
+    "disk_bytes": 536870912,
+    "cpu_limit_seconds": 75,
+    "transcript_bytes": 1048576,
+    "parallel_attempts": 1
+  },
+  "client_finish_seconds": 10,
+  "decisions": {
+    "2,0": "Test better selection of current facts for the modeled operation; this diagnostic alone cannot establish complete page-count success",
+    "2,2": "The small case does not reproduce the full-task obstacle; inspect the remaining branches and delivery",
+    "0,0": "Inspect applying facts and delivery; supplying declarations alone did not solve the problem",
+    "0,2": "Inspect whether the supplied declarations obstruct the argument",
+    "mixed": "Inconclusive; preserve all outcomes and inspect actual actions before choosing another question"
+  },
+  "publication": "Submitted patches and reviewed summaries only; prompts, native records, handoffs and agent drafts stay local"
+}

@@ -213,6 +213,19 @@ Then review the first unresolved proof or delivery step and the task requirement
 Do not assume that another wording change will make the complete page-count proof fit the existing limit.
 The four new records stay separate from the 335 M3 outcomes and twelve earlier diagnostic outcomes.
 
+### Next diagnostic: select current facts or apply supplied declarations
+
+The [eight-slot protocol](../tests/agent-eval/proof-division-facts/README.md) uses a smaller fixed division claim.
+Both conditions have the same task, fr, instructions, library and complete 150-second deadline.
+Only one condition receives four current declaration types; neither receives a proof.
+This distinguishes selecting suitable declarations from applying their types on a development example.
+It does not isolate every obstacle in the complete page-count proof.
+
+The runner checks the declarations against pinned Lean output and protects each condition's handout.
+Changed settings, late successes, missing checks and damaged handouts remain failures.
+No calls have started. Hosted checker qualification must pass before freezing all eight slots.
+The protocol fixes separate per-agent decisions, including harm, mixed outcomes and invalid execution.
+
 Broader comparisons resume after a diagnostic supports a concrete change and the relevant regression checks pass.
 Record each experiment's source and input hashes, result, decision and next question before starting another cycle.
 Publish only patches and summaries. Keep native logs, prompts, drafts and account data local.

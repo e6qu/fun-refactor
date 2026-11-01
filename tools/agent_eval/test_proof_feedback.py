@@ -178,7 +178,7 @@ class ProofFeedbackTests(unittest.TestCase):
                     (0, 0): 'diagnostic comprehension', (0, 2): 'supplied feedback obstructs'}
         for supplied in (0, 1, 2):
             for self_check in (0, 1, 2):
-                result = feedback.decisions(self.rows(supplied, self_check))
+                result = feedback.decisions(self.rows(supplied, self_check), milestone='M3-feedback')
                 for profile in result:
                     self.assertIn(expected[(supplied, self_check)] if (supplied, self_check) in expected else 'Inconclusive',
                                   result[profile]['decision'])
@@ -189,17 +189,17 @@ class ProofFeedbackTests(unittest.TestCase):
                          {'independent_check': {'patch_accepted': False}}):
             rows = self.rows(2, 2); rows[0].update(mutation)
             with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, 'remains failed'):
-                feedback.decisions(rows)
+                feedback.decisions(rows, milestone='M3-feedback')
 
     def test_missing_reordered_or_relabeled_outcomes_refuse(self):
         original = self.rows(2, 2)
         for rows in (original[:-1], list(reversed(original)),
                      [{**row, 'setup': 'supplied-feedback'} for row in original]):
             with self.assertRaises(ValueError):
-                feedback.decisions(rows)
+                feedback.decisions(rows, milestone='M3-feedback')
         rows = copy.deepcopy(original); rows[0]['total_seconds'] = float('nan')
         with self.assertRaisesRegex(ValueError, 'finite nonnegative'):
-            feedback.decisions(rows)
+            feedback.decisions(rows, milestone='M3-feedback')
 
     def test_broken_execution_cannot_become_a_comprehension_conclusion(self):
         for mutation in ({'feedback_observations': {'execution_validity': 'service-failed'}},
@@ -207,7 +207,7 @@ class ProofFeedbackTests(unittest.TestCase):
                          {'collection_error_recorded': True}, {'checking_input_changes': ['.fr/checks.json']},
                          {'stop_reason': 'rss_bytes'}, {'suspended_seconds': 2}):
             rows = self.rows(0, 0); rows[0].update(mutation)
-            result = feedback.decisions(rows)
+            result = feedback.decisions(rows, milestone='M3-feedback')
             affected = result[rows[0]['profile']]
             self.assertFalse(affected['execution_usable'])
             self.assertIn('experiment execution', affected['decision'])
@@ -240,8 +240,11 @@ class ProofFeedbackTests(unittest.TestCase):
 
     def test_controller_charges_initial_check_to_both_conditions_and_changes_only_visibility(self):
         prompts = {}
-        for milestone, condition in (('M3-feedback', 'self-check'), ('M3-feedback', 'supplied-feedback'),
-                                     ('M3-construction', 'fr'), ('M3-page-count', 'fr')):
+        for milestone, condition, handout_change in (
+                ('M3-feedback', 'self-check', 'none'), ('M3-feedback', 'supplied-feedback', 'none'),
+                ('M3-construction', 'fr', 'none'), ('M3-page-count', 'fr', 'none'),
+                ('M3-facts', 'select-facts', 'none'), ('M3-facts', 'supplied-declarations', 'none'),
+                ('M3-facts', 'supplied-declarations', 'edit'), ('M3-facts', 'select-facts', 'delete')):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve(); original = root / 'original'; original.mkdir()
                 (original / 'source.rs').write_text('pub fn quotient(a:i64,b:i64)->i64 { a / b }\n')
@@ -279,6 +282,13 @@ class ProofFeedbackTests(unittest.TestCase):
                     self.assertEqual(kwargs['transcript_bytes'], local.LIMITS['transcript_bytes'] -
                                      (len(initial.encode()) if milestone == 'M3-feedback' else 0))
                     prompts[condition] = argv[-1]
+                    if milestone == 'M3-facts':
+                        handout = workspace / '.fr/declarations.txt'
+                        self.assertEqual('Int.tdiv_nonneg' in handout.read_text(), condition == 'supplied-declarations')
+                        if handout_change == 'edit':
+                            handout.write_text('changed\n')
+                        elif handout_change == 'delete':
+                            handout.unlink()
                     session = argv[argv.index('--session') + 1]
                     stdout.write((json.dumps({'type': 'step_finish', 'sessionID': session,
                         'part': {'tokens': {}, 'cost': 0}}) + '\n').encode())
@@ -306,9 +316,14 @@ class ProofFeedbackTests(unittest.TestCase):
                 else:
                     self.assertNotIn('initial_check_seconds', record)
                 self.assertEqual(record['elapsed_seconds'], 8 if milestone == 'M3-feedback' else 5)
-                self.assertEqual(record['checking_input_changes'], [])
+                self.assertEqual(record['checking_input_changes'],
+                                 [] if handout_change == 'none' else ['.fr/declarations.txt'])
+                if milestone == 'M3-facts':
+                    self.assertIn('.fr/declarations.txt', record['provided_checking_inputs'])
+                    self.assertEqual(record['status'], 'completed' if handout_change == 'none' else 'failed')
                 shutil.rmtree(Path(record['project']).parent.parent)
         self.assertEqual(prompts['self-check'], prompts['supplied-feedback'].split('\n\nInitial fr rejection report')[0])
+        self.assertEqual(prompts['select-facts'], prompts['supplied-declarations'])
 
 
 if __name__ == '__main__':

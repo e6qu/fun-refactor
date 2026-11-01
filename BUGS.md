@@ -63,11 +63,11 @@ Its final manual control proves the unchanged claim. GLM and Kimi still lack com
 
 The current CI repair also separates the slow formal-kernel tests from the other native tests.
 Eight workers retain every test exactly once and keep the existing 15-minute deadline.
-The complete CI run must confirm that this resolves the overloaded job.
+All eight native groups and four Python SDK groups passed in [CI](https://github.com/e6qu/fun-refactor/actions/runs/41312682461).
 One SDK runner also exhausted disk while installing test tools, before tests started.
 Native setup declares a 16 GiB reserve and removes unused Android and .NET SDKs only when it needs space.
 It logs free space before and after, then stops if the reserve remains unmet.
-The replacement CI run must confirm enough space for the unchanged checks.
+These native and SDK checks passed after the disk repair; the remaining independent CI checks continue.
 The study checkout also omitted a newly linked result manifest.
 It now selects evidence paths from the guides alongside the audit catalogs.
 A small checkout control restores the linked manifest while leaving its source archive out.

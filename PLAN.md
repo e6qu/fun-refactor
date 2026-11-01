@@ -96,9 +96,10 @@ The next tasks stay inside this milestone PR:
    The [exact replay](tests/agent-eval/proof-page-count/reader-control-summary.json) now reaches Lean and still rejects the original draft.
    The [error review](tests/agent-eval/proof-page-count/draft-error-review.json) separates earlier failures from the remaining arithmetic goals.
    The specification and original agent outcomes stay unchanged.
-5. Preserve the passing manual control: division facts close the unchanged claim; this is not an agent success.
-   Freeze a small diagnostic of finding and using these facts, without supplying the completed proof.
-   Freeze its prediction, independent checks and decision rule first.
+5. Qualify the [eight-attempt division-fact diagnostic](tests/agent-eval/proof-division-facts/README.md).
+   Both conditions keep the same task, fr and instructions; one supplies four current library declaration types.
+   Check handout preservation, exact types, rejected patches and complete delivery before freezing inputs or making calls.
+   Use the recorded per-agent decision rules; supply no completed proof.
    The page-count prediction failed, so the full comparison stays paused.
    Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
    Preserve the 335 M3 outcomes and sixteen separate diagnostic outcomes.
