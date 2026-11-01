@@ -1,4 +1,7 @@
 mod proof_claim;
+mod proof_state;
+
+pub use proof_state::{proof_state, ProofState, ProofStateStatus};
 pub mod refinement;
 pub mod retained;
 
@@ -519,6 +522,7 @@ pub struct ProofClaimPart {
 
 #[derive(Debug, Serialize)]
 pub struct ProofTaskActions {
+    pub inspect: Vec<String>,
     pub check: Vec<String>,
     pub apply: Vec<String>,
     pub verify: Vec<String>,
@@ -560,6 +564,7 @@ pub struct ProofDiagnosticLocation {
 
 #[derive(Debug, Serialize)]
 pub struct ProofAttemptActions {
+    pub inspect: Vec<String>,
     pub revise: Vec<String>,
     pub apply: Option<Vec<String>>,
     pub verify: Vec<String>,
@@ -1595,6 +1600,7 @@ pub fn proof_task(
     });
     let object_digest = crate::project::object_merkle(&core)?;
     let actions = ProofTaskActions {
+        inspect: proof_inspection_action(target, "<PROOF_FILE>", token_limit),
         check: vec![
             "spec".into(),
             "proof-check".into(),
@@ -1638,6 +1644,22 @@ pub fn proof_task(
             measurement: "serialized_utf8_bytes",
         },
     })
+}
+
+fn proof_inspection_action(target: &str, proof: &str, token_limit: usize) -> Vec<String> {
+    vec![
+        "spec".into(),
+        "proof-state".into(),
+        target.into(),
+        "--from".into(),
+        proof.into(),
+        "--at".into(),
+        "<LINE:COLUMN>".into(),
+        "--timeout-seconds".into(),
+        "<SECONDS>".into(),
+        "--token-limit".into(),
+        token_limit.to_string(),
+    ]
 }
 
 pub fn proof_check(
@@ -1867,6 +1889,7 @@ fn check_prepared_proof(
         })
         .transpose()?;
     let actions = ProofAttemptActions {
+        inspect: proof_inspection_action(target, &proof_path.display().to_string(), token_limit),
         revise: vec![
             "spec".into(),
             "proof-check".into(),

@@ -12,6 +12,13 @@ The [retained-results report](roadmap-status.md) audits earlier claims; its A–
 Finish M3 on `milestone/complete-proof-authoring` in one complete PR.
 M1 and M2 have their merged comparisons. The [task guide](../tests/agent-eval/proof-writing/README.md) owns the fixed proof tasks and original records.
 
+The current addition in draft PR #591 is interactive proof authoring. `spec proof-state`
+reads Lean's actual goals at a draft cursor, including available assumptions and the original
+claim. It cannot issue a proof receipt; `closed-at-position` can describe only one solved branch.
+The shared [Lean skill](../skills/fr/references/lean.md) teaches the inspect/edit/check loop.
+Qualify its real branch transitions, complete-check requirement and examples on GitHub, then
+refresh affected evidence before treating the PR as CI-ready. No new agent outcomes are claimed.
+
 **The full comparison remains paused. Three small diagnostics are closed; the next is being qualified.**
 Use the [improvement method](agent-improvement.md) and [next tasks](../PLAN.md#next-work).
 Keep the old full-study controllers stopped. Do not restart an old full-comparison plan.

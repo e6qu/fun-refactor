@@ -563,7 +563,18 @@ def lean_workflow(exercise, root):
                       if "spec" in command]
     proof_examples += [(path, command) for command in commands(path)]
     for example_path, command in proof_examples:
-        if example_path.name == "SKILL.md" and "proof-check" in command:
+        if "proof-state" in command:
+            tactics = root / ".fr/proof-tactics"
+            tactics.write_text("skip\n")
+            state = exercise.example(root, example_path, command)
+            assert state["status"] == "goals" and state["acceptance"] == "not-checked"
+            assert len(state["goals"]) == 1 and "⊢" in state["goals"][0]
+            assert "value : Bool" in state["goals"][0]
+            assert state["draft_location"]["line"] == 1 and state["draft_location"]["column"] == 5
+            assert model.read_bytes() == original
+            tactics.write_text("rfl\n")
+            value = state
+        elif example_path.name == "SKILL.md" and "proof-check" in command:
             tactics = root / ".fr/proof-tactics"
             tactics.write_text("refine ?_\n")
             unfinished = exercise.example(root, example_path, command)

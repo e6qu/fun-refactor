@@ -104,6 +104,9 @@ This checkout includes project skills for [Claude Code](.claude/skills/fr)
 and [Codex and OpenCode](.agents/skills/fr).
 Both entries point to the same maintained [fr skill](skills/fr/SKILL.md), including its references.
 Put `fr` on the agent's `PATH`, then load the skill and follow [your first checked change](skills/fr/references/first-change.md).
+For proofs, read the [interactive Lean skill](skills/fr/references/lean.md) and follow the
+[complete access-rule lesson](docs/first-lean-proof.md#inspect-your-progress-after-each-step).
+It shows the current goal and available facts after each tactic, then checks the whole proof.
 For a request described by a name, see [prepare a change from a name](skills/fr/references/guide.md).
 
 To use the skill in another project, copy the complete `skills/fr` directory from the source tree or release archive.
@@ -262,6 +265,7 @@ fr --json spec plan src/lib.rs::allowed --property-from property.json
 fr --json spec scaffold --from formal-plan.json --write
 fr --json spec goals specs
 fr --json spec proof-task specs/FrSpecs/Model.lean::obligation
+fr --json spec proof-state specs/FrSpecs/Model.lean::obligation --from proof.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
 fr --json spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
 fr --json spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
 fr --json spec verify specs

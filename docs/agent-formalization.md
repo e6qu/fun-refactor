@@ -214,8 +214,23 @@ does not establish that an edited proof passed Lean. Keep the named proof-region
 
 `fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
 address. Its direct and calculation templates contain only positions for agent-written tactics.
-They do not contain a proof. The agent writes the proof file, then asks Lean to check it without a
-workspace mutation:
+They do not contain a proof. To work interactively, start `proof.lean` with `skip`
+(no `by`) and inspect after it:
+
+```sh
+fr --json spec proof-state specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean --at 1:5 --token-limit 4096 --timeout-seconds 30
+```
+
+The report contains the original `theorem`, current `goals` with available assumptions,
+`goal_id`, `proof_digest` and `draft_location`. Coordinates start at one and count Unicode
+characters. Inspect the end of each new step; before it, Lean can show the previous state.
+`actions.inspect` in task and attempt reports supplies the command with cursor and deadline slots.
+`goals` means work remains at that cursor. `closed-at-position` closes only that local branch;
+`no-tactic-at-position` asks you to move into a tactic. All states say `acceptance: "not-checked"`.
+The complete goal context is returned or the response ceiling fails explicitly.
+The [interactive lesson](first-lean-proof.md#inspect-your-progress-after-each-step) shows two branches.
+
+Replace `skip` with tactics that solve the actual goal, then check the whole draft without saving:
 
 ```sh
 printf 'rfl\n' > proof.lean

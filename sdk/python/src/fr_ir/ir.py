@@ -1770,7 +1770,7 @@ class ProofTask:
         contract = _exact_mapping(value["contract"], {
             "author", "format", "insertion_point", "normalization", "forbidden", "checker",
         }, "proof input contract")
-        actions = _exact_mapping(value["actions"], {"check", "apply", "verify"}, "proof task actions")
+        actions = _exact_mapping(value["actions"], {"inspect", "check", "apply", "verify"}, "proof task actions")
         budget = _byte_budget(value["token_budget"], "proof task budget")
         if contract["author"] != "agent":
             raise IrError("proof task author must be agent")
@@ -1871,7 +1871,8 @@ class ProofAttempt:
         if not isinstance(omitted, int) or isinstance(omitted, bool) or omitted < 0:
             raise IrError("proof diagnostics omitted count must be a non-negative integer")
         _byte_budget(value["token_budget"], "proof attempt budget")
-        actions = _exact_mapping(value["actions"], {"revise", "apply", "verify"}, "proof actions")
+        actions = _exact_mapping(value["actions"], {"inspect", "revise", "apply", "verify"}, "proof actions")
+        _string_vector(actions["inspect"], "proof inspect action")
         _string_vector(actions["revise"], "proof revise action")
         _string_vector(actions["verify"], "proof verify action")
         if actions["apply"] is not None:
@@ -1890,6 +1891,54 @@ class ProofAttempt:
 
     @classmethod
     def from_json(cls, text: str) -> ProofAttempt:
+        return cls.from_data(json.loads(text))
+
+    def to_data(self) -> dict[str, Any]:
+        return json.loads(json.dumps(self.data))
+
+
+@dataclass(frozen=True)
+class ProofState:
+    """Lean's current goals at a draft cursor; never a proof-acceptance receipt."""
+
+    data: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any) -> ProofState:
+        value = _exact_mapping(value, {
+            "operation", "target", "goal_id", "proof_digest", "checker", "theorem",
+            "draft_location", "status", "goals", "acceptance", "scope", "check", "token_budget",
+        }, "proof state")
+        if value["operation"] != "proof-state" or value["acceptance"] != "not-checked":
+            raise IrError("proof state is inspection and cannot accept a proof")
+        if not all(_is_digest(value[key]) for key in ("goal_id", "proof_digest")):
+            raise IrError("proof state identities must be canonical digests")
+        for key in ("target", "checker", "theorem", "scope"):
+            if not isinstance(value[key], str) or not value[key]:
+                raise IrError("proof state fields must be nonempty text")
+        goals = _string_vector(value["goals"], "proof state goals")
+        if any(not goal for goal in goals):
+            raise IrError("proof state goals cannot contain empty entries")
+        if value["status"] not in {"goals", "closed-at-position", "no-tactic-at-position"}:
+            raise IrError("unknown proof state status")
+        if bool(goals) != (value["status"] == "goals"):
+            raise IrError("proof state status contradicts its goals")
+        location = _exact_mapping(value["draft_location"], {"path", "line", "column", "source_excerpt"},
+                                  "proof state location")
+        if not isinstance(location["path"], str) or not location["path"]:
+            raise IrError("proof state location needs a path")
+        if any(type(location[key]) is not int or location[key] < 1 for key in ("line", "column")):
+            raise IrError("proof state cursor uses positive one-based coordinates")
+        if location["source_excerpt"] is not None and not isinstance(location["source_excerpt"], str):
+            raise IrError("proof state excerpt must be text or null")
+        check = _string_vector(value["check"], "proof state check action")
+        if check[:3] != ("spec", "proof-check", value["target"]):
+            raise IrError("proof state must direct complete acceptance to proof-check")
+        _byte_budget(value["token_budget"], "proof state budget")
+        return cls(json.loads(json.dumps(value)))
+
+    @classmethod
+    def from_json(cls, text: str) -> ProofState:
         return cls.from_data(json.loads(text))
 
     def to_data(self) -> dict[str, Any]:

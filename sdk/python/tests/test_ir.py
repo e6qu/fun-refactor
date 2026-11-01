@@ -18,6 +18,7 @@ from fr_ir.ir import (
     Expr,
     FormalPlan,
     ProofAttempt,
+    ProofState,
     ProofTask,
     PropertyProposition,
     PropertyTask,
@@ -54,6 +55,33 @@ def kinds(namespace):
 
 
 class TestIr:
+    def test_live_proof_state_never_substitutes_for_complete_acceptance(self):
+        target = "specs/Demo.lean::pair"
+        state = {
+            "operation": "proof-state", "target": target,
+            "goal_id": "a" * 64, "proof_digest": "b" * 64,
+            "checker": "leanprover/lean4:v4.28.0", "theorem": "P ∧ Q",
+            "draft_location": {"path": "draft.tactics", "line": 3, "column": 8,
+                               "source_excerpt": "  · exact hP"},
+            "status": "goals", "goals": ["case right\nhQ : Q\n⊢ Q"],
+            "acceptance": "not-checked", "scope": "Editor goals at this position",
+            "check": ["spec", "proof-check", target, "--from", "draft.tactics"],
+            "token_budget": {"limit": 4096, "used_upper_bound": 1100,
+                             "measurement": "serialized_utf8_bytes"},
+        }
+        assert ProofState.from_json(json.dumps(state)).to_data() == state
+        for status in ("closed-at-position", "no-tactic-at-position"):
+            closed = {**state, "status": status, "goals": []}
+            assert ProofState.from_data(closed).to_data() == closed
+        for mutation in (
+            {"acceptance": "accepted"}, {"status": "closed-at-position"},
+            {"goals": [""]}, {"status": "accepted"},
+            {"check": ["spec", "prove", target]}, {"receipt": "c" * 64},
+            {"draft_location": {**state["draft_location"], "line": 0}},
+        ):
+            with pytest.raises(IrError):
+                ProofState.from_data({**state, **mutation})
+
     def test_task_change_builder_mirrors_inline_reviewed_session(self):
         request = ProjectRequest("target", [
             "find", "render", "--signature", "--source", "--bytes", "2048",
@@ -188,6 +216,7 @@ class TestIr:
                 "claim": claim,
             }),
             "actions": {
+                "inspect": ["spec", "proof-state"],
                 "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
                 "verify": ["spec", "verify"],
             },
@@ -247,6 +276,7 @@ class TestIr:
             "diagnostics": [], "diagnostics_omitted": 0,
             "receipt": merkle_object_digest(receipt_core),
             "actions": {
+                "inspect": ["spec", "proof-state"],
                 "revise": ["spec", "proof-check"], "apply": ["spec", "prove"],
                 "verify": ["spec", "verify"],
             },

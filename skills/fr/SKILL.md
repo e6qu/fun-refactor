@@ -1,24 +1,14 @@
 ---
 name: fr
-description: Find code, refactor, check edits, and write Lean proofs.
+description: Find code, refactor, check edits, and interactively write or repair Lean proofs with fr.
 ---
 # Work with fr
 
-Tactics are proof steps. Find a claim:
-```sh
-fr --json spec goals specs --limit 8 --token-limit 4096
-```
-Copy `target` as `<LEAN_TARGET>`:
-```sh
-fr --json spec proof-task '<LEAN_TARGET>' --token-limit 4096
-```
-Read `claim.parts`: assumptions and conclusions.
-Start `.fr/proof-tactics` with `refine ?_` (no `by`) and check it now:
-```sh
-fr --json spec proof-check '<LEAN_TARGET>' --from .fr/proof-tactics --token-limit 4096
-```
-`passed` must be true to save: `fr --json spec prove '<LEAN_TARGET>' --from .fr/proof-tactics --write`.
-Do not overwrite `.fr/checks.json`. [Proofs](references/lean.md); [Arithmetic](references/lean-arithmetic.md).
+For edits read [Author](references/author.md); for discovery read [Explore](references/explore.md). Read omissions.
 
-[Author](references/author.md); [Explore](references/explore.md).
-Read omissions.
+For proofs read [Lean](references/lean.md); for comparisons and division read [Arithmetic](references/lean-arithmetic.md).
+Keep the claim, model and program fixed. Start `.fr/proof-tactics` with `skip` (no `by`). Inspect after it:
+```sh
+fr --json spec proof-state '<LEAN_TARGET>' --from .fr/proof-tactics --at 1:5 --token-limit 4096 --timeout-seconds 30
+```
+Edit, then inspect each step's goals and available facts. A closed branch is not an accepted proof: require `proof-check`'s `passed: true` before `prove --write`. Preserve `.fr/checks.json`.

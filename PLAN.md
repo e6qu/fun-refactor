@@ -80,6 +80,13 @@ This familiar case has no timing baseline and establishes no causal improvement.
 
 The next tasks stay inside this milestone PR:
 
+The immediate delivery is interactive proof authoring: `proof-state` must show the original
+claim, current assumptions, branch goals and precise draft position after each step. A solved
+branch must never count as an accepted whole proof. Ship the command, Python reader, real Lean
+branch tests, shared agent skill and step-by-step access example together in draft PR #591.
+Hosted checks must pass on the final commit; refresh reports whose recorded inputs change.
+Do not count the supplied examples as agent successes or start another paid comparison before qualification.
+
 1. Preserve the completed hosted M3 checks of local lemmas, warning rejection, dependencies and original submissions.
    All 36 rechecks agree with the retained outcomes. The final milestone gate correctly fails for the missing page-count proofs.
    Keep the [audit](tests/agent-eval/proof-writing/report-audit.json) of twelve complete reports and 480 attempts unchanged.

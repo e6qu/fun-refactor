@@ -772,6 +772,31 @@ enum SpecCommand {
         #[arg(long, default_value_t = 4096, value_name = "BYTES")]
         token_limit: usize,
     },
+    #[command(about = "Inspect Lean goals and available facts at a position in a proof draft.")]
+    ProofState {
+        #[arg(help = "Target as spec-path::obligation-name.")]
+        target: String,
+        #[arg(
+            long,
+            value_name = "PROOF",
+            help = "Tactics file without the leading `by`."
+        )]
+        from: PathBuf,
+        #[arg(
+            long,
+            value_name = "LINE:COLUMN",
+            help = "One-based line and Unicode character column, including the line end."
+        )]
+        at: String,
+        #[arg(long, value_name = "BYTES")]
+        token_limit: usize,
+        #[arg(
+            long,
+            value_name = "SECONDS",
+            help = "Shared deadline for dependencies and the Lean editor query (1..60)."
+        )]
+        timeout_seconds: u64,
+    },
     #[command(about = "Replace exactly one generated proof region with Lean tactics.")]
     Prove {
         #[arg(help = "Target as spec-path::obligation-name.")]
@@ -1288,6 +1313,13 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 from,
                 token_limit,
             } => cmd_spec_proof_check(cli, target, from, *token_limit),
+            SpecCommand::ProofState {
+                target,
+                from,
+                at,
+                token_limit,
+                timeout_seconds,
+            } => cmd_spec_proof_state(cli, target, from, at, *token_limit, *timeout_seconds),
             SpecCommand::Prove {
                 target,
                 from,
@@ -1602,6 +1634,60 @@ fn cmd_spec_proof_check(cli: &Cli, target: &str, from: &Path, token_limit: usize
         for diagnostic in &attempt.diagnostics {
             println!("{}: {}", diagnostic.severity, diagnostic.message);
         }
+    }
+    Ok(())
+}
+
+fn cmd_spec_proof_state(
+    cli: &Cli,
+    target: &str,
+    from: &Path,
+    at: &str,
+    token_limit: usize,
+    timeout_seconds: u64,
+) -> Result<()> {
+    let (line, column) = at
+        .split_once(':')
+        .context("proof cursor needs one-based LINE:COLUMN")?;
+    let at = (
+        line.parse::<usize>().context("invalid proof cursor line")?,
+        column
+            .parse::<usize>()
+            .context("invalid proof cursor column")?,
+    );
+    let root = workspace_root(cli);
+    let proof_path = if from.is_absolute() {
+        from.to_path_buf()
+    } else {
+        root.join(from)
+    };
+    let state =
+        crate::spec::proof_state(&root, target, &proof_path, at, token_limit, timeout_seconds)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&state)?);
+    } else {
+        println!(
+            "{} at {}:{}:{}",
+            state.target,
+            state.draft_location.path.display(),
+            at.0,
+            at.1
+        );
+        println!("Claim: {}", state.theorem);
+        match state.status {
+            crate::spec::ProofStateStatus::Goals => {
+                for (index, goal) in state.goals.iter().enumerate() {
+                    println!("\nGoal {}:\n{goal}", index + 1);
+                }
+            }
+            crate::spec::ProofStateStatus::ClosedAtPosition => {
+                println!("No goals in this branch at this position.")
+            }
+            crate::spec::ProofStateStatus::NoTacticAtPosition => {
+                println!("No tactic proof at this position.")
+            }
+        }
+        println!("Run proof-check on the complete draft before saving.");
     }
     Ok(())
 }
