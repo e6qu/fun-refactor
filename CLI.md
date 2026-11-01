@@ -708,6 +708,7 @@ fr spec goals [PATH...] [--goal DIGEST] [--limit COUNT] [--token-limit BYTES]
 
 fr spec proof-task SPEC::OBLIGATION [--token-limit BYTES]
 fr spec proof-state SPEC::OBLIGATION --from PROOF --at LINE:COLUMN --token-limit BYTES --timeout-seconds SECONDS
+
 fr spec proof-check SPEC::OBLIGATION --from PROOF [--token-limit BYTES]
 fr spec prove SPEC::OBLIGATION --from PROOF [--write]
 
