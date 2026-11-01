@@ -3,6 +3,13 @@ description: Pinned validators and language runtimes for Ubuntu 24.04 amd64 chec
 runs:
   using: composite
   steps:
+    - name: Reclaim unused runner SDKs before installing validation tools
+      shell: bash
+      run: |
+        set -euo pipefail
+        df -h "$GITHUB_WORKSPACE"
+        sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet
+        df -h "$GITHUB_WORKSPACE"
     - uses: ./.github/actions/zig-toolchain
     - name: Cache the exact Ubuntu validator packages
       id: validator-packages

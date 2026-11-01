@@ -64,6 +64,9 @@ Its final manual control proves the unchanged claim. GLM and Kimi still lack com
 The current CI repair also separates the slow formal-kernel tests from the other native tests.
 Eight workers retain every test exactly once and keep the existing 15-minute deadline.
 The complete CI run must confirm that this resolves the overloaded job.
+One SDK runner also exhausted disk while installing test tools, before tests started.
+Native setup now removes the image's unused Android and .NET SDKs and logs free space before and after.
+The replacement CI run must confirm enough space for the unchanged checks.
 
 Also check the [open issues](https://github.com/e6qu/fun-refactor/issues) before reporting one. This list cannot establish that the tool has no bugs.
 
