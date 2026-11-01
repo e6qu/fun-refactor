@@ -182,7 +182,9 @@ These are different obstacles; a lower command count or an earlier check does no
 
 One GLM attempt also hit another reader defect. For example, `⟨⟨a, b⟩, c⟩` unpacks grouped assumptions.
 Lean accepts a minimal program with these nested patterns; the measured fr rejects the same source.
-The complete draft may still have proof errors. The syntax control cannot reclassify its timeout or establish why every attempt failed.
+A [direct Lean check](../tests/agent-eval/proof-page-count/direct-lean-control-summary.json) confirms that this exact draft still has proof errors.
+It tries to introduce an assumption twice, uses an unavailable tactic and leaves the final example unfinished.
+The syntax control cannot reclassify its timeout or establish why every attempt failed.
 
 Repair and check the nested-pattern reader before another paid study.
 Then review the first unresolved proof or delivery step and the task requirements.

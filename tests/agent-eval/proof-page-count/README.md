@@ -20,6 +20,9 @@ Unavailable stage times remain unknown.
 For example, `⟨⟨a, b⟩, c⟩` unpacks grouped assumptions.
 A separate minimal program confirms that Lean accepts these nested patterns while the measured fr rejects them.
 That establishes a reader defect. It does not establish that the complete submitted drafts would otherwise pass.
+A [direct Lean check of the exact affected draft](direct-lean-control-summary.json) confirms independent proof errors.
+The draft tries to introduce an assumption that is already present, uses an unavailable tactic and leaves the final example unfinished.
+Fixing the reader should expose those errors through fr; it cannot count as a successful proof.
 The recursive-pattern repair comes after these frozen attempts and cannot reclassify them.
 
 The full comparison stays paused. Fix and check the reader, then review the first unresolved proof or delivery step before another paid study.

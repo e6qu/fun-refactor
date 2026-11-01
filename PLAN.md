@@ -94,7 +94,7 @@ The next tasks stay inside this milestone PR:
 4. Finish the reader repair for nested assumption patterns, such as `⟨⟨a, b⟩, c⟩`.
    Lean accepts the minimal control while the measured fr rejects it.
    Generate the recursive reader on GitHub. Check malformed patterns, later declarations and native proof submissions.
-   Replay the affected draft without model calls; preserve its original failed outcome.
+   Replay the affected draft with rebuilt fr; preserve its original failed outcome.
 5. Review the first unresolved proof or delivery step before selecting another paid diagnostic.
    The page-count prediction failed, so the full comparison stays paused.
    Keep the same claims and 150-second benchmark; the complete page-count task still lacks accepted proofs from both agents.
