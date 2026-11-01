@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-COUNTS = {"native": 6, "sdk": 4}
+COUNTS = {"native": 8, "sdk": 4}
 SDK_WRAPPER = "python_sdk_tests_pass_with_the_declared_test_extra"
 
 
@@ -56,8 +56,14 @@ def native_inventory():
 
 def run_native(index, directory):
     inventory = native_inventory()
-    weights = json.loads((ROOT / "tools/ci-test-durations.json").read_text())["seconds"]
-    selected = partition(list(inventory), COUNTS["native"], weights)[index]
+    timing = json.loads((ROOT / "tools/ci-test-durations.json").read_text())
+    isolated = timing["native_isolated_targets"]
+    if (not isinstance(isolated, list) or len(isolated) != len(set(isolated))
+            or not set(isolated) <= inventory.keys() or len(isolated) >= COUNTS["native"]):
+        raise ValueError("isolated native targets must exist and leave room for the remaining inventory")
+    assignments = [[target] for target in isolated] + partition(
+        sorted(inventory.keys() - set(isolated)), COUNTS["native"] - len(isolated), timing["seconds"])
+    selected = assignments[index]
     if not selected:
         raise ValueError("empty native shard")
     command = ["cargo", "test", "--locked", "--no-fail-fast"]

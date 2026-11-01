@@ -88,6 +88,7 @@ class ShardTests(unittest.TestCase):
         failure = subprocess.CalledProcessError(101, ["cargo", "test"])
         with tempfile.TemporaryDirectory() as temp, \
                 patch.object(shards, "native_inventory", return_value=inventory), \
+                patch.object(Path, "read_text", return_value=json.dumps({"native_isolated_targets": [], "seconds": {}})), \
                 patch.object(shards.subprocess, "run", side_effect=failure) as run, \
                 patch.object(shards, "record") as record:
             with self.assertRaises(subprocess.CalledProcessError):
@@ -96,6 +97,27 @@ class ShardTests(unittest.TestCase):
             self.assertIn("--no-fail-fast", command[:command.index("--")])
             self.assertTrue(run.call_args.kwargs["check"])
             record.assert_not_called()
+
+    def test_heavy_proof_target_runs_alone_and_every_other_target_still_runs_once(self):
+        inventory = {name: ['--test', name.removeprefix('test:')] for name in
+                     ['test:formal_kernel', *[f'test:case{i}' for i in range(40)]]}
+        seen = []
+        for index in range(shards.COUNTS['native']):
+            with patch.object(shards, 'native_inventory', return_value=inventory), \
+                    patch.object(shards.subprocess, 'run'), patch.object(shards, 'record') as record:
+                shards.run_native(index, Path('unused'))
+            selected = record.call_args.args[-1]
+            if index == 0:
+                self.assertEqual(selected, ['test:formal_kernel'])
+            else:
+                self.assertNotIn('test:formal_kernel', selected)
+            seen.extend(selected)
+        self.assertEqual(sorted(seen), sorted(inventory))
+
+    def test_missing_isolated_target_fails_instead_of_omitting_it(self):
+        with patch.object(shards, 'native_inventory', return_value={'test:other': ['--test', 'other']}), \
+                self.assertRaisesRegex(ValueError, 'isolated native targets'):
+            shards.run_native(0, Path('unused'))
 
     def evidence(self, directory):
         for kind, count in shards.COUNTS.items():
