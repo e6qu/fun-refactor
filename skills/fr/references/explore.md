@@ -2,8 +2,9 @@
 
 For report pages, use [Disclosure](disclosure.md).
 
-For a one-file lookup, copy its path as `<KNOWN_FILE>` and pass it as `-C`.
-`--in` filters project results; it does not narrow the initial scan.
+For a one-file lookup, pass its path as `-C` (`<KNOWN_FILE>` below).
+This excludes other files and their callers. Use the project root for cross-file work.
+`--in` filters matches; it does not narrow the scan.
 
 A signature lists arguments. Copy each returned code handle unchanged.
 
