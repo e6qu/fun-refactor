@@ -65,7 +65,8 @@ The current CI repair also separates the slow formal-kernel tests from the other
 Eight workers retain every test exactly once and keep the existing 15-minute deadline.
 The complete CI run must confirm that this resolves the overloaded job.
 One SDK runner also exhausted disk while installing test tools, before tests started.
-Native setup now removes the image's unused Android and .NET SDKs and logs free space before and after.
+Native setup declares a 16 GiB reserve and removes unused Android and .NET SDKs only when it needs space.
+It logs free space before and after, then stops if the reserve remains unmet.
 The replacement CI run must confirm enough space for the unchanged checks.
 The study checkout also omitted a newly linked result manifest.
 It now selects evidence paths from the guides alongside the audit catalogs.

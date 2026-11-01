@@ -3,13 +3,22 @@ description: Pinned validators and language runtimes for Ubuntu 24.04 amd64 chec
 runs:
   using: composite
   steps:
-    - name: Reclaim unused runner SDKs before installing validation tools
+    - name: Reserve 16 GiB for native validation tools and tests
       shell: bash
       run: |
         set -euo pipefail
+        required_free_bytes=$((16 * 1024 * 1024 * 1024))
         df -h "$GITHUB_WORKSPACE"
-        sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet
+        available_free_bytes="$(df --block-size=1 --output=avail "$GITHUB_WORKSPACE" | sed -n '2p')"
+        if (( available_free_bytes < required_free_bytes )); then
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet
+        fi
         df -h "$GITHUB_WORKSPACE"
+        available_free_bytes="$(df --block-size=1 --output=avail "$GITHUB_WORKSPACE" | sed -n '2p')"
+        if (( available_free_bytes < required_free_bytes )); then
+          echo 'Native checks require 16 GiB free after removing unused SDKs.' >&2
+          exit 1
+        fi
     - uses: ./.github/actions/zig-toolchain
     - name: Cache the exact Ubuntu validator packages
       id: validator-packages
